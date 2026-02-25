@@ -28,6 +28,7 @@ import {
   Cog,
   RefreshCw,
   Mail,
+  MapPin,
 } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { cn } from "@/lib/utils";
@@ -74,6 +75,7 @@ const allSidebarItems: SidebarItem[] = [
   },
   { href: "/admin/totals", label: "Totals", icon: Calculator, roles: ["admin"] },
   { href: "/admin/turo-trips", label: "Turo Trips", icon: Mail, roles: ["admin"] },
+  { href: "/admin/bouncie-devices", label: "Bouncie Devices", icon: MapPin, roles: ["admin"] },
   { href: "/admin/operations", label: "Operations", icon: Cog, roles: ["admin"] },
   { href: "/admin/maintenance", label: "Car Maintenance", icon: Wrench, roles: ["admin"] },
   { href: "/admin/forms", label: "Forms", icon: ClipboardList },

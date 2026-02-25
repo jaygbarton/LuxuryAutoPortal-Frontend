@@ -189,7 +189,29 @@ export default function BouncieDevicesPage() {
   });
 
   const handleAddDevice = () => {
-    addDeviceMutation.mutate(addFormData);
+    if (!addFormData.imei.trim()) {
+      toast({
+        title: "Error",
+        description: "IMEI is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Basic IMEI validation (15 digits)
+    if (!/^\d{15}$/.test(addFormData.imei.replace(/\s/g, ""))) {
+      toast({
+        title: "Error", 
+        description: "IMEI must be exactly 15 digits",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    addDeviceMutation.mutate({
+      ...addFormData,
+      imei: addFormData.imei.replace(/\s/g, "") // Remove spaces
+    });
   };
 
   const handleEditDevice = (device: BouncieDevice) => {
@@ -260,9 +282,17 @@ export default function BouncieDevicesPage() {
           <CardContent>
             {isLoading ? (
               <div className="text-center py-8">Loading devices...</div>
-            ) : devices?.data?.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No devices registered. Add your first device to get started.
+            ) : !devices?.data || devices.data.length === 0 ? (
+              <div className="text-center py-8">
+                <MapPin className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Bouncie Devices</h3>
+                <p className="text-gray-500 mb-4">
+                  Get started by adding your first GPS tracking device to monitor your fleet.
+                </p>
+                <Button onClick={() => setShowAddDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Your First Device
+                </Button>
               </div>
             ) : (
               <Table>
@@ -339,15 +369,21 @@ export default function BouncieDevicesPage() {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="imei">IMEI *</Label>
+                <Label htmlFor="imei">IMEI * (15 digits)</Label>
                 <Input
                   id="imei"
                   value={addFormData.imei}
-                  onChange={(e) =>
-                    setAddFormData({ ...addFormData, imei: e.target.value })
-                  }
-                  placeholder="Enter device IMEI"
+                  onChange={(e) => {
+                    // Only allow digits and limit to 15 characters
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 15);
+                    setAddFormData({ ...addFormData, imei: value });
+                  }}
+                  placeholder="123456789012345"
+                  maxLength={15}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Usually found on device label or in Bouncie app
+                </p>
               </div>
               <div>
                 <Label htmlFor="nickname">Nickname</Label>
