@@ -34,7 +34,8 @@ export default function QuickLinks() {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch quick links");
-      return response.json();
+      const data = await response.json();
+      return data.quickLinks ?? [];
     },
     retry: false,
   });

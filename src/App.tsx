@@ -43,6 +43,7 @@ import EmployeeViewPage from "@/pages/admin/hr/employee-view";
 import WorkSchedulePage from "@/pages/admin/hr/work-schedule";
 import EmployeeFormPage from "@/pages/employee-form";
 import BouncieDevicesPage from "@/pages/admin/bouncie-devices";
+import BouncieFleetPage from "@/pages/admin/bouncie";
 
 // Wrapper component for IncomeExpensesPage to handle Wouter route props
 function IncomeExpensesPageWrapper() {
@@ -119,6 +120,7 @@ function Router() {
       <Route path="/admin/income-expenses" component={IncomeExpensesPageWrapper} />
       <Route path="/admin/settings" component={SettingsPage} />
       <Route path="/admin/operations" component={OperationsPage} />
+      <Route path="/admin/bouncie" component={BouncieFleetPage} />
       <Route path="/admin/bouncie-devices" component={BouncieDevicesPage} />
       <Route path="/admin/hr" component={HumanResourcesPage} />
       <Route path="/admin/work-schedule" component={WorkSchedulePage} />

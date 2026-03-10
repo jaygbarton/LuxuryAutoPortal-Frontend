@@ -64,7 +64,20 @@ function formatPrice(price: string) {
 
 function CarCard({ car }: { car: Partial<Car> }) {
   return (
-    <Card className="group overflow-hidden bg-card border-border hover-elevate">
+    <Card
+      className="group overflow-hidden hover-elevate transition-all duration-300"
+      style={{
+        background: "#fff",
+        border: "1px solid #E5E5E5",
+        borderRadius: "16px",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLDivElement).style.borderColor = "#E8D4A0";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.borderColor = "#E5E5E5";
+      }}
+    >
       <div className="relative aspect-[16/10] overflow-hidden">
         <img
           src={car.images?.[0] || "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"}
@@ -72,45 +85,73 @@ function CarCard({ car }: { car: Partial<Car> }) {
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         {car.featured && (
-          <Badge className="absolute top-4 left-4 bg-primary text-primary-foreground">
+          <Badge
+            className="absolute top-4 left-4 font-semibold"
+            style={{
+              background: "linear-gradient(135deg, #D4A017, #E8B830)",
+              color: "#1A0E00",
+              border: "none",
+            }}
+          >
             Featured
           </Badge>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
+
       <CardContent className="p-6">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
-            <h3 className="text-xl font-semibold text-foreground">
+            <h3 className="text-xl font-semibold" style={{ color: "#1C1C1C", fontFamily: "'Playfair Display', Georgia, serif" }}>
               {car.make} {car.model}
             </h3>
-            <p className="text-sm text-gray-500">{car.exteriorColor}</p>
+            <p className="text-sm" style={{ color: "#808080" }}>{car.exteriorColor}</p>
           </div>
-          <p className="text-xl font-semibold text-green-700 whitespace-nowrap">
+          <p className="text-xl font-bold whitespace-nowrap" style={{ color: "#C49000" }}>
             {formatPrice(String(car.price || "0"))}
           </p>
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Calendar className="w-4 h-4 text-gray-700" />
+          <div className="flex items-center gap-2 text-sm" style={{ color: "#808080" }}>
+            <Calendar className="w-4 h-4" style={{ stroke: "#C49000" }} />
             <span>{car.year}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Gauge className="w-4 h-4 text-gray-700" />
+          <div className="flex items-center gap-2 text-sm" style={{ color: "#808080" }}>
+            <Gauge className="w-4 h-4" style={{ stroke: "#C49000" }} />
             <span>{car.mileage?.toLocaleString()} mi</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Fuel className="w-4 h-4 text-gray-700" />
+          <div className="flex items-center gap-2 text-sm" style={{ color: "#808080" }}>
+            <Fuel className="w-4 h-4" style={{ stroke: "#C49000" }} />
             <span>{car.fuelType}</span>
           </div>
         </div>
 
         <Link href={`/fleet/${car.id}`}>
-            <Button variant="outline" className="w-full group/btn border-gray-300 text-foreground hover:bg-gray-50" data-testid={`button-view-details-${car.id}`}>
+          <button
+            className="w-full py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold transition-all duration-300 group/btn"
+            style={{
+              border: "1.5px solid #E8D4A0",
+              background: "#FDF8EE",
+              color: "#8B6914",
+            }}
+            onMouseEnter={(e) => {
+              const el = e.currentTarget as HTMLButtonElement;
+              el.style.background = "linear-gradient(135deg, #D4A017, #E8B830)";
+              el.style.color = "#1A0E00";
+              el.style.borderColor = "#D4A017";
+            }}
+            onMouseLeave={(e) => {
+              const el = e.currentTarget as HTMLButtonElement;
+              el.style.background = "#FDF8EE";
+              el.style.color = "#8B6914";
+              el.style.borderColor = "#E8D4A0";
+            }}
+            data-testid={`button-view-details-${car.id}`}
+          >
             View Details
-            <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-          </Button>
+            <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+          </button>
         </Link>
       </CardContent>
     </Card>
@@ -119,16 +160,22 @@ function CarCard({ car }: { car: Partial<Car> }) {
 
 export function FeaturedCars() {
   return (
-    <section id="featured-fleet" className="py-20 lg:py-28 bg-background">
+    <section id="featured-fleet" className="py-20 lg:py-28" style={{ background: "#FFFDF8" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12 lg:mb-16">
-          <p className="text-sm font-medium text-primary tracking-widest uppercase mb-3">
+          <p
+            className="text-xs font-bold tracking-widest uppercase mb-3"
+            style={{ color: "#C49000", letterSpacing: "3px" }}
+          >
             Curated Selection
           </p>
-          <h2 className="font-serif text-3xl lg:text-4xl font-medium text-foreground mb-4">
+          <h2
+            className="font-serif text-3xl lg:text-4xl font-bold mb-4"
+            style={{ color: "#1C1C1C" }}
+          >
             Featured Vehicles
           </h2>
-          <p className="max-w-2xl mx-auto text-gray-600">
+          <p className="max-w-2xl mx-auto" style={{ color: "#4A4A4A", fontSize: "16px", lineHeight: "1.65" }}>
             Hand-picked automobiles representing the pinnacle of automotive engineering and design.
           </p>
         </div>
@@ -141,10 +188,30 @@ export function FeaturedCars() {
 
         <div className="text-center mt-12">
           <Link href="/fleet">
-            <Button size="lg" variant="outline" className="border-gray-300 text-foreground hover:bg-gray-50" data-testid="button-view-all-fleet">
+            <button
+              className="inline-flex items-center gap-2 px-8 py-3 rounded-lg text-sm font-semibold transition-all duration-300"
+              style={{
+                background: "none",
+                border: "2px solid #D4A017",
+                color: "#8B6914",
+              }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget as HTMLButtonElement;
+                el.style.background = "linear-gradient(135deg, #D4A017, #E8B830)";
+                el.style.color = "#1A0E00";
+                el.style.boxShadow = "0 4px 20px rgba(212,160,23,0.3)";
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget as HTMLButtonElement;
+                el.style.background = "none";
+                el.style.color = "#8B6914";
+                el.style.boxShadow = "none";
+              }}
+              data-testid="button-view-all-fleet"
+            >
               View All Vehicles
-              <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </Link>
         </div>
       </div>
