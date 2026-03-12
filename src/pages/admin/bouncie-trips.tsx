@@ -1,3 +1,4 @@
+import "leaflet/dist/leaflet.css";
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearch } from "wouter";
@@ -197,10 +198,11 @@ export default function BouncieTripsPage() {
 
   const trips = data?.data ?? [];
 
-  const totalMiles = trips.reduce((sum, t) => sum + (t.distance_miles ?? 0), 0);
-  const totalDuration = trips.reduce((sum, t) => sum + (t.duration_seconds ?? 0), 0);
+  const n = (v: any) => Number(v) || 0;
+  const totalMiles = trips.reduce((sum, t) => sum + n(t.distance_miles), 0);
+  const totalDuration = trips.reduce((sum, t) => sum + n(t.duration_seconds), 0);
   const avgSpeed = trips.length > 0
-    ? trips.reduce((sum, t) => sum + (t.avg_speed_mph ?? 0), 0) / trips.filter(t => t.avg_speed_mph).length
+    ? trips.reduce((sum, t) => sum + n(t.avg_speed_mph), 0) / (trips.filter(t => t.avg_speed_mph).length || 1)
     : 0;
 
   return (
@@ -323,7 +325,7 @@ export default function BouncieTripsPage() {
                           {trip.distance_miles != null && (
                             <span className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Route className="w-3 h-3" />
-                              {trip.distance_miles.toFixed(1)} mi
+                              {n(trip.distance_miles).toFixed(1)} mi
                             </span>
                           )}
                           {trip.duration_seconds != null && (
@@ -388,7 +390,7 @@ export default function BouncieTripsPage() {
                     <div className="grid grid-cols-3 gap-3 pt-2 border-t">
                       <div className="text-center">
                         <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><Route className="w-3 h-3" /> Distance</p>
-                        <p className="font-bold text-lg mt-0.5">{selectedTrip.distance_miles?.toFixed(1) ?? "—"}</p>
+                        <p className="font-bold text-lg mt-0.5">{selectedTrip.distance_miles != null ? n(selectedTrip.distance_miles).toFixed(1) : "—"}</p>
                         <p className="text-xs text-muted-foreground">miles</p>
                       </div>
                       <div className="text-center">
@@ -397,7 +399,7 @@ export default function BouncieTripsPage() {
                       </div>
                       <div className="text-center">
                         <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><Gauge className="w-3 h-3" /> Max Speed</p>
-                        <p className="font-bold text-lg mt-0.5">{selectedTrip.max_speed_mph?.toFixed(0) ?? "—"}</p>
+                        <p className="font-bold text-lg mt-0.5">{selectedTrip.max_speed_mph != null ? n(selectedTrip.max_speed_mph).toFixed(0) : "—"}</p>
                         <p className="text-xs text-muted-foreground">mph</p>
                       </div>
                     </div>
@@ -406,13 +408,13 @@ export default function BouncieTripsPage() {
                         {selectedTrip.avg_speed_mph && (
                           <div>
                             <p className="text-xs text-muted-foreground">Avg Speed</p>
-                            <p className="font-medium">{selectedTrip.avg_speed_mph.toFixed(0)} mph</p>
+                            <p className="font-medium">{n(selectedTrip.avg_speed_mph).toFixed(0)} mph</p>
                           </div>
                         )}
                         {selectedTrip.fuel_used_gallons && (
                           <div>
                             <p className="text-xs text-muted-foreground flex items-center gap-1"><Fuel className="w-3 h-3" /> Fuel Used</p>
-                            <p className="font-medium">{selectedTrip.fuel_used_gallons.toFixed(2)} gal</p>
+                            <p className="font-medium">{n(selectedTrip.fuel_used_gallons).toFixed(2)} gal</p>
                           </div>
                         )}
                       </div>

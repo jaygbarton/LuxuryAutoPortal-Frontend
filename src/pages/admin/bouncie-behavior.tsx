@@ -325,12 +325,12 @@ export default function BouncieBehaviorPage() {
                           {event.speed_mph && (
                             <span className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Gauge className="w-3 h-3" />
-                              {event.speed_mph.toFixed(0)} mph
-                              {event.speed_limit_mph ? ` / ${event.speed_limit_mph} limit` : ""}
+                              {Number(event.speed_mph).toFixed(0)} mph
+                              {event.speed_limit_mph ? ` / ${Number(event.speed_limit_mph)} limit` : ""}
                             </span>
                           )}
                           {event.g_force && (
-                            <span className="text-xs text-muted-foreground">{event.g_force.toFixed(2)}g</span>
+                            <span className="text-xs text-muted-foreground">{Number(event.g_force).toFixed(2)}g</span>
                           )}
                         </div>
                         {event.address && (

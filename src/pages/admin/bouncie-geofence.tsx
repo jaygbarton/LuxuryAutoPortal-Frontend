@@ -321,7 +321,7 @@ export default function BouncieGeofencePage() {
                           {formatTime(event.timestamp)}
                         </span>
                         {event.speed_mph != null && (
-                          <span className="text-xs text-muted-foreground">{event.speed_mph.toFixed(0)} mph</span>
+                          <span className="text-xs text-muted-foreground">{Number(event.speed_mph).toFixed(0)} mph</span>
                         )}
                       </div>
                       {event.address && (

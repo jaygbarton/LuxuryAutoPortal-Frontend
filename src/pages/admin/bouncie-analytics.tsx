@@ -80,24 +80,30 @@ function vehicleName(v: VehicleUtilization): string {
   return `Device ${v.imei}`;
 }
 
-function formatDuration(secs: number): string {
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
+function n(val: any): number {
+  return Number(val) || 0;
+}
+
+function formatDuration(secs: any): string {
+  const total = n(secs);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
   if (h > 24) return `${Math.floor(h / 24)}d ${h % 24}h`;
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
 }
 
-function formatMiles(miles: number): string {
-  if (miles >= 1000) return `${(miles / 1000).toFixed(1)}k`;
-  return miles.toFixed(1);
+function formatMiles(miles: any): string {
+  const m = n(miles);
+  if (m >= 1000) return `${(m / 1000).toFixed(1)}k`;
+  return m.toFixed(1);
 }
 
 // Simple bar chart using div widths
 function MiniBarChart({ data }: { data: DailyMile[] }) {
   if (!data.length) return <p className="text-sm text-muted-foreground text-center py-4">No data</p>;
 
-  const maxMiles = Math.max(...data.map(d => d.miles), 1);
+  const maxMiles = Math.max(...data.map(d => n(d.miles)), 1);
   const recentDays = data.slice(-14); // Show last 14 days
 
   return (
@@ -107,8 +113,8 @@ function MiniBarChart({ data }: { data: DailyMile[] }) {
           <div key={d.day} className="flex-1 flex flex-col items-center gap-1 group relative">
             <div
               className="w-full bg-primary/80 rounded-t-sm hover:bg-primary transition-colors cursor-pointer"
-              style={{ height: `${(d.miles / maxMiles) * 100}%`, minHeight: "2px" }}
-              title={`${new Date(d.day).toLocaleDateString("en-US", { month: "short", day: "numeric" })}: ${d.miles.toFixed(1)} mi, ${d.trips} trips`}
+              style={{ height: `${(n(d.miles) / maxMiles) * 100}%`, minHeight: "2px" }}
+              title={`${new Date(d.day).toLocaleDateString("en-US", { month: "short", day: "numeric" })}: ${n(d.miles).toFixed(1)} mi, ${d.trips} trips`}
             />
           </div>
         ))}
@@ -140,7 +146,18 @@ export default function BouncieAnalyticsPage() {
   const topGeofences = analytics?.geofenceHits?.slice(0, 6) ?? [];
 
   // Sort utilization by total_miles descending
-  const sorted = [...utilization].sort((a, b) => b.total_miles - a.total_miles);
+  const sorted = [...utilization]
+    .map(v => ({
+      ...v,
+      total_miles: n(v.total_miles),
+      total_trips: n(v.total_trips),
+      total_duration_seconds: n(v.total_duration_seconds),
+      total_fuel_gallons: n(v.total_fuel_gallons),
+      avg_speed: n(v.avg_speed),
+      max_speed_ever: n(v.max_speed_ever),
+      odometer_miles: v.odometer_miles != null ? n(v.odometer_miles) : null,
+    }))
+    .sort((a, b) => b.total_miles - a.total_miles);
   const maxMiles = sorted[0]?.total_miles ?? 1;
 
   return (
@@ -204,14 +221,14 @@ export default function BouncieAnalyticsPage() {
           <Card>
             <CardContent className="pt-5 pb-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide">Fuel Used</p>
-              <p className="text-3xl font-bold mt-1">{isLoading ? "—" : `${(totals?.total_fuel ?? 0).toFixed(1)}`}</p>
+              <p className="text-3xl font-bold mt-1">{isLoading ? "—" : `${n(totals?.total_fuel).toFixed(1)}`}</p>
               <p className="text-xs text-muted-foreground">gallons</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-5 pb-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide">Fleet Avg Speed</p>
-              <p className="text-3xl font-bold mt-1">{isLoading ? "—" : `${(totals?.fleet_avg_speed ?? 0).toFixed(0)}`}</p>
+              <p className="text-3xl font-bold mt-1">{isLoading ? "—" : `${n(totals?.fleet_avg_speed).toFixed(0)}`}</p>
               <p className="text-xs text-muted-foreground">mph</p>
             </CardContent>
           </Card>

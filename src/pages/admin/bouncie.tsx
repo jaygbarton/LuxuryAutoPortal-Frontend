@@ -1,3 +1,4 @@
+import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -234,7 +235,7 @@ function FleetMap({ vehicles }: { vehicles: VehicleEntry[] }) {
             <div style="min-width:180px;font-family:system-ui">
               <strong>${name}</strong><br/>
               <span style="color:${color};font-weight:600">${statusLabel(status)}</span>
-              ${speed > 0 ? ` · ${speed.toFixed(0)} mph` : ""}
+              ${Number(speed) > 0 ? ` · ${Number(speed).toFixed(0)} mph` : ""}
               <br/><small>Last seen: ${lastSeen}</small>
               ${v.license_plate ? `<br/><small>Plate: ${v.license_plate}</small>` : ""}
               <br/><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#3b82f6">Open in Google Maps</a>
