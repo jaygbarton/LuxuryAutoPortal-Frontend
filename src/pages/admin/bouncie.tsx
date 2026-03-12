@@ -1,5 +1,5 @@
 import "leaflet/dist/leaflet.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -160,11 +160,13 @@ function BatteryIndicator({ level }: { level: number | null }) {
   );
 }
 
-// Lazy-load the Leaflet map only on client to avoid SSR issues
+// Lazy-load Leaflet map; smoothly updates existing markers rather than rebuilding
 function FleetMap({ vehicles }: { vehicles: VehicleEntry[] }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
+  // keyed by device_id so we can update in-place
+  const markerMapRef = useRef<Record<string, any>>({});
+  const fittedRef = useRef(false);
 
   const vehiclesWithCoords = vehicles.filter(v => {
     const lat = v.liveStatus?.latitude ?? v.last_latitude;
@@ -172,21 +174,54 @@ function FleetMap({ vehicles }: { vehicles: VehicleEntry[] }) {
     return lat != null && lng != null;
   });
 
+  const buildIcon = useCallback((L: any, status: string) => {
+    const color = status === "driving" ? "#3b82f6"
+      : status === "parked" || status === "online" ? "#22c55e"
+      : "#9ca3af";
+    return L.divIcon({
+      html: `<div style="
+        width:28px;height:28px;border-radius:50%;background:${color};
+        border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);
+        display:flex;align-items:center;justify-content:center;
+        ${status === "driving" ? "animation:pulsePin 1.5s infinite;" : ""}
+      ">
+        <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='white'>
+          <path d='M5 11a7 7 0 1114 0c0 5.25-7 11-7 11S5 16.25 5 11z'/>
+        </svg>
+      </div>`,
+      className: "",
+      iconSize: [28, 28],
+      iconAnchor: [14, 28],
+      popupAnchor: [0, -30],
+    });
+  }, []);
+
+  const buildPopup = useCallback((v: VehicleEntry, lat: number, lng: number) => {
+    const name = vehicleDisplayName(v);
+    const status = v.displayStatus;
+    const speed = v.liveStatus?.speed ?? v.last_speed_mph ?? 0;
+    const lastSeen = formatLastSeen(v.liveStatus?.lastSeen || v.last_seen);
+    const color = status === "driving" ? "#3b82f6"
+      : status === "parked" || status === "online" ? "#22c55e"
+      : "#9ca3af";
+    return `<div style="min-width:190px;font-family:system-ui;line-height:1.5">
+      <strong style="font-size:13px">${name}</strong><br/>
+      <span style="color:${color};font-weight:600">${statusLabel(status)}</span>
+      ${Number(speed) > 0 ? ` &nbsp;·&nbsp; <b>${Number(speed).toFixed(0)} mph</b>` : ""}
+      <br/><small style="color:#888">Last seen: ${lastSeen}</small>
+      ${v.license_plate ? `<br/><small style="color:#888">Plate: ${v.license_plate}</small>` : ""}
+      <br/><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank"
+        style="color:#3b82f6;font-size:12px">Open in Google Maps ↗</a>
+    </div>`;
+  }, []);
+
   useEffect(() => {
     if (!mapRef.current) return;
 
-    // Dynamically import Leaflet to avoid SSR issues
     import("leaflet").then((L) => {
-      // Fix default icon path issue with bundlers
       delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-        iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-        shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-      });
 
       if (!mapInstanceRef.current) {
-        // Default center: Las Vegas, NV (GLA HQ area)
         const map = L.map(mapRef.current!).setView([36.1699, -115.1398], 11);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -196,66 +231,44 @@ function FleetMap({ vehicles }: { vehicles: VehicleEntry[] }) {
       }
 
       const map = mapInstanceRef.current;
+      const existingIds = new Set(Object.keys(markerMapRef.current));
 
-      // Clear old markers
-      markersRef.current.forEach(m => map.removeLayer(m));
-      markersRef.current = [];
-
-      // Add markers for vehicles with coordinates
       vehiclesWithCoords.forEach(v => {
         const lat = (v.liveStatus?.latitude ?? v.last_latitude) as number;
         const lng = (v.liveStatus?.longitude ?? v.last_longitude) as number;
-        const name = vehicleDisplayName(v);
-        const status = v.displayStatus;
-        const speed = v.liveStatus?.speed ?? v.last_speed_mph ?? 0;
-        const lastSeen = formatLastSeen(v.liveStatus?.lastSeen || v.last_seen);
+        const icon = buildIcon(L, v.displayStatus);
+        const popup = buildPopup(v, lat, lng);
 
-        const color = status === "driving" ? "#3b82f6" : status === "parked" || status === "online" ? "#22c55e" : "#9ca3af";
-
-        const icon = L.divIcon({
-          html: `<div style="
-            width:28px;height:28px;border-radius:50%;background:${color};
-            border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);
-            display:flex;align-items:center;justify-content:center;
-            ${status === "driving" ? "animation:pulse 1.5s infinite;" : ""}
-          ">
-            <svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='white'>
-              <path d='M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7z'/>
-            </svg>
-          </div>`,
-          className: "",
-          iconSize: [28, 28],
-          iconAnchor: [14, 28],
-          popupAnchor: [0, -28],
-        });
-
-        const marker = L.marker([lat, lng], { icon })
-          .addTo(map)
-          .bindPopup(`
-            <div style="min-width:180px;font-family:system-ui">
-              <strong>${name}</strong><br/>
-              <span style="color:${color};font-weight:600">${statusLabel(status)}</span>
-              ${Number(speed) > 0 ? ` · ${Number(speed).toFixed(0)} mph` : ""}
-              <br/><small>Last seen: ${lastSeen}</small>
-              ${v.license_plate ? `<br/><small>Plate: ${v.license_plate}</small>` : ""}
-              <br/><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#3b82f6">Open in Google Maps</a>
-            </div>
-          `);
-
-        markersRef.current.push(marker);
+        if (markerMapRef.current[v.device_id]) {
+          // Smoothly move existing marker to new position
+          markerMapRef.current[v.device_id].setLatLng([lat, lng]);
+          markerMapRef.current[v.device_id].setIcon(icon);
+          markerMapRef.current[v.device_id].setPopupContent(popup);
+          existingIds.delete(v.device_id);
+        } else {
+          // New marker
+          const marker = L.marker([lat, lng], { icon })
+            .addTo(map)
+            .bindPopup(popup);
+          markerMapRef.current[v.device_id] = marker;
+        }
       });
 
-      // Fit map to markers if we have any
-      if (markersRef.current.length > 0) {
-        const group = L.featureGroup(markersRef.current);
-        map.fitBounds(group.getBounds().pad(0.2), { maxZoom: 14 });
+      // Remove markers for vehicles that disappeared
+      existingIds.forEach(id => {
+        map.removeLayer(markerMapRef.current[id]);
+        delete markerMapRef.current[id];
+      });
+
+      // Fit bounds only on first load (don't auto-zoom on every refresh)
+      const allMarkers = Object.values(markerMapRef.current);
+      if (!fittedRef.current && allMarkers.length > 0) {
+        const group = L.featureGroup(allMarkers);
+        map.fitBounds(group.getBounds().pad(0.25), { maxZoom: 14 });
+        fittedRef.current = true;
       }
     });
-
-    return () => {
-      // Don't destroy map on re-render — only clean up markers
-    };
-  }, [vehicles]);
+  }, [vehicles, buildIcon, buildPopup]);
 
   // Cleanup map on unmount
   useEffect(() => {
@@ -263,6 +276,8 @@ function FleetMap({ vehicles }: { vehicles: VehicleEntry[] }) {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
+        markerMapRef.current = {};
+        fittedRef.current = false;
       }
     };
   }, []);
@@ -280,18 +295,22 @@ function FleetMap({ vehicles }: { vehicles: VehicleEntry[] }) {
   return (
     <>
       <style>{`
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        @keyframes pulsePin { 0%,100%{opacity:1} 50%{opacity:0.55} }
       `}</style>
-      <div ref={mapRef} style={{ height: "400px", width: "100%", borderRadius: "8px" }} />
+      <div ref={mapRef} style={{ height: "420px", width: "100%", borderRadius: "8px" }} />
     </>
   );
 }
+
+const LIVE_POLL_MS = 15_000; // poll every 15 s when tab is visible
 
 export default function BouncieFleetPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [sseStatus, setSseStatus] = useState<"connecting" | "connected" | "disconnected">("disconnected");
   const sseRef = useRef<EventSource | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [secondsAgo, setSecondsAgo] = useState<number>(0);
 
   // Handle OAuth redirect result
   useEffect(() => {
@@ -353,10 +372,23 @@ export default function BouncieFleetPage() {
     queryFn: async () => {
       const res = await fetch(buildApiUrl("/api/bouncie/fleet-overview"), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch fleet overview");
-      return res.json();
+      const json = await res.json();
+      setLastUpdated(new Date());
+      setSecondsAgo(0);
+      return json;
     },
-    refetchInterval: 60000,
+    refetchInterval: LIVE_POLL_MS,
+    refetchIntervalInBackground: false,
   });
+
+  // "X sec ago" counter — ticks every second
+  useEffect(() => {
+    if (!lastUpdated) return;
+    const id = setInterval(() => {
+      setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [lastUpdated]);
 
   const syncMutation = useMutation({
     mutationFn: async () => {
@@ -423,15 +455,20 @@ export default function BouncieFleetPage() {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {/* SSE status indicator */}
+            {/* Live connection + last-updated indicator */}
             <span className={`flex items-center gap-1 text-xs font-medium ${
               sseStatus === "connected" ? "text-green-600" :
               sseStatus === "connecting" ? "text-yellow-600" :
               "text-gray-400"
             }`} title="Real-time connection status">
-              <Zap className="w-3 h-3" />
+              <Zap className={`w-3 h-3 ${isFetching ? "animate-ping" : ""}`} />
               {sseStatus === "connected" ? "Live" : sseStatus === "connecting" ? "Connecting…" : "Offline"}
             </span>
+            {lastUpdated && (
+              <span className="text-xs text-muted-foreground" title={`Last refreshed: ${lastUpdated.toLocaleTimeString()}`}>
+                · updated {secondsAgo < 5 ? "just now" : `${secondsAgo}s ago`}
+              </span>
+            )}
 
             {/* Connection status */}
             {!connLoading && conn && (
