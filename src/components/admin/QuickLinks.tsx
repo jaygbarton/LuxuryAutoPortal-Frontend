@@ -26,18 +26,24 @@ const categoryColors: Record<string, string> = {
   "Forms Center": "text-purple-400",
 };
 
+type QuickLinksApiResponse = { success: boolean; quickLinks?: QuickLink[] };
+
 export default function QuickLinks() {
-  const { data: quickLinks, isLoading } = useQuery<QuickLink[]>({
+  const { data, isLoading } = useQuery<QuickLink[]>({
     queryKey: ["/api/quick-links"],
     queryFn: async () => {
       const response = await fetch(buildApiUrl("/api/quick-links"), {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch quick links");
-      return response.json();
+      const json: QuickLinksApiResponse = await response.json();
+      const list = json?.quickLinks;
+      return Array.isArray(list) ? list : [];
     },
     retry: false,
   });
+
+  const quickLinks = Array.isArray(data) ? data : [];
 
   if (isLoading) {
     return (
@@ -47,7 +53,7 @@ export default function QuickLinks() {
     );
   }
 
-  if (!quickLinks || quickLinks.length === 0) {
+  if (quickLinks.length === 0) {
     return null;
   }
 

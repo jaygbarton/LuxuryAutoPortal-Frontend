@@ -29,7 +29,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   reimbursedBills: "Reimbursed and Non-Reimbursed Bills",
 };
 
-export default function ExpenseFormSubmission() {
+type ExpenseFormSubmissionProps = {
+  /** Pre-select category (e.g. from staff Forms list link). */
+  initialCategory?: string;
+  /** Pre-select field (e.g. from staff Forms list link). */
+  initialField?: string;
+};
+
+export default function ExpenseFormSubmission({ initialCategory, initialField }: ExpenseFormSubmissionProps = {}) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
@@ -38,8 +45,8 @@ export default function ExpenseFormSubmission() {
     carId: "",
     year: new Date().getFullYear().toString(),
     month: (new Date().getMonth() + 1).toString(),
-    category: "directDelivery",
-    field: "",
+    category: initialCategory && ["income", "directDelivery", "cogs", "reimbursedBills"].includes(initialCategory) ? initialCategory : "directDelivery",
+    field: initialField ?? "",
     amount: "",
     remarks: "",
   });
@@ -79,8 +86,24 @@ export default function ExpenseFormSubmission() {
   const fieldOptions = categoryFields[formData.category] || [];
 
   useEffect(() => {
+    // Don't clear field when category matches initial (e.g. staff form link with category+field)
+    if (initialCategory && initialField && formData.category === initialCategory) return;
     setFormData((prev) => ({ ...prev, field: "" }));
-  }, [formData.category]);
+  }, [formData.category, initialCategory, initialField]);
+
+  // Apply initial category/field from URL or props (e.g. staff Forms list) once options are loaded
+  useEffect(() => {
+    if (!optionsData?.data?.categoryFields) return;
+    const cat = initialCategory && ["income", "directDelivery", "cogs", "reimbursedBills"].includes(initialCategory) ? initialCategory : null;
+    const fld = initialField?.trim() || null;
+    if (!cat && !fld) return;
+    setFormData((prev) => {
+      const next = { ...prev };
+      if (cat) next.category = cat;
+      if (fld) next.field = fld;
+      return next;
+    });
+  }, [optionsData?.data?.categoryFields, initialCategory, initialField]);
 
   // Derive Year and Month from Date of receipt (single source of truth)
   useEffect(() => {

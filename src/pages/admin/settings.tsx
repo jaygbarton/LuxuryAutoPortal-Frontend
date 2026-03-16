@@ -13,7 +13,7 @@ import { checkPasswordStrength, getPasswordStrengthColor, getPasswordStrengthLab
 
 interface SlackChannelConfig {
   id: number;
-  formType: "lyc" | "car_onboarding" | "car_offboarding" | "employee_onboarding" | "expense_income" | "expense_direct_delivery" | "expense_cogs" | "expense_reimbursed_bills";
+  formType: "lyc" | "car_onboarding" | "car_offboarding" | "employee_onboarding" | "employee_time_in_out" | "expense_income" | "expense_direct_delivery" | "expense_cogs" | "expense_reimbursed_bills";
   channelId: string;
   channelName: string | null;
   updatedAt: string;
@@ -24,6 +24,7 @@ const formTypeLabels: Record<string, string> = {
   car_onboarding: "Car On-boarding",
   car_offboarding: "Car Off-boarding",
   employee_onboarding: "Employee Onboarding",
+  employee_time_in_out: "Employee Arrival/Departure",
   expense_income: "Income",
   expense_direct_delivery: "Expenses - Direct Delivery",
   expense_cogs: "Expenses - COGS",

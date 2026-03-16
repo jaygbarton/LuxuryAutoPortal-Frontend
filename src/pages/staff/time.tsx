@@ -7,25 +7,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, Info, Loader2 } from "lucide-react";
+import { Clock, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 function formatDate(d: string | undefined, fallback = "--") {
@@ -57,222 +41,224 @@ function decimalToHrsMin(decimal: number | string | undefined): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
-interface TimeRow {
+type NextAction = "time_in" | "lunch_out" | "lunch_in" | "time_out" | "already_out" | "no_schedule";
+
+interface LastRecord {
   time_date?: string;
-  work_sched_date?: string;
-  work_sched_time?: string;
-  time_hours_per_day?: number;
+  time_working_hours?: string;
   time_in?: string;
-  time_in_hours?: number;
   time_in_status?: number;
-  time_lunch_out?: string;
-  time_lunch_in?: string;
-  time_lunch_hours?: number;
-  time_out?: string;
-  time_out_hours?: number;
-  time_out_status?: number;
-  time_total_hours?: number;
-  time_amount?: number;
-  time_remarks?: string;
-  time_form_details?: string;
+  time_hours_per_day?: string;
+  time_in_hours?: string;
+  time_lunch_out?: string | null;
+  time_lunch_in?: string | null;
+  time_lunch_hours?: string | null;
+  time_out?: string | null;
+  time_out_hours?: string | null;
+  time_total_hours?: string;
+  time_amount?: string;
+  time_form_details?: string | null;
 }
 
 export default function StaffTime() {
-  const [statusFilter, setStatusFilter] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [viewMoreItem, setViewMoreItem] = useState<TimeRow | null>(null);
   const queryClient = useQueryClient();
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [timeOutModalOpen, setTimeOutModalOpen] = useState(false);
+  const [timeFormDetails, setTimeFormDetails] = useState<string>("[]"); // JSON array of { name, description }
 
-  const params = new URLSearchParams();
-  if (statusFilter) params.set("status", statusFilter);
-  if (fromDate) params.set("fromDate", fromDate);
-  if (toDate) params.set("toDate", toDate);
-  const listUrl = `/api/staff/time?${params.toString()}`;
-
-  const { data: listData, isLoading } = useQuery<{ success?: boolean; data?: TimeRow[] }>({
-    queryKey: ["staff-time", listUrl],
+  const { data: lastData, isLoading } = useQuery<{
+    success: boolean;
+    data: { lastRecord: LastRecord | null; nextAction: NextAction };
+  }>({
+    queryKey: ["/api/me/time-sheet/last"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl(listUrl), { credentials: "include" });
-      if (res.status === 404 || res.status === 501) return { success: true, data: [] };
-      if (!res.ok) throw new Error("Failed to load time entries");
-      return res.json();
-    },
-    retry: false,
-  });
-
-  const { data: lastInOut } = useQuery<{ success?: boolean; data?: TimeRow[] }>({
-    queryKey: ["staff-time-last"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/staff/time/last-in-out"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({}),
-      });
-      if (res.status === 404 || res.status === 501) return { success: true, data: [] };
-      if (!res.ok) throw new Error("Failed to load last time");
-      return res.json();
-    },
-    retry: false,
-  });
-
-  const rows: TimeRow[] = listData?.data ?? [];
-  const last = lastInOut?.data?.[0];
-  const canTimeInOut = !last?.time_out;
-  const isOnBreak = !!(last?.time_lunch_in === "" && last?.time_lunch_out !== "");
-
-  const handleTimeInOut = async () => {
-    if (isOnBreak) {
-      setViewMoreItem(last ?? null);
-      return;
-    }
-    try {
-      const res = await fetch(buildApiUrl("/api/staff/time/action"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({}),
-      });
-      if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: ["staff-time"] });
-        queryClient.invalidateQueries({ queryKey: ["staff-time-last"] });
+      const res = await fetch(buildApiUrl("/api/me/time-sheet/last"), { credentials: "include" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to load time sheet");
       }
-    } catch {
-      // API may not exist yet
-      queryClient.invalidateQueries({ queryKey: ["staff-time"] });
-      queryClient.invalidateQueries({ queryKey: ["staff-time-last"] });
+      return res.json();
+    },
+    retry: false,
+  });
+
+  const last = lastData?.data?.lastRecord ?? null;
+  const nextAction = lastData?.data?.nextAction ?? "time_in";
+
+  const getButtonLabel = () => {
+    switch (nextAction) {
+      case "time_in":
+        return "Time in";
+      case "lunch_out":
+        return "Lunch out";
+      case "lunch_in":
+        return "Lunch in";
+      case "time_out":
+        return "Time out";
+      case "already_out":
+        return "Already clocked out";
+      case "no_schedule":
+        return "No schedule for today";
+      default:
+        return "Time in";
     }
   };
+
+  const runAction = async (body: { time_form_details?: string }) => {
+    setActionError(null);
+    setActionLoading(true);
+    try {
+      const res = await fetch(buildApiUrl("/api/me/time-sheet/action"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(body),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setActionError(json.error || "Action failed");
+        return;
+      }
+      setTimeOutModalOpen(false);
+      setTimeFormDetails("[]");
+      queryClient.invalidateQueries({ queryKey: ["/api/me/time-sheet/last"] });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleActionClick = () => {
+    if (nextAction === "already_out" || nextAction === "no_schedule") return;
+    if (nextAction === "time_out") {
+      setTimeOutModalOpen(true);
+      return;
+    }
+    runAction({});
+  };
+
+  const handleTimeOutSubmit = () => {
+    let details = timeFormDetails.trim();
+    try {
+      JSON.parse(details);
+    } catch {
+      details = "[]";
+    }
+    runAction({ time_form_details: details });
+  };
+
+  const canPunch = nextAction !== "already_out" && nextAction !== "no_schedule" && !actionLoading;
 
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-primary">Time</h1>
-            <p className="text-muted-foreground">Time entries and timesheets.</p>
+            <h1 className="text-2xl font-semibold text-primary">Time Sheet</h1>
+            <p className="text-muted-foreground">Clock in, lunch, and clock out.</p>
           </div>
-          <Button onClick={handleTimeInOut} disabled={isOnBreak} className="gap-2">
-            <Clock className="w-4 h-4" />
-            Time in / out
+          <Button onClick={handleActionClick} disabled={!canPunch} className="gap-2">
+            {actionLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Clock className="w-4 h-4" />
+            )}
+            {getButtonLabel()}
           </Button>
         </div>
+
+        {actionError && (
+          <Card className="bg-destructive/10 border-destructive/30">
+            <CardContent className="p-3 text-sm text-destructive">{actionError}</CardContent>
+          </Card>
+        )}
 
         <Card className="bg-card border-border">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-primary">
               <Clock className="w-5 h-5" />
-              Time entries
+              Current status
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
-                <SelectTrigger className="w-[130px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="late">Late</SelectItem>
-                  <SelectItem value="undertime">Undertime</SelectItem>
-                  <SelectItem value="overbreak">Overbreak</SelectItem>
-                  <SelectItem value="early">Early</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-[140px]" />
-              <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-[140px]" />
-            </div>
-
-            <div className="rounded-md border border-border overflow-auto max-h-[55vh]">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : rows.length === 0 ? (
-                <div className="py-12 text-center text-muted-foreground">No time entries found.</div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-8">#</TableHead>
-                      <TableHead>Work schedule</TableHead>
-                      <TableHead className="text-center">Hrs/day</TableHead>
-                      <TableHead>Time in</TableHead>
-                      <TableHead className="text-center">Late</TableHead>
-                      <TableHead>Break out</TableHead>
-                      <TableHead>Break in</TableHead>
-                      <TableHead className="text-center">Break</TableHead>
-                      <TableHead>Time out</TableHead>
-                      <TableHead className="text-center">Undertime</TableHead>
-                      <TableHead className="text-right">Time spent</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="w-10"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rows.map((item, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell>{idx + 1}.</TableCell>
-                        <TableCell>
-                          {formatDate(item.work_sched_date)} {item.work_sched_time ?? ""}
-                        </TableCell>
-                        <TableCell className="text-center">{decimalToHrsMin(item.time_hours_per_day)}</TableCell>
-                        <TableCell>
-                          {formatDate(item.time_date)} {formatTime(item.time_in)}
-                        </TableCell>
-                        <TableCell className="text-center">{decimalToHrsMin(item.time_in_hours)}</TableCell>
-                        <TableCell>{formatDate(item.time_lunch_out)} {formatTime(item.time_lunch_out)}</TableCell>
-                        <TableCell>{formatDate(item.time_lunch_in)} {formatTime(item.time_lunch_in)}</TableCell>
-                        <TableCell className="text-center">{decimalToHrsMin(item.time_lunch_hours)}</TableCell>
-                        <TableCell>{formatDate(item.time_out)} {formatTime(item.time_out)}</TableCell>
-                        <TableCell className="text-center">{decimalToHrsMin(item.time_out_hours)}</TableCell>
-                        <TableCell className="text-right">{decimalToHrsMin(item.time_total_hours)}</TableCell>
-                        <TableCell className="text-right">
-                          {item.time_amount != null ? `$${Number(item.time_amount).toFixed(2)}` : "--"}
-                        </TableCell>
-                        <TableCell>
-                          {item.time_form_details ? (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewMoreItem(item)}>
-                              <Info className="h-4 w-4" />
-                            </Button>
-                          ) : null}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : !last ? (
+              <p className="text-muted-foreground">
+                {nextAction === "no_schedule"
+                  ? "You don't have working hours for today. Contact HR to add a schedule."
+                  : "No active time record. Use the button above to clock in."}
+              </p>
+            ) : (
+              <div className="grid gap-2 text-sm">
+                <p>
+                  <span className="text-muted-foreground">Schedule: </span>
+                  {last.time_working_hours ?? "--"}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Time in: </span>
+                  {formatDate(last.time_date)} {formatTime(last.time_in)}
+                  {last.time_in_status === 1 && (
+                    <span className="text-amber-600 ml-1">(Late: {decimalToHrsMin(last.time_in_hours)})</span>
+                  )}
+                </p>
+                {last.time_lunch_out && (
+                  <p>
+                    <span className="text-muted-foreground">Lunch out: </span>
+                    {formatTime(last.time_lunch_out)}
+                  </p>
+                )}
+                {last.time_lunch_in && (
+                  <p>
+                    <span className="text-muted-foreground">Lunch in: </span>
+                    {formatTime(last.time_lunch_in)}
+                    {last.time_lunch_hours != null && (
+                      <span className="text-muted-foreground"> ({decimalToHrsMin(Number(last.time_lunch_hours))} break)</span>
+                    )}
+                  </p>
+                )}
+                {last.time_out && (
+                  <p>
+                    <span className="text-muted-foreground">Time out: </span>
+                    {formatDate(last.time_date)} {formatTime(last.time_out)}
+                    {last.time_total_hours != null && (
+                      <span className="text-muted-foreground"> — Total: {decimalToHrsMin(Number(last.time_total_hours))}</span>
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      <Dialog open={!!viewMoreItem} onOpenChange={(open) => !open && setViewMoreItem(null)}>
+      <Dialog open={timeOutModalOpen} onOpenChange={setTimeOutModalOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>View details</DialogTitle>
+            <DialogTitle>Time out — form details</DialogTitle>
           </DialogHeader>
-          {viewMoreItem?.time_form_details && (
-            <div className="text-sm text-muted-foreground">
-              {(() => {
-                try {
-                  const arr = JSON.parse(viewMoreItem.time_form_details as string);
-                  return Array.isArray(arr) ? (
-                    <ul className="list-disc list-inside space-y-1">
-                      {arr.map((x: { name?: string; description?: string }, i: number) => (
-                        <li key={i}>{x.name ?? ""}: {x.description ?? ""}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>{String(viewMoreItem.time_form_details)}</p>
-                  );
-                } catch {
-                  return <p>{String(viewMoreItem.time_form_details)}</p>;
-                }
-              })()}
-            </div>
-          )}
+          <p className="text-sm text-muted-foreground">
+            Please fill in the form details before clocking out (required). Use a JSON array of objects with{" "}
+            <code className="text-xs">name</code> and <code className="text-xs">description</code>, e.g.{" "}
+            <code className="text-xs">[{`{"name":"Task","description":"Done"}`}]</code>
+          </p>
+          <textarea
+            className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+            value={timeFormDetails}
+            onChange={(e) => setTimeFormDetails(e.target.value)}
+            placeholder='[{"name":"Task 1","description":"Description"},...]'
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setTimeOutModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleTimeOutSubmit} disabled={actionLoading}>
+              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Submit time out
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </AdminLayout>

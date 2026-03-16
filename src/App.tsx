@@ -41,9 +41,17 @@ import HumanResourcesPage from "@/pages/admin/hr";
 import EmployeesPage from "@/pages/admin/hr/employees";
 import EmployeeViewPage from "@/pages/admin/hr/employee-view";
 import WorkSchedulePage from "@/pages/admin/hr/work-schedule";
+import AdminHrTaskManagement from "@/pages/admin/hr/task-management";
+import AdminHrTime from "@/pages/admin/hr/time";
+import AdminHrTimeOff from "@/pages/admin/hr/time-off";
+import AdminHrOvertime from "@/pages/admin/hr/overtime";
+import AdminHrReport from "@/pages/admin/hr/report";
 import PayrollPage from "@/pages/admin/payroll";
 import PayrollByRunPage from "@/pages/admin/payroll/payroll-by-run";
 import PayslipPage from "@/pages/admin/payroll/payslip";
+import PayrollCommissionsPage from "@/pages/admin/payroll/commissions";
+import PayrollReportIndexPage from "@/pages/admin/payroll/report";
+import PayrollReportLoggedHoursPage from "@/pages/admin/payroll/report/logged-hours";
 import EmployeeFormPage from "@/pages/employee-form";
 import BouncieDevicesPage from "@/pages/admin/bouncie-devices";
 
@@ -61,6 +69,8 @@ import StaffDashboard from "@/pages/staff/dashboard";
 import StaffMyInfo from "@/pages/staff/my-info";
 import StaffMyInfoSection from "@/pages/staff/my-info-section";
 import StaffForms from "@/pages/staff/forms";
+import StaffFormsSubmit from "@/pages/staff/forms-submit";
+import StaffFormsMySubmissions from "@/pages/staff/forms-my-submissions";
 import StaffTaskManagement from "@/pages/staff/task-management";
 import StaffTime from "@/pages/staff/time";
 import StaffTimeOff from "@/pages/staff/time-off";
@@ -86,6 +96,8 @@ function Router() {
       <Route path="/staff/dashboard" component={StaffDashboard} />
       <Route path="/staff/my-info/:section" component={StaffMyInfoSection} />
       <Route path="/staff/my-info" component={StaffMyInfo} />
+      <Route path="/staff/forms/submit" component={StaffFormsSubmit} />
+      <Route path="/staff/forms/my-submissions" component={StaffFormsMySubmissions} />
       <Route path="/staff/forms" component={StaffForms} />
       <Route path="/staff/task-management" component={StaffTaskManagement} />
       <Route path="/staff/time" component={StaffTime} />
@@ -129,7 +141,15 @@ function Router() {
       <Route path="/admin/hr/work-schedule" component={WorkSchedulePage} />
       <Route path="/admin/hr/employees/view" component={EmployeeViewPage} />
       <Route path="/admin/hr/employees" component={EmployeesPage} />
+      <Route path="/admin/hr/task-management" component={AdminHrTaskManagement} />
+      <Route path="/admin/hr/time" component={AdminHrTime} />
+      <Route path="/admin/hr/time-off" component={AdminHrTimeOff} />
+      <Route path="/admin/hr/overtime" component={AdminHrOvertime} />
+      <Route path="/admin/hr/report" component={AdminHrReport} />
       <Route path="/admin/payroll" component={PayrollPage} />
+      <Route path="/admin/payroll/commissions" component={PayrollCommissionsPage} />
+      <Route path="/admin/payroll/report/logged-hours" component={PayrollReportLoggedHoursPage} />
+      <Route path="/admin/payroll/report" component={PayrollReportIndexPage} />
       <Route path="/admin/payroll/:payrunId/payslip/:employeeId" component={PayslipPage} />
       <Route path="/admin/payroll/:payrunId" component={PayrollByRunPage} />
       <Route path="/employee-form" component={EmployeeFormPage} />

@@ -86,10 +86,25 @@ const allSidebarItems: SidebarItem[] = [
     roles: ["admin"],
     children: [
       { href: "/admin/hr/employees", label: "Employees", icon: Users, roles: ["admin"] },
-      { href: "/admin/hr/work-schedule", label: "Work Schedule", icon: Clock, roles: ["admin"] }
+      { href: "/admin/hr/work-schedule", label: "Work Schedule", icon: Clock, roles: ["admin"] },
+      { href: "/admin/hr/task-management", label: "Task Management", icon: Briefcase, roles: ["admin"] },
+      { href: "/admin/hr/time", label: "Time", icon: Clock, roles: ["admin"] },
+      { href: "/admin/hr/time-off", label: "Time Off", icon: Clock, roles: ["admin"] },
+      { href: "/admin/hr/overtime", label: "Overtime", icon: Clock, roles: ["admin"] },
+      { href: "/admin/hr/report", label: "Report", icon: ClipboardList, roles: ["admin"] },
     ],
   },
-  { href: "/admin/payroll", label: "Payroll", icon: DollarSign, roles: ["admin"] },
+  {
+    href: "/admin/payroll",
+    label: "Payroll",
+    icon: DollarSign,
+    roles: ["admin"],
+    children: [
+      { href: "/admin/payroll", label: "Pay Run", icon: DollarSign, roles: ["admin"] },
+      { href: "/admin/payroll/commissions", label: "Commissions", icon: DollarSign, roles: ["admin"] },
+      { href: "/admin/payroll/report", label: "Report", icon: ClipboardList, roles: ["admin"] },
+    ],
+  },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/turo-guide", label: "Turo Guide", icon: BookOpen },
   { href: "/admin/training-manual", label: "System Tutorial", icon: GraduationCap, roles: ["admin"] },
@@ -101,6 +116,7 @@ const allSidebarItems: SidebarItem[] = [
 // Staff/employee sidebar: Dashboard, My Info, Forms, Task Management, Turo Guide, System Tutorial, Client Testimonials, Car Rental
 const employeeSidebarItems: SidebarItem[] = [
   { href: "/staff/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["employee"] },
+  { href: "/staff/time", label: "Time Sheet", icon: Clock, roles: ["employee"] },
   { href: "/staff/my-info", label: "My Info", icon: User, roles: ["employee"] },
   { href: "/staff/forms", label: "Forms", icon: FileText, roles: ["employee"] },
   { href: "/staff/task-management", label: "Task Management", icon: Briefcase, roles: ["employee"] },
