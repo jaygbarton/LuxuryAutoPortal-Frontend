@@ -36,8 +36,6 @@ export default function QuickLinks() {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch quick links");
-      const data = await response.json();
-      return data.quickLinks ?? [];
       const json: QuickLinksApiResponse = await response.json();
       const list = json?.quickLinks;
       return Array.isArray(list) ? list : [];
