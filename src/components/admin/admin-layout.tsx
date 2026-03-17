@@ -89,7 +89,7 @@ const allSidebarItems: SidebarItem[] = [
       { href: "/admin/bouncie-devices", label: "Devices", icon: Cpu, roles: ["admin"] },
       { href: "/admin/bouncie-trips", label: "Trip History", icon: Route, roles: ["admin"] },
       { href: "/admin/bouncie-behavior", label: "Driving Behavior", icon: ShieldAlert, roles: ["admin"] },
-      { href: "/admin/bouncie-geofence", label: "Geofence Reports", icon: MapPin, roles: ["admin"] },
+      { href: "/admin/bouncie-geofence", label: "Geofence", icon: MapPin, roles: ["admin"] },
       { href: "/admin/bouncie-analytics", label: "Analytics", icon: BarChart3, roles: ["admin"] },
     ],
   },
