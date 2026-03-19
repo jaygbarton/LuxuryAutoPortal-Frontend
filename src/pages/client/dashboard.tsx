@@ -615,149 +615,183 @@ export default function ClientDashboard() {
         )}
 
         {/* ════════════════════════════════════════════════════════════════════
-            SECTION 1 — Hero Header
+            SECTIONS 1 & 2 — Two-column layout
+            LEFT:  Car Gallery (top) + Vehicle/Owner Info (bottom)
+            RIGHT: Monthly Update Video (top) + GLA Contact Info (bottom)
+            Both columns same width; top/bottom rows same height within each col
         ════════════════════════════════════════════════════════════════════ */}
-        <Card className="border-border bg-card overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 min-h-[240px]">
-            {/* Left: Car photo — full half */}
-            <div className="bg-muted/10 flex items-center justify-center border-b md:border-b-0 md:border-r border-border min-h-[200px]">
-              {activeCar?.photo ? (
-                <img
-                  src={getProxiedImageUrl(activeCar.photo)}
-                  alt={activeCar.makeModel}
-                  className="w-full h-full object-cover max-h-64"
-                />
-              ) : (
-                <div className="flex flex-col items-center gap-3 text-muted-foreground/30 p-10">
-                  <Car className="w-28 h-28" />
-                  {activeCar && (
-                    <p className="text-sm text-muted-foreground font-medium">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* ── LEFT COLUMN ──────────────────────────────────────────────── */}
+          <div className="flex flex-col gap-4">
+
+            {/* Car Gallery */}
+            <Card className="border-border bg-card overflow-hidden flex-shrink-0">
+              <div
+                className="relative w-full bg-muted/20 flex items-center justify-center"
+                style={{ minHeight: "220px" }}
+              >
+                {activeCar?.photo ? (
+                  <img
+                    src={getProxiedImageUrl(activeCar.photo)}
+                    alt={activeCar?.makeModel ?? "Vehicle"}
+                    className="w-full object-cover"
+                    style={{ maxHeight: "280px" }}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-3 text-muted-foreground/30 py-12">
+                    <Car className="w-24 h-24" />
+                    <p className="text-sm text-muted-foreground">
+                      {activeCar ? `${activeCar.year ?? ""} ${activeCar.makeModel}`.trim() : "No vehicle photo"}
+                    </p>
+                  </div>
+                )}
+                {/* Car name overlay */}
+                {activeCar && (
+                  <div className="absolute bottom-0 left-0 right-0 px-4 py-2 bg-gradient-to-t from-black/70 to-transparent">
+                    <p className="text-sm font-semibold text-white">
                       {activeCar.year} {activeCar.makeModel}
                     </p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Right: GLA Branding */}
-            <div
-              className="flex items-end justify-start p-8 relative overflow-hidden"
-              style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d1a 100%)" }}
-            >
-              <div>
-                <h1
-                  className="text-4xl md:text-5xl font-extrabold leading-tight"
-                  style={{ color: "#EAEB80", textShadow: "2px 2px 8px rgba(0,0,0,0.6)" }}
-                >
-                  Golden Luxury Auto
-                </h1>
-                <h2
-                  className="text-3xl md:text-4xl font-extrabold mt-1"
-                  style={{ color: "#EAEB80", textShadow: "2px 2px 8px rgba(0,0,0,0.6)" }}
-                >
-                  Monthly Update!!!
-                </h2>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* ════════════════════════════════════════════════════════════════════
-            SECTION 2 — Vehicle & Owner Information (3-column)
-        ════════════════════════════════════════════════════════════════════ */}
-        <Card className="border-border bg-card">
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-              {/* Col 1: Vehicle */}
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 pb-1 border-b border-border">
-                  Vehicle Information
-                </h3>
-                {activeCar ? (
-                  <div className="space-y-2">
-                    {[
-                      { label: "Year / Make Model", value: `${activeCar.year ?? ""} ${activeCar.makeModel}`.trim() },
-                      { label: "VIN", value: activeCar.vin },
-                      { label: "License Plate", value: activeCar.licensePlate },
-                      { label: "Fuel Type", value: activeCar.fuelType },
-                      { label: "Tire Size", value: activeCar.tireSize },
-                      { label: "Oil Type", value: activeCar.oilType },
-                      { label: "Current Miles", value: activeCar.mileage ? `${activeCar.mileage.toLocaleString()} mi` : null },
-                      { label: "Last Oil Change", value: activeCar.lastOilChange },
-                      { label: "Lic / Reg Date", value: activeCar.registrationExpiration },
-                    ]
-                      .filter((f) => f.value)
-                      .map((f) => (
-                        <div key={f.label} className="flex justify-between gap-2">
-                          <span className="text-xs text-muted-foreground flex-shrink-0">{f.label}:</span>
-                          <span className="text-xs text-foreground text-right">{f.value}</span>
-                        </div>
-                      ))}
+                    {activeCar.licensePlate && (
+                      <p className="text-xs text-white/70">Plate: {activeCar.licensePlate}</p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No vehicle on file.</p>
                 )}
               </div>
+            </Card>
 
-              {/* Col 2: Owner */}
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 pb-1 border-b border-border">
-                  Owner Information
-                </h3>
-                <div className="space-y-2">
-                  {[
-                    { label: "Name", value: ownerName },
-                    { label: "Phone", value: ownerPhone },
-                    { label: "Email", value: ownerEmail },
-                  ]
-                    .filter((f) => f.value)
-                    .map((f) => (
-                      <div key={f.label} className="flex justify-between gap-2">
-                        <span className="text-xs text-muted-foreground flex-shrink-0">{f.label}:</span>
-                        <span className="text-xs text-foreground text-right">{f.value}</span>
+            {/* Vehicle & Owner Information */}
+            <Card className="border-border bg-card flex-1">
+              <CardContent className="p-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+                  {/* Vehicle Details */}
+                  <div>
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 pb-1 border-b border-border">
+                      Vehicle Information
+                    </h3>
+                    {activeCar ? (
+                      <div className="space-y-1.5">
+                        {[
+                          { label: "Car Name", value: `${activeCar.year ?? ""} ${activeCar.makeModel}`.trim() },
+                          { label: "VIN #", value: activeCar.vin },
+                          { label: "License", value: activeCar.licensePlate },
+                          { label: "Fuel/Gas", value: activeCar.fuelType },
+                          { label: "Tire Size", value: activeCar.tireSize ?? "No Data" },
+                          { label: "Oil Type", value: activeCar.oilType ?? "No Data" },
+                          { label: "Current Miles", value: activeCar.mileage ? activeCar.mileage.toLocaleString() : null },
+                          { label: "Last Oil Change", value: activeCar.lastOilChange },
+                          { label: "Lic./Reg. Date", value: activeCar.registrationExpiration },
+                        ]
+                          .filter((f) => f.value)
+                          .map((f) => (
+                            <div key={f.label} className="flex gap-1">
+                              <span className="text-xs text-muted-foreground flex-shrink-0 min-w-[90px]">{f.label}:</span>
+                              <span className="text-xs text-foreground font-medium">{f.value}</span>
+                            </div>
+                          ))}
                       </div>
-                    ))}
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No vehicle on file.</p>
+                    )}
+                  </div>
 
-                  {manufacturerUrl && (
-                    <div className="flex justify-between gap-2">
-                      <span className="text-xs text-muted-foreground flex-shrink-0">Manufacturer:</span>
-                      <a
-                        href={manufacturerUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-[#EAEB80] hover:underline flex items-center gap-1"
-                      >
-                        Visit Site
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-                  )}
+                  {/* Owner Details */}
+                  <div>
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 pb-1 border-b border-border">
+                      Owner Information
+                    </h3>
+                    <div className="space-y-1.5">
+                      {[
+                        { label: "Name", value: ownerName },
+                        { label: "Contact #", value: ownerPhone },
+                        { label: "Email", value: ownerEmail },
+                      ]
+                        .filter((f) => f.value)
+                        .map((f) => (
+                          <div key={f.label} className="flex gap-1">
+                            <span className="text-xs text-muted-foreground flex-shrink-0 min-w-[90px]">{f.label}:</span>
+                            <span className="text-xs text-foreground font-medium">{f.value}</span>
+                          </div>
+                        ))}
 
-                  {turoViewLink && (
-                    <div className="pt-2">
-                      <a
-                        href={turoViewLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded border border-[#EAEB80]/50 text-[#EAEB80] hover:bg-[#EAEB80]/10 transition-colors"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        View Car on Turo
-                      </a>
+                      {manufacturerUrl && (
+                        <div className="flex gap-1">
+                          <span className="text-xs text-muted-foreground flex-shrink-0 min-w-[90px]">Manufacturer:</span>
+                          <a
+                            href={manufacturerUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-[#EAEB80] hover:underline flex items-center gap-1"
+                          >
+                            {manufacturerUrl.replace(/^https?:\/\//, "")}
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      )}
+
+                      {turoViewLink && (
+                        <div className="pt-2">
+                          <a
+                            href={turoViewLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded border border-[#EAEB80]/50 text-[#EAEB80] hover:bg-[#EAEB80]/10 transition-colors"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            View Car on Turo
+                          </a>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>{/* end left column */}
+
+          {/* ── RIGHT COLUMN ─────────────────────────────────────────────── */}
+          <div className="flex flex-col gap-4">
+
+            {/* Monthly Update Video */}
+            <Card className="border-border bg-card overflow-hidden flex-shrink-0">
+              <div
+                className="relative w-full flex items-center justify-center"
+                style={{
+                  minHeight: "220px",
+                  background: "linear-gradient(135deg, #1a1a1a 0%, #2a2a10 100%)",
+                }}
+              >
+                {/* Temporary video placeholder — replace src with real YouTube embed when available */}
+                <div className="w-full flex flex-col items-center justify-center py-12 gap-4">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: "#EAEB80" }}
+                  >
+                    <Video className="w-8 h-8 text-[#1a1a1a]" />
+                  </div>
+                  <div className="text-center px-6">
+                    <h1 className="text-2xl md:text-3xl font-extrabold leading-tight" style={{ color: "#EAEB80" }}>
+                      Golden Luxury Auto
+                    </h1>
+                    <h2 className="text-xl md:text-2xl font-bold text-white mt-0.5">
+                      Monthly Update!!!
+                    </h2>
+                    <p className="text-xs text-white/50 mt-3">Monthly update video coming soon</p>
+                  </div>
                 </div>
               </div>
+            </Card>
 
-              {/* Col 3: GLA Company */}
-              <div>
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 pb-1 border-b border-border">
+            {/* GLA Company Info */}
+            <Card className="border-border bg-card flex-1">
+              <CardContent className="p-5">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 pb-1 border-b border-border">
                   Golden Luxury Auto
                 </h3>
                 <div className="space-y-2">
                   {/* Social Icons */}
-                  <div className="flex gap-2 pb-1">
+                  <div className="flex flex-wrap gap-2 pb-1">
                     {[
                       { href: "https://www.facebook.com/goldenluxuryauto", label: "Facebook", icon: Globe },
                       { href: "https://www.instagram.com/goldenluxuryauto", label: "Instagram", icon: ImageIcon },
@@ -776,43 +810,32 @@ export default function ClientDashboard() {
                       </a>
                     ))}
                   </div>
-
-                  <div className="flex justify-between gap-2">
-                    <span className="text-xs text-muted-foreground flex-shrink-0">Website:</span>
-                    <a
-                      href="https://www.goldenluxuryauto.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-[#EAEB80] hover:underline"
-                    >
-                      www.goldenluxuryauto.com
-                    </a>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-xs text-muted-foreground flex-shrink-0">Address:</span>
-                    <span className="text-xs text-foreground text-right">
-                      South 500 West, Salt Lake City, Utah 84101
-                    </span>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-xs text-muted-foreground flex-shrink-0">Email:</span>
-                    <a
-                      href="mailto:golden@goldenluxuryauto.com"
-                      className="text-xs text-[#EAEB80] hover:underline"
-                    >
-                      golden@goldenluxuryauto.com
-                    </a>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <span className="text-xs text-muted-foreground flex-shrink-0">Phone:</span>
-                    <span className="text-xs text-foreground">1-800-346-1394</span>
-                  </div>
+                  {[
+                    { label: "Website", value: "www.goldenluxuryauto.com", href: "https://www.goldenluxuryauto.com" },
+                    { label: "Address", value: "South 500 West, Salt Lake City, Utah 84101" },
+                    { label: "Email", value: "golden@goldenluxuryauto.com", href: "mailto:golden@goldenluxuryauto.com" },
+                    { label: "Inquiries", value: "cathy@goldenluxuryauto.com", href: "mailto:cathy@goldenluxuryauto.com" },
+                    { label: "Phone", value: "1-800-346-1394", href: "tel:18003461394" },
+                  ].map((item) => (
+                    <div key={item.label} className="flex gap-1">
+                      <span className="text-xs text-muted-foreground flex-shrink-0 min-w-[70px]">{item.label}:</span>
+                      {item.href ? (
+                        <a href={item.href} target={item.href.startsWith("http") ? "_blank" : undefined}
+                          rel="noopener noreferrer"
+                          className="text-xs text-[#EAEB80] hover:underline break-all">
+                          {item.value}
+                        </a>
+                      ) : (
+                        <span className="text-xs text-foreground">{item.value}</span>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+          </div>{/* end right column */}
 
-            </div>
-          </CardContent>
-        </Card>
+        </div>{/* end sections 1&2 grid */}
 
         {/* ════════════════════════════════════════════════════════════════════
             SECTIONS 3 & 4 — Income/Expenses + Days/Trips (side by side)
