@@ -197,42 +197,22 @@ function tripDays(trip: TuroTrip): number {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
+// Single-value gold card (matches design exactly - each stat is its own card)
 function SummaryCard({
   label,
-  yearTotal,
-  monthValue,
-  yearLabel,
-  monthLabel,
+  value,
 }: {
   label: string;
-  yearTotal: string;
-  monthValue: string;
-  yearLabel: string;
-  monthLabel: string;
+  value: string;
 }) {
   return (
-    <Card className="border-border bg-card">
-      <CardContent className="p-0">
-        <div
-          className="px-4 py-3 rounded-t-lg"
-          style={{ backgroundColor: "#EAEB80" }}
-        >
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#1a1a1a]">
-            {label}
-          </p>
-        </div>
-        <div className="px-4 py-3 flex justify-between items-center gap-4">
-          <div>
-            <p className="text-xs text-muted-foreground">{yearLabel}</p>
-            <p className="text-base font-bold text-foreground">{yearTotal}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground">{monthLabel}</p>
-            <p className="text-base font-bold text-[#EAEB80]">{monthValue}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div
+      className="rounded-lg px-4 py-3 flex flex-col gap-0.5"
+      style={{ backgroundColor: "#EAEB80" }}
+    >
+      <p className="text-lg font-extrabold text-[#1a1a1a] leading-tight">{value}</p>
+      <p className="text-xs font-medium text-[#333] leading-snug">{label}</p>
+    </div>
   );
 }
 
@@ -852,29 +832,17 @@ export default function ClientDashboard() {
             </Select>
           </div>
 
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <SummaryCard
-              label="Total Car Owner Rental Income"
-              yearTotal={fmt(yearTotals.income)}
-              monthValue={fmt(currentMonthData?.income ?? 0)}
-              yearLabel={`${selectedYear} Total`}
-              monthLabel={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear}`}
-            />
-            <SummaryCard
-              label="Total Car Owner Expenses"
-              yearTotal={fmt(yearTotals.expenses)}
-              monthValue={fmt(currentMonthData?.expenses ?? 0)}
-              yearLabel={`${selectedYear} Total`}
-              monthLabel={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear}`}
-            />
-            <SummaryCard
-              label="Total Car Owner Profit"
-              yearTotal={fmt(yearTotals.profit)}
-              monthValue={fmt(currentMonthData?.profit ?? 0)}
-              yearLabel={`${selectedYear} Total`}
-              monthLabel={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear}`}
-            />
+          {/* Summary Cards — Row 1: Year totals */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+            <SummaryCard label="Total Car Owner Rental Income" value={fmt(yearTotals.income)} />
+            <SummaryCard label="Total Car Owner Expenses" value={fmt(yearTotals.expenses)} />
+            <SummaryCard label="Total Car Owner Profit" value={fmt(yearTotals.profit)} />
+          </div>
+          {/* Summary Cards — Row 2: Current month */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <SummaryCard label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Car Owner Rental Income`} value={fmt(currentMonthData?.income ?? 0)} />
+            <SummaryCard label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Expenses`} value={fmt(currentMonthData?.expenses ?? 0)} />
+            <SummaryCard label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Profit`} value={fmt(currentMonthData?.profit ?? 0)} />
           </div>
 
           {/* Monthly Income/Expense Table */}
@@ -931,33 +899,17 @@ export default function ClientDashboard() {
         <div>
           <h2 className="text-lg font-bold text-foreground mb-4">Days Rented and Trips Taken</h2>
 
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <SummaryCard
-              label="Total Days Rented"
-              yearTotal={String(yearTotals.days)}
-              monthValue={String(currentMonthData?.days ?? 0)}
-              yearLabel={`${selectedYear} Total`}
-              monthLabel={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear}`}
-            />
-            <SummaryCard
-              label="Total Trips Taken"
-              yearTotal={String(yearTotals.trips)}
-              monthValue={String(currentMonthData?.trips ?? 0)}
-              yearLabel={`${selectedYear} Total`}
-              monthLabel={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear}`}
-            />
-            <SummaryCard
-              label="Ave / Trips Taken"
-              yearTotal={yearTotals.trips > 0 ? fmt(yearTotals.income / yearTotals.trips) : "$0.00"}
-              monthValue={
-                (currentMonthData?.trips ?? 0) > 0
-                  ? fmt((currentMonthData?.income ?? 0) / (currentMonthData?.trips ?? 1))
-                  : "$0.00"
-              }
-              yearLabel={`${selectedYear} Avg`}
-              monthLabel={`${MONTHS_SHORT[currentMonth - 1]} Avg`}
-            />
+          {/* Summary Cards — Row 1: Year totals */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+            <SummaryCard label="Total Days Rented" value={String(yearTotals.days)} />
+            <SummaryCard label="Total Trips Taken" value={String(yearTotals.trips)} />
+            <SummaryCard label="Ave / Trips Taken" value={yearTotals.trips > 0 ? fmt(yearTotals.income / yearTotals.trips) : "$0.00"} />
+          </div>
+          {/* Summary Cards — Row 2: Current month */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <SummaryCard label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Days Rented`} value={String(currentMonthData?.days ?? 0)} />
+            <SummaryCard label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Trips Taken`} value={String(currentMonthData?.trips ?? 0)} />
+            <SummaryCard label="Ave / Trips Taken" value={(currentMonthData?.trips ?? 0) > 0 ? fmt((currentMonthData?.income ?? 0) / (currentMonthData?.trips ?? 1)) : "$0.00"} />
           </div>
 
           {/* Monthly Days/Trips Table */}
@@ -1015,11 +967,11 @@ export default function ClientDashboard() {
         ════════════════════════════════════════════════════════════════════ */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* Line Chart: Income, Profit, Expenses */}
+          {/* Bar Chart: Income, Profit, Expenses */}
           <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground">
-                Monthly Car Owner Rental Income, Profit and Expenses — {selectedYear}
+                Monthly Car Owner Rental Income, Car Owner Profit and Expenses — {selectedYear}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -1029,7 +981,7 @@ export default function ClientDashboard() {
                 </div>
               ) : monthlyTripData.some((d) => d.income > 0 || d.expenses > 0) ? (
                 <ResponsiveContainer width="100%" height={240}>
-                  <LineChart
+                  <BarChart
                     data={monthlyTripData}
                     margin={{ top: 4, right: 12, left: 0, bottom: 0 }}
                   >
@@ -1045,31 +997,10 @@ export default function ClientDashboard() {
                       formatter={(val: number) => fmt(val)}
                     />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Line
-                      type="monotone"
-                      dataKey="income"
-                      name="Rental Income"
-                      stroke={CHART_GOLD}
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="profit"
-                      name="Profit"
-                      stroke={CHART_GREEN}
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="expenses"
-                      name="Expenses"
-                      stroke={CHART_RED}
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                    />
-                  </LineChart>
+                    <Bar dataKey="income" name="Rental Income" fill={CHART_GOLD} radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="profit" name="Car Owner Profit" fill={CHART_GREEN} radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="expenses" name="Expenses" fill={CHART_RED} radius={[2, 2, 0, 0]} />
+                  </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="flex flex-col items-center justify-center h-56 text-muted-foreground">
@@ -1409,14 +1340,11 @@ export default function ClientDashboard() {
         {/* ════════════════════════════════════════════════════════════════════
             SECTION 10 — Report Center
         ════════════════════════════════════════════════════════════════════ */}
-        <Card className="border-border bg-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
-              <FileText className="w-4 h-4 text-[#EAEB80]" />
-              Report Center
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Card className="border-border bg-card overflow-hidden">
+          <div className="px-6 py-3" style={{ backgroundColor: "#EAEB80" }}>
+            <h2 className="text-base font-bold text-[#1a1a1a]">Report Center</h2>
+          </div>
+          <CardContent className="pt-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {reportLinks.map((link) => (
                 <ReportLinkCard
@@ -1433,14 +1361,11 @@ export default function ClientDashboard() {
         {/* ════════════════════════════════════════════════════════════════════
             SECTION 11 — Support Center
         ════════════════════════════════════════════════════════════════════ */}
-        <Card className="border-border bg-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
-              <HelpCircle className="w-4 h-4 text-[#EAEB80]" />
-              Support Center
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Card className="border-border bg-card overflow-hidden">
+          <div className="px-6 py-3" style={{ backgroundColor: "#EAEB80" }}>
+            <h2 className="text-base font-bold text-[#1a1a1a]">Support Center</h2>
+          </div>
+          <CardContent className="pt-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {supportLinks.map((link) => (
                 <ReportLinkCard
