@@ -178,8 +178,9 @@ const CHART_GREEN = "#4ade80";
 const CHART_RED = "#f87171";
 const PIE_COLORS = [CHART_GOLD, CHART_DARK];
 
-function fmt(val: number): string {
-  return `$${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function fmt(val: number | string | null | undefined): string {
+  const n = parseFloat(String(val ?? 0)) || 0;
+  return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function getMonthLabel(yearMonth: string): string {
@@ -197,21 +198,26 @@ function tripDays(trip: TuroTrip): number {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-// Single-value gold card (matches design exactly - each stat is its own card)
+// Summary card — variant: "black" | "gray" | "gold"
 function SummaryCard({
   label,
   value,
+  variant = "gold",
 }: {
   label: string;
   value: string;
+  variant?: "black" | "gray" | "gold";
 }) {
+  const bg = variant === "black" ? "#1a1a1a" : variant === "gray" ? "#e5e5e5" : "#D4AF37";
+  const textColor = variant === "black" ? "#EAEB80" : "#1a1a1a";
+  const subColor = variant === "black" ? "#ccc" : "#333";
   return (
     <div
       className="rounded-lg px-4 py-3 flex flex-col gap-0.5"
-      style={{ backgroundColor: "#EAEB80" }}
+      style={{ backgroundColor: bg }}
     >
-      <p className="text-lg font-extrabold text-[#1a1a1a] leading-tight">{value}</p>
-      <p className="text-xs font-medium text-[#333] leading-snug">{label}</p>
+      <p className="text-lg font-extrabold leading-tight" style={{ color: textColor }}>{value}</p>
+      <p className="text-xs font-medium leading-snug" style={{ color: subColor }}>{label}</p>
     </div>
   );
 }
@@ -454,7 +460,7 @@ export default function ClientDashboard() {
 
       // Monthly payments
       const monthPayments = payments.filter((p) => p.payments_year_month === monthKey);
-      const expenses = monthPayments.reduce((s, p) => s + (p.payments_amount || 0), 0);
+      const expenses = monthPayments.reduce((s, p) => s + (parseFloat(String(p.payments_amount)) || 0), 0);
       const profit = income - expenses;
       const avgPerTrip = trips > 0 ? income / trips : 0;
 
@@ -815,9 +821,8 @@ export default function ClientDashboard() {
 
         {/* ── SECTION 3 — Income and Expenses ────────────────────────────── */}
         <div>
-          {/* Section header with year selector */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-foreground">Income and Expenses</h2>
+            <h2 className="text-lg font-bold uppercase text-foreground tracking-wide">Income and Expenses</h2>
             <Select value={selectedYear} onValueChange={setSelectedYear}>
               <SelectTrigger className="w-28 h-9 text-sm">
                 <SelectValue />
@@ -834,15 +839,15 @@ export default function ClientDashboard() {
 
           {/* Summary Cards — Row 1: Year totals */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-            <SummaryCard label="Total Car Owner Rental Income" value={fmt(yearTotals.income)} />
-            <SummaryCard label="Total Car Owner Expenses" value={fmt(yearTotals.expenses)} />
-            <SummaryCard label="Total Car Owner Profit" value={fmt(yearTotals.profit)} />
+            <SummaryCard variant="black" label="Total Car Owner Rental Income" value={fmt(yearTotals.income)} />
+            <SummaryCard variant="gray"  label="Total Car Owner Expenses"      value={fmt(yearTotals.expenses)} />
+            <SummaryCard variant="gold"  label="Total Car Owner Profit"        value={fmt(yearTotals.profit)} />
           </div>
           {/* Summary Cards — Row 2: Current month */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-            <SummaryCard label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Car Owner Rental Income`} value={fmt(currentMonthData?.income ?? 0)} />
-            <SummaryCard label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Expenses`} value={fmt(currentMonthData?.expenses ?? 0)} />
-            <SummaryCard label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Profit`} value={fmt(currentMonthData?.profit ?? 0)} />
+            <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Car Owner Rental Income`} value={fmt(currentMonthData?.income ?? 0)} />
+            <SummaryCard variant="gray"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Expenses`}          value={fmt(currentMonthData?.expenses ?? 0)} />
+            <SummaryCard variant="gold"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Profit`}            value={fmt(currentMonthData?.profit ?? 0)} />
           </div>
 
           {/* Monthly Income/Expense Table */}
@@ -850,11 +855,11 @@ export default function ClientDashboard() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow style={{ backgroundColor: "#EAEB80" }} className="border-b border-border hover:bg-[#EAEB80]">
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3">Month and Year</TableHead>
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3 text-right">Car Owner Rental Income</TableHead>
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3 text-right">Car Owner Expenses</TableHead>
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3 text-right">Car Owner Split</TableHead>
+                  <TableRow style={{ backgroundColor: "#1a1a1a" }} className="border-b border-border">
+                    <TableHead className="text-white font-semibold text-xs py-3">Month and Year</TableHead>
+                    <TableHead className="text-white font-semibold text-xs py-3 text-right">Car Owner Rental Income</TableHead>
+                    <TableHead className="text-white font-semibold text-xs py-3 text-right">Car Owner Expenses</TableHead>
+                    <TableHead className="text-white font-semibold text-xs py-3 text-right">Car Owner Split</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -897,19 +902,19 @@ export default function ClientDashboard() {
 
         {/* ── SECTION 4 — Days Rented and Trips Taken ────────────────────── */}
         <div>
-          <h2 className="text-lg font-bold text-foreground mb-4">Days Rented and Trips Taken</h2>
+          <h2 className="text-lg font-bold uppercase text-foreground tracking-wide mb-4">Days Rented and Trips Taken</h2>
 
           {/* Summary Cards — Row 1: Year totals */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-            <SummaryCard label="Total Days Rented" value={String(yearTotals.days)} />
-            <SummaryCard label="Total Trips Taken" value={String(yearTotals.trips)} />
-            <SummaryCard label="Ave / Trips Taken" value={yearTotals.trips > 0 ? fmt(yearTotals.income / yearTotals.trips) : "$0.00"} />
+            <SummaryCard variant="black" label="Total Days Rented" value={String(yearTotals.days)} />
+            <SummaryCard variant="gray"  label="Total Trips Taken" value={String(yearTotals.trips)} />
+            <SummaryCard variant="gold"  label="Ave / Trips Taken" value={yearTotals.trips > 0 ? fmt(yearTotals.income / yearTotals.trips) : "$0.00"} />
           </div>
           {/* Summary Cards — Row 2: Current month */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-            <SummaryCard label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Days Rented`} value={String(currentMonthData?.days ?? 0)} />
-            <SummaryCard label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Trips Taken`} value={String(currentMonthData?.trips ?? 0)} />
-            <SummaryCard label="Ave / Trips Taken" value={(currentMonthData?.trips ?? 0) > 0 ? fmt((currentMonthData?.income ?? 0) / (currentMonthData?.trips ?? 1)) : "$0.00"} />
+            <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Days Rented`} value={String(currentMonthData?.days ?? 0)} />
+            <SummaryCard variant="gray"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Trips Taken`} value={String(currentMonthData?.trips ?? 0)} />
+            <SummaryCard variant="gold"  label="Ave / Trips Taken" value={(currentMonthData?.trips ?? 0) > 0 ? fmt((currentMonthData?.income ?? 0) / (currentMonthData?.trips ?? 1)) : "$0.00"} />
           </div>
 
           {/* Monthly Days/Trips Table */}
@@ -917,11 +922,11 @@ export default function ClientDashboard() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow style={{ backgroundColor: "#EAEB80" }} className="border-b border-border hover:bg-[#EAEB80]">
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3">Month and Year</TableHead>
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3 text-right">Days Rented</TableHead>
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3 text-right">Trips Taken</TableHead>
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3 text-right">Ave / Trips Taken</TableHead>
+                  <TableRow style={{ backgroundColor: "#1a1a1a" }} className="border-b border-border">
+                    <TableHead className="text-white font-semibold text-xs py-3">Month and Year</TableHead>
+                    <TableHead className="text-white font-semibold text-xs py-3 text-right">Days Rented</TableHead>
+                    <TableHead className="text-white font-semibold text-xs py-3 text-right">Trips Taken</TableHead>
+                    <TableHead className="text-white font-semibold text-xs py-3 text-right">Ave / Trips Taken</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1240,12 +1245,12 @@ export default function ClientDashboard() {
             ) : payments.length > 0 ? (
               <Table>
                 <TableHeader>
-                  <TableRow style={{ backgroundColor: "#EAEB80" }} className="hover:bg-[#EAEB80]">
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3">Month</TableHead>
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3 text-right">Car Owner Split</TableHead>
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3 text-right">Amount Paid</TableHead>
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3 text-right">Balance</TableHead>
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3">Payment Date</TableHead>
+                  <TableRow style={{ backgroundColor: "#1a1a1a" }} className="">
+                    <TableHead className="text-white font-semibold text-xs py-3">Month</TableHead>
+                    <TableHead className="text-white font-semibold text-xs py-3 text-right">Car Owner Split</TableHead>
+                    <TableHead className="text-white font-semibold text-xs py-3 text-right">Amount Paid</TableHead>
+                    <TableHead className="text-white font-semibold text-xs py-3 text-right">Balance</TableHead>
+                    <TableHead className="text-white font-semibold text-xs py-3">Payment Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1301,9 +1306,9 @@ export default function ClientDashboard() {
             ) : maintenanceRecords.length > 0 ? (
               <Table>
                 <TableHeader>
-                  <TableRow style={{ backgroundColor: "#EAEB80" }} className="hover:bg-[#EAEB80]">
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3">Maintenance</TableHead>
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3">Date Completed</TableHead>
+                  <TableRow style={{ backgroundColor: "#1a1a1a" }} className="">
+                    <TableHead className="text-white font-semibold text-xs py-3">Maintenance</TableHead>
+                    <TableHead className="text-white font-semibold text-xs py-3">Date Completed</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
