@@ -632,8 +632,11 @@ export default function ClientDashboard() {
                   src={getProxiedImageUrl(activeCar.photo)}
                   alt={activeCar?.makeModel ?? "Vehicle"}
                   className="w-full h-full object-cover absolute inset-0"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                 />
-              ) : (
+              ) : null}
+              {/* Always show overlay info */}
+              {!activeCar?.photo && (
                 <div className="flex flex-col items-center gap-3 text-muted-foreground/30 py-12 z-10">
                   <Car className="w-24 h-24" />
                   <p className="text-sm text-muted-foreground">
@@ -643,30 +646,34 @@ export default function ClientDashboard() {
               )}
               {activeCar && (
                 <div className="absolute bottom-0 left-0 right-0 px-4 py-2 bg-gradient-to-t from-black/70 to-transparent z-10">
-                  <p className="text-sm font-semibold text-white">{activeCar.year} {activeCar.makeModel}</p>
+                  <p className="text-sm font-bold text-white">{activeCar.year} {activeCar.makeModel}</p>
                   {activeCar.licensePlate && <p className="text-xs text-white/70">Plate: {activeCar.licensePlate}</p>}
                 </div>
               )}
             </div>
           </Card>
 
-          {/* Monthly Update Video */}
+          {/* Monthly Update Video — embed YouTube iframe */}
           <Card className="border-border bg-card overflow-hidden h-full">
-            <div
-              className="relative w-full h-full flex items-center justify-center"
-              style={{ minHeight: "240px", background: "linear-gradient(135deg, #1a1a1a 0%, #2a2a10 100%)" }}
-            >
-              <div className="w-full flex flex-col items-center justify-center py-12 gap-4">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: "#EAEB80" }}>
-                  <Video className="w-8 h-8 text-[#1a1a1a]" />
+            <div className="relative w-full h-full" style={{ minHeight: "240px", background: "#1a1a1a" }}>
+              {/* Public Golden Luxury Auto YouTube channel intro video */}
+              <iframe
+                className="w-full h-full absolute inset-0"
+                style={{ minHeight: "240px" }}
+                src="https://www.youtube.com/embed/videoseries?list=PLbpi6ZahtOH6Ar_3GPy3workMEEjm0e6t&autoplay=0&rel=0"
+                title="Golden Luxury Auto Monthly Update"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+              {/* Fallback overlay title (shows behind iframe on load) */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-0"
+                style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2a2a10 100%)" }}>
+                <div className="w-14 h-14 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: "#EAEB80" }}>
+                  <Video className="w-7 h-7 text-[#1a1a1a]" />
                 </div>
-                <div className="text-center px-6">
-                  <h1 className="text-2xl md:text-3xl font-extrabold leading-tight" style={{ color: "#EAEB80" }}>
-                    Golden Luxury Auto
-                  </h1>
-                  <h2 className="text-xl md:text-2xl font-bold text-white mt-0.5">Monthly Update!!!</h2>
-                  <p className="text-xs text-white/50 mt-3">Monthly update video coming soon</p>
-                </div>
+                <h1 className="text-2xl font-extrabold" style={{ color: "#EAEB80" }}>Golden Luxury Auto</h1>
+                <h2 className="text-lg font-bold text-white">Monthly Update!!!</h2>
               </div>
             </div>
           </Card>
@@ -701,8 +708,8 @@ export default function ClientDashboard() {
                         .filter((f) => f.value)
                         .map((f) => (
                           <div key={f.label} className="flex gap-1">
-                            <span className="text-xs text-muted-foreground flex-shrink-0 min-w-[90px]">{f.label}:</span>
-                            <span className="text-xs text-foreground font-medium">{f.value}</span>
+                            <span className="font-bold text-foreground flex-shrink-0 min-w-[100px] text-sm">{f.label}:</span>
+                            <span className="text-sm text-foreground">{f.value}</span>
                           </div>
                         ))}
                     </div>
@@ -758,20 +765,47 @@ export default function ClientDashboard() {
             <CardContent className="p-5 h-full">
 
               {/* Header: "Golden Luxury Auto:" + colored social icons inline */}
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                <span className="font-bold text-foreground text-sm">Golden Luxury Auto:</span>
-                {[
-                  { href: "https://www.facebook.com/goldenluxuryauto",   label: "Facebook",  color: "#1877F2", path: "M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" },
-                  { href: "https://www.instagram.com/goldenluxuryauto",  label: "Instagram", color: "#E1306C", path: "M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z M17.5 6.5h.01 M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5z" },
-                  { href: "https://www.youtube.com/@goldenluxuryauto",   label: "YouTube",   color: "#FF0000", path: "M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.96-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z M9.75 15.02l5.75-3.02-5.75-3.02v6.04z" },
-                  { href: "https://www.linkedin.com/company/goldenluxuryauto", label: "LinkedIn", color: "#0A66C2", path: "M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z M2 9h4v12H2z M4 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" },
-                ].map((s) => (
-                  <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" title={s.label}>
-                    <svg viewBox="0 0 24 24" fill={s.color} className="w-5 h-5" xmlns="http://www.w3.org/2000/svg">
-                      <path d={s.path} />
-                    </svg>
-                  </a>
-                ))}
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <span className="font-bold text-foreground text-base">Golden Luxury Auto:</span>
+                {/* Facebook */}
+                <a href="https://www.facebook.com/goldenluxuryauto" target="_blank" rel="noopener noreferrer" title="Facebook">
+                  <svg viewBox="0 0 24 24" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="24" height="24" rx="4" fill="#1877F2"/>
+                    <path d="M16 8h-2a1 1 0 0 0-1 1v2h3l-.5 3H13v7h-3v-7H8v-3h2V9a4 4 0 0 1 4-4h2v3z" fill="white"/>
+                  </svg>
+                </a>
+                {/* Instagram */}
+                <a href="https://www.instagram.com/goldenluxuryauto" target="_blank" rel="noopener noreferrer" title="Instagram">
+                  <svg viewBox="0 0 24 24" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="ig" x1="0%" y1="100%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#f09433"/>
+                        <stop offset="25%" stopColor="#e6683c"/>
+                        <stop offset="50%" stopColor="#dc2743"/>
+                        <stop offset="75%" stopColor="#cc2366"/>
+                        <stop offset="100%" stopColor="#bc1888"/>
+                      </linearGradient>
+                    </defs>
+                    <rect width="24" height="24" rx="5" fill="url(#ig)"/>
+                    <rect x="7" y="7" width="10" height="10" rx="3" fill="none" stroke="white" strokeWidth="1.5"/>
+                    <circle cx="12" cy="12" r="2.5" fill="none" stroke="white" strokeWidth="1.5"/>
+                    <circle cx="17" cy="7" r="1" fill="white"/>
+                  </svg>
+                </a>
+                {/* YouTube */}
+                <a href="https://www.youtube.com/@goldenluxuryauto" target="_blank" rel="noopener noreferrer" title="YouTube">
+                  <svg viewBox="0 0 24 24" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="24" height="24" rx="4" fill="#FF0000"/>
+                    <polygon points="10,8 10,16 17,12" fill="white"/>
+                  </svg>
+                </a>
+                {/* LinkedIn */}
+                <a href="https://www.linkedin.com/company/goldenluxuryauto" target="_blank" rel="noopener noreferrer" title="LinkedIn">
+                  <svg viewBox="0 0 24 24" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="24" height="24" rx="4" fill="#0A66C2"/>
+                    <text x="4" y="17" fontFamily="Arial" fontWeight="bold" fontSize="14" fill="white">in</text>
+                  </svg>
+                </a>
               </div>
 
               {/* Contact rows with large outline icons */}
