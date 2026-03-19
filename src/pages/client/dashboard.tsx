@@ -855,13 +855,13 @@ export default function ClientDashboard() {
                     <path d="M19 8.5a4 4 0 0 1-4-4V4h-2.5v10.5a2 2 0 1 1-2-2 2 2 0 0 1 .5.07V10a4.5 4.5 0 1 0 4 4.5V8.5a6.4 6.4 0 0 0 4 1.4V7.4A4 4 0 0 1 19 8.5z" fill="white"/>
                   </svg>
                 </a>
-                {/* Gmail */}
+                {/* Gmail / Google */}
                 <a href="mailto:goldenluxuryauto@gmail.com" title="Gmail">
                   <svg viewBox="0 0 24 24" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="24" height="24" rx="4" fill="#EA4335"/>
-                    <path d="M4 8l8 5 8-5v8H4z" fill="white"/>
-                    <path d="M4 8l8 5 8-5" fill="none" stroke="#EA4335" strokeWidth="0.5"/>
-                    <path d="M4 6h16L12 13z" fill="white"/>
+                    <rect width="24" height="24" rx="4" fill="white" stroke="#e0e0e0" strokeWidth="1"/>
+                    {/* Google "G" logo colors */}
+                    <path d="M12 11.2h5.5c.1.5.2 1 .2 1.8 0 4-2.7 6-6.7 6-3.9 0-7-3.1-7-7s3.1-7 7-7c1.9 0 3.4.7 4.6 1.8L13.8 8.6C13 7.9 12 7.5 11 7.5c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5c2.2 0 3.7-1.2 4.1-2.8H12v-2.5z" fill="#4285F4"/>
+                    <path d="M12 11.2h5.5c.1.5.2 1 .2 1.8 0 4-2.7 6-6.7 6-3.9 0-7-3.1-7-7s3.1-7 7-7c1.9 0 3.4.7 4.6 1.8L13.8 8.6C13 7.9 12 7.5 11 7.5" fill="none"/>
                   </svg>
                 </a>
               </div>
