@@ -886,7 +886,7 @@ export default function ClientDashboard() {
                     <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3">Month and Year</TableHead>
                     <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3 text-right">Car Owner Rental Income</TableHead>
                     <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3 text-right">Car Owner Expenses</TableHead>
-                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3 text-right">Car Owner Profit</TableHead>
+                    <TableHead className="text-[#1a1a1a] font-semibold text-xs py-3 text-right">Car Owner Split</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
