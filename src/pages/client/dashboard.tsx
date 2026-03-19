@@ -632,40 +632,45 @@ export default function ClientDashboard() {
             SECTION 1 — Hero Header
         ════════════════════════════════════════════════════════════════════ */}
         <Card className="border-border bg-card overflow-hidden">
-          <div className="flex flex-col md:flex-row">
-            {/* Car photo */}
-            <div className="md:w-64 bg-muted/20 flex items-center justify-center min-h-[180px] flex-shrink-0 border-r border-border">
+          <div className="grid grid-cols-1 md:grid-cols-2 min-h-[240px]">
+            {/* Left: Car photo — full half */}
+            <div className="bg-muted/10 flex items-center justify-center border-b md:border-b-0 md:border-r border-border min-h-[200px]">
               {activeCar?.photo ? (
                 <img
                   src={getProxiedImageUrl(activeCar.photo)}
                   alt={activeCar.makeModel}
-                  className="w-full h-full object-cover max-h-52"
+                  className="w-full h-full object-cover max-h-64"
                 />
               ) : (
-                <div className="flex flex-col items-center gap-2 text-muted-foreground/40 p-8">
-                  <Car className="w-20 h-20" />
+                <div className="flex flex-col items-center gap-3 text-muted-foreground/30 p-10">
+                  <Car className="w-28 h-28" />
                   {activeCar && (
-                    <p className="text-xs text-center text-muted-foreground">
-                      {activeCar.makeModel}
+                    <p className="text-sm text-muted-foreground font-medium">
+                      {activeCar.year} {activeCar.makeModel}
                     </p>
                   )}
                 </div>
               )}
             </div>
 
-            {/* GLA Branding */}
-            <div className="flex-1 flex items-center justify-center p-8">
-              <div className="text-center">
+            {/* Right: GLA Branding */}
+            <div
+              className="flex items-end justify-start p-8 relative overflow-hidden"
+              style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d1a 100%)" }}
+            >
+              <div>
                 <h1
-                  className="text-3xl md:text-4xl font-extrabold leading-tight"
-                  style={{ color: "#EAEB80" }}
+                  className="text-4xl md:text-5xl font-extrabold leading-tight"
+                  style={{ color: "#EAEB80", textShadow: "2px 2px 8px rgba(0,0,0,0.6)" }}
                 >
                   Golden Luxury Auto
                 </h1>
-                <h2 className="text-xl md:text-2xl font-bold text-foreground mt-1">
+                <h2
+                  className="text-3xl md:text-4xl font-extrabold mt-1"
+                  style={{ color: "#EAEB80", textShadow: "2px 2px 8px rgba(0,0,0,0.6)" }}
+                >
                   Monthly Update!!!
                 </h2>
-                <p className="text-sm text-muted-foreground mt-2">Client Dashboard</p>
               </div>
             </div>
           </div>
@@ -824,8 +829,11 @@ export default function ClientDashboard() {
         </Card>
 
         {/* ════════════════════════════════════════════════════════════════════
-            SECTION 3 — Income and Expenses
+            SECTIONS 3 & 4 — Income/Expenses + Days/Trips (side by side)
         ════════════════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+        {/* ── SECTION 3 — Income and Expenses ────────────────────────────── */}
         <div>
           {/* Section header with year selector */}
           <div className="flex items-center justify-between mb-4">
@@ -917,11 +925,9 @@ export default function ClientDashboard() {
               </Table>
             </div>
           </Card>
-        </div>
+        </div>{/* end section 3 */}
 
-        {/* ════════════════════════════════════════════════════════════════════
-            SECTION 4 — Days Rented and Trips Taken
-        ════════════════════════════════════════════════════════════════════ */}
+        {/* ── SECTION 4 — Days Rented and Trips Taken ────────────────────── */}
         <div>
           <h2 className="text-lg font-bold text-foreground mb-4">Days Rented and Trips Taken</h2>
 
@@ -1000,7 +1006,9 @@ export default function ClientDashboard() {
               </Table>
             </div>
           </Card>
-        </div>
+        </div>{/* end section 4 */}
+
+        </div>{/* end sections 3&4 grid */}
 
         {/* ════════════════════════════════════════════════════════════════════
             SECTION 5 — Charts (Line + Bar)
@@ -1281,8 +1289,11 @@ export default function ClientDashboard() {
         </Card>
 
         {/* ════════════════════════════════════════════════════════════════════
-            SECTION 8 — Payment History
+            SECTIONS 8 & 9 — Payment History + Maintenance (side by side)
         ════════════════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+        {/* ── SECTION 8 — Payment History ────────────────────────────────── */}
         <Card className="border-border bg-card overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -1343,9 +1354,7 @@ export default function ClientDashboard() {
           </CardContent>
         </Card>
 
-        {/* ════════════════════════════════════════════════════════════════════
-            SECTION 9 — Maintenance History
-        ════════════════════════════════════════════════════════════════════ */}
+        {/* ── SECTION 9 — Maintenance History ────────────────────────────── */}
         <Card className="border-border bg-card overflow-hidden">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -1394,6 +1403,8 @@ export default function ClientDashboard() {
             )}
           </CardContent>
         </Card>
+
+        </div>{/* end sections 8&9 grid */}
 
         {/* ════════════════════════════════════════════════════════════════════
             SECTION 10 — Report Center
