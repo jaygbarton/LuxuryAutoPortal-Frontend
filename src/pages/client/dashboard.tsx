@@ -824,17 +824,14 @@ export default function ClientDashboard() {
           <h2 className="text-lg font-bold uppercase text-foreground tracking-wide">Days Rented and Trips Taken</h2>
         </div>
 
-        {/* Shared card rows — 3 income | gap-6 | 3 days — gap-6 matches outer section gap */}
-        {/* Row 1: year totals */}
-        <div className="grid grid-cols-3 xl:grid-cols-6 gap-3 xl:gap-x-0 mb-3 items-stretch">
-          {/* Income group */}
-          <div className="grid grid-cols-3 col-span-3 gap-3 items-stretch">
+        {/* Row 1: year totals — 2-col outer (gap-6 = same as info sections), 3-col inner */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-3">
+          <div className="grid grid-cols-3 gap-3 items-stretch">
             <SummaryCard variant="black" label="Total Car Owner Rental Income" value={fmt(yearTotals.income)} />
             <SummaryCard variant="gray"  label="Total Car Owner Expenses"      value={fmt(yearTotals.expenses)} />
             <SummaryCard variant="gold"  label="Total Car Owner Profit"        value={fmt(yearTotals.profit)} />
           </div>
-          {/* Days group — gap-6 from income group matches outer section gap */}
-          <div className="grid grid-cols-3 col-span-3 gap-3 items-stretch xl:pl-6">
+          <div className="grid grid-cols-3 gap-3 items-stretch">
             <SummaryCard variant="black" label="Total Days Rented" value={String(yearTotals.days)} />
             <SummaryCard variant="gray"  label="Total Trips Taken" value={String(yearTotals.trips)} />
             <SummaryCard variant="gold"  label="Ave / Trips Taken" value={yearTotals.trips > 0 ? fmt(yearTotals.income / yearTotals.trips) : "$0.00"} />
@@ -842,13 +839,13 @@ export default function ClientDashboard() {
         </div>
 
         {/* Row 2: current month */}
-        <div className="grid grid-cols-3 xl:grid-cols-6 gap-3 xl:gap-x-0 mb-6 items-stretch">
-          <div className="grid grid-cols-3 col-span-3 gap-3 items-stretch">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-3 gap-3 items-stretch">
             <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Car Owner Rental Income`} value={fmt(currentMonthData?.income ?? 0)} />
             <SummaryCard variant="gray"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Expenses`}          value={fmt(currentMonthData?.expenses ?? 0)} />
             <SummaryCard variant="gold"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Profit`}            value={fmt(currentMonthData?.profit ?? 0)} />
           </div>
-          <div className="grid grid-cols-3 col-span-3 gap-3 items-stretch xl:pl-6">
+          <div className="grid grid-cols-3 gap-3 items-stretch">
             <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Days Rented`}  value={String(currentMonthData?.days ?? 0)} />
             <SummaryCard variant="gray"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Trips Taken`}  value={String(currentMonthData?.trips ?? 0)} />
             <SummaryCard variant="gold"  label="Ave / Trips Taken" value={(currentMonthData?.trips ?? 0) > 0 ? fmt((currentMonthData?.income ?? 0) / (currentMonthData?.trips ?? 1)) : "$0.00"} />
