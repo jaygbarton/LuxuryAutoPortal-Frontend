@@ -801,12 +801,12 @@ export default function ClientDashboard() {
 
         {/* ════════════════════════════════════════════════════════════════════
             SECTIONS 3 & 4 — Income/Expenses + Days/Trips (side by side)
+            Shared 6-col card grids so left & right cards have equal heights
         ════════════════════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-        {/* ── SECTION 3 — Income and Expenses ────────────────────────────── */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
+        {/* Section titles + year selector — full width row */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-end mb-3">
+          <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold uppercase text-foreground tracking-wide">Income and Expenses</h2>
             <Select value={selectedYear} onValueChange={setSelectedYear}>
               <SelectTrigger className="w-28 h-9 text-sm">
@@ -821,19 +821,34 @@ export default function ClientDashboard() {
               </SelectContent>
             </Select>
           </div>
+          <h2 className="text-lg font-bold uppercase text-foreground tracking-wide">Days Rented and Trips Taken</h2>
+        </div>
 
-          {/* Summary Cards — Row 1: Year totals */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3 items-stretch">
-            <SummaryCard variant="black" label="Total Car Owner Rental Income" value={fmt(yearTotals.income)} />
-            <SummaryCard variant="gray"  label="Total Car Owner Expenses"      value={fmt(yearTotals.expenses)} />
-            <SummaryCard variant="gold"  label="Total Car Owner Profit"        value={fmt(yearTotals.profit)} />
-          </div>
-          {/* Summary Cards — Row 2: Current month */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 items-stretch">
-            <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Car Owner Rental Income`} value={fmt(currentMonthData?.income ?? 0)} />
-            <SummaryCard variant="gray"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Expenses`}          value={fmt(currentMonthData?.expenses ?? 0)} />
-            <SummaryCard variant="gold"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Profit`}            value={fmt(currentMonthData?.profit ?? 0)} />
-          </div>
+        {/* Shared 6-card grid — Row 1: year totals (3 income + 3 days) */}
+        <div className="grid grid-cols-3 xl:grid-cols-6 gap-3 mb-3">
+          <SummaryCard variant="black" label="Total Car Owner Rental Income" value={fmt(yearTotals.income)} />
+          <SummaryCard variant="gray"  label="Total Car Owner Expenses"      value={fmt(yearTotals.expenses)} />
+          <SummaryCard variant="gold"  label="Total Car Owner Profit"        value={fmt(yearTotals.profit)} />
+          <SummaryCard variant="black" label="Total Days Rented"  value={String(yearTotals.days)} />
+          <SummaryCard variant="gray"  label="Total Trips Taken"  value={String(yearTotals.trips)} />
+          <SummaryCard variant="gold"  label="Ave / Trips Taken"  value={yearTotals.trips > 0 ? fmt(yearTotals.income / yearTotals.trips) : "$0.00"} />
+        </div>
+
+        {/* Shared 6-card grid — Row 2: current month */}
+        <div className="grid grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
+          <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Car Owner Rental Income`} value={fmt(currentMonthData?.income ?? 0)} />
+          <SummaryCard variant="gray"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Expenses`}          value={fmt(currentMonthData?.expenses ?? 0)} />
+          <SummaryCard variant="gold"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Profit`}            value={fmt(currentMonthData?.profit ?? 0)} />
+          <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Days Rented`}  value={String(currentMonthData?.days ?? 0)} />
+          <SummaryCard variant="gray"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Trips Taken`}  value={String(currentMonthData?.trips ?? 0)} />
+          <SummaryCard variant="gold"  label="Ave / Trips Taken" value={(currentMonthData?.trips ?? 0) > 0 ? fmt((currentMonthData?.income ?? 0) / (currentMonthData?.trips ?? 1)) : "$0.00"} />
+        </div>
+
+        {/* Tables side by side */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+        {/* ── SECTION 3 — Income and Expenses table ────────────────────── */}
+        <div>
 
           {/* Monthly Income/Expense Table */}
           <Card className="border-border bg-card overflow-hidden">
@@ -885,22 +900,8 @@ export default function ClientDashboard() {
           </Card>
         </div>{/* end section 3 */}
 
-        {/* ── SECTION 4 — Days Rented and Trips Taken ────────────────────── */}
+        {/* ── SECTION 4 — Days Rented and Trips Taken table ──────────────── */}
         <div>
-          <h2 className="text-lg font-bold uppercase text-foreground tracking-wide mb-4">Days Rented and Trips Taken</h2>
-
-          {/* Summary Cards — Row 1: Year totals */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3 items-stretch">
-            <SummaryCard variant="black" label="Total Days Rented" value={String(yearTotals.days)} />
-            <SummaryCard variant="gray"  label="Total Trips Taken" value={String(yearTotals.trips)} />
-            <SummaryCard variant="gold"  label="Ave / Trips Taken" value={yearTotals.trips > 0 ? fmt(yearTotals.income / yearTotals.trips) : "$0.00"} />
-          </div>
-          {/* Summary Cards — Row 2: Current month */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 items-stretch">
-            <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Days Rented`} value={String(currentMonthData?.days ?? 0)} />
-            <SummaryCard variant="gray"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Trips Taken`} value={String(currentMonthData?.trips ?? 0)} />
-            <SummaryCard variant="gold"  label="Ave / Trips Taken" value={(currentMonthData?.trips ?? 0) > 0 ? fmt((currentMonthData?.income ?? 0) / (currentMonthData?.trips ?? 1)) : "$0.00"} />
-          </div>
 
           {/* Monthly Days/Trips Table */}
           <Card className="border-border bg-card overflow-hidden">
