@@ -1136,19 +1136,19 @@ export default function ClientDashboard() {
                           <TableCell className="text-sm py-2 text-right">{fmt(row.expenses)}</TableCell>
                           <TableCell
                             className={`text-sm py-2 text-right font-medium ${
-                              row.profit >= 0 ? "text-[#EAEB80]" : "text-[#f87171]"
+                              row.profit > 0 ? "text-[#EAEB80]" : row.profit < 0 ? "text-[#f87171]" : "text-muted-foreground"
                             }`}
                           >
                             {fmt(row.profit)}
                           </TableCell>
                         </TableRow>
                       ))}
-                      {/* TOTAL row */}
-                      <TableRow style={{ backgroundColor: "#EAEB80" }} className="border-t border-border hover:bg-[#EAEB80]">
-                        <TableCell className="text-xs font-bold text-[#1a1a1a] py-2">TOTAL</TableCell>
-                        <TableCell className="text-xs font-bold text-[#1a1a1a] py-2 text-right">{fmt(yearTotals.income)}</TableCell>
-                        <TableCell className="text-xs font-bold text-[#1a1a1a] py-2 text-right">{fmt(yearTotals.expenses)}</TableCell>
-                        <TableCell className="text-xs font-bold text-[#1a1a1a] py-2 text-right">{fmt(yearTotals.profit)}</TableCell>
+                      {/* TOTAL row — dark bg, white text, gold key values */}
+                      <TableRow style={{ backgroundColor: "#1a1a1a" }} className="border-t-2 border-[#EAEB80]">
+                        <TableCell className="text-sm font-extrabold text-white py-2.5">TOTAL</TableCell>
+                        <TableCell className="text-sm font-bold text-white py-2.5 text-right">{fmt(yearTotals.income)}</TableCell>
+                        <TableCell className="text-sm font-bold text-white py-2.5 text-right">{fmt(yearTotals.expenses)}</TableCell>
+                        <TableCell className={`text-sm font-bold py-2.5 text-right ${yearTotals.profit > 0 ? "text-[#EAEB80]" : yearTotals.profit < 0 ? "text-[#f87171]" : "text-white"}`}>{fmt(yearTotals.profit)}</TableCell>
                       </TableRow>
                     </>
                   )}
@@ -1192,12 +1192,12 @@ export default function ClientDashboard() {
                           </TableCell>
                         </TableRow>
                       ))}
-                      {/* TOTAL row */}
-                      <TableRow style={{ backgroundColor: "#EAEB80" }} className="border-t border-border hover:bg-[#EAEB80]">
-                        <TableCell className="text-xs font-bold text-[#1a1a1a] py-2">TOTAL</TableCell>
-                        <TableCell className="text-xs font-bold text-[#1a1a1a] py-2 text-right">{yearTotalsTrips.days}</TableCell>
-                        <TableCell className="text-xs font-bold text-[#1a1a1a] py-2 text-right">{yearTotalsTrips.trips}</TableCell>
-                        <TableCell className="text-xs font-bold text-[#1a1a1a] py-2 text-right">
+                      {/* TOTAL row — dark bg, white text */}
+                      <TableRow style={{ backgroundColor: "#1a1a1a" }} className="border-t-2 border-[#EAEB80]">
+                        <TableCell className="text-sm font-extrabold text-white py-2.5">TOTAL</TableCell>
+                        <TableCell className="text-sm font-bold text-[#EAEB80] py-2.5 text-right">{yearTotalsTrips.days}</TableCell>
+                        <TableCell className="text-sm font-bold text-[#EAEB80] py-2.5 text-right">{yearTotalsTrips.trips}</TableCell>
+                        <TableCell className="text-sm font-bold text-[#EAEB80] py-2.5 text-right">
                           {yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "—"}
                         </TableCell>
                       </TableRow>
@@ -1344,32 +1344,32 @@ export default function ClientDashboard() {
                       <Loader2 className="w-5 h-5 animate-spin text-[#EAEB80]" />
                     </div>
                   ) : (
-                    <ResponsiveContainer width="100%" height={180}>
-                      <PieChart>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                         <Pie
                           data={donutYearData.length > 0 ? donutYearData : [{ name: "No data", value: 1 }]}
                           cx="50%"
                           cy="50%"
-                          innerRadius={48}
-                          outerRadius={70}
+                          innerRadius={52}
+                          outerRadius={72}
                           dataKey="value"
-                          label={donutYearData.length > 0
-                            ? ({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`
-                            : false
-                          }
-                          labelLine={donutYearData.length > 0}
+                          label={false}
+                          labelLine={false}
+                          isAnimationActive={true}
                         >
                           {donutYearData.length > 0
                             ? donutYearData.map((_, i) => (
                                 <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                               ))
-                            : <Cell fill="#2a2a2a" stroke="#444" strokeWidth={1} strokeDasharray="4 4" />
+                            : <Cell fill="#2a2a2a" stroke="#555" strokeWidth={1} />
                           }
                         </Pie>
-                        <Tooltip
-                          contentStyle={CHART_TOOLTIP_STYLE}
-                          formatter={(val: number) => donutYearData.length > 0 ? fmt(val) : "—"}
-                        />
+                        {donutYearData.length > 0 && (
+                          <Tooltip
+                            contentStyle={CHART_TOOLTIP_STYLE}
+                            formatter={(val: number, name: string) => [fmt(val), name]}
+                          />
+                        )}
                         <Legend wrapperStyle={{ fontSize: 10 }} />
                       </PieChart>
                     </ResponsiveContainer>
@@ -1390,32 +1390,32 @@ export default function ClientDashboard() {
                       <Loader2 className="w-5 h-5 animate-spin text-[#EAEB80]" />
                     </div>
                   ) : (
-                    <ResponsiveContainer width="100%" height={180}>
-                      <PieChart>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                         <Pie
                           data={donutMonthData.length > 0 ? donutMonthData : [{ name: "No data", value: 1 }]}
                           cx="50%"
                           cy="50%"
-                          innerRadius={48}
-                          outerRadius={70}
+                          innerRadius={52}
+                          outerRadius={72}
                           dataKey="value"
-                          label={donutMonthData.length > 0
-                            ? ({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`
-                            : false
-                          }
-                          labelLine={donutMonthData.length > 0}
+                          label={false}
+                          labelLine={false}
+                          isAnimationActive={true}
                         >
                           {donutMonthData.length > 0
                             ? donutMonthData.map((_, i) => (
                                 <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                               ))
-                            : <Cell fill="#2a2a2a" stroke="#444" strokeWidth={1} strokeDasharray="4 4" />
+                            : <Cell fill="#2a2a2a" stroke="#555" strokeWidth={1} />
                           }
                         </Pie>
-                        <Tooltip
-                          contentStyle={CHART_TOOLTIP_STYLE}
-                          formatter={(val: number) => donutMonthData.length > 0 ? fmt(val) : "—"}
-                        />
+                        {donutMonthData.length > 0 && (
+                          <Tooltip
+                            contentStyle={CHART_TOOLTIP_STYLE}
+                            formatter={(val: number, name: string) => [fmt(val), name]}
+                          />
+                        )}
                         <Legend wrapperStyle={{ fontSize: 10 }} />
                       </PieChart>
                     </ResponsiveContainer>
