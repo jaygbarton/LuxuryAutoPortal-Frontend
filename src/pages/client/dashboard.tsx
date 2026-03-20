@@ -175,11 +175,11 @@ interface NadaDepreciation {
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const CHART_GOLD  = "#EAEB80";   // bright yellow-gold (Income / Days Rented)
-const CHART_GOLD2 = "#D4AF37";   // medium gold (Profit / Trips Taken)
-const CHART_GOLD3 = "#8B6914";   // dark amber-gold (Expenses)
+const CHART_GOLD  = "#EAEB80";   // bright yellow-gold  — Income / Days Rented
+const CHART_GOLD2 = "#F59E0B";   // amber/orange-gold   — Profit / Trips Taken (clearly distinct from yellow)
+const CHART_RED   = "#EF4444";   // red                 — Expenses (semantically clear, high contrast)
 const CHART_DARK  = "#2a2a2a";
-const PIE_COLORS  = [CHART_GOLD, CHART_GOLD3];
+const PIE_COLORS  = [CHART_GOLD, CHART_RED];
 
 function fmt(val: number | string | null | undefined): string {
   const n = parseFloat(String(val ?? 0)) || 0;
@@ -1251,7 +1251,7 @@ export default function ClientDashboard() {
                     <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconType="line" />
                     <Line type="monotone" dataKey="income"   name="Car Owner Rental Income" stroke={CHART_GOLD}  strokeWidth={2} dot={{ r: 3, fill: CHART_GOLD }}  activeDot={{ r: 5 }} />
                     <Line type="monotone" dataKey="profit"   name="Car Owner Profit"        stroke={CHART_GOLD2} strokeWidth={2} dot={{ r: 3, fill: CHART_GOLD2 }} activeDot={{ r: 5 }} />
-                    <Line type="monotone" dataKey="expenses" name="Car Owner Expenses"      stroke={CHART_GOLD3} strokeWidth={2} dot={{ r: 3, fill: CHART_GOLD3 }} activeDot={{ r: 5 }} />
+                    <Line type="monotone" dataKey="expenses" name="Car Owner Expenses"      stroke={CHART_RED}   strokeWidth={2} dot={{ r: 3, fill: CHART_RED }}   activeDot={{ r: 5 }} />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
