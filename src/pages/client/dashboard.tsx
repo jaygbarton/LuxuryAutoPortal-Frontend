@@ -456,17 +456,37 @@ export default function ClientDashboard() {
 
   const carPhotos: string[] = useMemo(() => {
     const photos = carPhotosData?.photos ?? [];
-    // Also include activeCar.photo if not already in the list
-    const mainPhoto = activeCar?.photo;
-    if (mainPhoto && !photos.includes(mainPhoto)) {
-      return [mainPhoto, ...photos];
+
+    // Parse activeCar.photo — may be JSON array, JSON object, or plain URL string
+    const rawPhoto = activeCar?.photo;
+    let parsedMainPhotos: string[] = [];
+    if (rawPhoto) {
+      try {
+        const parsed = JSON.parse(rawPhoto);
+        if (Array.isArray(parsed)) {
+          parsedMainPhotos = parsed.filter((u): u is string => typeof u === "string" && u.startsWith("http"));
+        } else if (typeof parsed === "string" && parsed.startsWith("http")) {
+          parsedMainPhotos = [parsed];
+        } else if (parsed?.url) {
+          parsedMainPhotos = [parsed.url];
+        }
+      } catch {
+        if (typeof rawPhoto === "string" && rawPhoto.startsWith("http")) {
+          parsedMainPhotos = [rawPhoto];
+        }
+      }
     }
-    return photos;
+
+    // Merge: API photos first, then parsed main photo (deduped)
+    const all = [...photos];
+    for (const url of parsedMainPhotos) {
+      if (!all.includes(url)) all.push(url);
+    }
+    return all;
   }, [carPhotosData, activeCar]);
 
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
-  // Reset photo index when car changes
-  const activePhoto = carPhotos[activePhotoIndex] ?? activeCar?.photo ?? null;
+  const activePhoto = carPhotos[activePhotoIndex] ?? null;
 
   // ── Computed Monthly Data ─────────────────────────────────────────────────────
 
