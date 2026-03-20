@@ -41,9 +41,7 @@ import {
   TrendingDown,
   Car,
   Calendar,
-  ExternalLink,
   FileText,
-  HelpCircle,
   Phone,
   Mail,
   Loader2,
@@ -56,9 +54,7 @@ import {
   BookOpen,
   Calculator,
   ShoppingBag,
-  Image as ImageIcon,
   Video,
-  Users,
   Star,
   ClipboardList,
   PlusCircle,
@@ -178,8 +174,6 @@ const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "S
 const CHART_GOLD  = "#EAEB80";   // bright yellow-gold  — Income / Days Rented
 const CHART_GOLD2 = "#F59E0B";   // amber/orange-gold   — Profit / Trips Taken
 const CHART_RED   = "#EF4444";   // red                 — Expenses
-const CHART_DARK  = "#2a2a2a";
-const PIE_COLORS       = [CHART_GOLD, CHART_RED];   // for fallback
 const PIE_DONUT_COLORS = ["#EAEB80", "#C9A227"];    // bright yellow-gold (profit) + deep amber-gold (expenses)
 
 // Shared chart theme constants
@@ -349,7 +343,7 @@ export default function ClientDashboard() {
     success: boolean;
     data: { trips: TuroTrip[] };
   }>({
-    queryKey: ["/api/turo-trips"],
+    queryKey: ["/api/turo-trips", carId],
     queryFn: async () => {
       const res = await fetch(buildApiUrl("/api/turo-trips"), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch trips");
@@ -386,7 +380,6 @@ export default function ClientDashboard() {
     retry: false,
   });
 
-  const totals: TotalsData = totalsData?.data ?? {};
 
   // ── Quick Links ───────────────────────────────────────────────────────────────
 
@@ -409,8 +402,6 @@ export default function ClientDashboard() {
 
   const manufacturerUrl =
     (profile?.onboarding as any)?.manufacturerUrl ?? null;
-
-  // ── NADA Depreciation ─────────────────────────────────────────────────────────
 
   // ── NADA Depreciation ────────────────────────────────────────────────────────
 
@@ -585,7 +576,6 @@ export default function ClientDashboard() {
 
   const currentMonthDaysTripsData = monthlyDaysTripsData[currentMonth - 1];
 
-  const currentMonthKey = `${yearNum}-${String(currentMonth).padStart(2, "0")}`;
   const currentMonthData = monthlyTripData[currentMonth - 1];
 
   // Year options
@@ -662,7 +652,7 @@ export default function ClientDashboard() {
     { href: activeCar ? `/admin/cars/${activeCar.id}/records` : "#", icon: FileText, label: "Records and Files" },
     { href: activeCar ? `/admin/cars/${activeCar.id}/graphs` : "#", icon: TrendingUp, label: "Graphs and Charts Report" },
     { href: activeCar ? `/admin/cars/${activeCar.id}/maintenance` : "#", icon: Wrench, label: "Maintenance" },
-    { href: activeCar ? `/admin/cars/${activeCar.id}/income-expense` : "#", icon: CreditCard, label: "Car Rental Value Per Month" },
+    { href: activeCar ? `/admin/cars/${activeCar.id}/income-expense` : "#", icon: Calendar, label: "Car Rental Value Per Month" },
     { href: activeCar ? `/admin/cars/${activeCar.id}/depreciation` : "#", icon: TrendingDown, label: "NADA Depreciation Schedule" },
     { href: activeCar ? `/admin/cars/${activeCar.id}/purchase` : "#", icon: ShoppingBag, label: "Purchase Details" },
     { href: activeCar ? `/admin/cars/${activeCar.id}/calculator` : "#", icon: Calculator, label: "Payment Calculator" },
@@ -822,7 +812,7 @@ export default function ClientDashboard() {
                       <div className="space-y-1">
                         <p><span className="font-bold">Car Name</span> :{`${activeCar.year ?? ""} ${activeCar.makeModel}`.trim()}</p>
                         {activeCar.vin && <p><span className="font-bold">VIN #</span> :{activeCar.vin}</p>}
-                        {activeCar.licensePlate && <p><span className="font-bold">Liscense</span> :{activeCar.licensePlate}</p>}
+                        {activeCar.licensePlate && <p><span className="font-bold">License</span> :{activeCar.licensePlate}</p>}
                       </div>
                       {/* Group 2: Specs */}
                       <div className="space-y-1">
@@ -1085,21 +1075,21 @@ export default function ClientDashboard() {
           {/* ── Income/Expenses block ── */}
           <div>
             {/* Column headers — grid aligned with the cards below */}
-            <div className="grid mb-1" style={{ gridTemplateColumns: "108px 1fr 1fr 1fr", gap: "2px" }}>
+            <div className="grid mb-1" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px" }}>
               <div />
               <div className="text-center text-sm font-semibold text-foreground">Rental income</div>
               <div className="text-center text-sm font-semibold text-foreground">Expenses</div>
               <div className="text-center text-sm font-semibold" style={{ color: "#C9A227" }}>Profit</div>
             </div>
             {/* Total row */}
-            <div className="grid" style={{ gridTemplateColumns: "108px 1fr 1fr 1fr", gap: "2px", marginBottom: "2px" }}>
+            <div className="grid" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px", marginBottom: "2px" }}>
               <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">Total</div>
               <SummaryCard variant="black" label="" value={fmt(yearTotals.income)} />
               <SummaryCard variant="light" label="" value={fmt(yearTotals.expenses)} />
               <SummaryCard variant="gold"  label="" value={fmt(yearTotals.profit)} valueColor={yearTotals.profit < 0 ? "#ef4444" : "#1a1a1a"} />
             </div>
             {/* Current month row */}
-            <div className="grid" style={{ gridTemplateColumns: "108px 1fr 1fr 1fr", gap: "2px" }}>
+            <div className="grid" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px" }}>
               <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">{MONTHS_SHORT[currentMonth - 1]} {selectedYear}</div>
               <SummaryCard variant="black" label="" value={fmt(currentMonthData?.income ?? 0)} />
               <SummaryCard variant="light" label="" value={fmt(currentMonthData?.expenses ?? 0)} />
@@ -1110,21 +1100,21 @@ export default function ClientDashboard() {
           {/* ── Days/Trips block ── */}
           <div>
             {/* Column headers */}
-            <div className="grid mb-1" style={{ gridTemplateColumns: "108px 1fr 1fr 1fr", gap: "2px" }}>
+            <div className="grid mb-1" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px" }}>
               <div />
               <div className="text-center text-sm font-semibold text-foreground">Days Rented</div>
               <div className="text-center text-sm font-semibold text-foreground">Trips Taken</div>
               <div className="text-center text-sm font-semibold" style={{ color: "#C9A227" }}>Ave / Trip</div>
             </div>
             {/* Total row */}
-            <div className="grid" style={{ gridTemplateColumns: "108px 1fr 1fr 1fr", gap: "2px", marginBottom: "2px" }}>
+            <div className="grid" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px", marginBottom: "2px" }}>
               <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">Total</div>
               <SummaryCard variant="black" label="" value={String(yearTotalsTrips.days)} />
               <SummaryCard variant="light" label="" value={String(yearTotalsTrips.trips)} />
               <SummaryCard variant="gold"  label="" value={yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "$0.00"} />
             </div>
             {/* Current month row */}
-            <div className="grid" style={{ gridTemplateColumns: "108px 1fr 1fr 1fr", gap: "2px" }}>
+            <div className="grid" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px" }}>
               <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">{MONTHS_SHORT[currentMonth - 1]} {selectedYearTrips}</div>
               <SummaryCard variant="black" label="" value={String(currentMonthDaysTripsData?.days ?? 0)} />
               <SummaryCard variant="light" label="" value={String(currentMonthDaysTripsData?.trips ?? 0)} />
@@ -1140,14 +1130,14 @@ export default function ClientDashboard() {
         <div className="overflow-hidden rounded-lg border border-border">
           <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
             <colgroup>
-              <col style={{ width: "108px" }} />
+              <col style={{ width: "128px" }} />
               <col />
               <col />
               <col />
             </colgroup>
             <thead>
               <tr style={{ backgroundColor: "#1a1a1a" }}>
-                <th className="text-white font-bold text-xs py-3 px-3 text-left">Month</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-left">Month and Year</th>
                 <th className="text-white font-bold text-xs py-3 px-3 text-right">Car owner rental income</th>
                 <th className="text-white font-bold text-xs py-3 px-3 text-right">Car owner expenses</th>
                 <th className="text-white font-bold text-xs py-3 px-3 text-right">Car owner split</th>
@@ -1182,14 +1172,14 @@ export default function ClientDashboard() {
         <div className="overflow-hidden rounded-lg border border-border">
           <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
             <colgroup>
-              <col style={{ width: "108px" }} />
+              <col style={{ width: "128px" }} />
               <col />
               <col />
               <col />
             </colgroup>
             <thead>
               <tr style={{ backgroundColor: "#1a1a1a" }}>
-                <th className="text-white font-bold text-xs py-3 px-3 text-left">Month</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-left">Month and Year</th>
                 <th className="text-white font-bold text-xs py-3 px-3 text-right">Days Rented</th>
                 <th className="text-white font-bold text-xs py-3 px-3 text-right">Trips Taken</th>
                 <th className="text-white font-bold text-xs py-3 px-3 text-right">Ave / Trips Taken</th>
@@ -1503,7 +1493,7 @@ export default function ClientDashboard() {
                       <Tooltip
                         contentStyle={CHART_TOOLTIP_STYLE}
                         labelStyle={{ color: "#eee", fontWeight: 600 }}
-                        formatter={(val: number | null) => (val !== null ? fmt(val) : "N/A")}
+                        formatter={(val) => (val != null ? fmt(val as number) : "N/A")}
                       />
                       <Legend wrapperStyle={CHART_LEGEND_STYLE} />
                       <Area
