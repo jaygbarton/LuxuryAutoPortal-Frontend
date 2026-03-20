@@ -393,23 +393,22 @@ export default function ClientDashboard() {
 
   // ── NADA Depreciation ─────────────────────────────────────────────────────────
 
+  // ── NADA Depreciation (client-accessible endpoint) ───────────────────────────
+
   const { data: nadaData, isLoading: nadaLoading } = useQuery<{
     success: boolean;
     data: NadaDepreciation[];
     count: number;
   }>({
-    queryKey: ["/api/nada-depreciation/read", carId, selectedYear],
+    queryKey: ["/api/client/cars", carId, "nada"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/nada-depreciation/read"), {
+      const res = await fetch(buildApiUrl(`/api/client/cars/${carId}/nada`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          nada_depreciation_car_id: carId,
-          nada_depreciation_date: selectedYear,
-        }),
+        body: JSON.stringify({ nada_depreciation_date: selectedYear }),
       });
-      if (!res.ok) throw new Error("Failed to fetch NADA data");
+      if (!res.ok) return { success: false, data: [], count: 0 };
       return res.json();
     },
     enabled: !!carId,
@@ -418,28 +417,20 @@ export default function ClientDashboard() {
 
   const nadaRecords: NadaDepreciation[] = nadaData?.data ?? [];
 
-  // ── Maintenance History ───────────────────────────────────────────────────────
-
-  const { data: maintenanceData, isLoading: maintenanceLoading } = useQuery<{
-    success: boolean;
-    data: MaintenanceRecord[];
-  }>({
-    queryKey: ["/api/admin/cars", carId, "maintenance"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl(`/api/admin/cars/${carId}/maintenance`), {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to fetch maintenance");
-      return res.json();
-    },
-    enabled: !!carId,
-    retry: false,
-  });
-
+  // ── Maintenance History (from onboarding data in profile) ─────────────────────
+  // No dedicated maintenance API for clients — build from car profile fields
   const maintenanceRecords: MaintenanceRecord[] = useMemo(() => {
-    const raw = (maintenanceData as any)?.data ?? (maintenanceData as any)?.maintenance ?? [];
-    return Array.isArray(raw) ? raw : [];
-  }, [maintenanceData]);
+    if (!activeCar) return [];
+    const records: MaintenanceRecord[] = [];
+    if (activeCar.lastOilChange) {
+      records.push({ maintenanceType: "Oil Change", dateCompleted: activeCar.lastOilChange });
+    }
+    if (activeCar.registrationExpiration) {
+      records.push({ maintenanceType: "License Registration", dateCompleted: activeCar.registrationExpiration });
+    }
+    return records;
+  }, [activeCar]);
+  const maintenanceLoading = false;
 
   // ── Car Photos Gallery ────────────────────────────────────────────────────────
 
