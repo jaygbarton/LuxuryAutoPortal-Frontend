@@ -400,20 +400,23 @@ export default function ClientDashboard() {
 
   // ── NADA Depreciation ─────────────────────────────────────────────────────────
 
-  // ── NADA Depreciation (client-accessible endpoint) ───────────────────────────
+  // ── NADA Depreciation ────────────────────────────────────────────────────────
 
   const { data: nadaData, isLoading: nadaLoading } = useQuery<{
     success: boolean;
     data: NadaDepreciation[];
     count: number;
   }>({
-    queryKey: ["/api/client/cars", carId, "nada"],
+    queryKey: ["/api/nada-depreciation/read", carId, selectedYear],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl(`/api/client/cars/${carId}/nada`), {
+      const res = await fetch(buildApiUrl("/api/nada-depreciation/read"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ nada_depreciation_date: selectedYear }),
+        body: JSON.stringify({
+          nada_depreciation_car_id: carId,
+          nada_depreciation_date: selectedYear,
+        }),
       });
       if (!res.ok) return { success: false, data: [], count: 0 };
       return res.json();
