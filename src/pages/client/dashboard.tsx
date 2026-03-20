@@ -218,15 +218,16 @@ function SummaryCard({
   valueColor?: string;
   className?: string;
 }) {
-  const bg       = variant === "black" ? "#1a1a1a" : variant === "gold" ? "#C9A227" : "#f0ece0";
-  const valueClr = valueColor ?? (variant === "black" ? "#ffffff" : "#1a1a1a");
+  const bg       = variant === "black" ? "#1a1a1a" : variant === "gold" ? "#C9A227" : "#e8e4d8";
+  const valueClr = valueColor ?? (variant === "black" ? "#EAEB80" : "#1a1a1a");
+  const labelClr = variant === "black" ? "#e5e7eb" : "#4b5563";
   return (
     <div
-      style={{ backgroundColor: bg, minHeight: "54px" }}
-      className={`flex flex-col items-center justify-center px-3 py-1.5 border border-[#d8d0b8] rounded-lg ${className}`}
+      style={{ backgroundColor: bg }}
+      className={`flex flex-col justify-between px-4 py-3 rounded-lg min-h-[72px] ${className}`}
     >
-      {label && <p className="text-xs text-gray-400 mb-0.5">{label}</p>}
-      <p className="text-lg font-extrabold leading-tight text-center" style={{ color: valueClr }}>{value}</p>
+      <p className="text-xl font-extrabold leading-tight" style={{ color: valueClr }}>{value}</p>
+      {label && <p className="text-xs font-semibold leading-snug mt-1" style={{ color: labelClr }}>{label}</p>}
     </div>
   );
 }
@@ -1069,56 +1070,38 @@ export default function ClientDashboard() {
           </div>
         </div>
 
-        {/* ── Summary card rows — match target screenshot ── */}
+        {/* ── Summary card rows — value on top, full label on bottom, no header row ── */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-2">
 
           {/* ── Income/Expenses block ── */}
-          <div>
-            {/* Column headers — grid aligned with the cards below */}
-            <div className="grid mb-1" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px" }}>
-              <div />
-              <div className="text-center text-sm font-semibold text-foreground">Rental income</div>
-              <div className="text-center text-sm font-semibold text-foreground">Expenses</div>
-              <div className="text-center text-sm font-semibold" style={{ color: "#C9A227" }}>Profit</div>
-            </div>
+          <div className="flex flex-col gap-2">
             {/* Total row */}
-            <div className="grid" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px", marginBottom: "2px" }}>
-              <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">Total</div>
-              <SummaryCard variant="black" label="" value={fmt(yearTotals.income)} />
-              <SummaryCard variant="light" label="" value={fmt(yearTotals.expenses)} />
-              <SummaryCard variant="gold"  label="" value={fmt(yearTotals.profit)} valueColor={yearTotals.profit < 0 ? "#ef4444" : "#1a1a1a"} />
+            <div className="grid grid-cols-3 gap-2">
+              <SummaryCard variant="black" value={fmt(yearTotals.income)}   label="Total Car Owner Rental Income" />
+              <SummaryCard variant="light" value={fmt(yearTotals.expenses)} label="Total Car Owner Expenses" />
+              <SummaryCard variant="gold"  value={fmt(yearTotals.profit)}   label="Total Car Owner Profit" valueColor={yearTotals.profit < 0 ? "#ef4444" : "#1a1a1a"} />
             </div>
             {/* Current month row */}
-            <div className="grid" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px" }}>
-              <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">{MONTHS_SHORT[currentMonth - 1]} {selectedYear}</div>
-              <SummaryCard variant="black" label="" value={fmt(currentMonthData?.income ?? 0)} />
-              <SummaryCard variant="light" label="" value={fmt(currentMonthData?.expenses ?? 0)} />
-              <SummaryCard variant="gold"  label="" value={fmt(currentMonthData?.profit ?? 0)} valueColor={(currentMonthData?.profit ?? 0) < 0 ? "#ef4444" : "#1a1a1a"} />
+            <div className="grid grid-cols-3 gap-2">
+              <SummaryCard variant="black" value={fmt(currentMonthData?.income ?? 0)}   label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Car Owner Rental Income`} />
+              <SummaryCard variant="light" value={fmt(currentMonthData?.expenses ?? 0)} label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Expenses`} />
+              <SummaryCard variant="gold"  value={fmt(currentMonthData?.profit ?? 0)}   label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Profit`} valueColor={(currentMonthData?.profit ?? 0) < 0 ? "#ef4444" : "#1a1a1a"} />
             </div>
           </div>
 
           {/* ── Days/Trips block ── */}
-          <div>
-            {/* Column headers */}
-            <div className="grid mb-1" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px" }}>
-              <div />
-              <div className="text-center text-sm font-semibold text-foreground">Days Rented</div>
-              <div className="text-center text-sm font-semibold text-foreground">Trips Taken</div>
-              <div className="text-center text-sm font-semibold" style={{ color: "#C9A227" }}>Ave / Trip</div>
-            </div>
+          <div className="flex flex-col gap-2">
             {/* Total row */}
-            <div className="grid" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px", marginBottom: "2px" }}>
-              <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">Total</div>
-              <SummaryCard variant="black" label="" value={String(yearTotalsTrips.days)} />
-              <SummaryCard variant="light" label="" value={String(yearTotalsTrips.trips)} />
-              <SummaryCard variant="gold"  label="" value={yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "$0.00"} />
+            <div className="grid grid-cols-3 gap-2">
+              <SummaryCard variant="black" value={String(yearTotalsTrips.days)}  label="Total Days Rented" />
+              <SummaryCard variant="light" value={String(yearTotalsTrips.trips)} label="Total Trips Taken" />
+              <SummaryCard variant="gold"  value={yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "$0.00"} label="Ave / Trips Taken" />
             </div>
             {/* Current month row */}
-            <div className="grid" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px" }}>
-              <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">{MONTHS_SHORT[currentMonth - 1]} {selectedYearTrips}</div>
-              <SummaryCard variant="black" label="" value={String(currentMonthDaysTripsData?.days ?? 0)} />
-              <SummaryCard variant="light" label="" value={String(currentMonthDaysTripsData?.trips ?? 0)} />
-              <SummaryCard variant="gold"  label="" value={(currentMonthDaysTripsData?.trips ?? 0) > 0 ? fmt((currentMonthDaysTripsData?.income ?? 0) / (currentMonthDaysTripsData?.trips ?? 1)) : "$0.00"} />
+            <div className="grid grid-cols-3 gap-2">
+              <SummaryCard variant="black" value={String(currentMonthDaysTripsData?.days ?? 0)}  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYearTrips} Days Rented`} />
+              <SummaryCard variant="light" value={String(currentMonthDaysTripsData?.trips ?? 0)} label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYearTrips} Trips Taken`} />
+              <SummaryCard variant="gold"  value={(currentMonthDaysTripsData?.trips ?? 0) > 0 ? fmt((currentMonthDaysTripsData?.income ?? 0) / (currentMonthDaysTripsData?.trips ?? 1)) : "$0.00"} label="Ave / Trips Taken" />
             </div>
           </div>
         </div>
@@ -1130,7 +1113,7 @@ export default function ClientDashboard() {
         <div className="overflow-hidden rounded-lg border border-border">
           <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
             <colgroup>
-              <col style={{ width: "128px" }} />
+              <col style={{ width: "100px" }} />
               <col />
               <col />
               <col />
@@ -1172,7 +1155,7 @@ export default function ClientDashboard() {
         <div className="overflow-hidden rounded-lg border border-border">
           <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
             <colgroup>
-              <col style={{ width: "128px" }} />
+              <col style={{ width: "100px" }} />
               <col />
               <col />
               <col />
