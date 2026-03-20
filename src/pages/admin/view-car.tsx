@@ -138,6 +138,11 @@ export default function ViewCarPage() {
   }
 
   if (error || !car) {
+    // If client, redirect to their dashboard instead of showing error
+    if (isClient) {
+      setLocation("/dashboard");
+      return null;
+    }
     return (
       <AdminLayout>
         <div className="flex flex-col items-center justify-center h-full">

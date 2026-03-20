@@ -47,6 +47,18 @@ export default function TotalsPage() {
   
   const isAllCarsReport = !!allCarsRoute;
   const carId = individualParams?.id ? parseInt(individualParams.id, 10) : null;
+
+  // Role check
+  const { data: authData } = useQuery<{ user?: { isClient?: boolean } }>({
+    queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
+      if (!res.ok) return { user: undefined };
+      return res.json();
+    },
+    retry: false,
+  });
+  const isClient = authData?.user?.isClient === true;
   
   const [filterType, setFilterType] = useState<string>("Year");
   const [fromYear, setFromYear] = useState<string>(new Date().getFullYear().toString());
@@ -192,7 +204,7 @@ export default function TotalsPage() {
         <div className="mb-6">
           {!isAllCarsReport && (
             <button
-              onClick={() => setLocation(`/admin/view-car/${carId}`)}
+              onClick={() => isClient ? setLocation("/dashboard") : setLocation(`/admin/view-car/${carId}`)}
               className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 mb-2"
             >
               <ArrowLeft className="w-4 h-4" />

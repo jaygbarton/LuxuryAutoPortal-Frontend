@@ -634,7 +634,7 @@ export default function NADADepreciationPage() {
         <div className="flex flex-col items-center justify-center h-full">
           <p className="text-red-700">Failed to load car details</p>
           <button
-            onClick={() => setLocation(`/admin/view-car/${carId}`)}
+            onClick={() => isClient ? setLocation("/dashboard") : setLocation(`/admin/view-car/${carId}`)}
             className="mt-4 text-blue-700 hover:underline"
           >
             ← Back to View Car
@@ -682,7 +682,7 @@ export default function NADADepreciationPage() {
         {/* Header */}
         <div className="mb-6">
           <button
-            onClick={() => setLocation(`/admin/view-car/${carId}`)}
+            onClick={() => isClient ? setLocation("/dashboard") : setLocation(`/admin/view-car/${carId}`)}
             className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 mb-2"
           >
             <ArrowLeft className="w-4 h-4" />

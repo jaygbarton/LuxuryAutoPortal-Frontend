@@ -12,6 +12,17 @@ export default function GraphsChartsPage() {
   const [, setLocation] = useLocation();
   const carId = params?.id ? parseInt(params.id, 10) : null;
 
+  const { data: authData } = useQuery<{ user?: { isClient?: boolean } }>({
+    queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
+      if (!res.ok) return { user: undefined };
+      return res.json();
+    },
+    retry: false,
+  });
+  const isClient = authData?.user?.isClient === true;
+
   const { data, isLoading, error } = useQuery<{
     success: boolean;
     data: any;
@@ -72,7 +83,7 @@ export default function GraphsChartsPage() {
         <div className="flex flex-col items-center justify-center h-full">
           <p className="text-red-700">Failed to load car details</p>
           <button
-            onClick={() => setLocation(`/admin/view-car/${carId}`)}
+            onClick={() => isClient ? setLocation("/dashboard") : setLocation(`/admin/view-car/${carId}`)}
             className="mt-4 text-blue-700 hover:underline"
           >
             ← Back to View Car
@@ -146,7 +157,7 @@ export default function GraphsChartsPage() {
         {/* Header */}
         <div className="mb-6">
           <button
-            onClick={() => setLocation(`/admin/view-car/${carId}`)}
+            onClick={() => isClient ? setLocation("/dashboard") : setLocation(`/admin/view-car/${carId}`)}
             className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 mb-2"
           >
             <ArrowLeft className="w-4 h-4" />
