@@ -1083,49 +1083,51 @@ export default function ClientDashboard() {
 
           {/* ── Income/Expenses block ── */}
           <div>
-            {/* Column headers row */}
-            <div className="flex items-end mb-1 ml-[88px] gap-px">
-              <div className="flex-1 text-center text-sm font-semibold text-foreground">Rental income</div>
-              <div className="flex-1 text-center text-sm font-semibold text-foreground">Expenses</div>
-              <div className="flex-1 text-center text-sm font-semibold" style={{ color: "#C9A227" }}>Profit</div>
+            {/* Column headers — grid aligned with the cards below */}
+            <div className="grid mb-1" style={{ gridTemplateColumns: "88px 1fr 1fr 1fr", gap: "2px" }}>
+              <div />
+              <div className="text-center text-sm font-semibold text-foreground">Rental income</div>
+              <div className="text-center text-sm font-semibold text-foreground">Expenses</div>
+              <div className="text-center text-sm font-semibold" style={{ color: "#C9A227" }}>Profit</div>
             </div>
             {/* Total row */}
-            <div className="flex items-stretch gap-px mb-1">
-              <div className="flex items-center justify-center w-[88px] flex-shrink-0 text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg">Total</div>
-              <SummaryCard variant="black" label="" value={fmt(yearTotals.income)} className="flex-1" />
-              <SummaryCard variant="light" label="" value={fmt(yearTotals.expenses)} className="flex-1" />
-              <SummaryCard variant="gold"  label="" value={fmt(yearTotals.profit)} className="flex-1" valueColor={yearTotals.profit < 0 ? "#ef4444" : "#1a1a1a"} />
+            <div className="grid" style={{ gridTemplateColumns: "88px 1fr 1fr 1fr", gap: "2px", marginBottom: "2px" }}>
+              <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">Total</div>
+              <SummaryCard variant="black" label="" value={fmt(yearTotals.income)} />
+              <SummaryCard variant="light" label="" value={fmt(yearTotals.expenses)} />
+              <SummaryCard variant="gold"  label="" value={fmt(yearTotals.profit)} valueColor={yearTotals.profit < 0 ? "#ef4444" : "#1a1a1a"} />
             </div>
             {/* Current month row */}
-            <div className="flex items-stretch gap-px">
-              <div className="flex items-center justify-center w-[88px] flex-shrink-0 text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg">{MONTHS_SHORT[currentMonth - 1]} {selectedYear}</div>
-              <SummaryCard variant="black" label="" value={fmt(currentMonthData?.income ?? 0)} className="flex-1" />
-              <SummaryCard variant="light" label="" value={fmt(currentMonthData?.expenses ?? 0)} className="flex-1" />
-              <SummaryCard variant="gold"  label="" value={fmt(currentMonthData?.profit ?? 0)} className="flex-1" valueColor={(currentMonthData?.profit ?? 0) < 0 ? "#ef4444" : "#1a1a1a"} />
+            <div className="grid" style={{ gridTemplateColumns: "88px 1fr 1fr 1fr", gap: "2px" }}>
+              <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">{MONTHS_SHORT[currentMonth - 1]} {selectedYear}</div>
+              <SummaryCard variant="black" label="" value={fmt(currentMonthData?.income ?? 0)} />
+              <SummaryCard variant="light" label="" value={fmt(currentMonthData?.expenses ?? 0)} />
+              <SummaryCard variant="gold"  label="" value={fmt(currentMonthData?.profit ?? 0)} valueColor={(currentMonthData?.profit ?? 0) < 0 ? "#ef4444" : "#1a1a1a"} />
             </div>
           </div>
 
           {/* ── Days/Trips block ── */}
           <div>
-            {/* Column headers row */}
-            <div className="flex items-end mb-1 ml-[88px] gap-px">
-              <div className="flex-1 text-center text-sm font-semibold text-foreground">Days Rented</div>
-              <div className="flex-1 text-center text-sm font-semibold text-foreground">Trips Taken</div>
-              <div className="flex-1 text-center text-sm font-semibold" style={{ color: "#C9A227" }}>Ave / Trip</div>
+            {/* Column headers */}
+            <div className="grid mb-1" style={{ gridTemplateColumns: "88px 1fr 1fr 1fr", gap: "2px" }}>
+              <div />
+              <div className="text-center text-sm font-semibold text-foreground">Days Rented</div>
+              <div className="text-center text-sm font-semibold text-foreground">Trips Taken</div>
+              <div className="text-center text-sm font-semibold" style={{ color: "#C9A227" }}>Ave / Trip</div>
             </div>
             {/* Total row */}
-            <div className="flex items-stretch gap-px mb-1">
-              <div className="flex items-center justify-center w-[88px] flex-shrink-0 text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg">Total</div>
-              <SummaryCard variant="black" label="" value={String(yearTotalsTrips.days)} className="flex-1" />
-              <SummaryCard variant="light" label="" value={String(yearTotalsTrips.trips)} className="flex-1" />
-              <SummaryCard variant="gold"  label="" value={yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "$0.00"} className="flex-1" />
+            <div className="grid" style={{ gridTemplateColumns: "88px 1fr 1fr 1fr", gap: "2px", marginBottom: "2px" }}>
+              <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">Total</div>
+              <SummaryCard variant="black" label="" value={String(yearTotalsTrips.days)} />
+              <SummaryCard variant="light" label="" value={String(yearTotalsTrips.trips)} />
+              <SummaryCard variant="gold"  label="" value={yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "$0.00"} />
             </div>
             {/* Current month row */}
-            <div className="flex items-stretch gap-px">
-              <div className="flex items-center justify-center w-[88px] flex-shrink-0 text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg">{MONTHS_SHORT[currentMonth - 1]} {selectedYearTrips}</div>
-              <SummaryCard variant="black" label="" value={String(currentMonthDaysTripsData?.days ?? 0)} className="flex-1" />
-              <SummaryCard variant="light" label="" value={String(currentMonthDaysTripsData?.trips ?? 0)} className="flex-1" />
-              <SummaryCard variant="gold"  label="" value={(currentMonthDaysTripsData?.trips ?? 0) > 0 ? fmt((currentMonthDaysTripsData?.income ?? 0) / (currentMonthDaysTripsData?.trips ?? 1)) : "$0.00"} className="flex-1" />
+            <div className="grid" style={{ gridTemplateColumns: "88px 1fr 1fr 1fr", gap: "2px" }}>
+              <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">{MONTHS_SHORT[currentMonth - 1]} {selectedYearTrips}</div>
+              <SummaryCard variant="black" label="" value={String(currentMonthDaysTripsData?.days ?? 0)} />
+              <SummaryCard variant="light" label="" value={String(currentMonthDaysTripsData?.trips ?? 0)} />
+              <SummaryCard variant="gold"  label="" value={(currentMonthDaysTripsData?.trips ?? 0) > 0 ? fmt((currentMonthDaysTripsData?.income ?? 0) / (currentMonthDaysTripsData?.trips ?? 1)) : "$0.00"} />
             </div>
           </div>
         </div>
