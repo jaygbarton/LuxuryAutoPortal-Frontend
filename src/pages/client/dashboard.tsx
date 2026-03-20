@@ -1045,7 +1045,7 @@ export default function ClientDashboard() {
         ════════════════════════════════════════════════════════════════════ */}
 
         {/* Section titles + year selectors — full width row */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-end mb-3">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-end mb-2">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold uppercase text-foreground tracking-wide">Income and Expenses</h2>
             <Select value={selectedYear} onValueChange={setSelectedYear}>
@@ -1079,7 +1079,7 @@ export default function ClientDashboard() {
         </div>
 
         {/* ── Summary card rows — match target screenshot ── */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-5">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-2">
 
           {/* ── Income/Expenses block ── */}
           <div>
