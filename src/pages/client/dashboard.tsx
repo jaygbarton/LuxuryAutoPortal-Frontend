@@ -1132,123 +1132,91 @@ export default function ClientDashboard() {
           </div>
         </div>
 
-        {/* Tables side by side — equal height via items-stretch + h-full */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
+        {/* Tables side by side — no Card wrapper so they share width with the cards grids above */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
 
         {/* ── SECTION 3 — Income and Expenses table ────────────────────── */}
-        <div className="flex flex-col h-full">
-
-          {/* Monthly Income/Expense Table */}
-          <Card className="border-border bg-card overflow-hidden flex-1 flex flex-col">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <colgroup>
-                    <col style={{ width: "88px" }} />
-                    <col style={{ width: "33.33%" }} />
-                    <col style={{ width: "33.33%" }} />
-                    <col style={{ width: "33.33%" }} />
-                  </colgroup>
-                  <TableRow style={{ backgroundColor: "#1a1a1a" }} className="border-b border-border">
-                    <TableHead className="text-white font-bold text-xs py-3">Month</TableHead>
-                    <TableHead className="text-white font-bold text-xs py-3 text-right">Car owner rental income</TableHead>
-                    <TableHead className="text-white font-bold text-xs py-3 text-right">Car owner expenses</TableHead>
-                    <TableHead className="text-white font-bold text-xs py-3 text-right">Car owner split</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tripsLoading || paymentsLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
-                        <Loader2 className="w-5 h-5 animate-spin text-[#EAEB80] mx-auto" />
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    <>
-                      {monthlyTripData.map((row, idx) => (
-                        <TableRow key={row.month} style={{ backgroundColor: idx % 2 === 0 ? "#ffffff" : "#f5f0e8" }} className="hover:bg-yellow-50">
-                          <TableCell className="text-sm py-2 font-medium text-gray-900">{row.month}</TableCell>
-                          <TableCell className="text-sm py-2 text-right text-gray-800">{fmt(row.income)}</TableCell>
-                          <TableCell className="text-sm py-2 text-right text-gray-800">{fmt(row.expenses)}</TableCell>
-                          <TableCell
-                            className={`text-sm py-2 text-right font-medium ${
-                              row.profit > 0 ? "text-[#C9A227]" : row.profit < 0 ? "text-[#ef4444]" : "text-gray-800"
-                            }`}
-                          >
-                            {fmt(row.profit)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {/* TOTAL row */}
-                      <TableRow style={{ backgroundColor: "#1a1a1a" }}>
-                        <TableCell className="text-sm font-extrabold text-white py-2.5">Total</TableCell>
-                        <TableCell className="text-sm font-bold text-white py-2.5 text-right">{fmt(yearTotals.income)}</TableCell>
-                        <TableCell className="text-sm font-bold text-white py-2.5 text-right">{fmt(yearTotals.expenses)}</TableCell>
-                        <TableCell className={`text-sm font-bold py-2.5 text-right ${yearTotals.profit >= 0 ? "text-[#EAEB80]" : "text-[#f87171]"}`}>{fmt(yearTotals.profit)}</TableCell>
-                      </TableRow>
-                    </>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </Card>
+        <div className="overflow-hidden rounded-md border border-border">
+          <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: "88px" }} />
+              <col />
+              <col />
+              <col />
+            </colgroup>
+            <thead>
+              <tr style={{ backgroundColor: "#1a1a1a" }}>
+                <th className="text-white font-bold text-xs py-3 px-3 text-left">Month</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-right">Car owner rental income</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-right">Car owner expenses</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-right">Car owner split</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tripsLoading || paymentsLoading ? (
+                <tr><td colSpan={4} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin text-[#EAEB80] mx-auto" /></td></tr>
+              ) : (
+                <>
+                  {monthlyTripData.map((row, idx) => (
+                    <tr key={row.month} style={{ backgroundColor: idx % 2 === 0 ? "#ffffff" : "#f5f0e8" }}>
+                      <td className="text-sm py-2 px-3 font-medium text-gray-900">{row.month}</td>
+                      <td className="text-sm py-2 px-3 text-right text-gray-800">{fmt(row.income)}</td>
+                      <td className="text-sm py-2 px-3 text-right text-gray-800">{fmt(row.expenses)}</td>
+                      <td className={`text-sm py-2 px-3 text-right font-medium ${row.profit > 0 ? "text-[#C9A227]" : row.profit < 0 ? "text-[#ef4444]" : "text-gray-800"}`}>{fmt(row.profit)}</td>
+                    </tr>
+                  ))}
+                  <tr style={{ backgroundColor: "#1a1a1a" }}>
+                    <td className="text-sm font-extrabold text-white py-2.5 px-3">Total</td>
+                    <td className="text-sm font-bold text-white py-2.5 px-3 text-right">{fmt(yearTotals.income)}</td>
+                    <td className="text-sm font-bold text-white py-2.5 px-3 text-right">{fmt(yearTotals.expenses)}</td>
+                    <td className={`text-sm font-bold py-2.5 px-3 text-right ${yearTotals.profit >= 0 ? "text-[#EAEB80]" : "text-[#f87171]"}`}>{fmt(yearTotals.profit)}</td>
+                  </tr>
+                </>
+              )}
+            </tbody>
+          </table>
         </div>{/* end section 3 */}
 
         {/* ── SECTION 4 — Days Rented and Trips Taken table ──────────────── */}
-        <div className="flex flex-col h-full">
-
-          {/* Monthly Days/Trips Table */}
-          <Card className="border-border bg-card overflow-hidden flex-1 flex flex-col">
-            <div className="overflow-x-auto flex-1">
-              <Table>
-                <TableHeader>
-                  <colgroup>
-                    <col style={{ width: "88px" }} />
-                    <col style={{ width: "33.33%" }} />
-                    <col style={{ width: "33.33%" }} />
-                    <col style={{ width: "33.33%" }} />
-                  </colgroup>
-                  <TableRow style={{ backgroundColor: "#1a1a1a" }} className="border-b border-border">
-                    <TableHead className="text-white font-bold text-xs py-3">Month</TableHead>
-                    <TableHead className="text-white font-bold text-xs py-3 text-right">Days Rented</TableHead>
-                    <TableHead className="text-white font-bold text-xs py-3 text-right">Trips Taken</TableHead>
-                    <TableHead className="text-white font-bold text-xs py-3 text-right">Ave / Trips Taken</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tripsLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
-                        <Loader2 className="w-5 h-5 animate-spin text-[#EAEB80] mx-auto" />
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    <>
-                      {monthlyDaysTripsData.map((row, idx) => (
-                        <TableRow key={row.month} style={{ backgroundColor: idx % 2 === 0 ? "#ffffff" : "#f5f0e8" }} className="hover:bg-yellow-50">
-                          <TableCell className="text-sm py-2 font-medium text-gray-900">{row.month}</TableCell>
-                          <TableCell className="text-sm py-2 text-right text-gray-800">{row.days}</TableCell>
-                          <TableCell className="text-sm py-2 text-right text-gray-800">{row.trips}</TableCell>
-                          <TableCell className="text-sm py-2 text-right text-gray-800">
-                            {row.trips > 0 ? fmt(row.avgPerTrip) : "—"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {/* TOTAL row */}
-                      <TableRow style={{ backgroundColor: "#1a1a1a" }}>
-                        <TableCell className="text-sm font-extrabold text-white py-2.5">Total</TableCell>
-                        <TableCell className="text-sm font-bold text-white py-2.5 text-right">{yearTotalsTrips.days}</TableCell>
-                        <TableCell className="text-sm font-bold text-white py-2.5 text-right">{yearTotalsTrips.trips}</TableCell>
-                        <TableCell className="text-sm font-bold text-[#EAEB80] py-2.5 text-right">
-                          {yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "—"}
-                        </TableCell>
-                      </TableRow>
-                    </>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </Card>
+        <div className="overflow-hidden rounded-md border border-border">
+          <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: "88px" }} />
+              <col />
+              <col />
+              <col />
+            </colgroup>
+            <thead>
+              <tr style={{ backgroundColor: "#1a1a1a" }}>
+                <th className="text-white font-bold text-xs py-3 px-3 text-left">Month</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-right">Days Rented</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-right">Trips Taken</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-right">Ave / Trips Taken</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tripsLoading ? (
+                <tr><td colSpan={4} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin text-[#EAEB80] mx-auto" /></td></tr>
+              ) : (
+                <>
+                  {monthlyDaysTripsData.map((row, idx) => (
+                    <tr key={row.month} style={{ backgroundColor: idx % 2 === 0 ? "#ffffff" : "#f5f0e8" }}>
+                      <td className="text-sm py-2 px-3 font-medium text-gray-900">{row.month}</td>
+                      <td className="text-sm py-2 px-3 text-right text-gray-800">{row.days}</td>
+                      <td className="text-sm py-2 px-3 text-right text-gray-800">{row.trips}</td>
+                      <td className="text-sm py-2 px-3 text-right text-gray-800">{row.trips > 0 ? fmt(row.avgPerTrip) : "—"}</td>
+                    </tr>
+                  ))}
+                  <tr style={{ backgroundColor: "#1a1a1a" }}>
+                    <td className="text-sm font-extrabold text-white py-2.5 px-3">Total</td>
+                    <td className="text-sm font-bold text-white py-2.5 px-3 text-right">{yearTotalsTrips.days}</td>
+                    <td className="text-sm font-bold text-white py-2.5 px-3 text-right">{yearTotalsTrips.trips}</td>
+                    <td className="text-sm font-bold text-[#EAEB80] py-2.5 px-3 text-right">{yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "—"}</td>
+                  </tr>
+                </>
+              )}
+            </tbody>
+          </table>
         </div>{/* end section 4 */}
 
         </div>{/* end sections 3&4 grid */}
