@@ -183,7 +183,8 @@ const PIE_COLORS       = [CHART_GOLD, CHART_RED];   // for fallback
 const PIE_DONUT_COLORS = ["#EAEB80", "#C9A227"];    // bright yellow-gold (profit) + deep amber-gold (expenses)
 
 // Shared chart theme constants
-const CHART_TOOLTIP_STYLE = { background: "#1a1a1a", border: "1px solid #444", borderRadius: 6 };
+const CHART_TOOLTIP_STYLE       = { background: "#1a1a1a", border: "1px solid #444", borderRadius: 6 };
+const CHART_TOOLTIP_STYLE_LIGHT = { background: "#ffffff", border: "1px solid #C9A227", borderRadius: 6, color: "#1a1a1a" };
 const CHART_LEGEND_STYLE  = { fontSize: 11, paddingTop: 6 };
 const CHART_AXIS_TICK     = { fontSize: 10, fill: "#999" };
 const CHART_GRID_COLOR    = "#2d2d2d";
@@ -1374,7 +1375,9 @@ export default function ClientDashboard() {
                         </Pie>
                         {donutYearData.length > 0 && (
                           <Tooltip
-                            contentStyle={CHART_TOOLTIP_STYLE}
+                            contentStyle={CHART_TOOLTIP_STYLE_LIGHT}
+                            itemStyle={{ color: "#1a1a1a" }}
+                            labelStyle={{ color: "#555", fontWeight: 600 }}
                             formatter={(val: number, name: string) => [fmt(val), name]}
                           />
                         )}
@@ -1435,7 +1438,9 @@ export default function ClientDashboard() {
                         </Pie>
                         {donutMonthData.length > 0 && (
                           <Tooltip
-                            contentStyle={CHART_TOOLTIP_STYLE}
+                            contentStyle={CHART_TOOLTIP_STYLE_LIGHT}
+                            itemStyle={{ color: "#1a1a1a" }}
+                            labelStyle={{ color: "#555", fontWeight: 600 }}
                             formatter={(val: number, name: string) => [fmt(val), name]}
                           />
                         )}
