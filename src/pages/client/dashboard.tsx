@@ -175,11 +175,11 @@ interface NadaDepreciation {
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const CHART_GOLD = "#EAEB80";
-const CHART_DARK = "#2a2a2a";
-const CHART_GREEN = "#4ade80";
-const CHART_RED = "#f87171";
-const PIE_COLORS = [CHART_GOLD, CHART_DARK];
+const CHART_GOLD  = "#EAEB80";   // bright yellow-gold (Income / Days Rented)
+const CHART_GOLD2 = "#D4AF37";   // medium gold (Profit / Trips Taken)
+const CHART_GOLD3 = "#8B6914";   // dark amber-gold (Expenses)
+const CHART_DARK  = "#2a2a2a";
+const PIE_COLORS  = [CHART_GOLD, CHART_GOLD3];
 
 function fmt(val: number | string | null | undefined): string {
   const n = parseFloat(String(val ?? 0)) || 0;
@@ -278,6 +278,7 @@ export default function ClientDashboard() {
   const currentMonth = new Date().getMonth() + 1;
   const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
+  const [selectedYearTrips, setSelectedYearTrips] = useState<string>(String(currentYear));
 
   // ── Data Fetching ────────────────────────────────────────────────────────────
 
@@ -494,6 +495,7 @@ export default function ClientDashboard() {
   // ── Computed Monthly Data ─────────────────────────────────────────────────────
 
   const yearNum = parseInt(selectedYear, 10);
+  const yearNumTrips = parseInt(selectedYearTrips, 10);
 
   // Monthly breakdown of trips (income + days + trips count)
   const monthlyTripData = useMemo(() => {
@@ -541,6 +543,36 @@ export default function ClientDashboard() {
       { income: 0, expenses: 0, profit: 0, days: 0, trips: 0 }
     );
   }, [monthlyTripData]);
+
+  // Separate monthly data for the Days/Trips section (uses its own year filter)
+  const monthlyDaysTripsData = useMemo(() => {
+    return MONTHS_SHORT.map((m, i) => {
+      const monthNum = i + 1;
+      const monthTrips = allTrips.filter((t) => {
+        if (t.status === "cancelled") return false;
+        const d = new Date(t.tripStart);
+        return d.getFullYear() === yearNumTrips && d.getMonth() + 1 === monthNum;
+      });
+      const days = monthTrips.reduce((s, t) => s + tripDays(t), 0);
+      const trips = monthTrips.length;
+      const income = monthTrips.reduce((s, t) => s + (t.earnings || 0), 0);
+      const avgPerTrip = trips > 0 ? income / trips : 0;
+      return { month: `${m} ${yearNumTrips}`, shortMonth: m, days, trips, avgPerTrip, income };
+    });
+  }, [allTrips, yearNumTrips]);
+
+  const yearTotalsTrips = useMemo(() => {
+    return monthlyDaysTripsData.reduce(
+      (acc, row) => ({
+        days: acc.days + row.days,
+        trips: acc.trips + row.trips,
+        income: acc.income + row.income,
+      }),
+      { days: 0, trips: 0, income: 0 }
+    );
+  }, [monthlyDaysTripsData]);
+
+  const currentMonthDaysTripsData = monthlyDaysTripsData[currentMonth - 1];
 
   const currentMonthKey = `${yearNum}-${String(currentMonth).padStart(2, "0")}`;
   const currentMonthData = monthlyTripData[currentMonth - 1];
@@ -701,27 +733,7 @@ export default function ClientDashboard() {
                   </div>
                 )}
               </div>
-              {/* Thumbnail strip — shown only when multiple photos exist */}
-              {carPhotos.length > 1 && (
-                <div className="flex gap-2 p-2 bg-muted/10 overflow-x-auto flex-shrink-0">
-                  {carPhotos.map((url, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setActivePhotoIndex(i)}
-                      className={`flex-shrink-0 w-14 h-14 rounded overflow-hidden border-2 transition-colors ${
-                        i === activePhotoIndex ? "border-[#EAEB80]" : "border-transparent hover:border-border"
-                      }`}
-                    >
-                      <img
-                        src={getProxiedImageUrl(url)}
-                        alt={`Photo ${i + 1}`}
-                        className="w-full h-full object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Thumbnail strip removed per design update */}
             </div>
           </Card>
 
@@ -984,7 +996,7 @@ export default function ClientDashboard() {
             Shared 6-col card grids so left & right cards have equal heights
         ════════════════════════════════════════════════════════════════════ */}
 
-        {/* Section titles + year selector — full width row */}
+        {/* Section titles + year selectors — full width row */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-end mb-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold uppercase text-foreground tracking-wide">Income and Expenses</h2>
@@ -1001,7 +1013,21 @@ export default function ClientDashboard() {
               </SelectContent>
             </Select>
           </div>
-          <h2 className="text-lg font-bold uppercase text-foreground tracking-wide">Days Rented and Trips Taken</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold uppercase text-foreground tracking-wide">Days Rented and Trips Taken</h2>
+            <Select value={selectedYearTrips} onValueChange={setSelectedYearTrips}>
+              <SelectTrigger className="w-28 h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((y) => (
+                  <SelectItem key={y} value={String(y)}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Row 1: year totals — 2-col outer (gap-6 = same as info sections), 3-col inner */}
@@ -1012,9 +1038,9 @@ export default function ClientDashboard() {
             <SummaryCard variant="gold"  label="Total Car Owner Profit"        value={fmt(yearTotals.profit)} />
           </div>
           <div className="grid grid-cols-3 gap-3 items-stretch">
-            <SummaryCard variant="black" label="Total Days Rented" value={String(yearTotals.days)} />
-            <SummaryCard variant="gray"  label="Total Trips Taken" value={String(yearTotals.trips)} />
-            <SummaryCard variant="gold"  label="Ave / Trips Taken" value={yearTotals.trips > 0 ? fmt(yearTotals.income / yearTotals.trips) : "$0.00"} />
+            <SummaryCard variant="black" label="Total Days Rented" value={String(yearTotalsTrips.days)} />
+            <SummaryCard variant="gray"  label="Total Trips Taken" value={String(yearTotalsTrips.trips)} />
+            <SummaryCard variant="gold"  label="Ave / Trips Taken" value={yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "$0.00"} />
           </div>
         </div>
 
@@ -1026,20 +1052,20 @@ export default function ClientDashboard() {
             <SummaryCard variant="gold"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Profit`}            value={fmt(currentMonthData?.profit ?? 0)} />
           </div>
           <div className="grid grid-cols-3 gap-3 items-stretch">
-            <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Days Rented`}  value={String(currentMonthData?.days ?? 0)} />
-            <SummaryCard variant="gray"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Trips Taken`}  value={String(currentMonthData?.trips ?? 0)} />
-            <SummaryCard variant="gold"  label="Ave / Trips Taken" value={(currentMonthData?.trips ?? 0) > 0 ? fmt((currentMonthData?.income ?? 0) / (currentMonthData?.trips ?? 1)) : "$0.00"} />
+            <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYearTrips} Days Rented`}  value={String(currentMonthDaysTripsData?.days ?? 0)} />
+            <SummaryCard variant="gray"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYearTrips} Trips Taken`}  value={String(currentMonthDaysTripsData?.trips ?? 0)} />
+            <SummaryCard variant="gold"  label="Ave / Trips Taken" value={(currentMonthDaysTripsData?.trips ?? 0) > 0 ? fmt((currentMonthDaysTripsData?.income ?? 0) / (currentMonthDaysTripsData?.trips ?? 1)) : "$0.00"} />
           </div>
         </div>
 
-        {/* Tables side by side */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Tables side by side — equal height via items-stretch + h-full */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
 
         {/* ── SECTION 3 — Income and Expenses table ────────────────────── */}
-        <div>
+        <div className="flex flex-col h-full">
 
           {/* Monthly Income/Expense Table */}
-          <Card className="border-border bg-card overflow-hidden">
+          <Card className="border-border bg-card overflow-hidden flex-1 flex flex-col">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -1089,11 +1115,11 @@ export default function ClientDashboard() {
         </div>{/* end section 3 */}
 
         {/* ── SECTION 4 — Days Rented and Trips Taken table ──────────────── */}
-        <div>
+        <div className="flex flex-col h-full">
 
           {/* Monthly Days/Trips Table */}
-          <Card className="border-border bg-card overflow-hidden">
-            <div className="overflow-x-auto">
+          <Card className="border-border bg-card overflow-hidden flex-1 flex flex-col">
+            <div className="overflow-x-auto flex-1">
               <Table>
                 <TableHeader>
                   <TableRow style={{ backgroundColor: "#1a1a1a" }} className="border-b border-border">
@@ -1112,7 +1138,7 @@ export default function ClientDashboard() {
                     </TableRow>
                   ) : (
                     <>
-                      {monthlyTripData.map((row) => (
+                      {monthlyDaysTripsData.map((row) => (
                         <TableRow key={row.month} className="border-border hover:bg-muted/30">
                           <TableCell className="text-sm py-2">{row.month}</TableCell>
                           <TableCell className="text-sm py-2 text-right">{row.days}</TableCell>
@@ -1125,10 +1151,10 @@ export default function ClientDashboard() {
                       {/* TOTAL row */}
                       <TableRow style={{ backgroundColor: "#EAEB80" }} className="border-t border-border hover:bg-[#EAEB80]">
                         <TableCell className="text-xs font-bold text-[#1a1a1a] py-2">TOTAL</TableCell>
-                        <TableCell className="text-xs font-bold text-[#1a1a1a] py-2 text-right">{yearTotals.days}</TableCell>
-                        <TableCell className="text-xs font-bold text-[#1a1a1a] py-2 text-right">{yearTotals.trips}</TableCell>
+                        <TableCell className="text-xs font-bold text-[#1a1a1a] py-2 text-right">{yearTotalsTrips.days}</TableCell>
+                        <TableCell className="text-xs font-bold text-[#1a1a1a] py-2 text-right">{yearTotalsTrips.trips}</TableCell>
                         <TableCell className="text-xs font-bold text-[#1a1a1a] py-2 text-right">
-                          {yearTotals.trips > 0 ? fmt(yearTotals.income / yearTotals.trips) : "—"}
+                          {yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "—"}
                         </TableCell>
                       </TableRow>
                     </>
@@ -1146,8 +1172,8 @@ export default function ClientDashboard() {
         ════════════════════════════════════════════════════════════════════ */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* Bar Chart: Income, Profit, Expenses */}
-          <Card className="border-border bg-card">
+          {/* Bar Chart: Income, Profit, Expenses — full-width, angled labels to match design */}
+          <Card className="border-border bg-card lg:col-span-2">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground">
                 Monthly Car Owner Rental Income, Car Owner Profit and Expenses — {selectedYear}
@@ -1159,26 +1185,40 @@ export default function ClientDashboard() {
                   <Loader2 className="w-5 h-5 animate-spin text-[#EAEB80]" />
                 </div>
               ) : monthlyTripData.some((d) => d.income > 0 || d.expenses > 0) ? (
-                <ResponsiveContainer width="100%" height={240}>
+                <ResponsiveContainer width="100%" height={280}>
                   <BarChart
                     data={monthlyTripData}
-                    margin={{ top: 4, right: 12, left: 0, bottom: 0 }}
+                    margin={{ top: 4, right: 16, left: 0, bottom: 48 }}
+                    barCategoryGap="20%"
+                    barGap={2}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                    <XAxis dataKey="shortMonth" tick={{ fontSize: 11, fill: "#888" }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 10, fill: "#aaa" }}
+                      angle={-45}
+                      textAnchor="end"
+                      interval={0}
+                      height={60}
+                    />
                     <YAxis
                       tick={{ fontSize: 11, fill: "#888" }}
-                      tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                      tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`}
+                      axisLine={false}
+                      tickLine={false}
                     />
                     <Tooltip
-                      contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }}
-                      labelStyle={{ color: "#ccc" }}
-                      formatter={(val: number) => fmt(val)}
+                      contentStyle={{ background: "#1a1a1a", border: "1px solid #444", borderRadius: 8 }}
+                      labelStyle={{ color: "#eee", fontWeight: 600 }}
+                      formatter={(val: number, name: string) => [fmt(val), name]}
                     />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="income" name="Rental Income" fill={CHART_GOLD} radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="profit" name="Car Owner Profit" fill={CHART_GREEN} radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="expenses" name="Expenses" fill={CHART_RED} radius={[2, 2, 0, 0]} />
+                    <Legend
+                      wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                      iconType="square"
+                    />
+                    <Bar dataKey="income"   name="Car Owner Rental Income" fill={CHART_GOLD}  radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="profit"   name="Car Owner Profit"        fill={CHART_GOLD2} radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="expenses" name="Car Owner Expenses"      fill={CHART_GOLD3} radius={[2, 2, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -1191,10 +1231,10 @@ export default function ClientDashboard() {
           </Card>
 
           {/* Bar Chart: Days Rented + Trips Taken */}
-          <Card className="border-border bg-card">
+          <Card className="border-border bg-card lg:col-span-2">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground">
-                Monthly Days Rented and Trips Taken — {selectedYear}
+                Monthly Days Rented and Trips Taken — {selectedYearTrips}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -1202,28 +1242,41 @@ export default function ClientDashboard() {
                 <div className="flex items-center justify-center h-56">
                   <Loader2 className="w-5 h-5 animate-spin text-[#EAEB80]" />
                 </div>
-              ) : monthlyTripData.some((d) => d.days > 0 || d.trips > 0) ? (
-                <ResponsiveContainer width="100%" height={240}>
+              ) : monthlyDaysTripsData.some((d) => d.days > 0 || d.trips > 0) ? (
+                <ResponsiveContainer width="100%" height={260}>
                   <BarChart
-                    data={monthlyTripData}
-                    margin={{ top: 4, right: 12, left: -20, bottom: 0 }}
+                    data={monthlyDaysTripsData}
+                    margin={{ top: 4, right: 16, left: -20, bottom: 48 }}
+                    barCategoryGap="20%"
+                    barGap={2}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                    <XAxis dataKey="shortMonth" tick={{ fontSize: 11, fill: "#888" }} />
-                    <YAxis tick={{ fontSize: 11, fill: "#888" }} />
-                    <Tooltip
-                      contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8 }}
-                      labelStyle={{ color: "#ccc" }}
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 10, fill: "#aaa" }}
+                      angle={-45}
+                      textAnchor="end"
+                      interval={0}
+                      height={60}
                     />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="days" name="Days Rented" fill={CHART_GOLD} radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="trips" name="Trips Taken" fill={CHART_GREEN} radius={[2, 2, 0, 0]} />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "#888" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{ background: "#1a1a1a", border: "1px solid #444", borderRadius: 8 }}
+                      labelStyle={{ color: "#eee", fontWeight: 600 }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconType="square" />
+                    <Bar dataKey="days"  name="Days Rented" fill={CHART_GOLD}  radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="trips" name="Trips Taken" fill={CHART_GOLD2} radius={[2, 2, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="flex flex-col items-center justify-center h-56 text-muted-foreground">
                   <AlertCircle className="w-8 h-8 mb-2 opacity-40" />
-                  <p className="text-sm">No trip data for {selectedYear}</p>
+                  <p className="text-sm">No trip data for {selectedYearTrips}</p>
                 </div>
               )}
             </CardContent>
