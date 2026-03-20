@@ -1084,21 +1084,21 @@ export default function ClientDashboard() {
           {/* ── Income/Expenses block ── */}
           <div>
             {/* Column headers — grid aligned with the cards below */}
-            <div className="grid mb-1" style={{ gridTemplateColumns: "88px 1fr 1fr 1fr", gap: "2px" }}>
+            <div className="grid mb-1" style={{ gridTemplateColumns: "108px 1fr 1fr 1fr", gap: "2px" }}>
               <div />
               <div className="text-center text-sm font-semibold text-foreground">Rental income</div>
               <div className="text-center text-sm font-semibold text-foreground">Expenses</div>
               <div className="text-center text-sm font-semibold" style={{ color: "#C9A227" }}>Profit</div>
             </div>
             {/* Total row */}
-            <div className="grid" style={{ gridTemplateColumns: "88px 1fr 1fr 1fr", gap: "2px", marginBottom: "2px" }}>
+            <div className="grid" style={{ gridTemplateColumns: "108px 1fr 1fr 1fr", gap: "2px", marginBottom: "2px" }}>
               <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">Total</div>
               <SummaryCard variant="black" label="" value={fmt(yearTotals.income)} />
               <SummaryCard variant="light" label="" value={fmt(yearTotals.expenses)} />
               <SummaryCard variant="gold"  label="" value={fmt(yearTotals.profit)} valueColor={yearTotals.profit < 0 ? "#ef4444" : "#1a1a1a"} />
             </div>
             {/* Current month row */}
-            <div className="grid" style={{ gridTemplateColumns: "88px 1fr 1fr 1fr", gap: "2px" }}>
+            <div className="grid" style={{ gridTemplateColumns: "108px 1fr 1fr 1fr", gap: "2px" }}>
               <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">{MONTHS_SHORT[currentMonth - 1]} {selectedYear}</div>
               <SummaryCard variant="black" label="" value={fmt(currentMonthData?.income ?? 0)} />
               <SummaryCard variant="light" label="" value={fmt(currentMonthData?.expenses ?? 0)} />
@@ -1109,21 +1109,21 @@ export default function ClientDashboard() {
           {/* ── Days/Trips block ── */}
           <div>
             {/* Column headers */}
-            <div className="grid mb-1" style={{ gridTemplateColumns: "88px 1fr 1fr 1fr", gap: "2px" }}>
+            <div className="grid mb-1" style={{ gridTemplateColumns: "108px 1fr 1fr 1fr", gap: "2px" }}>
               <div />
               <div className="text-center text-sm font-semibold text-foreground">Days Rented</div>
               <div className="text-center text-sm font-semibold text-foreground">Trips Taken</div>
               <div className="text-center text-sm font-semibold" style={{ color: "#C9A227" }}>Ave / Trip</div>
             </div>
             {/* Total row */}
-            <div className="grid" style={{ gridTemplateColumns: "88px 1fr 1fr 1fr", gap: "2px", marginBottom: "2px" }}>
+            <div className="grid" style={{ gridTemplateColumns: "108px 1fr 1fr 1fr", gap: "2px", marginBottom: "2px" }}>
               <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">Total</div>
               <SummaryCard variant="black" label="" value={String(yearTotalsTrips.days)} />
               <SummaryCard variant="light" label="" value={String(yearTotalsTrips.trips)} />
               <SummaryCard variant="gold"  label="" value={yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "$0.00"} />
             </div>
             {/* Current month row */}
-            <div className="grid" style={{ gridTemplateColumns: "88px 1fr 1fr 1fr", gap: "2px" }}>
+            <div className="grid" style={{ gridTemplateColumns: "108px 1fr 1fr 1fr", gap: "2px" }}>
               <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">{MONTHS_SHORT[currentMonth - 1]} {selectedYearTrips}</div>
               <SummaryCard variant="black" label="" value={String(currentMonthDaysTripsData?.days ?? 0)} />
               <SummaryCard variant="light" label="" value={String(currentMonthDaysTripsData?.trips ?? 0)} />
@@ -1139,7 +1139,7 @@ export default function ClientDashboard() {
         <div className="overflow-hidden rounded-md border border-border">
           <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
             <colgroup>
-              <col style={{ width: "88px" }} />
+              <col style={{ width: "108px" }} />
               <col />
               <col />
               <col />
@@ -1181,7 +1181,7 @@ export default function ClientDashboard() {
         <div className="overflow-hidden rounded-md border border-border">
           <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
             <colgroup>
-              <col style={{ width: "88px" }} />
+              <col style={{ width: "108px" }} />
               <col />
               <col />
               <col />
