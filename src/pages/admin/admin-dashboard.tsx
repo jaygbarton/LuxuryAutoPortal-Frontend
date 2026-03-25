@@ -1,10 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/admin-layout";
-import {
-  SectionHeader,
-  SummaryCard,
-  DashboardTable,
-} from "@/components/admin/dashboard";
+import { SectionHeader } from "@/components/admin/dashboard";
+import IncomeExpensesSection from "@/components/admin/dashboard/IncomeExpensesSection";
 
 const SECTIONS = [
   "AIRPORT PARKING & TRIPS",
@@ -16,30 +13,6 @@ const SECTIONS = [
   "TASK MANAGEMENT",
   "NOTICE BOARD",
 ] as const;
-
-const demoColumns = [
-  { key: "month", label: "Month", align: "left" as const },
-  { key: "grossCarFees", label: "Gross Car Fees", align: "right" as const },
-  { key: "refunds", label: "Refunds", align: "right" as const },
-  { key: "expenses", label: "Expenses", align: "right" as const },
-  { key: "carOwnerSplit", label: "Car Owner Split", align: "right" as const },
-  { key: "net", label: "Net", align: "right" as const },
-];
-
-const demoRows = [
-  { month: "January", grossCarFees: "$0.00", refunds: "$0.00", expenses: "$0.00", carOwnerSplit: "$0.00", net: "$0.00" },
-  { month: "February", grossCarFees: "$0.00", refunds: "$0.00", expenses: "$0.00", carOwnerSplit: "$0.00", net: "$0.00" },
-  { month: "March", grossCarFees: "$0.00", refunds: "$0.00", expenses: "$0.00", carOwnerSplit: "$0.00", net: "$0.00" },
-];
-
-const demoTotals = {
-  month: "TOTAL",
-  grossCarFees: "$0.00",
-  refunds: "$0.00",
-  expenses: "$0.00",
-  carOwnerSplit: "$0.00",
-  net: "$0.00",
-};
 
 function PlaceholderSection({ title }: { title: string }) {
   return (
@@ -55,6 +28,8 @@ function PlaceholderSection({ title }: { title: string }) {
 }
 
 export default function AdminDashboardPage() {
+  const [year, setYear] = useState(String(new Date().getFullYear()));
+
   useEffect(() => {
     document.title = "Admin Dashboard | GLA";
   }, []);
@@ -74,24 +49,8 @@ export default function AdminDashboardPage() {
           </p>
         </div>
 
-        {/* Section 1: Income and Expenses (working demo) */}
-        <div className="mb-8">
-          <SectionHeader title="INCOME AND EXPENSES" />
-
-          <div className="mt-4 grid grid-cols-1 gap-4 px-4 sm:grid-cols-3">
-            <SummaryCard label="Total Revenue" value="$0.00" variant="gold" />
-            <SummaryCard label="Total Expenses" value="$0.00" variant="dark" />
-            <SummaryCard label="Net Income" value="$0.00" variant="gold" />
-          </div>
-
-          <div className="mt-4 px-4">
-            <DashboardTable
-              columns={demoColumns}
-              rows={demoRows}
-              totalsRow={demoTotals}
-            />
-          </div>
-        </div>
+        {/* Section 1: Income and Expenses — Phase 2 */}
+        <IncomeExpensesSection year={year} onYearChange={setYear} />
 
         {/* Remaining sections — placeholders */}
         {SECTIONS.map((section) => (
