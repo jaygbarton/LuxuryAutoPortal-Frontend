@@ -292,8 +292,8 @@ const TILES = {
 
 /* ─── Map ────────────────────────────────────────────────────────── */
 function FleetMap({
-  vehicles, selectedId, onSelect,
-}: { vehicles: VehicleEntry[]; selectedId: string | null; onSelect: (v: VehicleEntry) => void }) {
+  vehicles, selectedId, onSelect, loading = false,
+}: { vehicles: VehicleEntry[]; selectedId: string | null; onSelect: (v: VehicleEntry) => void; loading?: boolean }) {
   const mapRef     = useRef<HTMLDivElement>(null);
   const mapInst    = useRef<any>(null);
   const leafletRef = useRef<any>(null);
@@ -491,8 +491,21 @@ function FleetMap({
       {/* Map always rendered so the ref is available on mount */}
       <div ref={mapRef} style={{ height: "100%", width: "100%" }} />
 
-      {/* Overlay when no vehicles have coordinates */}
-      {withCoords.length === 0 && (
+      {/* Loading spinner — only on initial load (no data yet) */}
+      {loading && withCoords.length === 0 && (
+        <div className="absolute inset-0 z-[800] flex flex-col items-center justify-center pointer-events-none">
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-8 py-6 shadow-lg flex flex-col items-center gap-3">
+            <svg className="w-8 h-8 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+            </svg>
+            <p className="text-sm font-medium text-gray-600">Loading fleet…</p>
+          </div>
+        </div>
+      )}
+
+      {/* "No locations" — only shown after data has loaded and is genuinely empty */}
+      {!loading && withCoords.length === 0 && (
         <div className="absolute inset-0 z-[800] flex flex-col items-center justify-center pointer-events-none">
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-8 py-6 shadow-lg flex flex-col items-center">
             <MapPin className="w-10 h-10 text-gray-300 mb-2" />
@@ -556,6 +569,16 @@ export default function BouncieFleetPage() {
   // SSE — real-time events with notifications
   useEffect(() => {
     let reconnectTimer: ReturnType<typeof setTimeout>;
+    // Debounce fleet-overview invalidations so rapid SSE bursts don't fire many concurrent fetches
+    let fleetDebounce: ReturnType<typeof setTimeout> | null = null;
+    const scheduleFleetRefresh = () => {
+      if (fleetDebounce) clearTimeout(fleetDebounce);
+      fleetDebounce = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/bouncie/fleet-overview"] });
+        fleetDebounce = null;
+      }, 1500);
+    };
+
     const connect = () => {
       if (sseRef.current) sseRef.current.close();
       const es = new EventSource(buildApiUrl("/api/bouncie/sse"), { withCredentials: true });
@@ -578,17 +601,21 @@ export default function BouncieFleetPage() {
             connectGraceRef.current = Date.now();
             toast({ title: "Still connected", description: "Your session was renewed automatically." });
             queryClient.invalidateQueries({ queryKey: ["/api/bouncie/connection-status"] });
-            queryClient.invalidateQueries({ queryKey: ["/api/bouncie/fleet-overview"] });
+            scheduleFleetRefresh();
             return;
           }
         } catch {}
-        queryClient.invalidateQueries({ queryKey: ["/api/bouncie/fleet-overview"] });
+        scheduleFleetRefresh();
       });
-      es.addEventListener("fleet_update", () => { queryClient.invalidateQueries({ queryKey: ["/api/bouncie/fleet-overview"] }); });
+      es.addEventListener("fleet_update", () => { scheduleFleetRefresh(); });
       es.onerror = () => { es.close(); reconnectTimer = setTimeout(connect, 10000); };
     };
     connect();
-    return () => { sseRef.current?.close(); clearTimeout(reconnectTimer); };
+    return () => {
+      sseRef.current?.close();
+      clearTimeout(reconnectTimer);
+      if (fleetDebounce) clearTimeout(fleetDebounce);
+    };
   }, []);
 
   const { data: connData, isLoading: connLoading, isError: connError } = useQuery<{ success: boolean; data: ConnectionStatus }>({
@@ -801,7 +828,7 @@ export default function BouncieFleetPage() {
 
         {/* ── Map area ─────────────────────────────────────────────── */}
         <div className="flex-1 overflow-hidden relative">
-          <FleetMap vehicles={allVehicles} selectedId={selectedId} onSelect={handleMapSelect} />
+          <FleetMap vehicles={allVehicles} selectedId={selectedId} onSelect={handleMapSelect} loading={isLoading} />
           {selectedVehicle && <VehicleDetailPanel v={selectedVehicle} onClose={() => setSelectedId(null)} />}
         </div>
       </div>
