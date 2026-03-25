@@ -5,9 +5,9 @@ import IncomeExpensesSection from "@/components/admin/dashboard/IncomeExpensesSe
 import AirportParkingSection from "@/components/admin/dashboard/AirportParkingSection";
 import CommissionsSection from "@/components/admin/dashboard/CommissionsSection";
 import OperationsSection from "@/components/admin/dashboard/OperationsSection";
+import TuroInspectionsSection from "@/components/admin/dashboard/TuroInspectionsSection";
 
 const SECTIONS = [
-  "TURO MESSAGES INSPECTIONS",
   "CAR ISSUES / INSPECTIONS",
   "MAINTENANCE",
   "TASK MANAGEMENT",
@@ -60,6 +60,9 @@ export default function AdminDashboardPage() {
 
         {/* Section 4: Operations — Phase 5 */}
         <OperationsSection />
+
+        {/* Section 5: Turo Messages Inspections — Phase 6 */}
+        <TuroInspectionsSection />
 
         {/* Remaining sections — placeholders */}
         {SECTIONS.map((section) => (
