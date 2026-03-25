@@ -387,10 +387,10 @@ export default function IncomeExpensesSection({
           Year
         </span>
         <Select value={year} onValueChange={onYearChange}>
-          <SelectTrigger className="w-[120px] border-[#FFD700]/30 bg-[#111111] text-[#FFD700]">
+          <SelectTrigger className="w-[120px] border-[#FFD700]/30 bg-white text-black">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="border-[#FFD700]/30 bg-[#111111] text-[#FFD700]">
+          <SelectContent className="border-gray-200 bg-white text-black">
             {YEAR_OPTIONS.map((y) => (
               <SelectItem key={y} value={y}>
                 {y}
