@@ -39,35 +39,40 @@ export default function AdminDashboardPage() {
       <div className="min-h-screen bg-background">
         {/* Brand Header */}
         <div className="mb-8 bg-black px-6 py-6">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-6">
+          <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-6 md:grid-cols-3">
             {/* Left — Logo */}
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex justify-center md:justify-start">
               <img
                 src="/logo.png"
                 alt="Golden Luxury Auto"
-                className="h-20 object-contain"
+                className="h-24 object-contain"
               />
             </div>
 
-            {/* Center — Hero Fleet Image */}
-            <div className="hidden flex-1 justify-center md:flex">
+            {/* Center — Fleet Photo */}
+            <div className="flex justify-center">
               <div className="overflow-hidden rounded-lg">
                 <img
-                  src="https://images.unsplash.com/photo-1544636331-e26879cd4d9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                  src="/logo.png"
                   alt="Golden Luxury Auto Fleet"
-                  className="h-28 w-72 object-cover"
+                  className="h-36 w-80 object-cover"
                 />
               </div>
             </div>
 
-            {/* Right — Monthly Update Badge */}
-            <div className="flex flex-col items-center gap-1">
-              <p className="text-center font-serif text-sm italic text-[#FFD700]">
-                Golden Luxury Auto
-              </p>
-              <p className="text-center text-lg font-bold uppercase tracking-wide text-[#FFD700]">
-                Monthly Update!!!
-              </p>
+            {/* Right — YouTube Video */}
+            <div className="flex justify-center md:justify-end">
+              <div className="relative h-36 w-64 overflow-hidden rounded-lg shadow-lg">
+                <iframe
+                  className="absolute inset-0 h-full w-full"
+                  src="https://www.youtube.com/embed/jsdo0yDeFCs?si=Le_SJZ8P7cqyx2Bn"
+                  title="Golden Luxury Auto Monthly Update"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                />
+              </div>
             </div>
           </div>
 
