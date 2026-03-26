@@ -97,7 +97,13 @@ export default function AdminDashboardPage() {
         {/* Section 5: Turo Messages Inspections — Phase 6 */}
         <TuroInspectionsSection />
 
-        {/* Section 6: Task Management — Phase 8 */}
+        {/* Section 6: Car Issues / Inspections — Phase 7A */}
+        <CarIssuesSection />
+
+        {/* Section 7: Maintenance — Phase 7B */}
+        <MaintenanceSection year={year} />
+
+        {/* Section 8: Task Management — Phase 8 */}
         <TaskManagementSection />
 
         {/* Remaining sections — placeholders */}
