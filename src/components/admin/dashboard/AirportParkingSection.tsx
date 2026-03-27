@@ -26,17 +26,16 @@ function getMonthEntry<T extends { month: number }>(
 }
 
 const TABLE_COLUMNS = [
-  { key: "month", label: "Month", align: "left" as const },
+  { key: "month", label: "Month and Year", align: "left" as const },
   { key: "parkingExpenses", label: "Parking Airport Expenses", align: "right" as const },
   { key: "tripsTaken", label: "Trips Taken", align: "right" as const },
-  { key: "cumulativeTrips", label: "Cumulative Trips", align: "right" as const },
+  { key: "avePerTrip", label: "Ave / Trips Taken", align: "right" as const },
 ];
 
 function buildRows(
   expensesByMonth: (month: number) => number,
   history: HistoryMonth[],
 ) {
-  let cumulative = 0;
   let totalExpenses = 0;
   let totalTrips = 0;
 
@@ -44,23 +43,25 @@ function buildRows(
     const month = idx + 1;
     const expense = expensesByMonth(month);
     const trips = getMonthEntry(history, month)?.tripsTaken ?? 0;
-    cumulative += trips;
     totalExpenses += expense;
     totalTrips += trips;
+
+    const avePerTrip = trips > 0 ? expense / trips : 0;
 
     return {
       month: label,
       parkingExpenses: formatCurrency(expense),
       tripsTaken: trips.toLocaleString(),
-      cumulativeTrips: cumulative.toLocaleString(),
+      avePerTrip: formatCurrency(avePerTrip),
     };
   });
 
+  const totalAve = totalTrips > 0 ? totalExpenses / totalTrips : 0;
   const totalsRow = {
     month: "TOTAL",
     parkingExpenses: formatCurrency(totalExpenses),
     tripsTaken: totalTrips.toLocaleString(),
-    cumulativeTrips: cumulative.toLocaleString(),
+    avePerTrip: formatCurrency(totalAve),
   };
 
   return { rows, totalsRow };

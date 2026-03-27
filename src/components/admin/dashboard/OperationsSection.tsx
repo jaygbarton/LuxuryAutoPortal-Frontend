@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { format, differenceInDays, subDays } from "date-fns";
+import { format, subDays } from "date-fns";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader, SummaryCard, DashboardTable } from "@/components/admin/dashboard";
-import { formatCurrency } from "./utils";
 
 interface TuroTrip {
   id: number;
@@ -30,14 +29,13 @@ interface TuroTripsResponse {
 
 const TABLE_COLUMNS = [
   { key: "reservationId", label: "Reservation #", align: "left" as const },
-  { key: "vehicle", label: "Vehicle", align: "left" as const },
-  { key: "guest", label: "Guest", align: "left" as const },
-  { key: "pickUp", label: "Pick Up", align: "left" as const },
+  { key: "car", label: "CAR", align: "left" as const },
+  { key: "plateNumber", label: "Plate #", align: "left" as const },
+  { key: "tripStart", label: "Trip Start", align: "left" as const },
   { key: "pickUpLocation", label: "Pick Up Location", align: "left" as const },
-  { key: "dropOff", label: "Drop Off", align: "left" as const },
+  { key: "tripEnds", label: "Trip Ends", align: "left" as const },
   { key: "dropOffLocation", label: "Drop Off Location", align: "left" as const },
-  { key: "duration", label: "Duration", align: "left" as const },
-  { key: "earnings", label: "Earnings", align: "right" as const },
+  { key: "assignedTo", label: "Assigned to", align: "left" as const },
   { key: "status", label: "Status", align: "left" as const },
 ];
 
@@ -50,15 +48,6 @@ function formatTripDate(dateStr: string): string {
     return format(new Date(dateStr), "MMM d, yyyy h:mm a");
   } catch {
     return dateStr;
-  }
-}
-
-function computeDuration(start: string, end: string): string {
-  try {
-    const days = differenceInDays(new Date(end), new Date(start));
-    return `${days} day${days !== 1 ? "s" : ""}`;
-  } catch {
-    return "—";
   }
 }
 
@@ -124,18 +113,17 @@ export default function OperationsSection() {
 
   const rows = displayTrips.map((trip) => ({
     reservationId: trip.reservationId,
-    vehicle: trip.carName ?? "—",
-    guest: trip.guestName ?? "—",
-    pickUp: formatTripDate(trip.tripStart),
+    car: trip.carName ?? "—",
+    plateNumber: "—",
+    tripStart: formatTripDate(trip.tripStart),
     pickUpLocation: trip.pickupLocation ? truncate(trip.pickupLocation, 35) : "—",
-    dropOff: formatTripDate(trip.tripEnd),
+    tripEnds: formatTripDate(trip.tripEnd),
     dropOffLocation: trip.returnLocation
       ? truncate(trip.returnLocation, 35)
       : trip.deliveryLocation
         ? truncate(trip.deliveryLocation, 35)
         : "—",
-    duration: computeDuration(trip.tripStart, trip.tripEnd),
-    earnings: formatCurrency(trip.earnings),
+    assignedTo: "—",
     status: <StatusBadge status={trip.status} />,
   }));
 

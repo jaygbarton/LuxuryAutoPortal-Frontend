@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { format, differenceInDays } from "date-fns";
+import { format } from "date-fns";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader, DashboardTable } from "@/components/admin/dashboard";
-import { formatCurrency } from "./utils";
 
 interface TuroTrip {
   id: number;
@@ -15,6 +14,9 @@ interface TuroTrip {
   earnings: number;
   cancelledEarnings: number;
   status: "booked" | "cancelled" | "completed";
+  pickupLocation: string | null;
+  returnLocation: string | null;
+  deliveryLocation: string | null;
   totalDistance: string | null;
   emailSubject: string | null;
   emailReceivedAt: string | null;
@@ -28,41 +30,36 @@ interface TuroTripsResponse {
 
 const TABLE_COLUMNS = [
   { key: "reservationId", label: "Reservation #", align: "left" as const },
-  { key: "vehicle", label: "Vehicle", align: "left" as const },
-  { key: "guest", label: "Guest", align: "left" as const },
+  { key: "car", label: "CAR", align: "left" as const },
+  { key: "plateNumber", label: "Plate #", align: "left" as const },
   { key: "tripStart", label: "Trip Start", align: "left" as const },
-  { key: "tripEnd", label: "Trip End", align: "left" as const },
-  { key: "duration", label: "Duration", align: "right" as const },
-  { key: "distance", label: "Distance", align: "right" as const },
-  { key: "earnings", label: "Earnings", align: "right" as const },
-  { key: "emailReceived", label: "Email Received", align: "center" as const },
+  { key: "pickUpLocation", label: "Pick Up Location", align: "left" as const },
+  { key: "tripEnds", label: "Trip Ends", align: "left" as const },
+  { key: "dropOffLocation", label: "Drop Off Location", align: "left" as const },
+  { key: "assignedTo", label: "Assigned to", align: "left" as const },
+  { key: "carIssues", label: "Car Issues", align: "left" as const },
+  { key: "photos", label: "Photos", align: "left" as const },
+  { key: "remarks", label: "Remarks", align: "left" as const },
+  { key: "assignForInspection", label: "Assign for Inspection", align: "left" as const },
   { key: "status", label: "Status", align: "center" as const },
-  { key: "notes", label: "Notes", align: "left" as const },
 ];
 
 function truncate(text: string, max: number): string {
   return text.length > max ? text.slice(0, max) + "…" : text;
 }
 
-function formatDate(dateStr: string, fmt: string): string {
+function formatDate(dateStr: string): string {
   try {
-    return format(new Date(dateStr), fmt);
+    return format(new Date(dateStr), "MMM d, yyyy");
   } catch {
     return dateStr;
   }
 }
 
-function computeDuration(start: string, end: string): string {
-  try {
-    const days = differenceInDays(new Date(end), new Date(start));
-    return `${days} day${days !== 1 ? "s" : ""}`;
-  } catch {
-    return "—";
-  }
-}
+type InspectionStatus = "booked" | "cancelled" | "completed";
 
-function StatusBadge({ status }: { status: TuroTrip["status"] }) {
-  const styles: Record<TuroTrip["status"], string> = {
+function StatusBadge({ status }: { status: InspectionStatus }) {
+  const styles: Record<InspectionStatus, string> = {
     booked: "bg-[#FFD700] text-black",
     completed: "bg-green-600 text-white",
     cancelled: "bg-red-600 text-white",
@@ -105,25 +102,28 @@ export default function TuroInspectionsSection() {
 
   const trips = data?.data ?? [];
 
-  // Sort by tripStart descending, limit to 30
   const displayTrips = [...trips]
     .sort((a, b) => new Date(b.tripStart).getTime() - new Date(a.tripStart).getTime())
     .slice(0, 30);
 
   const rows = displayTrips.map((trip) => ({
     reservationId: trip.reservationId,
-    vehicle: trip.carName ?? "—",
-    guest: trip.guestName ?? "—",
-    tripStart: formatDate(trip.tripStart, "MMM d, yyyy"),
-    tripEnd: formatDate(trip.tripEnd, "MMM d, yyyy"),
-    duration: computeDuration(trip.tripStart, trip.tripEnd),
-    distance: trip.totalDistance ?? "—",
-    earnings: formatCurrency(trip.earnings),
-    emailReceived: trip.emailReceivedAt
-      ? formatDate(trip.emailReceivedAt, "MMM d")
-      : "—",
+    car: trip.carName ?? "—",
+    plateNumber: "—",
+    tripStart: formatDate(trip.tripStart),
+    pickUpLocation: trip.pickupLocation ? truncate(trip.pickupLocation, 35) : "—",
+    tripEnds: formatDate(trip.tripEnd),
+    dropOffLocation: trip.returnLocation
+      ? truncate(trip.returnLocation, 35)
+      : trip.deliveryLocation
+        ? truncate(trip.deliveryLocation, 35)
+        : "—",
+    assignedTo: "—",
+    carIssues: "—",
+    photos: "No Photos",
+    remarks: "—",
+    assignForInspection: "—",
     status: <StatusBadge status={trip.status} />,
-    notes: trip.emailSubject ? truncate(trip.emailSubject, 40) : "—",
   }));
 
   return (

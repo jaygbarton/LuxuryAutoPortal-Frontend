@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
-import { DashboardTable } from "@/components/admin/dashboard/DashboardTable";
 import { formatCurrency } from "@/components/admin/dashboard/utils";
 import React from "react";
 
@@ -28,6 +27,42 @@ interface CommissionsApiResponse {
   total: number;
 }
 
+interface Employee {
+  id: number;
+  fullname?: string;
+  first_name?: string;
+  last_name?: string;
+  emp_first_name?: string;
+  emp_last_name?: string;
+}
+
+interface EmployeesApiResponse {
+  success: boolean;
+  data: Employee[];
+}
+
+// ── Expense types from PDF ──────────────────────────────────────────────
+
+const EXPENSE_TYPES = [
+  "Parking Airport",
+  "Uber & Lyft",
+  "Electric/Gas/Uber - Reimbursed",
+  "Ski Rack's",
+  "New Car 1%",
+  "New Car - Onboard",
+  "Relist Car",
+  "Annual Inspections",
+  "Insurance",
+  "Car Registrations",
+  "Car Swap",
+  "Zero Parking Fee",
+  "Invoice",
+  "Bouncie",
+  "Maintenance",
+  "Exit Parking Ticket",
+  "Last Minute Commissions",
+];
+
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 function getMonthRange(offset: number): {
@@ -38,7 +73,7 @@ function getMonthRange(offset: number): {
   const now = new Date();
   const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
   const year = d.getFullYear();
-  const month = d.getMonth(); // 0-based
+  const month = d.getMonth();
 
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
@@ -51,75 +86,52 @@ function getMonthRange(offset: number): {
   return { label, dateFrom, dateTo };
 }
 
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "—";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
+function getEmployeeName(emp: Employee): string {
+  if (emp.fullname) return emp.fullname;
+  const first = emp.first_name || emp.emp_first_name || "";
+  const last = emp.last_name || emp.emp_last_name || "";
+  return `${first} ${last}`.trim() || `Employee ${emp.id}`;
 }
 
-function truncate(str: string, max: number): string {
-  if (!str) return "—";
-  return str.length > max ? str.slice(0, max) + "..." : str;
-}
+function buildMatrix(
+  data: CommissionRow[],
+  employeeNames: string[],
+): { matrix: Record<string, Record<string, number>>; totals: Record<string, number> } {
+  const matrix: Record<string, Record<string, number>> = {};
+  const totals: Record<string, number> = {};
 
-function StatusBadge({ paid }: { paid: number }) {
-  return paid === 1 ? (
-    <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
-      Paid
-    </span>
-  ) : (
-    <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
-      Unpaid
-    </span>
-  );
-}
+  for (const type of EXPENSE_TYPES) {
+    matrix[type] = {};
+    for (const name of employeeNames) {
+      matrix[type][name] = 0;
+    }
+  }
 
-// ── Table columns ────────────────────────────────────────────────────────
+  for (const name of employeeNames) {
+    totals[name] = 0;
+  }
 
-const COLUMNS = [
-  { key: "type", label: "Type", align: "left" as const },
-  { key: "name", label: "Name", align: "left" as const },
-  { key: "amount", label: "Amount", align: "right" as const },
-  { key: "pct", label: "%", align: "right" as const },
-  { key: "pctAmount", label: "% Amount", align: "right" as const },
-  { key: "remarks", label: "Remarks", align: "left" as const },
-  { key: "status", label: "Status", align: "left" as const },
-  { key: "date", label: "Date", align: "left" as const },
-];
+  for (const row of data) {
+    const type = row.commissions_type || "";
+    const name = row.fullname || row.commissions_account_owner_name || "";
+    const amount = parseFloat(row.commissions_amount) || 0;
 
-function buildRows(data: CommissionRow[]): Record<string, React.ReactNode>[] {
-  return data.map((row) => ({
-    type: row.commissions_type || "—",
-    name: row.fullname || row.commissions_account_owner_name || "—",
-    amount: formatCurrency(parseFloat(row.commissions_amount) || 0),
-    pct: row.commissions_percentage ? `${row.commissions_percentage}%` : "—",
-    pctAmount: formatCurrency(parseFloat(row.commissions_percentage_amount) || 0),
-    remarks: truncate(row.commissions_remarks, 30),
-    status: <StatusBadge paid={row.commissions_is_paid} />,
-    date: formatDate(row.commissions_date),
-  }));
-}
+    if (matrix[type] && employeeNames.includes(name)) {
+      matrix[type][name] += amount;
+      totals[name] += amount;
+    } else if (matrix[type]) {
+      // Try partial match
+      const matched = employeeNames.find(
+        (n) => n.toLowerCase() === name.toLowerCase(),
+      );
+      if (matched) {
+        matrix[type][matched] += amount;
+        totals[matched] += amount;
+      }
+    }
+  }
 
-function buildTotals(data: CommissionRow[]): Record<string, React.ReactNode> {
-  const totalAmount = data.reduce(
-    (sum, r) => sum + (parseFloat(r.commissions_amount) || 0),
-    0,
-  );
-  const totalPctAmount = data.reduce(
-    (sum, r) => sum + (parseFloat(r.commissions_percentage_amount) || 0),
-    0,
-  );
-  return {
-    type: "TOTAL",
-    name: "",
-    amount: formatCurrency(totalAmount),
-    pct: "",
-    pctAmount: formatCurrency(totalPctAmount),
-    remarks: "",
-    status: "",
-    date: "",
-  };
+  return { matrix, totals };
 }
 
 // ── Loading skeleton ─────────────────────────────────────────────────────
@@ -143,21 +155,38 @@ function LoadingSkeleton() {
   );
 }
 
-// ── Month card ───────────────────────────────────────────────────────────
+// ── Matrix Table ─────────────────────────────────────────────────────────
 
-function MonthCard({
+function MatrixTable({
   monthLabel,
   data,
-  isLoading,
+  employeeNames,
 }: {
   monthLabel: string;
   data: CommissionRow[] | undefined;
-  isLoading: boolean;
+  employeeNames: string[];
 }) {
-  if (isLoading) return null; // handled by parent skeleton
-
   const rows = data ?? [];
   const isEmpty = rows.length === 0;
+
+  if (isEmpty) {
+    return (
+      <div className="flex-1 min-w-[300px]">
+        <div className="rounded-t-lg bg-black px-4 py-2">
+          <p className="text-sm font-bold uppercase text-[#FFD700]">
+            Commissions &mdash; {monthLabel}
+          </p>
+        </div>
+        <div className="rounded-b-lg border border-t-0 border-gray-200 bg-white px-6 py-8 text-center">
+          <p className="text-sm text-gray-400">
+            No commissions found for this period
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const { matrix, totals } = buildMatrix(rows, employeeNames);
 
   return (
     <div className="flex-1 min-w-[300px]">
@@ -166,21 +195,75 @@ function MonthCard({
           Commissions &mdash; {monthLabel}
         </p>
       </div>
-      {isEmpty ? (
-        <div className="rounded-b-lg bg-[#111111] px-6 py-8 text-center">
-          <p className="text-sm text-white/60">
-            No commissions found for this period
-          </p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <DashboardTable
-            columns={COLUMNS}
-            rows={buildRows(rows)}
-            totalsRow={buildTotals(rows)}
-          />
-        </div>
-      )}
+      <div className="overflow-x-auto">
+        <table className="w-full border border-gray-200">
+          <thead>
+            <tr className="bg-black">
+              <th className="px-3 py-2 text-left text-xs font-bold uppercase text-white">
+                Type
+              </th>
+              {employeeNames.map((name) => (
+                <th
+                  key={name}
+                  className="px-3 py-2 text-right text-xs font-bold uppercase text-white"
+                >
+                  {name}
+                </th>
+              ))}
+              <th className="px-3 py-2 text-right text-xs font-bold uppercase text-[#FFD700]">
+                TOTAL
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {EXPENSE_TYPES.map((type, idx) => {
+              const rowTotal = employeeNames.reduce(
+                (sum, name) => sum + (matrix[type]?.[name] ?? 0),
+                0,
+              );
+              return (
+                <tr
+                  key={type}
+                  className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                >
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">
+                    {type}
+                  </td>
+                  {employeeNames.map((name) => (
+                    <td
+                      key={name}
+                      className="px-3 py-2 text-right text-sm text-gray-900"
+                    >
+                      {matrix[type]?.[name]
+                        ? formatCurrency(matrix[type][name])
+                        : "—"}
+                    </td>
+                  ))}
+                  <td className="px-3 py-2 text-right text-sm font-semibold text-gray-900">
+                    {rowTotal > 0 ? formatCurrency(rowTotal) : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+            <tr className="bg-gray-100 font-bold">
+              <td className="px-3 py-2 text-sm text-gray-900">TOTAL</td>
+              {employeeNames.map((name) => (
+                <td
+                  key={name}
+                  className="px-3 py-2 text-right text-sm text-gray-900"
+                >
+                  {totals[name] > 0 ? formatCurrency(totals[name]) : "—"}
+                </td>
+              ))}
+              <td className="px-3 py-2 text-right text-sm font-bold text-gray-900">
+                {formatCurrency(
+                  employeeNames.reduce((sum, name) => sum + (totals[name] ?? 0), 0),
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -190,6 +273,17 @@ function MonthCard({
 export default function CommissionsSection() {
   const current = getMonthRange(0);
   const prev = getMonthRange(-1);
+
+  const employeesQuery = useQuery<EmployeesApiResponse>({
+    queryKey: ["/api/employees"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/employees"), {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(`Failed to fetch employees: ${res.status}`);
+      return res.json();
+    },
+  });
 
   const currentQuery = useQuery<CommissionsApiResponse>({
     queryKey: ["/api/payroll/commissions", "current-month", current.dateFrom, current.dateTo],
@@ -219,7 +313,26 @@ export default function CommissionsSection() {
     },
   });
 
-  const isLoading = currentQuery.isLoading || prevQuery.isLoading;
+  const isLoading = currentQuery.isLoading || prevQuery.isLoading || employeesQuery.isLoading;
+
+  // Derive employee names from employees API or fall back to commission data
+  const employeeNames: string[] = React.useMemo(() => {
+    const empData = employeesQuery.data?.data ?? [];
+    if (empData.length > 0) {
+      return empData.map(getEmployeeName).filter(Boolean);
+    }
+    // Fallback: extract unique names from commission data
+    const allCommissions = [
+      ...(currentQuery.data?.data ?? []),
+      ...(prevQuery.data?.data ?? []),
+    ];
+    const names = new Set<string>();
+    for (const row of allCommissions) {
+      const name = row.fullname || row.commissions_account_owner_name;
+      if (name) names.add(name);
+    }
+    return Array.from(names).sort();
+  }, [employeesQuery.data, currentQuery.data, prevQuery.data]);
 
   return (
     <div className="mb-8">
@@ -229,15 +342,15 @@ export default function CommissionsSection() {
           <LoadingSkeleton />
         ) : (
           <div className="flex flex-wrap gap-4">
-            <MonthCard
+            <MatrixTable
               monthLabel={prev.label}
               data={prevQuery.data?.data}
-              isLoading={false}
+              employeeNames={employeeNames}
             />
-            <MonthCard
+            <MatrixTable
               monthLabel={current.label}
               data={currentQuery.data?.data}
-              isLoading={false}
+              employeeNames={employeeNames}
             />
           </div>
         )}

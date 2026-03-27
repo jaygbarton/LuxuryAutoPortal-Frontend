@@ -111,6 +111,48 @@ export default function CarIssuesSection() {
               <p className="text-sm text-gray-400">No cars found</p>
             </div>
           )}
+
+          {/* Maintenance Schedule Sub-section */}
+          <div className="mt-6">
+            <div className="rounded-t-lg bg-black px-4 py-2">
+              <p className="text-sm font-bold uppercase text-[#FFD700]">
+                Maintenance Schedule
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full border border-gray-200">
+                <thead>
+                  <tr className="bg-black">
+                    {[
+                      "Scheduled Date",
+                      "Car",
+                      "Assigned to",
+                      "Drop Off Date",
+                      "Pick Up Date",
+                      "Status",
+                    ].map((label) => (
+                      <th
+                        key={label}
+                        className="px-3 py-2 text-left text-xs font-bold uppercase text-white"
+                      >
+                        {label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-6 py-8 text-center text-sm text-gray-400"
+                    >
+                      No scheduled maintenance. Add maintenance schedules from the car management page.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
     </div>
