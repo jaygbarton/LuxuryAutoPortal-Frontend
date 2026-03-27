@@ -161,7 +161,7 @@ export default function NoticeBoardSection() {
         <>
           <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {notices.map((notice) => (
-              <NoticeCard key={notice.title} notice={notice} />
+              <NoticeItem key={notice.title} notice={notice} />
             ))}
           </div>
           {isUsingFallback && (
