@@ -9,6 +9,8 @@ import CarIssuesSection from "@/components/admin/dashboard/CarIssuesSection";
 import MaintenanceSection from "@/components/admin/dashboard/MaintenanceSection";
 import TaskManagementSection from "@/components/admin/dashboard/TaskManagementSection";
 import NoticeBoardSection from "@/components/admin/dashboard/NoticeBoardSection";
+import EmployeeStatsSection from "@/components/admin/dashboard/EmployeeStatsSection";
+import MonthlyEmployeeStatsSection from "@/components/admin/dashboard/MonthlyEmployeeStatsSection";
 
 export default function AdminDashboardPage() {
   const [year, setYear] = useState(String(new Date().getFullYear()));
@@ -91,6 +93,12 @@ export default function AdminDashboardPage() {
 
         {/* Section 9: Notice Board — Phase 9 */}
         <NoticeBoardSection />
+
+        {/* Section 10: Employee Stats Report */}
+        <EmployeeStatsSection />
+
+        {/* Section 11: Monthly Employee Stats Report */}
+        <MonthlyEmployeeStatsSection year={year} />
       </div>
     </AdminLayout>
   );
