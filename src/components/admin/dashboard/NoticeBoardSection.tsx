@@ -111,33 +111,21 @@ const fallbackNotices: Notice[] = [
   },
 ];
 
-function NoticeCard({ notice }: { notice: Notice }) {
+function NoticeItem({ notice }: { notice: Notice }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="mb-2 flex items-center justify-between">
-        <span
-          className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${notice.categoryColor}`}
-        >
-          {notice.category}
-        </span>
-        <span
-          className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${notice.priorityColor}`}
-        >
-          {notice.priority}
-        </span>
-      </div>
-      <h3 className="mb-1 font-semibold text-gray-900">{notice.title}</h3>
-      <p className="mb-2 text-xs text-gray-400">{notice.date}</p>
-      <p className="text-sm leading-relaxed text-gray-600">{notice.body}</p>
+    <div className="border-b border-gray-200 px-6 py-4 last:border-b-0">
+      <h3 className="text-base font-bold text-gray-900">{notice.title}</h3>
+      <p className="mt-0.5 text-xs text-gray-400">{notice.date}</p>
+      <p className="mt-2 text-sm leading-relaxed text-gray-600">{notice.body}</p>
     </div>
   );
 }
 
 function LoadingSkeleton() {
   return (
-    <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="mt-2 space-y-3">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="h-40 animate-pulse rounded-lg bg-gray-200" />
+        <div key={i} className="h-20 animate-pulse rounded-lg bg-gray-200" />
       ))}
     </div>
   );

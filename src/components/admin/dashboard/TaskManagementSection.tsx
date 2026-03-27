@@ -22,12 +22,12 @@ interface TaskTimerResponse {
 }
 
 const TABLE_COLUMNS = [
-  { key: "name", label: "Task Name", align: "left" as const },
   { key: "assignedTo", label: "Assigned To", align: "left" as const },
-  { key: "vehicle", label: "Vehicle", align: "left" as const },
-  { key: "description", label: "Description", align: "left" as const },
-  { key: "startDate", label: "Start Date", align: "left" as const },
+  { key: "date", label: "Date", align: "left" as const },
+  { key: "taskDescription", label: "Task Description", align: "left" as const },
   { key: "dueDate", label: "Due Date", align: "left" as const },
+  { key: "repeat", label: "Repeat", align: "left" as const },
+  { key: "assignedBy", label: "Assigned By", align: "left" as const },
   { key: "status", label: "Status", align: "left" as const },
 ];
 
@@ -118,17 +118,21 @@ export default function TaskManagementSection() {
     )
     .slice(0, 25);
 
-  const rows = sortedTasks.map((task) => ({
-    name: task.task_timer_name,
-    assignedTo: parseAssignees(task.task_timer_emp_list),
-    vehicle: task.task_timer_car_name || "—",
-    description: task.task_timer_description
-      ? truncate(task.task_timer_description, 50)
-      : "—",
-    startDate: formatDate(task.task_timer_date_start),
-    dueDate: formatDate(task.task_timer_date_end),
-    status: <StatusBadge status={task.task_timer_status} />,
-  }));
+  const rows = sortedTasks.map((task) => {
+    const name = task.task_timer_name || "";
+    const desc = task.task_timer_description || "";
+    const combined = name && desc ? `${name} — ${truncate(desc, 60)}` : name || truncate(desc, 60) || "—";
+
+    return {
+      assignedTo: parseAssignees(task.task_timer_emp_list),
+      date: formatDate(task.task_timer_date_start),
+      taskDescription: combined,
+      dueDate: formatDate(task.task_timer_date_end),
+      repeat: "None",
+      assignedBy: "—",
+      status: <StatusBadge status={task.task_timer_status} />,
+    };
+  });
 
   return (
     <div className="mb-8">

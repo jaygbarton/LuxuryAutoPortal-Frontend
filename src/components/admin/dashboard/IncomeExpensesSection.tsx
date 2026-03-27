@@ -287,48 +287,36 @@ export default function IncomeExpensesSection({
   // ── Table data ─────────────────────────────────────────────────────
 
   const tableColumns = [
-    { key: "month", label: "Month", align: "left" as const },
-    { key: "grossCarFees", label: "Gross Car Fees", align: "right" as const },
-    { key: "refunds", label: "Refunds/Adj", align: "right" as const },
-    { key: "mgmtExpenses", label: "Mgmt Expenses", align: "right" as const },
-    { key: "ownerExpenses", label: "Owner Expenses", align: "right" as const },
-    { key: "ownerSplit", label: "Owner Split %", align: "right" as const },
+    { key: "month", label: "Month and Year", align: "left" as const },
+    { key: "rentalIncome", label: "Rental Income", align: "right" as const },
+    { key: "mgmtExpenses", label: "MGMT Expenses", align: "right" as const },
+    { key: "mgmtSplit", label: "MGMT Split", align: "right" as const },
+    { key: "ownerExpenses", label: "Car Owner Expenses", align: "right" as const },
+    { key: "ownerSplit", label: "Car Owner Split", align: "right" as const },
     { key: "daysRented", label: "Days Rented", align: "right" as const },
-    { key: "trips", label: "Trips", align: "right" as const },
-    { key: "netMgmt", label: "Net Mgmt", align: "right" as const },
+    { key: "tripsTaken", label: "Trips Taken", align: "right" as const },
   ];
 
   const tableRows = monthlyComputed.map((mc) => ({
     month: formatFullMonth(mc.month),
-    grossCarFees: formatCurrency(mc.gross),
-    refunds: formatCurrency(mc.negativeBalance),
+    rentalIncome: formatCurrency(mc.gross),
     mgmtExpenses: formatCurrency(mc.mgmtExpenses),
+    mgmtSplit: formatCurrency(mc.mgmtIncome),
     ownerExpenses: formatCurrency(mc.ownerExpenses),
-    ownerSplit: fs ? `${fs.carOwnerSplitPercent}%` : "—",
+    ownerSplit: formatCurrency(mc.ownerIncome),
     daysRented: mc.daysRented.toLocaleString(),
-    trips: mc.tripsTaken.toLocaleString(),
-    netMgmt: (
-      <span className={mc.netMgmt >= 0 ? "text-green-600" : "text-red-600"}>
-        {formatCurrency(mc.netMgmt)}
-      </span>
-    ),
+    tripsTaken: mc.tripsTaken.toLocaleString(),
   }));
 
-  const netMgmtTotal = totalMgmtIncome - totalMgmtExpenses;
   const tableTotals = {
     month: "TOTAL",
-    grossCarFees: formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0)),
-    refunds: formatCurrency(monthlyComputed.reduce((s, m) => s + m.negativeBalance, 0)),
+    rentalIncome: formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0)),
     mgmtExpenses: formatCurrency(totalMgmtExpenses),
+    mgmtSplit: formatCurrency(totalMgmtIncome),
     ownerExpenses: formatCurrency(totalOwnerExpenses),
-    ownerSplit: fs ? `${fs.carOwnerSplitPercent}%` : "—",
+    ownerSplit: formatCurrency(totalOwnerIncome),
     daysRented: totalDaysRented.toLocaleString(),
-    trips: monthlyComputed.reduce((s, m) => s + m.tripsTaken, 0).toLocaleString(),
-    netMgmt: (
-      <span className={netMgmtTotal >= 0 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
-        {formatCurrency(netMgmtTotal)}
-      </span>
-    ),
+    tripsTaken: monthlyComputed.reduce((s, m) => s + m.tripsTaken, 0).toLocaleString(),
   };
 
   // ── Chart data ─────────────────────────────────────────────────────
