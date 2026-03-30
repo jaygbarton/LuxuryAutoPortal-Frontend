@@ -76,6 +76,12 @@ function carOwnerIncome(gross: number, fs: FormulaSetting): number {
   return gross * (fs.carOwnerSplitPercent / 100);
 }
 
+// Pre-computed fields from aggregated API (per-car splits summed on backend)
+interface IncomeExpenseMonthWithSplits extends IncomeExpenseMonth {
+  mgmtIncome?: number;
+  ownerIncome?: number;
+}
+
 // ── Year range ─────────────────────────────────────────────────────────
 
 const currentYear = new Date().getFullYear();
@@ -303,13 +309,19 @@ export default function IncomeExpensesSection({
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
   const monthlyComputed = months.map((m) => {
-    const ie = getMonthEntry(ieData?.incomeExpenses ?? [], m);
+    const ie = getMonthEntry(ieData?.incomeExpenses ?? [], m) as IncomeExpenseMonthWithSplits | undefined;
     const hist = getMonthEntry(ieData?.history ?? [], m);
     const dd = getMonthEntry(ieData?.directDelivery ?? [], m);
 
     const gross = ie ? grossRentalIncome(ie) : 0;
-    const mgmtInc = fs ? managementIncome(gross, fs) : 0;
-    const ownerInc = fs ? carOwnerIncome(gross, fs) : 0;
+    // Use pre-computed splits from backend (aggregated per-car) when available,
+    // otherwise fall back to local calculation (single-car view)
+    const mgmtInc = (ie?.mgmtIncome != null && ie.mgmtIncome > 0)
+      ? ie.mgmtIncome
+      : (fs ? managementIncome(gross, fs) : 0);
+    const ownerInc = (ie?.ownerIncome != null && ie.ownerIncome > 0)
+      ? ie.ownerIncome
+      : (fs ? carOwnerIncome(gross, fs) : 0);
     const mgmtExp = ie?.carManagementTotalExpenses ?? 0;
     const ownerExp = ie?.carOwnerTotalExpenses ?? 0;
 
