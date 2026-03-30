@@ -231,14 +231,10 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Subtitle */}
-          <p className="mt-4 text-center text-sm font-semibold uppercase tracking-widest text-gray-500">
-            Admin Dashboard
-          </p>
         </div>
 
         {/* ── Section Filter Panel ── */}
-        <div className="mx-auto mb-6 max-w-7xl px-6">
+        <div className="mb-6 px-6">
           <button
             onClick={() => setFilterOpen((o) => !o)}
             className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
