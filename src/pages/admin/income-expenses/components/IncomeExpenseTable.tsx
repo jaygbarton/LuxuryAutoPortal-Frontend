@@ -1199,14 +1199,26 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
               />
               <CategoryRow
                 label="Car Management Total Expenses"
-                values={MONTHS.map((_, i) => calculateCarManagementTotalExpenses(i + 1))}
+                values={MONTHS.map((_, i) => {
+                  const monthNum = i + 1;
+                  // In All Cars mode, use backend-provided pre-computed values (frontend formula breaks with aggregated split percentages)
+                  return isAllCarsView
+                    ? getMonthValue(data.incomeExpenses, monthNum, "carManagementTotalExpenses")
+                    : calculateCarManagementTotalExpenses(monthNum);
+                })}
                 category="income"
                 field="carManagementTotalExpenses"
                 isEditable={false}
               />
               <CategoryRow
                 label="Car Owner Total Expenses"
-                values={MONTHS.map((_, i) => calculateCarOwnerTotalExpenses(i + 1))}
+                values={MONTHS.map((_, i) => {
+                  const monthNum = i + 1;
+                  // In All Cars mode, use backend-provided pre-computed values
+                  return isAllCarsView
+                    ? getMonthValue(data.incomeExpenses, monthNum, "carOwnerTotalExpenses")
+                    : calculateCarOwnerTotalExpenses(monthNum);
+                })}
                 category="income"
                 field="carOwnerTotalExpenses"
                 isEditable={false}
@@ -1215,8 +1227,12 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 label="Total Expenses"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
-                  const mgmt = calculateCarManagementTotalExpenses(monthNum);
-                  const owner = calculateCarOwnerTotalExpenses(monthNum);
+                  const mgmt = isAllCarsView
+                    ? getMonthValue(data.incomeExpenses, monthNum, "carManagementTotalExpenses")
+                    : calculateCarManagementTotalExpenses(monthNum);
+                  const owner = isAllCarsView
+                    ? getMonthValue(data.incomeExpenses, monthNum, "carOwnerTotalExpenses")
+                    : calculateCarOwnerTotalExpenses(monthNum);
                   return mgmt + owner;
                 })}
                 isEditable={false}
@@ -1226,8 +1242,12 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
                   const rentalIncome = getMonthValue(data.incomeExpenses, monthNum, "rentalIncome");
-                  const mgmt = calculateCarManagementTotalExpenses(monthNum);
-                  const owner = calculateCarOwnerTotalExpenses(monthNum);
+                  const mgmt = isAllCarsView
+                    ? getMonthValue(data.incomeExpenses, monthNum, "carManagementTotalExpenses")
+                    : calculateCarManagementTotalExpenses(monthNum);
+                  const owner = isAllCarsView
+                    ? getMonthValue(data.incomeExpenses, monthNum, "carOwnerTotalExpenses")
+                    : calculateCarOwnerTotalExpenses(monthNum);
                   const totalExpenses = mgmt + owner;
                   return rentalIncome - totalExpenses;
                 })}
