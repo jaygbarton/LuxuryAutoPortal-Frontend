@@ -494,8 +494,8 @@ export default function IncomeExpensesSection({
                 </h3>
                 <div className="grid grid-cols-3 gap-2">
                   <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="gold" />
-                  <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" />
-                  <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="dark" />
+                  <SummaryCard label="Total Management Expenses" value={formatCurrency(totalMgmtExpenses)} variant="white" />
+                  <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome - totalMgmtExpenses)} variant="dark" />
                 </div>
               </div>
 
@@ -505,14 +505,14 @@ export default function IncomeExpensesSection({
                   Management Income and Expenses
                 </h3>
                 <div className="grid grid-cols-3 gap-2">
-                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="gold" />
-                  <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" />
-                  <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="dark" />
+                  <SummaryCard label="Total Management Income" value={formatCurrency(totalMgmtIncome)} variant="gold" />
+                  <SummaryCard label="Total Management Expenses" value={formatCurrency(totalMgmtExpenses)} variant="white" />
+                  <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome - totalMgmtExpenses)} variant="dark" />
                 </div>
                 <div className="grid grid-cols-3 gap-2 mt-2">
-                  <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="gold" />
-                  <SummaryCard label={`${prevMonthLabel} Car Owner Expenses`} value={formatCurrency(prevMonth?.ownerExpenses ?? 0)} variant="white" />
-                  <SummaryCard label={`${prevMonthLabel} Car Owner Profit`} value={formatCurrency((prevMonth?.ownerIncome ?? 0) - (prevMonth?.ownerExpenses ?? 0))} variant="dark" />
+                  <SummaryCard label={`${prevMonthLabel} Management Income`} value={formatCurrency(prevMonth?.mgmtIncome ?? 0)} variant="gold" />
+                  <SummaryCard label={`${prevMonthLabel} Management Expenses`} value={formatCurrency(prevMonth?.mgmtExpenses ?? 0)} variant="white" />
+                  <SummaryCard label={`${prevMonthLabel} Management Profit`} value={formatCurrency((prevMonth?.mgmtIncome ?? 0) - (prevMonth?.mgmtExpenses ?? 0))} variant="dark" />
                 </div>
               </div>
 
@@ -522,12 +522,12 @@ export default function IncomeExpensesSection({
                   Car Owner Income and Expenses
                 </h3>
                 <div className="grid grid-cols-3 gap-2">
-                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="gold" />
+                  <SummaryCard label="Total Car Owner Income" value={formatCurrency(totalOwnerIncome)} variant="gold" />
                   <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" />
                   <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="dark" />
                 </div>
                 <div className="grid grid-cols-3 gap-2 mt-2">
-                  <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="gold" />
+                  <SummaryCard label={`${prevMonthLabel} Car Owner Income`} value={formatCurrency(prevMonth?.ownerIncome ?? 0)} variant="gold" />
                   <SummaryCard label={`${prevMonthLabel} Car Owner Expenses`} value={formatCurrency(prevMonth?.ownerExpenses ?? 0)} variant="white" />
                   <SummaryCard label={`${prevMonthLabel} Car Owner Profit`} value={formatCurrency((prevMonth?.ownerIncome ?? 0) - (prevMonth?.ownerExpenses ?? 0))} variant="dark" />
                 </div>
