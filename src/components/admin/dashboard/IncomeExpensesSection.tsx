@@ -590,46 +590,46 @@ export default function IncomeExpensesSection({
 
           {/* ── Row 2: Donut Charts (left) + Line Charts (right) ── */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {/* Left: Donut Charts in 2x2 grid */}
+            {/* Left: Donut Charts — TOTAL for the year */}
             <div className="grid grid-cols-2 gap-4">
               <DonutChart
-                title="Total Car Mgmt Profit"
+                title="TOTAL CAR MGMT INCOME & EXPENSES"
                 data={[
-                  { name: "Total Car Mgmt Profit", value: totalMgmtIncome - totalMgmtExpenses, color: "#FFD700" },
-                  { name: "Total Car Mgmt Expenses", value: totalMgmtExpenses, color: "#374151" },
+                  { name: "Mgmt Income", value: totalMgmtIncome, color: "#FFD700" },
+                  { name: "Mgmt Expenses", value: totalMgmtExpenses, color: "#374151" },
                 ]}
                 centerValue={formatCurrency(totalMgmtIncome - totalMgmtExpenses)}
               />
               <DonutChart
-                title="Total Car Mgmt Expenses"
+                title="TOTAL CAR MGMT EXPENSES"
                 data={[
-                  { name: "Total Car Mgmt Expenses", value: totalMgmtExpenses, color: "#FFD700" },
-                  { name: "Total Car Mgmt Profit", value: totalMgmtIncome - totalMgmtExpenses, color: "#374151" },
+                  { name: "Mgmt Expenses", value: totalMgmtExpenses, color: "#FFD700" },
+                  { name: "Mgmt Income", value: totalMgmtIncome, color: "#374151" },
                 ]}
                 centerValue={formatCurrency(totalMgmtExpenses)}
               />
               <DonutChart
-                title="Total Car Owner Profit"
+                title="TOTAL CAR OWNER INCOME AND EXPENSES"
                 data={[
-                  { name: "Total Car Owner Profit", value: totalOwnerIncome - totalOwnerExpenses, color: "#FFD700" },
-                  { name: "Total Car Owner Expenses", value: totalOwnerExpenses, color: "#374151" },
+                  { name: "Owner Income", value: totalOwnerIncome, color: "#FFD700" },
+                  { name: "Owner Expenses", value: totalOwnerExpenses, color: "#374151" },
                 ]}
                 centerValue={formatCurrency(totalOwnerIncome - totalOwnerExpenses)}
               />
               <DonutChart
-                title="Total Car Owner Expenses"
+                title="TOTAL CAR OWNER EXPENSES"
                 data={[
-                  { name: "Total Car Owner Expenses", value: totalOwnerExpenses, color: "#FFD700" },
-                  { name: "Total Car Owner Profit", value: totalOwnerIncome - totalOwnerExpenses, color: "#374151" },
+                  { name: "Owner Expenses", value: totalOwnerExpenses, color: "#FFD700" },
+                  { name: "Owner Income", value: totalOwnerIncome, color: "#374151" },
                 ]}
                 centerValue={formatCurrency(totalOwnerExpenses)}
               />
             </div>
 
-            {/* Right: Line Charts stacked */}
+            {/* Right: Line Charts — Previous month data */}
             <div className="space-y-4">
               <LineChartCard
-                title="MANAGEMENT INCOME AND EXPENSES"
+                title={`${prevMonthLabel ? prevMonthLabel.toUpperCase() : "PREVIOUS MONTH"} CAR MGMT INCOME & EXPENSES`}
                 data={mgmtBarData}
                 lines={[
                   { dataKey: "Income", stroke: "#FFD700" },
@@ -637,7 +637,7 @@ export default function IncomeExpensesSection({
                 ]}
               />
               <LineChartCard
-                title="CAR OWNER INCOME AND EXPENSES"
+                title={`${prevMonthLabel ? prevMonthLabel.toUpperCase() : "PREVIOUS MONTH"} CAR OWNER INCOME AND EXPENSES`}
                 data={ownerBarData}
                 lines={[
                   { dataKey: "Income", stroke: "#FFD700" },
