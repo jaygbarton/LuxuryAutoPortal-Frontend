@@ -484,9 +484,9 @@ export default function IncomeExpensesSection({
         <div className="mt-4 space-y-6 px-4">
 
           {/* ── Row 1: Summary Cards (left) + Monthly Table (right) ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
             {/* Left: Summary Cards */}
-            <div className="xl:col-span-1 space-y-3">
+            <div className="xl:col-span-1 flex flex-col justify-between">
               {/* Total Management Income and Expenses */}
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wide text-black mb-1.5">
