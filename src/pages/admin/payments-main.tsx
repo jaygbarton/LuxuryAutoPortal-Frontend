@@ -107,8 +107,7 @@ export default function PaymentsMainPage() {
   const [startMonth, setStartMonth] = useState<string>("");
   const [endMonth, setEndMonth] = useState<string>("");
   const [carFilter, setCarFilter] = useState<string>("");
-  const [clientSearch, setClientSearch] = useState<string>("");
-  const [clientInputVal, setClientInputVal] = useState<string>("");
+
   const [isFilter, setIsFilter] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -128,7 +127,7 @@ export default function PaymentsMainPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const hasFilters = !!filterStatus || !!startMonth || !!endMonth || !!carFilter || !!clientSearch;
+  const hasFilters = !!filterStatus || !!startMonth || !!endMonth || !!carFilter;
 
   const { data: statusesData } = useQuery<{
     success: boolean;
@@ -171,7 +170,7 @@ export default function PaymentsMainPage() {
     page: number;
     count: number;
   }>({
-    queryKey: ["/api/payments/search", clientSearch, filterStatus, startMonth, endMonth, carFilter],
+    queryKey: ["/api/payments/search", filterStatus, startMonth, endMonth, carFilter],
     queryFn: async () => {
       const url = buildApiUrl("/api/payments/search");
       const response = await fetch(url, {
@@ -179,7 +178,6 @@ export default function PaymentsMainPage() {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          searchValue: clientSearch,
           status: filterStatus || undefined,
           startDate: startMonth || undefined,
           endDate: endMonth || undefined,
@@ -338,18 +336,7 @@ export default function PaymentsMainPage() {
     setStartMonth("");
     setEndMonth("");
     setCarFilter("");
-    setClientSearch("");
-    setClientInputVal("");
     setIsFilter(false);
-  };
-
-  const handleClientSearchChange = (val: string) => {
-    setClientInputVal(val);
-    const t = setTimeout(() => {
-      setClientSearch(val);
-      setIsFilter(true);
-      clearTimeout(t);
-    }, 500);
   };
 
   const formatVehicleInfo = (p: Payment) => {
@@ -439,16 +426,6 @@ export default function PaymentsMainPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <label className="text-muted-foreground text-sm block mb-1">Client Search</label>
-              <Input
-                type="search"
-                placeholder="Search client..."
-                value={clientInputVal}
-                onChange={(e) => handleClientSearchChange(e.target.value)}
-                className="bg-card border-border text-foreground w-[180px]"
-              />
             </div>
             {hasFilters && (
               <Button
