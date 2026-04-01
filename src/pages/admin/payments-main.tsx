@@ -1,6 +1,13 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Trash2, FileText, Loader2, Upload, Download, List } from "lucide-react";
+import { Plus, Trash2, Edit, FileText, HandCoins, Loader2, Upload, Download } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -95,17 +102,13 @@ const formatYearMonth = (yearMonth: string): string => {
   }
 };
 
-const PAGE_LIMIT = 100;
-
 export default function PaymentsMainPage() {
   const [filterStatus, setFilterStatus] = useState<string>("");
-  const [monthYear, setMonthYear] = useState<string>("");
-  const [searchValue, setSearchValue] = useState<string>("");
-  const [debouncedSearch, setDebouncedSearch] = useState<string>("");
-  const [page, setPage] = useState(1);
-  const [allPayments, setAllPayments] = useState<Payment[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
+  const [startMonth, setStartMonth] = useState<string>("");
+  const [endMonth, setEndMonth] = useState<string>("");
+  const [carFilter, setCarFilter] = useState<string>("");
 
+  const [isFilter, setIsFilter] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteByMonthModalOpen, setIsDeleteByMonthModalOpen] = useState(false);
@@ -121,27 +124,10 @@ export default function PaymentsMainPage() {
     skipped?: number;
     errors?: string[];
   } | null>(null);
-
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Debounce search input
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchValue(value);
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => {
-      setDebouncedSearch(value);
-      setPage(1);
-      setAllPayments([]);
-    }, 400);
-  }, []);
-
-  // Reset pagination when filters change
-  const resetPagination = useCallback(() => {
-    setPage(1);
-    setAllPayments([]);
-  }, []);
+  const hasFilters = !!filterStatus || !!startMonth || !!endMonth || !!carFilter;
 
   const { data: statusesData } = useQuery<{
     success: boolean;
@@ -161,14 +147,30 @@ export default function PaymentsMainPage() {
     s.payment_status_name.toLowerCase().includes("to pay")
   );
 
-  const { data: paymentsData, isLoading: isLoadingPayments, isFetching } = useQuery<{
+  const { data: carsData } = useQuery<{
+    success: boolean;
+    data: { id: number; makeModel: string; licensePlate?: string; vin?: string; year?: number }[];
+  }>({
+    queryKey: ["/api/cars", "payments-filter"],
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: "1000", status: "all" });
+      const url = buildApiUrl(`/api/cars?${params}`);
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch cars");
+      return response.json();
+    },
+  });
+
+  const carsList = carsData?.data || [];
+
+  const { data: paymentsData, isLoading: isLoadingPayments } = useQuery<{
     success: boolean;
     data: Payment[];
     total: number;
     page: number;
     count: number;
   }>({
-    queryKey: ["/api/payments/search", filterStatus, monthYear, debouncedSearch, page],
+    queryKey: ["/api/payments/search", filterStatus, startMonth, endMonth, carFilter],
     queryFn: async () => {
       const url = buildApiUrl("/api/payments/search");
       const response = await fetch(url, {
@@ -176,11 +178,12 @@ export default function PaymentsMainPage() {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          searchValue: debouncedSearch || undefined,
-          monthYear: monthYear || undefined,
           status: filterStatus || undefined,
-          page,
-          limit: PAGE_LIMIT,
+          startDate: startMonth || undefined,
+          endDate: endMonth || undefined,
+          carId: carFilter || undefined,
+          page: 1,
+          limit: 100,
         }),
       });
       if (!response.ok) throw new Error("Failed to fetch payments");
@@ -188,20 +191,7 @@ export default function PaymentsMainPage() {
     },
   });
 
-  // Append new page results or replace on filter change
-  useEffect(() => {
-    if (paymentsData?.data) {
-      if (page === 1) {
-        setAllPayments(paymentsData.data);
-      } else {
-        setAllPayments((prev) => [...prev, ...paymentsData.data]);
-      }
-      setTotalCount(paymentsData.total ?? paymentsData.count ?? 0);
-    }
-  }, [paymentsData, page]);
-
-  const payments = allPayments;
-  const hasMore = payments.length < totalCount;
+  const payments = paymentsData?.data || [];
 
   const totals = payments.reduce(
     (acc, p) => ({
@@ -221,7 +211,7 @@ export default function PaymentsMainPage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payments_year_month: yearMonth, includeInactive: true }),
+        body: JSON.stringify({ payments_year_month: yearMonth }),
       });
       if (!response.ok) {
         const err = await response.json();
@@ -231,7 +221,6 @@ export default function PaymentsMainPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/search"] });
-      resetPagination();
       toast({
         title: "Success",
         description: data.message || "Payments created successfully",
@@ -261,7 +250,6 @@ export default function PaymentsMainPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/search"] });
-      resetPagination();
       toast({
         title: "Success",
         description: "Payments deleted successfully",
@@ -290,7 +278,6 @@ export default function PaymentsMainPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/search"] });
-      resetPagination();
       toast({
         title: "Success",
         description: "Payment deleted successfully",
@@ -325,7 +312,6 @@ export default function PaymentsMainPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/search"] });
-      resetPagination();
       setImportResult({
         imported: data.imported ?? data.count ?? 0,
         skipped: data.skipped ?? 0,
@@ -345,101 +331,119 @@ export default function PaymentsMainPage() {
     },
   });
 
+  const handleClearFilters = () => {
+    setFilterStatus("");
+    setStartMonth("");
+    setEndMonth("");
+    setCarFilter("");
+    setIsFilter(false);
+  };
+
   const formatVehicleInfo = (p: Payment) => {
     const name = `${p.car_make_name || ""} ${p.car_year || ""}`.trim();
     const plate = p.car_plate_number ? `#${p.car_plate_number.trim()}` : "";
     const vin = p.car_vin_number ? p.car_vin_number.trim() : "";
-    return [name, plate, vin].filter(Boolean).join(" - ");
-  };
-
-  const formatClientName = (p: Payment) => {
-    if (p.client_lname && p.client_fname) {
-      return `${p.client_lname}, ${p.client_fname}`;
-    }
-    return p.fullname || "";
+    return [name, plate, vin].filter(Boolean).join(" – ");
   };
 
   return (
     <AdminLayout>
       <div className="flex flex-col h-full overflow-x-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-lg font-semibold text-foreground">Payments</h4>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              onClick={() => setIsAddModalOpen(true)}
-              className="bg-primary text-primary-foreground hover:bg-primary/80"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Add
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsDeleteByMonthModalOpen(true)}
-              className="border-red-500/50 text-red-500 hover:bg-red-500/10"
-            >
-              <Trash2 className="w-4 h-4 mr-1" />
-              Delete
-            </Button>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-primary">Payments</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage client payments across all cars
+          </p>
         </div>
 
-        {/* Filter Row */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 mb-4">
-          <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
+          <div className="flex flex-wrap items-center gap-2">
             <div>
               <label className="text-muted-foreground text-sm block mb-1">Status</label>
-              <select
-                value={filterStatus}
-                onChange={(e) => {
-                  setFilterStatus(e.target.value);
-                  resetPagination();
+              <Select
+                value={filterStatus || "__all__"}
+                onValueChange={(v) => {
+                  setFilterStatus(v === "__all__" ? "" : v);
+                  setIsFilter(true);
                 }}
-                className="h-9 px-3 rounded-md border border-border bg-card text-foreground text-sm outline-none focus:ring-1 focus:ring-primary"
               >
-                <option value="">All</option>
-                <option value="Unpaid">Unpaid</option>
-                <option value="To Pay">To Pay</option>
-                <option value="Paid">Paid</option>
-                <option value="On Hold">On Hold</option>
-                <option value="No Payout">No Payout</option>
-                <option value="In Review">In Review</option>
-              </select>
+                <SelectTrigger className="bg-card border-border text-foreground w-[140px]">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground">
+                  <SelectItem value="__all__">All</SelectItem>
+                  {statuses.map((s) => (
+                    <SelectItem key={s.payment_status_aid} value={s.payment_status_name}>
+                      {s.payment_status_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <label className="text-muted-foreground text-sm block mb-1">Month</label>
-              <input
+              <label className="text-muted-foreground text-sm block mb-1">From</label>
+              <Input
                 type="month"
-                value={monthYear}
+                value={startMonth}
                 onChange={(e) => {
-                  setMonthYear(e.target.value);
-                  resetPagination();
+                  setStartMonth(e.target.value);
+                  setIsFilter(true);
                 }}
-                className="h-9 px-3 rounded-md border border-border bg-card text-foreground text-sm outline-none focus:ring-1 focus:ring-primary [&::-webkit-calendar-picker-indicator]:invert"
+                className="bg-card border-border text-foreground w-[160px] [&::-webkit-calendar-picker-indicator]:invert [&::-moz-calendar-picker-indicator]:invert"
               />
             </div>
-            <div className="flex items-center gap-1.5 h-9">
-              <List className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{totalCount}</span>
-            </div>
-          </div>
-          <div className="flex items-end gap-2 sm:ml-auto">
             <div>
-              <label className="text-muted-foreground text-sm block mb-1">Client Search</label>
-              <input
-                type="text"
-                placeholder="Search by client name..."
-                value={searchValue}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="h-9 px-3 rounded-md border border-border bg-card text-foreground text-sm outline-none focus:ring-1 focus:ring-primary w-[220px] placeholder:text-muted-foreground"
+              <label className="text-muted-foreground text-sm block mb-1">To</label>
+              <Input
+                type="month"
+                value={endMonth}
+                onChange={(e) => {
+                  setEndMonth(e.target.value);
+                  setIsFilter(true);
+                }}
+                className="bg-card border-border text-foreground w-[160px] [&::-webkit-calendar-picker-indicator]:invert [&::-moz-calendar-picker-indicator]:invert"
               />
             </div>
+            <div>
+              <label className="text-muted-foreground text-sm block mb-1">Car</label>
+              <Select
+                value={carFilter || "__all__"}
+                onValueChange={(v) => {
+                  setCarFilter(v === "__all__" ? "" : v);
+                  setIsFilter(true);
+                }}
+              >
+                <SelectTrigger className="bg-card border-border text-foreground w-[180px]">
+                  <SelectValue placeholder="All Cars" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground max-h-60">
+                  <SelectItem value="__all__">All Cars</SelectItem>
+                  {carsList.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {[c.makeModel, c.year ? String(c.year) : ""].filter(Boolean).join(" ")}
+                      {c.licensePlate ? ` – #${c.licensePlate}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {hasFilters && (
+              <Button
+                variant="ghost"
+                onClick={handleClearFilters}
+                className="text-red-700 hover:text-red-700 hover:bg-red-900/20 mt-6"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-muted-foreground text-sm">
+              Total: {paymentsData?.total ?? payments.length}
+            </span>
           </div>
         </div>
 
-        {/* Table */}
         <div className="bg-card border border-border rounded-lg overflow-auto flex-1">
           <div className="overflow-x-auto">
             <Table className="table-fixed w-full">
@@ -456,13 +460,13 @@ export default function PaymentsMainPage() {
                   <TableHead className="text-left text-foreground font-medium w-24 text-xs">Ref #</TableHead>
                   <TableHead className="text-left text-foreground font-medium w-24 text-xs">Invoice #</TableHead>
                   <TableHead className="text-left text-foreground font-medium w-28 whitespace-nowrap text-xs">Payment Date</TableHead>
-                  <TableHead className="text-center text-foreground font-medium w-24 text-xs">Receipt</TableHead>
+                  <TableHead className="text-center text-foreground font-medium w-16 text-xs">Receipt</TableHead>
                   <TableHead className="text-left text-foreground font-medium min-w-[100px] text-xs">Remarks</TableHead>
-                  <TableHead className="text-center text-foreground font-medium w-32 text-xs">Actions</TableHead>
+                  <TableHead className="text-center text-foreground font-medium w-24 text-xs">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoadingPayments && page === 1 ? (
+                {isLoadingPayments ? (
                   <TableRow>
                     <TableCell colSpan={14} className="text-center py-12 text-muted-foreground">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto" />
@@ -491,16 +495,13 @@ export default function PaymentsMainPage() {
                               {payment.payment_status_name}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-foreground w-36 text-xs">{formatClientName(payment)}</TableCell>
+                          <TableCell className="text-foreground w-36 text-xs">{payment.fullname}</TableCell>
                           <TableCell className="w-28 whitespace-nowrap text-muted-foreground text-xs">{formatYearMonth(payment.payments_year_month)}</TableCell>
                           <TableCell className="text-muted-foreground text-xs min-w-[180px]">
                             {formatVehicleInfo(payment)}
                           </TableCell>
                           <TableCell className="text-right text-primary font-medium w-32 tabular-nums text-xs whitespace-nowrap">
                             {formatCurrency(Number(payment.payments_amount || 0))}
-                            <span className="text-muted-foreground text-[10px] ml-1 cursor-pointer hover:text-primary" title="Payment breakdown details">
-                              details
-                            </span>
                           </TableCell>
                           <TableCell className="text-right w-32 tabular-nums text-muted-foreground text-xs whitespace-nowrap">
                             {formatCurrency(Number(payment.payments_amount_payout || 0))}
@@ -508,10 +509,10 @@ export default function PaymentsMainPage() {
                           <TableCell className="text-right w-32 tabular-nums text-muted-foreground text-xs whitespace-nowrap">
                             {formatCurrency(balance)}
                           </TableCell>
-                          <TableCell className="text-muted-foreground w-24 text-xs">{payment.payments_reference_number || ""}</TableCell>
-                          <TableCell className="text-muted-foreground w-24 text-xs">{payment.payments_invoice_id || ""}</TableCell>
+                          <TableCell className="text-muted-foreground w-24 text-xs">{payment.payments_reference_number || "--"}</TableCell>
+                          <TableCell className="text-muted-foreground w-24 text-xs">{payment.payments_invoice_id || "--"}</TableCell>
                           <TableCell className="text-muted-foreground w-28 whitespace-nowrap text-xs">{formatDate(payment.payments_invoice_date)}</TableCell>
-                          <TableCell className="text-center w-24">
+                          <TableCell className="text-center w-16">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -519,16 +520,15 @@ export default function PaymentsMainPage() {
                                 setSelectedPayment(payment);
                                 setIsReceiptModalOpen(true);
                               }}
-                              className="text-muted-foreground hover:text-primary text-xs gap-1"
+                              className="text-muted-foreground hover:text-primary"
                             >
-                              <FileText className="w-3.5 h-3.5" />
-                              Receipt
+                              <FileText className="w-4 h-4" />
                             </Button>
                           </TableCell>
                           <TableCell className="min-w-[100px] max-w-[150px] truncate text-muted-foreground text-xs">
-                            {payment.payments_remarks || ""}
+                            {payment.payments_remarks || "--"}
                           </TableCell>
-                          <TableCell className="text-center w-32">
+                          <TableCell className="text-center w-24">
                             <div className="flex items-center justify-center gap-1">
                               <Button
                                 variant="ghost"
@@ -537,9 +537,10 @@ export default function PaymentsMainPage() {
                                   setSelectedPayment(payment);
                                   setIsEditModalOpen(true);
                                 }}
-                                className="text-muted-foreground hover:text-primary text-xs"
+                                className="text-muted-foreground hover:text-primary"
+                                title="Edit"
                               >
-                                View
+                                <HandCoins className="w-4 h-4" />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -548,16 +549,16 @@ export default function PaymentsMainPage() {
                                   setSelectedPayment(payment);
                                   setIsDeleteSingleModalOpen(true);
                                 }}
-                                className="text-muted-foreground hover:text-red-700 text-xs"
+                                className="text-muted-foreground hover:text-red-700"
+                                title="Delete"
                               >
-                                Delete
+                                <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
                           </TableCell>
                         </TableRow>
                       );
                     })}
-                    {/* Totals Row */}
                     <TableRow className="border-t-2 border-border bg-card/50">
                       <TableCell colSpan={5} className="text-right font-bold text-foreground pr-4">
                         Total:
@@ -586,24 +587,6 @@ export default function PaymentsMainPage() {
           </div>
         </div>
 
-        {/* Load More */}
-        {hasMore && (
-          <div className="flex justify-center mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setPage((prev) => prev + 1)}
-              disabled={isFetching}
-              className="bg-card border-border text-foreground hover:bg-card/80"
-            >
-              {isFetching ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : null}
-              Load more
-            </Button>
-          </div>
-        )}
-
-        {/* Add Payments Dialog */}
         {isAddModalOpen && (
           <Dialog open={true} onOpenChange={() => setIsAddModalOpen(false)}>
             <DialogContent className="bg-card border-border text-foreground">
@@ -662,7 +645,6 @@ export default function PaymentsMainPage() {
           </Dialog>
         )}
 
-        {/* Edit Payment Modal */}
         {isEditModalOpen && selectedPayment && (
           <AddEditPaymentModal
             isOpen={true}
@@ -676,7 +658,6 @@ export default function PaymentsMainPage() {
           />
         )}
 
-        {/* Delete by Month Dialog */}
         {isDeleteByMonthModalOpen && (
           <Dialog
             open={isDeleteByMonthModalOpen}
@@ -727,7 +708,6 @@ export default function PaymentsMainPage() {
           </Dialog>
         )}
 
-        {/* Delete Single Payment Dialog */}
         {isDeleteSingleModalOpen && selectedPayment && (
           <Dialog
             open={isDeleteSingleModalOpen}
@@ -770,7 +750,6 @@ export default function PaymentsMainPage() {
           </Dialog>
         )}
 
-        {/* Receipt Modal */}
         {isReceiptModalOpen && selectedPayment && (
           <PaymentReceiptModal
             isOpen={isReceiptModalOpen}
@@ -782,7 +761,6 @@ export default function PaymentsMainPage() {
           />
         )}
 
-        {/* Import Modal (kept but button hidden) */}
         {isImportModalOpen && (
           <Dialog open={true} onOpenChange={() => setIsImportModalOpen(false)}>
             <DialogContent className="bg-card border-border text-foreground">
