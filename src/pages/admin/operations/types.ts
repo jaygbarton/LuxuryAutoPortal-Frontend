@@ -1,13 +1,25 @@
 export interface TuroTrip {
   id: number;
-  reservation_id: string;
-  car_name: string;
-  guest_name: string;
-  trip_start: string;
-  start_location: string;
-  trip_end: string;
-  return_location: string;
+  reservationId: string;
+  dateBooked: string;
+  carName: string | null;
+  carLink: string | null;
+  guestName: string | null;
+  guestLink: string | null;
+  phoneNumber: string | null;
+  tripStart: string;
+  tripEnd: string;
+  earnings: number;
+  cancelledEarnings: number;
   status: string;
+  calendarEventId: string | null;
+  deliveryLocation: string | null;
+  pickupLocation: string | null;
+  returnLocation: string | null;
+  totalDistance: string | null;
+  emailSubject: string | null;
+  emailReceivedAt: string | null;
+  cancellationReason: string | null;
 }
 
 export interface OperationTask {

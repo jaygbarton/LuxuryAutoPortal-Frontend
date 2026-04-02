@@ -48,9 +48,9 @@ export function TripsOverviewTab() {
   const openTaskModal = (trip: TuroTrip, taskType: TaskType) => {
     setTaskPrefill({
       turo_trip_id: trip.id,
-      reservation_id: trip.reservation_id,
-      car_name: trip.car_name,
-      guest_name: trip.guest_name,
+      reservation_id: trip.reservationId,
+      car_name: trip.carName || "",
+      guest_name: trip.guestName || "",
       task_type: taskType,
     });
     setTaskModalOpen(true);
@@ -98,13 +98,13 @@ export function TripsOverviewTab() {
                 ) : (
                   trips.map((trip) => (
                     <TableRow key={trip.id} className="border-border hover:bg-card/50 transition-colors">
-                      <TableCell className="text-foreground font-mono text-sm">{trip.reservation_id}</TableCell>
-                      <TableCell className="text-foreground">{trip.car_name}</TableCell>
-                      <TableCell className="text-muted-foreground">{trip.guest_name}</TableCell>
-                      <TableCell className="text-foreground text-sm">{formatDateTime(trip.trip_start)}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={trip.start_location}>{trip.start_location || "--"}</TableCell>
-                      <TableCell className="text-foreground text-sm">{formatDateTime(trip.trip_end)}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={trip.return_location}>{trip.return_location || "--"}</TableCell>
+                      <TableCell className="text-foreground font-mono text-sm">{trip.reservationId || "--"}</TableCell>
+                      <TableCell className="text-foreground">{trip.carName || "--"}</TableCell>
+                      <TableCell className="text-muted-foreground">{trip.guestName || "--"}</TableCell>
+                      <TableCell className="text-foreground text-sm">{formatDateTime(trip.tripStart)}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={trip.pickupLocation || trip.deliveryLocation || ""}>{trip.pickupLocation || trip.deliveryLocation || "--"}</TableCell>
+                      <TableCell className="text-foreground text-sm">{formatDateTime(trip.tripEnd)}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={trip.returnLocation || ""}>{trip.returnLocation || "--"}</TableCell>
                       <TableCell><StatusBadge status={trip.status} /></TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
