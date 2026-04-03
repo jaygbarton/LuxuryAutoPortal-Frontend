@@ -888,6 +888,11 @@ export default function FormsPage() {
 
     // Client: show only Client Onboarding Form section (no Employee Forms)
     if (formVisibilityData?.isClient) {
+      const onboardingUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/onboarding`
+          : "/onboarding";
+
       const visibleItems: FormItem[] = allItems
         .map((item) => {
           const formNameMap: Record<string, string> = {
@@ -900,7 +905,12 @@ export default function FormsPage() {
           if (!formName) return null;
           const visibility = formVisibilityData?.formVisibility?.[formName];
           if (!visibility || !visibility.isVisible) return null;
-          return { ...item, externalUrl: visibility.externalUrl ?? null } as FormItem;
+          // For LYC form, default to /onboarding URL if no external URL is set
+          const externalUrl =
+            item.id === "lyc"
+              ? visibility.externalUrl || onboardingUrl
+              : visibility.externalUrl ?? null;
+          return { ...item, externalUrl } as FormItem;
         })
         .filter((item): item is FormItem => item !== null);
       return [
@@ -914,6 +924,7 @@ export default function FormsPage() {
     }
 
     // Other non-admin roles (e.g. no role flags set), filter based on form visibility
+    // Do NOT show Employee Onboarding Forms to non-admin/non-employee roles
     const visibleItems: FormItem[] = allItems
       .map((item) => {
         const formNameMap: Record<string, string> = {
@@ -936,12 +947,6 @@ export default function FormsPage() {
         title: "Client Onboarding Form",
         icon: ClipboardList,
         items: visibleItems,
-      },
-      {
-        id: "employee-forms",
-        title: "Employee Onboarding Forms",
-        icon: DollarSign,
-        items: [expenseReceiptItem],
       },
     ];
   };
