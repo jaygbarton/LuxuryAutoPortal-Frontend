@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Menu, X, Car, Phone, FileText, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { buildApiUrl } from "@/lib/queryClient";
 
 const navLinks = [
   { href: "/", label: "Home", icon: Home },
@@ -13,6 +15,19 @@ const navLinks = [
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
+
+  // Check if user is already logged in
+  const { data: authData } = useQuery<{ user?: any }>({
+    queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
+      if (!res.ok) return { user: undefined };
+      return res.json();
+    },
+    retry: false,
+    staleTime: 1000 * 60 * 5,
+  });
+  const isLoggedIn = !!authData?.user;
 
   return (
     <nav
@@ -69,7 +84,7 @@ export function Navbar() {
 
           {/* Desktop action buttons */}
           <div className="hidden lg:flex items-center gap-3">
-            <Link href="/admin/login">
+            <Link href={isLoggedIn ? "/dashboard" : "/admin/login"}>
               <button
                 className="px-5 py-2 rounded-lg text-sm font-medium transition-all duration-300"
                 style={{
@@ -91,7 +106,7 @@ export function Navbar() {
                 }}
                 data-testid="button-login"
               >
-                Login
+                {isLoggedIn ? "Dashboard" : "Login"}
               </button>
             </Link>
             <Link href="/onboarding">
@@ -160,14 +175,14 @@ export function Navbar() {
             className="mt-6 pt-6 space-y-2"
             style={{ borderTop: "1px solid #E8D4A0" }}
           >
-            <Link href="/admin/login" className="w-full">
+            <Link href={isLoggedIn ? "/dashboard" : "/admin/login"} className="w-full">
               <button
                 className="w-full py-3 rounded-lg text-sm font-medium transition-all"
                 style={{ background: "none", border: "1.5px solid #E8D4A0", color: "#C49000" }}
                 onClick={() => setIsOpen(false)}
                 data-testid="button-mobile-login"
               >
-                Login
+                {isLoggedIn ? "Dashboard" : "Login"}
               </button>
             </Link>
             <Link href="/onboarding" className="w-full">

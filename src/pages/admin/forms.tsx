@@ -893,26 +893,32 @@ export default function FormsPage() {
           ? `${window.location.origin}/onboarding`
           : "/onboarding";
 
-      const visibleItems: FormItem[] = allItems
-        .map((item) => {
+      // Always include Client Onboarding Form LYC as a link to /onboarding for clients
+      const lycItem: FormItem = {
+        id: "lyc",
+        title: "Client Onboarding Form LYC",
+        icon: FileText,
+        externalUrl: onboardingUrl,
+      };
+
+      const visibleItems: FormItem[] = [lycItem];
+
+      // Add other form items based on form_visibility
+      allItems
+        .filter((item) => item.id !== "lyc") // LYC already added above
+        .forEach((item) => {
           const formNameMap: Record<string, string> = {
-            lyc: "Client Onboarding Form LYC",
             contract: "Contract / Agreement",
             "car-on": "Car On-boarding",
             "car-off": "Car Off-boarding",
           };
           const formName = formNameMap[item.id];
-          if (!formName) return null;
+          if (!formName) return;
           const visibility = formVisibilityData?.formVisibility?.[formName];
-          if (!visibility || !visibility.isVisible) return null;
-          // For LYC form, default to /onboarding URL if no external URL is set
-          const externalUrl =
-            item.id === "lyc"
-              ? visibility.externalUrl || onboardingUrl
-              : visibility.externalUrl ?? null;
-          return { ...item, externalUrl } as FormItem;
-        })
-        .filter((item): item is FormItem => item !== null);
+          if (!visibility || !visibility.isVisible) return;
+          visibleItems.push({ ...item, externalUrl: visibility.externalUrl ?? null } as FormItem);
+        });
+
       return [
         {
           id: "client-onboarding",
@@ -968,8 +974,34 @@ export default function FormsPage() {
               const SectionIcon = section.icon;
               const isExpanded = expandedSections.includes(section.id);
 
+              // For client users, clicking "Client Onboarding Form" header redirects to /onboarding
+              const isClientOnboardingRedirect =
+                formVisibilityData?.isClient && section.id === "client-onboarding";
+              const onboardingRedirectUrl =
+                typeof window !== "undefined"
+                  ? `${window.location.origin}/onboarding`
+                  : "/onboarding";
+
               return (
                 <div key={section.id}>
+                  {isClientOnboardingRedirect ? (
+                    <a
+                      href={onboardingRedirectUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-between px-5 py-4 hover:bg-card transition-colors"
+                      data-testid={`button-section-${section.id}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <SectionIcon className="w-5 h-5 text-primary" />
+                        <span className="text-primary font-semibold text-base">
+                          {section.title}
+                        </span>
+                        <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    </a>
+                  ) : (
                   <button
                     onClick={() => toggleSection(section.id)}
                     className="w-full flex items-center justify-between px-5 py-4 hover:bg-card transition-colors"
@@ -987,8 +1019,9 @@ export default function FormsPage() {
                       <ChevronRight className="w-5 h-5 text-muted-foreground" />
                     )}
                   </button>
+                  )}
 
-                  {isExpanded && (
+                  {(isExpanded || isClientOnboardingRedirect) && (
                     <div className="bg-card max-w-full">
                       {section.items.map((item) => {
                         const ItemIcon = item.icon;

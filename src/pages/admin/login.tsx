@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,24 @@ export default function AdminLogin() {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // Check if user is already logged in — redirect to dashboard
+  const { data: authData } = useQuery<{ user?: any }>({
+    queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
+      if (!res.ok) return { user: undefined };
+      return res.json();
+    },
+    retry: false,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  useEffect(() => {
+    if (authData?.user) {
+      setLocation("/dashboard");
+    }
+  }, [authData, setLocation]);
 
   const loginMutation = useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
