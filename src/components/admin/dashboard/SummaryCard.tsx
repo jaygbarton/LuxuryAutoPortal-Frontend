@@ -24,7 +24,7 @@ export function SummaryCard({
   return (
     <div
       className={cn(
-        "rounded-md px-3 py-2",
+        "rounded-md px-3 py-2 transition-shadow",
         variant === "gold"
           ? "bg-[#FFD700] text-black"
           : variant === "white"
@@ -38,14 +38,14 @@ export function SummaryCard({
       </p>
       <p
         className={cn(
-          "mt-0.5 text-lg font-bold",
+          "mt-0.5 text-lg font-bold leading-tight",
           variant === "dark" ? "text-[#FFD700]" : "text-black",
         )}
       >
         {value}
       </p>
       {subtitle && (
-        <p className="mt-1 text-xs opacity-70">{subtitle}</p>
+        <p className="mt-1 line-clamp-2 text-xs opacity-70">{subtitle}</p>
       )}
     </div>
   );
