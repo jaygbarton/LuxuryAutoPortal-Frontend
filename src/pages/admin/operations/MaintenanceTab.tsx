@@ -10,7 +10,7 @@ import { StatusBadge } from "./StatusBadge";
 import { MaintenanceModal } from "./MaintenanceModal";
 import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, History } from "lucide-react";
 import type { MaintenanceRecord } from "./types";
 
 const formatDate = (dateStr: string | null): string => {
@@ -31,6 +31,8 @@ export function MaintenanceTab() {
   const [editingRecord, setEditingRecord] = useState<MaintenanceRecord | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deletingRecord, setDeletingRecord] = useState<MaintenanceRecord | null>(null);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyRecord, setHistoryRecord] = useState<MaintenanceRecord | null>(null);
 
   const { data, isLoading } = useQuery<{ data: MaintenanceRecord[] }>({
     queryKey: ["/api/operations/maintenance", filterStatus],
@@ -102,14 +104,18 @@ export function MaintenanceTab() {
             <div className="flex items-center gap-2">
               <label className="text-muted-foreground text-sm">Status:</label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="bg-card border-border text-foreground w-[130px]">
+                <SelectTrigger className="bg-card border-border text-foreground w-[170px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground">
                   <SelectItem value="all">All</SelectItem>
                   <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="damage_reported">Damage Reported</SelectItem>
+                  <SelectItem value="in_review">In Review</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="in_repair">In Repair</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="charged_customer">Charged Customer</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -129,6 +135,7 @@ export function MaintenanceTab() {
                   <TableHead className="text-foreground font-medium">Description</TableHead>
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
                   <TableHead className="text-foreground font-medium">Scheduled Date</TableHead>
+                  <TableHead className="text-foreground font-medium">Due Date</TableHead>
                   <TableHead className="text-foreground font-medium">Status</TableHead>
                   <TableHead className="text-foreground font-medium">Notes</TableHead>
                   <TableHead className="text-foreground font-medium">Photos</TableHead>
@@ -138,11 +145,11 @@ export function MaintenanceTab() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">Loading maintenance records...</TableCell>
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Loading maintenance records...</TableCell>
                   </TableRow>
                 ) : records.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">No maintenance records found</TableCell>
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">No maintenance records found</TableCell>
                   </TableRow>
                 ) : (
                   records.map((rec) => (
@@ -151,6 +158,7 @@ export function MaintenanceTab() {
                       <TableCell className="text-foreground text-sm max-w-[200px] truncate" title={rec.task_description}>{rec.task_description}</TableCell>
                       <TableCell className="text-foreground">{rec.assigned_to}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{formatDate(rec.scheduled_date)}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{formatDate(rec.due_date)}</TableCell>
                       <TableCell>
                         <Select
                           value={rec.status}
@@ -161,8 +169,12 @@ export function MaintenanceTab() {
                           </SelectTrigger>
                           <SelectContent className="bg-card border-border text-foreground">
                             <SelectItem value="new">New</SelectItem>
+                            <SelectItem value="damage_reported">Damage Reported</SelectItem>
+                            <SelectItem value="in_review">In Review</SelectItem>
                             <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="in_repair">In Repair</SelectItem>
                             <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="charged_customer">Charged Customer</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
@@ -186,6 +198,14 @@ export function MaintenanceTab() {
                           </Button>
                           <Button
                             variant="ghost" size="sm"
+                            onClick={() => { setHistoryRecord(rec); setHistoryModalOpen(true); }}
+                            className="text-muted-foreground hover:text-blue-400 h-8 px-2"
+                            title="View History"
+                          >
+                            <History className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="sm"
                             onClick={() => { setDeletingRecord(rec); setDeleteModalOpen(true); }}
                             className="text-muted-foreground hover:text-red-700 h-8 px-2"
                             title="Delete"
@@ -203,14 +223,12 @@ export function MaintenanceTab() {
         </div>
       </div>
 
-      {/* Maintenance Modal */}
       <MaintenanceModal
         open={modalOpen}
         onOpenChange={(open) => { setModalOpen(open); if (!open) setEditingRecord(null); }}
         record={editingRecord}
       />
 
-      {/* Delete Confirmation */}
       {deleteModalOpen && deletingRecord && (
         <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
           <DialogContent className="bg-card border-border text-foreground">
@@ -229,6 +247,38 @@ export function MaintenanceTab() {
               >
                 {deleteMutation.isPending ? "Deleting..." : "Delete"}
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {historyModalOpen && historyRecord && (
+        <Dialog open={historyModalOpen} onOpenChange={setHistoryModalOpen}>
+          <DialogContent className="bg-card border-border text-foreground max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Edit History</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">Created</span>
+                <span className="text-foreground">{formatDate(historyRecord.created_at)}</span>
+              </div>
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">Last Updated</span>
+                <span className="text-foreground">{formatDate(historyRecord.updated_at)}</span>
+              </div>
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">Current Status</span>
+                <StatusBadge status={historyRecord.status} />
+              </div>
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">From Inspection</span>
+                <span className="text-foreground">{historyRecord.inspection_id ? `#${historyRecord.inspection_id}` : "N/A"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Assigned To</span>
+                <span className="text-foreground">{historyRecord.assigned_to}</span>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

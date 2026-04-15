@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PhotoUpload } from "./PhotoUpload";
+import { CarSelectCombobox } from "./CarSelectCombobox";
 import type { MaintenanceRecord } from "./types";
 
 interface MaintenanceModalProps {
@@ -30,9 +31,11 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
     task_description: record?.task_description || "",
     assigned_to: record?.assigned_to || "",
     scheduled_date: record?.scheduled_date ? record.scheduled_date.slice(0, 16) : "",
+    due_date: record?.due_date ? record.due_date.slice(0, 16) : "",
     notes: record?.notes || "",
     photos: record?.photos || [],
   });
+
 
   useEffect(() => {
     if (record) {
@@ -42,6 +45,7 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
         task_description: record.task_description,
         assigned_to: record.assigned_to,
         scheduled_date: record.scheduled_date ? record.scheduled_date.slice(0, 16) : "",
+        due_date: record.due_date ? record.due_date.slice(0, 16) : "",
         notes: record.notes || "",
         photos: record.photos || [],
       });
@@ -89,19 +93,16 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border text-foreground max-w-md">
+      <DialogContent className="bg-card border-border text-foreground max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground">{isEdit ? "Edit Maintenance" : "Add Maintenance"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-sm text-muted-foreground">Car *</label>
-            <Input
+            <CarSelectCombobox
               value={formData.car_name}
-              onChange={(e) => setFormData({ ...formData, car_name: e.target.value })}
-              className="bg-card border-border text-foreground mt-1"
-              placeholder="Vehicle name"
-              required
+              onChange={(v) => setFormData({ ...formData, car_name: v })}
             />
           </div>
 
@@ -134,6 +135,17 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
               type="datetime-local"
               value={formData.scheduled_date}
               onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
+              className="bg-card border-border text-foreground mt-1"
+              style={{ colorScheme: "dark" }}
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-muted-foreground">Due Date</label>
+            <Input
+              type="datetime-local"
+              value={formData.due_date}
+              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
               className="bg-card border-border text-foreground mt-1"
               style={{ colorScheme: "dark" }}
             />

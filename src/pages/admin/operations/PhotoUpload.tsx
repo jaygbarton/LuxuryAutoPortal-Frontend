@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
@@ -16,15 +16,18 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
   const [uploading, setUploading] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const dragCounter = useRef(0);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  const processFiles = useCallback(async (files: FileList | File[]) => {
+    const fileArray = Array.from(files).filter(f => f.type.startsWith("image/"));
+    if (fileArray.length === 0) return;
 
     setUploading(true);
     try {
       const formData = new FormData();
-      Array.from(files).forEach((file) => formData.append("photos", file));
+      fileArray.forEach((file) => formData.append("photos", file));
       formData.append("entityType", entityType);
       if (entityId) formData.append("entityId", String(entityId));
 
@@ -44,7 +47,49 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
     } finally {
       setUploading(false);
     }
+  }, [photos, onPhotosChange, entityType, entityId]);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await processFiles(files);
+    e.target.value = "";
   };
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      await processFiles(files);
+    }
+  }, [processFiles]);
 
   const removePhoto = (index: number) => {
     onPhotosChange(photos.filter((_, i) => i !== index));
@@ -52,7 +97,20 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2">
+      <div
+        ref={dropRef}
+        onDragEnter={!disabled ? handleDragEnter : undefined}
+        onDragLeave={!disabled ? handleDragLeave : undefined}
+        onDragOver={!disabled ? handleDragOver : undefined}
+        onDrop={!disabled ? handleDrop : undefined}
+        className={`flex flex-wrap gap-2 p-2 rounded-lg border-2 border-dashed transition-colors min-h-[80px] ${
+          isDragging
+            ? "border-primary bg-primary/10"
+            : disabled
+            ? "border-transparent"
+            : "border-border hover:border-muted-foreground/40"
+        }`}
+      >
         {photos.map((url, index) => (
           <div
             key={index}
@@ -73,7 +131,7 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
         {!disabled && (
           <label className="w-16 h-16 rounded border border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
             {uploading ? (
-              <span className="text-[10px] text-muted-foreground">...</span>
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             ) : (
               <>
                 <Upload className="w-4 h-4 text-muted-foreground" />
@@ -90,6 +148,18 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
             />
           </label>
         )}
+        {!disabled && photos.length === 0 && !isDragging && (
+          <div className="flex items-center justify-center flex-1 min-w-[120px]">
+            <p className="text-[10px] text-muted-foreground text-center">
+              Drag & drop photos here
+            </p>
+          </div>
+        )}
+        {isDragging && (
+          <div className="flex items-center justify-center flex-1 min-w-[120px]">
+            <p className="text-xs text-primary font-medium">Drop photos here</p>
+          </div>
+        )}
       </div>
 
       {photos.length > 0 && (
@@ -104,7 +174,6 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
         </Button>
       )}
 
-      {/* Photo Gallery Modal */}
       <Dialog open={galleryOpen} onOpenChange={setGalleryOpen}>
         <DialogContent className="bg-card border-border text-foreground max-w-3xl">
           <DialogHeader>

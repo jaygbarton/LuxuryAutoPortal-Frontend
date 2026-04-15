@@ -32,6 +32,7 @@ export interface OperationTask {
   assigned_to: string;
   scheduled_date: string | null;
   scheduled_location: string | null;
+  due_date: string | null;
   status: "new" | "in_progress" | "completed" | "delivered";
   notes: string | null;
   created_at: string;
@@ -47,6 +48,8 @@ export interface Inspection {
   assigned_to: string;
   status: "new" | "in_progress" | "completed";
   inspection_date: string | null;
+  due_date: string | null;
+  moved_to_maintenance: boolean;
   notes: string | null;
   photos: string[];
   created_at: string;
@@ -60,7 +63,8 @@ export interface MaintenanceRecord {
   task_description: string;
   assigned_to: string;
   scheduled_date: string | null;
-  status: "new" | "in_progress" | "completed";
+  due_date: string | null;
+  status: string;
   notes: string | null;
   photos: string[];
   created_at: string;
@@ -70,4 +74,4 @@ export interface MaintenanceRecord {
 export type TaskType = "cleaning" | "delivery" | "pickup";
 export type TaskStatus = "new" | "in_progress" | "completed" | "delivered";
 export type InspectionStatus = "new" | "in_progress" | "completed";
-export type MaintenanceStatus = "new" | "in_progress" | "completed";
+export type MaintenanceStatus = "new" | "in_progress" | "completed" | "damage_reported" | "in_review" | "in_repair" | "charged_customer";

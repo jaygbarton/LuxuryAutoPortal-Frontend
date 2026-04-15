@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PhotoUpload } from "./PhotoUpload";
+import { CarSelectCombobox } from "./CarSelectCombobox";
 import type { Inspection } from "./types";
 
 interface InspectionModalProps {
@@ -34,6 +35,7 @@ export function InspectionModal({ open, onOpenChange, inspection, prefill }: Ins
     notes: inspection?.notes || "",
     photos: inspection?.photos || [],
   });
+
 
   useEffect(() => {
     if (inspection) {
@@ -98,12 +100,9 @@ export function InspectionModal({ open, onOpenChange, inspection, prefill }: Ins
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-sm text-muted-foreground">Car *</label>
-            <Input
+            <CarSelectCombobox
               value={formData.car_name}
-              onChange={(e) => setFormData({ ...formData, car_name: e.target.value })}
-              className="bg-card border-border text-foreground mt-1"
-              placeholder="Vehicle name"
-              required
+              onChange={(v) => setFormData({ ...formData, car_name: v })}
             />
           </div>
 

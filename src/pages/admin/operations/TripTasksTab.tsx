@@ -9,7 +9,7 @@ import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { StatusBadge } from "./StatusBadge";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, History } from "lucide-react";
 import type { OperationTask, TaskType, TaskStatus } from "./types";
 
 const formatDate = (dateStr: string | null): string => {
@@ -32,6 +32,8 @@ export function TripTasksTab() {
   const [editingTask, setEditingTask] = useState<OperationTask | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deletingTask, setDeletingTask] = useState<OperationTask | null>(null);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyTask, setHistoryTask] = useState<OperationTask | null>(null);
 
   const { data, isLoading } = useQuery<{ data: OperationTask[] }>({
     queryKey: ["/api/operations/tasks", filterType, filterStatus],
@@ -105,7 +107,6 @@ export function TripTasksTab() {
         </Button>
       </div>
 
-      {/* Filters */}
       <div className="bg-card border border-border rounded-lg overflow-auto">
         <div className="p-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
@@ -146,16 +147,17 @@ export function TripTasksTab() {
             <div className="ml-auto text-muted-foreground text-sm">Total: {tasks.length}</div>
           </div>
 
-          {/* Tasks Table */}
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="text-foreground font-medium">Reservation #</TableHead>
                   <TableHead className="text-foreground font-medium">Car</TableHead>
                   <TableHead className="text-foreground font-medium">Guest</TableHead>
                   <TableHead className="text-foreground font-medium">Task Type</TableHead>
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
                   <TableHead className="text-foreground font-medium">Scheduled</TableHead>
+                  <TableHead className="text-foreground font-medium">Due Date</TableHead>
                   <TableHead className="text-foreground font-medium">Location</TableHead>
                   <TableHead className="text-foreground font-medium">Status</TableHead>
                   <TableHead className="text-center text-foreground font-medium">Actions</TableHead>
@@ -164,20 +166,22 @@ export function TripTasksTab() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">Loading tasks...</TableCell>
+                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">Loading tasks...</TableCell>
                   </TableRow>
                 ) : tasks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">No tasks found</TableCell>
+                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">No tasks found</TableCell>
                   </TableRow>
                 ) : (
                   tasks.map((task) => (
                     <TableRow key={task.id} className="border-border hover:bg-card/50 transition-colors">
+                      <TableCell className="text-foreground font-mono text-sm">{task.reservation_id || "N/A"}</TableCell>
                       <TableCell className="text-foreground">{task.car_name}</TableCell>
                       <TableCell className="text-muted-foreground">{task.guest_name || "--"}</TableCell>
                       <TableCell className="text-foreground capitalize">{task.task_type}</TableCell>
                       <TableCell className="text-foreground">{task.assigned_to}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{formatDate(task.scheduled_date)}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{formatDate(task.due_date)}</TableCell>
                       <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={task.scheduled_location || undefined}>{task.scheduled_location || "--"}</TableCell>
                       <TableCell>
                         <Select
@@ -202,14 +206,25 @@ export function TripTasksTab() {
                             size="sm"
                             onClick={() => { setEditingTask(task); setTaskModalOpen(true); }}
                             className="text-muted-foreground hover:text-primary h-8 px-2"
+                            title="Edit"
                           >
                             <Edit className="w-3.5 h-3.5" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => { setHistoryTask(task); setHistoryModalOpen(true); }}
+                            className="text-muted-foreground hover:text-blue-400 h-8 px-2"
+                            title="View History"
+                          >
+                            <History className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => { setDeletingTask(task); setDeleteModalOpen(true); }}
                             className="text-muted-foreground hover:text-red-700 h-8 px-2"
+                            title="Delete"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
@@ -224,14 +239,12 @@ export function TripTasksTab() {
         </div>
       </div>
 
-      {/* Task Modal */}
       <TaskAssignmentModal
         open={taskModalOpen}
         onOpenChange={(open) => { setTaskModalOpen(open); if (!open) setEditingTask(null); }}
         task={editingTask}
       />
 
-      {/* Delete Confirmation */}
       {deleteModalOpen && deletingTask && (
         <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
           <DialogContent className="bg-card border-border text-foreground">
@@ -250,6 +263,38 @@ export function TripTasksTab() {
               >
                 {deleteMutation.isPending ? "Deleting..." : "Delete"}
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {historyModalOpen && historyTask && (
+        <Dialog open={historyModalOpen} onOpenChange={setHistoryModalOpen}>
+          <DialogContent className="bg-card border-border text-foreground max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Edit History</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">Created</span>
+                <span className="text-foreground">{formatDate(historyTask.created_at)}</span>
+              </div>
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">Last Updated</span>
+                <span className="text-foreground">{formatDate(historyTask.updated_at)}</span>
+              </div>
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">Current Status</span>
+                <StatusBadge status={historyTask.status} />
+              </div>
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">Task Type</span>
+                <span className="text-foreground capitalize">{historyTask.task_type}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Assigned To</span>
+                <span className="text-foreground">{historyTask.assigned_to}</span>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

@@ -10,7 +10,7 @@ import { StatusBadge } from "./StatusBadge";
 import { InspectionModal } from "./InspectionModal";
 import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, Calendar, ArrowRight, CheckCircle } from "lucide-react";
+import { Edit, Trash2, ArrowRight, CheckCircle, History } from "lucide-react";
 import type { Inspection } from "./types";
 
 const formatDate = (dateStr: string | null): string => {
@@ -31,6 +31,8 @@ export function TuroInspectionTab() {
   const [editingInspection, setEditingInspection] = useState<Inspection | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deletingInspection, setDeletingInspection] = useState<Inspection | null>(null);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyInspection, setHistoryInspection] = useState<Inspection | null>(null);
 
   const { data, isLoading } = useQuery<{ data: Inspection[] }>({
     queryKey: ["/api/operations/inspections", "turo_return", filterStatus],
@@ -142,6 +144,7 @@ export function TuroInspectionTab() {
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
                   <TableHead className="text-foreground font-medium">Status</TableHead>
                   <TableHead className="text-foreground font-medium">Inspection Date</TableHead>
+                  <TableHead className="text-foreground font-medium">Due Date</TableHead>
                   <TableHead className="text-foreground font-medium">Notes</TableHead>
                   <TableHead className="text-foreground font-medium">Photos</TableHead>
                   <TableHead className="text-center text-foreground font-medium">Actions</TableHead>
@@ -150,11 +153,11 @@ export function TuroInspectionTab() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">Loading inspections...</TableCell>
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Loading inspections...</TableCell>
                   </TableRow>
                 ) : inspections.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">No Turo return inspections found</TableCell>
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">No Turo return inspections found</TableCell>
                   </TableRow>
                 ) : (
                   inspections.map((insp) => (
@@ -178,6 +181,7 @@ export function TuroInspectionTab() {
                         </Select>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">{formatDate(insp.inspection_date)}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{formatDate(insp.due_date)}</TableCell>
                       <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate" title={insp.notes || undefined}>{insp.notes || "--"}</TableCell>
                       <TableCell>
                         {insp.photos && insp.photos.length > 0 ? (
@@ -195,6 +199,14 @@ export function TuroInspectionTab() {
                             title="Edit"
                           >
                             <Edit className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="sm"
+                            onClick={() => { setHistoryInspection(insp); setHistoryModalOpen(true); }}
+                            className="text-muted-foreground hover:text-blue-400 h-8 px-2"
+                            title="View History"
+                          >
+                            <History className="w-3.5 h-3.5" />
                           </Button>
                           <Button
                             variant="ghost" size="sm"
@@ -231,14 +243,12 @@ export function TuroInspectionTab() {
         </div>
       </div>
 
-      {/* Inspection Modal */}
       <InspectionModal
         open={modalOpen}
         onOpenChange={(open) => { setModalOpen(open); if (!open) setEditingInspection(null); }}
         inspection={editingInspection}
       />
 
-      {/* Delete Confirmation */}
       {deleteModalOpen && deletingInspection && (
         <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
           <DialogContent className="bg-card border-border text-foreground">
@@ -257,6 +267,34 @@ export function TuroInspectionTab() {
               >
                 {deleteMutation.isPending ? "Deleting..." : "Delete"}
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {historyModalOpen && historyInspection && (
+        <Dialog open={historyModalOpen} onOpenChange={setHistoryModalOpen}>
+          <DialogContent className="bg-card border-border text-foreground max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Edit History</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">Created</span>
+                <span className="text-foreground">{formatDate(historyInspection.created_at)}</span>
+              </div>
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">Last Updated</span>
+                <span className="text-foreground">{formatDate(historyInspection.updated_at)}</span>
+              </div>
+              <div className="flex justify-between border-b border-border pb-2">
+                <span className="text-muted-foreground">Current Status</span>
+                <StatusBadge status={historyInspection.status} />
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Assigned To</span>
+                <span className="text-foreground">{historyInspection.assigned_to}</span>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
