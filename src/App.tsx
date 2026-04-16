@@ -132,6 +132,7 @@ function Router() {
       <Route path="/admin/cars/:id/maintenance" component={MaintenancePage} />
       <Route path="/admin/cars/:id/totals" component={TotalsPage} />
       <Route path="/admin/totals/all" component={TotalsPage} />
+      <Route path="/admin/totals" component={TotalsPage} />
       <Route path="/admin/cars/:id/records" component={RecordsPage} />
       <Route path="/admin/cars/:carId/records/:recordId/files" component={ViewRecordFilesPage} />
       <Route path="/admin/payments" component={PaymentsMainPage} />

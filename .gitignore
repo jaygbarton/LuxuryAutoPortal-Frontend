@@ -8,6 +8,7 @@ frontend/.env.local
 
 # Build outputs
 frontend/dist
+dist/
 backend/dist
 
 # Node modules

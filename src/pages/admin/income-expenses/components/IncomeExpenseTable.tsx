@@ -1418,28 +1418,52 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 field="gpsSystem"
               />
               <CategoryRow
-                label="Key & Fob"
+                label="Keys & Fob"
                 values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "keyFob"))}
                 category="cogs"
                 field="keyFob"
               />
               <CategoryRow
-                label="Labor - Cleaning"
+                label="Labor - Detailing"
                 values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "laborCleaning"))}
                 category="cogs"
                 field="laborCleaning"
               />
               <CategoryRow
-                label="License & Registration"
-                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "licenseRegistration"))}
+                label="Windshield"
+                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "windshield"))}
                 category="cogs"
-                field="licenseRegistration"
+                field="windshield"
               />
               <CategoryRow
-                label="Mechanic"
-                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "mechanic"))}
+                label="Wipers"
+                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "wipers"))}
                 category="cogs"
-                field="mechanic"
+                field="wipers"
+              />
+              <CategoryRow
+                label="Uber/Lyft/Lime"
+                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "uberLyftLime"))}
+                category="cogs"
+                field="uberLyftLime"
+              />
+              <CategoryRow
+                label="Towing / Impound Fees"
+                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "towingImpoundFees"))}
+                category="cogs"
+                field="towingImpoundFees"
+              />
+              <CategoryRow
+                label="Tired Air Station"
+                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "tiredAirStation"))}
+                category="cogs"
+                field="tiredAirStation"
+              />
+              <CategoryRow
+                label="Tires"
+                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "tires"))}
+                category="cogs"
+                field="tires"
               />
               <CategoryRow
                 label="Oil/Lube"
@@ -1466,40 +1490,16 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 field="tickets"
               />
               <CategoryRow
-                label="Tired Air Station"
-                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "tiredAirStation"))}
+                label="Mechanic"
+                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "mechanic"))}
                 category="cogs"
-                field="tiredAirStation"
+                field="mechanic"
               />
               <CategoryRow
-                label="Tires"
-                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "tires"))}
+                label="License & Registration"
+                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "licenseRegistration"))}
                 category="cogs"
-                field="tires"
-              />
-              <CategoryRow
-                label="Towing / Impound Fees"
-                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "towingImpoundFees"))}
-                category="cogs"
-                field="towingImpoundFees"
-              />
-              <CategoryRow
-                label="Uber/Lyft/Lime"
-                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "uberLyftLime"))}
-                category="cogs"
-                field="uberLyftLime"
-              />
-              <CategoryRow
-                label="Windshield"
-                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "windshield"))}
-                category="cogs"
-                field="windshield"
-              />
-              <CategoryRow
-                label="Wipers"
-                values={MONTHS.map((_, i) => getMonthValue(data.cogs, i + 1, "wipers"))}
-                category="cogs"
-                field="wipers"
+                field="licenseRegistration"
               />
               {/* Dynamic Subcategories */}
               {dynamicSubcategories.cogs.map((subcat) => (

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { CarSelectCombobox } from "./CarSelectCombobox";
 import type { OperationTask, TaskType } from "./types";
 
 interface TaskAssignmentModalProps {
@@ -19,7 +20,26 @@ interface TaskAssignmentModalProps {
     car_name?: string;
     guest_name?: string;
     task_type?: TaskType;
+    trip_start?: string;
+    trip_end?: string;
+    return_location?: string;
+    delivery_location?: string;
   };
+}
+
+function computeDefaultDueDate(taskType: TaskType, tripStart?: string, tripEnd?: string): string {
+  if (taskType === "cleaning" && tripStart) {
+    const d = new Date(tripStart);
+    d.setMinutes(d.getMinutes() - 45);
+    return d.toISOString().slice(0, 16);
+  }
+  if (taskType === "delivery" && tripStart) {
+    return new Date(tripStart).toISOString().slice(0, 16);
+  }
+  if (taskType === "pickup" && tripEnd) {
+    return new Date(tripEnd).toISOString().slice(0, 16);
+  }
+  return "";
 }
 
 export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskAssignmentModalProps) {
@@ -36,8 +56,10 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
     assigned_to: task?.assigned_to || "",
     scheduled_date: task?.scheduled_date ? task.scheduled_date.slice(0, 16) : "",
     scheduled_location: task?.scheduled_location || "",
+    due_date: task?.due_date ? task.due_date.slice(0, 16) : "",
     notes: task?.notes || "",
   });
+
 
   useEffect(() => {
     if (task) {
@@ -50,19 +72,68 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
         assigned_to: task.assigned_to,
         scheduled_date: task.scheduled_date ? task.scheduled_date.slice(0, 16) : "",
         scheduled_location: task.scheduled_location || "",
+        due_date: task.due_date ? task.due_date.slice(0, 16) : "",
         notes: task.notes || "",
       });
     } else if (prefill) {
+      const taskType = prefill.task_type || "cleaning";
+
+      let defaultScheduledDate = "";
+      if (taskType === "pickup" && prefill.trip_end) {
+        defaultScheduledDate = new Date(prefill.trip_end).toISOString().slice(0, 16);
+      } else if (taskType === "delivery" && prefill.trip_start) {
+        defaultScheduledDate = new Date(prefill.trip_start).toISOString().slice(0, 16);
+      }
+
+      let defaultLocation = "";
+      if (taskType === "pickup" && prefill.return_location) {
+        defaultLocation = prefill.return_location;
+      } else if (taskType === "delivery" && (prefill.delivery_location || prefill.return_location)) {
+        defaultLocation = prefill.delivery_location || prefill.return_location || "";
+      }
+
+      const defaultDueDate = computeDefaultDueDate(taskType, prefill.trip_start, prefill.trip_end);
+
       setFormData((prev) => ({
         ...prev,
         turo_trip_id: prefill.turo_trip_id || null,
         reservation_id: prefill.reservation_id || "",
         car_name: prefill.car_name || "",
         guest_name: prefill.guest_name || "",
-        task_type: prefill.task_type || "cleaning",
+        task_type: taskType,
+        scheduled_date: defaultScheduledDate,
+        scheduled_location: defaultLocation,
+        due_date: defaultDueDate,
       }));
     }
   }, [task, prefill]);
+
+  useEffect(() => {
+    if (!task && prefill) {
+      const defaultDueDate = computeDefaultDueDate(
+        formData.task_type,
+        prefill.trip_start,
+        prefill.trip_end
+      );
+      let defaultScheduledDate = formData.scheduled_date;
+      let defaultLocation = formData.scheduled_location;
+
+      if (formData.task_type === "pickup" && prefill.trip_end) {
+        defaultScheduledDate = new Date(prefill.trip_end).toISOString().slice(0, 16);
+        defaultLocation = prefill.return_location || "";
+      } else if (formData.task_type === "delivery" && prefill.trip_start) {
+        defaultScheduledDate = new Date(prefill.trip_start).toISOString().slice(0, 16);
+        defaultLocation = prefill.delivery_location || prefill.return_location || "";
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        scheduled_date: defaultScheduledDate,
+        scheduled_location: defaultLocation,
+        due_date: defaultDueDate,
+      }));
+    }
+  }, [formData.task_type]);
 
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -73,7 +144,10 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          reservation_id: data.reservation_id || "N/A",
+        }),
       });
       if (!response.ok) throw new Error("Failed to save task");
       return response.json();
@@ -99,20 +173,21 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border text-foreground max-w-md">
+      <DialogContent className="bg-card border-border text-foreground max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground">{isEdit ? "Edit Task" : "Assign Task"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-sm text-muted-foreground">Car *</label>
-            <Input
-              value={formData.car_name}
-              onChange={(e) => setFormData({ ...formData, car_name: e.target.value })}
-              className="bg-card border-border text-foreground mt-1"
-              placeholder="Vehicle name"
-              required
-            />
+            {prefill?.car_name ? (
+              <Input value={formData.car_name} readOnly className="bg-card border-border text-foreground mt-1 opacity-70" />
+            ) : (
+              <CarSelectCombobox
+                value={formData.car_name}
+                onChange={(v) => setFormData({ ...formData, car_name: v })}
+              />
+            )}
           </div>
 
           <div>
@@ -127,6 +202,16 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
                 <SelectItem value="pickup">Pickup</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div>
+            <label className="text-sm text-muted-foreground">Reservation ID</label>
+            <Input
+              value={formData.reservation_id}
+              onChange={(e) => setFormData({ ...formData, reservation_id: e.target.value })}
+              className="bg-card border-border text-foreground mt-1"
+              placeholder="Reservation ID (or N/A)"
+            />
           </div>
 
           <div>
@@ -146,6 +231,17 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
               type="datetime-local"
               value={formData.scheduled_date}
               onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
+              className="bg-card border-border text-foreground mt-1"
+              style={{ colorScheme: "dark" }}
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-muted-foreground">Due Date</label>
+            <Input
+              type="datetime-local"
+              value={formData.due_date}
+              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
               className="bg-card border-border text-foreground mt-1"
               style={{ colorScheme: "dark" }}
             />

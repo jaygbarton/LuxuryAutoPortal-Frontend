@@ -8,6 +8,10 @@ const statusColors: Record<string, { bg: string; text: string }> = {
   booked: { bg: "bg-blue-500/20", text: "text-blue-400" },
   cancelled: { bg: "bg-red-500/20", text: "text-red-500" },
   active: { bg: "bg-green-500/20", text: "text-green-500" },
+  damage_reported: { bg: "bg-orange-500/20", text: "text-orange-500" },
+  in_review: { bg: "bg-purple-500/20", text: "text-purple-400" },
+  in_repair: { bg: "bg-cyan-500/20", text: "text-cyan-400" },
+  charged_customer: { bg: "bg-emerald-500/20", text: "text-emerald-400" },
 };
 
 const statusLabels: Record<string, string> = {
@@ -18,6 +22,10 @@ const statusLabels: Record<string, string> = {
   booked: "Booked",
   cancelled: "Cancelled",
   active: "Active",
+  damage_reported: "Damage Reported",
+  in_review: "In Review",
+  in_repair: "In Repair",
+  charged_customer: "Charged Customer",
 };
 
 interface StatusBadgeProps {

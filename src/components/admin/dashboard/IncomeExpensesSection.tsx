@@ -28,6 +28,7 @@ import {
   formatShortMonth,
   formatFullMonth,
 } from "./utils";
+import { cn } from "@/lib/utils";
 import type {
   IncomeExpenseData,
   IncomeExpenseMonth,
@@ -195,14 +196,18 @@ interface BarChartCardProps {
   data: Record<string, string | number>[];
   bars: { dataKey: string; fill: string }[];
   yAxisPrefix?: string;
+  subtitle?: string;
 }
 
-function BarChartCard({ title, data, bars, yAxisPrefix = "$" }: BarChartCardProps) {
+function BarChartCard({ title, data, bars, yAxisPrefix = "$", subtitle }: BarChartCardProps) {
   return (
-    <div className="rounded-lg bg-white p-4">
-      <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-600">
-        {title}
-      </h4>
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="mb-3">
+        <h4 className="text-xs font-bold uppercase tracking-wide text-gray-600">
+          {title}
+        </h4>
+        {subtitle && <p className="mt-1 text-xs text-gray-500">{subtitle}</p>}
+      </div>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -240,14 +245,18 @@ interface LineChartCardProps {
   data: Record<string, string | number>[];
   lines: { dataKey: string; stroke: string }[];
   yAxisPrefix?: string;
+  subtitle?: string;
 }
 
-function LineChartCard({ title, data, lines, yAxisPrefix = "$" }: LineChartCardProps) {
+function LineChartCard({ title, data, lines, yAxisPrefix = "$", subtitle }: LineChartCardProps) {
   return (
-    <div className="rounded-lg bg-white p-4">
-      <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-800">
-        {title}
-      </h4>
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="mb-3">
+        <h4 className="text-xs font-bold uppercase tracking-wide text-gray-800">
+          {title}
+        </h4>
+        {subtitle && <p className="mt-1 text-xs text-gray-500">{subtitle}</p>}
+      </div>
       <ResponsiveContainer width="100%" height={250}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -291,7 +300,7 @@ export default function IncomeExpensesSection({
   onYearChange,
 }: IncomeExpensesSectionProps) {
   const { data, isLoading, isError } = useQuery<ApiResponse>({
-    queryKey: [`/api/income-expense/all-cars/${year}`],
+    queryKey: ["/api/income-expense/all-cars", year],
     queryFn: async () => {
       const res = await fetch(buildApiUrl(`/api/income-expense/all-cars/${year}`), {
         credentials: "include",
@@ -427,6 +436,16 @@ export default function IncomeExpensesSection({
     { name: "Days Rented", value: totalDaysRented, color: "#FFD700" },
     { name: "Days Unused", value: unusedDays, color: "#666666" },
   ];
+  const totalGrossIncome = monthlyComputed.reduce((s, m) => s + m.gross, 0);
+  const totalTripsTaken = monthlyComputed.reduce((s, m) => s + m.tripsTaken, 0);
+  const managementProfit = totalMgmtIncome - totalMgmtExpenses;
+  const ownerProfit = totalOwnerIncome - totalOwnerExpenses;
+  const utilizationRate = totalAvailableDays > 0 ? (totalDaysRented / totalAvailableDays) * 100 : 0;
+  const avgDaysRentedPerMonth = totalDaysRented / 12;
+  const chartTrendData = monthlyComputed.map((mc) => ({
+    month: formatShortMonth(mc.month),
+    "Fleet Utilization %": mc.carsAvailable > 0 ? (mc.daysRented / (mc.carsAvailable * 30)) * 100 : 0,
+  }));
 
   // ── Render helpers ───────────────────────────────────────────────────
 
@@ -449,7 +468,10 @@ export default function IncomeExpensesSection({
 
   return (
     <div className="mb-8">
-      <SectionHeader title="INCOME AND EXPENSES" />
+      <SectionHeader
+        title="INCOME AND EXPENSES"
+        subtitle="Cleaner financial summary, clearer monthly trends, and real utilization metrics for quick admin review."
+      />
 
       {/* Year Selector */}
       <div className="mt-4 flex items-center gap-3 px-4">
@@ -483,10 +505,41 @@ export default function IncomeExpensesSection({
       {!isLoading && !isError && ieData && (
         <div className="mt-4 space-y-6 px-4">
 
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <SummaryCard
+              label="Fleet Utilization"
+              value={`${utilizationRate.toFixed(1)}%`}
+              subtitle={`${totalDaysRented.toLocaleString()} rented days / ${totalAvailableDays.toLocaleString()} available days`}
+              variant="gold"
+              className="rounded-xl shadow-sm"
+            />
+            <SummaryCard
+              label="Gross Rental Income"
+              value={formatCurrency(totalGrossIncome)}
+              subtitle={`${formatCurrency(totalGrossIncome / 12)} avg / month`}
+              variant="dark"
+              className="rounded-xl shadow-sm"
+            />
+            <SummaryCard
+              label="Management Profit"
+              value={formatCurrency(managementProfit)}
+              subtitle={`${totalTripsTaken.toLocaleString()} trips taken`}
+              variant="white"
+              className="rounded-xl shadow-sm"
+            />
+            <SummaryCard
+              label="Car Owner Profit"
+              value={formatCurrency(ownerProfit)}
+              subtitle={`${avgDaysRentedPerMonth.toFixed(1)} avg rented days / month`}
+              variant="white"
+              className="rounded-xl shadow-sm"
+            />
+          </div>
+
           {/* ── Row 1: Summary Cards (left) + Monthly Table (right) ── */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
             {/* Left: Summary Cards */}
-            <div className="xl:col-span-1 flex flex-col justify-between">
+            <div className="xl:col-span-1 flex flex-col justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm">
               {/* Total Management Income and Expenses */}
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wide text-black mb-1.5">
@@ -535,10 +588,20 @@ export default function IncomeExpensesSection({
             </div>
 
             {/* Right: Monthly Income & Expenses Table */}
-            <div className="xl:col-span-2">
-              <h3 className="text-xs font-bold uppercase tracking-wide text-black mb-1.5">
-                Monthly Income and Expenses
-              </h3>
+            <div className="xl:col-span-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-black mb-1.5">
+                    Monthly Income and Expenses
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Month-by-month gross income, management split, owner split, and trip activity.
+                  </p>
+                </div>
+                <div className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                  {year} overview
+                </div>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -557,7 +620,7 @@ export default function IncomeExpensesSection({
                   </thead>
                   <tbody>
                     {tableRows.map((row, idx) => (
-                      <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                      <tr key={idx} className={cn(idx % 2 === 0 ? "bg-white" : "bg-gray-50", "transition hover:bg-amber-50/40")}>
                         {tableColumns.map((col) => (
                           <td
                             key={col.key}
@@ -591,7 +654,7 @@ export default function IncomeExpensesSection({
           {/* ── Row 2: Donut Charts (left) + Line Charts (right) ── */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {/* Left: Donut Charts — TOTAL for the year */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <DonutChart
                 title="TOTAL CAR MGMT INCOME & EXPENSES"
                 data={[
@@ -629,7 +692,8 @@ export default function IncomeExpensesSection({
             {/* Right: Line Charts — Previous month data */}
             <div className="space-y-4">
               <LineChartCard
-                title={`${prevMonthLabel ? prevMonthLabel.toUpperCase() : "PREVIOUS MONTH"} CAR MGMT INCOME & EXPENSES`}
+                title="MANAGEMENT INCOME VS EXPENSES"
+                subtitle="Monthly management split and expense trend across the selected year."
                 data={mgmtBarData}
                 lines={[
                   { dataKey: "Income", stroke: "#FFD700" },
@@ -637,7 +701,8 @@ export default function IncomeExpensesSection({
                 ]}
               />
               <LineChartCard
-                title={`${prevMonthLabel ? prevMonthLabel.toUpperCase() : "PREVIOUS MONTH"} CAR OWNER INCOME AND EXPENSES`}
+                title="CAR OWNER INCOME VS EXPENSES"
+                subtitle="Monthly owner split and owner expense trend across the selected year."
                 data={ownerBarData}
                 lines={[
                   { dataKey: "Income", stroke: "#FFD700" },
@@ -650,7 +715,7 @@ export default function IncomeExpensesSection({
           {/* ── Row 3: Days Rented horizontal bar + bar chart ── */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             {/* Left: Horizontal summary bars */}
-            <div className="xl:col-span-1 space-y-3">
+            <div className="xl:col-span-1 space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-3">
                 <span className="text-xs font-semibold text-gray-600 w-24 shrink-0">Total Trips Taken</span>
                 <div className="flex-1 bg-gray-100 rounded h-6 relative overflow-hidden">
@@ -675,13 +740,23 @@ export default function IncomeExpensesSection({
             </div>
 
             {/* Right: Days Rented bar chart */}
-            <div className="xl:col-span-2">
+            <div className="xl:col-span-2 space-y-6">
               <BarChartCard
                 title="DAYS RENTED AND TRIPS TAKEN"
+                subtitle="Operational activity by month for the selected year."
                 data={activityBarData}
                 bars={[
                   { dataKey: "Days Rented", fill: "#FFD700" },
                   { dataKey: "Trips Taken", fill: "#B8860B" },
+                ]}
+                yAxisPrefix=""
+              />
+              <LineChartCard
+                title="FLEET UTILIZATION %"
+                subtitle="Actual utilization percentage by month. This replaces the misleading dollar-scaled utilization view."
+                data={chartTrendData}
+                lines={[
+                  { dataKey: "Fleet Utilization %", stroke: "#111111" },
                 ]}
                 yAxisPrefix=""
               />

@@ -41,6 +41,7 @@ import {
   WifiOff,
   RefreshCw,
 } from "lucide-react";
+import { BouncieConnectionBanner } from "@/components/admin/BouncieConnectionBanner";
 
 interface BouncieDevice {
   id: string;
@@ -247,7 +248,9 @@ export default function BouncieDevicesPage() {
   return (
     <AdminLayout>
       <div className="container mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
+        <BouncieConnectionBanner />
+
+        <div className="flex justify-between items-center mb-6 mt-4">
           <div>
             <h1 className="text-3xl font-bold">Bouncie Device Management</h1>
             <p className="text-muted-foreground mt-2">Manage GPS tracking devices and link them to fleet vehicles</p>

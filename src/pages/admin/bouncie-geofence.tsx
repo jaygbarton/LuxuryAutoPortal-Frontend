@@ -50,6 +50,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Link } from "wouter";
+import { BouncieConnectionBanner } from "@/components/admin/BouncieConnectionBanner";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -539,6 +540,8 @@ export default function BouncieGeofencePage() {
   return (
     <AdminLayout>
       <div className="space-y-6 p-1">
+        <BouncieConnectionBanner />
+
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">

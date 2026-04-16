@@ -157,9 +157,8 @@ function useTutorialModules(role: 'admin' | 'client' | 'employee' = 'client') {
     queryKey: ["/api/tutorial/modules", role],
     queryFn: async () => {
       try {
-        // Add timeout to prevent hanging
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
         
         const response = await fetch(buildApiUrl(`/api/tutorial/modules?role=${role}`), {
           credentials: "include",
@@ -192,9 +191,8 @@ function useTutorialStepsWithModules(role: 'admin' | 'client' | 'employee' = 'cl
     queryKey: ["/api/tutorial/steps", role, "with-modules"],
     queryFn: async () => {
       try {
-        // Add timeout to prevent hanging
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
         
         const response = await fetch(buildApiUrl(`/api/tutorial/steps?role=${role}&includeModules=true`), {
           credentials: "include",
@@ -227,14 +225,13 @@ function useTutorialSteps(role: 'admin' | 'client' | 'employee' = 'client') {
     queryKey: ["/api/tutorial/steps", role],
     queryFn: async () => {
       try {
-        // Add timeout to prevent hanging
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
         
-      const response = await fetch(buildApiUrl(`/api/tutorial/steps?role=${role}`), {
-        credentials: "include",
+        const response = await fetch(buildApiUrl(`/api/tutorial/steps?role=${role}`), {
+          credentials: "include",
           signal: controller.signal,
-      });
+        });
         
         clearTimeout(timeoutId);
         
@@ -286,82 +283,27 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   // Don't fetch user data on login/signup pages
   const isAuthPage = location === '/login' || location === '/signup' || location === '/';
   
-  // Fetch user role to determine which tutorial to show
-  // Add timeout and error handling to prevent blocking app initialization
-  // Use enabled: false initially and enable after a short delay to prevent blocking
-  // But never enable on auth pages
-  const [enableAuthQuery, setEnableAuthQuery] = useState(false); // Always start false
-  
-  // Enable query after initial render to prevent blocking (but not on auth pages)
-  useEffect(() => {
-    // Immediately disable if on auth page
-    if (isAuthPage) {
-      setEnableAuthQuery(false);
-      // Cancel any in-flight requests and remove cached data when on auth pages
-      queryClient.cancelQueries({ queryKey: ["/api/auth/me"] });
-      queryClient.removeQueries({ queryKey: ["/api/auth/me", location] });
-      return;
-    }
-    
-    // Only enable after a delay if NOT on auth page
-    const timer = setTimeout(() => {
-      // Double-check we're still not on auth page before enabling
-      const currentPath = window.location.pathname;
-      if (currentPath !== '/login' && currentPath !== '/signup' && currentPath !== '/') {
-        setEnableAuthQuery(true);
-      }
-    }, 200); // Slightly longer delay to ensure location is stable
-    
-    return () => clearTimeout(timer);
-  }, [isAuthPage, location, queryClient]);
-  
-  // Only create the query if we're NOT on an auth page
-  const shouldFetchUser = !isAuthPage && enableAuthQuery;
-  
+  // Reuse the shared ["/api/auth/me"] query key so React Query deduplicates
+  // with AdminLayout / AuthGuard instead of firing a separate request.
   const { data: userData } = useQuery<{ user?: { isAdmin?: boolean; isClient?: boolean; isEmployee?: boolean } }>({
-    queryKey: ["/api/auth/me", location], // Include location in query key to prevent cross-page caching
+    queryKey: ["/api/auth/me"],
     queryFn: async () => {
-      // CRITICAL: Double-check we're not on auth page before making any network call
-      const currentLocation = window.location.pathname;
-      if (currentLocation === '/login' || currentLocation === '/signup' || currentLocation === '/') {
-        // Return immediately without making any network request
-        return { user: undefined };
-      }
-      
+      if (isAuthPage) return { user: undefined };
       try {
-        // Add timeout to prevent hanging
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-        
-      const response = await fetch(buildApiUrl("/api/auth/me"), {
-        credentials: "include",
-          signal: controller.signal,
-      });
-        
-        clearTimeout(timeoutId);
-        
-      if (!response.ok) {
-        // 401 is expected when not authenticated - silently return undefined
-        if (response.status === 401) {
-          return { user: undefined };
-        }
-        return { user: undefined };
-      }
-      return response.json();
-      } catch (error) {
-        // Silently handle errors - don't log 401s or network errors
-        // This prevents console spam
+        const response = await fetch(buildApiUrl("/api/auth/me"), {
+          credentials: "include",
+        });
+        if (!response.ok) return { user: undefined };
+        return response.json();
+      } catch {
         return { user: undefined };
       }
     },
     retry: false,
     staleTime: 5 * 60 * 1000,
-    gcTime: 0, // Don't cache on auth pages
-    enabled: shouldFetchUser, // Only enable when not on auth page and explicitly enabled
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnMount: false, // Don't refetch on component mount
-    refetchOnReconnect: false, // Don't refetch on reconnect
-    // Don't block app initialization if this query fails
+    enabled: !isAuthPage,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     throwOnError: false,
   });
 
@@ -370,7 +312,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   
   const { data: tutorialSteps = DEFAULT_TUTORIAL_STEPS, refetch: refetchTutorialSteps } = useTutorialSteps(userRole);
   const { data: tutorialModules = [], refetch: refetchTutorialModules } = useTutorialModules(userRole);
-  const { data: tutorialDataWithModules } = useTutorialStepsWithModules(userRole);
+  // useTutorialStepsWithModules is fetched inside OnboardingTutorial component only when dialog is active
 
   // Mutation to mark tour as completed
   const completeTourMutation = useMutation({
@@ -534,13 +476,12 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
   const goToModule = (moduleId: number) => {
     setCurrentModule(moduleId);
-    // Find the first step in the module
-    if (tutorialDataWithModules?.modules) {
-      const module = tutorialDataWithModules.modules.find(m => m.id === moduleId);
-      if (module && module.steps && module.steps.length > 0) {
-        setCurrentStep(module.steps[0].id);
-        saveState({ currentStep: module.steps[0].id });
-      }
+    // Find the first step in the module using the flat steps list
+    const steps = Array.isArray(tutorialSteps) ? tutorialSteps : DEFAULT_TUTORIAL_STEPS;
+    const moduleSteps = steps.filter(s => s.moduleId === moduleId);
+    if (moduleSteps.length > 0) {
+      setCurrentStep(moduleSteps[0].id);
+      saveState({ currentStep: moduleSteps[0].id });
     }
   };
 
@@ -675,65 +616,7 @@ export function OnboardingTutorial({
   const tutorialSteps = Array.isArray(contextTutorialSteps) ? contextTutorialSteps : DEFAULT_TUTORIAL_STEPS;
   const tutorialModules = Array.isArray(contextTutorialModules) ? contextTutorialModules : [];
   
-  // Get user role to fetch module data
-  // Add timeout and error handling to prevent blocking
-  const { data: userData } = useQuery<{ user?: { isAdmin?: boolean; isClient?: boolean; isEmployee?: boolean } }>({
-    queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      try {
-        // Add timeout to prevent hanging
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-        
-        const response = await fetch(buildApiUrl("/api/auth/me"), {
-          credentials: "include",
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          return { user: undefined };
-        }
-        return response.json();
-      } catch (error) {
-        // If fetch fails (network error, timeout, etc.), return undefined user
-        console.warn("⚠️ [TUTORIAL] Failed to fetch user data (non-critical):", error);
-        return { user: undefined };
-      }
-    },
-    retry: false,
-    staleTime: 5 * 60 * 1000,
-    // Don't block app initialization if this query fails
-    throwOnError: false,
-  });
-  
-  const userRole = userData?.user?.isAdmin ? 'admin' : userData?.user?.isClient ? 'client' : userData?.user?.isEmployee ? 'employee' : 'client';
-  
-  // Fetch steps grouped by modules
-  const { data: tutorialDataWithModules } = useTutorialStepsWithModules(userRole);
-  
-  // Refetch tutorial steps when dialog opens to ensure latest data
-  // Note: We use refetchQueries without invalidateQueries to avoid clearing cached data
-  // The resetTutorial/openTutorial functions already handle refetching before opening
-  const queryClient = useQueryClient();
-  useEffect(() => {
-    if (isOpen) {
-      // Refetch tutorial steps when dialog opens to get latest edits
-      // Use refetchQueries without invalidateQueries to preserve cached data during refetch
-      queryClient.refetchQueries({ 
-        queryKey: ["/api/tutorial/steps"],
-        type: 'active', // Only refetch active queries
-      });
-      queryClient.refetchQueries({ 
-        queryKey: ["/api/tutorial/modules"],
-        type: 'active', // Only refetch active queries
-      });
-    }
-  }, [isOpen, queryClient]);
-  
   // Find current step data by matching step id with currentStep
-  // The API returns id as step_order, so we need to find the step where id === currentStep
   const currentStepData = tutorialSteps.find(step => step.id === currentStep) || tutorialSteps[currentStep - 1] || tutorialSteps[0];
   
   // Find current module based on current step
@@ -741,8 +624,10 @@ export function OnboardingTutorial({
     ? tutorialModules.find(m => m.id === currentStepData.moduleId)
     : null;
   
-  // Get steps for current module if we have module data
-  const currentModuleSteps = tutorialDataWithModules?.modules?.find(m => m.id === currentModuleData?.id)?.steps || tutorialSteps;
+  // Get steps for current module from the flat list (no extra API call needed)
+  const currentModuleSteps = currentModuleData
+    ? tutorialSteps.filter(s => s.moduleId === currentModuleData.id)
+    : tutorialSteps;
   
   // Reset video state when step changes or video URL changes
   useEffect(() => {

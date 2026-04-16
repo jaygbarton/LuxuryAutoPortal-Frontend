@@ -7,7 +7,6 @@ import {
   Car,
   DollarSign,
   Calculator,
-  Wrench,
   ClipboardList,
   Key,
   Briefcase,
@@ -95,7 +94,6 @@ const allSidebarItems: SidebarItem[] = [
     ],
   },
   { href: "/admin/operations", label: "Operations", icon: Cog, roles: ["admin"] },
-  { href: "/admin/maintenance", label: "Car Maintenance", icon: Wrench, roles: ["admin"] },
   { href: "/admin/forms", label: "Forms", icon: ClipboardList },
   { href: "/admin/car-rental", label: "Car Rental", icon: Key, roles: ["admin"] },
   {
