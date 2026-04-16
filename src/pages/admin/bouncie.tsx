@@ -60,7 +60,7 @@ interface ConnectionStatus {
   expiresAt: string | null;
   isExpired: boolean;
   expiresInMinutes: number | null;
-  source: "database" | "env" | "none";
+  source: "database" | "none";
   hasRefreshToken: boolean;
 }
 
@@ -688,7 +688,7 @@ export default function BouncieFleetPage() {
     setSelectedId(prev => prev === v.device_id ? null : v.device_id);
   }, []);
 
-  const isConnected = conn?.connected === true && (conn.source === "database" || conn.source === "env");
+  const isConnected = conn?.connected === true && conn.source === "database";
   const needsConnect = !connLoading && !isConnected;
   const isExpiredOrRevoked = conn?.isExpired === true || connError;
 
@@ -711,6 +711,18 @@ export default function BouncieFleetPage() {
             </div>
           )}
 
+          {/* Expired / disconnected banner — always visible when reconnect is needed */}
+          {needsConnect && allVehicles.length > 0 && (
+            <button onClick={handleConnect}
+              className="mx-3 mb-2 flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium bg-amber-600/15 border border-amber-500/30 text-amber-300 hover:bg-amber-600/25 transition-colors">
+              <ShieldAlert className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <span className="flex-1 text-left">Session expired</span>
+              <span className="flex items-center gap-1 text-amber-400 font-semibold whitespace-nowrap">
+                <RefreshCw className="w-3 h-3" />Reconnect
+              </span>
+            </button>
+          )}
+
           {/* Vehicle count + disconnect */}
           {allVehicles.length > 0 && (
             <div className="px-4 pb-2">
@@ -718,7 +730,7 @@ export default function BouncieFleetPage() {
                 <p className="text-xs text-gray-400">
                   Viewing <span className="text-gray-200 font-medium">{filtered.length}</span> of <span className="text-gray-200 font-medium">{allVehicles.length}</span> vehicle(s)
                 </p>
-                {conn?.source === "database" && isConnected && (
+                {isConnected && (
                   <button onClick={() => confirm("Disconnect Bouncie?") && disconnectMutation.mutate()}
                     className="text-[11px] text-gray-500 hover:text-red-400 transition-colors">
                     Disconnect
@@ -764,22 +776,30 @@ export default function BouncieFleetPage() {
             </div>
           )}
 
-          {/* ── Not connected / Expired: show CTA only when no vehicles are loaded ── */}
-          {needsConnect && allVehicles.length === 0 && (
+          {/* ── Empty sidebar CTA: not connected, expired, OR connected with zero vehicles ── */}
+          {!connLoading && allVehicles.length === 0 && !isLoading && (
             <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
               <div className="w-16 h-16 rounded-full bg-[#282828] flex items-center justify-center mb-4">
                 {isExpiredOrRevoked
                   ? <ShieldAlert className="w-8 h-8 text-amber-400" />
-                  : <Car className="w-8 h-8 text-blue-400" />}
+                  : needsConnect
+                    ? <Car className="w-8 h-8 text-blue-400" />
+                    : <Car className="w-8 h-8 text-gray-500" />}
               </div>
 
               <h3 className="text-base font-semibold text-gray-100 mb-1">
-                {isExpiredOrRevoked ? "Session Expired" : "Fleet Tracking"}
+                {isExpiredOrRevoked
+                  ? "Session Expired"
+                  : needsConnect
+                    ? "Fleet Tracking"
+                    : "No Vehicles Found"}
               </h3>
               <p className="text-xs text-gray-400 leading-relaxed mb-5 max-w-[220px]">
                 {isExpiredOrRevoked
                   ? "Your Bouncie session has ended. Reconnect to resume live vehicle tracking."
-                  : "Connect your Bouncie account to see all your vehicles on the map in real time."}
+                  : needsConnect
+                    ? "Connect your Bouncie account to see all your vehicles on the map in real time."
+                    : "Connected but no vehicles are showing. Try reconnecting with your Bouncie account."}
               </p>
 
               <button onClick={handleConnect}
@@ -790,8 +810,10 @@ export default function BouncieFleetPage() {
                 }`}>
                 {isExpiredOrRevoked ? (
                   <><RefreshCw className="w-4 h-4" /> Reconnect</>
-                ) : (
+                ) : needsConnect ? (
                   "Connect to Bouncie"
+                ) : (
+                  <><RefreshCw className="w-4 h-4" /> Reconnect to Bouncie</>
                 )}
               </button>
 
@@ -802,10 +824,10 @@ export default function BouncieFleetPage() {
           )}
 
           {/* ── Loading state (first load, no vehicles yet) ── */}
-          {connLoading && allVehicles.length === 0 && (
+          {(connLoading || isLoading) && allVehicles.length === 0 && (
             <div className="flex-1 flex items-center justify-center text-gray-500">
               <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-              <span className="text-sm">Checking connection…</span>
+              <span className="text-sm">{connLoading ? "Checking connection…" : "Loading fleet…"}</span>
             </div>
           )}
 

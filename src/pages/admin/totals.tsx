@@ -1,18 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { ArrowLeft, ExternalLink, Download, Plus, Minus } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ArrowLeft, ExternalLink, Download, ChevronDown, ChevronRight, ChevronLeft, Loader2, CalendarIcon } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
+import { cn } from "@/lib/utils";
 
 interface CarDetail {
   id: number;
@@ -36,19 +32,263 @@ interface CarDetail {
   oilType?: string | null;
 }
 
-const formatCurrency = (value: number): string => {
-  return `$ ${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatCurrency = (value: unknown): string => {
+  const num = typeof value === "string" ? parseFloat(value) : Number(value);
+  if (!isFinite(num)) return "$ 0.00";
+  if (num < 0) {
+    return `$ (${Math.abs(num).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+  }
+  return `$ ${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
+
+const formatNumber = (value: unknown): string => {
+  const num = typeof value === "string" ? parseFloat(value) : Number(value);
+  if (!isFinite(num)) return "0";
+  return num.toLocaleString("en-US");
+};
+
+interface TotalRowProps {
+  label: string;
+  value: unknown;
+  isCurrency?: boolean;
+  bold?: boolean;
+  separator?: boolean;
+  indent?: boolean;
+  negative?: boolean;
+}
+
+function TotalRow({ label, value, isCurrency = true, bold, separator, indent, negative }: TotalRowProps) {
+  const num = typeof value === "string" ? parseFloat(value as string) : Number(value);
+  const isNeg = negative || num < 0;
+  return (
+    <div className={cn(
+      "flex items-center justify-between py-1.5 px-2 rounded-sm min-w-0",
+      separator && "border-t border-border pt-3 mt-1",
+      bold && "font-semibold",
+      indent && "pl-4"
+    )}>
+      <span className={cn(
+        "text-sm truncate mr-4 flex-1 min-w-0",
+        bold ? "text-foreground" : "text-muted-foreground"
+      )}>
+        {label}
+      </span>
+      <span className={cn(
+        "text-sm font-mono tabular-nums whitespace-nowrap",
+        bold ? "font-semibold text-foreground" : "text-foreground",
+        isNeg && "text-red-600 dark:text-red-400"
+      )}>
+        {isCurrency ? formatCurrency(value) : formatNumber(value)}
+      </span>
+    </div>
+  );
+}
+
+interface SectionProps {
+  title: string;
+  totalValue?: unknown;
+  totalIsCurrency?: boolean;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}
+
+function Section({ title, totalValue, totalIsCurrency = true, defaultOpen = false, children }: SectionProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-border rounded-lg bg-card overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          {open
+            ? <ChevronDown className="w-4 h-4 text-primary shrink-0" />
+            : <ChevronRight className="w-4 h-4 text-primary shrink-0" />
+          }
+          <span className="font-medium text-sm text-foreground truncate">{title}</span>
+        </div>
+        {totalValue !== undefined && (
+          <span className="font-semibold text-sm font-mono tabular-nums text-foreground whitespace-nowrap ml-4">
+            {totalIsCurrency ? formatCurrency(totalValue) : formatNumber(totalValue)}
+          </span>
+        )}
+      </button>
+      {open && (
+        <div className="px-4 pb-3 border-t border-border bg-background/50">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+function MonthPicker({ month, year, onChange }: {
+  month: number; year: number;
+  onChange: (month: number, year: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [viewYear, setViewYear] = useState(year);
+  const now = new Date();
+  const nowMonth = now.getMonth() + 1;
+  const nowYear = now.getFullYear();
+
+  useEffect(() => { setViewYear(year); }, [year]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className={cn(
+          "flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-card text-foreground text-sm",
+          "hover:bg-muted/50 transition-colors min-w-[160px] justify-between"
+        )}>
+          <CalendarIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+          <span>{MONTH_FULL[month - 1]} {year}</span>
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[260px] p-3" align="start">
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={() => setViewYear(viewYear - 1)} className="p-1 rounded hover:bg-muted transition-colors">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="font-semibold text-sm">{viewYear}</span>
+          <button onClick={() => setViewYear(viewYear + 1)} className="p-1 rounded hover:bg-muted transition-colors">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {MONTH_LABELS.map((label, i) => {
+            const m = i + 1;
+            const isSelected = m === month && viewYear === year;
+            const isCurrent = m === nowMonth && viewYear === nowYear;
+            return (
+              <button
+                key={m}
+                onClick={() => { onChange(m, viewYear); setOpen(false); }}
+                className={cn(
+                  "py-1.5 rounded text-sm transition-colors",
+                  isSelected
+                    ? "bg-primary text-primary-foreground font-semibold"
+                    : isCurrent
+                      ? "border border-primary text-primary font-medium hover:bg-primary/10"
+                      : "hover:bg-muted text-foreground"
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center justify-between mt-3 pt-2 border-t border-border">
+          <button
+            onClick={() => { onChange(1, nowYear); setOpen(false); }}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Clear
+          </button>
+          <button
+            onClick={() => { onChange(nowMonth, nowYear); setOpen(false); }}
+            className="text-xs text-primary font-medium hover:underline"
+          >
+            This month
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+const QUARTER_LABELS = ["Q1 (Jan–Mar)", "Q2 (Apr–Jun)", "Q3 (Jul–Sep)", "Q4 (Oct–Dec)"];
+const QUARTER_SHORT = ["Q1", "Q2", "Q3", "Q4"];
+
+function QuarterPicker({ quarter, year, onChange }: {
+  quarter: number; year: number;
+  onChange: (quarter: number, year: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [viewYear, setViewYear] = useState(year);
+  const now = new Date();
+  const nowQ = Math.ceil((now.getMonth() + 1) / 3);
+  const nowYear = now.getFullYear();
+
+  useEffect(() => { setViewYear(year); }, [year]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className={cn(
+          "flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-card text-foreground text-sm",
+          "hover:bg-muted/50 transition-colors min-w-[160px] justify-between"
+        )}>
+          <CalendarIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+          <span>{QUARTER_SHORT[quarter - 1]} {year}</span>
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[260px] p-3" align="start">
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={() => setViewYear(viewYear - 1)} className="p-1 rounded hover:bg-muted transition-colors">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="font-semibold text-sm">{viewYear}</span>
+          <button onClick={() => setViewYear(viewYear + 1)} className="p-1 rounded hover:bg-muted transition-colors">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {QUARTER_LABELS.map((label, i) => {
+            const q = i + 1;
+            const isSelected = q === quarter && viewYear === year;
+            const isCurrent = q === nowQ && viewYear === nowYear;
+            return (
+              <button
+                key={q}
+                onClick={() => { onChange(q, viewYear); setOpen(false); }}
+                className={cn(
+                  "py-2 px-2 rounded text-sm transition-colors",
+                  isSelected
+                    ? "bg-primary text-primary-foreground font-semibold"
+                    : isCurrent
+                      ? "border border-primary text-primary font-medium hover:bg-primary/10"
+                      : "hover:bg-muted text-foreground"
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center justify-between mt-3 pt-2 border-t border-border">
+          <button
+            onClick={() => { onChange(1, nowYear); setOpen(false); }}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Clear
+          </button>
+          <button
+            onClick={() => { onChange(nowQ, nowYear); setOpen(false); }}
+            className="text-xs text-primary font-medium hover:underline"
+          >
+            This quarter
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export default function TotalsPage() {
   const [individualRoute, individualParams] = useRoute("/admin/cars/:id/totals");
   const [allCarsRoute] = useRoute("/admin/totals/all");
+  const [standaloneTotalsRoute] = useRoute("/admin/totals");
   const [, setLocation] = useLocation();
-  
-  const isAllCarsReport = !!allCarsRoute;
-  const carId = individualParams?.id ? parseInt(individualParams.id, 10) : null;
 
-  // Role check
+  const isStandalonePage = !!standaloneTotalsRoute;
+  const urlCarId = individualParams?.id ? parseInt(individualParams.id, 10) : null;
+
   const { data: authData } = useQuery<{ user?: { isClient?: boolean } }>({
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
@@ -59,49 +299,102 @@ export default function TotalsPage() {
     retry: false,
   });
   const isClient = authData?.user?.isClient === true;
-  
-  const [filterType, setFilterType] = useState<string>("Year");
-  const [fromYear, setFromYear] = useState<string>(new Date().getFullYear().toString());
-  const [toYear, setToYear] = useState<string>(new Date().getFullYear().toString());
-  const [fromMonth, setFromMonth] = useState<string>("1");
-  const [toMonth, setToMonth] = useState<string>("12");
 
-  const { data, isLoading, error } = useQuery<{
-    success: boolean;
-    data: CarDetail;
-  }>({
+  const now = new Date();
+  const nowYear = now.getFullYear();
+  const nowMonth = now.getMonth() + 1;
+  const nowQuarter = Math.ceil(nowMonth / 3);
+
+  const [filterType, setFilterType] = useState<string>("Year");
+  const [fromYear, setFromYear] = useState<string>(nowYear.toString());
+  const [toYear, setToYear] = useState<string>(nowYear.toString());
+  // Month mode: single "from" month picker → auto "to" = now
+  const [pickedMonth, setPickedMonth] = useState<number>(nowMonth);
+  const [pickedMonthYear, setPickedMonthYear] = useState<number>(nowYear);
+  // Quarter mode: single "from" quarter picker → auto "to" = now
+  const [pickedQuarter, setPickedQuarter] = useState<number>(nowQuarter);
+  const [pickedQuarterYear, setPickedQuarterYear] = useState<number>(nowYear);
+
+  const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
+
+  // Compute the effective from/to values sent to the API based on filter type
+  const effectiveFilters = (() => {
+    if (filterType === "Month") {
+      return {
+        filterType: "Month",
+        fromYear: pickedMonthYear.toString(),
+        toYear: nowYear.toString(),
+        fromMonth: pickedMonth.toString(),
+        toMonth: nowMonth.toString(),
+      };
+    }
+    if (filterType === "Quarter") {
+      const qStartMonth = (pickedQuarter - 1) * 3 + 1;
+      const nowQEndMonth = Math.min(nowQuarter * 3, 12);
+      return {
+        filterType: "Quarter",
+        fromYear: pickedQuarterYear.toString(),
+        toYear: nowYear.toString(),
+        fromMonth: qStartMonth.toString(),
+        toMonth: nowQEndMonth.toString(),
+      };
+    }
+    // Year mode
+    return {
+      filterType: "Year",
+      fromYear,
+      toYear,
+      fromMonth: "1",
+      toMonth: "12",
+    };
+  })();
+
+  // Debounce filter values so rapid dropdown changes don't fire many requests
+  const [debouncedFilters, setDebouncedFilters] = useState(effectiveFilters);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    debounceRef.current = setTimeout(() => {
+      setDebouncedFilters(effectiveFilters);
+    }, 350);
+    return () => clearTimeout(debounceRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterType, fromYear, toYear, pickedMonth, pickedMonthYear, pickedQuarter, pickedQuarterYear]);
+
+  const isAllCarsReport = !!allCarsRoute || (isStandalonePage && selectedCarId === null);
+  const carId = urlCarId || (isStandalonePage ? selectedCarId : null);
+
+  const { data: carsListData } = useQuery<{ data: Array<{ id: number; makeModel: string; vin: string; licensePlate: string | null }> }>({
+    queryKey: ["/api/cars", "totals-car-selector"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/cars?status=ACTIVE&limit=500"), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch cars");
+      return res.json();
+    },
+    enabled: isStandalonePage,
+    staleTime: 1000 * 60 * 5,
+  });
+  const carsList = carsListData?.data || [];
+
+  const { data, isLoading, error } = useQuery<{ success: boolean; data: CarDetail }>({
     queryKey: ["/api/cars", carId],
     queryFn: async () => {
       if (!carId) throw new Error("Invalid car ID");
-      const url = buildApiUrl(`/api/cars/${carId}`);
-      const response = await fetch(url, {
-        credentials: "include",
-      });
+      const response = await fetch(buildApiUrl(`/api/cars/${carId}`), { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch car");
       return response.json();
     },
     enabled: !!carId && !isAllCarsReport,
     retry: false,
   });
-
   const car: CarDetail | undefined = data?.data;
 
-  // Fetch onboarding data for additional car info
-  const { data: onboardingData } = useQuery<{
-    success: boolean;
-    data: any;
-  }>({
+  const { data: onboardingData } = useQuery<{ success: boolean; data: any }>({
     queryKey: ["/api/onboarding/vin", car?.vin, "onboarding"],
     queryFn: async () => {
       if (!car?.vin) throw new Error("No VIN");
-      const url = buildApiUrl(`/api/onboarding/vin/${encodeURIComponent(car.vin)}`);
-      const response = await fetch(url, {
-        credentials: "include",
-      });
+      const response = await fetch(buildApiUrl(`/api/onboarding/vin/${encodeURIComponent(car.vin)}`), { credentials: "include" });
       if (!response.ok) {
-        if (response.status === 404) {
-          return { success: false, data: null };
-        }
+        if (response.status === 404) return { success: false, data: null };
         throw new Error("Failed to fetch onboarding");
       }
       return response.json();
@@ -109,100 +402,63 @@ export default function TotalsPage() {
     enabled: !!car?.vin,
     retry: false,
   });
-
   const onboarding = onboardingData?.success ? onboardingData?.data : null;
 
-  // Fetch totals data
-  const { data: totalsData, isLoading: totalsLoading } = useQuery<{
-    success: boolean;
-    data: any;
-  }>({
-    queryKey: isAllCarsReport 
-      ? ["/api/cars/totals/all", filterType, fromYear, toYear, fromMonth, toMonth]
-      : ["/api/cars", carId, "totals", filterType, fromYear, toYear, fromMonth, toMonth],
+  const { data: totalsData, isLoading: totalsLoading, isFetching: totalsFetching } = useQuery<{ success: boolean; data: any }>({
+    queryKey: isAllCarsReport
+      ? ["/api/cars/totals/all", debouncedFilters.filterType, debouncedFilters.fromYear, debouncedFilters.toYear, debouncedFilters.fromMonth, debouncedFilters.toMonth]
+      : ["/api/cars", carId, "totals", debouncedFilters.filterType, debouncedFilters.fromYear, debouncedFilters.toYear, debouncedFilters.fromMonth, debouncedFilters.toMonth],
     queryFn: async () => {
       const params = new URLSearchParams({
-        filter: filterType,
-        from: fromYear,
-        to: toYear,
+        filter: debouncedFilters.filterType,
+        from: debouncedFilters.fromYear,
+        to: debouncedFilters.toYear,
+        fromMonth: debouncedFilters.fromMonth,
+        toMonth: debouncedFilters.toMonth,
       });
-      
-      if (filterType === "Month" || filterType === "Quarter") {
-        params.append("fromMonth", fromMonth);
-        params.append("toMonth", toMonth);
-      }
-      
       const url = isAllCarsReport
         ? buildApiUrl(`/api/cars/totals/all?${params.toString()}`)
         : buildApiUrl(`/api/cars/${carId}/totals?${params.toString()}`);
-        
-      const response = await fetch(url, {
-        credentials: "include",
-      });
-      if (!response.ok) {
-        throw new Error("Failed to fetch totals");
-      }
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch totals");
       return response.json();
     },
     enabled: isAllCarsReport || !!carId,
     retry: false,
+    staleTime: 1000 * 60 * 2,
+    placeholderData: keepPreviousData,
   });
-
   const totals = totalsData?.data || null;
 
-  if ((isLoading || totalsLoading) && !isAllCarsReport) {
-    return (
-      <AdminLayout>
-        <CarDetailSkeleton />
-      </AdminLayout>
-    );
+  if ((isLoading || totalsLoading) && !isAllCarsReport && !isStandalonePage) {
+    return <AdminLayout><CarDetailSkeleton /></AdminLayout>;
   }
 
-  if (!isAllCarsReport && (error || !car)) {
+  if (!isAllCarsReport && !isStandalonePage && (error || !car)) {
     return (
       <AdminLayout>
         <div className="flex flex-col items-center justify-center h-full">
           <p className="text-red-700">Failed to load car details</p>
-          <button
-            onClick={() => setLocation("/cars")}
-            className="mt-4 text-blue-700 hover:underline"
-          >
-            ← Back to Cars
+          <button onClick={() => setLocation("/admin/cars")} className="mt-4 text-blue-700 hover:underline">
+            Back to Cars
           </button>
         </div>
       </AdminLayout>
     );
   }
 
-  // Define car-related variables only when car is defined (i.e., when not in all cars report)
   const carName = car ? (car.makeModel || `${car.year || ""} ${car.vin}`.trim()) : "";
-  const ownerName = car?.owner
-    ? `${car.owner.firstName} ${car.owner.lastName}`
-    : "N/A";
-  const ownerContact = car?.owner?.phone || "N/A";
-  const ownerEmail = car?.owner?.email || "N/A";
+  const ownerName = car?.owner ? `${car.owner.firstName} ${car.owner.lastName}` : "N/A";
   const fuelType = onboarding?.fuelType || car?.fuelType || "N/A";
   const tireSize = onboarding?.tireSize || car?.tireSize || "N/A";
   const oilType = onboarding?.oilType || car?.oilType || "N/A";
 
-  const categories = [
-    { id: "expenses", label: "EXPENSES", total: totals?.carManagementSplit || 0 },
-    { id: "income", label: "INCOME", total: totals?.income?.totalProfit || 0 },
-    { id: "operating-expenses-direct", label: "OPERATING EXPENSES (DIRECT DELIVERY)", total: totals?.operatingExpensesDirect?.total || 0 },
-    { id: "operating-expenses-cogs", label: "OPERATING EXPENSES (COGS - Per Vehicle)", total: totals?.expenses?.totalOperatingExpenses || 0 },
-    { id: "gla", label: "GLA PARKING FEE & LABOR CLEANING", total: totals?.gla?.total || 0 },
-    ...(isAllCarsReport ? [{ id: "operating-expenses-office", label: "OPERATING EXPENSES (Office Support)", total: totals?.operatingExpensesOffice?.total || 0 }] : []),
-    { id: "reimbursed-bills", label: "REIMBURSED AND NON-REIMBURSED BILLS", total: (totals?.reimbursedBills?.electricReimbursed || 0) + (totals?.reimbursedBills?.gasReimbursed || 0) + (totals?.reimbursedBills?.uberLyftLimeReimbursed || 0) },
-    { id: "history", label: "VEHICLE HISTORY", total: totals?.history?.daysRented || 0 },
-    { id: "payments", label: "PAYMENT HISTORY", total: totals?.payments?.total || 0 },
-  ];
-
   return (
     <AdminLayout>
       <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden">
-        {/* Header */}
-        <div className="mb-6">
-          {!isAllCarsReport && (
+        {/* Page Header */}
+        <div className="mb-4">
+          {!isAllCarsReport && !isStandalonePage && (
             <button
               onClick={() => isClient ? setLocation("/dashboard") : setLocation(`/admin/view-car/${carId}`)}
               className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 mb-2"
@@ -211,1128 +467,422 @@ export default function TotalsPage() {
               <span>Back to View Car</span>
             </button>
           )}
-          <div>
-            <h1 className="text-2xl font-bold text-primary">
-              {isAllCarsReport ? "ALL CARS REPORT - TOTALS" : "INDIVIDUAL CAR REPORT - TOTALS"}
-            </h1>
-            {!isAllCarsReport && car && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Car: {car.makeModel || "Unknown Car"}
-              </p>
-            )}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-primary">
+                {isStandalonePage ? "Totals" : isAllCarsReport ? "All Cars Report - Totals" : "Individual Car Report - Totals"}
+              </h1>
+              {isStandalonePage && (
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {selectedCarId === null
+                    ? "Aggregated totals for all active cars"
+                    : `Showing totals for: ${car?.makeModel || "selected car"}`}
+                </p>
+              )}
+              {!isStandalonePage && !isAllCarsReport && car && (
+                <p className="text-sm text-muted-foreground mt-0.5">Car: {car.makeModel}</p>
+              )}
+            </div>
+            <Button variant="outline" className="bg-card border-border text-foreground hover:bg-muted flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Export
+            </Button>
           </div>
         </div>
 
-        {/* Car and Owner Information Header */}
-        {!isAllCarsReport && car && (
-          <div className="bg-card border border-border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4">
-              <div className="flex-1">
-                <h1 className="text-2xl font-bold text-primary mb-2">Totals</h1>
-              </div>
-              <Button
-                variant="outline"
-                className="bg-card border-border text-foreground hover:bg-muted flex items-center gap-2 w-full sm:w-auto"
-              >
-                <Download className="w-4 h-4" />
-                Export
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {/* Car Information */}
-            <div>
-              <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3">Car Information</h3>
-              <div className="space-y-1.5 sm:space-y-2">
-                <div>
-                  <span className="text-muted-foreground text-xs sm:text-sm">Car Name: </span>
-                  <span className="text-foreground text-xs sm:text-sm break-words">{carName}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs sm:text-sm">VIN #: </span>
-                  <span className="text-foreground font-mono text-xs sm:text-sm break-all">{car.vin}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs sm:text-sm">License: </span>
-                  <span className="text-foreground text-xs sm:text-sm">{car.licensePlate || "N/A"}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Owner Information */}
-            <div>
-              <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3">Owner Information</h3>
-              <div className="space-y-1.5 sm:space-y-2">
-                <div>
-                  <span className="text-muted-foreground text-xs sm:text-sm">Name: </span>
-                  {car.clientId ? (
-                    <button
-                      onClick={() => setLocation(`/admin/clients/${car.clientId}`)}
-                      className="text-[#B8860B] hover:text-[#9A7209] hover:underline transition-colors text-xs sm:text-sm break-words cursor-pointer font-semibold"
-                    >
-                      {ownerName}
-                    </button>
-                  ) : (
-                    <span className="text-[#B8860B] text-xs sm:text-sm break-words font-semibold">{ownerName}</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs sm:text-sm">Contact #: </span>
-                  <span className="text-foreground text-xs sm:text-sm">{ownerContact}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs sm:text-sm">Email: </span>
-                  <span className="text-foreground text-xs sm:text-sm break-all">{ownerEmail}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Car Specifications */}
-            <div>
-              <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3">Car Specifications</h3>
-              <div className="space-y-1.5 sm:space-y-2">
-                <div>
-                  <span className="text-muted-foreground text-xs sm:text-sm">Fuel/Gas: </span>
-                  <span className="text-foreground text-xs sm:text-sm">{fuelType}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs sm:text-sm">Tire Size: </span>
-                  <span className="text-foreground text-xs sm:text-sm">{tireSize}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs sm:text-sm">Oil Type: </span>
-                  <span className="text-foreground text-xs sm:text-sm">{oilType}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Turo Links */}
-            <div>
-              <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3">Turo Links</h3>
-              <div className="space-y-1.5 sm:space-y-2">
-                {car.turoLink && (
-                  <div>
-                    <a
-                      href={car.turoLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-700 hover:underline text-sm flex items-center gap-1"
-                    >
-                      Turo Link: View Car
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                )}
-                {car.adminTuroLink && (
-                  <div>
-                    <a
-                      href={car.adminTuroLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-700 hover:underline text-sm flex items-center gap-1"
-                    >
-                      Admin Turo Link: View Car
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                )}
-                {!car.turoLink && !car.adminTuroLink && (
-                  <span className="text-muted-foreground text-sm">No Turo links available</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-        )}
-
-        {/* Filters Section */}
-        <div className="bg-card border border-border rounded-lg p-4 mb-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="bg-card border-border text-foreground w-[150px]">
-                <SelectValue placeholder="Filter" />
+        {/* Car Selector (standalone page) */}
+        {isStandalonePage && (
+          <div className="bg-card border border-border rounded-lg p-4 mb-4">
+            <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">Car</label>
+            <Select
+              value={selectedCarId === null ? "all" : selectedCarId.toString()}
+              onValueChange={(val) => setSelectedCarId(val === "all" ? null : parseInt(val, 10))}
+            >
+              <SelectTrigger className="bg-card border-border text-foreground max-w-md">
+                <SelectValue placeholder="All Cars" />
               </SelectTrigger>
-              <SelectContent className="bg-card border-border text-foreground">
-                <SelectItem value="Year">Year</SelectItem>
-                <SelectItem value="Month">Month</SelectItem>
-                <SelectItem value="Quarter">Quarter</SelectItem>
+              <SelectContent className="bg-card border-border text-foreground max-h-[300px]">
+                <SelectItem value="all">All Cars (Aggregated)</SelectItem>
+                {carsList.map((c) => (
+                  <SelectItem key={c.id} value={c.id.toString()}>
+                    {c.makeModel}{c.licensePlate ? ` — #${c.licensePlate}` : ""}{c.vin ? ` (${c.vin.slice(-6)})` : ""}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+          </div>
+        )}
 
-            {(filterType === "Month" || filterType === "Quarter") && (
+        {/* Car & Owner Info */}
+        {!isAllCarsReport && car && (
+          <div className="bg-card border border-border rounded-lg p-4 sm:p-5 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4">
+              <div>
+                <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Car Information</h3>
+                <div className="space-y-1 text-sm">
+                  <div><span className="text-muted-foreground">Name: </span><span className="text-foreground">{carName}</span></div>
+                  <div><span className="text-muted-foreground">VIN: </span><span className="text-foreground font-mono text-xs">{car.vin}</span></div>
+                  <div><span className="text-muted-foreground">Plate: </span><span className="text-foreground">{car.licensePlate || "N/A"}</span></div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Owner Information</h3>
+                <div className="space-y-1 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Name: </span>
+                    {car.clientId ? (
+                      <button onClick={() => setLocation(`/admin/clients/${car.clientId}`)} className="text-[#B8860B] hover:underline font-semibold">
+                        {ownerName}
+                      </button>
+                    ) : (
+                      <span className="text-foreground">{ownerName}</span>
+                    )}
+                  </div>
+                  <div><span className="text-muted-foreground">Phone: </span><span className="text-foreground">{car.owner?.phone || "N/A"}</span></div>
+                  <div><span className="text-muted-foreground">Email: </span><span className="text-foreground break-all">{car.owner?.email || "N/A"}</span></div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Specifications</h3>
+                <div className="space-y-1 text-sm">
+                  <div><span className="text-muted-foreground">Fuel: </span><span className="text-foreground">{fuelType}</span></div>
+                  <div><span className="text-muted-foreground">Tires: </span><span className="text-foreground">{tireSize}</span></div>
+                  <div><span className="text-muted-foreground">Oil: </span><span className="text-foreground">{oilType}</span></div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Turo Links</h3>
+                <div className="space-y-1 text-sm">
+                  {car.turoLink && (
+                    <a href={car.turoLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+                      Turo Link <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                  {car.adminTuroLink && (
+                    <a href={car.adminTuroLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+                      Admin Turo Link <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                  {!car.turoLink && !car.adminTuroLink && <span className="text-muted-foreground">N/A</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filters */}
+        <div className="bg-card border border-border rounded-lg p-4 mb-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">Filter</label>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="bg-card border-border text-foreground w-[130px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground">
+                  <SelectItem value="Year">Year</SelectItem>
+                  <SelectItem value="Month">Month</SelectItem>
+                  <SelectItem value="Quarter">Quarter</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Year mode: From Year / To Year */}
+            {filterType === "Year" && (
               <>
-                <Select value={fromMonth} onValueChange={setFromMonth}>
-                  <SelectTrigger className="bg-card border-border text-foreground w-[120px]">
-                    <SelectValue placeholder="From Month" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border text-foreground">
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                      <SelectItem key={month} value={month.toString()}>
-                        {new Date(2000, month - 1).toLocaleString('default', { month: 'short' })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={toMonth} onValueChange={setToMonth}>
-                  <SelectTrigger className="bg-card border-border text-foreground w-[120px]">
-                    <SelectValue placeholder="To Month" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border text-foreground">
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                      <SelectItem key={month} value={month.toString()}>
-                        {new Date(2000, month - 1).toLocaleString('default', { month: 'short' })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">From Year</label>
+                  <Select value={fromYear} onValueChange={setFromYear}>
+                    <SelectTrigger className="bg-card border-border text-foreground w-[100px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border text-foreground">
+                      {Array.from({ length: 10 }, (_, i) => nowYear - i).map((y) => (
+                        <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">To Year</label>
+                  <Select value={toYear} onValueChange={setToYear}>
+                    <SelectTrigger className="bg-card border-border text-foreground w-[100px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border text-foreground">
+                      {Array.from({ length: 10 }, (_, i) => nowYear - i).map((y) => (
+                        <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </>
             )}
 
-            <Select value={fromYear} onValueChange={setFromYear}>
-              <SelectTrigger className="bg-card border-border text-foreground w-[120px]">
-                <SelectValue placeholder="From Year" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border text-foreground">
-                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((year) => (
-                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Month mode: Month picker → Now */}
+            {filterType === "Month" && (
+              <>
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">Month</label>
+                  <MonthPicker
+                    month={pickedMonth}
+                    year={pickedMonthYear}
+                    onChange={(m, y) => { setPickedMonth(m); setPickedMonthYear(y); }}
+                  />
+                </div>
+                <div className="flex items-end h-9">
+                  <span className="text-sm text-muted-foreground px-2">→</span>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">To</label>
+                  <div className="h-9 px-3 flex items-center rounded-md border border-border bg-muted/50 text-sm text-muted-foreground min-w-[140px]">
+                    {MONTH_FULL[nowMonth - 1]} {nowYear}
+                  </div>
+                </div>
+              </>
+            )}
 
-            <Select value={toYear} onValueChange={setToYear}>
-              <SelectTrigger className="bg-card border-border text-foreground w-[120px]">
-                <SelectValue placeholder="To Year" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border text-foreground">
-                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((year) => (
-                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Quarter mode: Quarter picker → Now */}
+            {filterType === "Quarter" && (
+              <>
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">Quarter</label>
+                  <QuarterPicker
+                    quarter={pickedQuarter}
+                    year={pickedQuarterYear}
+                    onChange={(q, y) => { setPickedQuarter(q); setPickedQuarterYear(y); }}
+                  />
+                </div>
+                <div className="flex items-end h-9">
+                  <span className="text-sm text-muted-foreground px-2">→</span>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">To</label>
+                  <div className="h-9 px-3 flex items-center rounded-md border border-border bg-muted/50 text-sm text-muted-foreground min-w-[100px]">
+                    {QUARTER_SHORT[nowQuarter - 1]} {nowYear}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Range description */}
+          <div className="mt-2 text-xs text-muted-foreground">
+            {filterType === "Year" && (
+              fromYear === toYear
+                ? <span>Showing all months of {fromYear}</span>
+                : <span>Showing Jan {fromYear} — Dec {toYear}</span>
+            )}
+            {filterType === "Month" && (
+              <span>
+                Showing {MONTH_FULL[pickedMonth - 1]} {pickedMonthYear} — {MONTH_FULL[nowMonth - 1]} {nowYear}
+                {` (${(() => {
+                  const totalMonths = (nowYear - pickedMonthYear) * 12 + (nowMonth - pickedMonth) + 1;
+                  return totalMonths === 1 ? "1 month" : `${totalMonths} months`;
+                })()})`}
+              </span>
+            )}
+            {filterType === "Quarter" && (
+              <span>
+                Showing {QUARTER_SHORT[pickedQuarter - 1]} {pickedQuarterYear} — {QUARTER_SHORT[nowQuarter - 1]} {nowYear}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Totals Categories */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden" style={{ overflowY: 'auto' }}>
-          <Accordion type="multiple" className="w-full">
-            {categories.map((category) => {
-              // Special handling for EXPENSES category
-              if (category.id === "expenses") {
-                return (
-                  <AccordionItem
-                    key={category.id}
-                    value={category.id}
-                    className="border border-border rounded-lg overflow-hidden bg-card mb-2 last:mb-0"
-                  >
-                    <AccordionTrigger className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-muted transition-colors [&>svg]:hidden">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-4 h-4 text-primary group-data-[state=open]:hidden" />
-                          <Minus className="w-4 h-4 text-primary hidden group-data-[state=open]:block" />
-                          <span className="text-foreground font-medium text-sm sm:text-base">{category.label}</span>
-                        </div>
-                        <span className="text-foreground font-semibold text-sm sm:text-base">TOTALS</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 sm:px-6 pb-4 bg-background">
-                      <div className="space-y-2 pt-2">
-                        {/* Category Header */}
-                        <div className="flex justify-between text-muted-foreground text-sm font-bold mb-2">
-                          <span>Car Management and Car Owner Split</span>
-                        </div>
-                        {/* Child Items */}
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Car Management Split</span>
-                          <span className="text-foreground font-medium">
-                            {formatCurrency(totals?.carManagementSplit || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Car Owner Split</span>
-                          <span className="text-foreground font-medium">
-                            {formatCurrency(totals?.carOwnerSplit || 0)}
-                          </span>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
+        {/* Loading state for totals — only full spinner on first load */}
+        {totalsLoading && !totals && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-primary mr-2" />
+            <span className="text-muted-foreground">Loading totals...</span>
+          </div>
+        )}
+
+        {/* Totals Sections — show stale data with subtle refetch indicator */}
+        {(totals || !totalsLoading) && (
+          <div className="relative">
+            {totalsFetching && totals && (
+              <div className="absolute top-0 right-0 z-10 flex items-center gap-1.5 bg-card/90 backdrop-blur-sm px-3 py-1 rounded-bl-lg border-b border-l border-border">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                <span className="text-xs text-muted-foreground">Updating...</span>
+              </div>
+            )}
+          </div>
+        )}
+        {(totals || (!totalsLoading && !totalsFetching)) && (
+          <div className="space-y-2 pb-4">
+            {/* 1. Car Management and Car Owner Split */}
+            <Section
+              title="EXPENSES — Car Management & Owner Split"
+              totalValue={(Number(totals?.carManagementSplit || 0) + Number(totals?.carOwnerSplit || 0))}
+            >
+              <TotalRow label="Car Management Split" value={totals?.carManagementSplit} />
+              <TotalRow label="Car Owner Split" value={totals?.carOwnerSplit} />
+            </Section>
+
+            {/* 2. Income / Profit & Loss */}
+            <Section
+              title="INCOME / PROFIT & LOSS"
+              totalValue={totals?.income?.totalProfit}
+            >
+              <TotalRow label="Rental Income" value={totals?.income?.rentalIncome} />
+              <TotalRow label="Delivery Income" value={totals?.income?.deliveryIncome} />
+              <TotalRow label="Electric Prepaid Income" value={totals?.income?.electricPrepaidIncome} />
+              <TotalRow label="Smoking Fines" value={totals?.income?.smokingFines} />
+              <TotalRow label="Gas Prepaid Income" value={totals?.income?.gasPrepaidIncome} />
+              <TotalRow label="Miles Income" value={totals?.income?.milesIncome} />
+              <TotalRow label="Ski Racks Income" value={totals?.income?.skiRacksIncome} />
+              <TotalRow label="Child Seat Income" value={totals?.income?.childSeatIncome} />
+              <TotalRow label="Coolers Income" value={totals?.income?.coolersIncome} />
+              <TotalRow label="Income Insurance & Client Wrecks" value={totals?.income?.incomeInsurance} />
+              <TotalRow label="Other Income" value={totals?.income?.otherIncome} />
+              <TotalRow label="Negative Balance Carry Over" value={totals?.income?.negativeBalance} negative />
+              <TotalRow label="Car Management Total Expenses" value={totals?.income?.carManagementTotalExpenses} separator bold />
+              <TotalRow label="Car Owner Total Expenses" value={totals?.income?.carOwnerTotalExpenses} bold />
+              <TotalRow label="Total Expenses" value={totals?.income?.totalExpenses} separator bold />
+              <TotalRow label="Car Payment" value={totals?.income?.carPayment} bold />
+              <TotalRow label="Total Profit" value={totals?.income?.totalProfit} bold />
+            </Section>
+
+            {/* 3. Operating Expenses — Direct Delivery */}
+            <Section
+              title="OPERATING EXPENSES (Direct Delivery)"
+              totalValue={totals?.operatingExpensesDirect?.total}
+            >
+              <TotalRow label="Labor - Car Cleaning" value={totals?.operatingExpensesDirect?.laborCarCleaning} />
+              <TotalRow label="Labor - Driver" value={totals?.operatingExpensesDirect?.laborDriver} />
+              <TotalRow label="Parking - Airport" value={totals?.operatingExpensesDirect?.parkingAirport} />
+              <TotalRow label="Taxi/Uber/Lyft/Lime" value={totals?.operatingExpensesDirect?.taxiUberLyftLime} />
+              <TotalRow label="Total Operating Expenses (Direct Delivery)" value={totals?.operatingExpensesDirect?.total} separator bold />
+            </Section>
+
+            {/* 4. Operating Expenses — COGS Per Vehicle */}
+            <Section
+              title="OPERATING EXPENSES (COGS — Per Vehicle)"
+              totalValue={totals?.expenses?.totalOperatingExpenses}
+            >
+              <TotalRow label="Auto Body Shop / Wreck" value={totals?.expenses?.autoBodyShop} />
+              <TotalRow label="Alignment" value={totals?.expenses?.alignment} />
+              <TotalRow label="Battery" value={totals?.expenses?.battery} />
+              <TotalRow label="Brakes" value={totals?.expenses?.brakes} />
+              <TotalRow label="Car Payment" value={totals?.expenses?.carPayment} />
+              <TotalRow label="Car Insurance" value={totals?.expenses?.carInsurance} />
+              <TotalRow label="Car Seats" value={totals?.expenses?.carSeats} />
+              <TotalRow label="Cleaning Supplies / Tools" value={totals?.expenses?.cleaningSupplies} />
+              <TotalRow label="Emissions" value={totals?.expenses?.emissions} />
+              <TotalRow label="GPS System" value={totals?.expenses?.gpsSystem} />
+              <TotalRow label="Keys & Fob" value={totals?.expenses?.keysFob} />
+              <TotalRow label="Labor - Cleaning" value={totals?.expenses?.laborDetailing} />
+              <TotalRow label="License & Registration" value={totals?.expenses?.licenseRegistration} />
+              <TotalRow label="Mechanic" value={totals?.expenses?.mechanic} />
+              <TotalRow label="Oil/Lube" value={totals?.expenses?.oilLube} />
+              <TotalRow label="Parts" value={totals?.expenses?.parts} />
+              <TotalRow label="Ski Racks" value={totals?.expenses?.skiRacks} />
+              <TotalRow label="Tickets & Tolls" value={totals?.expenses?.ticketsTolls} />
+              <TotalRow label="Tire Air Station" value={totals?.expenses?.tiredAirStation} />
+              <TotalRow label="Tires" value={totals?.expenses?.tires} />
+              <TotalRow label="Towing / Impound Fees" value={totals?.expenses?.towingImpoundFees} />
+              <TotalRow label="Uber/Lyft/Lime" value={totals?.expenses?.uberLyftLime} />
+              <TotalRow label="Windshield" value={totals?.expenses?.windshield} />
+              <TotalRow label="Wipers" value={totals?.expenses?.wipers} />
+              <TotalRow label="Total COGS (Per Vehicle)" value={totals?.expenses?.totalOperatingExpenses} separator bold />
+            </Section>
+
+            {/* 5. GLA Parking Fee & Labor Cleaning */}
+            <Section
+              title="GLA PARKING FEE & LABOR CLEANING"
+              totalValue={totals?.gla?.total}
+            >
+              <TotalRow label="GLA Labor - Cleaning" value={totals?.gla?.laborCleaning} />
+              <TotalRow label="GLA Parking Fee" value={totals?.gla?.parkingFee} />
+              <TotalRow label="Total GLA Parking Fee & Labor Cleaning" value={totals?.gla?.total} separator bold />
+            </Section>
+
+            {/* 6. Office Support — only for all-cars view */}
+            {isAllCarsReport && (
+              <Section
+                title="OPERATING EXPENSES (Office Support)"
+                totalValue={totals?.operatingExpensesOffice?.total}
+              >
+                <TotalRow label="Accounting & Professional Fees" value={totals?.operatingExpensesOffice?.accountingProfessionalFees} />
+                <TotalRow label="Advertising" value={totals?.operatingExpensesOffice?.advertizing} />
+                <TotalRow label="Bank Charges" value={totals?.operatingExpensesOffice?.bankCharges} />
+                <TotalRow label="Detail Mobile" value={totals?.operatingExpensesOffice?.detailMobile} />
+                <TotalRow label="Charitable Contributions" value={totals?.operatingExpensesOffice?.charitableContributions} />
+                <TotalRow label="Computer & Internet" value={totals?.operatingExpensesOffice?.computerInternet} />
+                <TotalRow label="Delivery, Postage & Freight" value={totals?.operatingExpensesOffice?.deliveryPostageFreight} />
+                <TotalRow label="Detail Shop Equipment" value={totals?.operatingExpensesOffice?.detailShopEquipment} />
+                <TotalRow label="Dues & Subscription" value={totals?.operatingExpensesOffice?.duesSubscription} />
+                <TotalRow label="General & Administrative (G&A)" value={totals?.operatingExpensesOffice?.generalAdministrative} />
+                <TotalRow label="Health & Wellness" value={totals?.operatingExpensesOffice?.healthWellness} />
+                <TotalRow label="Labor - Human Resources" value={totals?.operatingExpensesOffice?.laborHumanResources} />
+                <TotalRow label="Labor - Marketing" value={totals?.operatingExpensesOffice?.laborMarketing} />
+                <TotalRow label="Labor - Sales" value={totals?.operatingExpensesOffice?.laborSales} />
+                <TotalRow label="Labor - Software" value={totals?.operatingExpensesOffice?.laborSoftware} />
+                <TotalRow label="Legal & Professional" value={totals?.operatingExpensesOffice?.legalProfessional} />
+                <TotalRow label="Marketing" value={totals?.operatingExpensesOffice?.marketing} />
+                <TotalRow label="Meals & Entertainment" value={totals?.operatingExpensesOffice?.mealsEntertainment} />
+                <TotalRow label="Office Expense" value={totals?.operatingExpensesOffice?.officeExpense} />
+                <TotalRow label="Office Rent" value={totals?.operatingExpensesOffice?.officeRent} />
+                <TotalRow label="Outside & Staff Contractors" value={totals?.operatingExpensesOffice?.outsideStaffContractors} />
+                <TotalRow label="Park n Jet Booth" value={totals?.operatingExpensesOffice?.parknJetBooth} />
+                <TotalRow label="Printing" value={totals?.operatingExpensesOffice?.printing} />
+                <TotalRow label="Referral" value={totals?.operatingExpensesOffice?.referral} />
+                <TotalRow label="Repairs & Maintenance" value={totals?.operatingExpensesOffice?.repairsMaintenance} />
+                <TotalRow label="Sales Tax" value={totals?.operatingExpensesOffice?.salesTax} />
+                <TotalRow label="Security Cameras" value={totals?.operatingExpensesOffice?.securityCameras} />
+                <TotalRow label="Supplies & Materials" value={totals?.operatingExpensesOffice?.suppliesMaterials} />
+                <TotalRow label="Taxes & License" value={totals?.operatingExpensesOffice?.taxesLicense} />
+                <TotalRow label="Telephone" value={totals?.operatingExpensesOffice?.telephone} />
+                <TotalRow label="Travel" value={totals?.operatingExpensesOffice?.travel} />
+                <TotalRow label="Total Office Support" value={totals?.operatingExpensesOffice?.total} separator bold />
+              </Section>
+            )}
+
+            {/* 7. Reimbursed Bills */}
+            <Section
+              title="REIMBURSED & NON-REIMBURSED BILLS"
+              totalValue={
+                Number(totals?.reimbursedBills?.electricReimbursed || 0) +
+                Number(totals?.reimbursedBills?.electricNotReimbursed || 0) +
+                Number(totals?.reimbursedBills?.gasReimbursed || 0) +
+                Number(totals?.reimbursedBills?.gasNotReimbursed || 0) +
+                Number(totals?.reimbursedBills?.gasServiceRun || 0) +
+                Number(totals?.reimbursedBills?.parkingAirport || 0) +
+                Number(totals?.reimbursedBills?.uberLyftLimeReimbursed || 0) +
+                Number(totals?.reimbursedBills?.uberLyftLimeNotReimbursed || 0)
               }
+            >
+              <TotalRow label="Electric - Reimbursed" value={totals?.reimbursedBills?.electricReimbursed} />
+              <TotalRow label="Electric - Not Reimbursed" value={totals?.reimbursedBills?.electricNotReimbursed} />
+              <TotalRow label="Gas - Reimbursed" value={totals?.reimbursedBills?.gasReimbursed} />
+              <TotalRow label="Gas - Not Reimbursed" value={totals?.reimbursedBills?.gasNotReimbursed} />
+              <TotalRow label="Gas - Service Run" value={totals?.reimbursedBills?.gasServiceRun} />
+              <TotalRow label="Parking Airport" value={totals?.reimbursedBills?.parkingAirport} />
+              <TotalRow label="Uber/Lyft/Lime - Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeReimbursed} />
+              <TotalRow label="Uber/Lyft/Lime - Not Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeNotReimbursed} />
+            </Section>
 
-              // Special handling for OPERATING EXPENSES (DIRECT DELIVERY) category
-              if (category.id === "operating-expenses-direct") {
-                return (
-                  <AccordionItem
-                    key={category.id}
-                    value={category.id}
-                    className="border border-border rounded-lg overflow-hidden bg-card mb-2 last:mb-0"
-                  >
-                    <AccordionTrigger className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-muted transition-colors [&>svg]:hidden">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-4 h-4 text-primary group-data-[state=open]:hidden" />
-                          <Minus className="w-4 h-4 text-primary hidden group-data-[state=open]:block" />
-                          <span className="text-foreground font-medium text-sm sm:text-base">{category.label}</span>
-                        </div>
-                        <span className="text-foreground font-semibold text-sm sm:text-base">TOTALS</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 sm:px-6 pb-4 bg-background">
-                      <div className="space-y-2 pt-2">
-                        {/* Child Items */}
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Labor - Car Cleaning</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesDirect?.laborCarCleaning || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Labor - Driver</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesDirect?.laborDriver || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Parking - Airport</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesDirect?.parkingAirport || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Taxi/Uber/Lyft/Lime</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesDirect?.taxiUberLyftLime || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm font-bold pt-2 border-t border-border">
-                          <span>Total OPERATING EXPENSES (Direct Delivery)</span>
-                          <span className="text-foreground font-bold">
-                            {formatCurrency(totals?.operatingExpensesDirect?.total || 0)}
-                          </span>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              }
+            {/* 8. Vehicle History */}
+            <Section
+              title="VEHICLE HISTORY"
+              totalIsCurrency={false}
+            >
+              <TotalRow label="Days Rented" value={totals?.history?.daysRented} isCurrency={false} />
+              <TotalRow label="Cars Available For Rent" value={totals?.history?.carsAvailableForRent} isCurrency={false} />
+              <TotalRow label="Trips Taken" value={totals?.history?.tripsTaken} isCurrency={false} />
+            </Section>
 
-              // Special handling for OPERATING EXPENSES (COGS - Per Vehicle) category
-              if (category.id === "operating-expenses-cogs") {
-                return (
-                  <AccordionItem
-                    key={category.id}
-                    value={category.id}
-                    className="border border-border rounded-lg overflow-hidden bg-card mb-2 last:mb-0"
-                  >
-                    <AccordionTrigger className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-muted transition-colors [&>svg]:hidden">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-4 h-4 text-primary group-data-[state=open]:hidden" />
-                          <Minus className="w-4 h-4 text-primary hidden group-data-[state=open]:block" />
-                          <span className="text-foreground font-medium text-sm sm:text-base">{category.label}</span>
-                        </div>
-                        <span className="text-foreground font-semibold text-sm sm:text-base">TOTALS</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 sm:px-6 pb-4 bg-background">
-                      <div className="space-y-2 pt-2">
-                        {/* Child Items */}
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Auto Body Shop / Wreck</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.autoBodyShop || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Alignment</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.alignment || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Battery</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.battery || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Brakes</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.brakes || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Car Payment</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.carPayment || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Car Insurance</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.carInsurance || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Car Seats</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.carSeats || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Cleaning Supplies / Tools</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.cleaningSupplies || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Emissions</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.emissions || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>GPS System</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.gpsSystem || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Keys & Fob</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.keysFob || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Labor - Cleaning</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.laborDetailing || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Parking Airport (Reimbursed - GLA - Client Owner Rentals)</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.parkingAirport || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Uber/Lyft/Lime - Not Reimbursed</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.uberNotReimbursed || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Uber/Lyft/Lime - Reimbursed</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.uberReimbursed || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Gas - Service Run</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.gasServiceRun || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Gas Reimbursed</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.gasReimbursed || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Gas - Not Reimbursed</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.gasNotReimbursed || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Electric Reimbursed</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.electricReimbursed || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Electric - Not Reimbursed</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.electricNotReimbursed || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Windshield</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.windshield || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Wipers</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.wipers || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Uber/Lyft/Lime</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.uberLyftLime || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Towing / Impound Fees</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.towingImpoundFees || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Tired Air Station</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.tiredAirStation || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Tires</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.tires || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Oil/Lube</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.oilLube || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Parts</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.parts || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Ski Racks</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.skiRacks || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Tickets & Tolls</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.ticketsTolls || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Mechanic</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.mechanic || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>License & Registration</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.expenses?.licenseRegistration || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm font-bold pt-2 border-t border-border">
-                          <span className="font-bold">Total OPERATING EXPENSES (COGS - Per Vehicle)</span>
-                          <span className="text-foreground font-bold">
-                            {formatCurrency(totals?.expenses?.totalOperatingExpenses || 0)}
-                          </span>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              }
-
-              // Special handling for INCOME category
-              if (category.id === "income") {
-                const negativeBalance = totals?.income?.negativeBalance || 0;
-                const formatNegativeCurrency = (value: number): string => {
-                  if (value < 0) {
-                    return `$ (${Math.abs(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
-                  }
-                  return formatCurrency(value);
-                };
-
-                return (
-                  <AccordionItem
-                    key={category.id}
-                    value={category.id}
-                    className="border border-border rounded-lg overflow-hidden bg-card mb-2 last:mb-0"
-                  >
-                    <AccordionTrigger className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-muted transition-colors [&>svg]:hidden">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-4 h-4 text-primary group-data-[state=open]:hidden" />
-                          <Minus className="w-4 h-4 text-primary hidden group-data-[state=open]:block" />
-                          <span className="text-foreground font-medium text-sm sm:text-base">{category.label}</span>
-                        </div>
-                        <span className="text-foreground font-semibold text-sm sm:text-base">TOTALS</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 sm:px-6 pb-4 bg-background">
-                      <div className="space-y-2 pt-2">
-                        {/* Income Items */}
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Rental Income</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.income?.rentalIncome || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Delivery Income</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.income?.deliveryIncome || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Electric Prepaid Income</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.income?.electricPrepaidIncome || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Smoking Fines</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.income?.smokingFines || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Gas Prepaid Income</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.income?.gasPrepaidIncome || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Miles Income</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.income?.milesIncome || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Ski Racks Income</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.income?.skiRacksIncome || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Child Seat Income</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.income?.childSeatIncome || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Coolers Income</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.income?.coolersIncome || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Income Insurance and Client Wrecks</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.income?.incomeInsurance || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Other Income</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.income?.otherIncome || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Negative Balance Carry Over</span>
-                          <span className={negativeBalance < 0 ? "text-primary" : "text-foreground"}>
-                            {formatNegativeCurrency(negativeBalance)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm pt-2 border-t border-border">
-                          <span className="font-medium">Car Management Total Expenses</span>
-                          <span className="text-foreground font-semibold">
-                            {formatCurrency(totals?.income?.carManagementTotalExpenses || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span className="font-medium">Car Owner Total Expenses</span>
-                          <span className="text-foreground font-semibold">
-                            {formatCurrency(totals?.income?.carOwnerTotalExpenses || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm font-bold pt-2 border-t border-border">
-                          <span>Total Expenses</span>
-                          <span className="text-foreground font-bold">
-                            {formatCurrency(totals?.income?.totalExpenses || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm font-bold">
-                          <span>Car Payment</span>
-                          <span className="text-foreground font-bold">
-                            {formatCurrency(totals?.income?.carPayment || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm font-bold">
-                          <span>Total Profit</span>
-                          <span className="text-foreground font-bold">
-                            {formatCurrency(totals?.income?.totalProfit || 0)}
-                          </span>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              }
-
-              // Special handling for GLA PARKING FEE & LABOR CLEANING category
-              if (category.id === "gla") {
-                return (
-                  <AccordionItem
-                    key={category.id}
-                    value={category.id}
-                    className="border border-border rounded-lg overflow-hidden bg-card mb-2 last:mb-0"
-                  >
-                    <AccordionTrigger className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-muted transition-colors [&>svg]:hidden">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-4 h-4 text-primary group-data-[state=open]:hidden" />
-                          <Minus className="w-4 h-4 text-primary hidden group-data-[state=open]:block" />
-                          <span className="text-foreground font-medium text-sm sm:text-base">{category.label}</span>
-                        </div>
-                        <span className="text-foreground font-semibold text-sm sm:text-base">TOTALS</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 sm:px-6 pb-4 bg-background">
-                      <div className="space-y-2 pt-2">
-                        {/* Child Items */}
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>GLA Labor - Cleaning</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.gla?.laborCleaning || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>GLA Parking Fee</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.gla?.parkingFee || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm font-bold pt-2 border-t border-border">
-                          <span className="font-bold">Total GLA PARKING FEE & LABOR CLEANING</span>
-                          <span className="text-foreground font-bold">
-                            {formatCurrency(totals?.gla?.total || 0)}
-                          </span>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              }
-
-              // Special handling for REIMBURSED AND NON-REIMBURSED BILLS category
-              if (category.id === "reimbursed-bills") {
-                return (
-                  <AccordionItem
-                    key={category.id}
-                    value={category.id}
-                    className="border border-border rounded-lg overflow-hidden bg-card mb-2 last:mb-0"
-                  >
-                    <AccordionTrigger className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-muted transition-colors [&>svg]:hidden">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-4 h-4 text-primary group-data-[state=open]:hidden" />
-                          <Minus className="w-4 h-4 text-primary hidden group-data-[state=open]:block" />
-                          <span className="text-foreground font-medium text-sm sm:text-base">{category.label}</span>
-                        </div>
-                        <span className="text-foreground font-semibold text-sm sm:text-base">TOTALS</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 sm:px-6 pb-4 bg-background">
-                      <div className="space-y-2 pt-2">
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Electric - Reimbursed</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.reimbursedBills?.electricReimbursed || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Electric - Not Reimbursed</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.reimbursedBills?.electricNotReimbursed || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Gas - Reimbursed</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.reimbursedBills?.gasReimbursed || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Gas - Not Reimbursed</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.reimbursedBills?.gasNotReimbursed || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Gas - Service Run</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.reimbursedBills?.gasServiceRun || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Parking Airport</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.reimbursedBills?.parkingAirport || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Uber/Lyft/Lime - Reimbursed</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.reimbursedBills?.uberLyftLimeReimbursed || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Uber/Lyft/Lime - Not Reimbursed</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.reimbursedBills?.uberLyftLimeNotReimbursed || 0)}
-                          </span>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              }
-
-              // Special handling for OPERATING EXPENSES (Office Support) category - Only for All Cars Report
-              if (category.id === "operating-expenses-office") {
-                return (
-                  <AccordionItem
-                    key={category.id}
-                    value={category.id}
-                    className="border border-border rounded-lg overflow-hidden bg-card mb-2 last:mb-0"
-                  >
-                    <AccordionTrigger className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-muted transition-colors [&>svg]:hidden">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-4 h-4 text-primary group-data-[state=open]:hidden" />
-                          <Minus className="w-4 h-4 text-primary hidden group-data-[state=open]:block" />
-                          <span className="text-foreground font-medium text-sm sm:text-base">{category.label}</span>
-                        </div>
-                        <span className="text-foreground font-semibold text-sm sm:text-base">TOTALS</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 sm:px-6 pb-4 bg-background">
-                      <div className="space-y-2 pt-2">
-                        {/* Child Items */}
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Accounting & Professional Fees</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.accountingProfessionalFees || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Advertizing</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.advertizing || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Bank Charges</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.bankCharges || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Detail Mobile</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.detailMobile || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Charitable Contributions</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.charitableContributions || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Computer & Internet</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.computerInternet || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Delivery, Postage & Freight</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.deliveryPostageFreight || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Detail Shop Equipment</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.detailShopEquipment || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Dues & Subscription</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.duesSubscription || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>General and administrative (G&A)</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.generalAdministrative || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Health & Wellness</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.healthWellness || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Labor - Human Resources</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.laborHumanResources || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Labor - Marketing</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.laborMarketing || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Office Rent</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.officeRent || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Outside & Staff Contractors</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.outsideStaffContractors || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Park n Jet Booth</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.parknJetBooth || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Printing</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.printing || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Referral</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.referral || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Repairs & Maintenance</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.repairsMaintenance || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Sales Tax</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.salesTax || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Security Cameras</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.securityCameras || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Supplies & Materials</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.suppliesMaterials || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Taxes and License</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.taxesLicense || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Telephone</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.telephone || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Travel</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.travel || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Labor Software</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.laborSoftware || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Legal & Professional</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.legalProfessional || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Marketing</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.marketing || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Meals & Entertainment</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.mealsEntertainment || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Office Expense</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.officeExpense || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Labor Sales</span>
-                          <span className="text-foreground">
-                            {formatCurrency(totals?.operatingExpensesOffice?.laborSales || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm font-bold pt-2 border-t border-border">
-                          <span className="font-bold">Total OPERATING EXPENSES (Office Support)</span>
-                          <span className="text-foreground font-bold">
-                            {formatCurrency(totals?.operatingExpensesOffice?.total || 0)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-base font-extrabold">
-                          <span className="font-extrabold">Total Expenses</span>
-                          <span className="text-foreground font-extrabold">
-                            {formatCurrency(totals?.operatingExpensesOffice?.totalExpenses || 0)}
-                          </span>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              }
-
-              // Special handling for HISTORY OF THE CARS category
-              if (category.id === "history") {
-                return (
-                  <AccordionItem
-                    key={category.id}
-                    value={category.id}
-                    className="border border-border rounded-lg overflow-hidden bg-card mb-2 last:mb-0"
-                  >
-                    <AccordionTrigger className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-muted transition-colors [&>svg]:hidden">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-4 h-4 text-primary group-data-[state=open]:hidden" />
-                          <Minus className="w-4 h-4 text-primary hidden group-data-[state=open]:block" />
-                          <span className="text-foreground font-medium text-sm sm:text-base">{category.label}</span>
-                        </div>
-                        <span className="text-foreground font-semibold text-sm sm:text-base">TOTALS</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 sm:px-6 pb-4 bg-background">
-                      <div className="space-y-2 pt-2">
-                        {/* Child Items */}
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Days Rented</span>
-                          <span className="text-foreground font-medium">
-                            {totals?.history?.daysRented || 0}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Cars Available For Rent</span>
-                          <span className="text-foreground font-medium">
-                            {totals?.history?.carsAvailableForRent || 0}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>Trips Taken</span>
-                          <span className="text-foreground font-medium">
-                            {totals?.history?.tripsTaken || 0}
-                          </span>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              }
-
-              // Special handling for PAYMENT HISTORY category
-              if (category.id === "payments") {
-                return (
-                  <AccordionItem
-                    key={category.id}
-                    value={category.id}
-                    className="border border-border rounded-lg overflow-hidden bg-card mb-2 last:mb-0"
-                  >
-                    <AccordionTrigger className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-muted transition-colors [&>svg]:hidden">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-4 h-4 text-primary group-data-[state=open]:hidden" />
-                          <Minus className="w-4 h-4 text-primary hidden group-data-[state=open]:block" />
-                          <span className="text-foreground font-medium text-sm sm:text-base">{category.label}</span>
-                        </div>
-                        <span className="text-foreground font-semibold text-sm sm:text-base">TOTALS</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 sm:px-6 pb-4 bg-background">
-                      <div className="space-y-2 pt-2">
-                        {/* Child Items */}
-                        <div className="flex justify-between text-muted-foreground text-sm">
-                          <span>{fromYear} - {toYear}</span>
-                          <span className="text-foreground font-semibold">
-                            {formatCurrency(totals?.payments?.total || 0)}
-                          </span>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              }
-
-              // Default handling for other categories
-              return (
-                <AccordionItem
-                  key={category.id}
-                  value={category.id}
-                  className="border border-border rounded-lg overflow-hidden bg-card mb-2 last:mb-0"
-                >
-                  <AccordionTrigger className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-muted transition-colors [&>svg]:hidden">
-                    <div className="flex items-center justify-between w-full pr-4">
-                      <div className="flex items-center gap-2">
-                        <Plus className="w-4 h-4 text-primary group-data-[state=open]:hidden" />
-                        <Minus className="w-4 h-4 text-primary hidden group-data-[state=open]:block" />
-                        <span className="text-foreground font-medium text-sm sm:text-base">{category.label}</span>
-                      </div>
-                      <span className="text-foreground font-semibold text-sm sm:text-base">TOTALS</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 sm:px-6 pb-4 bg-background">
-                    <div className="space-y-2 pt-2">
-                      {/* Placeholder content - will be replaced with actual data from API */}
-                      <div className="flex justify-between text-muted-foreground text-sm">
-                        <span>No data available</span>
-                        <span className="text-foreground">{formatCurrency(category.total)}</span>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
-        </div>
+            {/* 9. Payment History */}
+            <Section
+              title="PAYMENT HISTORY"
+              totalValue={totals?.payments?.total}
+            >
+              <TotalRow label={`${effectiveFilters.fromYear}${effectiveFilters.fromYear !== effectiveFilters.toYear ? ` — ${effectiveFilters.toYear}` : ""}`} value={totals?.payments?.total} bold />
+            </Section>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
 }
-

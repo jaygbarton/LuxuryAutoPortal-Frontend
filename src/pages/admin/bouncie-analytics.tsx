@@ -25,6 +25,7 @@ import {
   Activity,
 } from "lucide-react";
 import { Link } from "wouter";
+import { BouncieConnectionBanner } from "@/components/admin/BouncieConnectionBanner";
 
 interface VehicleUtilization {
   device_id: string;
@@ -163,6 +164,8 @@ export default function BouncieAnalyticsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6 p-1">
+        <BouncieConnectionBanner />
+
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">

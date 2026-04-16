@@ -300,7 +300,7 @@ export default function IncomeExpensesSection({
   onYearChange,
 }: IncomeExpensesSectionProps) {
   const { data, isLoading, isError } = useQuery<ApiResponse>({
-    queryKey: [`/api/income-expense/all-cars/${year}`],
+    queryKey: ["/api/income-expense/all-cars", year],
     queryFn: async () => {
       const res = await fetch(buildApiUrl(`/api/income-expense/all-cars/${year}`), {
         credentials: "include",

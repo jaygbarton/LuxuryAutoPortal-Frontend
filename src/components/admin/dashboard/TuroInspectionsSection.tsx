@@ -89,7 +89,7 @@ function LoadingSkeleton() {
 
 export default function TuroInspectionsSection() {
   const { data, isLoading } = useQuery<TuroTripsResponse>({
-    queryKey: ["/api/turo-trips", "dashboard"],
+    queryKey: ["/api/turo-trips", "limit=50"],
     queryFn: async () => {
       const res = await fetch(buildApiUrl("/api/turo-trips?limit=50"), {
         credentials: "include",
