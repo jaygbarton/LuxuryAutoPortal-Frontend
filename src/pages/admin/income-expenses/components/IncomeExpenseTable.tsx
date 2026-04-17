@@ -28,6 +28,26 @@ interface IncomeExpenseTableProps {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+// Round a number to 2 decimals using PHP-style round-half-away-from-zero,
+// matching GLA-V3's `number_format((float)$x, 2, ".", "")` used to store
+// split amounts in the DB before they are re-fetched, summed, and displayed.
+//
+// IEEE-754 representation means values like 314.755 are actually held as
+// 314.7549999999..., and both JS `Math.round` and `.toFixed(2)` then round
+// DOWN to 314.75 even though PHP rounds UP to 314.76. Using `Number.EPSILON`
+// (~2.22e-16) is useless at this magnitude because float precision near
+// 31475 is only ~7e-12. We add a fixed 1e-9 nudge that is WAY below one cent
+// (so it can't change values that aren't already on a half-cent boundary)
+// but is large enough to clear float noise and push real ties upward.
+//
+// Applied to every monthly Car Management Split / Car Owner Split result so
+// the per-month cell AND the yearly total match GLA-V3 to the cent.
+const roundToPhp2Dp = (value: number): number => {
+  if (!isFinite(value)) return 0;
+  const sign = value < 0 ? -1 : 1;
+  return (sign * Math.round(Math.abs(value) * 100 + 1e-9)) / 100;
+};
+
 export default function IncomeExpenseTable({ year, isFromRoute = false, showParkingAirportQB = false, isAllCarsView = false }: IncomeExpenseTableProps) {
   const [location] = useLocation();
   const isReadOnly = location.startsWith("/admin/income-expenses");
@@ -1027,54 +1047,54 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                   >
                     <div className="flex flex-col items-center gap-1">
                       <span className="text-foreground text-[10px]">{month} {year}</span>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={isReadOnly ? undefined : () => toggleMonthMode(monthNum)}
-                          disabled={isSavingMode || isReadOnly}
-                          className={cn(
-                            "px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all duration-200",
-                            "disabled:opacity-50 disabled:cursor-not-allowed",
-                            currentMode === 50 
-                              ? "bg-green-600 text-white hover:bg-green-700 active:bg-green-800 shadow-lg shadow-green-600/50" 
-                              : "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-lg shadow-blue-600/50",
-                            isSavingMode && "animate-pulse",
-                            isReadOnly && "cursor-default hover:bg-inherit active:bg-inherit"
-                          )}
-                          title={
-                            isReadOnly 
-                              ? `Rate mode: ${currentMode === 50 ? "50:50 (green)" : "30:70 (blue)"} (Read-only)`
-                              : isSavingMode 
-                                ? "Saving mode change..." 
+                      {/* Split-mode / ski-racks-owner toggles are editing controls.
+                          Hide them entirely on the read-only /admin/income-expenses
+                          page per UX: users only need to see values there. They
+                          remain available in editable contexts (e.g. view-car). */}
+                      {!isReadOnly && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => toggleMonthMode(monthNum)}
+                            disabled={isSavingMode}
+                            className={cn(
+                              "px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all duration-200",
+                              "disabled:opacity-50 disabled:cursor-not-allowed",
+                              currentMode === 50
+                                ? "bg-green-600 text-white hover:bg-green-700 active:bg-green-800 shadow-lg shadow-green-600/50"
+                                : "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-lg shadow-blue-600/50",
+                              isSavingMode && "animate-pulse"
+                            )}
+                            title={
+                              isSavingMode
+                                ? "Saving mode change..."
                                 : `Click to toggle between 50:50 (green) and 30:70 (blue) split`
-                          }
-                        >
-                          {isSavingMode ? "..." : currentMode}
-                        </button>
-                        {showSkiRacksToggle && hasSkiRacksIncome && (
-                        <button
-                          onClick={isReadOnly ? undefined : () => toggleSkiRacksOwner(monthNum)}
-                          disabled={isSavingSkiRacksOwner || isReadOnly}
-                          className={cn(
-                            "px-2 py-0.5 rounded-full text-xs font-semibold transition-all duration-200 min-w-[24px]",
-                            "disabled:opacity-50 disabled:cursor-not-allowed",
-                            currentSkiRacksOwner === "GLA"
-                              ? "bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800 shadow-lg shadow-purple-600/50"
-                              : "bg-orange-600 text-white hover:bg-orange-700 active:bg-orange-800 shadow-lg shadow-orange-600/50",
-                            isSavingSkiRacksOwner && "animate-pulse",
-                            isReadOnly && "cursor-default hover:bg-inherit active:bg-inherit"
+                            }
+                          >
+                            {isSavingMode ? "..." : currentMode}
+                          </button>
+                          {showSkiRacksToggle && hasSkiRacksIncome && (
+                            <button
+                              onClick={() => toggleSkiRacksOwner(monthNum)}
+                              disabled={isSavingSkiRacksOwner}
+                              className={cn(
+                                "px-2 py-0.5 rounded-full text-xs font-semibold transition-all duration-200 min-w-[24px]",
+                                "disabled:opacity-50 disabled:cursor-not-allowed",
+                                currentSkiRacksOwner === "GLA"
+                                  ? "bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800 shadow-lg shadow-purple-600/50"
+                                  : "bg-orange-600 text-white hover:bg-orange-700 active:bg-orange-800 shadow-lg shadow-orange-600/50",
+                                isSavingSkiRacksOwner && "animate-pulse"
+                              )}
+                              title={
+                                isSavingSkiRacksOwner
+                                  ? "Saving ski racks owner..."
+                                  : `Click to toggle ski racks owner: ${currentSkiRacksOwner === "GLA" ? "Management/GLA (purple)" : "Owner (orange)"}`
+                              }
+                            >
+                              {isSavingSkiRacksOwner ? "..." : currentSkiRacksOwner === "GLA" ? "M" : "O"}
+                            </button>
                           )}
-                          title={
-                            isReadOnly
-                              ? `Ski racks owner: ${currentSkiRacksOwner === "GLA" ? "Management/GLA (purple)" : "Owner (orange)"} (Read-only)`
-                              : isSavingSkiRacksOwner 
-                                ? "Saving ski racks owner..." 
-                                : `Click to toggle ski racks owner: ${currentSkiRacksOwner === "GLA" ? "Management/GLA (purple)" : "Owner (orange)"}`
-                          }
-                        >
-                          {isSavingSkiRacksOwner ? "..." : currentSkiRacksOwner === "GLA" ? "M" : "O"}
-                        </button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </th>
                 );
@@ -1091,15 +1111,28 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
               title="CAR MANAGEMENT OWNER SPLIT"
               isExpanded={expandedSections.managementOwner}
               onToggle={() => toggleSection("managementOwner")}
-              isAllCarsView={isAllCarsView}
+
             >
-              {/* Car Management Split - Shows calculated amount + percentage */}
+              {/* Car Management Split - Shows calculated amount + percentage.
+                  Follow GLA-V3 decimal handling: each month's computed split
+                  is rounded to 2dp at the source (same as GLA-V3's PHP
+                  `number_format((float)$x, 2, ".", "")` before saving to DB),
+                  so the per-month cells and the yearly total are computed
+                  from identical 2dp values. CategoryRow's summedTotal then
+                  sums these exact 2dp values - no sub-cent drift.
+
+                  In All Cars mode the per-car formula cannot be re-run on
+                  aggregated inputs (each car has its own split %, mode, and
+                  ski-racks owner), so use the backend-precomputed
+                  `mgmtIncome` / `ownerIncome` — these are summed per-car
+                  results matching GLA-V3's SUM-of-stored-splits semantics. */}
               <CategoryRow
                 label="Car Management Split"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
-                  const calculatedAmount = calculateCarManagementSplit(monthNum);
-                  return calculatedAmount; // Return calculated amount for display
+                  return isAllCarsView
+                    ? getMonthValue(data.incomeExpenses, monthNum, "mgmtIncome")
+                    : roundToPhp2Dp(calculateCarManagementSplit(monthNum));
                 })}
                 percentageValues={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
@@ -1108,17 +1141,18 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 category="income"
                 field="carManagementSplit"
                 isEditable={!isReadOnly}
-                formatType="managementSplit"
+                formatType={isAllCarsView ? undefined : "managementSplit"}
                 monthModes={monthModes}
-                showAmountAndPercentage={true}
+                showAmountAndPercentage={!isAllCarsView}
               />
-              {/* Car Owner Split - Shows calculated amount + percentage */}
+              {/* Car Owner Split - Same treatment as Car Management Split. */}
               <CategoryRow
                 label="Car Owner Split"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
-                  const calculatedAmount = calculateCarOwnerSplit(monthNum);
-                  return calculatedAmount; // Return calculated amount for display
+                  return isAllCarsView
+                    ? getMonthValue(data.incomeExpenses, monthNum, "ownerIncome")
+                    : roundToPhp2Dp(calculateCarOwnerSplit(monthNum));
                 })}
                 percentageValues={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
@@ -1127,9 +1161,9 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 category="income"
                 field="carOwnerSplit"
                 isEditable={!isReadOnly}
-                formatType="ownerSplit"
+                formatType={isAllCarsView ? undefined : "ownerSplit"}
                 monthModes={monthModes}
-                showAmountAndPercentage={true}
+                showAmountAndPercentage={!isAllCarsView}
               />
             </CategorySection>
 
@@ -1138,7 +1172,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
               title="INCOME & EXPENSES"
               isExpanded={expandedSections.incomeExpenses}
               onToggle={() => toggleSection("incomeExpenses")}
-              isAllCarsView={isAllCarsView}
+
             >
               <CategoryRow
                 label="Rental Income"
@@ -1284,7 +1318,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
               title="OPERATING EXPENSE (Direct Delivery)"
               isExpanded={expandedSections.directDelivery}
               onToggle={() => toggleSection("directDelivery")}
-              isAllCarsView={isAllCarsView}
+
             >
               <CategoryRow
                 label="Labor - Cleaning"
@@ -1379,7 +1413,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
               title="OPERATING EXPENSE (COGS - Per Vehicle)"
               isExpanded={expandedSections.cogs}
               onToggle={() => toggleSection("cogs")}
-              isAllCarsView={isAllCarsView}
+
             >
               <CategoryRow
                 label="Auto Body Shop / Wreck"
@@ -1607,7 +1641,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
               title="Parking Fee & Labor Cleaning"
               isExpanded={expandedSections.parkingFeeLabor}
               onToggle={() => toggleSection("parkingFeeLabor")}
-              isAllCarsView={isAllCarsView}
+
             >
               <CategoryRow
                 label="GLA Parking Fee"
@@ -1681,7 +1715,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
               title="REIMBURSE AND NON-REIMBURSE BILLS"
               isExpanded={expandedSections.reimbursedBills}
               onToggle={() => toggleSection("reimbursedBills")}
-              isAllCarsView={isAllCarsView}
+
             >
               <CategoryRow
                 label="Electric - Reimbursed"
@@ -1798,7 +1832,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 title="OPERATING EXPENSES (OFFICE SUPPORT)"
                 isExpanded={expandedSections.officeSupport}
                 onToggle={() => toggleSection("officeSupport")}
-                isAllCarsView={isAllCarsView}
+
               >
                 <CategoryRow
                   label="Accounting & Professional Fees"
@@ -1998,7 +2032,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
               title="INCOME & EXPENSES SUMMARY"
               isExpanded={expandedSections.incomeExpenseSummary}
               onToggle={() => toggleSection("incomeExpenseSummary")}
-              isAllCarsView={isAllCarsView}
+
             >
               <CategoryRow
                 label="Total Rental Income"
@@ -2080,7 +2114,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 title="EBITDA"
                 isExpanded={expandedSections.ebitda}
                 onToggle={() => toggleSection("ebitda")}
-                isAllCarsView={isAllCarsView}
+
               >
                 <CategoryRow
                   label="Total Rental Income"
@@ -2196,7 +2230,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
               title="HISTORY"
               isExpanded={expandedSections.history}
               onToggle={() => toggleSection("history")}
-              isAllCarsView={isAllCarsView}
+
             >
               <CategoryRow
                 label="Days Rented"
@@ -2230,7 +2264,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
               isExpanded={expandedSections.rentalValue}
               onToggle={() => toggleSection("rentalValue")}
               hasActions={false}
-              isAllCarsView={isAllCarsView}
+
             >
               <CategoryRow
                 label="Total Car Rental Income"
@@ -2266,7 +2300,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
               isExpanded={expandedSections.parkingAverageGLA}
               onToggle={() => toggleSection("parkingAverageGLA")}
               hasActions={false}
-              isAllCarsView={isAllCarsView}
+
             >
               <CategoryRow
                 label="Total Trips Taken"
@@ -2287,6 +2321,11 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                   const trips = getMonthValue(data.history, monthNum, "tripsTaken");
                   return trips > 0 ? parking / trips : 0;
                 })}
+                totalOverride={(() => {
+                  const totalParking = MONTHS.reduce((sum, _, i) => sum + getMonthValue(data.reimbursedBills, i + 1, "parkingAirport"), 0);
+                  const totalTrips = MONTHS.reduce((sum, _, i) => sum + getMonthValue(data.history, i + 1, "tripsTaken"), 0);
+                  return totalTrips > 0 ? totalParking / totalTrips : 0;
+                })()}
                 isEditable={false}
               />
             </CategorySection>
@@ -2298,7 +2337,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 isExpanded={expandedSections.parkingAverageQB}
                 onToggle={() => toggleSection("parkingAverageQB")}
                 hasActions={false}
-                isAllCarsView={isAllCarsView}
+
               >
                 <CategoryRow
                   label="Total Trips Taken"
@@ -2321,6 +2360,11 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                     const trips = getMonthValue(data.history, monthNum, "tripsTaken");
                     return trips > 0 ? parking / trips : 0;
                   })}
+                  totalOverride={(() => {
+                    const totalParking = MONTHS.reduce((sum, _, i) => sum + getMonthValue(data.parkingAirportQB || [], i + 1, "totalParkingAirport"), 0);
+                    const totalTrips = MONTHS.reduce((sum, _, i) => sum + getMonthValue(data.history, i + 1, "tripsTaken"), 0);
+                    return totalTrips > 0 ? totalParking / totalTrips : 0;
+                  })()}
                   isEditable={false}
                 />
               </CategorySection>
@@ -2517,14 +2561,9 @@ interface CategorySectionProps {
   onToggle: () => void;
   children: React.ReactNode;
   hasActions?: boolean;
-  isAllCarsView?: boolean;
 }
 
-function CategorySection({ title, isExpanded, onToggle, children, hasActions = true, isAllCarsView = false }: CategorySectionProps) {
-  // In "All Cars" view, always show children and hide toggle button
-  const shouldShowToggle = !isAllCarsView;
-  const shouldShowChildren = isAllCarsView || isExpanded;
-  
+function CategorySection({ title, isExpanded, onToggle, children, hasActions = true }: CategorySectionProps) {
   return (
     <>
       <tr className="bg-primary">
@@ -2535,21 +2574,23 @@ function CategorySection({ title, isExpanded, onToggle, children, hasActions = t
           • Cell 2 (scrollable): fills the remaining 13 columns with the
             primary background colour and scrolls away to the right.
           On mobile (< md) both cells are static and scroll normally.
+          The chevron toggle is always shown — both per-car and All Cars
+          views support expand/collapse.
         */}
         <td
-          className="md:sticky md:left-0 md:z-30 bg-primary px-2 py-1.5 border-b border-primary min-w-[150px] max-w-[180px]"
-          onClick={shouldShowToggle ? onToggle : undefined}
+          className="md:sticky md:left-0 md:z-30 bg-primary px-2 py-1.5 border-b border-primary min-w-[150px] max-w-[180px] cursor-pointer"
+          onClick={onToggle}
         >
-          <div
-            className={`flex items-center gap-2 ${shouldShowToggle ? 'cursor-pointer hover:bg-inherit' : ''}`}
-          >
-            {shouldShowToggle && (isExpanded ? <ChevronDown className="w-4 h-4 text-white" /> : <ChevronRight className="w-4 h-4 text-white" />)}
+          <div className="flex items-center gap-2">
+            {isExpanded
+              ? <ChevronDown className="w-4 h-4 text-white shrink-0" />
+              : <ChevronRight className="w-4 h-4 text-white shrink-0" />}
             <span className="text-xs font-semibold text-white">{title}</span>
           </div>
         </td>
-        <td colSpan={13} className="bg-primary border-b border-primary" onClick={shouldShowToggle ? onToggle : undefined} />
+        <td colSpan={13} className="bg-primary border-b border-primary cursor-pointer" onClick={onToggle} />
       </tr>
-      {shouldShowChildren && children}
+      {isExpanded && children}
     </>
   );
 }

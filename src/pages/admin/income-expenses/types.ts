@@ -29,6 +29,12 @@ export interface IncomeExpenseMonth {
   carPayment: number;
   carManagementTotalExpenses: number;
   carOwnerTotalExpenses: number;
+  // Backend-aggregated totals for the "All Cars" view only. These are
+  // computed per-car (respecting each car's own split %, 50:50 vs 30:70
+  // mode, and ski-racks owner) and then summed. The per-car view does not
+  // populate these and should keep using the local formula helpers.
+  mgmtIncome?: number;
+  ownerIncome?: number;
 }
 
 export interface DirectDeliveryMonth {
