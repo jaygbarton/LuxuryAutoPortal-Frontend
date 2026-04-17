@@ -985,20 +985,32 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
     // table's intrinsic min-width (Category + 12 months + Total) would push the
     // wrapper wider than its parent, cascading horizontal overflow up to the
     // window and making the sticky Category/Total columns scroll off-screen.
-    <div className="w-full min-w-0 bg-card border border-border rounded-lg overflow-hidden">
+    //
+    // IMPORTANT: we intentionally do NOT set `overflow-hidden` on this outer
+    // wrapper. Doing so would create a second sticky-scroll-container above the
+    // inner scroll div, which (together with `border-collapse: collapse`) causes
+    // Chrome to anchor sticky <td>s to this outer wrapper—so they scroll away
+    // with the content instead of pinning. We let the inner scroll container
+    // own both the clipping and the sticky positioning.
+    <div className="w-full min-w-0 bg-card border border-border rounded-lg">
       {/*
         Single scroll container for both axes with a bounded height so that
         position: sticky on the header row (top), the Category column (left),
         and the Total column (right) all have a real scrolling ancestor.
-        Without the max-height, overflow-x-auto on its own doesn't create a
-        vertical scroll context and the sticky header scrolls away with the page.
+        `rounded-lg` here keeps the card's rounded corners clipping the table
+        now that the outer wrapper no longer uses `overflow-hidden`.
       */}
-      <div className="overflow-auto max-h-[calc(100vh-180px)]">
+      <div className="overflow-auto max-h-[calc(100vh-180px)] rounded-lg">
         <table className="w-full border-collapse text-xs">
           {/* Table Header */}
-          <thead className="sticky top-0 z-40 bg-muted">
+          {/*
+            `md:sticky` — the column/row freeze only activates on desktop widths
+            (md breakpoint = 768 px). On smaller/mobile screens the header row
+            and Category/Total columns scroll normally with the table.
+          */}
+          <thead className="md:sticky md:top-0 md:z-40 bg-muted">
             <tr>
-              <th className="sticky left-0 z-50 bg-muted border-r border-border px-2 py-1.5 text-left text-foreground min-w-[150px] max-w-[180px]">
+              <th className="md:sticky md:left-0 md:z-50 bg-muted border-r border-border px-2 py-1.5 text-left text-foreground min-w-[150px] max-w-[180px]">
                 Category
               </th>
               {MONTHS.map((month, index) => {
@@ -1067,7 +1079,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                   </th>
                 );
               })}
-              <th className="sticky right-0 z-30 border-l border-border px-1 py-1.5 text-center text-foreground min-w-[75px] bg-card font-bold">
+              <th className="md:sticky md:right-0 md:z-50 border-l border-border px-1 py-1.5 text-center text-foreground min-w-[75px] bg-card font-bold">
                 Total
               </th>
             </tr>
@@ -2443,7 +2455,7 @@ function DynamicSubcategoryRow({
   
   return (
     <tr className="border-b border-border">
-      <td className="sticky left-0 z-20 bg-card px-2 py-1 text-left text-muted-foreground border-r border-border text-xs">
+      <td className="md:sticky md:left-0 md:z-20 bg-card px-2 py-1 text-left text-muted-foreground border-r border-border text-xs">
         <div className="flex items-center gap-2">
           <span className="truncate">{subcategory.name}</span>
           {!isReadOnly && (
@@ -2489,7 +2501,7 @@ function DynamicSubcategoryRow({
         );
       })}
       <td className={cn(
-        "sticky right-0 z-20 border-l border-border px-1 py-1 text-right font-bold text-xs bg-card",
+        "md:sticky md:right-0 md:z-20 border-l border-border px-1 py-1 text-right font-bold text-xs bg-card",
         total === 0 ? "text-gray-600" : "text-[#EAEB80]"
       )}>
         ${total.toFixed(2)}
@@ -2516,15 +2528,26 @@ function CategorySection({ title, isExpanded, onToggle, children, hasActions = t
   return (
     <>
       <tr className="bg-primary">
-        <td colSpan={14} className="sticky left-0 z-30 bg-primary px-2 py-1.5 border-b border-primary">
-          <div 
-            className={`flex items-center gap-2 ${shouldShowToggle ? 'cursor-pointer hover:bg-inherit' : ''}`} 
-            onClick={shouldShowToggle ? onToggle : undefined}
+        {/*
+          Split into two cells so the title can be sticky on desktop:
+          • Cell 1 (sticky): holds the title text, same min-width as the
+            Category column so it perfectly overlaps that column on freeze.
+          • Cell 2 (scrollable): fills the remaining 13 columns with the
+            primary background colour and scrolls away to the right.
+          On mobile (< md) both cells are static and scroll normally.
+        */}
+        <td
+          className="md:sticky md:left-0 md:z-30 bg-primary px-2 py-1.5 border-b border-primary min-w-[150px] max-w-[180px]"
+          onClick={shouldShowToggle ? onToggle : undefined}
+        >
+          <div
+            className={`flex items-center gap-2 ${shouldShowToggle ? 'cursor-pointer hover:bg-inherit' : ''}`}
           >
             {shouldShowToggle && (isExpanded ? <ChevronDown className="w-4 h-4 text-white" /> : <ChevronRight className="w-4 h-4 text-white" />)}
             <span className="text-xs font-semibold text-white">{title}</span>
           </div>
         </td>
+        <td colSpan={13} className="bg-primary border-b border-primary" onClick={shouldShowToggle ? onToggle : undefined} />
       </tr>
       {shouldShowChildren && children}
     </>
@@ -2650,7 +2673,7 @@ function CategoryRow({
       "border-b border-border",
       isTotal && "bg-background font-semibold"
     )}>
-      <td className="sticky left-0 z-20 bg-card px-2 py-1 text-left text-muted-foreground border-r border-border text-xs" title={label}>
+      <td className="md:sticky md:left-0 md:z-20 bg-card px-2 py-1 text-left text-muted-foreground border-r border-border text-xs" title={label}>
         <span className="truncate block">{label}</span>
       </td>
       {values.map((value, i) => {
@@ -2705,7 +2728,7 @@ function CategoryRow({
       })}
       {!hideTotal && (
         <td className={cn(
-          "sticky right-0 z-20 border-l border-border px-1 py-1 text-right text-foreground font-bold text-xs",
+          "md:sticky md:right-0 md:z-20 border-l border-border px-1 py-1 text-right text-foreground font-bold text-xs",
           isTotal ? "bg-background" : "bg-card"
         )}>
           {formatTotal()}

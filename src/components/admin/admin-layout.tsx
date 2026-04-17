@@ -308,11 +308,28 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   };
 
   return (
-    <div className="flex h-screen bg-background" style={{ overflow: 'auto' }}>
+    // Root shell:
+    //   - `flex h-screen`  — horizontal row, exactly viewport height.
+    //   - `overflow-hidden` — nothing is allowed to scroll the page itself.
+    //     Vertical scrolling lives on <main>; horizontal scrolling lives on
+    //     whatever inner widget needs it (e.g. the income/expense table).
+    //     This stops the whole document from scrolling when a child is wider
+    //     than the viewport, which used to visually "cut" the main content
+    //     during browser resizes.
+    <div className="flex h-screen bg-background overflow-hidden">
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300",
-        sidebarOpen ? "w-64" : "w-20",
-        mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        // Base: flex column chrome for the sidebar.
+        "z-50 flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300",
+        // Mobile (< lg): fixed overlay that slides in from the left.
+        "fixed inset-y-0 left-0",
+        mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
+        // Desktop (lg+): promote the sidebar to a normal flex child so it
+        // naturally contributes its width to the row and <main> doesn't need
+        // a hand-tuned margin. `lg:translate-x-0` cancels the mobile slide
+        // transform; `lg:h-screen` guarantees full height even when the flex
+        // parent's stretch ever gets overridden.
+        "lg:static lg:translate-x-0 lg:h-screen lg:flex-shrink-0",
+        sidebarOpen ? "w-64" : "w-20"
       )}>
         <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
           <Link href="/dashboard" className="flex items-center gap-2">
@@ -426,10 +443,22 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         </div>
       </aside>
 
-      <div className={cn(
-        "flex-1 flex flex-col transition-all duration-300",
-        sidebarOpen ? "lg:ml-64" : "lg:ml-20"
-      )}>
+      {/*
+        Main column:
+          - `flex-1` — consume the viewport width that the sidebar didn't take.
+          - `min-w-0` — critical in a flex row; lets this column actually shrink
+            below the intrinsic min-width of its content (tables, long headers,
+            etc.) instead of being pushed wider and overflowing the shell.
+          - `overflow-hidden` — clips any stray overflow at the column boundary
+            so the page never develops a horizontal scrollbar; internal scroll
+            containers (<main>'s overflow-y-auto and per-widget overflow-auto)
+            own their own scrolling.
+        We intentionally dropped the previous `lg:ml-64 / lg:ml-20` hack and
+        the redundant `w-full` — the sidebar is now a real flex sibling on lg+,
+        so it contributes its own width to the row and no manual margin or
+        width declaration is needed. `flex-1 min-w-0` is the whole formula.
+      */}
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden transition-all duration-300">
         <header className="h-14 bg-background border-b border-border flex items-center justify-between px-3 sm:px-4 lg:px-6">
           <button
             onClick={() => setMobileMenuOpen(true)}

@@ -460,8 +460,12 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
   }
 
   // Per-car view (both from route and from admin selection)
+  // `activeCarId!` — by this point both early-return guards above have run:
+  //   1. `!activeCarId && !isAllCarsView` → shows selector UI and returns
+  //   2. `isAllCarsView` → shows all-cars view and returns
+  // So activeCarId is guaranteed to be a non-null number here.
   return (
-    <IncomeExpenseProvider carId={activeCarId} year={selectedYear}>
+    <IncomeExpenseProvider carId={activeCarId!} year={selectedYear}>
       <AdminLayout>
         <div className="flex flex-col w-full">
           {/* Header */}
@@ -590,14 +594,14 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
               <TableActions
                 selectedYear={selectedYear}
                 setSelectedYear={setSelectedYear}
-                carId={activeCarId}
+                carId={activeCarId!}
                 car={car}
               />
             </div>
           </div>
 
           {/* Form Submissions & Receipts - separated from manual I&E entries */}
-          <FormSubmissionsAndReceipts carId={activeCarId} year={selectedYear} />
+          <FormSubmissionsAndReceipts carId={activeCarId!} year={selectedYear} />
 
           {/* Main Content Area */}
           {/*
