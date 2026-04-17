@@ -980,8 +980,20 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
   };
 
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden">
-      <div className="overflow-x-auto">
+    // `min-w-0` + `w-full` guarantee this wrapper fills—but never exceeds—the
+    // width of whatever flex/grid ancestor it's dropped into. Without it, the
+    // table's intrinsic min-width (Category + 12 months + Total) would push the
+    // wrapper wider than its parent, cascading horizontal overflow up to the
+    // window and making the sticky Category/Total columns scroll off-screen.
+    <div className="w-full min-w-0 bg-card border border-border rounded-lg overflow-hidden">
+      {/*
+        Single scroll container for both axes with a bounded height so that
+        position: sticky on the header row (top), the Category column (left),
+        and the Total column (right) all have a real scrolling ancestor.
+        Without the max-height, overflow-x-auto on its own doesn't create a
+        vertical scroll context and the sticky header scrolls away with the page.
+      */}
+      <div className="overflow-auto max-h-[calc(100vh-180px)]">
         <table className="w-full border-collapse text-xs">
           {/* Table Header */}
           <thead className="sticky top-0 z-40 bg-muted">
@@ -2005,7 +2017,11 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 label="Total Car Management Car Expenses"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
-                  return getMonthValue(data.incomeExpenses, monthNum, "carManagementTotalExpenses");
+                  // Mirror the "Car Management Total Expenses" row in INCOME & EXPENSES:
+                  // use backend-provided value in All Cars view, otherwise compute from this car's data.
+                  return isAllCarsView
+                    ? getMonthValue(data.incomeExpenses, monthNum, "carManagementTotalExpenses")
+                    : calculateCarManagementTotalExpenses(monthNum);
                 })}
                 isEditable={false}
               />
@@ -2013,7 +2029,10 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 label="Total Car Owner Car Expenses"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
-                  return getMonthValue(data.incomeExpenses, monthNum, "carOwnerTotalExpenses");
+                  // Mirror the "Car Owner Total Expenses" row in INCOME & EXPENSES.
+                  return isAllCarsView
+                    ? getMonthValue(data.incomeExpenses, monthNum, "carOwnerTotalExpenses")
+                    : calculateCarOwnerTotalExpenses(monthNum);
                 })}
                 isEditable={false}
               />
@@ -2029,8 +2048,12 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
                   // Total Expenses = Car Management Total Expenses + Car Owner Total Expenses + Office Support (when all cars)
-                  const carManagementExpenses = getMonthValue(data.incomeExpenses, monthNum, "carManagementTotalExpenses");
-                  const carOwnerExpenses = getMonthValue(data.incomeExpenses, monthNum, "carOwnerTotalExpenses");
+                  const carManagementExpenses = isAllCarsView
+                    ? getMonthValue(data.incomeExpenses, monthNum, "carManagementTotalExpenses")
+                    : calculateCarManagementTotalExpenses(monthNum);
+                  const carOwnerExpenses = isAllCarsView
+                    ? getMonthValue(data.incomeExpenses, monthNum, "carOwnerTotalExpenses")
+                    : calculateCarOwnerTotalExpenses(monthNum);
                   const officeSupportTotal = isAllCarsView ? getTotalOfficeSupportForMonth(monthNum) : 0;
                   return carManagementExpenses + carOwnerExpenses + officeSupportTotal;
                 })}
@@ -2548,10 +2571,14 @@ function CategoryRow({
   // Override isEditable if in read-only mode
   const effectiveIsEditable = isReadOnly ? false : isEditable;
   
-  // Calculate total - ensure all values are numbers (or use override if provided)
+  // Calculate total - ensure all values are numbers (or use override if provided).
+  // For currency rows, round each month's value to the nearest cent before summing
+  // so the yearly total exactly matches the sum of what's shown in each month cell
+  // (otherwise accumulated sub-cent floats can drift the total by several dollars).
   const summedTotal = values.reduce((sum, val) => {
     const numVal = typeof val === 'number' && !isNaN(val) ? val : 0;
-    return sum + numVal;
+    const rounded = isInteger ? numVal : Math.round(numVal * 100) / 100;
+    return sum + rounded;
   }, 0);
   const total = typeof totalOverride === "number" && !isNaN(totalOverride) ? totalOverride : summedTotal;
 

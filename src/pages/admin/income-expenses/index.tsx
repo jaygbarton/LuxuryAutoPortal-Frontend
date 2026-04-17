@@ -432,7 +432,14 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
             </div>
 
             {/* Main Content Area */}
-            <div className="w-full overflow-x-auto">
+            {/*
+              `min-w-0` is required on this flex child so the table's internal
+              min-width (Category + 12 months + Total) doesn't force this wrapper
+              wider than the flex container, which would otherwise push the whole
+              page into horizontal window scroll and defeat the sticky Category
+              column inside the table.
+            */}
+            <div className="w-full min-w-0">
               <IncomeExpenseTable year={selectedYear} isFromRoute={false} showParkingAirportQB={true} isAllCarsView={true} />
             </div>
 
@@ -593,7 +600,13 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
           <FormSubmissionsAndReceipts carId={activeCarId} year={selectedYear} />
 
           {/* Main Content Area */}
-          <div className="w-full overflow-x-auto">
+          {/*
+            `min-w-0` keeps this flex child from growing to the table's intrinsic
+            min-width (Category + 12 months + Total) so horizontal scroll happens
+            inside the table, not on the whole page. Without it, the sticky
+            Category column slides off-screen with the window scroll.
+          */}
+          <div className="w-full min-w-0">
             <IncomeExpenseTable year={selectedYear} isFromRoute={isFromRoute} showParkingAirportQB={false} />
           </div>
 
