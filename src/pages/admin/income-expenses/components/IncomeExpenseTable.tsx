@@ -2043,10 +2043,12 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 label="Total Car Management Income"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
-                  // Car Management Split - Office Support (only subtract office support when all cars)
-                  const carManagementSplit = calculateCarManagementSplit(monthNum);
-                  const officeSupportTotal = isAllCarsView ? getTotalOfficeSupportForMonth(monthNum) : 0;
-                  return carManagementSplit - officeSupportTotal;
+                  // Mirror the "Car Management Split" row value 1:1 — in All Cars
+                  // view use the backend-aggregated per-car total (mgmtIncome);
+                  // per-car view runs the same formula that drives that row.
+                  return isAllCarsView
+                    ? getMonthValue(data.incomeExpenses, monthNum, "mgmtIncome")
+                    : roundToPhp2Dp(calculateCarManagementSplit(monthNum));
                 })}
                 isEditable={false}
               />
@@ -2054,8 +2056,10 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 label="Total Car Owner Income"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
-                  // Car Owner Split
-                  return calculateCarOwnerSplit(monthNum);
+                  // Mirror the "Car Owner Split" row value 1:1.
+                  return isAllCarsView
+                    ? getMonthValue(data.incomeExpenses, monthNum, "ownerIncome")
+                    : roundToPhp2Dp(calculateCarOwnerSplit(monthNum));
                 })}
                 isEditable={false}
               />
@@ -2093,15 +2097,18 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                 label="Total Expenses"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
-                  // Total Expenses = Car Management Total Expenses + Car Owner Total Expenses + Office Support (when all cars)
-                  const carManagementExpenses = isAllCarsView
-                    ? getMonthValue(data.incomeExpenses, monthNum, "carManagementTotalExpenses")
-                    : calculateCarManagementTotalExpenses(monthNum);
-                  const carOwnerExpenses = isAllCarsView
-                    ? getMonthValue(data.incomeExpenses, monthNum, "carOwnerTotalExpenses")
-                    : calculateCarOwnerTotalExpenses(monthNum);
+                  // Total Expenses is the true sum of every expense category:
+                  // Direct Delivery + COGS + Parking Fee & Labor + Reimbursed
+                  // Bills (+ Office Support on the All Cars page). Summing
+                  // carManagement/carOwnerTotalExpenses would under-count in
+                  // 50:50 split mode because Parking Fee & Labor is not
+                  // attributed to either side under that split formula.
+                  const directDelivery = getTotalDirectDeliveryForMonth(monthNum);
+                  const cogs = getTotalCogsForMonth(monthNum);
+                  const parkingFeeLabor = getTotalParkingFeeLaborForMonth(monthNum);
+                  const reimbursedBills = getTotalReimbursedBillsForMonth(monthNum);
                   const officeSupportTotal = isAllCarsView ? getTotalOfficeSupportForMonth(monthNum) : 0;
-                  return carManagementExpenses + carOwnerExpenses + officeSupportTotal;
+                  return directDelivery + cogs + parkingFeeLabor + reimbursedBills + officeSupportTotal;
                 })}
                 isEditable={false}
                 isTotal
@@ -2125,20 +2132,33 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                   label="Total Expenses"
                   values={MONTHS.map((_, i) => {
                     const monthNum = i + 1;
-                    // Total Expenses = Car Management Total Expenses + Car Owner Total Expenses + Office Support
-                    const carManagementExpenses = getMonthValue(data.incomeExpenses, monthNum, "carManagementTotalExpenses");
-                    const carOwnerExpenses = getMonthValue(data.incomeExpenses, monthNum, "carOwnerTotalExpenses");
+                    // Mirror the Total Expenses row in INCOME & EXPENSES SUMMARY:
+                    // the true sum of every expense category (Direct Delivery,
+                    // COGS, Parking Fee & Labor, Reimbursed Bills, Office
+                    // Support). See that row for why we don't use the
+                    // carManagement/carOwnerTotalExpenses fields here.
+                    const directDelivery = getTotalDirectDeliveryForMonth(monthNum);
+                    const cogs = getTotalCogsForMonth(monthNum);
+                    const parkingFeeLabor = getTotalParkingFeeLaborForMonth(monthNum);
+                    const reimbursedBills = getTotalReimbursedBillsForMonth(monthNum);
                     const officeSupportTotal = getTotalOfficeSupportForMonth(monthNum);
-                    return carManagementExpenses + carOwnerExpenses + officeSupportTotal;
+                    return directDelivery + cogs + parkingFeeLabor + reimbursedBills + officeSupportTotal;
                   })}
                   isEditable={false}
                 />
+                {/* EBITDA manual entries — only in All Cars view.
+                    These write into the shared officeSupport store at carId=0
+                    (same pattern as Parking Airport QB), so they are not
+                    tied to any individual car. `alwaysEditable` bypasses the
+                    admin-page blanket read-only guard used for aggregated
+                    rows so the admin can type these values here. */}
                 <CategoryRow
                   label="Interest"
                   values={MONTHS.map((_, i) => getMonthValue(data.officeSupport, i + 1, "vehicleLoanInterestExpense"))}
                   category="officeSupport"
                   field="vehicleLoanInterestExpense"
                   isEditable={true}
+                  alwaysEditable
                 />
                 <CategoryRow
                   label="Taxes"
@@ -2146,31 +2166,38 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                   category="officeSupport"
                   field="taxesLicense"
                   isEditable={true}
+                  alwaysEditable
                 />
                 <CategoryRow
                   label="Depreciation"
-                  values={MONTHS.map((_, i) => {
-                    const monthNum = i + 1;
-                    return getMonthValue(data.officeSupport, monthNum, "depreciationExpense") + 
-                           getMonthValue(data.officeSupport, monthNum, "vehicleDepreciationExpense");
-                  })}
-                  isEditable={false}
+                  values={MONTHS.map((_, i) => getMonthValue(data.officeSupport, i + 1, "depreciationExpense"))}
+                  category="officeSupport"
+                  field="depreciationExpense"
+                  isEditable={true}
+                  alwaysEditable
                 />
                 <CategoryRow
                   label="Amortization"
-                  values={MONTHS.map(() => 0)}
-                  isEditable={false}
+                  values={MONTHS.map((_, i) => getMonthValue(data.officeSupport, i + 1, "amortizationExpense"))}
+                  category="officeSupport"
+                  field="amortizationExpense"
+                  isEditable={true}
+                  alwaysEditable
                 />
                 <CategoryRow
                   label="Net Income"
                   values={MONTHS.map((_, i) => {
                     const monthNum = i + 1;
-                    // Net Income = Total Rental Income - Total Expenses
+                    // Net Income = Total Rental Income - Total Expenses, where
+                    // Total Expenses matches the row above (true sum of all
+                    // expense categories, see comment on Total Expenses).
                     const rentalIncome = getMonthValue(data.incomeExpenses, monthNum, "rentalIncome");
-                    const carManagementExpenses = getMonthValue(data.incomeExpenses, monthNum, "carManagementTotalExpenses");
-                    const carOwnerExpenses = getMonthValue(data.incomeExpenses, monthNum, "carOwnerTotalExpenses");
-                    const officeSupportTotal = getTotalOfficeSupportForMonth(monthNum);
-                    const totalExpenses = carManagementExpenses + carOwnerExpenses + officeSupportTotal;
+                    const totalExpenses =
+                      getTotalDirectDeliveryForMonth(monthNum) +
+                      getTotalCogsForMonth(monthNum) +
+                      getTotalParkingFeeLaborForMonth(monthNum) +
+                      getTotalReimbursedBillsForMonth(monthNum) +
+                      getTotalOfficeSupportForMonth(monthNum);
                     return rentalIncome - totalExpenses;
                   })}
                   isEditable={false}
@@ -2181,18 +2208,19 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                     const monthNum = i + 1;
                     // EBITDA = Net Income + Interest + Taxes + Depreciation + Amortization
                     const rentalIncome = getMonthValue(data.incomeExpenses, monthNum, "rentalIncome");
-                    const carManagementExpenses = getMonthValue(data.incomeExpenses, monthNum, "carManagementTotalExpenses");
-                    const carOwnerExpenses = getMonthValue(data.incomeExpenses, monthNum, "carOwnerTotalExpenses");
-                    const officeSupportTotal = getTotalOfficeSupportForMonth(monthNum);
-                    const totalExpenses = carManagementExpenses + carOwnerExpenses + officeSupportTotal;
+                    const totalExpenses =
+                      getTotalDirectDeliveryForMonth(monthNum) +
+                      getTotalCogsForMonth(monthNum) +
+                      getTotalParkingFeeLaborForMonth(monthNum) +
+                      getTotalReimbursedBillsForMonth(monthNum) +
+                      getTotalOfficeSupportForMonth(monthNum);
                     const netIncome = rentalIncome - totalExpenses;
-                    
+
                     const interest = getMonthValue(data.officeSupport, monthNum, "vehicleLoanInterestExpense");
                     const taxes = getMonthValue(data.officeSupport, monthNum, "taxesLicense");
-                    const depreciation = getMonthValue(data.officeSupport, monthNum, "depreciationExpense") + 
-                                        getMonthValue(data.officeSupport, monthNum, "vehicleDepreciationExpense");
-                    const amortization = 0; // Placeholder for amortization
-                    
+                    const depreciation = getMonthValue(data.officeSupport, monthNum, "depreciationExpense");
+                    const amortization = getMonthValue(data.officeSupport, monthNum, "amortizationExpense");
+
                     return netIncome + interest + taxes + depreciation + amortization;
                   })}
                   isEditable={false}
@@ -2204,19 +2232,20 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                     // EBITDA Margin = (EBITDA / Total Rental Income) * 100
                     const rentalIncome = getMonthValue(data.incomeExpenses, monthNum, "rentalIncome");
                     if (rentalIncome === 0) return 0;
-                    
-                    const carManagementExpenses = getMonthValue(data.incomeExpenses, monthNum, "carManagementTotalExpenses");
-                    const carOwnerExpenses = getMonthValue(data.incomeExpenses, monthNum, "carOwnerTotalExpenses");
-                    const officeSupportTotal = getTotalOfficeSupportForMonth(monthNum);
-                    const totalExpenses = carManagementExpenses + carOwnerExpenses + officeSupportTotal;
+
+                    const totalExpenses =
+                      getTotalDirectDeliveryForMonth(monthNum) +
+                      getTotalCogsForMonth(monthNum) +
+                      getTotalParkingFeeLaborForMonth(monthNum) +
+                      getTotalReimbursedBillsForMonth(monthNum) +
+                      getTotalOfficeSupportForMonth(monthNum);
                     const netIncome = rentalIncome - totalExpenses;
-                    
+
                     const interest = getMonthValue(data.officeSupport, monthNum, "vehicleLoanInterestExpense");
                     const taxes = getMonthValue(data.officeSupport, monthNum, "taxesLicense");
-                    const depreciation = getMonthValue(data.officeSupport, monthNum, "depreciationExpense") + 
-                                        getMonthValue(data.officeSupport, monthNum, "vehicleDepreciationExpense");
-                    const amortization = 0;
-                    
+                    const depreciation = getMonthValue(data.officeSupport, monthNum, "depreciationExpense");
+                    const amortization = getMonthValue(data.officeSupport, monthNum, "amortizationExpense");
+
                     const ebitda = netIncome + interest + taxes + depreciation + amortization;
                     return (ebitda / rentalIncome) * 100;
                   })}
@@ -2351,6 +2380,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
                   category="parkingAirportQB"
                   field="totalParkingAirport"
                   isEditable={true}
+                  alwaysEditable
                 />
                 <CategoryRow
                   label="Average per trip"
@@ -2611,6 +2641,11 @@ interface CategoryRowProps {
   isPercentage?: boolean;
   showAmountAndPercentage?: boolean; // Show both amount and percentage
   totalOverride?: number; // Override the auto-summed total (e.g. for averages)
+  // Bypass the /admin/income-expenses (All Cars page) read-only guard so this
+  // specific row can still be typed in by the admin. Used for true All-Cars
+  // manual entries (EBITDA Interest/Taxes/Depreciation/Amortization and the
+  // QB Parking Airport row) that have no per-car source.
+  alwaysEditable?: boolean;
 }
 
 function CategoryRow({
@@ -2629,9 +2664,10 @@ function CategoryRow({
   isPercentage = false,
   showAmountAndPercentage = false,
   totalOverride,
+  alwaysEditable = false,
 }: CategoryRowProps) {
   const [location] = useLocation();
-  const isReadOnly = location.startsWith("/admin/income-expenses");
+  const isReadOnly = location.startsWith("/admin/income-expenses") && !alwaysEditable;
   // Override isEditable if in read-only mode
   const effectiveIsEditable = isReadOnly ? false : isEditable;
   

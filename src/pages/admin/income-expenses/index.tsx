@@ -23,6 +23,7 @@ import ModalEditParkingFeeLabor from "./modals/ModalEditParkingFeeLabor";
 import ModalEditReimbursedBills from "./modals/ModalEditReimbursedBills";
 import ModalEditHistory from "./modals/ModalEditHistory";
 import ModalEditParkingAirportQB from "./modals/ModalEditParkingAirportQB";
+import ModalEditOfficeSupport from "./modals/ModalEditOfficeSupport";
 import ModalEditDynamicSubcategory from "./modals/ModalEditDynamicSubcategory";
 
 interface IncomeExpensesPageProps {
@@ -452,6 +453,7 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
             <ModalEditReimbursedBills />
             <ModalEditHistory />
             <ModalEditParkingAirportQB />
+            <ModalEditOfficeSupport />
             <ModalEditDynamicSubcategory />
           </div>
         </AdminLayout>

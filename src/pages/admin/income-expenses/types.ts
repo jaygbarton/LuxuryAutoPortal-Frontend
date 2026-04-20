@@ -127,6 +127,9 @@ export interface OfficeSupportMonth {
   depreciationExpense: number;
   vehicleDepreciationExpense: number;
   vehicleLoanInterestExpense: number;
+  // All-Cars EBITDA manual entry (stored at car_id = 0, same pattern as
+  // parking_airport_qb). Not meaningful on per-car rows.
+  amortizationExpense: number;
 }
 
 export interface HistoryMonth {

@@ -154,6 +154,7 @@ function getEmptyData(): IncomeExpenseData {
       depreciationExpense: 0,
       vehicleDepreciationExpense: 0,
       vehicleLoanInterestExpense: 0,
+      amortizationExpense: 0,
     })),
     history: emptyMonthData.map((m) => ({
       ...m,
@@ -409,7 +410,11 @@ export function IncomeExpenseProvider({
       if (!response.ok) throw new Error("Failed to update subcategory value");
       
       await fetchDynamicSubcategories();
-      queryClient.invalidateQueries({ queryKey: ["/api/income-expense", carId, year] });
+      queryClient.invalidateQueries({
+        queryKey: isAllCars
+          ? ["/api/income-expense/all-cars", year]
+          : ["/api/income-expense", carId, year],
+      });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -518,7 +523,11 @@ export function IncomeExpenseProvider({
       }
 
       // Invalidate query to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/income-expense", carId, year] });
+      queryClient.invalidateQueries({
+        queryKey: isAllCars
+          ? ["/api/income-expense/all-cars", year]
+          : ["/api/income-expense", carId, year],
+      });
       
       toast({
         title: "Success",
@@ -598,7 +607,11 @@ export function IncomeExpenseProvider({
       }
 
       // Invalidate query to refresh data (but don't wait for it)
-      queryClient.invalidateQueries({ queryKey: ["/api/income-expense", carId, year] });
+      queryClient.invalidateQueries({
+        queryKey: isAllCars
+          ? ["/api/income-expense/all-cars", year]
+          : ["/api/income-expense", carId, year],
+      });
       
       toast({
         title: "Success",
@@ -666,7 +679,11 @@ export function IncomeExpenseProvider({
       await Promise.all(promises);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/income-expense", carId, year] });
+      queryClient.invalidateQueries({
+        queryKey: isAllCars
+          ? ["/api/income-expense/all-cars", year]
+          : ["/api/income-expense", carId, year],
+      });
       setPendingChanges(new Map());
       setEditingCell(null); // Close modal after successful save
       toast({
@@ -749,7 +766,11 @@ export function IncomeExpenseProvider({
 
       Promise.all(promises)
         .then(() => {
-          queryClient.invalidateQueries({ queryKey: ["/api/income-expense", carId, year] });
+          queryClient.invalidateQueries({
+            queryKey: isAllCars
+              ? ["/api/income-expense/all-cars", year]
+              : ["/api/income-expense", carId, year],
+          });
           setPendingChanges(new Map());
           setEditingCell(null);
           toast({
