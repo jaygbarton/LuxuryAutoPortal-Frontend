@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import {
@@ -11,15 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Plus, Trash2, Edit, FileText, HandCoins, Loader2, Upload, Download } from "lucide-react";
+import { Plus, Trash2, Edit, FileText, Loader2, Upload, Download, Wand2, CalendarX, Filter, FileSpreadsheet, CheckCircle2, X, AlertTriangle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -107,6 +99,9 @@ export default function PaymentsMainPage() {
   const [startMonth, setStartMonth] = useState<string>("");
   const [endMonth, setEndMonth] = useState<string>("");
   const [carFilter, setCarFilter] = useState<string>("");
+  const [carActivityFilter, setCarActivityFilter] = useState<"all" | "active" | "inactive">("active");
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(30);
 
   const [isFilter, setIsFilter] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -119,6 +114,7 @@ export default function PaymentsMainPage() {
   const [addYearMonth, setAddYearMonth] = useState("");
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImportDragOver, setIsImportDragOver] = useState(false);
   const [importResult, setImportResult] = useState<{
     imported?: number;
     skipped?: number;
@@ -127,7 +123,12 @@ export default function PaymentsMainPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const hasFilters = !!filterStatus || !!startMonth || !!endMonth || !!carFilter;
+  const hasFilters =
+    !!filterStatus ||
+    !!startMonth ||
+    !!endMonth ||
+    !!carFilter ||
+    carActivityFilter !== "active";
 
   const { data: statusesData } = useQuery<{
     success: boolean;
@@ -149,7 +150,15 @@ export default function PaymentsMainPage() {
 
   const { data: carsData } = useQuery<{
     success: boolean;
-    data: { id: number; makeModel: string; licensePlate?: string; vin?: string; year?: number }[];
+    data: {
+      id: number;
+      makeModel: string;
+      licensePlate?: string;
+      vin?: string;
+      year?: number;
+      isActive?: number | boolean;
+      status?: string;
+    }[];
   }>({
     queryKey: ["/api/cars", "payments-filter"],
     queryFn: async () => {
@@ -161,16 +170,40 @@ export default function PaymentsMainPage() {
     },
   });
 
-  const carsList = carsData?.data || [];
+  const allCars = carsData?.data || [];
+
+  const isCarActive = (c: { isActive?: number | boolean; status?: string }): boolean => {
+    if (c.isActive !== undefined) {
+      return c.isActive === 1 || c.isActive === true;
+    }
+    return (c.status || "").toUpperCase() === "ACTIVE";
+  };
+
+  const carsList = allCars.filter((c) => {
+    if (carActivityFilter === "all") return true;
+    if (carActivityFilter === "active") return isCarActive(c);
+    return !isCarActive(c);
+  });
 
   const { data: paymentsData, isLoading: isLoadingPayments } = useQuery<{
     success: boolean;
     data: Payment[];
     total: number;
     page: number;
+    limit: number;
+    totalPages: number;
     count: number;
   }>({
-    queryKey: ["/api/payments/search", filterStatus, startMonth, endMonth, carFilter],
+    queryKey: [
+      "/api/payments/search",
+      filterStatus,
+      startMonth,
+      endMonth,
+      carFilter,
+      carActivityFilter,
+      page,
+      pageSize,
+    ],
     queryFn: async () => {
       const url = buildApiUrl("/api/payments/search");
       const response = await fetch(url, {
@@ -182,8 +215,9 @@ export default function PaymentsMainPage() {
           startDate: startMonth || undefined,
           endDate: endMonth || undefined,
           carId: carFilter || undefined,
-          page: 1,
-          limit: 100,
+          carActiveStatus: carActivityFilter,
+          page,
+          limit: pageSize,
         }),
       });
       if (!response.ok) throw new Error("Failed to fetch payments");
@@ -192,6 +226,8 @@ export default function PaymentsMainPage() {
   });
 
   const payments = paymentsData?.data || [];
+  const totalPayments = paymentsData?.total || 0;
+  const totalPages = paymentsData?.totalPages || 1;
 
   const totals = payments.reduce(
     (acc, p) => ({
@@ -221,6 +257,7 @@ export default function PaymentsMainPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/search"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/car"] });
       toast({
         title: "Success",
         description: data.message || "Payments created successfully",
@@ -250,6 +287,7 @@ export default function PaymentsMainPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/search"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/car"] });
       toast({
         title: "Success",
         description: "Payments deleted successfully",
@@ -278,6 +316,7 @@ export default function PaymentsMainPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/search"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/car"] });
       toast({
         title: "Success",
         description: "Payment deleted successfully",
@@ -312,14 +351,14 @@ export default function PaymentsMainPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/search"] });
-      setImportResult({
-        imported: data.imported ?? data.count ?? 0,
-        skipped: data.skipped ?? 0,
-        errors: data.errors ?? [],
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/car"] });
+      const imported = data.imported ?? data.data?.imported ?? data.count ?? 0;
+      const skipped = data.skipped ?? data.data?.skipped ?? 0;
+      const errs = data.errors ?? data.data?.errors ?? [];
+      setImportResult({ imported, skipped, errors: errs });
       toast({
         title: "Import Complete",
-        description: `${data.imported ?? data.count ?? 0} payment(s) imported`,
+        description: `${imported} payment(s) imported, ${skipped} skipped`,
       });
     },
     onError: (error: Error) => {
@@ -331,13 +370,51 @@ export default function PaymentsMainPage() {
     },
   });
 
+  const autoGenerateMutation = useMutation({
+    mutationFn: async (includeInactive: boolean) => {
+      const url = buildApiUrl("/api/payments/auto-generate-all");
+      const response = await fetch(url, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ includeInactive }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || err.error || "Failed to auto-generate payments");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/search"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/car"] });
+      toast({
+        title: "Success",
+        description: data.message || "Payments auto-generated",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleClearFilters = () => {
     setFilterStatus("");
     setStartMonth("");
     setEndMonth("");
     setCarFilter("");
+    setCarActivityFilter("active");
     setIsFilter(false);
+    setPage(1);
   };
+
+  useEffect(() => {
+    setPage(1);
+  }, [filterStatus, startMonth, endMonth, carFilter, carActivityFilter, pageSize]);
 
   const formatVehicleInfo = (p: Payment) => {
     const name = `${p.car_make_name || ""} ${p.car_year || ""}`.trim();
@@ -349,17 +426,69 @@ export default function PaymentsMainPage() {
   return (
     <AdminLayout>
       <div className="flex flex-col h-full overflow-x-hidden">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-primary">Payments</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage client payments across all cars
-          </p>
+        {/* Page header */}
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-5">
+          <div>
+            <h1 className="text-2xl font-bold text-primary">Payments</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage client payments across all cars
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => autoGenerateMutation.mutate(false)}
+              disabled={autoGenerateMutation.isPending}
+              variant="outline"
+              className="bg-card border-border text-foreground hover:bg-muted hover:text-foreground h-9 font-medium"
+              title="Auto-generate payments for every month using income/expense data"
+            >
+              {autoGenerateMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Wand2 className="w-4 h-4 mr-2 text-primary" />
+                  Auto-Generate
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => setIsImportModalOpen(true)}
+              variant="outline"
+              className="bg-card border-border text-foreground hover:bg-muted hover:text-foreground h-9 font-medium"
+              title="Import payments from .xlsx"
+            >
+              <Upload className="w-4 h-4 mr-2 text-primary" />
+              Import
+            </Button>
+            <Button
+              onClick={() => setIsDeleteByMonthModalOpen(true)}
+              variant="outline"
+              className="bg-card border-red-500/30 text-red-600 hover:bg-red-500/10 hover:text-red-700 hover:border-red-500/50 h-9 font-medium"
+              title="Delete all payments for a month"
+            >
+              <CalendarX className="w-4 h-4 mr-2" />
+              Delete by Month
+            </Button>
+            <Button
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 font-semibold shadow-sm"
+              title="Create payments for all active cars for the selected month"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Payments
+            </Button>
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <div>
-              <label className="text-muted-foreground text-sm block mb-1">Status</label>
+        {/* Filter bar */}
+        <div className="bg-card border border-border rounded-lg shadow-sm p-4 mb-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex items-center gap-2 text-primary text-xs font-semibold uppercase tracking-wider mr-1 pb-2 self-end">
+              <Filter className="w-3.5 h-3.5" />
+              Filters
+            </div>
+            <div className="flex flex-col">
+              <label className="text-muted-foreground text-xs font-medium mb-1.5">Status</label>
               <Select
                 value={filterStatus || "__all__"}
                 onValueChange={(v) => {
@@ -367,7 +496,7 @@ export default function PaymentsMainPage() {
                   setIsFilter(true);
                 }}
               >
-                <SelectTrigger className="bg-card border-border text-foreground w-[140px]">
+                <SelectTrigger className="bg-background border-border text-foreground w-[140px] h-9 focus:ring-1 focus:ring-primary">
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground">
@@ -380,8 +509,8 @@ export default function PaymentsMainPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="text-muted-foreground text-sm block mb-1">From</label>
+            <div className="flex flex-col">
+              <label className="text-muted-foreground text-xs font-medium mb-1.5">From</label>
               <Input
                 type="month"
                 value={startMonth}
@@ -389,11 +518,11 @@ export default function PaymentsMainPage() {
                   setStartMonth(e.target.value);
                   setIsFilter(true);
                 }}
-                className="bg-card border-border text-foreground w-[160px] [&::-webkit-calendar-picker-indicator]:invert [&::-moz-calendar-picker-indicator]:invert"
+                className="bg-background border-border text-foreground w-[160px] h-9 focus-visible:ring-1 focus-visible:ring-primary"
               />
             </div>
-            <div>
-              <label className="text-muted-foreground text-sm block mb-1">To</label>
+            <div className="flex flex-col">
+              <label className="text-muted-foreground text-xs font-medium mb-1.5">To</label>
               <Input
                 type="month"
                 value={endMonth}
@@ -401,11 +530,30 @@ export default function PaymentsMainPage() {
                   setEndMonth(e.target.value);
                   setIsFilter(true);
                 }}
-                className="bg-card border-border text-foreground w-[160px] [&::-webkit-calendar-picker-indicator]:invert [&::-moz-calendar-picker-indicator]:invert"
+                className="bg-background border-border text-foreground w-[160px] h-9 focus-visible:ring-1 focus-visible:ring-primary"
               />
             </div>
-            <div>
-              <label className="text-muted-foreground text-sm block mb-1">Car</label>
+            <div className="flex flex-col">
+              <label className="text-muted-foreground text-xs font-medium mb-1.5">Cars</label>
+              <Select
+                value={carActivityFilter}
+                onValueChange={(v) => {
+                  setCarActivityFilter(v as "all" | "active" | "inactive");
+                  setIsFilter(true);
+                }}
+              >
+                <SelectTrigger className="bg-background border-border text-foreground w-[104px] h-9 focus:ring-1 focus:ring-primary">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground min-w-[104px]">
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col flex-1 min-w-[260px]">
+              <label className="text-muted-foreground text-xs font-medium mb-1.5">Car</label>
               <Select
                 value={carFilter || "__all__"}
                 onValueChange={(v) => {
@@ -413,17 +561,25 @@ export default function PaymentsMainPage() {
                   setIsFilter(true);
                 }}
               >
-                <SelectTrigger className="bg-card border-border text-foreground w-[180px]">
+                <SelectTrigger className="bg-background border-border text-foreground h-9 focus:ring-1 focus:ring-primary">
                   <SelectValue placeholder="All Cars" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground max-h-60">
                   <SelectItem value="__all__">All Cars</SelectItem>
-                  {carsList.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {[c.makeModel, c.year ? String(c.year) : ""].filter(Boolean).join(" ")}
-                      {c.licensePlate ? ` – #${c.licensePlate}` : ""}
-                    </SelectItem>
-                  ))}
+                  {carsList.map((c) => {
+                    const nameYear = [c.makeModel, c.year ? String(c.year) : ""]
+                      .filter(Boolean)
+                      .join(" ");
+                    const parts: string[] = [];
+                    if (nameYear) parts.push(nameYear);
+                    if (c.licensePlate) parts.push(`#${c.licensePlate}`);
+                    if (c.vin) parts.push(c.vin);
+                    return (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {parts.join(" - ")}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -431,159 +587,228 @@ export default function PaymentsMainPage() {
               <Button
                 variant="ghost"
                 onClick={handleClearFilters}
-                className="text-red-700 hover:text-red-700 hover:bg-red-900/20 mt-6"
+                className="text-red-600 hover:text-red-700 hover:bg-red-500/10 h-9 font-medium"
               >
                 Clear
               </Button>
             )}
           </div>
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-muted-foreground text-sm">
-              Total: {paymentsData?.total ?? payments.length}
-            </span>
-          </div>
         </div>
 
-        <div className="bg-card border border-border rounded-lg overflow-auto flex-1">
-          <div className="overflow-x-auto">
-            <Table className="table-fixed w-full">
-              <TableHeader>
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-left text-foreground font-medium w-12 text-xs">#</TableHead>
-                  <TableHead className="text-left text-foreground font-medium w-24 text-xs">Status</TableHead>
-                  <TableHead className="text-left text-foreground font-medium w-36 text-xs">Client</TableHead>
-                  <TableHead className="text-left text-foreground font-medium w-28 whitespace-nowrap text-xs">Date</TableHead>
-                  <TableHead className="text-left text-foreground font-medium min-w-[180px] text-xs">Car</TableHead>
-                  <TableHead className="text-right text-foreground font-medium w-32 tabular-nums text-xs whitespace-nowrap">Payable</TableHead>
-                  <TableHead className="text-right text-foreground font-medium w-32 tabular-nums text-xs whitespace-nowrap">Payout</TableHead>
-                  <TableHead className="text-right text-foreground font-medium w-32 tabular-nums text-xs whitespace-nowrap">Balance</TableHead>
-                  <TableHead className="text-left text-foreground font-medium w-24 text-xs">Ref #</TableHead>
-                  <TableHead className="text-left text-foreground font-medium w-24 text-xs">Invoice #</TableHead>
-                  <TableHead className="text-left text-foreground font-medium w-28 whitespace-nowrap text-xs">Payment Date</TableHead>
-                  <TableHead className="text-center text-foreground font-medium w-16 text-xs">Receipt</TableHead>
-                  <TableHead className="text-left text-foreground font-medium min-w-[100px] text-xs">Remarks</TableHead>
-                  <TableHead className="text-center text-foreground font-medium w-24 text-xs">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+        {/* Table card */}
+        <div className="bg-card border border-border rounded-lg shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
+          {/* Scrollable table region */}
+          <div className="flex-1 min-h-0 overflow-auto">
+            <table className="table-fixed w-full caption-bottom text-sm border-collapse">
+              <thead className="sticky top-0 z-20 bg-muted shadow-[0_1px_0_0_hsl(var(--border))]">
+                <tr>
+                  <th className="h-11 px-3 text-left font-semibold text-foreground w-12 text-[11px] uppercase tracking-wider">#</th>
+                  <th className="h-11 px-3 text-left font-semibold text-foreground w-24 text-[11px] uppercase tracking-wider">Status</th>
+                  <th className="h-11 px-3 text-left font-semibold text-foreground w-36 text-[11px] uppercase tracking-wider">Client</th>
+                  <th className="h-11 px-3 text-left font-semibold text-foreground w-28 whitespace-nowrap text-[11px] uppercase tracking-wider">Date</th>
+                  <th className="h-11 px-3 text-left font-semibold text-foreground min-w-[180px] text-[11px] uppercase tracking-wider">Car</th>
+                  <th className="h-11 px-3 text-right font-semibold text-foreground w-32 tabular-nums text-[11px] whitespace-nowrap uppercase tracking-wider">Payable</th>
+                  <th className="h-11 px-3 text-right font-semibold text-foreground w-32 tabular-nums text-[11px] whitespace-nowrap uppercase tracking-wider">Payout</th>
+                  <th className="h-11 px-3 text-right font-semibold text-foreground w-32 tabular-nums text-[11px] whitespace-nowrap uppercase tracking-wider">Balance</th>
+                  <th className="h-11 px-3 text-left font-semibold text-foreground w-24 text-[11px] uppercase tracking-wider">Ref #</th>
+                  <th className="h-11 px-3 text-left font-semibold text-foreground w-28 whitespace-nowrap text-[11px] uppercase tracking-wider">Pmt Date</th>
+                  <th className="h-11 px-3 text-center font-semibold text-foreground w-16 text-[11px] uppercase tracking-wider">Receipt</th>
+                  <th className="h-11 px-3 text-left font-semibold text-foreground min-w-[120px] text-[11px] uppercase tracking-wider">Remarks</th>
+                  <th className="h-11 px-3 text-center font-semibold text-foreground w-24 text-[11px] uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
                 {isLoadingPayments ? (
-                  <TableRow>
-                    <TableCell colSpan={14} className="text-center py-12 text-muted-foreground">
+                  <tr>
+                    <td colSpan={13} className="text-center py-16 text-muted-foreground">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto" />
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ) : payments.length > 0 ? (
                   <>
                     {payments.map((payment, index) => {
                       const balance =
                         Number(payment.payments_amount_payout || 0) -
                         Number(payment.payments_amount || 0);
+                      const balanceClass =
+                        balance < 0
+                          ? "text-red-600"
+                          : balance > 0
+                          ? "text-emerald-600"
+                          : "text-muted-foreground";
                       return (
-                        <TableRow
+                        <tr
                           key={payment.payments_aid}
-                          className="border-border hover:bg-card"
+                          className="border-b border-border/60 hover:bg-muted/40 transition-colors"
                         >
-                          <TableCell className="text-muted-foreground w-12 text-xs">{index + 1}.</TableCell>
-                          <TableCell className="w-24">
+                          <td className="px-3 py-3 text-muted-foreground text-xs align-middle">{(page - 1) * pageSize + index + 1}.</td>
+                          <td className="px-3 py-3 align-middle">
                             <Badge
                               style={{
                                 backgroundColor: payment.payment_status_color,
                                 color: "#000",
                               }}
-                              className="text-[10px] font-medium"
+                              className="text-[10px] font-medium px-2 py-0.5 rounded"
                             >
                               {payment.payment_status_name}
                             </Badge>
-                          </TableCell>
-                          <TableCell className="text-foreground w-36 text-xs">{payment.fullname}</TableCell>
-                          <TableCell className="w-28 whitespace-nowrap text-muted-foreground text-xs">{formatYearMonth(payment.payments_year_month)}</TableCell>
-                          <TableCell className="text-muted-foreground text-xs min-w-[180px]">
+                          </td>
+                          <td className="px-3 py-3 text-foreground text-xs align-middle">{payment.fullname}</td>
+                          <td className="px-3 py-3 whitespace-nowrap text-muted-foreground text-xs align-middle">{formatYearMonth(payment.payments_year_month)}</td>
+                          <td className="px-3 py-3 text-muted-foreground text-xs align-middle leading-snug">
                             {formatVehicleInfo(payment)}
-                          </TableCell>
-                          <TableCell className="text-right text-primary font-medium w-32 tabular-nums text-xs whitespace-nowrap">
+                          </td>
+                          <td className="px-3 py-3 text-right text-primary font-semibold tabular-nums text-xs whitespace-nowrap align-middle">
                             {formatCurrency(Number(payment.payments_amount || 0))}
-                          </TableCell>
-                          <TableCell className="text-right w-32 tabular-nums text-muted-foreground text-xs whitespace-nowrap">
+                          </td>
+                          <td className="px-3 py-3 text-right tabular-nums text-foreground text-xs whitespace-nowrap align-middle">
                             {formatCurrency(Number(payment.payments_amount_payout || 0))}
-                          </TableCell>
-                          <TableCell className="text-right w-32 tabular-nums text-muted-foreground text-xs whitespace-nowrap">
+                          </td>
+                          <td className={`px-3 py-3 text-right tabular-nums text-xs whitespace-nowrap font-medium align-middle ${balanceClass}`}>
                             {formatCurrency(balance)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground w-24 text-xs">{payment.payments_reference_number || "--"}</TableCell>
-                          <TableCell className="text-muted-foreground w-24 text-xs">{payment.payments_invoice_id || "--"}</TableCell>
-                          <TableCell className="text-muted-foreground w-28 whitespace-nowrap text-xs">{formatDate(payment.payments_invoice_date)}</TableCell>
-                          <TableCell className="text-center w-16">
+                          </td>
+                          <td className="px-3 py-3 text-muted-foreground text-xs align-middle">{payment.payments_reference_number || "--"}</td>
+                          <td className="px-3 py-3 text-muted-foreground whitespace-nowrap text-xs align-middle">{formatDate(payment.payments_invoice_date)}</td>
+                          <td className="px-3 py-3 text-center align-middle">
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
                               onClick={() => {
                                 setSelectedPayment(payment);
                                 setIsReceiptModalOpen(true);
                               }}
-                              className="text-muted-foreground hover:text-primary"
+                              className="text-muted-foreground hover:text-primary hover:bg-primary/10 h-7 w-7"
+                              title="View receipt"
                             >
                               <FileText className="w-4 h-4" />
                             </Button>
-                          </TableCell>
-                          <TableCell className="min-w-[100px] max-w-[150px] truncate text-muted-foreground text-xs">
+                          </td>
+                          <td className="px-3 py-3 max-w-[160px] truncate text-muted-foreground text-xs align-middle">
                             {payment.payments_remarks || "--"}
-                          </TableCell>
-                          <TableCell className="text-center w-24">
+                          </td>
+                          <td className="px-3 py-3 text-center align-middle">
                             <div className="flex items-center justify-center gap-1">
                               <Button
                                 variant="ghost"
-                                size="sm"
+                                size="icon"
                                 onClick={() => {
                                   setSelectedPayment(payment);
                                   setIsEditModalOpen(true);
                                 }}
-                                className="text-muted-foreground hover:text-primary"
-                                title="Edit"
+                                className="text-muted-foreground hover:text-primary hover:bg-primary/10 h-7 w-7"
+                                title="Edit payment"
                               >
-                                <HandCoins className="w-4 h-4" />
+                                <Edit className="w-4 h-4" />
                               </Button>
                               <Button
                                 variant="ghost"
-                                size="sm"
+                                size="icon"
                                 onClick={() => {
                                   setSelectedPayment(payment);
                                   setIsDeleteSingleModalOpen(true);
                                 }}
-                                className="text-muted-foreground hover:text-red-700"
-                                title="Delete"
+                                className="text-muted-foreground hover:text-red-600 hover:bg-red-500/10 h-7 w-7"
+                                title="Delete payment"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
-                          </TableCell>
-                        </TableRow>
+                          </td>
+                        </tr>
                       );
                     })}
-                    <TableRow className="border-t-2 border-border bg-card/50">
-                      <TableCell colSpan={5} className="text-right font-bold text-foreground pr-4">
-                        Total:
-                      </TableCell>
-                      <TableCell className="text-right font-bold text-primary w-32 tabular-nums whitespace-nowrap">
+                    <tr className="border-t-2 border-border bg-muted/50">
+                      <td colSpan={5} className="px-3 py-3 text-right font-bold text-foreground text-xs uppercase tracking-wider">
+                        Page Total
+                      </td>
+                      <td className="px-3 py-3 text-right font-bold text-primary tabular-nums whitespace-nowrap text-xs">
                         {formatCurrency(totals.payable)}
-                      </TableCell>
-                      <TableCell className="text-right font-bold text-primary w-32 tabular-nums whitespace-nowrap">
+                      </td>
+                      <td className="px-3 py-3 text-right font-bold text-primary tabular-nums whitespace-nowrap text-xs">
                         {formatCurrency(totals.payout)}
-                      </TableCell>
-                      <TableCell className="text-right font-bold text-primary w-32 tabular-nums whitespace-nowrap">
+                      </td>
+                      <td className="px-3 py-3 text-right font-bold text-primary tabular-nums whitespace-nowrap text-xs">
                         {formatCurrency(totals.balance)}
-                      </TableCell>
-                      <TableCell colSpan={6}></TableCell>
-                    </TableRow>
+                      </td>
+                      <td colSpan={5}></td>
+                    </tr>
                   </>
                 ) : (
-                  <TableRow>
-                    <TableCell colSpan={14} className="text-center py-12 text-muted-foreground">
+                  <tr>
+                    <td colSpan={13} className="text-center py-16 text-muted-foreground">
                       No payment records found
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 )}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination footer pinned inside the card */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 border-t border-border bg-card">
+            <div className="text-xs text-muted-foreground">
+              {totalPayments > 0 ? (
+                <>
+                  Showing{" "}
+                  <span className="font-semibold text-foreground">
+                    {(page - 1) * pageSize + 1}
+                  </span>
+                  {"–"}
+                  <span className="font-semibold text-foreground">
+                    {Math.min(page * pageSize, totalPayments)}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-foreground">{totalPayments}</span>{" "}
+                  payment{totalPayments === 1 ? "" : "s"}
+                </>
+              ) : (
+                <>No payments to display</>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Rows</Label>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(v) => setPageSize(parseInt(v, 10))}
+                >
+                  <SelectTrigger className="bg-background border-border text-foreground w-[72px] h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border text-foreground">
+                    {[10, 30, 50, 100, 200].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1 || isLoadingPayments}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="h-8 px-3 bg-background border-border text-foreground hover:bg-muted disabled:opacity-40"
+                >
+                  Previous
+                </Button>
+                <span className="text-xs text-muted-foreground whitespace-nowrap px-2">
+                  Page <span className="font-semibold text-foreground">{page}</span> of{" "}
+                  <span className="font-semibold text-foreground">{totalPages}</span>
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages || isLoadingPayments}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="h-8 px-3 bg-background border-border text-foreground hover:bg-muted disabled:opacity-40"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -604,7 +829,7 @@ export default function PaymentsMainPage() {
                     type="month"
                     value={addYearMonth}
                     onChange={(e) => setAddYearMonth(e.target.value)}
-                    className="bg-card border-border text-foreground [&::-webkit-calendar-picker-indicator]:invert [&::-moz-calendar-picker-indicator]:invert"
+                    className="bg-background border-border text-foreground focus-visible:ring-1 focus-visible:ring-primary"
                   />
                 </div>
                 {toPayStatus.length === 0 && (
@@ -678,7 +903,7 @@ export default function PaymentsMainPage() {
                     type="month"
                     value={deleteYearMonth}
                     onChange={(e) => setDeleteYearMonth(e.target.value)}
-                    className="bg-card border-border text-foreground [&::-webkit-calendar-picker-indicator]:invert [&::-moz-calendar-picker-indicator]:invert"
+                    className="bg-background border-border text-foreground focus-visible:ring-1 focus-visible:ring-primary"
                   />
                 </div>
               </div>
@@ -762,53 +987,171 @@ export default function PaymentsMainPage() {
         )}
 
         {isImportModalOpen && (
-          <Dialog open={true} onOpenChange={() => setIsImportModalOpen(false)}>
-            <DialogContent className="bg-card border-border text-foreground">
-              <DialogHeader>
-                <DialogTitle>Import Payments</DialogTitle>
-                <DialogDescription className="text-muted-foreground">
-                  Upload a CSV file to import payment records in bulk.
-                </DialogDescription>
+          <Dialog
+            open={true}
+            onOpenChange={() => {
+              setIsImportModalOpen(false);
+              setImportFile(null);
+              setImportResult(null);
+              setIsImportDragOver(false);
+            }}
+          >
+            <DialogContent className="bg-card border-border text-foreground max-w-lg p-0 overflow-hidden">
+              <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+                    <Upload className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-lg font-semibold">Import Payments</DialogTitle>
+                    <DialogDescription className="text-muted-foreground text-xs mt-0.5">
+                      Bulk-import payment records from a spreadsheet.
+                    </DialogDescription>
+                  </div>
+                </div>
               </DialogHeader>
-              <div className="space-y-4">
-                <div>
+
+              <div className="px-6 py-5 space-y-5">
+                {/* Template download */}
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border">
+                  <div className="w-9 h-9 rounded-md bg-primary/15 flex items-center justify-center flex-shrink-0">
+                    <FileSpreadsheet className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">Import Template</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      Use the provided columns so rows match correctly.
+                    </p>
+                  </div>
                   <a
                     href={buildApiUrl("/api/payments/import-template")}
-                    className="inline-flex items-center gap-2 text-sm text-[#EAEB80] hover:text-[#d4d570] hover:underline"
                     download
+                    className="inline-flex items-center gap-1.5 px-3 h-8 rounded-md border border-border bg-background hover:bg-muted text-xs font-medium text-foreground transition-colors flex-shrink-0"
                   >
-                    <Download className="w-4 h-4" />
-                    Download CSV Template
+                    <Download className="w-3.5 h-3.5" />
+                    Download
                   </a>
                 </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground block mb-2">
-                    CSV File
-                  </Label>
-                  <Input
-                    type="file"
-                    accept=".csv"
-                    onChange={(e) => {
-                      setImportFile(e.target.files?.[0] || null);
-                      setImportResult(null);
+
+                {/* Dropzone / file picker */}
+                {!importFile ? (
+                  <label
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsImportDragOver(true);
                     }}
-                    className="bg-card border-border text-foreground file:text-foreground file:bg-muted file:border-0 file:rounded file:px-3 file:py-1 file:mr-3 file:cursor-pointer"
-                  />
+                    onDragLeave={() => setIsImportDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsImportDragOver(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) {
+                        setImportFile(file);
+                        setImportResult(null);
+                      }
+                    }}
+                    className={`flex flex-col items-center justify-center gap-2 py-8 px-4 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
+                      isImportDragOver
+                        ? "border-primary bg-primary/5"
+                        : "border-border bg-background hover:bg-muted/30 hover:border-primary/50"
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      onChange={(e) => {
+                        setImportFile(e.target.files?.[0] || null);
+                        setImportResult(null);
+                      }}
+                      className="hidden"
+                    />
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Upload className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-foreground">
+                        Click to browse or drag & drop
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Supports .xlsx, .xls, .csv · max 10 MB
+                      </p>
+                    </div>
+                  </label>
+                ) : (
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-background border border-primary/40">
+                    <div className="w-10 h-10 rounded-md bg-primary/15 flex items-center justify-center flex-shrink-0">
+                      <FileSpreadsheet className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {importFile.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {(importFile.size / 1024).toFixed(1)} KB · Ready to import
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImportFile(null);
+                        setImportResult(null);
+                      }}
+                      className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-red-600 hover:bg-red-500/10 transition-colors flex-shrink-0"
+                      title="Remove file"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Hint: how matching works */}
+                <div className="text-[11px] text-muted-foreground leading-relaxed bg-muted/30 border border-border/60 rounded-md px-3 py-2">
+                  <span className="font-medium text-foreground">How it works:</span>{" "}
+                  The VIN embedded in the Car column is used to match each row to an
+                  existing car. Payable is auto-calculated from Income &amp; Expense data
+                  (it does not need to be in the file).
                 </div>
+
+                {/* Results */}
                 {importResult && (
-                  <div className="p-3 rounded-md bg-muted/50 border border-border text-sm space-y-1">
-                    <p className="text-foreground">
-                      Imported: <span className="text-[#EAEB80] font-medium">{importResult.imported ?? 0}</span>
-                    </p>
-                    <p className="text-foreground">
-                      Skipped: <span className="text-muted-foreground font-medium">{importResult.skipped ?? 0}</span>
-                    </p>
+                  <div className="rounded-lg border border-border overflow-hidden">
+                    <div className="grid grid-cols-2 divide-x divide-border">
+                      <div className="flex items-center gap-2 px-4 py-3 bg-emerald-500/5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                            Imported
+                          </p>
+                          <p className="text-lg font-bold text-emerald-600 leading-tight">
+                            {importResult.imported ?? 0}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 px-4 py-3 bg-muted/30">
+                        <AlertTriangle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                            Skipped
+                          </p>
+                          <p className="text-lg font-bold text-foreground leading-tight">
+                            {importResult.skipped ?? 0}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                     {importResult.errors && importResult.errors.length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-red-700 font-medium mb-1">Errors:</p>
-                        <ul className="list-disc list-inside text-red-700/80 max-h-32 overflow-y-auto">
+                      <div className="border-t border-border bg-red-500/5 px-4 py-3">
+                        <p className="text-xs font-semibold text-red-600 mb-2 flex items-center gap-1.5">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          {importResult.errors.length} error
+                          {importResult.errors.length === 1 ? "" : "s"}
+                        </p>
+                        <ul className="text-xs text-red-600/90 space-y-1 max-h-32 overflow-y-auto pr-1">
                           {importResult.errors.map((err, i) => (
-                            <li key={i}>{err}</li>
+                            <li key={i} className="flex gap-2">
+                              <span className="text-red-600/50">·</span>
+                              <span className="flex-1">{err}</span>
+                            </li>
                           ))}
                         </ul>
                       </div>
@@ -816,11 +1159,16 @@ export default function PaymentsMainPage() {
                   </div>
                 )}
               </div>
-              <div className="flex justify-end gap-2 mt-4">
+
+              <div className="flex justify-end gap-2 px-6 py-4 border-t border-border bg-muted/20">
                 <Button
                   variant="outline"
-                  onClick={() => setIsImportModalOpen(false)}
-                  className="bg-card border-border text-foreground"
+                  onClick={() => {
+                    setIsImportModalOpen(false);
+                    setImportFile(null);
+                    setImportResult(null);
+                  }}
+                  className="bg-background border-border text-foreground hover:bg-muted"
                 >
                   Close
                 </Button>
@@ -830,17 +1178,20 @@ export default function PaymentsMainPage() {
                       importMutation.mutate(importFile);
                     } else {
                       toast({
-                        title: "Error",
-                        description: "Please select a CSV file",
+                        title: "No file selected",
+                        description: "Please choose a .xlsx, .xls, or .csv file first.",
                         variant: "destructive",
                       });
                     }
                   }}
                   disabled={!importFile || importMutation.isPending}
-                  className="bg-primary text-primary-foreground hover:bg-primary/80"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold min-w-[120px]"
                 >
                   {importMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Importing…
+                    </>
                   ) : (
                     <>
                       <Upload className="w-4 h-4 mr-2" />

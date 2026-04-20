@@ -77,6 +77,58 @@ interface QuickLink {
   createdAt: string;
 }
 
+/**
+ * Normalize API responses that may come wrapped ({ success, <key>: [...] })
+ * or as plain arrays. Also normalizes legacy field names between the two
+ * backend implementations so the UI has a single canonical shape.
+ */
+function unwrapList<T>(data: any, key: string): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (data && Array.isArray(data[key])) return data[key] as T[];
+  return [];
+}
+
+function normalizeUser(raw: any): AdminUser {
+  return {
+    id: Number(raw.id),
+    firstName: raw.firstName ?? "",
+    lastName: raw.lastName ?? "",
+    email: raw.email ?? "",
+    role: raw.role ?? raw.roleName ?? "",
+    roleId: Number(raw.roleId ?? 0),
+    isActive: Boolean(raw.isActive),
+    createdAt: raw.createdAt
+      ? typeof raw.createdAt === "string"
+        ? raw.createdAt
+        : new Date(raw.createdAt).toISOString()
+      : "",
+  };
+}
+
+function normalizeRole(raw: any): Role {
+  return {
+    id: Number(raw.id),
+    name: raw.name ?? "",
+    isAdmin: Boolean(raw.isAdmin),
+    isEmployee: Boolean(raw.isEmployee),
+  };
+}
+
+function normalizeQuickLink(raw: any): QuickLink {
+  return {
+    id: Number(raw.id),
+    category: raw.category ?? "",
+    title: raw.title ?? "",
+    url: raw.url ?? "",
+    visibleToAdmins: Boolean(raw.visibleToAdmins ?? raw.isVisibleToAdmins),
+    visibleToClients: Boolean(raw.visibleToClients ?? raw.isVisibleToClients),
+    visibleToEmployees: Boolean(
+      raw.visibleToEmployees ?? raw.isVisibleToEmployees
+    ),
+    createdAt: raw.createdAt ?? "",
+  };
+}
+
 const userSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -202,14 +254,45 @@ export default function AdminsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: users, isLoading } = useQuery<AdminUser[]>({
+  const { data: allUsers, isLoading } = useQuery<AdminUser[]>({
     queryKey: ["/api/admin/users"],
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl("/api/admin/users"), {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch users");
+      const json = await response.json();
+      return unwrapList<any>(json, "users").map(normalizeUser);
+    },
     retry: false,
   });
 
   const { data: roles } = useQuery<Role[]>({
     queryKey: ["/api/admin/roles"],
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl("/api/admin/roles"), {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch roles");
+      const json = await response.json();
+      return unwrapList<any>(json, "roles").map(normalizeRole);
+    },
     retry: false,
+  });
+
+  // Filter to only Admin/Employee users on the frontend. Some backend routes
+  // return all users (including clients). The admin page should only show
+  // portal administrators and staff.
+  const adminRoleIds = new Set(
+    (roles ?? [])
+      .filter((r) => r.isAdmin || r.isEmployee)
+      .map((r) => r.id)
+  );
+  const users = (allUsers ?? []).filter((u) => {
+    if (adminRoleIds.size > 0) return adminRoleIds.has(u.roleId);
+    // Fallback when roles haven't loaded yet: match on role name
+    const name = (u.role || "").toLowerCase();
+    return name.includes("admin") || name.includes("employee") || name.includes("staff");
   });
 
   const { data: quickLinks } = useQuery<QuickLink[]>({
@@ -219,7 +302,8 @@ export default function AdminsPage() {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch quick links");
-      return response.json();
+      const json = await response.json();
+      return unwrapList<any>(json, "quickLinks").map(normalizeQuickLink);
     },
     retry: false,
   });
@@ -277,9 +361,17 @@ export default function AdminsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: UserFormData }) => {
+    mutationFn: async ({
+      id,
+      data,
+      isActive,
+    }: {
+      id: number;
+      data: UserFormData;
+      isActive: boolean;
+    }) => {
       const { password, ...userData } = data;
-      const payload: any = { ...userData };
+      const payload: any = { ...userData, isActive };
       if (password && password.length > 0) {
         payload.password = password;
       }
@@ -313,6 +405,42 @@ export default function AdminsPage() {
     },
   });
 
+  const toggleActiveMutation = useMutation({
+    mutationFn: async (user: AdminUser) => {
+      const payload = {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        roleId: user.roleId,
+        isActive: !user.isActive,
+      };
+      const response = await apiRequest(
+        "PUT",
+        `/api/admin/users/${user.id}`,
+        payload
+      );
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update user");
+      }
+      return response.json();
+    },
+    onSuccess: (_data, user) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Success",
+        description: `User ${user.isActive ? "deactivated" : "activated"} successfully`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update status",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleAddClick = () => {
     setEditingUser(null);
     form.reset({
@@ -339,7 +467,11 @@ export default function AdminsPage() {
 
   const onSubmit = (data: UserFormData) => {
     if (editingUser) {
-      updateMutation.mutate({ id: editingUser.id, data });
+      updateMutation.mutate({
+        id: editingUser.id,
+        data,
+        isActive: editingUser.isActive,
+      });
     } else {
       if (!data.password || data.password.length === 0) {
         toast({
@@ -356,7 +488,18 @@ export default function AdminsPage() {
 
   const quickLinkCreateMutation = useMutation({
     mutationFn: async (data: QuickLinkFormData) => {
-      const response = await apiRequest("POST", "/api/admin/quick-links", data);
+      const payload = {
+        ...data,
+        isVisibleToAdmins: data.visibleToAdmins,
+        isVisibleToClients: data.visibleToClients,
+        isVisibleToEmployees: data.visibleToEmployees,
+        isVisibleToStaff: data.visibleToEmployees,
+      };
+      const response = await apiRequest(
+        "POST",
+        "/api/admin/quick-links",
+        payload
+      );
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to create quick link");
@@ -390,10 +533,17 @@ export default function AdminsPage() {
       id: number;
       data: QuickLinkFormData;
     }) => {
+      const payload = {
+        ...data,
+        isVisibleToAdmins: data.visibleToAdmins,
+        isVisibleToClients: data.visibleToClients,
+        isVisibleToEmployees: data.visibleToEmployees,
+        isVisibleToStaff: data.visibleToEmployees,
+      };
       const response = await apiRequest(
         "PUT",
         `/api/admin/quick-links/${id}`,
-        data
+        payload
       );
       if (!response.ok) {
         const error = await response.json();
@@ -563,7 +713,7 @@ export default function AdminsPage() {
                     users.map((user) => (
                       <tr
                         key={user.id}
-                        className="hover:bg-muted/50252525] transition-colors"
+                        className="hover:bg-muted/50 transition-colors"
                         data-testid={`row-admin-${user.id}`}
                       >
                         <td className="px-3 sm:px-6 py-3 sm:py-4">
@@ -615,16 +765,59 @@ export default function AdminsPage() {
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
                           <div className="flex items-center justify-end gap-1 sm:gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-muted-foreground hover:text-foreground text-xs sm:text-sm px-2 sm:px-3"
-                            onClick={() => handleEditClick(user)}
-                            data-testid={`button-edit-admin-${user.id}`}
-                          >
-                            <Pencil className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                            <span className="hidden sm:inline">Edit</span>
-                          </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-muted-foreground hover:text-foreground text-xs sm:text-sm px-2 sm:px-3"
+                              onClick={() => handleEditClick(user)}
+                              data-testid={`button-edit-admin-${user.id}`}
+                            >
+                              <Pencil className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                              <span className="hidden sm:inline">Edit</span>
+                            </Button>
+                            <ConfirmDialog
+                              trigger={
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={cn(
+                                    "text-xs sm:text-sm px-2 sm:px-3",
+                                    user.isActive
+                                      ? "text-red-600 hover:text-red-700"
+                                      : "text-green-600 hover:text-green-700"
+                                  )}
+                                  disabled={toggleActiveMutation.isPending}
+                                  data-testid={`button-toggle-admin-${user.id}`}
+                                >
+                                  <span className="hidden sm:inline">
+                                    {user.isActive ? "Deactivate" : "Activate"}
+                                  </span>
+                                  <span className="sm:hidden">
+                                    {user.isActive ? "Off" : "On"}
+                                  </span>
+                                </Button>
+                              }
+                              title={
+                                user.isActive
+                                  ? "Deactivate Admin"
+                                  : "Activate Admin"
+                              }
+                              description={
+                                user.isActive
+                                  ? `Deactivate ${user.firstName} ${user.lastName}? They will no longer be able to sign in.`
+                                  : `Reactivate ${user.firstName} ${user.lastName}? They will be able to sign in again.`
+                              }
+                              confirmText={
+                                user.isActive ? "Deactivate" : "Activate"
+                              }
+                              cancelText="Cancel"
+                              variant={
+                                user.isActive ? "destructive" : "default"
+                              }
+                              onConfirm={() =>
+                                toggleActiveMutation.mutate(user)
+                              }
+                            />
                           </div>
                         </td>
                       </tr>
@@ -765,14 +958,16 @@ export default function AdminsPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="bg-card border-border text-foreground">
-                          {roles?.map((role) => (
-                            <SelectItem
-                              key={role.id}
-                              value={role.id.toString()}
-                            >
-                              {role.name}
-                            </SelectItem>
-                          ))}
+                          {roles
+                            ?.filter((role) => role.isAdmin || role.isEmployee)
+                            .map((role) => (
+                              <SelectItem
+                                key={role.id}
+                                value={role.id.toString()}
+                              >
+                                {role.name}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -867,7 +1062,7 @@ export default function AdminsPage() {
                       quickLinks.map((link) => (
                         <tr
                           key={link.id}
-                          className="hover:bg-muted/50252525] transition-colors"
+                          className="hover:bg-muted/50 transition-colors"
                         >
                           <td className="px-6 py-4">
                             <Badge

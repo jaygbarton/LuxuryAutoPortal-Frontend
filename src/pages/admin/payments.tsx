@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -113,6 +113,8 @@ export default function PaymentsPage() {
   const carId = params?.id ? parseInt(params.id, 10) : null;
   const [filterStatus, setFilterStatus] = useState<string>("All");
   const [monthFilter, setMonthFilter] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(30);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -177,12 +179,15 @@ export default function PaymentsPage() {
   const { data: paymentsData, isLoading: isLoadingPayments } = useQuery<{
     success: boolean;
     data: Payment[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
     count: number;
   }>({
-    queryKey: ["/api/payments/car", carId, filterStatus, monthFilter],
+    queryKey: ["/api/payments/car", carId, filterStatus, monthFilter, page, pageSize],
     queryFn: async () => {
       if (!carId) throw new Error("Invalid car ID");
-      let url = buildApiUrl(`/api/payments/car/${carId}`);
       const params = new URLSearchParams();
       if (filterStatus && filterStatus !== "All") {
         params.append("status", filterStatus);
@@ -190,9 +195,9 @@ export default function PaymentsPage() {
       if (monthFilter) {
         params.append("yearMonth", monthFilter);
       }
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
+      params.append("page", String(page));
+      params.append("pageSize", String(pageSize));
+      const url = `${buildApiUrl(`/api/payments/car/${carId}`)}?${params.toString()}`;
       const response = await fetch(url, {
         credentials: "include",
       });
@@ -203,6 +208,12 @@ export default function PaymentsPage() {
   });
 
   const payments = paymentsData?.data || [];
+  const totalPayments = paymentsData?.total || 0;
+  const totalPages = paymentsData?.totalPages || 1;
+
+  useEffect(() => {
+    setPage(1);
+  }, [filterStatus, monthFilter, pageSize, carId]);
 
   // Calculate totals
   const totals = payments.reduce(
@@ -227,6 +238,8 @@ export default function PaymentsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/car", carId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/car"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/search"] });
       toast({
         title: "Success",
         description: "Payment deleted successfully",
@@ -261,6 +274,7 @@ export default function PaymentsPage() {
   const handleClearFilters = () => {
     setFilterStatus("All");
     setMonthFilter("");
+    setPage(1);
   };
 
   if (isLoading) {
@@ -426,7 +440,7 @@ export default function PaymentsPage() {
               )}
 
               <div className="flex items-center gap-2 text-muted-foreground ml-auto">
-                <span className="text-sm">Total: {payments.length}</span>
+                <span className="text-sm">Total: {totalPayments}</span>
               </div>
             </div>
 
@@ -538,7 +552,7 @@ export default function PaymentsPage() {
                       {/* Totals Row */}
                       <TableRow className="border-t-2 border-border bg-card/50">
                         <TableCell colSpan={4} className="text-right font-bold text-foreground">
-                          Total:
+                          Page Total:
                         </TableCell>
                         <TableCell className="text-right font-bold text-primary">
                           {formatCurrency(totals.payable)}
@@ -561,6 +575,66 @@ export default function PaymentsPage() {
                   )}
                 </TableBody>
               </Table>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-4">
+              <div className="text-xs text-muted-foreground">
+                {totalPayments > 0 ? (
+                  <>
+                    Showing{" "}
+                    <span className="font-medium text-foreground">
+                      {(page - 1) * pageSize + 1}
+                    </span>
+                    {"–"}
+                    <span className="font-medium text-foreground">
+                      {Math.min(page * pageSize, totalPayments)}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-medium text-foreground">{totalPayments}</span>{" "}
+                    payment{totalPayments === 1 ? "" : "s"}
+                  </>
+                ) : (
+                  <>No payments to display</>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Rows per page</span>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(v) => setPageSize(parseInt(v, 10))}
+                >
+                  <SelectTrigger className="bg-card border-border text-foreground w-[80px] h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border text-foreground">
+                    {[10, 30, 50, 100, 200].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1 || isLoadingPayments}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Previous
+                </Button>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  Page <span className="font-medium text-foreground">{page}</span> of{" "}
+                  <span className="font-medium text-foreground">{totalPages}</span>
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages || isLoadingPayments}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           </div>
         </div>

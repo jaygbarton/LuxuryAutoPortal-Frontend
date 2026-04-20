@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -174,12 +174,16 @@ export function AddEditPaymentModal({
     retry: false,
   });
 
-  const dynamicSubcategories = dynamicSubcategoriesData?.data || {
-    directDelivery: [],
-    cogs: [],
-    parkingFeeLabor: [],
-    reimbursedBills: [],
-  };
+  const dynamicSubcategories = useMemo(
+    () =>
+      dynamicSubcategoriesData?.data || {
+        directDelivery: [],
+        cogs: [],
+        parkingFeeLabor: [],
+        reimbursedBills: [],
+      },
+    [dynamicSubcategoriesData?.data]
+  );
 
   // Fetch previous year data for January calculations
   const previousYear = year ? String(year - 1) : null;
@@ -205,8 +209,14 @@ export function AddEditPaymentModal({
 
   const incomeExpenseDataValue = incomeExpenseData?.data;
   const prevYearDecData = previousYearData?.data;
-  const monthModes = incomeExpenseDataValue?.formulaSetting?.monthModes || {};
-  const skiRacksOwner = incomeExpenseDataValue?.formulaSetting?.skiRacksOwner || {};
+  const monthModes = useMemo(
+    () => incomeExpenseDataValue?.formulaSetting?.monthModes || {},
+    [incomeExpenseDataValue?.formulaSetting?.monthModes]
+  );
+  const skiRacksOwner = useMemo(
+    () => incomeExpenseDataValue?.formulaSetting?.skiRacksOwner || {},
+    [incomeExpenseDataValue?.formulaSetting?.skiRacksOwner]
+  );
 
   // Helper to get value by month from income-expense data
   const getMonthValue = (arr: any[], monthNum: number, field: string): number => {
@@ -298,12 +308,17 @@ export function AddEditPaymentModal({
   };
 
   // Calculate Negative Balance Carry Over (simplified version for modal)
-  const calculateNegativeBalanceCarryOver = (monthNum: number): number => {
+  const calculateNegativeBalanceCarryOver = (
+    monthNum: number,
+    visiting: Set<number> = new Set()
+  ): number => {
     if (!incomeExpenseDataValue || !year) return 0;
+    if (monthNum < 1 || monthNum > 12) return 0;
+    if (visiting.has(monthNum)) return 0;
     const currentYear = parseInt(String(year), 10);
-    
+
     if (currentYear === 2019) return 0;
-    
+
     const currentMonthMode: 50 | 70 = monthModes[monthNum] || 50;
     
     let prevRentalIncome: number;
@@ -346,6 +361,7 @@ export function AddEditPaymentModal({
       prevTotalParkingFeeLabor = 0; // Simplified
     } else {
       const prevMonth = monthNum - 1;
+      if (prevMonth < 1) return 0;
       prevRentalIncome = getMonthValue(incomeExpenseDataValue.incomeExpenses || [], prevMonth, "rentalIncome");
       prevDeliveryIncome = getMonthValue(incomeExpenseDataValue.incomeExpenses || [], prevMonth, "deliveryIncome");
       prevElectricPrepaidIncome = getMonthValue(incomeExpenseDataValue.incomeExpenses || [], prevMonth, "electricPrepaidIncome");
@@ -358,7 +374,9 @@ export function AddEditPaymentModal({
       prevInsuranceWreckIncome = getMonthValue(incomeExpenseDataValue.incomeExpenses || [], prevMonth, "insuranceWreckIncome");
       prevOtherIncome = getMonthValue(incomeExpenseDataValue.incomeExpenses || [], prevMonth, "otherIncome");
       prevCarOwnerSplitPercent = getMonthValue(incomeExpenseDataValue.incomeExpenses || [], prevMonth, "carOwnerSplit") || 0;
-      prevNegativeBalanceCarryOver = calculateNegativeBalanceCarryOver(prevMonth);
+      const nextVisiting = new Set(visiting);
+      nextVisiting.add(monthNum);
+      prevNegativeBalanceCarryOver = calculateNegativeBalanceCarryOver(prevMonth, nextVisiting);
       prevTotalDirectDelivery = getTotalDirectDeliveryForMonth(prevMonth);
       prevTotalCogs = getTotalCogsForMonth(prevMonth);
       prevTotalParkingFeeLabor = getTotalParkingFeeLaborForMonth(prevMonth);
@@ -607,6 +625,8 @@ export function AddEditPaymentModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/car", carId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/car"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/search"] });
       toast({
         title: "Success",
         description: "Payment created successfully",
@@ -661,6 +681,8 @@ export function AddEditPaymentModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/car", carId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/car"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/search"] });
       toast({
         title: "Success",
         description: "Payment updated successfully",
@@ -739,245 +761,275 @@ export function AddEditPaymentModal({
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
+  const balanceNum = parseFloat(balance) || 0;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border text-foreground max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-foreground text-xl">
-            {isEdit ? "Update" : "Add"} Payment
+      <DialogContent className="bg-card border-border text-foreground max-w-3xl max-h-[92vh] overflow-y-auto p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
+          <DialogTitle className="text-foreground text-xl font-semibold">
+            {isEdit ? "Edit Payment" : "Add Payment"}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {isEdit
-              ? "Update payment information"
-              : "Create a new payment record"}
+              ? "Update the payment record. Payable is recalculated from Income & Expense."
+              : "Create a new payment. Payable will auto-fill from Income & Expense for the chosen month."}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          {/* Year/Month */}
-          <div>
-            <Label htmlFor="yearMonth" className="text-muted-foreground">
-              Year/Month <span className="text-red-700">*</span>
-            </Label>
-            <Input
-              id="yearMonth"
-              type="month"
-              value={yearMonth}
-              onChange={(e) => setYearMonth(e.target.value)}
-              disabled={isPending || isEdit}
-              className="bg-muted border-border text-foreground mt-1"
-              required
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
+          {/* Section: Period & Status */}
+          <section className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Period & Status
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="yearMonth" className="text-muted-foreground text-xs">
+                  Year / Month <span className="text-red-700">*</span>
+                </Label>
+                <Input
+                  id="yearMonth"
+                  type="month"
+                  value={yearMonth}
+                  onChange={(e) => setYearMonth(e.target.value)}
+                  disabled={isPending || isEdit}
+                  className="bg-muted border-border text-foreground mt-1 h-10"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="status" className="text-muted-foreground text-xs">
+                  Payment Status <span className="text-red-700">*</span>
+                </Label>
+                <Select value={statusId} onValueChange={setStatusId} disabled={isPending}>
+                  <SelectTrigger className="bg-muted border-border text-foreground mt-1 h-10">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-muted border-border text-foreground">
+                    {statuses.map((status) => (
+                      <SelectItem
+                        key={status.payment_status_aid}
+                        value={status.payment_status_aid.toString()}
+                      >
+                        {status.payment_status_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </section>
 
-          {/* Payable Amount (Read-only, auto-filled from Income & Expense) */}
-          <div>
-            <Label htmlFor="payable" className="text-muted-foreground">
-              Payable (Owner's Split)
-            </Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                $
-              </span>
-              <Input
-                id="payable"
-                type="text"
-                value={payable}
-                readOnly
-                disabled={isPending || isLoadingIncomeExpense}
-                className="bg-background border-border text-foreground mt-1 pl-8 cursor-not-allowed"
-                placeholder="0.00"
-              />
+          {/* Section: Amounts */}
+          <section className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Amounts
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="payable" className="text-muted-foreground text-xs">
+                  Payable
+                </Label>
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    $
+                  </span>
+                  <Input
+                    id="payable"
+                    type="text"
+                    value={payable}
+                    readOnly
+                    disabled={isPending || isLoadingIncomeExpense}
+                    className="bg-background border-border text-foreground pl-7 h-10 cursor-not-allowed"
+                    placeholder="0.00"
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Auto from Income & Expense
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="payout" className="text-muted-foreground text-xs">
+                  Payout <span className="text-red-700">*</span>
+                </Label>
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    $
+                  </span>
+                  <Input
+                    id="payout"
+                    type="number"
+                    step="0.01"
+                    value={payout}
+                    onChange={(e) => setPayout(e.target.value)}
+                    disabled={isPending}
+                    className="bg-muted border-border text-foreground pl-7 h-10"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Amount actually paid
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="balance" className="text-muted-foreground text-xs">
+                  Balance
+                </Label>
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    $
+                  </span>
+                  <Input
+                    id="balance"
+                    type="text"
+                    value={balance}
+                    disabled
+                    className={`bg-background border-border pl-7 h-10 font-semibold ${
+                      balanceNum < 0
+                        ? "text-red-500"
+                        : balanceNum > 0
+                        ? "text-emerald-500"
+                        : "text-foreground"
+                    }`}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Payout − Payable
+                </p>
+              </div>
             </div>
             {isLoadingIncomeExpense && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Loading payable amount from Income & Expense...
+              <p className="text-xs text-muted-foreground">
+                Loading payable amount from Income & Expense…
               </p>
             )}
             {!isLoadingIncomeExpense && year && month && (!incomeExpenseData || !incomeExpenseData.success) && (
-              <p className="text-xs text-yellow-700 mt-1">
+              <p className="text-xs text-yellow-700">
                 Income & Expense not found for {year}-{String(month).padStart(2, "0")}. Payable set to $0.00.
               </p>
             )}
-          </div>
+          </section>
 
-          {/* Payout Amount */}
-          <div>
-            <Label htmlFor="payout" className="text-muted-foreground">
-              Payout <span className="text-red-700">*</span>
-            </Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                $
-              </span>
-              <Input
-                id="payout"
-                type="number"
-                step="0.01"
-                value={payout}
-                onChange={(e) => setPayout(e.target.value)}
-                disabled={isPending}
-                className="bg-muted border-border text-foreground mt-1 pl-8"
-                placeholder="0.00"
-                required
-              />
+          {/* Section: Reference */}
+          <section className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Reference
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="referenceNumber" className="text-muted-foreground text-xs">
+                  Reference Number
+                </Label>
+                <Input
+                  id="referenceNumber"
+                  type="text"
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  disabled={isPending}
+                  className="bg-muted border-border text-foreground mt-1 h-10"
+                  placeholder="e.g. Zelle #12345"
+                />
+              </div>
+              <div>
+                <Label htmlFor="paymentDate" className="text-muted-foreground text-xs">
+                  Payment Date
+                </Label>
+                <Input
+                  id="paymentDate"
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  disabled={isPending}
+                  className="bg-muted border-border text-foreground mt-1 h-10"
+                />
+              </div>
             </div>
-          </div>
+          </section>
 
-          {/* Balance (Read-only, auto-calculated) */}
-          <div>
-            <Label htmlFor="balance" className="text-muted-foreground">
-              Balance (Payout - Payable)
-            </Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                $
-              </span>
-              <Input
-                id="balance"
-                type="text"
-                value={balance}
-                disabled
-                className="bg-background border-border text-[#EAEB80] font-bold mt-1 pl-8"
-              />
-            </div>
-          </div>
+          {/* Section: Receipt */}
+          <section className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Receipt
+            </h4>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,.pdf"
+              multiple
+              onChange={handleFileChange}
+              disabled={isPending}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isPending}
+              className="w-full bg-muted border-dashed border-border text-foreground hover:bg-muted h-12"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {receiptFiles.length > 0 ? "Add More Files" : "Upload Receipt (PDF / image)"}
+            </Button>
 
-          {/* Status */}
-          <div>
-            <Label htmlFor="status" className="text-muted-foreground">
-              Payment Status <span className="text-red-700">*</span>
-            </Label>
-            <Select value={statusId} onValueChange={setStatusId} disabled={isPending}>
-              <SelectTrigger className="bg-muted border-border text-foreground mt-1">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent className="bg-muted border-border text-foreground">
-                {statuses.map((status) => (
-                  <SelectItem
-                    key={status.payment_status_aid}
-                    value={status.payment_status_aid.toString()}
+            {receiptFiles.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  {receiptFiles.length} file(s) selected
+                </p>
+                {receiptFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between bg-background border border-border rounded-md px-3 py-2"
                   >
-                    {status.payment_status_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Reference Number */}
-          <div>
-            <Label htmlFor="referenceNumber" className="text-muted-foreground">
-              Reference Number
-            </Label>
-            <Input
-              id="referenceNumber"
-              type="text"
-              value={referenceNumber}
-              onChange={(e) => setReferenceNumber(e.target.value)}
-              disabled={isPending}
-              className="bg-muted border-border text-foreground mt-1"
-              placeholder="Enter reference number"
-            />
-          </div>
-
-          {/* Payment Date */}
-          <div>
-            <Label htmlFor="paymentDate" className="text-muted-foreground">
-              Payment Date
-            </Label>
-            <Input
-              id="paymentDate"
-              type="date"
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-              disabled={isPending}
-              className="bg-muted border-border text-foreground mt-1"
-            />
-          </div>
-
-          {/* Receipt Upload */}
-          <div>
-            <Label className="text-muted-foreground">Receipt Upload</Label>
-            <div className="mt-2 space-y-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,.pdf"
-                multiple
-                onChange={handleFileChange}
-                disabled={isPending}
-                className="hidden"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isPending}
-                className="w-full bg-muted border-border text-foreground hover:bg-muted"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                {receiptFiles.length > 0 ? "Add More Files" : "Upload Receipt"}
-              </Button>
-              
-              {receiptFiles.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    {receiptFiles.length} file(s) selected
-                  </p>
-                  {receiptFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between bg-background border border-border rounded p-2"
-                    >
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        {file.type.startsWith("image/") ? (
-                          <ImageIcon className="w-4 h-4 text-[#EAEB80] flex-shrink-0" />
-                        ) : (
-                          <FileText className="w-4 h-4 text-[#EAEB80] flex-shrink-0" />
-                        )}
-                        <span className="text-sm text-foreground truncate">
-                          {file.name}
-                        </span>
-                        <span className="text-xs text-muted-foreground flex-shrink-0">
-                          ({(file.size / 1024).toFixed(1)} KB)
-                        </span>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveFile(index)}
-                        disabled={isPending}
-                        className="text-red-700 hover:text-red-700 hover:bg-red-400/10 ml-2"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {file.type.startsWith("image/") ? (
+                        <ImageIcon className="w-4 h-4 text-[#EAEB80] flex-shrink-0" />
+                      ) : (
+                        <FileText className="w-4 h-4 text-[#EAEB80] flex-shrink-0" />
+                      )}
+                      <span className="text-sm text-foreground truncate">{file.name}</span>
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
+                        ({(file.size / 1024).toFixed(1)} KB)
+                      </span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveFile(index)}
+                      disabled={isPending}
+                      className="text-red-700 hover:text-red-700 hover:bg-red-400/10 ml-2 h-7 w-7 p-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
-          {/* Remarks */}
-          <div>
-            <Label htmlFor="remarks" className="text-muted-foreground">
+          {/* Section: Remarks */}
+          <section className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Remarks
-            </Label>
+            </h4>
             <Textarea
               id="remarks"
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
               disabled={isPending}
-              className="bg-muted border-border text-foreground mt-1"
-              placeholder="Enter any additional notes"
+              className="bg-muted border-border text-foreground"
+              placeholder="Add any notes about this payment…"
               rows={3}
             />
-          </div>
+          </section>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2 pt-4 border-t border-border">
+          {/* Sticky footer actions */}
+          <div className="flex justify-end gap-2 pt-4 border-t border-border -mx-6 px-6 sticky bottom-0 bg-card">
             <Button
               type="button"
               variant="outline"
@@ -990,9 +1042,9 @@ export function AddEditPaymentModal({
             <Button
               type="submit"
               disabled={isPending}
-              className="bg-primary text-primary-foreground hover:bg-primary/80"
+              className="bg-primary text-primary-foreground hover:bg-primary/80 min-w-[140px]"
             >
-              {isPending ? "Saving..." : isEdit ? "Update Payment" : "Create Payment"}
+              {isPending ? "Saving…" : isEdit ? "Update Payment" : "Create Payment"}
             </Button>
           </div>
         </form>
