@@ -455,15 +455,19 @@ export function IncomeExpenseProvider({
 
   // Toggle month mode and save to backend
   const toggleMonthMode = async (month: number) => {
-    // Optimistically update UI
+    // Optimistically update UI — the edited month AND every later month in the
+    // current year inherit the new mode. The backend does the same cascade
+    // for subsequent years up to the current calendar month-year.
     const newMode = monthModes[month] === 50 ? 70 : 50;
-    const newModes: { [month: number]: 50 | 70 } = {
-      ...monthModes,
-      [month]: newMode,
-    };
+    const newModes: { [month: number]: 50 | 70 } = { ...monthModes };
+    for (let m = month; m <= 12; m++) {
+      newModes[m] = newMode;
+    }
     setMonthModes(newModes);
-    
-    // Update percentage values in database
+
+    // Update percentage values in database for just the edited month —
+    // the backend `upsertIncomeExpense` cascade propagates the % values
+    // forward (current year + subsequent years up to current calendar month).
     // Mode 50 = 50:50 split (Car Management : Car Owner)
     // Mode 70 = 30:70 split (Car Management : Car Owner) - NOT 70:30
     const newMgmtPercent = newMode === 70 ? 30 : 50;
@@ -488,7 +492,8 @@ export function IncomeExpenseProvider({
         }),
       ]);
       
-      // Then update the mode setting
+      // Then update the mode setting (with cascadeFromMonth so the backend
+      // propagates the new mode into every later month + year).
       const response = await fetch(buildApiUrl("/api/income-expense/formula"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -497,6 +502,7 @@ export function IncomeExpenseProvider({
           carId,
           year: parseInt(year),
           monthModes: newModes,
+          cascadeFromMonth: month,
         }),
       });
 

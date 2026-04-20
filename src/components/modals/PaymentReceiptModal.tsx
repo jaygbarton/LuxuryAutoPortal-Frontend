@@ -15,6 +15,8 @@ interface Payment {
   payments_aid: number;
   payments_year_month: string;
   payments_attachment: string | null;
+  /** Used to look up matching Income & Expense receipts for the same month/car. */
+  payments_car_id?: number;
 }
 
 interface PaymentReceiptModalProps {
@@ -41,6 +43,12 @@ interface FileUrlData {
   webContentLink?: string;
   previewUrl?: string; // Google Drive preview URL for embedding
   error?: string; // Error message if file failed to load
+  /** Where this file came from — used to render a small badge in the preview. */
+  source?: "payment-attachment" | "ie-cell" | "form-submission";
+  /** Optional human-readable context (I&E category/field). */
+  contextLabel?: string;
+  /** For form-submission files we may have a direct URL already. */
+  url?: string;
 }
 
 export function PaymentReceiptModal({
@@ -62,29 +70,71 @@ export function PaymentReceiptModal({
       return;
     }
 
-    if (!payment.payments_attachment) {
-      setFileUrls([]);
+    // Set loading state immediately
+    setIsLoadingFiles(true);
+    setFileUrls([]);
+
+    // Load both sources in parallel:
+    //   (A) files attached directly to the payment row (existing behaviour)
+    //   (B) I&E receipts for the same car/month — cell-level images AND
+    //       approved expense-form-submission receipts (new).
+    const loadAll = async () => {
+      const [paymentFiles, ieFiles] = await Promise.all([
+        loadPaymentAttachmentFiles(),
+        loadIncomeExpenseReceipts(),
+      ]);
+      const merged = [...paymentFiles, ...ieFiles];
+      setFileUrls(merged);
       setCurrentIndex(0);
       setIsLoadingFiles(false);
-      return;
-    }
+    };
 
-    // Set loading state immediately when modal opens with attachments
-    setIsLoadingFiles(true);
-    setFileUrls([]); // Clear previous files while loading
-
-    const loadFiles = async () => {
+    // ---- (B) I&E receipts --------------------------------------------
+    const loadIncomeExpenseReceipts = async (): Promise<FileUrlData[]> => {
+      if (!payment?.payments_car_id || !payment?.payments_year_month) return [];
       try {
-        const parsed = JSON.parse(payment.payments_attachment!);
+        const res = await fetch(
+          buildApiUrl(
+            `/api/payments/receipts/ie?carId=${encodeURIComponent(
+              String(payment.payments_car_id)
+            )}&yearMonth=${encodeURIComponent(payment.payments_year_month)}`
+          ),
+          { credentials: "include" }
+        );
+        if (!res.ok) return [];
+        const json = await res.json();
+        const list = Array.isArray(json?.files) ? json.files : [];
+        return list.map((f: any) => ({
+          fileId: String(f.fileId || ""),
+          name: f.name,
+          mimeType: f.mimeType,
+          url: f.url,
+          webViewLink: f.webViewLink,
+          webContentLink: f.webContentLink,
+          previewUrl: f.previewUrl,
+          source: f.source === "ie-cell" ? "ie-cell" : "form-submission",
+          contextLabel:
+            [f.category, f.field].filter(Boolean).join(" › ") || undefined,
+        }));
+      } catch (error) {
+        console.error("[Payment Receipts] Failed to fetch I&E receipts:", error);
+        return [];
+      }
+    };
+
+    // ---- (A) payment_attachment files (original behaviour) -----------
+    const loadPaymentAttachmentFiles = async (): Promise<FileUrlData[]> => {
+      if (!payment?.payments_attachment) return [];
+      try {
+        const parsed = JSON.parse(payment.payments_attachment);
         const ids = Array.isArray(parsed) ? parsed : [parsed];
-        
+
         // Check if attachments are Google Drive IDs (not starting with /uploads/)
-        const isGDrive = ids.every((id: string) => 
-          typeof id === 'string' && !id.startsWith('/uploads/') && !id.startsWith('http')
+        const isGDrive = ids.every((id: string) =>
+          typeof id === "string" && !id.startsWith("/uploads/") && !id.startsWith("http")
         );
 
         if (isGDrive && ids.length > 0) {
-          // Fetch file URLs from Google Drive (loading state already set above)
           const urls = await Promise.all(
             ids.map(async (fileId: string) => {
               try {
@@ -92,151 +142,133 @@ export function PaymentReceiptModal({
                   buildApiUrl(`/api/payments/receipt/file-url?fileId=${encodeURIComponent(fileId)}`),
                   { credentials: "include" }
                 );
-                
+
                 if (!response.ok) {
                   const errorData = await response.json().catch(() => ({}));
-                  // Check if it's a folder ID error
-                  if (errorData.error?.includes('folder') || errorData.error?.includes('Folder')) {
-                    console.error(`❌ [Payment Receipts] ID ${fileId} is a folder, not a file`);
-                    throw new Error(`Invalid file ID: The stored ID appears to be a folder ID, not a file ID. Please re-upload the receipt.`);
+                  if (errorData.error?.includes("folder") || errorData.error?.includes("Folder")) {
+                    throw new Error(
+                      "Invalid file ID: The stored ID appears to be a folder ID, not a file ID. Please re-upload the receipt."
+                    );
                   }
                   throw new Error(errorData.error || "Failed to fetch file URL");
                 }
-                
+
                 const data = await response.json();
-                
-                // Check if backend detected a folder and returned multiple files
+
+                // Folder: backend returned multiple files
                 if (data.isFolder && Array.isArray(data.data)) {
-                  console.log(`✅ [Payment Receipts] Folder ID detected (${fileId}), found ${data.fileCount || data.data.length} file(s) in folder "${data.folderName || 'Payment_History_Receipt'}"`);
-                  console.log(`✅ [Payment Receipts] Extracted Google Drive file IDs from folder:`, 
-                    data.fileIds || data.data.map((f: FileUrlData) => f.fileId));
-                  // Return all files from the folder - these are actual file IDs from Payment_History_Receipt folder
                   return data.data.map((file: FileUrlData) => ({
                     ...file,
-                    fileId: file.fileId, // This is the actual Google Drive file ID from within the folder
-                    // Ensure mimeType is set and not a folder
-                    mimeType: file.mimeType && file.mimeType !== 'application/vnd.google-apps.folder' 
-                      ? file.mimeType 
-                      : undefined,
+                    fileId: file.fileId,
+                    mimeType:
+                      file.mimeType && file.mimeType !== "application/vnd.google-apps.folder"
+                        ? file.mimeType
+                        : undefined,
+                    source: "payment-attachment" as const,
                   }));
                 }
-                
-                // Handle single file (could be object or array with one element)
+
+                // Single file
                 const fileData = Array.isArray(data.data) ? data.data[0] : data.data;
-                
-                // Verify it's not a folder
-                if (fileData.mimeType === 'application/vnd.google-apps.folder') {
-                  console.error(`❌ [Payment Receipts] ID ${fileId} is a folder, not a file`);
-                  throw new Error(`Invalid file ID: The stored ID is a folder ID, not a file ID. Please re-upload the receipt.`);
+                if (fileData.mimeType === "application/vnd.google-apps.folder") {
+                  throw new Error(
+                    "Invalid file ID: The stored ID is a folder ID, not a file ID. Please re-upload the receipt."
+                  );
                 }
-                
-                // Use previewUrl from backend if available, otherwise generate it
-                const previewUrl = fileData.previewUrl || `https://drive.google.com/file/d/${fileData.fileId || fileId}/preview`;
-                
-                console.log(`✅ [Payment Receipts] Loaded file: ${fileData.name} (ID: ${fileData.fileId || fileId}, Type: ${fileData.mimeType})`);
-                
+                const previewUrl =
+                  fileData.previewUrl || `https://drive.google.com/file/d/${fileData.fileId || fileId}/preview`;
                 return {
                   ...fileData,
-                  // Always use the fileId from the metadata, not the input ID (in case input was a folder)
                   fileId: fileData.fileId || fileId,
-                  // Use preview URL for embedding, but keep original links for download
                   previewUrl: previewUrl,
                   webViewLink: fileData.webViewLink || previewUrl,
                   webContentLink: fileData.webContentLink || previewUrl,
+                  source: "payment-attachment" as const,
                 };
               } catch (error: any) {
-                console.error(`❌ [Payment Receipts] Failed to fetch file URL for ${fileId}:`, error);
-                // Return error info so user knows what went wrong
-                return { 
-                  fileId, 
+                return {
+                  fileId,
                   previewUrl: null,
-                  webViewLink: null, 
+                  webViewLink: null,
                   webContentLink: null,
                   name: `Error loading file ${fileId}`,
-                  mimeType: 'unknown',
-                  error: error?.message || 'Failed to load file'
+                  mimeType: "unknown",
+                  error: error?.message || "Failed to load file",
+                  source: "payment-attachment" as const,
                 };
               }
             })
           );
-          
-          // Flatten array of arrays (in case folder returned multiple files)
-          const flattenedUrls = urls.flat();
-          
-          // Filter out files with errors and show them separately
-          // Also filter out any files that might still be folders (safety check)
-          const validFiles = flattenedUrls.filter(f => 
-            !f.error && 
-            f.fileId && 
-            f.fileId !== 'error' &&
-            f.mimeType !== 'application/vnd.google-apps.folder'
+
+          const flattened = urls.flat() as FileUrlData[];
+          const valid = flattened.filter(
+            (f) =>
+              !f.error &&
+              f.fileId &&
+              f.fileId !== "error" &&
+              f.mimeType !== "application/vnd.google-apps.folder"
           );
-          const errorFiles = flattenedUrls.filter(f => f.error);
-          
-          if (errorFiles.length > 0) {
-            console.warn(`⚠️ [Payment Receipts] ${errorFiles.length} file(s) failed to load:`, errorFiles.map(f => f.fileId));
+          const errors = flattened.filter((f) => f.error);
+          // If all failed, surface the first error so the user sees why.
+          if (valid.length === 0 && errors.length > 0) {
+            return [{
+              fileId: "error",
+              name: "Error loading receipts",
+              mimeType: "unknown",
+              error: errors[0].error || "Failed to load receipt files",
+              source: "payment-attachment",
+            }];
           }
-          
-          // Log the final file IDs that will be displayed
-          if (validFiles.length > 0) {
-            console.log(`✅ [Payment Receipts] Final file IDs to display:`, validFiles.map(f => f.fileId));
-          }
-          
-          if (validFiles.length === 0 && errorFiles.length > 0) {
-            // All files failed - show error message
-            setFileUrls([{
-              fileId: 'error',
-              name: 'Error loading receipts',
-              mimeType: 'unknown',
-              error: errorFiles[0].error || 'Failed to load receipt files'
-            }]);
-          } else {
-            setFileUrls(validFiles);
-          }
-          
-          setCurrentIndex(0);
-          setIsLoadingFiles(false);
-        } else {
-          // Local files - convert paths to full URLs
-          const localUrls = ids.map((path: string) => {
-            if (path.startsWith("http://") || path.startsWith("https://")) {
-              return { fileId: path, webViewLink: path, webContentLink: path };
-            }
-            return { fileId: path, webViewLink: buildApiUrl(path), webContentLink: buildApiUrl(path) };
-          });
-          setFileUrls(localUrls);
-          setCurrentIndex(0);
-          setIsLoadingFiles(false);
+          return valid;
         }
+
+        // Local or http files
+        return ids.map((path: string): FileUrlData => {
+          const isHttp = path.startsWith("http://") || path.startsWith("https://");
+          const url = isHttp ? path : buildApiUrl(path);
+          return {
+            fileId: path,
+            webViewLink: url,
+            webContentLink: url,
+            source: "payment-attachment",
+          };
+        });
       } catch (error) {
         console.error("Failed to parse attachments:", error);
-        // If parsing fails, try treating it as a single path string
         if (payment.payments_attachment && typeof payment.payments_attachment === "string") {
           const path = payment.payments_attachment;
-          const url = path.startsWith("http://") || path.startsWith("https://") 
-            ? path 
-            : buildApiUrl(path);
-          setFileUrls([{ fileId: path, webViewLink: url, webContentLink: url }]);
-          setCurrentIndex(0);
-        } else {
-          setFileUrls([]);
+          const url = path.startsWith("http://") || path.startsWith("https://") ? path : buildApiUrl(path);
+          return [{ fileId: path, webViewLink: url, webContentLink: url, source: "payment-attachment" }];
         }
-        setIsLoadingFiles(false);
+        return [];
       }
     };
 
-    loadFiles();
+    loadAll();
   }, [payment, isOpen]);
 
   if (!payment) return null;
 
   const hasAttachments = fileUrls.length > 0;
   const currentFile = hasAttachments ? fileUrls[currentIndex] : null;
-  // Use proxy endpoint to serve file content (works even if file is not publicly accessible)
-  // This ensures files can be displayed regardless of Google Drive permissions
-  const currentAttachment = currentFile?.fileId 
-    ? buildApiUrl(`/api/payments/receipt/file-content?fileId=${encodeURIComponent(currentFile.fileId)}`)
-    : currentFile?.webViewLink || currentFile?.webContentLink || currentFile?.previewUrl || null;
+  // Resolve display URL:
+  //   - If the file already has a direct URL (I&E cell signed GCS URL, local
+  //     /uploads path, or http form-submission receipt), use it verbatim.
+  //   - Otherwise assume it's a Google Drive file ID and route through the
+  //     existing /api/payments/receipt/file-content proxy (works regardless of
+  //     Drive permissions).
+  const resolveCurrentUrl = (): string | null => {
+    if (!currentFile) return null;
+    if (currentFile.url) return currentFile.url;
+    const id = currentFile.fileId;
+    if (!id) return currentFile.webViewLink || currentFile.webContentLink || currentFile.previewUrl || null;
+    const isHttp = id.startsWith("http://") || id.startsWith("https://");
+    const isLocal = id.startsWith("/uploads/");
+    if (isHttp) return id;
+    if (isLocal) return buildApiUrl(id);
+    return buildApiUrl(`/api/payments/receipt/file-content?fileId=${encodeURIComponent(id)}`);
+  };
+  const currentAttachment = resolveCurrentUrl();
 
   const handlePrevious = () => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : fileUrls.length - 1));
@@ -408,69 +440,109 @@ export function PaymentReceiptModal({
                 )}
               </div>
 
-              {/* File ID Information */}
+              {/* File info (source, context, ID/link) */}
               {currentFile && currentFile.fileId && currentFile.fileId !== 'error' && (
                 <div className="mt-4 p-3 bg-card rounded-lg border border-border">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-muted-foreground mb-1">File ID:</p>
-                      <div className="flex items-center gap-2">
-                        {/* Only show file ID if it's not a folder (mimeType check) */}
-                        {currentFile.mimeType !== 'application/vnd.google-apps.folder' ? (
-                          <>
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    {(() => {
+                      const src = currentFile.source ?? "payment-attachment";
+                      const label =
+                        src === "ie-cell"
+                          ? "Income & Expense"
+                          : src === "form-submission"
+                            ? "Expense form submission"
+                            : "Payment attachment";
+                      const tone =
+                        src === "ie-cell"
+                          ? "bg-sky-500/15 text-sky-700 border-sky-500/30"
+                          : src === "form-submission"
+                            ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
+                            : "bg-muted text-muted-foreground border-border";
+                      return (
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${tone}`}
+                        >
+                          {label}
+                        </span>
+                      );
+                    })()}
+                    {currentFile.contextLabel && (
+                      <span className="text-xs text-muted-foreground">
+                        {currentFile.contextLabel}
+                      </span>
+                    )}
+                  </div>
+
+                  {currentFile.mimeType !== 'application/vnd.google-apps.folder' ? (
+                    (() => {
+                      const id = currentFile.fileId;
+                      const isDirectUrl =
+                        !!currentFile.url ||
+                        id.startsWith("http://") ||
+                        id.startsWith("https://") ||
+                        id.startsWith("/uploads/");
+                      const openUrl = isDirectUrl
+                        ? currentFile.url ||
+                          (id.startsWith("http") ? id : buildApiUrl(id))
+                        : `https://drive.google.com/file/d/${id}/view`;
+                      const label = isDirectUrl ? "File URL:" : "Drive File ID:";
+                      const linkText = isDirectUrl
+                        ? currentFile.name || openUrl
+                        : id;
+                      return (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">{label}</p>
+                          <div className="flex items-center gap-2">
                             <a
-                              href={`https://drive.google.com/file/d/${currentFile.fileId}/view`}
+                              href={openUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-sm text-[#EAEB80] hover:text-[#d4d570] hover:underline break-all font-mono"
-                              title="Open in Google Drive"
+                              title={isDirectUrl ? "Open file" : "Open in Google Drive"}
                             >
-                              {currentFile.fileId}
+                              {linkText}
                             </a>
+                            {!isDirectUrl && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    await navigator.clipboard.writeText(id);
+                                    toast({ title: "Copied!", description: "File ID copied to clipboard" });
+                                  } catch {
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to copy file ID",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                                title="Copy File ID"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={async () => {
-                                try {
-                                  await navigator.clipboard.writeText(currentFile.fileId);
-                                  toast({
-                                    title: "Copied!",
-                                    description: "File ID copied to clipboard",
-                                  });
-                                } catch (error) {
-                                  toast({
-                                    title: "Error",
-                                    description: "Failed to copy file ID",
-                                    variant: "destructive",
-                                  });
-                                }
-                              }}
+                              onClick={() => window.open(openUrl, "_blank")}
                               className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                              title="Copy File ID"
-                            >
-                              <Copy className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                window.open(`https://drive.google.com/file/d/${currentFile.fileId}/view`, "_blank");
-                              }}
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                              title="Open in Google Drive"
+                              title="Open in new tab"
                             >
                               <ExternalLink className="w-3 h-3" />
                             </Button>
-                          </>
-                        ) : (
-                          <div className="text-sm text-yellow-700">
-                            <p>Folder ID detected. Please re-upload the receipt file.</p>
-                            <p className="text-xs text-muted-foreground mt-1">Folder ID: {currentFile.fileId}</p>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="text-sm text-yellow-700">
+                      <p>Folder ID detected. Please re-upload the receipt file.</p>
+                      <p className="text-xs text-muted-foreground mt-1">Folder ID: {currentFile.fileId}</p>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 

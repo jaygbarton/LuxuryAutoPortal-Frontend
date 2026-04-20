@@ -107,6 +107,7 @@ export default function PaymentsMainPage() {
   const [carSearch, setCarSearch] = useState<string>("");
   const [carDropdownOpen, setCarDropdownOpen] = useState(false);
   const carDropdownRef = useRef<HTMLDivElement>(null);
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
   // Developer-only mode: show destructive tools only when ?dev=1 is in the URL
   const devMode = new URLSearchParams(window.location.search).get("dev") === "1";
@@ -213,6 +214,7 @@ export default function PaymentsMainPage() {
       carActivityFilter,
       page,
       pageSize,
+      sortOrder,
     ],
     queryFn: async () => {
       const url = buildApiUrl("/api/payments/search");
@@ -228,6 +230,7 @@ export default function PaymentsMainPage() {
           carActiveStatus: carActivityFilter,
           page,
           limit: pageSize,
+          sortOrder,
         }),
       });
       if (!response.ok) throw new Error("Failed to fetch payments");
@@ -870,7 +873,20 @@ export default function PaymentsMainPage() {
                   <th className="h-11 px-3 text-left font-semibold text-foreground w-12 text-[11px] uppercase tracking-wider">#</th>
                   <th className="h-11 px-3 text-left font-semibold text-foreground w-24 text-[11px] uppercase tracking-wider">Status</th>
                   <th className="h-11 px-3 text-left font-semibold text-foreground w-36 text-[11px] uppercase tracking-wider">Client</th>
-                  <th className="h-11 px-3 text-left font-semibold text-foreground w-28 whitespace-nowrap text-[11px] uppercase tracking-wider">Date</th>
+                  <th className="h-11 px-3 text-left font-semibold text-foreground w-28 whitespace-nowrap text-[11px] uppercase tracking-wider">
+                    <button
+                      type="button"
+                      onClick={() => setSortOrder((s) => s === "desc" ? "asc" : "desc")}
+                      className="inline-flex items-center gap-1 hover:text-primary transition-colors group"
+                      title={sortOrder === "desc" ? "Sorted: newest first — click to reverse" : "Sorted: oldest first — click to reverse"}
+                    >
+                      Date
+                      <span className="flex flex-col -space-y-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <svg className={`w-2 h-2 ${sortOrder === "asc" ? "text-primary opacity-100" : ""}`} viewBox="0 0 8 4" fill="currentColor"><path d="M4 0L8 4H0z"/></svg>
+                        <svg className={`w-2 h-2 ${sortOrder === "desc" ? "text-primary opacity-100" : ""}`} viewBox="0 0 8 4" fill="currentColor"><path d="M4 4L0 0h8z"/></svg>
+                      </span>
+                    </button>
+                  </th>
                   <th className="h-11 px-3 text-left font-semibold text-foreground min-w-[180px] text-[11px] uppercase tracking-wider">Car</th>
                   <th className="h-11 px-3 text-right font-semibold text-foreground w-36 tabular-nums text-[11px] whitespace-nowrap uppercase tracking-wider">Car Owner Split</th>
                   <th className="h-11 px-3 text-right font-semibold text-foreground w-32 tabular-nums text-[11px] whitespace-nowrap uppercase tracking-wider">Paid Amount</th>
