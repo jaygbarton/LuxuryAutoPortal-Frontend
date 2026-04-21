@@ -21,10 +21,45 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 // Only the EBITDA rows are wired up as editable today; the full map is kept so
 // any future officeSupport-editable rows render a sensible title.
 const FIELD_LABELS: { [key: string]: string } = {
+  // EBITDA manual entries. EBITDA Taxes uses ebitdaTaxes (distinct from the
+  // operational taxesLicense row shown under OPERATING EXPENSES (OFFICE
+  // SUPPORT)).
   vehicleLoanInterestExpense: "Interest",
-  taxesLicense: "Taxes",
+  ebitdaTaxes: "Taxes",
   depreciationExpense: "Depreciation",
   amortizationExpense: "Amortization",
+  // OPERATING EXPENSES (OFFICE SUPPORT) rows — every category in that section
+  // is a manual entry on the All Cars page.
+  accountingProfessionalFees: "Accounting & Professional Fees",
+  advertizing: "Advertizing",
+  bankCharges: "Bank Charges",
+  detailMobile: "Detail Mobile",
+  charitableContributions: "Charitable Contributions",
+  computerInternet: "Computer & Internet",
+  deliveryPostageFreight: "Delivery, Postage & Freight",
+  detailShopEquipment: "Detail Shop Equipment",
+  duesSubscription: "Dues & Subscription",
+  generalAdministrative: "General and administrative (G&A)",
+  healthWellness: "Health & Wellness",
+  laborHumanResources: "Labor - Human Resources",
+  laborMarketing: "Labor - Marketing",
+  laborSales: "Labor Sales",
+  laborSoftware: "Labor Software",
+  legalProfessional: "Legal & Professional",
+  marketing: "Marketing",
+  mealsEntertainment: "Meals & Entertainment",
+  officeExpense: "Office Expense",
+  officeRent: "Office Rent",
+  outsideStaffContractors: "Outside & Staff Contractors",
+  parkNJetBooth: "Park n Jet Booth",
+  printing: "Printing",
+  referral: "Referral",
+  repairsMaintenance: "Repairs & Maintenance",
+  salesTax: "Sales Tax",
+  securityCameras: "Security Cameras",
+  suppliesMaterials: "Supplies & Materials",
+  telephone: "Telephone",
+  travel: "Travel",
 };
 
 export default function ModalEditOfficeSupport() {

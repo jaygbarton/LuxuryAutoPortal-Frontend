@@ -107,6 +107,8 @@ export interface OfficeSupportMonth {
   healthWellness: number;
   laborSales: number;
   laborSoftware: number;
+  laborHumanResources: number;
+  laborMarketing: number;
   legalProfessional: number;
   marketing: number;
   mealsEntertainment: number;
@@ -130,6 +132,10 @@ export interface OfficeSupportMonth {
   // All-Cars EBITDA manual entry (stored at car_id = 0, same pattern as
   // parking_airport_qb). Not meaningful on per-car rows.
   amortizationExpense: number;
+  // EBITDA Taxes. Kept distinct from taxesLicense above (which backs the
+  // operational "Taxes and License" row in OPERATING EXPENSES (OFFICE
+  // SUPPORT)) so edits to one do not silently change the other.
+  ebitdaTaxes: number;
 }
 
 export interface HistoryMonth {

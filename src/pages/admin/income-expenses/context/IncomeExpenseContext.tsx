@@ -134,6 +134,8 @@ function getEmptyData(): IncomeExpenseData {
       healthWellness: 0,
       laborSales: 0,
       laborSoftware: 0,
+      laborHumanResources: 0,
+      laborMarketing: 0,
       legalProfessional: 0,
       marketing: 0,
       mealsEntertainment: 0,
@@ -155,6 +157,7 @@ function getEmptyData(): IncomeExpenseData {
       vehicleDepreciationExpense: 0,
       vehicleLoanInterestExpense: 0,
       amortizationExpense: 0,
+      ebitdaTaxes: 0,
     })),
     history: emptyMonthData.map((m) => ({
       ...m,
