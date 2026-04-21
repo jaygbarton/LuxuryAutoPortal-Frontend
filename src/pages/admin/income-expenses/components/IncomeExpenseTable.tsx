@@ -1657,7 +1657,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
 
             {/* Parking Fee & Labor Cleaning */}
             <CategorySection
-              title="Parking Fee & Labor Cleaning"
+              title="PARKING FEE & LABOR CLEANING"
               isExpanded={expandedSections.parkingFeeLabor}
               onToggle={() => toggleSection("parkingFeeLabor")}
 
