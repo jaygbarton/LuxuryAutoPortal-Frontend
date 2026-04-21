@@ -872,14 +872,6 @@ export default function TotalsPage() {
               <TotalRow label="Cars Available For Rent" value={totals?.history?.carsAvailableForRent} isCurrency={false} />
               <TotalRow label="Trips Taken" value={totals?.history?.tripsTaken} isCurrency={false} />
             </Section>
-
-            {/* 9. Payment History */}
-            <Section
-              title="PAYMENT HISTORY"
-              totalValue={totals?.payments?.total}
-            >
-              <TotalRow label={`${effectiveFilters.fromYear}${effectiveFilters.fromYear !== effectiveFilters.toYear ? ` — ${effectiveFilters.toYear}` : ""}`} value={totals?.payments?.total} bold />
-            </Section>
           </div>
         )}
       </div>

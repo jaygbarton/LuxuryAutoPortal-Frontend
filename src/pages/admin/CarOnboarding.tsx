@@ -358,11 +358,26 @@ function CarOnboarding() {
                             : "—"}
                         </TableCell>
                         <TableCell className="text-center px-2 sm:px-3 py-3 sm:py-4 text-muted-foreground text-xs sm:text-sm hidden lg:table-cell whitespace-nowrap">
-                          {new Date(car.createdAt).toLocaleDateString("en-US", {
-                            month: "2-digit",
-                            day: "2-digit",
-                            year: "numeric",
-                          })}
+                          {car.createdAt ? (
+                            <div className="flex flex-col items-center leading-tight">
+                              <span>
+                                {new Date(car.createdAt).toLocaleDateString("en-US", {
+                                  month: "2-digit",
+                                  day: "2-digit",
+                                  year: "numeric",
+                                })}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground/70">
+                                {new Date(car.createdAt).toLocaleTimeString("en-US", {
+                                  hour: "numeric",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })}
+                              </span>
+                            </div>
+                          ) : (
+                            "—"
+                          )}
                         </TableCell>
                         <TableCell className="text-center px-2 sm:px-3 py-3 sm:py-4 whitespace-nowrap">
                           <div className="flex items-center justify-center">
@@ -401,19 +416,29 @@ function CarOnboarding() {
                           </div>
                         </TableCell>
                         <TableCell className="text-center px-2 sm:px-3 py-3 sm:py-4 text-muted-foreground text-xs sm:text-sm hidden 2xl:table-cell whitespace-nowrap">
-                          {car.onboardingDate
-                            ? new Date(car.onboardingDate).toLocaleDateString("en-US", {
-                                month: "2-digit",
-                                day: "2-digit",
-                                year: "numeric",
-                              })
-                            : car.createdAt
-                            ? new Date(car.createdAt).toLocaleDateString("en-US", {
-                                month: "2-digit",
-                                day: "2-digit",
-                                year: "numeric",
-                              })
-                            : "—"}
+                          {(() => {
+                            const dateStr = car.onboardingDate || car.createdAt;
+                            if (!dateStr) return "—";
+                            const d = new Date(dateStr);
+                            return (
+                              <div className="flex flex-col items-center leading-tight">
+                                <span>
+                                  {d.toLocaleDateString("en-US", {
+                                    month: "2-digit",
+                                    day: "2-digit",
+                                    year: "numeric",
+                                  })}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground/70">
+                                  {d.toLocaleTimeString("en-US", {
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  })}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                       </TableRow>
                     ))}
