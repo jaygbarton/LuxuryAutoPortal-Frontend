@@ -200,7 +200,7 @@ export default function MaintenanceSection({ year }: MaintenanceSectionProps) {
                 />
                 <Tooltip formatter={(value: number) => formatCurrency(value)} />
                 <Legend />
-                <Bar dataKey="Mechanical" fill="#FFD700" />
+                <Bar dataKey="Mechanical" fill="#d3bc8d" />
                 <Bar dataKey="Body & Other" fill="#6B7280" />
               </BarChart>
             </ResponsiveContainer>

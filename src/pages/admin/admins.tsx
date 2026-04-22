@@ -693,7 +693,7 @@ export default function AdminsPage() {
 
   const getRoleBadgeColor = (role: string) => {
     if (role.toLowerCase().includes("admin")) {
-      return "bg-[#EAEB80]/40 text-black border-[#EAEB80]/60 font-semibold";
+      return "bg-[#D3BC8D]/40 text-black border-[#D3BC8D]/60 font-semibold";
     }
     if (role.toLowerCase().includes("employee")) {
       return "bg-blue-500/20 text-blue-700 border-blue-500/30 font-medium";
@@ -767,8 +767,8 @@ export default function AdminsPage() {
                       >
                         <td className="px-3 sm:px-6 py-3 sm:py-4">
                           <div className="flex items-center gap-2 sm:gap-3">
-                            <Avatar className="w-8 h-8 sm:w-10 sm:h-10 bg-[#EAEB80]/20">
-                              <AvatarFallback className="bg-[#EAEB80]/20 text-primary text-xs sm:text-sm font-medium">
+                            <Avatar className="w-8 h-8 sm:w-10 sm:h-10 bg-[#D3BC8D]/20">
+                              <AvatarFallback className="bg-[#D3BC8D]/20 text-primary text-xs sm:text-sm font-medium">
                                 {getInitials(user.firstName, user.lastName)}
                               </AvatarFallback>
                             </Avatar>
@@ -1172,7 +1172,7 @@ export default function AdminsPage() {
                               {link.visibleToAdmins && (
                                 <Badge
                                   variant="outline"
-                                  className="bg-[#EAEB80]/40 text-black border-[#EAEB80]/60 text-xs font-semibold"
+                                  className="bg-[#D3BC8D]/40 text-black border-[#D3BC8D]/60 text-xs font-semibold"
                                 >
                                   Admin
                                 </Badge>
@@ -1345,7 +1345,7 @@ export default function AdminsPage() {
                           <Checkbox
                             checked={field.value}
                             onCheckedChange={field.onChange}
-                            className="border-border data-[state=checked]:bg-[#EAEB80] data-[state=checked]:border-primary"
+                            className="border-border data-[state=checked]:bg-[#D3BC8D] data-[state=checked]:border-primary"
                           />
                         </FormControl>
                         <FormLabel className="text-muted-foreground font-normal cursor-pointer">
@@ -1363,7 +1363,7 @@ export default function AdminsPage() {
                           <Checkbox
                             checked={field.value}
                             onCheckedChange={field.onChange}
-                            className="border-border data-[state=checked]:bg-[#EAEB80] data-[state=checked]:border-primary"
+                            className="border-border data-[state=checked]:bg-[#D3BC8D] data-[state=checked]:border-primary"
                           />
                         </FormControl>
                         <FormLabel className="text-muted-foreground font-normal cursor-pointer">
@@ -1381,7 +1381,7 @@ export default function AdminsPage() {
                           <Checkbox
                             checked={field.value}
                             onCheckedChange={field.onChange}
-                            className="border-border data-[state=checked]:bg-[#EAEB80] data-[state=checked]:border-primary"
+                            className="border-border data-[state=checked]:bg-[#D3BC8D] data-[state=checked]:border-primary"
                           />
                         </FormControl>
                         <FormLabel className="text-muted-foreground font-normal cursor-pointer">

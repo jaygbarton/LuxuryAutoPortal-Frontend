@@ -352,11 +352,11 @@ export function RecordFileViewModal({
                   accept="*"
                 />
                 <div className="flex flex-col items-center justify-center gap-2">
-                  <Upload className={`w-8 h-8 ${isDragging ? "text-[#EAEB80]" : "text-muted-foreground"}`} />
+                  <Upload className={`w-8 h-8 ${isDragging ? "text-[#D3BC8D]" : "text-muted-foreground"}`} />
                   <div className="text-sm">
-                    <span className="text-[#EAEB80]">Drag & Drop</span>{" "}
+                    <span className="text-[#D3BC8D]">Drag & Drop</span>{" "}
                     <span className="text-muted-foreground">multiple files here or</span>{" "}
-                    <span className="text-[#EAEB80]">Browse</span>
+                    <span className="text-[#D3BC8D]">Browse</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Supported formats: PDF, Images, Documents. Maximum 20 files.
@@ -472,7 +472,7 @@ export function RecordFileViewModal({
                   className="p-2 bg-card border border-border rounded hover:bg-muted transition-colors"
                   title="Open in Google Drive"
                 >
-                  <ExternalLink className="w-4 h-4 text-[#EAEB80]" />
+                  <ExternalLink className="w-4 h-4 text-[#D3BC8D]" />
                 </a>
               </div>
             </div>

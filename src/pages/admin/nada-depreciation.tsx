@@ -1312,9 +1312,9 @@ export default function NADADepreciationPage() {
                 <Line
                   type="monotone"
                   dataKey="NADA - Average"
-                  stroke="#eab308"
+                  stroke="#D3BC8D"
                   strokeWidth={2}
-                  dot={{ fill: "#eab308", r: 4 }}
+                  dot={{ fill: "#D3BC8D", r: 4 }}
                   name="NADA - Average"
                 />
                 <Line
@@ -1385,9 +1385,9 @@ export default function NADADepreciationPage() {
                 <Line
                   type="monotone"
                   dataKey="NADA - Average"
-                  stroke="#eab308"
+                  stroke="#D3BC8D"
                   strokeWidth={2}
-                  dot={{ fill: "#eab308", r: 4 }}
+                  dot={{ fill: "#D3BC8D", r: 4 }}
                   name="NADA - Average"
                 />
                 <Line
@@ -1458,9 +1458,9 @@ export default function NADADepreciationPage() {
                 <Line
                   type="monotone"
                   dataKey="NADA - Average"
-                  stroke="#eab308"
+                  stroke="#D3BC8D"
                   strokeWidth={2}
-                  dot={{ fill: "#eab308", r: 4 }}
+                  dot={{ fill: "#D3BC8D", r: 4 }}
                   name="NADA - Average"
                 />
                 <Line

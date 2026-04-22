@@ -60,7 +60,7 @@ type InspectionStatus = "booked" | "cancelled" | "completed";
 
 function StatusBadge({ status }: { status: InspectionStatus }) {
   const styles: Record<InspectionStatus, string> = {
-    booked: "bg-[#FFD700] text-black",
+    booked: "bg-[#d3bc8d] text-black",
     completed: "bg-green-600 text-white",
     cancelled: "bg-red-600 text-white",
   };

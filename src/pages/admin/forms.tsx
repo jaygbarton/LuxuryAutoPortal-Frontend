@@ -2055,7 +2055,7 @@ export default function FormsPage() {
                                     <Badge
                                       key={index}
                                       variant="outline"
-                                      className="border-primary/50 text-primary bg-[#EAEB80]/10 text-xs"
+                                      className="border-primary/50 text-primary bg-[#D3BC8D]/10 text-xs"
                                     >
                                       {feature}
                                     </Badge>
@@ -2400,8 +2400,8 @@ export default function FormsPage() {
                               >
                                 <div className={`relative w-full aspect-[4/3] bg-background rounded-lg border-2 transition-all overflow-hidden shadow-lg ${
                                   isPdf 
-                                    ? 'border-primary/50 hover:border-primary shadow-[#EAEB80]/20' 
-                                    : 'border-primary/30 hover:border-primary shadow-[#EAEB80]/20'
+                                    ? 'border-primary/50 hover:border-primary shadow-[#D3BC8D]/20' 
+                                    : 'border-primary/30 hover:border-primary shadow-[#D3BC8D]/20'
                                 }`}>
                                   {isPdf ? (
                                     <div className="w-full h-full flex flex-col items-center justify-center p-4">
@@ -2467,8 +2467,8 @@ export default function FormsPage() {
                                   >
                                     <div className={`relative w-full aspect-[4/3] bg-background rounded-lg border-2 transition-all overflow-hidden shadow-lg ${
                                       isPdf 
-                                        ? 'border-primary/50 hover:border-primary shadow-[#EAEB80]/20' 
-                                        : 'border-primary/30 hover:border-primary shadow-[#EAEB80]/20'
+                                        ? 'border-primary/50 hover:border-primary shadow-[#D3BC8D]/20' 
+                                        : 'border-primary/30 hover:border-primary shadow-[#D3BC8D]/20'
                                     }`}>
                                       {isPdf ? (
                                         <div className="w-full h-full flex flex-col items-center justify-center p-4">
@@ -2501,7 +2501,7 @@ export default function FormsPage() {
                                         </div>
                                       </div>
                                       {isPdf && (
-                                        <div className="absolute top-2 right-2 bg-[#EAEB80]/90 text-black text-xs px-2 py-1 rounded font-semibold">
+                                        <div className="absolute top-2 right-2 bg-[#D3BC8D]/90 text-black text-xs px-2 py-1 rounded font-semibold">
                                           PDF
                                         </div>
                                       )}
@@ -2735,7 +2735,7 @@ export default function FormsPage() {
                            isPdf
                          });
                        }}
-                       className="fixed left-6 top-1/2 -translate-y-1/2 z-[200] h-14 w-14 bg-background/90 hover:bg-muted/50EAEB80]/20 text-foreground border-2 border-white/60 rounded-full shadow-2xl backdrop-blur-sm transition-all hover:scale-110"
+                       className="fixed left-6 top-1/2 -translate-y-1/2 z-[200] h-14 w-14 bg-background/90 hover:bg-muted/50D3BC8D]/20 text-foreground border-2 border-white/60 rounded-full shadow-2xl backdrop-blur-sm transition-all hover:scale-110"
                        aria-label="Previous image"
                      >
                        <ChevronLeft className="w-6 h-6" />
@@ -2760,7 +2760,7 @@ export default function FormsPage() {
                            isPdf
                          });
                        }}
-                       className="fixed right-6 top-1/2 -translate-y-1/2 z-[200] h-14 w-14 bg-background/90 hover:bg-muted/50EAEB80]/20 text-foreground border-2 border-white/60 rounded-full shadow-2xl backdrop-blur-sm transition-all hover:scale-110"
+                       className="fixed right-6 top-1/2 -translate-y-1/2 z-[200] h-14 w-14 bg-background/90 hover:bg-muted/50D3BC8D]/20 text-foreground border-2 border-white/60 rounded-full shadow-2xl backdrop-blur-sm transition-all hover:scale-110"
                        aria-label="Next image"
                      >
                        <ChevronRight className="w-6 h-6" />

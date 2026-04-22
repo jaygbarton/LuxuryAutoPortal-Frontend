@@ -16,7 +16,7 @@ interface SupportCenterProps {
 export function SupportCenter({ supportLinks }: SupportCenterProps) {
   return (
     <Card className="border-border bg-card overflow-hidden">
-      <div className="px-6 py-3" style={{ backgroundColor: "#EAEB80" }}>
+      <div className="px-6 py-3" style={{ backgroundColor: "#d3bc8d" }}>
         <h2 className="text-base font-bold text-[#1a1a1a]">Support Center</h2>
       </div>
       <CardContent className="pt-4">

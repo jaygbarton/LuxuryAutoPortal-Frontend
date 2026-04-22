@@ -854,10 +854,10 @@ export default function CarsPage() {
                               className={cn(
                                 "text-xs",
                                 derivedManagementStatus === "management"
-                                  ? "bg-[#EAEB80]/25 text-[#8B6914] border-[#EAEB80]/60 font-semibold shadow-sm"
+                                  ? "bg-[#D3BC8D]/25 text-[#8B6914] border-[#D3BC8D]/60 font-semibold shadow-sm"
                                   : derivedManagementStatus === "off_ride"
                                     ? "bg-yellow-500/20 text-yellow-800 border-yellow-600/50 font-semibold shadow-sm"
-                                    : "bg-[#EAEB80]/15 text-[#8B6914] border-[#EAEB80]/40 font-semibold shadow-sm"
+                                    : "bg-[#D3BC8D]/15 text-[#8B6914] border-[#D3BC8D]/40 font-semibold shadow-sm"
                               )}
                             >
                             {managementValue}

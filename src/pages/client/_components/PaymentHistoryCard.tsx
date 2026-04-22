@@ -25,7 +25,7 @@ export function PaymentHistoryCard({ payments, isLoading }: PaymentHistoryCardPr
       <CardContent className="pt-0 overflow-x-auto p-0">
         {isLoading ? (
           <div className="flex items-center justify-center h-24">
-            <Loader2 className="w-5 h-5 animate-spin text-[#EAEB80]" />
+            <Loader2 className="w-5 h-5 animate-spin text-[#d3bc8d]" />
           </div>
         ) : payments.length > 0 ? (
           <Table>
@@ -43,7 +43,7 @@ export function PaymentHistoryCard({ payments, isLoading }: PaymentHistoryCardPr
               {payments.map((p) => (
                 <TableRow key={p.payments_aid} className="border-border hover:bg-muted/30">
                   <TableCell className="text-sm py-2 font-medium">{getMonthLabel(p.payments_year_month)}</TableCell>
-                  <TableCell className="text-sm py-2 text-right text-[#EAEB80]">{fmt(p.payments_amount_payout)}</TableCell>
+                  <TableCell className="text-sm py-2 text-right text-[#d3bc8d]">{fmt(p.payments_amount_payout)}</TableCell>
                   <TableCell className="text-sm py-2 text-right">{fmt(p.payments_amount)}</TableCell>
                   <TableCell className="text-sm py-2 text-right">
                     <span className={p.payments_amount_balance >= 0 ? "text-green-400" : "text-red-400"}>
@@ -57,7 +57,7 @@ export function PaymentHistoryCard({ payments, isLoading }: PaymentHistoryCardPr
                         variant="ghost"
                         size="sm"
                         onClick={() => setReceiptPayment(p)}
-                        className="text-[#EAEB80] hover:text-[#d4d570] h-7 w-7 p-0"
+                        className="text-[#d3bc8d] hover:text-[#c2a671] h-7 w-7 p-0"
                         title="View Receipt"
                       >
                         <FileText className="w-4 h-4" />

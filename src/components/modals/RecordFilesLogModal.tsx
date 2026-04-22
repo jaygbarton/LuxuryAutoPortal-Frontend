@@ -362,13 +362,13 @@ export function RecordFilesLogModal({
                         <td className="px-3 py-2 text-sm text-muted-foreground">
                           {formatDate(log.carBacklogOldAmount, "N/A")}
                         </td>
-                        <td className="px-3 py-2 text-sm text-[#EAEB80] font-medium">
+                        <td className="px-3 py-2 text-sm text-[#D3BC8D] font-medium">
                           {formatDate(log.carBacklogNewAmount, "N/A")}
                         </td>
                         <td className="px-3 py-2 text-sm text-muted-foreground">
                           {log.carBacklogOldValues || "N/A"}
                         </td>
-                        <td className="px-3 py-2 text-sm text-[#EAEB80] font-medium">
+                        <td className="px-3 py-2 text-sm text-[#D3BC8D] font-medium">
                           {log.carBacklogNewValues || "N/A"}
                         </td>
                         <td className="px-3 py-2 text-sm text-muted-foreground">
@@ -389,7 +389,7 @@ export function RecordFilesLogModal({
                     <Button
                       onClick={() => fetchNextPage()}
                       variant="ghost"
-                      className="text-[#EAEB80] hover:text-[#d4d570]"
+                      className="text-[#D3BC8D] hover:text-[#d4d570]"
                     >
                       Load More
                     </Button>

@@ -70,7 +70,7 @@ export function VehicleOwnerInfo({
                     href={manufacturerUrl || activeCar?.manufacturerWebsite || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-foreground underline hover:text-[#EAEB80]"
+                    className="text-foreground underline hover:text-[#d3bc8d]"
                   >
                     {(manufacturerUrl || activeCar?.manufacturerWebsite || "").replace(/^https?:\/\//, "")}
                   </a>
@@ -89,7 +89,7 @@ export function VehicleOwnerInfo({
                   <span className="font-bold text-foreground">Turo Link</span>
                   {" :"}
                   <a href={turoViewLink} target="_blank" rel="noopener noreferrer"
-                    className="text-foreground underline hover:text-[#EAEB80] ml-1">
+                    className="text-foreground underline hover:text-[#d3bc8d] ml-1">
                     View Car
                   </a>
                 </div>
@@ -99,7 +99,7 @@ export function VehicleOwnerInfo({
                 <span className="font-bold text-foreground">Book Your Car</span>
                 {" :"}
                 <a href="https://turo.com" target="_blank" rel="noopener noreferrer"
-                  className="ml-1 text-foreground hover:text-[#EAEB80]" title="Book on Turo">
+                  className="ml-1 text-foreground hover:text-[#d3bc8d]" title="Book on Turo">
                   <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <rect x="3" y="3" width="7" height="7" rx="1"/>
                     <rect x="14" y="3" width="7" height="7" rx="1"/>
@@ -116,7 +116,7 @@ export function VehicleOwnerInfo({
                 <span className="font-bold text-foreground">Schedule a Zoom call</span>
                 {" "}
                 <a href="https://calendly.com/goldenluxuryauto" target="_blank" rel="noopener noreferrer"
-                  className="text-foreground hover:text-[#EAEB80]" title="Schedule a Zoom call">
+                  className="text-foreground hover:text-[#d3bc8d]" title="Schedule a Zoom call">
                   <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/>
                     <circle cx="17" cy="7" r="4"/>

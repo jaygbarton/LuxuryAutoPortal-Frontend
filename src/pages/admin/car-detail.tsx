@@ -1918,7 +1918,7 @@ export default function CarDetailPage() {
                             className={cn(
                               "w-3 h-3 rounded-full transition-all duration-300",
                               index === carouselIndex
-                                ? "bg-[#EAEB80] w-8"
+                                ? "bg-[#D3BC8D] w-8"
                                 : "bg-gray-600 hover:bg-gray-500"
                             )}
                             aria-label={`Go to image ${index + 1}`}
@@ -2070,8 +2070,8 @@ export default function CarDetailPage() {
                         >
                           <div className={`relative w-full aspect-[4/3] bg-background rounded-lg border-2 transition-all overflow-hidden shadow-lg ${
                             isPdf 
-                              ? 'border-primary/50 hover:border-primary shadow-[#EAEB80]/20' 
-                              : 'border-primary/30 hover:border-primary shadow-[#EAEB80]/20'
+                              ? 'border-primary/50 hover:border-primary shadow-[#D3BC8D]/20' 
+                              : 'border-primary/30 hover:border-primary shadow-[#D3BC8D]/20'
                           }`}>
                             {isPdf ? (
                               <div className="w-full h-full flex flex-col items-center justify-center p-4">
@@ -2190,8 +2190,8 @@ export default function CarDetailPage() {
                             >
                               <div className={`relative w-full aspect-[4/3] bg-background rounded-lg border-2 transition-all overflow-hidden shadow-lg ${
                                 isPdf 
-                                  ? 'border-primary/50 hover:border-primary shadow-[#EAEB80]/20' 
-                                  : 'border-primary/30 hover:border-primary shadow-[#EAEB80]/20'
+                                  ? 'border-primary/50 hover:border-primary shadow-[#D3BC8D]/20' 
+                                  : 'border-primary/30 hover:border-primary shadow-[#D3BC8D]/20'
                               }`}>
                                 {isPdf ? (
                                   <div className="w-full h-full flex flex-col items-center justify-center p-4">
@@ -2259,7 +2259,7 @@ export default function CarDetailPage() {
                                   </div>
                                 </div>
                                 {isPdf && (
-                                  <div className="absolute top-2 right-2 bg-[#EAEB80]/90 text-black text-xs px-2 py-1 rounded font-semibold">
+                                  <div className="absolute top-2 right-2 bg-[#D3BC8D]/90 text-black text-xs px-2 py-1 rounded font-semibold">
                                     PDF
                                   </div>
                                 )}
@@ -2582,7 +2582,7 @@ export default function CarDetailPage() {
                       key={index}
                       className={cn(
                         "relative group",
-                        isSelected && "ring-2 ring-[#EAEB80] rounded-lg",
+                        isSelected && "ring-2 ring-[#D3BC8D] rounded-lg",
                         // Removed carousel sync indicator - carousel and Photos card are independent
                         isAdmin && "cursor-pointer"
                       )}
@@ -2634,7 +2634,7 @@ export default function CarDetailPage() {
                               className={cn(
                                 "w-6 h-6 rounded border-2 flex items-center justify-center transition-all cursor-pointer",
                                 isSelected
-                                  ? "bg-[#EAEB80] border-primary hover:bg-primary/80"
+                                  ? "bg-[#D3BC8D] border-primary hover:bg-primary/80"
                                   : "bg-background/50 border-white/50 hover:border-white hover:bg-background/70"
                               )}
                             >
@@ -3259,7 +3259,7 @@ export default function CarDetailPage() {
                                                   )
                                                 );
                                           }}
-                                          className="border-border data-[state=checked]:bg-[#EAEB80] data-[state=checked]:border-primary"
+                                          className="border-border data-[state=checked]:bg-[#D3BC8D] data-[state=checked]:border-primary"
                           />
                         </FormControl>
                                       <FormLabel className="text-muted-foreground text-sm font-normal cursor-pointer">
@@ -3764,7 +3764,7 @@ export default function CarDetailPage() {
                     {/* Insurance Card Upload */}
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
-                        <div className="h-1 w-1 rounded-full bg-[#EAEB80]"></div>
+                        <div className="h-1 w-1 rounded-full bg-[#D3BC8D]"></div>
                         <Label className="text-muted-foreground text-base font-semibold">Insurance Card</Label>
                       </div>
                       
@@ -3795,7 +3795,7 @@ export default function CarDetailPage() {
                                 <div className="w-full h-full flex flex-col items-center justify-center p-4">
                                   <div className="relative">
                                     <FileText className="w-16 h-16 text-primary mb-2" />
-                                    <div className="absolute -top-1 -right-1 bg-[#EAEB80]/20 text-primary text-xs px-2 py-0.5 rounded-full font-bold">
+                                    <div className="absolute -top-1 -right-1 bg-[#D3BC8D]/20 text-primary text-xs px-2 py-0.5 rounded-full font-bold">
                                       PDF
                                     </div>
                                   </div>
@@ -3818,7 +3818,7 @@ export default function CarDetailPage() {
                       {insuranceCardFile && (
                         <div className="space-y-2">
                           <p className="text-xs text-primary font-semibold">New Document Selected</p>
-                          <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-[#EAEB80]/10 to-[#EAEB80]/5 rounded-xl border-2 border-primary/60 overflow-hidden shadow-lg ring-2 ring-[#EAEB80]/20">
+                          <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-[#D3BC8D]/10 to-[#D3BC8D]/5 rounded-xl border-2 border-primary/60 overflow-hidden shadow-lg ring-2 ring-[#D3BC8D]/20">
                             {insuranceCardFile.type === 'application/pdf' ? (
                               <div className="w-full h-full flex flex-col items-center justify-center p-4">
                                 <div className="relative">
@@ -3886,7 +3886,7 @@ export default function CarDetailPage() {
                     {/* Drivers License Upload */}
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
-                        <div className="h-1 w-1 rounded-full bg-[#EAEB80]"></div>
+                        <div className="h-1 w-1 rounded-full bg-[#D3BC8D]"></div>
                         <Label className="text-muted-foreground text-base font-semibold">Drivers License</Label>
                       </div>
                       
@@ -3917,7 +3917,7 @@ export default function CarDetailPage() {
                                   <div className="w-full h-full flex flex-col items-center justify-center p-4">
                                     <div className="relative">
                                       <FileText className="w-16 h-16 text-primary mb-2" />
-                                      <div className="absolute -top-1 -right-1 bg-[#EAEB80]/20 text-primary text-xs px-2 py-0.5 rounded-full font-bold">
+                                      <div className="absolute -top-1 -right-1 bg-[#D3BC8D]/20 text-primary text-xs px-2 py-0.5 rounded-full font-bold">
                                         PDF
                                       </div>
                                     </div>
@@ -3957,7 +3957,7 @@ export default function CarDetailPage() {
                                     <div className="w-full h-full flex flex-col items-center justify-center p-2">
                                       <div className="relative">
                                         <FileText className="w-12 h-12 text-primary mb-1" />
-                                        <div className="absolute -top-1 -right-1 bg-[#EAEB80]/20 text-primary text-xs px-1.5 py-0.5 rounded-full font-bold">
+                                        <div className="absolute -top-1 -right-1 bg-[#D3BC8D]/20 text-primary text-xs px-1.5 py-0.5 rounded-full font-bold">
                                           PDF
                                         </div>
                                       </div>
@@ -3987,7 +3987,7 @@ export default function CarDetailPage() {
                           <p className="text-xs text-primary font-semibold">New Documents Selected ({driversLicenseFiles.length})</p>
                           {driversLicenseFiles.length === 1 ? (
                             // Single file - full width to match Insurance Card
-                            <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-[#EAEB80]/10 to-[#EAEB80]/5 rounded-xl border-2 border-primary/60 overflow-hidden shadow-lg ring-2 ring-[#EAEB80]/20">
+                            <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-[#D3BC8D]/10 to-[#D3BC8D]/5 rounded-xl border-2 border-primary/60 overflow-hidden shadow-lg ring-2 ring-[#D3BC8D]/20">
                               {driversLicenseFiles[0].type === 'application/pdf' ? (
                                 <div className="w-full h-full flex flex-col items-center justify-center p-4">
                                   <div className="relative">
@@ -4026,7 +4026,7 @@ export default function CarDetailPage() {
                             // Multiple files - grid layout
                             <div className="grid grid-cols-2 gap-3">
                               {driversLicenseFiles.map((file, index) => (
-                              <div key={index} className="relative w-full aspect-[4/3] bg-gradient-to-br from-[#EAEB80]/10 to-[#EAEB80]/5 rounded-xl border-2 border-primary/60 overflow-hidden shadow-lg ring-2 ring-[#EAEB80]/20">
+                              <div key={index} className="relative w-full aspect-[4/3] bg-gradient-to-br from-[#D3BC8D]/10 to-[#D3BC8D]/5 rounded-xl border-2 border-primary/60 overflow-hidden shadow-lg ring-2 ring-[#D3BC8D]/20">
                                 {file.type === 'application/pdf' ? (
                                   <div className="w-full h-full flex flex-col items-center justify-center p-2">
                                     <div className="relative">
@@ -4250,7 +4250,7 @@ export default function CarDetailPage() {
                             : isPdfDocument(prevUrl)
                         });
                       }}
-                      className="fixed left-6 top-1/2 -translate-y-1/2 z-[200] h-14 w-14 bg-background/90 hover:bg-muted/50EAEB80]/20 text-foreground border-2 border-white/60 rounded-full shadow-2xl backdrop-blur-sm transition-all hover:scale-110"
+                      className="fixed left-6 top-1/2 -translate-y-1/2 z-[200] h-14 w-14 bg-background/90 hover:bg-muted/50D3BC8D]/20 text-foreground border-2 border-white/60 rounded-full shadow-2xl backdrop-blur-sm transition-all hover:scale-110"
                       aria-label="Previous image"
                     >
                       <ChevronLeft className="w-6 h-6" />
@@ -4285,7 +4285,7 @@ export default function CarDetailPage() {
                             : isPdfDocument(nextUrl)
                         });
                       }}
-                      className="fixed right-6 top-1/2 -translate-y-1/2 z-[200] h-14 w-14 bg-background/90 hover:bg-muted/50EAEB80]/20 text-foreground border-2 border-white/60 rounded-full shadow-2xl backdrop-blur-sm transition-all hover:scale-110"
+                      className="fixed right-6 top-1/2 -translate-y-1/2 z-[200] h-14 w-14 bg-background/90 hover:bg-muted/50D3BC8D]/20 text-foreground border-2 border-white/60 rounded-full shadow-2xl backdrop-blur-sm transition-all hover:scale-110"
                       aria-label="Next image"
                     >
                       <ChevronRight className="w-6 h-6" />

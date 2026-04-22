@@ -331,7 +331,7 @@ export function PaymentReceiptModal({
           {isLoadingFiles ? (
             <div className="flex items-center justify-center p-12 bg-card rounded-lg min-h-[400px]">
               <div className="text-center">
-                <Loader2 className="w-8 h-8 mx-auto mb-4 text-[#EAEB80] animate-spin" />
+                <Loader2 className="w-8 h-8 mx-auto mb-4 text-[#D3BC8D] animate-spin" />
                 <p className="text-muted-foreground">Loading receipt files...</p>
               </div>
             </div>
@@ -497,7 +497,7 @@ export function PaymentReceiptModal({
                               href={openUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-sm text-[#EAEB80] hover:text-[#d4d570] hover:underline break-all font-mono"
+                              className="text-sm text-[#D3BC8D] hover:text-[#d4d570] hover:underline break-all font-mono"
                               title={isDirectUrl ? "Open file" : "Open in Google Drive"}
                             >
                               {linkText}

@@ -137,7 +137,7 @@ Table Re-renders with New Data
 - Background: `#0f0f0f`, `#1a1a1a`
 - Borders: `#2a2a2a`
 - Text: White, gray variations
-- Accent: `#EAEB80` (yellow/gold)
+- Accent: `#D3BC8D` (yellow/gold)
 - Success: Green for save button
 - Hover: `#252525`, `#2a2a2a`
 

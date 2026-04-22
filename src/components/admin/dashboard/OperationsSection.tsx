@@ -53,7 +53,7 @@ function formatTripDate(dateStr: string): string {
 
 function StatusBadge({ status }: { status: TuroTrip["status"] }) {
   const styles: Record<TuroTrip["status"], string> = {
-    booked: "bg-[#FFD700] text-black",
+    booked: "bg-[#d3bc8d] text-black",
     completed: "bg-green-600 text-white",
     cancelled: "bg-red-600 text-white",
   };

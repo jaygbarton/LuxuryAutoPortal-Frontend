@@ -25,17 +25,17 @@
   --sidebar: 0 0% 99%;
   --sidebar-foreground: 0 0% 0%;
   --sidebar-border: 0 0% 92%;
-  --sidebar-primary: 45 97% 54%;
+  --sidebar-primary: 40 44% 69%;
   --sidebar-primary-foreground: 0 0% 0%;
   --sidebar-accent: 0 0% 96%;
   --sidebar-accent-foreground: 0 0% 0%;
-  --sidebar-ring: 45 97% 54%;
+  --sidebar-ring: 40 44% 69%;
   /* Popovers */
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 0%;
   --popover-border: 0 0% 91%;
-  /* Premium gold/yellow primary - vibrant and luxurious */
-  --primary: 45 97% 54%;
+  /* Premium gold primary - matches logo #D3BC8D */
+  --primary: 40 44% 69%;
   --primary-foreground: 0 0% 0%;
   /* Subtle secondary - light gray */
   --secondary: 0 0% 96%;
@@ -52,9 +52,9 @@
   /* Input fields */
   --input: 0 0% 89%;
   /* Focus rings */
-  --ring: 45 97% 54%;
+  --ring: 40 44% 69%;
   /* Charts - gold primary with complementary colors */
-  --chart-1: 45 97% 54%;
+  --chart-1: 40 44% 69%;
   --chart-2: 200 80% 50%;
   --chart-3: 280 70% 55%;
   --chart-4: 150 70% 45%;
@@ -75,8 +75,8 @@
   --shadow-2xl: 0px 25px 50px -12px hsl(0 0% 0% / 0.12);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
-  /* Gold accent color */
-  --gold: 45 97% 54%;
+  /* Gold accent color - matches logo #D3BC8D */
+  --gold: 40 44% 69%;
   --gold-foreground: 0 0% 0%;
 
 /* Fallback for older browsers */
@@ -108,7 +108,7 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
-/* DARK MODE - Luxury Dark Theme with Gold #EAEB80 accent on #0a0a0a background */
+/* DARK MODE - Luxury Dark Theme with Gold #D3BC8D accent on #0a0a0a background */
 .dark {
   --button-outline: rgba(255,255,255, .10);
   --badge-outline: rgba(255,255,255, .05);
@@ -124,15 +124,15 @@
   --sidebar: 0 0% 5%;
   --sidebar-foreground: 60 4% 88%;
   --sidebar-border: 60 2% 14%;
-  --sidebar-primary: 59 82% 71%;
+  --sidebar-primary: 40 44% 69%;
   --sidebar-primary-foreground: 0 0% 8%;
   --sidebar-accent: 60 4% 12%;
   --sidebar-accent-foreground: 60 4% 88%;
-  --sidebar-ring: 59 82% 71%;
+  --sidebar-ring: 40 44% 69%;
   --popover: 0 0% 8%;
   --popover-foreground: 60 4% 86%;
   --popover-border: 60 2% 16%;
-  --primary: 59 82% 71%;
+  --primary: 40 44% 69%;
   --primary-foreground: 0 0% 8%;
   --secondary: 60 2% 14%;
   --secondary-foreground: 60 4% 86%;
@@ -143,13 +143,13 @@
   --destructive: 0 84% 45%;
   --destructive-foreground: 0 20% 96%;
   --input: 60 2% 20%;
-  --ring: 59 82% 71%;
-  --chart-1: 59 82% 71%;
+  --ring: 40 44% 69%;
+  --chart-1: 40 44% 69%;
   --chart-2: 200 75% 60%;
   --chart-3: 280 70% 60%;
   --chart-4: 150 65% 55%;
   --chart-5: 20 80% 60%;
-  --gold: 59 82% 71%;
+  --gold: 40 44% 69%;
   --gold-foreground: 0 0% 8%;
   --shadow-2xs: 0px 2px 4px 0px hsl(0 0% 0% / 0.15);
   --shadow-xs: 0px 2px 6px 0px hsl(0 0% 0% / 0.20);
@@ -221,7 +221,11 @@
     transition: background-color 5000s ease-in-out 0s;
   }
 
-  /* Tint Chromium's native calendar picker indicator to brand gold.
+  /* Tint Chromium's native calendar picker indicator to brand tan-gold
+     (hsl(40 44% 69%) ≈ #d3bc8d). Normalize to pure black first with
+     `brightness(0) saturate(100%)` so the filter chain starts from a
+     known state regardless of the UA glyph's default color, then shift
+     toward the target tan. Values computed to approximate #d3bc8d.
      We deliberately do NOT set width / height / margin here: Chromium lays
      the indicator out inside the input's shadow DOM using internal flex
      metrics, and overriding those causes the icon to clip at the border. */
@@ -232,7 +236,7 @@
   input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     cursor: pointer;
     opacity: 0.85;
-    filter: invert(70%) sepia(85%) saturate(1500%) hue-rotate(2deg) brightness(98%) contrast(95%);
+    filter: brightness(0) saturate(100%) invert(82%) sepia(19%) saturate(553%) hue-rotate(358deg) brightness(91%) contrast(85%);
     transition: opacity 0.15s ease;
   }
 
@@ -244,13 +248,15 @@
     opacity: 1;
   }
 
-  /* Dark mode: tint to the paler gold used by --primary in dark. */
+  /* Dark mode: same target tan (#d3bc8d). Using the same normalized
+     filter chain as light mode so the icon stays on-brand regardless
+     of theme. */
   .dark input[type="date"]::-webkit-calendar-picker-indicator,
   .dark input[type="month"]::-webkit-calendar-picker-indicator,
   .dark input[type="week"]::-webkit-calendar-picker-indicator,
   .dark input[type="time"]::-webkit-calendar-picker-indicator,
   .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    filter: invert(92%) sepia(14%) saturate(980%) hue-rotate(10deg) brightness(105%) contrast(88%);
+    filter: brightness(0) saturate(100%) invert(82%) sepia(19%) saturate(553%) hue-rotate(358deg) brightness(91%) contrast(85%);
     opacity: 0.9;
   }
 }

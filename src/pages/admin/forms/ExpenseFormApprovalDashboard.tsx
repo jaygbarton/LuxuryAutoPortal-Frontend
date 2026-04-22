@@ -147,7 +147,7 @@ function ReceiptImageOrDrive({
       if (loading) {
         return (
           <div className={`flex items-center justify-center rounded border border-[#2a2a2a] bg-[#0d0d0d] min-h-[120px] ${className ?? ""}`}>
-            <Loader2 className="w-6 h-6 animate-spin text-[#EAEB80]" />
+            <Loader2 className="w-6 h-6 animate-spin text-[#D3BC8D]" />
           </div>
         );
       }
@@ -155,7 +155,7 @@ function ReceiptImageOrDrive({
         return (
           <div className={`space-y-2 rounded border border-[#2a2a2a] bg-[#0d0d0d] p-3 ${className ?? ""}`}>
             <p className="text-sm text-red-300">{error}</p>
-            <a href={driveOpenUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[#EAEB80] hover:underline">
+            <a href={driveOpenUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[#D3BC8D] hover:underline">
               <ExternalLink className="w-3 h-3" /> Open in Google Drive
             </a>
           </div>
@@ -169,14 +169,14 @@ function ReceiptImageOrDrive({
             className={className}
             title={alt}
           >
-            <a href={driveOpenUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[#EAEB80] hover:underline">
+            <a href={driveOpenUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[#D3BC8D] hover:underline">
               <ExternalLink className="w-4 h-4" /> Open PDF in new tab
             </a>
           </object>
         );
       }
       return (
-        <a href={driveOpenUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[#EAEB80] hover:underline">
+        <a href={driveOpenUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[#D3BC8D] hover:underline">
           <ExternalLink className="w-4 h-4" /> Open PDF in Google Drive
         </a>
       );
@@ -195,7 +195,7 @@ function ReceiptImageOrDrive({
       );
     }
     return (
-      <a href={driveOpenUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[#EAEB80] hover:underline">
+      <a href={driveOpenUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[#D3BC8D] hover:underline">
         <ExternalLink className="w-4 h-4" /> Open in Google Drive
       </a>
     );
@@ -231,7 +231,7 @@ function GoogleDriveThumbnailImg({
     return (
       <div className={`space-y-2 rounded border border-[#2a2a2a] bg-[#0d0d0d] p-3 ${className ?? ""}`}>
         <p className="text-sm text-gray-400">Image could not be loaded.</p>
-        <a href={fallbackUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[#EAEB80] hover:underline">
+        <a href={fallbackUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[#D3BC8D] hover:underline">
           <ExternalLink className="w-3 h-3" /> Open in Google Drive
         </a>
       </div>
@@ -294,7 +294,7 @@ function ReceiptImage({
   if (loading) {
     return (
       <div className={`flex items-center justify-center rounded border border-[#2a2a2a] bg-[#0d0d0d] min-h-[120px] ${className ?? ""}`}>
-        <Loader2 className="w-6 h-6 animate-spin text-[#EAEB80]" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#D3BC8D]" />
       </div>
     );
   }
@@ -695,7 +695,7 @@ export default function ExpenseFormApprovalDashboard({ isAdmin = true }: Expense
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 text-xs text-[#EAEB80] hover:text-[#EAEB80] hover:bg-[#EAEB80]/10"
+                          className="h-7 text-xs text-[#D3BC8D] hover:text-[#D3BC8D] hover:bg-[#D3BC8D]/10"
                           onClick={() => {
                             setSelectedSubmission(sub);
                             setViewReceiptsOpen(true);
@@ -801,7 +801,7 @@ export default function ExpenseFormApprovalDashboard({ isAdmin = true }: Expense
       <Dialog open={viewReceiptsOpen} onOpenChange={setViewReceiptsOpen}>
         <DialogContent className="bg-card border-border max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-[#EAEB80]">View copy of receipt</DialogTitle>
+            <DialogTitle className="text-[#D3BC8D]">View copy of receipt</DialogTitle>
             <DialogDescription>
               {selectedSubmission?.employeeName} - ${selectedSubmission?.amount?.toLocaleString()}
               {selectedSubmission?.remarks && ` • Remarks: ${selectedSubmission.remarks}`}
@@ -815,7 +815,7 @@ export default function ExpenseFormApprovalDashboard({ isAdmin = true }: Expense
           <div className="flex flex-wrap gap-4">
             {submissionIdForReceipt && submissionForReceiptLoading ? (
               <div className="flex items-center justify-center rounded border border-[#2a2a2a] bg-[#0d0d0d] min-h-[120px] w-full">
-                <Loader2 className="w-6 h-6 animate-spin text-[#EAEB80]" />
+                <Loader2 className="w-6 h-6 animate-spin text-[#D3BC8D]" />
               </div>
             ) : receiptUrlsFromDb?.length ? (
               receiptUrlsFromDb.map((urlOrId, i) => {
@@ -844,7 +844,7 @@ export default function ExpenseFormApprovalDashboard({ isAdmin = true }: Expense
                             href={embeddedDataUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-[#EAEB80] hover:underline"
+                            className="flex items-center gap-2 text-[#D3BC8D] hover:underline"
                           >
                             <ExternalLink className="w-4 h-4" /> Open PDF in new tab
                           </a>
@@ -854,7 +854,7 @@ export default function ExpenseFormApprovalDashboard({ isAdmin = true }: Expense
                           href={displayUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-[#EAEB80] hover:underline"
+                          className="flex items-center gap-2 text-[#D3BC8D] hover:underline"
                         >
                           <ExternalLink className="w-4 h-4" /> {receiptLabel} (PDF) — Open in new tab
                         </a>
@@ -863,7 +863,7 @@ export default function ExpenseFormApprovalDashboard({ isAdmin = true }: Expense
                         href={embeddedDataUrl ?? (isDriveUrl ? urlOrId : displayUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-[#EAEB80] hover:underline"
+                        className="inline-flex items-center gap-1 text-xs text-[#D3BC8D] hover:underline"
                       >
                         <ExternalLink className="w-3 h-3" /> Open in new tab
                       </a>
@@ -890,7 +890,7 @@ export default function ExpenseFormApprovalDashboard({ isAdmin = true }: Expense
                       href={embeddedDataUrl ?? (isDriveUrl ? urlOrId : displayUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-[#EAEB80] hover:underline"
+                      className="inline-flex items-center gap-1 text-xs text-[#D3BC8D] hover:underline"
                     >
                       <ExternalLink className="w-3 h-3" /> Open in new tab
                     </a>

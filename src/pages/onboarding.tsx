@@ -1475,7 +1475,7 @@ export default function Onboarding() {
                             <div
                               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                                 isDraggingLicense
-                                  ? "border-primary bg-[#EAEB80]/10"
+                                  ? "border-primary bg-[#D3BC8D]/10"
                                   : "border-primary/30"
                               }`}
                               onDragOver={(e) => {
@@ -1645,7 +1645,7 @@ export default function Onboarding() {
                             <div
                               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                                 isDragging
-                                  ? "border-primary bg-[#EAEB80]/10"
+                                  ? "border-primary bg-[#D3BC8D]/10"
                                   : "border-primary/30"
                               }`}
                               onDragOver={(e) => {
@@ -2106,7 +2106,7 @@ export default function Onboarding() {
                   type="button"
                   onClick={fillWithRandomData}
                   variant="outline"
-                  className="bg-[#EAEB80]/10 border-primary/30 text-primary hover:bg-primary/20"
+                  className="bg-[#D3BC8D]/10 border-primary/30 text-primary hover:bg-primary/20"
                   disabled={isSubmitting}
                   data-testid="button-fill-random"
                 >

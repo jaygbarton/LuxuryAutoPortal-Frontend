@@ -88,7 +88,7 @@ export function DonutCharts({ yearTotals, currentMonthData, selectedYear, curren
       <div className="grid grid-cols-2 gap-6">
         {[0, 1].map((i) => (
           <div key={i} className="flex items-center justify-center h-48">
-            <Loader2 className="w-5 h-5 animate-spin text-[#EAEB80]" />
+            <Loader2 className="w-5 h-5 animate-spin text-[#d3bc8d]" />
           </div>
         ))}
       </div>

@@ -238,7 +238,7 @@ export function AddEditBankingInfoModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-background border-border text-foreground max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-[#EAEB80]">
+          <DialogTitle className="text-[#D3BC8D]">
             {isEdit ? "Edit Banking Information" : "Add Banking Information"}
           </DialogTitle>
         </DialogHeader>

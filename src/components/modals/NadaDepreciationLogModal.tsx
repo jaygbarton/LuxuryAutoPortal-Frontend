@@ -378,7 +378,7 @@ export function NadaDepreciationLogModal({
                             log.carBacklogOldAmount || log.carBacklogOldValues || "0"
                           )}
                         </td>
-                        <td className="px-3 py-2 text-sm text-[#EAEB80] font-medium text-right">
+                        <td className="px-3 py-2 text-sm text-[#D3BC8D] font-medium text-right">
                           {formatCurrency(
                             log.carBacklogNewAmount || log.carBacklogNewValues || "0"
                           )}
@@ -398,7 +398,7 @@ export function NadaDepreciationLogModal({
                     <Button
                       onClick={() => fetchNextPage()}
                       variant="ghost"
-                      className="text-[#EAEB80] hover:text-[#d4d570]"
+                      className="text-[#D3BC8D] hover:text-[#d4d570]"
                     >
                       Load More
                     </Button>

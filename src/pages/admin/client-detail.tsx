@@ -1040,7 +1040,7 @@ export default function ClientDetailPage() {
                           className={cn(
                             "w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors",
                             isActive
-                              ? "bg-[#EAEB80]/10 text-black"
+                              ? "bg-[#D3BC8D]/10 text-black"
                               : "text-muted-foreground hover:bg-card hover:text-primary"
                           )}
                         >
@@ -1287,7 +1287,7 @@ export default function ClientDetailPage() {
                                         {bankInfo.banking_info_is_default === 1 && (
                                           <Badge
                                             variant="outline"
-                                            className="border-primary/50 text-primary bg-[#EAEB80]/10"
+                                            className="border-primary/50 text-primary bg-[#D3BC8D]/10"
                                           >
                                             Default
                                           </Badge>
@@ -1796,7 +1796,7 @@ export default function ClientDetailPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-primary hover:bg-muted/50EAEB80]/20"
+                      className="text-primary hover:bg-muted/50D3BC8D]/20"
                       onClick={() => {
                         // Export functionality
                         console.log("Export totals");

@@ -53,7 +53,7 @@ export default function EditableCell({
       className={cn(
         "cursor-pointer hover:bg-muted px-2 py-1 rounded block text-xs text-right transition-colors",
         value === 0 && "text-gray-600",
-        isCurrentlyEditing && "bg-muted ring-1 ring-[#EAEB80]"
+        isCurrentlyEditing && "bg-muted ring-1 ring-[#D3BC8D]"
       )}
     >
       {displayValue}

@@ -26,7 +26,7 @@ export function SummaryCard({
       className={cn(
         "rounded-md px-3 py-2 transition-shadow",
         variant === "gold"
-          ? "bg-[#FFD700] text-black"
+          ? "bg-[#d3bc8d] text-black"
           : variant === "white"
             ? "bg-white text-black border border-gray-200"
             : "bg-[#111111] text-white",
@@ -39,7 +39,7 @@ export function SummaryCard({
       <p
         className={cn(
           "mt-0.5 text-lg font-bold leading-tight",
-          variant === "dark" ? "text-[#FFD700]" : "text-black",
+          variant === "dark" ? "text-[#d3bc8d]" : "text-black",
         )}
       >
         {value}

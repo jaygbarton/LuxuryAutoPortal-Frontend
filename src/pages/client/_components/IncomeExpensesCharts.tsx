@@ -42,7 +42,7 @@ export function IncomeExpensesCharts({
         <CardContent className="pt-0">
           {isLoadingIncome || isLoadingTrips ? (
             <div className="flex items-center justify-center h-56">
-              <Loader2 className="w-5 h-5 animate-spin text-[#EAEB80]" />
+              <Loader2 className="w-5 h-5 animate-spin text-[#D3BC8D]" />
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={280}>
@@ -71,7 +71,7 @@ export function IncomeExpensesCharts({
         <CardContent className="pt-0">
           {isLoadingTrips ? (
             <div className="flex items-center justify-center h-56">
-              <Loader2 className="w-5 h-5 animate-spin text-[#EAEB80]" />
+              <Loader2 className="w-5 h-5 animate-spin text-[#D3BC8D]" />
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={280}>

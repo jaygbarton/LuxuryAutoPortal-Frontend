@@ -884,7 +884,7 @@ export default function TrainingManualPage() {
                                   <Plus className="w-4 h-4" />
                                 )}
                               </Button>
-                              <Badge variant="outline" className="bg-[#EAEB80]/20 text-primary border-primary/30">
+                              <Badge variant="outline" className="bg-[#D3BC8D]/20 text-primary border-primary/30">
                                 Module {module.moduleOrder}
                               </Badge>
                               <div className="flex-1">
@@ -968,7 +968,7 @@ export default function TrainingManualPage() {
                           <div className="flex-1 space-y-4">
                             {/* Step Header */}
                             <div className="flex items-center gap-3">
-                              <Badge variant="outline" className="bg-[#EAEB80]/20 text-primary border-primary/30 text-sm font-semibold px-3 py-1">
+                              <Badge variant="outline" className="bg-[#D3BC8D]/20 text-primary border-primary/30 text-sm font-semibold px-3 py-1">
                                 Step {stepIndex + 1}
                               </Badge>
                               <h3 className="text-xl font-semibold text-foreground">{step.title}</h3>
@@ -1046,7 +1046,7 @@ export default function TrainingManualPage() {
                               <div>
                                 <p className="text-sm font-medium text-muted-foreground mb-1">Action Button:</p>
                                 <div className="flex items-center gap-2 bg-background p-2 rounded border border-border">
-                                  <Badge variant="outline" className="bg-[#EAEB80]/10 text-primary border-primary/30">
+                                  <Badge variant="outline" className="bg-[#D3BC8D]/10 text-primary border-primary/30">
                                     {step.actionButton.label}
                                   </Badge>
                                   {step.actionButton.href && (
@@ -1134,7 +1134,7 @@ export default function TrainingManualPage() {
                                 <div className="flex items-start justify-between gap-4">
                                   <div className="flex-1 space-y-4">
                                     <div className="flex items-center gap-3">
-                                      <Badge variant="outline" className="bg-[#EAEB80]/20 text-primary border-primary/30 text-sm font-semibold px-3 py-1">
+                                      <Badge variant="outline" className="bg-[#D3BC8D]/20 text-primary border-primary/30 text-sm font-semibold px-3 py-1">
                                         Step {stepIndex + 1}
                                       </Badge>
                                       <h3 className="text-xl font-semibold text-foreground">{step.title}</h3>

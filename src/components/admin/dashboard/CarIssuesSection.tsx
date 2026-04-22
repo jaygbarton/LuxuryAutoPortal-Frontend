@@ -115,7 +115,7 @@ export default function CarIssuesSection() {
           {/* Maintenance Schedule Sub-section */}
           <div className="mt-6">
             <div className="rounded-t-lg bg-black px-4 py-2">
-              <p className="text-sm font-bold uppercase text-[#FFD700]">
+              <p className="text-sm font-bold uppercase text-[#d3bc8d]">
                 Maintenance Schedule
               </p>
             </div>

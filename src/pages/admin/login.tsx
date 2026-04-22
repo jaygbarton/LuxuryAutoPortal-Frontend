@@ -118,7 +118,7 @@ export default function AdminLogin() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-card border-border text-foreground focus:border-primary focus:ring-[#EAEB80] h-11"
+              className="bg-card border-border text-foreground focus:border-primary focus:ring-[#D3BC8D] h-11"
               placeholder="admin@goldenluxuryauto.com"
               required
               data-testid="input-email"
@@ -140,7 +140,7 @@ export default function AdminLogin() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-card border-border text-foreground focus:border-primary focus:ring-[#EAEB80] h-11"
+              className="bg-card border-border text-foreground focus:border-primary focus:ring-[#D3BC8D] h-11"
               placeholder="••••••••"
               required
               data-testid="input-password"

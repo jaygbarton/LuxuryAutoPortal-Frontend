@@ -42,7 +42,7 @@ export default function DashboardRouter() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-card flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#EAEB80]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#D3BC8D]" />
       </div>
     );
   }

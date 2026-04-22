@@ -416,7 +416,7 @@ export default function PaymentStatusPage() {
                     id="computeTotal"
                     checked={formComputeTotal}
                     onCheckedChange={(v) => setFormComputeTotal(!!v)}
-                    className="border-gray-500 data-[state=checked]:bg-[#EAEB80] data-[state=checked]:border-primary"
+                    className="border-gray-500 data-[state=checked]:bg-[#D3BC8D] data-[state=checked]:border-primary"
                   />
                   <Label htmlFor="computeTotal" className="text-muted-foreground text-sm cursor-pointer">
                     Mark check if computed to TOTALS menu

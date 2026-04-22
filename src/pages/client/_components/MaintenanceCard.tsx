@@ -41,7 +41,7 @@ export function MaintenanceCard({ maintenanceRecords, activeCar }: MaintenanceCa
             <AlertCircle className="w-6 h-6 mb-2 opacity-40" />
             <p className="text-sm">No maintenance records found</p>
             {activeCar?.id && (
-              <Link href={`/admin/cars/${activeCar.id}/maintenance`} className="text-xs text-[#EAEB80] hover:underline mt-1">
+              <Link href={`/admin/cars/${activeCar.id}/maintenance`} className="text-xs text-[#d3bc8d] hover:underline mt-1">
                 View full maintenance page →
               </Link>
             )}

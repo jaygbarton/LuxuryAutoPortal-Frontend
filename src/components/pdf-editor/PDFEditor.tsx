@@ -1313,7 +1313,7 @@ export function PDFEditor({
             className={cn(
               tool === "text"
                 ? "bg-primary text-[#1a1a1a]"
-                : "text-[#EAEB80] hover:bg-primary/20"
+                : "text-[#D3BC8D] hover:bg-primary/20"
             )}
             title="Add Text (Click to activate, then click on PDF)"
           >
@@ -1327,7 +1327,7 @@ export function PDFEditor({
               setSignatureModalOpen(true);
               setTool("select");
             }}
-            className="text-[#EAEB80] hover:bg-primary/20"
+            className="text-[#D3BC8D] hover:bg-primary/20"
             title="Add Signature"
           >
             <PenTool className="w-4 h-4" />
@@ -1337,7 +1337,7 @@ export function PDFEditor({
             variant="ghost"
             size="sm"
             onClick={handleDownload}
-            className="text-[#EAEB80] hover:bg-primary/20"
+            className="text-[#D3BC8D] hover:bg-primary/20"
             title="Download"
           >
             <Download className="w-4 h-4" />
@@ -1464,7 +1464,7 @@ export function PDFEditor({
              md:z-[9999]"
         >
           <DialogHeader>
-            <DialogTitle className="text-[#EAEB80] text-xl font-semibold">
+            <DialogTitle className="text-[#D3BC8D] text-xl font-semibold">
               Add Signature
             </DialogTitle>
             <DialogDescription className="text-muted-foreground text-sm">
@@ -1479,19 +1479,19 @@ export function PDFEditor({
             <TabsList className="bg-[#2d2d2d] border-primary/30">
               <TabsTrigger
                 value="type"
-                className="text-muted-foreground data-[state=active]:text-[#EAEB80]"
+                className="text-muted-foreground data-[state=active]:text-[#D3BC8D]"
               >
                 Type
               </TabsTrigger>
               <TabsTrigger
                 value="draw"
-                className="text-muted-foreground data-[state=active]:text-[#EAEB80]"
+                className="text-muted-foreground data-[state=active]:text-[#D3BC8D]"
               >
                 Draw
               </TabsTrigger>
               <TabsTrigger
                 value="upload"
-                className="text-muted-foreground data-[state=active]:text-[#EAEB80]"
+                className="text-muted-foreground data-[state=active]:text-[#D3BC8D]"
               >
                 Upload
               </TabsTrigger>
@@ -1584,7 +1584,7 @@ export function PDFEditor({
                       setSignaturePlacementMode(false);
                       document.body.style.cursor = "default";
                     }}
-                    className="flex-1 border-primary/30 text-[#EAEB80] hover:bg-primary/10"
+                    className="flex-1 border-primary/30 text-[#D3BC8D] hover:bg-primary/10"
                   >
                     Clear
                   </Button>

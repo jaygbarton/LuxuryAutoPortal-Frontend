@@ -173,7 +173,7 @@ function MatrixTable({
     return (
       <div className="flex-1 min-w-[300px]">
         <div className="rounded-t-lg bg-black px-4 py-2">
-          <p className="text-sm font-bold uppercase text-[#FFD700]">
+          <p className="text-sm font-bold uppercase text-[#d3bc8d]">
             Commissions &mdash; {monthLabel}
           </p>
         </div>
@@ -191,7 +191,7 @@ function MatrixTable({
   return (
     <div className="flex-1 min-w-[300px]">
       <div className="rounded-t-lg bg-black px-4 py-2">
-        <p className="text-sm font-bold uppercase text-[#FFD700]">
+        <p className="text-sm font-bold uppercase text-[#d3bc8d]">
           Commissions &mdash; {monthLabel}
         </p>
       </div>
@@ -210,7 +210,7 @@ function MatrixTable({
                   {name}
                 </th>
               ))}
-              <th className="px-3 py-2 text-right text-xs font-bold uppercase text-[#FFD700]">
+              <th className="px-3 py-2 text-right text-xs font-bold uppercase text-[#d3bc8d]">
                 TOTAL
               </th>
             </tr>

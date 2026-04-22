@@ -135,7 +135,7 @@ export function IncomeExpensesSection({
             </thead>
             <tbody>
               {isLoadingIncome || isLoadingTrips ? (
-                <tr><td colSpan={4} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin text-[#EAEB80] mx-auto" /></td></tr>
+                <tr><td colSpan={4} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin text-[#d3bc8d] mx-auto" /></td></tr>
               ) : (
                 <>
                   {monthlyTripData.map((row, idx) => (
@@ -150,7 +150,7 @@ export function IncomeExpensesSection({
                     <td className="text-sm font-extrabold text-white py-2.5 px-3">Total</td>
                     <td className="text-sm font-bold text-white py-2.5 px-3 text-right">{fmt(yearTotals.income)}</td>
                     <td className="text-sm font-bold text-white py-2.5 px-3 text-right">{fmt(yearTotals.expenses)}</td>
-                    <td className={`text-sm font-bold py-2.5 px-3 text-right ${yearTotals.profit >= 0 ? "text-[#EAEB80]" : "text-[#f87171]"}`}>{fmt(yearTotals.profit)}</td>
+                    <td className={`text-sm font-bold py-2.5 px-3 text-right ${yearTotals.profit >= 0 ? "text-[#d3bc8d]" : "text-[#f87171]"}`}>{fmt(yearTotals.profit)}</td>
                   </tr>
                 </>
               )}
@@ -175,7 +175,7 @@ export function IncomeExpensesSection({
             </thead>
             <tbody>
               {isLoadingTrips ? (
-                <tr><td colSpan={4} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin text-[#EAEB80] mx-auto" /></td></tr>
+                <tr><td colSpan={4} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin text-[#d3bc8d] mx-auto" /></td></tr>
               ) : (
                 <>
                   {monthlyDaysTripsData.map((row, idx) => (
@@ -190,7 +190,7 @@ export function IncomeExpensesSection({
                     <td className="text-sm font-extrabold text-white py-2.5 px-3">Total</td>
                     <td className="text-sm font-bold text-white py-2.5 px-3 text-right">{yearTotalsTrips.days}</td>
                     <td className="text-sm font-bold text-white py-2.5 px-3 text-right">{yearTotalsTrips.trips}</td>
-                    <td className="text-sm font-bold text-[#EAEB80] py-2.5 px-3 text-right">{yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "—"}</td>
+                    <td className="text-sm font-bold text-[#d3bc8d] py-2.5 px-3 text-right">{yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "—"}</td>
                   </tr>
                 </>
               )}

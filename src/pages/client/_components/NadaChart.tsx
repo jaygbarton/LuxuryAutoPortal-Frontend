@@ -25,22 +25,22 @@ export function NadaChart({ nadaRecords, yearNum, isLoading }: NadaChartProps) {
   return (
     <Card className="border-border bg-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold uppercase tracking-wide" style={{ color: "#EAEB80" }}>
+        <CardTitle className="text-sm font-semibold uppercase tracking-wide" style={{ color: "#d3bc8d" }}>
           NADA Change %
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
         {isLoading ? (
           <div className="flex items-center justify-center h-52">
-            <Loader2 className="w-5 h-5 animate-spin text-[#EAEB80]" />
+            <Loader2 className="w-5 h-5 animate-spin text-[#d3bc8d]" />
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="nadaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#EAEB80" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#EAEB80" stopOpacity={0} />
+                  <stop offset="5%"  stopColor="#d3bc8d" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#d3bc8d" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_COLOR} />

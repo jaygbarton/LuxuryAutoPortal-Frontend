@@ -176,7 +176,7 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
           <p className="text-red-700">Failed to load car details</p>
           <button
             onClick={() => setLocation("/cars")}
-            className="mt-4 text-[#EAEB80] hover:underline"
+            className="mt-4 text-[#D3BC8D] hover:underline"
           >
             ← Back to Cars
           </button>

@@ -88,7 +88,7 @@ export function CarGallery({ apiPhotos, activeCar }: CarGalleryProps) {
                 style={{
                   width: 8,
                   height: 8,
-                  backgroundColor: i === activeIndex ? "#EAEB80" : "#1a1a1a",
+                  backgroundColor: i === activeIndex ? "#d3bc8d" : "#1a1a1a",
                   border: "none",
                   padding: 0,
                   cursor: "pointer",

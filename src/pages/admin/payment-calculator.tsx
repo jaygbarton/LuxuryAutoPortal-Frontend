@@ -403,7 +403,7 @@ export default function PaymentCalculatorPage() {
                       wrapperStyle={{ color: '#9ca3af' }}
                       iconType="square"
                     />
-                    <Bar dataKey="value" fill="#eab308" name="Balance" />
+                    <Bar dataKey="value" fill="#D3BC8D" name="Balance" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

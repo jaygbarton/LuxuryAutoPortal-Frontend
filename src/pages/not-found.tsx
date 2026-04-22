@@ -58,7 +58,7 @@ export default function NotFound() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="text-center">
-        <div className="w-20 h-20 rounded-full bg-[#EAEB80]/10 flex items-center justify-center mx-auto mb-8">
+        <div className="w-20 h-20 rounded-full bg-[#D3BC8D]/10 flex items-center justify-center mx-auto mb-8">
           <Construction className="w-10 h-10 text-primary" />
         </div>
         <h1 className="font-serif text-4xl lg:text-6xl font-light text-foreground mb-4">

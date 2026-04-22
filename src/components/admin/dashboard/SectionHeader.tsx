@@ -20,9 +20,9 @@ export function SectionHeader({ title, subtitle, variant = "plain", className }:
           {title}
         </h2>
         {subtitle && (
-          <p className="mt-1 text-sm text-[#FFD700]">{subtitle}</p>
+          <p className="mt-1 text-sm text-[#d3bc8d]">{subtitle}</p>
         )}
-        <div className="mt-2 h-[2px] w-full bg-[#FFD700]" />
+        <div className="mt-2 h-[2px] w-full bg-[#d3bc8d]" />
       </div>
     );
   }

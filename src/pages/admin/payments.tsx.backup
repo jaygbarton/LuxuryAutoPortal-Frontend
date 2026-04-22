@@ -150,7 +150,7 @@ export default function PaymentsPage() {
           <p className="text-red-400">Failed to load car details</p>
           <button
             onClick={() => setLocation("/cars")}
-            className="mt-4 text-[#EAEB80] hover:underline"
+            className="mt-4 text-[#D3BC8D] hover:underline"
           >
             ← Back to Cars
           </button>
@@ -255,7 +255,7 @@ export default function PaymentsPage() {
                       href={car.turoLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#EAEB80] hover:underline text-xs sm:text-sm flex items-center gap-1 inline"
+                      className="text-[#D3BC8D] hover:underline text-xs sm:text-sm flex items-center gap-1 inline"
                     >
                       View Car
                       <ExternalLink className="w-3 h-3" />
@@ -269,7 +269,7 @@ export default function PaymentsPage() {
                       href={car.adminTuroLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#EAEB80] hover:underline text-xs sm:text-sm flex items-center gap-1 inline"
+                      className="text-[#D3BC8D] hover:underline text-xs sm:text-sm flex items-center gap-1 inline"
                     >
                       View Car
                       <ExternalLink className="w-3 h-3" />
@@ -322,15 +322,15 @@ export default function PaymentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-[#2a2a2a] hover:bg-transparent">
-                    <TableHead className="text-center text-[#EAEB80] font-medium w-12">#</TableHead>
-                    <TableHead className="text-center text-[#EAEB80] font-medium">Date</TableHead>
-                    <TableHead className="text-center text-[#EAEB80] font-medium">Payment Status</TableHead>
-                    <TableHead className="text-center text-[#EAEB80] font-medium">Payable</TableHead>
-                    <TableHead className="text-center text-[#EAEB80] font-medium">Payout</TableHead>
-                    <TableHead className="text-center text-[#EAEB80] font-medium">Balance</TableHead>
-                    <TableHead className="text-center text-[#EAEB80] font-medium">Ref #</TableHead>
-                    <TableHead className="text-center text-[#EAEB80] font-medium">Payment Date</TableHead>
-                    <TableHead className="text-center text-[#EAEB80] font-medium">Receipt</TableHead>
+                    <TableHead className="text-center text-[#D3BC8D] font-medium w-12">#</TableHead>
+                    <TableHead className="text-center text-[#D3BC8D] font-medium">Date</TableHead>
+                    <TableHead className="text-center text-[#D3BC8D] font-medium">Payment Status</TableHead>
+                    <TableHead className="text-center text-[#D3BC8D] font-medium">Payable</TableHead>
+                    <TableHead className="text-center text-[#D3BC8D] font-medium">Payout</TableHead>
+                    <TableHead className="text-center text-[#D3BC8D] font-medium">Balance</TableHead>
+                    <TableHead className="text-center text-[#D3BC8D] font-medium">Ref #</TableHead>
+                    <TableHead className="text-center text-[#D3BC8D] font-medium">Payment Date</TableHead>
+                    <TableHead className="text-center text-[#D3BC8D] font-medium">Receipt</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -377,7 +377,7 @@ export default function PaymentsPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           <button
-                            className="text-gray-400 hover:text-[#EAEB80] transition-colors"
+                            className="text-gray-400 hover:text-[#D3BC8D] transition-colors"
                             aria-label="View receipt"
                           >
                             <List className="w-4 h-4" />

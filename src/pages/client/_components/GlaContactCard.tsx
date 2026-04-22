@@ -70,7 +70,7 @@ export function GlaContactCard() {
           <div className="flex items-start gap-3">
             <Globe className="w-5 h-5 text-foreground flex-shrink-0 mt-0.5" />
             <a href="https://www.goldenluxuryauto.com" target="_blank" rel="noopener noreferrer"
-              className="text-sm text-foreground hover:underline hover:text-[#EAEB80]">
+              className="text-sm text-foreground hover:underline hover:text-[#d3bc8d]">
               www.goldenluxuryauto.com
             </a>
           </div>
@@ -81,21 +81,21 @@ export function GlaContactCard() {
           <div className="flex items-start gap-3">
             <Mail className="w-5 h-5 text-foreground flex-shrink-0 mt-0.5" />
             <span className="text-sm text-foreground">
-              <a href="mailto:golden@goldenluxuryauto.com" className="hover:underline hover:text-[#EAEB80]">golden@goldenluxuryauto.com</a>
+              <a href="mailto:golden@goldenluxuryauto.com" className="hover:underline hover:text-[#d3bc8d]">golden@goldenluxuryauto.com</a>
               {" / "}
-              <a href="mailto:goldenluxuryauto@gmail.com" className="hover:underline hover:text-[#EAEB80]">goldenluxuryauto@gmail.com</a>
+              <a href="mailto:goldenluxuryauto@gmail.com" className="hover:underline hover:text-[#d3bc8d]">goldenluxuryauto@gmail.com</a>
             </span>
           </div>
           <div className="flex items-start gap-3">
             <Mail className="w-5 h-5 text-foreground flex-shrink-0 mt-0.5" />
             <span className="text-sm text-foreground">
-              <a href="mailto:cathy@goldenluxuryauto.com" className="hover:underline hover:text-[#EAEB80]">cathy@goldenluxuryauto.com</a>
+              <a href="mailto:cathy@goldenluxuryauto.com" className="hover:underline hover:text-[#d3bc8d]">cathy@goldenluxuryauto.com</a>
               {" (Account Inquiries)"}
             </span>
           </div>
           <div className="flex items-start gap-3">
             <Phone className="w-5 h-5 text-foreground flex-shrink-0 mt-0.5" />
-            <a href="tel:18003461394" className="text-sm text-foreground hover:underline hover:text-[#EAEB80]">
+            <a href="tel:18003461394" className="text-sm text-foreground hover:underline hover:text-[#d3bc8d]">
               1-800-346-1394
             </a>
           </div>

@@ -506,7 +506,7 @@ export default function EmployeeViewPage() {
                       type="button"
                       onClick={() => setActiveSection(section.id)}
                       className={`flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm transition-colors hover:bg-card ${
-                        isActive ? "bg-[#EAEB80]/15 text-primary" : "text-muted-foreground"
+                        isActive ? "bg-[#D3BC8D]/15 text-primary" : "text-muted-foreground"
                       }`}
                     >
                       <span className="flex items-center gap-2">

@@ -131,7 +131,7 @@ export function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-2 text-muted-foreground hover:text-[#EAEB80] transition-colors rounded-lg hover:bg-card"
+        className="relative p-2 text-muted-foreground hover:text-[#D3BC8D] transition-colors rounded-lg hover:bg-card"
         aria-label="Notifications"
       >
         <Bell className="w-5 h-5" />
@@ -149,7 +149,7 @@ export function NotificationBell() {
               <button
                 onClick={() => markAllReadMutation.mutate()}
                 disabled={markAllReadMutation.isPending}
-                className="text-xs text-[#EAEB80] hover:underline flex items-center gap-1"
+                className="text-xs text-[#D3BC8D] hover:underline flex items-center gap-1"
               >
                 {markAllReadMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                 Mark all read
@@ -159,7 +159,7 @@ export function NotificationBell() {
           <div className="max-h-80 overflow-y-auto">
             {isLoading ? (
               <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-[#EAEB80]" />
+                <Loader2 className="w-6 h-6 animate-spin text-[#D3BC8D]" />
               </div>
             ) : notifications.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">No notifications</div>

@@ -1858,7 +1858,7 @@ export default function EarningsPage() {
                                 <Bar 
                                   dataKey="value"
                                   radius={[4, 4, 0, 0]}
-                                  fill="#EAEB80"
+                                  fill="#D3BC8D"
                                 />
                               </BarChart>
                             </ResponsiveContainer>

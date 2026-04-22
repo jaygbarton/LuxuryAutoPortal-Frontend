@@ -735,7 +735,7 @@ export function OnboardingTutorial({
       <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col bg-background border-border text-foreground">
         <DialogHeader className="space-y-2 pb-2">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold text-[#EAEB80] flex items-center gap-2">
+            <DialogTitle className="text-xl font-bold text-[#D3BC8D] flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
               Welcome Tutorial
             </DialogTitle>
@@ -822,7 +822,7 @@ export function OnboardingTutorial({
                 {currentStepData.instructions.map((instruction, index) => (
                   <li key={index} className="flex items-start gap-2 text-muted-foreground">
                     <div className="mt-0.5 w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-[#EAEB80] text-xs font-bold">{index + 1}</span>
+                      <span className="text-[#D3BC8D] text-xs font-bold">{index + 1}</span>
                     </div>
                     <span className="flex-1 leading-relaxed">{instruction}</span>
                   </li>
@@ -860,7 +860,7 @@ export function OnboardingTutorial({
               <Button
                 onClick={handleActionClick}
                 variant="outline"
-                className="border-primary/30 text-[#EAEB80] hover:bg-primary/10"
+                className="border-primary/30 text-[#D3BC8D] hover:bg-primary/10"
               >
                 <Play className="w-4 h-4 mr-2" />
                 {currentStepData.actionButton.label}

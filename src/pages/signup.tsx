@@ -127,7 +127,7 @@ export default function Signup() {
               id="email"
               type="email"
               {...register("email")}
-              className={`bg-card border-border222222] text-foreground focus:border-primary focus:ring-[#EAEB80] h-11 ${
+              className={`bg-card border-border222222] text-foreground focus:border-primary focus:ring-[#D3BC8D] h-11 ${
                 emailFromUrl ? 'cursor-not-allowed opacity-75' : ''
               }`}
               placeholder="john.doe@example.com"
@@ -146,7 +146,7 @@ export default function Signup() {
               id="password"
               type="password"
               {...register("password")}
-              className="bg-card border-border222222] text-foreground focus:border-primary focus:ring-[#EAEB80] h-11"
+              className="bg-card border-border222222] text-foreground focus:border-primary focus:ring-[#D3BC8D] h-11"
               placeholder="••••••••"
             />
             {errors.password && (
@@ -162,7 +162,7 @@ export default function Signup() {
               id="confirmPassword"
               type="password"
               {...register("confirmPassword")}
-              className="bg-card border-border222222] text-foreground focus:border-primary focus:ring-[#EAEB80] h-11"
+              className="bg-card border-border222222] text-foreground focus:border-primary focus:ring-[#D3BC8D] h-11"
               placeholder="••••••••"
             />
             {errors.confirmPassword && (

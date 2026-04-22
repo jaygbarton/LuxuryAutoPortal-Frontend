@@ -897,7 +897,7 @@ export function ContractFormFiller({
         <div className="flex-[2] flex flex-col bg-gradient-to-br from-[#2a2a2a] to-[#1f1f1f] rounded-lg border-2 border-primary/30 shadow-2xl overflow-hidden">
           <div className="p-4 border-b border-primary/20 flex items-center justify-between bg-card">
             <div>
-              <h3 className="text-[#EAEB80] font-semibold text-lg">Contract Preview</h3>
+              <h3 className="text-[#D3BC8D] font-semibold text-lg">Contract Preview</h3>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-muted-foreground text-sm">
@@ -911,7 +911,7 @@ export function ContractFormFiller({
             <div className="flex flex-col items-center gap-4 py-4">
               {isPdfLoading && (
                 <div className="flex items-center justify-center h-[600px]">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#EAEB80]" />
+                  <Loader2 className="w-8 h-8 animate-spin text-[#D3BC8D]" />
                   <p className="ml-3 text-muted-foreground">Loading contract document...</p>
                 </div>
               )}
@@ -978,7 +978,7 @@ export function ContractFormFiller({
                   }}
                   loading={
                     <div className="flex items-center justify-center h-[600px]">
-                      <Loader2 className="w-8 h-8 animate-spin text-[#EAEB80]" />
+                      <Loader2 className="w-8 h-8 animate-spin text-[#D3BC8D]" />
                     </div>
                   }
                   options={documentOptions}
@@ -1179,19 +1179,19 @@ export function ContractFormFiller({
                 onClick={() => setScale((s) => Math.max(0.5, s - 0.2))}
                 variant="ghost"
                 size="sm"
-                className="text-[#EAEB80] font-bold"
+                className="text-[#D3BC8D] font-bold"
                 style={{ fontSize: "2rem" }}
               >
                 −
               </Button>
-              <span className="text-[#EAEB80] text-sm w-16 text-center font-semibold">
+              <span className="text-[#D3BC8D] text-sm w-16 text-center font-semibold">
                 {(scale * 100).toFixed(0)}%
               </span>
               <Button
                 onClick={() => setScale((s) => Math.min(2.0, s + 0.2))}
                 variant="ghost"
                 size="sm"
-                className="text-[#EAEB80] font-bold"
+                className="text-[#D3BC8D] font-bold"
                 style={{ fontSize: "2rem" }}
               >
                 +
@@ -1205,7 +1205,7 @@ export function ContractFormFiller({
           {/* Your Information Card */}
           <Card className="bg-card border-primary/20 flex-shrink-0">
             <CardHeader>
-              <CardTitle className="text-[#EAEB80] text-lg">Your Information</CardTitle>
+              <CardTitle className="text-[#D3BC8D] text-lg">Your Information</CardTitle>
               <CardDescription className="text-muted-foreground text-sm">
                 Fill in all required fields. The contract preview updates in real-time.
               </CardDescription>
@@ -1221,7 +1221,7 @@ export function ContractFormFiller({
                     <div key={field.name} className="space-y-1">
                       <Label htmlFor={field.name} className="text-muted-foreground text-sm">
                         {field.label}
-                        {field.required && <span className="text-[#EAEB80] ml-1">*</span>}
+                        {field.required && <span className="text-[#D3BC8D] ml-1">*</span>}
                       </Label>
                       <Input
                         id={field.name}
@@ -1250,7 +1250,7 @@ export function ContractFormFiller({
                   <div key={field.name} className="space-y-1">
                     <Label htmlFor={field.name} className="text-muted-foreground text-sm">
                       {field.label}
-                      {field.required && <span className="text-[#EAEB80] ml-1">*</span>}
+                      {field.required && <span className="text-[#D3BC8D] ml-1">*</span>}
                       {field.name === "owner" && (
                         <span className="text-xs text-muted-foreground ml-2">(Max 20 chars)</span>
                       )}
@@ -1271,7 +1271,7 @@ export function ContractFormFiller({
                       <p className="text-xs text-red-500 mt-1">{field.error}</p>
                     )}
                     {field.name === "owner" && field.value.length > 15 && !field.error && (
-                      <p className="text-xs text-[#EAEB80] mt-1">
+                      <p className="text-xs text-[#D3BC8D] mt-1">
                         Long name detected - text will auto-shift left ({field.value.length} chars)
                       </p>
                     )}
@@ -1284,7 +1284,7 @@ export function ContractFormFiller({
 
           <Card className="bg-card border-primary/20 flex-shrink-0">
             <CardHeader>
-              <CardTitle className="text-[#EAEB80] text-lg">Additional Notes</CardTitle>
+              <CardTitle className="text-[#D3BC8D] text-lg">Additional Notes</CardTitle>
               <CardDescription className="text-muted-foreground text-sm">
                 Add any additional notes to the contract here.
               </CardDescription>
@@ -1292,7 +1292,7 @@ export function ContractFormFiller({
             <CardContent className="space-y-4">
               {/* Mandatory Agreements */}
               <div className="mt-4 pt-4 border-t border-primary/20 space-y-3">
-                <p className="text-sm font-semibold text-[#EAEB80]">
+                <p className="text-sm font-semibold text-[#D3BC8D]">
                   Mandatory Agreements (all required)
                 </p>
                 <div className="space-y-2">
@@ -1450,7 +1450,7 @@ export function ContractFormFiller({
 
               {/* Payment Options (radio, required) */}
               <div className="mt-4 pt-4 border-t border-primary/20 space-y-2">
-                <p className="text-sm font-semibold text-[#EAEB80]">
+                <p className="text-sm font-semibold text-[#D3BC8D]">
                   Payment Options (choose one – required)
                 </p>
                 <RadioGroup
@@ -1491,7 +1491,7 @@ export function ContractFormFiller({
 
               {/* Optional Services */}
               <div className="mt-4 pt-4 border-t border-primary/20 space-y-2">
-                <p className="text-sm font-semibold text-[#EAEB80]">
+                <p className="text-sm font-semibold text-[#D3BC8D]">
                   Optional Services (choose any)
                 </p>
                 <div className="space-y-2">
@@ -1580,7 +1580,7 @@ export function ContractFormFiller({
 
               {/* Additional Earnings Options */}
               <div className="mt-4 pt-4 border-t border-primary/20 space-y-2">
-                <p className="text-sm font-semibold text-[#EAEB80]">
+                <p className="text-sm font-semibold text-[#D3BC8D]">
                   Additional Earnings Options (optional)
                 </p>
                 <div className="space-y-2">
@@ -1640,7 +1640,7 @@ export function ContractFormFiller({
           {/* Sign Here Card */}
           <Card className="bg-card border-primary/20 flex-shrink-0">
             <CardHeader>
-              <CardTitle className="text-[#EAEB80] text-lg">Sign Here</CardTitle>
+              <CardTitle className="text-[#D3BC8D] text-lg">Sign Here</CardTitle>
               <CardDescription className="text-muted-foreground text-sm">
                 Type your name or draw your signature below
               </CardDescription>

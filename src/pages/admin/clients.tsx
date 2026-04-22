@@ -906,7 +906,7 @@ export default function ClientsPage() {
                           <TableCell className="text-left px-2 sm:px-4 md:px-6 py-3 sm:py-4 align-middle">
                             <Badge
                               variant="outline"
-                              className="bg-[#EAEB80]/10 text-black border-primary/30 text-xs font-medium"
+                              className="bg-[#D3BC8D]/10 text-black border-primary/30 text-xs font-medium"
                             >
                               {client.roleName}
                             </Badge>

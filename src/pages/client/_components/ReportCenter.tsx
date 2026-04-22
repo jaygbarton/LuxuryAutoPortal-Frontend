@@ -16,7 +16,7 @@ interface ReportCenterProps {
 export function ReportCenter({ reportLinks }: ReportCenterProps) {
   return (
     <Card className="border-border bg-card overflow-hidden">
-      <div className="px-6 py-3" style={{ backgroundColor: "#EAEB80" }}>
+      <div className="px-6 py-3" style={{ backgroundColor: "#d3bc8d" }}>
         <h2 className="text-base font-bold text-[#1a1a1a]">Report Center</h2>
       </div>
       <CardContent className="pt-4">

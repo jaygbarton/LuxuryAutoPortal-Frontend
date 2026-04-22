@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 260" role="img" aria-label="Golden Luxury Auto">
   <defs>
     <style>
-      .gold { fill: #EAEB80; }
+      .gold { fill: #D3BC8D; }
       .white { fill: #FFFFFF; }
       .goldText {
         font-family: "Arial Black", "Segoe UI Black", "Impact", system-ui, -apple-system, "Segoe UI", sans-serif;

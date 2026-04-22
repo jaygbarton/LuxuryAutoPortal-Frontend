@@ -190,7 +190,7 @@ export default function CarOffboardingForm() {
   return (
     <Card className="bg-card border-primary/20">
       <CardHeader>
-        <CardTitle className="text-[#EAEB80] flex items-center gap-2">
+        <CardTitle className="text-[#D3BC8D] flex items-center gap-2">
           <LogOut className="w-5 h-5" />
           Car Off-boarding Form
         </CardTitle>

@@ -103,7 +103,7 @@ export function EditPayInfoModal({ open, onOpenChange, employee }: EditPayInfoMo
               id="eligible"
               checked={form.employee_job_pay_eligible}
               onCheckedChange={(v) => setForm((p) => ({ ...p, employee_job_pay_eligible: !!v }))}
-              className="border-border data-[state=checked]:bg-[#EAEB80] data-[state=checked]:border-primary"
+              className="border-border data-[state=checked]:bg-[#D3BC8D] data-[state=checked]:border-primary"
             />
             <Label htmlFor="eligible" className="text-muted-foreground cursor-pointer">Payroll Eligibility</Label>
           </div>

@@ -421,19 +421,19 @@ export default function IncomeExpensesSection({
   // ── Donut data ─────────────────────────────────────────────────────
 
   const incomeDonut = [
-    { name: "Management Income", value: totalMgmtIncome, color: "#FFD700" },
+    { name: "Management Income", value: totalMgmtIncome, color: "#d3bc8d" },
     { name: "Car Owner Income", value: totalOwnerIncome, color: "#B8860B" },
   ];
 
   const expenseDonut = [
-    { name: "Management Expenses", value: totalMgmtExpenses, color: "#FFD700" },
+    { name: "Management Expenses", value: totalMgmtExpenses, color: "#d3bc8d" },
     { name: "Car Owner Expenses", value: totalOwnerExpenses, color: "#B8860B" },
   ];
 
   const totalAvailableDays = totalCarsAvailable * 30;
   const unusedDays = Math.max(0, totalAvailableDays - totalDaysRented);
   const activityDonut = [
-    { name: "Days Rented", value: totalDaysRented, color: "#FFD700" },
+    { name: "Days Rented", value: totalDaysRented, color: "#d3bc8d" },
     { name: "Days Unused", value: unusedDays, color: "#666666" },
   ];
   const totalGrossIncome = monthlyComputed.reduce((s, m) => s + m.gross, 0);
@@ -633,7 +633,7 @@ export default function IncomeExpensesSection({
                         ))}
                       </tr>
                     ))}
-                    <tr className="bg-[#FFD700] font-bold">
+                    <tr className="bg-[#d3bc8d] font-bold">
                       {tableColumns.map((col) => (
                         <td
                           key={col.key}
@@ -658,7 +658,7 @@ export default function IncomeExpensesSection({
               <DonutChart
                 title="TOTAL CAR MGMT INCOME & EXPENSES"
                 data={[
-                  { name: "Mgmt Income", value: totalMgmtIncome, color: "#FFD700" },
+                  { name: "Mgmt Income", value: totalMgmtIncome, color: "#d3bc8d" },
                   { name: "Mgmt Expenses", value: totalMgmtExpenses, color: "#374151" },
                 ]}
                 centerValue={formatCurrency(totalMgmtIncome - totalMgmtExpenses)}
@@ -666,7 +666,7 @@ export default function IncomeExpensesSection({
               <DonutChart
                 title="TOTAL CAR MGMT EXPENSES"
                 data={[
-                  { name: "Mgmt Expenses", value: totalMgmtExpenses, color: "#FFD700" },
+                  { name: "Mgmt Expenses", value: totalMgmtExpenses, color: "#d3bc8d" },
                   { name: "Mgmt Income", value: totalMgmtIncome, color: "#374151" },
                 ]}
                 centerValue={formatCurrency(totalMgmtExpenses)}
@@ -674,7 +674,7 @@ export default function IncomeExpensesSection({
               <DonutChart
                 title="TOTAL CAR OWNER INCOME AND EXPENSES"
                 data={[
-                  { name: "Owner Income", value: totalOwnerIncome, color: "#FFD700" },
+                  { name: "Owner Income", value: totalOwnerIncome, color: "#d3bc8d" },
                   { name: "Owner Expenses", value: totalOwnerExpenses, color: "#374151" },
                 ]}
                 centerValue={formatCurrency(totalOwnerIncome - totalOwnerExpenses)}
@@ -682,7 +682,7 @@ export default function IncomeExpensesSection({
               <DonutChart
                 title="TOTAL CAR OWNER EXPENSES"
                 data={[
-                  { name: "Owner Expenses", value: totalOwnerExpenses, color: "#FFD700" },
+                  { name: "Owner Expenses", value: totalOwnerExpenses, color: "#d3bc8d" },
                   { name: "Owner Income", value: totalOwnerIncome, color: "#374151" },
                 ]}
                 centerValue={formatCurrency(totalOwnerExpenses)}
@@ -696,7 +696,7 @@ export default function IncomeExpensesSection({
                 subtitle="Monthly management split and expense trend across the selected year."
                 data={mgmtBarData}
                 lines={[
-                  { dataKey: "Income", stroke: "#FFD700" },
+                  { dataKey: "Income", stroke: "#d3bc8d" },
                   { dataKey: "Expenses", stroke: "#B8860B" },
                 ]}
               />
@@ -705,7 +705,7 @@ export default function IncomeExpensesSection({
                 subtitle="Monthly owner split and owner expense trend across the selected year."
                 data={ownerBarData}
                 lines={[
-                  { dataKey: "Income", stroke: "#FFD700" },
+                  { dataKey: "Income", stroke: "#d3bc8d" },
                   { dataKey: "Expenses", stroke: "#B8860B" },
                 ]}
               />
@@ -720,7 +720,7 @@ export default function IncomeExpensesSection({
                 <span className="text-xs font-semibold text-gray-600 w-24 shrink-0">Total Trips Taken</span>
                 <div className="flex-1 bg-gray-100 rounded h-6 relative overflow-hidden">
                   <div
-                    className="bg-[#FFD700] h-full rounded"
+                    className="bg-[#d3bc8d] h-full rounded"
                     style={{ width: `${Math.min(100, (monthlyComputed.reduce((s, m) => s + m.tripsTaken, 0) / Math.max(1, totalDaysRented)) * 100)}%` }}
                   />
                 </div>
@@ -731,7 +731,7 @@ export default function IncomeExpensesSection({
               <div className="flex items-center gap-3">
                 <span className="text-xs font-semibold text-gray-600 w-24 shrink-0">Total Days Rented</span>
                 <div className="flex-1 bg-gray-100 rounded h-6 relative overflow-hidden">
-                  <div className="bg-[#FFD700] h-full rounded w-full" />
+                  <div className="bg-[#d3bc8d] h-full rounded w-full" />
                 </div>
                 <span className="text-xs font-bold text-gray-800 w-16 text-right">
                   {totalDaysRented.toLocaleString()}
@@ -746,7 +746,7 @@ export default function IncomeExpensesSection({
                 subtitle="Operational activity by month for the selected year."
                 data={activityBarData}
                 bars={[
-                  { dataKey: "Days Rented", fill: "#FFD700" },
+                  { dataKey: "Days Rented", fill: "#d3bc8d" },
                   { dataKey: "Trips Taken", fill: "#B8860B" },
                 ]}
                 yAxisPrefix=""

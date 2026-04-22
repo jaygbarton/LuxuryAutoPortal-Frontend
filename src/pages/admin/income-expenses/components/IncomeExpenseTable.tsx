@@ -2556,7 +2556,7 @@ function DynamicSubcategoryRow({
             <>
               <button
                 onClick={onEditName}
-                className="text-[#EAEB80] hover:text-[#d4d570] transition-colors"
+                className="text-[#D3BC8D] hover:text-[#d4d570] transition-colors"
                 title="Edit name"
               >
                 <Pencil className="w-3 h-3" />
@@ -2586,7 +2586,7 @@ function DynamicSubcategoryRow({
                 isReadOnly 
                   ? "cursor-default" 
                   : "cursor-pointer hover:bg-muted",
-                value === 0 ? "text-gray-600" : "text-[#EAEB80]"
+                value === 0 ? "text-gray-600" : "text-[#D3BC8D]"
               )}
             >
               ${value.toFixed(2)}
@@ -2596,7 +2596,7 @@ function DynamicSubcategoryRow({
       })}
       <td className={cn(
         "md:sticky md:right-0 md:z-20 border-l border-border px-1 py-1 text-right font-bold text-xs bg-card",
-        total === 0 ? "text-gray-600" : "text-[#EAEB80]"
+        total === 0 ? "text-gray-600" : "text-[#D3BC8D]"
       )}>
         ${total.toFixed(2)}
       </td>
@@ -2633,9 +2633,9 @@ function CategorySection({ title, isExpanded, onToggle, children, hasActions = t
         >
           <div className="flex items-center gap-2">
             {isExpanded
-              ? <ChevronDown className="w-4 h-4 text-white shrink-0" />
-              : <ChevronRight className="w-4 h-4 text-white shrink-0" />}
-            <span className="text-xs font-semibold text-white">{title}</span>
+              ? <ChevronDown className="w-4 h-4 text-primary-foreground shrink-0" />
+              : <ChevronRight className="w-4 h-4 text-primary-foreground shrink-0" />}
+            <span className="text-xs font-semibold text-primary-foreground">{title}</span>
           </div>
         </td>
         <td colSpan={13} className="bg-primary border-b border-primary cursor-pointer" onClick={onToggle} />

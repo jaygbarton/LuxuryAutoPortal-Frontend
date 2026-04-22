@@ -50,7 +50,7 @@ export default function QuickLinks() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <Loader2 className="w-6 h-6 animate-spin text-[#EAEB80]" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#D3BC8D]" />
       </div>
     );
   }
@@ -83,7 +83,7 @@ export default function QuickLinks() {
       {categoriesWithLinks.map((category) => {
         const links = groupedLinks[category];
         const Icon = categoryIcons[category] || ExternalLink;
-        const iconColor = categoryColors[category] || "text-[#EAEB80]";
+        const iconColor = categoryColors[category] || "text-[#D3BC8D]";
 
         return (
           <Card key={category} className="bg-card border-border hover:border-primary/40 transition-colors">
@@ -101,7 +101,7 @@ export default function QuickLinks() {
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-[#EAEB80] transition-colors group"
+                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-[#D3BC8D] transition-colors group"
                     >
                       <span className="flex-1 truncate">{link.title}</span>
                       <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
