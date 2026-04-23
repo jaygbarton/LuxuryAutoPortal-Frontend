@@ -93,7 +93,7 @@ export default function TrainingManualPage() {
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [videoValid, setVideoValid] = useState<boolean | null>(null);
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'client' | 'employee'>('client');
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'client' | 'employee'>('admin');
 
   // Video state for each step (for inline video display)
   const [stepVideoStates, setStepVideoStates] = useState<Record<number, { loading: boolean; error: boolean }>>({});

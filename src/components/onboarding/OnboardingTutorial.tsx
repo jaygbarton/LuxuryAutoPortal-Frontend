@@ -806,31 +806,34 @@ export function OnboardingTutorial({
              />
            </div>
 
-          {/* Step Title and Description */}
-          <div className="space-y-1 flex-shrink-0">
-            <h3 className="text-lg font-semibold text-foreground">{currentStepData.title}</h3>
-            <p className="text-sm text-muted-foreground whitespace-pre-line">{currentStepData.description}</p>
-          </div>
+          {/* Scrollable Description + Instructions */}
+          <div className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-4">
+            {/* Step Title and Description */}
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold text-foreground">{currentStepData.title}</h3>
+              <p className="text-sm text-muted-foreground whitespace-pre-line">{currentStepData.description}</p>
+            </div>
 
-          {/* Instructions List - Two Columns */}
-          <div className="space-y-2 flex-1 min-h-0">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Instructions:
-            </h4>
-            {currentStepData.instructions && Array.isArray(currentStepData.instructions) && currentStepData.instructions.length > 0 ? (
-              <ul className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                {currentStepData.instructions.map((instruction, index) => (
-                  <li key={index} className="flex items-start gap-2 text-muted-foreground">
-                    <div className="mt-0.5 w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-[#D3BC8D] text-xs font-bold">{index + 1}</span>
-                    </div>
-                    <span className="flex-1 leading-relaxed">{instruction}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground italic">No instructions available for this step.</p>
-            )}
+            {/* Instructions List - Two Columns */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Instructions:
+              </h4>
+              {currentStepData.instructions && Array.isArray(currentStepData.instructions) && currentStepData.instructions.length > 0 ? (
+                <ul className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  {currentStepData.instructions.map((instruction, index) => (
+                    <li key={index} className="flex items-start gap-2 text-muted-foreground">
+                      <div className="mt-0.5 w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[#D3BC8D] text-xs font-bold">{index + 1}</span>
+                      </div>
+                      <span className="flex-1 leading-relaxed">{instruction}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">No instructions available for this step.</p>
+              )}
+            </div>
           </div>
         </div>
 
