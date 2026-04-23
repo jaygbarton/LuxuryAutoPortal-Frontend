@@ -67,7 +67,7 @@ export function EditPayInfoModal({ open, onOpenChange, employee }: EditPayInfoMo
     },
     onSuccess: () => {
       toast({ title: "Updated", description: "Pay information updated successfully." });
-      queryClient.invalidateQueries({ queryKey: ["/api/employees", employee?.employee_aid] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
       onOpenChange(false);
     },
     onError: (e: Error) => {

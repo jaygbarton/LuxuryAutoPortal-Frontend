@@ -80,7 +80,7 @@ export function EditFamilyInfoModal({ open, onOpenChange, employee }: EditFamily
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/employees", employee.employee_aid] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
       toast({ title: "Success", description: "Family information updated successfully." });
       onOpenChange(false);
     },

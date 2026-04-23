@@ -81,7 +81,7 @@ export function EditEmergencyModal({ open, onOpenChange, employee }: EditEmergen
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/employees", employee.employee_aid] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
       toast({ title: "Success", description: "Emergency contact updated successfully." });
       onOpenChange(false);
     },

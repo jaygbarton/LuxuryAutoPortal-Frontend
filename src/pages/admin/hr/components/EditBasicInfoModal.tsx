@@ -169,7 +169,7 @@ export function EditBasicInfoModal({ open, onOpenChange, employee }: EditBasicIn
       }
     },
     onSuccess: (_, { photoFile: file }) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/employees", employee.employee_aid] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
       if (file) {
         setPhotoFile(null);
         if (photoInputRef.current) photoInputRef.current.value = "";
@@ -207,7 +207,7 @@ export function EditBasicInfoModal({ open, onOpenChange, employee }: EditBasicIn
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/employees", employee.employee_aid] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
       setPhotoFile(null);
       if (photoInputRef.current) photoInputRef.current.value = "";
       toast({

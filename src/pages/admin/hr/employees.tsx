@@ -58,6 +58,7 @@ import {
   FileSpreadsheet,
   Loader2,
   Plus,
+  RotateCcw,
   Search,
   Trash2,
   Upload,
@@ -108,17 +109,35 @@ const employeeSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   workEmail: z.string().email("Invalid email address").min(1, "Work email is required"),
   phoneNumber: z.string().min(1, "Phone number is required"),
+  telephone: z.string().optional(),
+  birthday: z.string().optional(),
+  maritalStatus: z.string().optional(),
   street: z.string().min(1, "Street is required"),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State is required"),
   zipCode: z.string().min(1, "ZIP Code is required"),
   country: z.string().min(1, "Country is required"),
+  motherName: z.string().optional(),
+  fatherName: z.string().optional(),
+  homeContact: z.string().optional(),
+  homeAddress: z.string().optional(),
   emergencyContactName: z.string().min(1, "Emergency contact name is required"),
   emergencyContactPhoneNumber: z.string().min(1, "Emergency contact phone number is required"),
+  emergencyRelationship: z.string().optional(),
+  emergencyAddress: z.string().optional(),
   ssnEin: z.string().min(1, "Social Security Number or EIN is required"),
   shirtSize: z.string().optional(),
   hearAboutGla: z.string().optional(),
 });
+
+const MARITAL_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "single", label: "Single" },
+  { value: "married", label: "Married" },
+  { value: "divorced", label: "Divorced" },
+  { value: "annulled", label: "Annulled" },
+  { value: "legally separated", label: "Legally Separated" },
+  { value: "widowed", label: "Widowed" },
+];
 
 type EmployeeFormData = z.infer<typeof employeeSchema>;
 
@@ -176,6 +195,7 @@ export default function EmployeesPage() {
 
   const [employeeToApprove, setEmployeeToApprove] = useState<Employee | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+  const [employeeToRestore, setEmployeeToRestore] = useState<Employee | null>(null);
 
   const [location] = useLocation();
   const employeeIdFromUrl = useMemo(() => {
@@ -242,13 +262,22 @@ export default function EmployeesPage() {
       lastName: "",
       workEmail: "",
       phoneNumber: "",
+      telephone: "",
+      birthday: "",
+      maritalStatus: "",
       street: "",
       city: "",
       state: "",
       zipCode: "",
       country: "",
+      motherName: "",
+      fatherName: "",
+      homeContact: "",
+      homeAddress: "",
       emergencyContactName: "",
       emergencyContactPhoneNumber: "",
+      emergencyRelationship: "",
+      emergencyAddress: "",
       ssnEin: "",
       shirtSize: "",
       hearAboutGla: "",
@@ -271,13 +300,22 @@ export default function EmployeesPage() {
           personalEmail: payload.workEmail,
           workEmail: payload.workEmail,
           mobileNumber: payload.phoneNumber,
+          telephone: payload.telephone || "",
+          birthday: payload.birthday || "",
+          maritalStatus: payload.maritalStatus || "",
           street: payload.street,
           city: payload.city,
           state: payload.state,
           country: payload.country,
           zipCode: payload.zipCode,
+          motherName: payload.motherName || "",
+          fatherName: payload.fatherName || "",
+          homeContact: payload.homeContact || "",
+          homeAddress: payload.homeAddress || "",
           emergencyContactPerson: payload.emergencyContactName,
           emergencyNumber: payload.emergencyContactPhoneNumber,
+          emergencyRelationship: payload.emergencyRelationship || "",
+          emergencyAddress: payload.emergencyAddress || "",
           ssnEin: payload.ssnEin,
           shirtSize: payload.shirtSize || "",
           hearAboutGla: payload.hearAboutGla || "",
@@ -353,6 +391,28 @@ export default function EmployeesPage() {
     },
     onError: (e: any) => {
       toast({ title: "Error", description: e.message || "Failed to delete employee", variant: "destructive" });
+    },
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: async (employeeId: number) => {
+      const response = await fetch(buildApiUrl(`/api/employees/${employeeId}/restore`), {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: "Failed to restore employee" }));
+        throw new Error(err.error || err.message || "Failed to restore employee");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+      toast({ title: "Restored", description: "Employee restored successfully." });
+      setEmployeeToRestore(null);
+    },
+    onError: (e: any) => {
+      toast({ title: "Error", description: e.message || "Failed to restore employee", variant: "destructive" });
     },
   });
 
@@ -846,7 +906,7 @@ export default function EmployeesPage() {
                     <TableHead className="text-left text-foreground font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[240px] text-[10px] sm:text-xs hidden lg:table-cell">
                       Work Email
                     </TableHead>
-                    <TableHead className="text-left text-primary font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[140px] text-[10px] sm:text-xs hidden lg:table-cell">
+                    <TableHead className="text-left text-foreground font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[140px] text-[10px] sm:text-xs hidden lg:table-cell">
                       Mobile
                     </TableHead>
                     <TableHead className="text-left text-foreground font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[180px] text-[10px] sm:text-xs hidden xl:table-cell">
@@ -855,7 +915,7 @@ export default function EmployeesPage() {
                     <TableHead className="text-left text-foreground font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[180px] text-[10px] sm:text-xs hidden xl:table-cell">
                       Job Title
                     </TableHead>
-                    <TableHead className="text-left text-primary font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[140px] text-[10px] sm:text-xs hidden md:table-cell">
+                    <TableHead className="text-left text-foreground font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[140px] text-[10px] sm:text-xs hidden md:table-cell">
                       Created
                     </TableHead>
                     <TableHead className="text-center text-foreground font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 w-28 text-[10px] sm:text-xs">
@@ -896,7 +956,7 @@ export default function EmployeesPage() {
                       const badge = statusBadge(emp);
                       return (
                         <TableRow key={emp.employee_aid} className="border-border group">
-                          <TableCell className="text-center text-primary font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 align-middle text-xs sm:text-sm">
+                          <TableCell className="text-center text-muted-foreground font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 align-middle text-xs sm:text-sm">
                             {rowNumber}
                           </TableCell>
                           <TableCell className="text-left px-2 sm:px-4 md:px-6 py-3 sm:py-4 align-middle">
@@ -937,7 +997,7 @@ export default function EmployeesPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-9 w-9 p-0 text-primary hover:text-primary hover:bg-primary/10 rounded-full"
+                                className="h-9 w-9 p-0 text-foreground hover:text-primary hover:bg-primary/10 rounded-full"
                                 title="View"
                                 onClick={() => setLocation(`/admin/hr/employees/view?employeeId=${emp.employee_aid}`)}
                               >
@@ -956,15 +1016,35 @@ export default function EmployeesPage() {
                                 </Button>
                               )}
 
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-9 w-9 p-0 text-red-700 hover:text-red-700 hover:bg-red-500/10 rounded-full"
-                                onClick={() => setEmployeeToDelete(emp)}
-                                title="Delete"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+                              {(emp.employee_status === "offboarded" ||
+                                emp.employee_status === "separated" ||
+                                (emp.employee_status !== "pending" && emp.employee_is_active === 0)) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-9 w-9 p-0 text-green-700 hover:text-green-700 hover:bg-green-500/10 rounded-full"
+                                  onClick={() => setEmployeeToRestore(emp)}
+                                  title="Restore"
+                                >
+                                  <RotateCcw className="w-4 h-4" />
+                                </Button>
+                              )}
+
+                              {/* gla-v3 parity: hard delete only on non-active rows (pending or offboarded/inactive). */}
+                              {(emp.employee_status === "pending" ||
+                                emp.employee_status === "offboarded" ||
+                                emp.employee_status === "separated" ||
+                                emp.employee_is_active === 0) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-9 w-9 p-0 text-red-700 hover:text-red-700 hover:bg-red-500/10 rounded-full"
+                                  onClick={() => setEmployeeToDelete(emp)}
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1081,6 +1161,63 @@ export default function EmployeesPage() {
                     )}
                   />
 
+                  <FormField
+                    control={addForm.control}
+                    name="telephone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-muted-foreground">Telephone Number</FormLabel>
+                        <FormControl>
+                          <Input {...field} className="bg-card border-border text-foreground focus:border-primary" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={addForm.control}
+                    name="birthday"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-muted-foreground">Birth Date</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="date"
+                            className="bg-card border-border text-foreground focus:border-primary"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={addForm.control}
+                    name="maritalStatus"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-muted-foreground">Marital Status</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger className="bg-card border-border text-foreground">
+                              <SelectValue placeholder="Select marital status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-card border-border text-foreground">
+                            {MARITAL_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   {/* Address */}
                   <FormField
                     control={addForm.control}
@@ -1152,6 +1289,63 @@ export default function EmployeesPage() {
                     )}
                   />
 
+                  {/* Family */}
+                  <FormField
+                    control={addForm.control}
+                    name="motherName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-muted-foreground">Mother's First Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} className="bg-card border-border text-foreground focus:border-primary" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={addForm.control}
+                    name="fatherName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-muted-foreground">Father's First Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} className="bg-card border-border text-foreground focus:border-primary" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={addForm.control}
+                    name="homeContact"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-muted-foreground">Home Contact</FormLabel>
+                        <FormControl>
+                          <Input {...field} className="bg-card border-border text-foreground focus:border-primary" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={addForm.control}
+                    name="homeAddress"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel className="text-muted-foreground">Family Home Address</FormLabel>
+                        <FormControl>
+                          <Input {...field} className="bg-card border-border text-foreground focus:border-primary" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   {/* Emergency */}
                   <FormField
                     control={addForm.control}
@@ -1173,6 +1367,34 @@ export default function EmployeesPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-muted-foreground">Emergency Contact Phone Number *</FormLabel>
+                        <FormControl>
+                          <Input {...field} className="bg-card border-border text-foreground focus:border-primary" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={addForm.control}
+                    name="emergencyRelationship"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-muted-foreground">Emergency Contact Relationship</FormLabel>
+                        <FormControl>
+                          <Input {...field} className="bg-card border-border text-foreground focus:border-primary" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={addForm.control}
+                    name="emergencyAddress"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-muted-foreground">Emergency Contact Address</FormLabel>
                         <FormControl>
                           <Input {...field} className="bg-card border-border text-foreground focus:border-primary" />
                         </FormControl>
@@ -1581,6 +1803,48 @@ export default function EmployeesPage() {
                   </>
                 ) : (
                   "Approve"
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Restore confirmation */}
+        <Dialog open={employeeToRestore !== null} onOpenChange={(open) => !open && setEmployeeToRestore(null)}>
+          <DialogContent className="bg-card border-border text-foreground">
+            <DialogHeader>
+              <DialogTitle className="text-lg sm:text-xl font-semibold text-green-700">Restore Employee</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                {employeeToRestore ? (
+                  <>
+                    Restore <strong className="text-foreground">{employeeToRestore.employee_last_name}, {employeeToRestore.employee_first_name}</strong>?
+                    <br />
+                    This reactivates the employee and restores their system access.
+                  </>
+                ) : null}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-3 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setEmployeeToRestore(null)}
+                className="border-border text-muted-foreground hover:bg-muted/50"
+                disabled={restoreMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => employeeToRestore && restoreMutation.mutate(employeeToRestore.employee_aid)}
+                className="bg-green-600 text-foreground hover:bg-green-700"
+                disabled={restoreMutation.isPending}
+              >
+                {restoreMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Restoring...
+                  </>
+                ) : (
+                  "Restore"
                 )}
               </Button>
             </div>

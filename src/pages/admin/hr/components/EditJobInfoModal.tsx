@@ -87,7 +87,7 @@ export function EditJobInfoModal({ open, onOpenChange, employee }: EditJobInfoMo
     },
     onSuccess: () => {
       toast({ title: "Updated", description: "Job information updated successfully." });
-      queryClient.invalidateQueries({ queryKey: ["/api/employees", employee?.employee_aid] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
       onOpenChange(false);
     },
     onError: (e: Error) => {

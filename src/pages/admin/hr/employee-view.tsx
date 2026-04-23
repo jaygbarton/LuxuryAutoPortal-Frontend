@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { buildApiUrl } from "@/lib/queryClient";
 import { EmployeeDocumentImage } from "@/components/admin/EmployeeDocumentImage";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ChevronRight, Image, List, Loader2, Pencil, Plus, Trash2, User, UserCheck, UserX } from "lucide-react";
+import { ArrowLeft, ChevronRight, Image, List, Loader2, Pencil, Plus, RotateCcw, Trash2, User, UserCheck, UserX } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -362,6 +362,28 @@ export default function EmployeeViewPage() {
     }
   };
 
+  const [restoring, setRestoring] = useState(false);
+  const handleRestore = async () => {
+    if (!employee || !confirm(`Restore ${employee.employee_last_name}, ${employee.employee_first_name}? This reactivates the employee and their system access.`)) return;
+    setRestoring(true);
+    try {
+      const res = await fetch(buildApiUrl(`/api/employees/${employee.employee_aid}/restore`), {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to restore");
+      }
+      toast({ title: "Restored", description: "Employee restored and system access reactivated." });
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to restore", variant: "destructive" });
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   const handleApprove = async () => {
     if (!employee) return;
     try {
@@ -485,6 +507,23 @@ export default function EmployeeViewPage() {
               >
                 <UserCheck className="w-4 h-4 mr-2" />
                 Approve
+              </Button>
+              <Button size="sm" variant="destructive" onClick={handleDelete}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+          )}
+          {isOffboarded && (
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-foreground"
+                onClick={handleRestore}
+                disabled={restoring}
+              >
+                {restoring ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
+                Restore
               </Button>
               <Button size="sm" variant="destructive" onClick={handleDelete}>
                 <Trash2 className="w-4 h-4 mr-2" />

@@ -131,7 +131,7 @@ export function EditOtherInfoModal({ open, onOpenChange, employee }: EditOtherIn
       }
     },
     onSuccess: (_, { licenseFile: license, insuranceFile: insurance }) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/employees", employee.employee_aid] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
       const hadLicense = license && license instanceof File && license.size > 0;
       const hadInsurance = insurance && insurance instanceof File && insurance.size > 0;
       if (hadLicense) {
@@ -177,7 +177,7 @@ export function EditOtherInfoModal({ open, onOpenChange, employee }: EditOtherIn
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/employees", employee.employee_aid] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
       setLicenseFile(null);
       if (licenseInputRef.current) licenseInputRef.current.value = "";
       toast({ title: "Archived", description: "Driver's license archived to Google Drive." });
@@ -200,7 +200,7 @@ export function EditOtherInfoModal({ open, onOpenChange, employee }: EditOtherIn
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/employees", employee.employee_aid] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
       setInsuranceFile(null);
       if (insuranceInputRef.current) insuranceInputRef.current.value = "";
       toast({ title: "Archived", description: "Car insurance archived to Google Drive." });
