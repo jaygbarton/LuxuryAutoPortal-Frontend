@@ -67,6 +67,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
     updateDynamicSubcategoryValue,
     carId,
     isAllCars,
+    getCategoryMonthFormTotal,
   } = useIncomeExpense();
 
   // Fetch previous year December data for January calculation
@@ -200,6 +201,12 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
   // Helper function to calculate total income for a month (sum all income items)
   // This is reactive to data.incomeExpenses changes - recalculates on every render
   // when income data is updated (via React Query invalidation after saves)
+  //
+  // NOTE: Per the Form/Manual separation spec, every category total must
+  // include approved-form-submission contributions so that downstream rows
+  // (Car Management Split, Net Income, EBITDA, etc.) stay consistent with
+  // the per-cell totals shown in <EditableCell>. The form contribution is
+  // sourced from useFormAmounts via the IncomeExpense context.
   const getTotalIncomeForMonth = (month: number): number => {
     return (
       getMonthValue(data.incomeExpenses, month, "rentalIncome") +
@@ -212,7 +219,8 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
       getMonthValue(data.incomeExpenses, month, "childSeatIncome") +
       getMonthValue(data.incomeExpenses, month, "coolersIncome") +
       getMonthValue(data.incomeExpenses, month, "insuranceWreckIncome") +
-      getMonthValue(data.incomeExpenses, month, "otherIncome")
+      getMonthValue(data.incomeExpenses, month, "otherIncome") +
+      getCategoryMonthFormTotal("income", month)
     );
   };
 
@@ -229,7 +237,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
       const monthValue = subcat.values.find((v: any) => v.month === month);
       return sum + (monthValue?.value || 0);
     }, 0);
-    return fixedTotal + dynamicTotal;
+    return fixedTotal + dynamicTotal + getCategoryMonthFormTotal("directDelivery", month);
   };
 
   // Helper to get total operating expense (COGS) for a month (including dynamic subcategories)
@@ -264,7 +272,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
       const monthValue = subcat.values.find((v: any) => v.month === month);
       return sum + (monthValue?.value || 0);
     }, 0);
-    return fixedTotal + dynamicTotal;
+    return fixedTotal + dynamicTotal + getCategoryMonthFormTotal("cogs", month);
   };
 
   // Helper to get total reimbursed bills for a month (including dynamic subcategories)
@@ -283,7 +291,7 @@ export default function IncomeExpenseTable({ year, isFromRoute = false, showPark
       const monthValue = subcat.values.find((v: any) => v.month === month);
       return sum + (monthValue?.value || 0);
     }, 0);
-    return fixedTotal + dynamicTotal;
+    return fixedTotal + dynamicTotal + getCategoryMonthFormTotal("reimbursedBills", month);
   };
 
   // Helper to get total parking fee & labor cleaning for a month (including dynamic subcategories)

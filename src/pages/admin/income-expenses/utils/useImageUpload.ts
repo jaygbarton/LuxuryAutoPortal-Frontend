@@ -17,16 +17,14 @@ export function useImageUpload(carId: number, year: string, category: string, fi
   const fetchingRef = useRef<string | null>(null);
   const { toast } = useToast();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
+  // Shared acceptance logic for both <input type="file"> change events and
+  // drag-and-drop drops. Filters for supported image types and notifies the
+  // user if any dropped/selected files were rejected.
+  const acceptFiles = useCallback((incoming: File[]) => {
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+    const accepted = incoming.filter((file) => validTypes.includes(file.type));
 
-    const files = Array.from(e.target.files);
-    const imageFiles = files.filter((file) => {
-      const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
-      return validTypes.includes(file.type);
-    });
-
-    if (imageFiles.length !== files.length) {
+    if (accepted.length !== incoming.length) {
       toast({
         title: "Invalid file type",
         description: "Only image files (JPEG, PNG, GIF, WebP) are allowed",
@@ -34,15 +32,24 @@ export function useImageUpload(carId: number, year: string, category: string, fi
       });
     }
 
-    if (imageFiles.length > 0) {
-      setImageFiles((prev) => [...prev, ...imageFiles]);
+    if (accepted.length > 0) {
+      setImageFiles((prev) => [...prev, ...accepted]);
     }
+  }, [toast]);
 
-    // Reset input
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    acceptFiles(Array.from(e.target.files));
+
+    // Reset input so selecting the same file again still triggers change
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
+
+  const handleFilesDropped = useCallback((files: File[]) => {
+    acceptFiles(files);
+  }, [acceptFiles]);
 
   const fetchExistingImages = useCallback(async () => {
     // Create a unique key for this fetch request
@@ -182,6 +189,7 @@ export function useImageUpload(carId: number, year: string, category: string, fi
     isLoadingImages,
     fileInputRef,
     handleFileChange,
+    handleFilesDropped,
     handleRemoveImage,
     handleRemoveExistingImage,
     uploadImages,

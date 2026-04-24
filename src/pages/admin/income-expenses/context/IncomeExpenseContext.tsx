@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { IncomeExpenseData, EditingCell } from "../types";
+import { useFormAmounts, type FormAmountsMap } from "../utils/useFormAmounts";
 
 
 interface IncomeExpenseContextType {
@@ -34,6 +35,12 @@ interface IncomeExpenseContextType {
   updateDynamicSubcategoryName: (categoryType: string, metadataId: number, newName: string) => Promise<void>;
   deleteDynamicSubcategory: (categoryType: string, metadataId: number) => Promise<void>;
   updateDynamicSubcategoryValue: (categoryType: string, metadataId: number, month: number, value: number, subcategoryName: string) => Promise<void>;
+  // Form amount support: approved form submissions auto-contribute a
+  // "Form Amount" to each I&E cell. The cell's displayed total is
+  // manualAmount (the DB value) + formAmount. See useFormAmounts for details.
+  formAmounts: FormAmountsMap;
+  getFormAmount: (category: string, field: string, month: number) => number;
+  getCategoryMonthFormTotal: (category: string, month: number) => number;
 }
 
 const IncomeExpenseContext = createContext<IncomeExpenseContextType | undefined>(undefined);
@@ -241,6 +248,14 @@ export function IncomeExpenseProvider({
   });
 
   const data = incomeExpenseData?.data || getEmptyData();
+
+  // Form Amount lookup: pulls approved expense form submissions for this
+  // car/year and exposes a per-(category,field,month) sum. The "All Cars"
+  // aggregate view does not have a single carId so we skip this lookup.
+  const { formAmounts, getFormAmount, getCategoryMonthFormTotal } = useFormAmounts(
+    !isAllCars && carId ? carId : null,
+    year
+  );
 
   // Fetch dynamic subcategories
   const fetchDynamicSubcategories = async () => {
@@ -842,6 +857,9 @@ export function IncomeExpenseProvider({
         updateDynamicSubcategoryName,
         deleteDynamicSubcategory,
         updateDynamicSubcategoryValue,
+        formAmounts,
+        getFormAmount,
+        getCategoryMonthFormTotal,
       }}
     >
       {children}

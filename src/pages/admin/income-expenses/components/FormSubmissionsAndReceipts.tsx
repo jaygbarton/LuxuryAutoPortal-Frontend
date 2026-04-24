@@ -106,7 +106,7 @@ export default function FormSubmissionsAndReceipts({ carId, year, className }: F
   const [viewReceiptsOpen, setViewReceiptsOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["/api/expense-form-submissions/approved-by-car", carId, year],
+    queryKey: ["/api/expense-form-submissions", "approved-by-car", carId, year],
     queryFn: async () => {
       const res = await fetch(
         buildApiUrl(`/api/expense-form-submissions/approved-by-car?carId=${carId}&year=${year}`),

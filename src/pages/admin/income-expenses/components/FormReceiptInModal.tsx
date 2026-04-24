@@ -39,7 +39,7 @@ interface FormReceiptInModalProps {
 
 export default function FormReceiptInModal({ carId, year, editingCell, isOpen }: FormReceiptInModalProps) {
   const { data: approvedData } = useQuery({
-    queryKey: ["/api/expense-form-submissions/approved-by-car", carId, year],
+    queryKey: ["/api/expense-form-submissions", "approved-by-car", carId, year],
     queryFn: async () => {
       const res = await fetch(
         buildApiUrl(`/api/expense-form-submissions/approved-by-car?carId=${carId}&year=${year}`),

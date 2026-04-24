@@ -13,8 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
-import ImagePreview from "../components/ImagePreview";
-import { Upload, Image as ImageIcon } from "lucide-react";
+import FormReceiptInModal from "../components/FormReceiptInModal";
+import ReceiptUploadZone from "../components/ReceiptUploadZone";
+import AmountBreakdown from "../components/AmountBreakdown";
 import { useImageUpload } from "../utils/useImageUpload";
 import { buildApiUrl } from "@/lib/queryClient";
 
@@ -32,7 +33,7 @@ const getMonthValue = (arr: any[], month: number, field: string): number => {
 };
 
 export default function ModalEditIncomeExpense() {
-  const { editingCell, setEditingCell, updateCell, saveChanges, isSaving, year, carId, monthModes, data, dynamicSubcategories } = useIncomeExpense();
+  const { editingCell, setEditingCell, updateCell, saveChanges, isSaving, year, carId, monthModes, data, dynamicSubcategories, getFormAmount } = useIncomeExpense();
   const [remarks, setRemarks] = useState("");
 
   const monthName = editingCell ? MONTHS[editingCell.month - 1] : "";
@@ -45,6 +46,7 @@ export default function ModalEditIncomeExpense() {
     isLoadingImages,
     fileInputRef,
     handleFileChange,
+    handleFilesDropped,
     handleRemoveImage,
     handleRemoveExistingImage,
     uploadImages,
@@ -284,9 +286,9 @@ export default function ModalEditIncomeExpense() {
 
           <div>
             <Label className="text-muted-foreground text-xs">
-              {editingCell.field === "carManagementSplit" || editingCell.field === "carOwnerSplit" 
-                ? "Percentage" 
-                : "Amount"}
+              {isManagementSplit
+                ? "Percentage"
+                : "Manual Amount"}
             </Label>
             <Input
               type="number"
@@ -298,31 +300,33 @@ export default function ModalEditIncomeExpense() {
                 })
               }
               className="bg-card border-border text-foreground text-sm mt-1"
-              step={editingCell.field === "carManagementSplit" || editingCell.field === "carOwnerSplit" ? "1" : "0.01"}
-              min={editingCell.field === "carManagementSplit" || editingCell.field === "carOwnerSplit" ? "0" : undefined}
-              max={editingCell.field === "carManagementSplit" || editingCell.field === "carOwnerSplit" ? "100" : undefined}
+              step={isManagementSplit ? "1" : "0.01"}
+              min={isManagementSplit ? "0" : undefined}
+              max={isManagementSplit ? "100" : undefined}
               autoFocus
             />
+            {!isManagementSplit && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Manually-entered amount. Set to 0 to remove it; the Form Amount is unaffected.
+              </p>
+            )}
           </div>
 
-          <div>
-            <Label className="text-muted-foreground text-xs">
-              {editingCell.field === "carManagementSplit" || editingCell.field === "carOwnerSplit" 
-                ? "Inputted Percentage:" 
-                : "Inputted Amount:"}
-            </Label>
-            <Input
-              value={
-                editingCell.field === "carManagementSplit" || editingCell.field === "carOwnerSplit"
-                  ? `${editingCell.value.toFixed(0)}%`
-                  : editingCell.field === "carManagementSplit" && monthModes && monthModes[editingCell.month]
-                  ? `$${editingCell.value.toFixed(2)}(${monthModes[editingCell.month] === 70 ? 30 : 50}%)`
-                  : `$${editingCell.value.toFixed(2)}`
-              }
-              disabled
-              className="bg-card border-border text-muted-foreground text-sm mt-1"
+          {isManagementSplit ? (
+            <div>
+              <Label className="text-muted-foreground text-xs">Inputted Percentage:</Label>
+              <Input
+                value={`${editingCell.value.toFixed(0)}%`}
+                disabled
+                className="bg-card border-border text-muted-foreground text-sm mt-1"
+              />
+            </div>
+          ) : (
+            <AmountBreakdown
+              formAmount={getFormAmount(editingCell.category, editingCell.field, editingCell.month)}
+              manualAmount={editingCell.value}
             />
-          </div>
+          )}
 
           {editingCell.field !== "carManagementSplit" && editingCell.field !== "carOwnerSplit" && (
           <div>
@@ -657,55 +661,21 @@ export default function ModalEditIncomeExpense() {
           )}
 
           {editingCell.field !== "carManagementSplit" && editingCell.field !== "carOwnerSplit" && (
-          <div>
-              <Label className="text-muted-foreground text-xs mb-2 block">Receipt Images</Label>
-              
-              {/* Beautiful Upload Button */}
-              <div className="relative">
-                <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-              multiple
-              onChange={handleFileChange}
-                  className="hidden"
-                  id="receipt-upload-income"
-                />
-                <label
-                  htmlFor="receipt-upload-income"
-                  className="flex items-center justify-center gap-2 w-full py-3 px-4 border-2 border-dashed border-primary/50 rounded-lg bg-card/50 hover:border-primary hover:bg-card transition-all cursor-pointer group"
-                >
-                  <Upload className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                  <span className="text-primary font-medium text-sm">
-                    {imageFiles.length > 0 
-                      ? `Add More Images (${imageFiles.length} selected)`
-                      : "Choose Images to Upload"
-                    }
-                  </span>
-                  <ImageIcon className="w-5 h-5 text-primary/70" />
-                </label>
-              </div>
-              
-              <p className="text-xs text-muted-foreground mt-2">
-                Supported formats: JPEG, PNG, GIF, WebP (Max 10MB per image)
-              </p>
-              
-              {/* Image Preview Grid */}
-              {(imageFiles.length > 0 || existingImages.length > 0 || isLoadingImages) && (
-                <div className="mt-4">
-                  {isLoadingImages ? (
-                    <div className="text-center py-4 text-muted-foreground text-sm">Loading images...</div>
-                  ) : (
-                    <ImagePreview
-                      newImages={imageFiles}
-                      existingImages={existingImages}
-                      onRemoveNew={handleRemoveImage}
-                      onRemoveExisting={handleRemoveExistingImage}
-                    />
-                  )}
-              </div>
-            )}
-          </div>
+            <>
+              <FormReceiptInModal carId={carId} year={year} editingCell={editingCell} isOpen={isOpen} />
+
+              <ReceiptUploadZone
+                inputId="receipt-upload-income"
+                imageFiles={imageFiles}
+                existingImages={existingImages}
+                isLoadingImages={isLoadingImages}
+                fileInputRef={fileInputRef}
+                onFileChange={handleFileChange}
+                onFilesDropped={handleFilesDropped}
+                onRemoveNew={handleRemoveImage}
+                onRemoveExisting={handleRemoveExistingImage}
+              />
+            </>
           )}
         </div>
 

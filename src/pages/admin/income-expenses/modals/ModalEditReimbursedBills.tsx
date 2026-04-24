@@ -13,16 +13,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
-import ImagePreview from "../components/ImagePreview";
 import FormReceiptInModal from "../components/FormReceiptInModal";
-import { Upload, Image as ImageIcon } from "lucide-react";
+import ReceiptUploadZone from "../components/ReceiptUploadZone";
+import AmountBreakdown from "../components/AmountBreakdown";
 import { useImageUpload } from "../utils/useImageUpload";
 import { buildApiUrl } from "@/lib/queryClient";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export default function ModalEditReimbursedBills() {
-  const { editingCell, setEditingCell, updateCell, saveChanges, isSaving, year, carId } = useIncomeExpense();
+  const { editingCell, setEditingCell, updateCell, saveChanges, isSaving, year, carId, getFormAmount } = useIncomeExpense();
   const [remarks, setRemarks] = useState("");
 
   const monthName = editingCell ? MONTHS[editingCell.month - 1] : "";
@@ -35,6 +35,7 @@ export default function ModalEditReimbursedBills() {
     isLoadingImages,
     fileInputRef,
     handleFileChange,
+    handleFilesDropped,
     handleRemoveImage,
     handleRemoveExistingImage,
     uploadImages,
@@ -152,7 +153,7 @@ export default function ModalEditReimbursedBills() {
           </div>
 
           <div>
-            <Label className="text-muted-foreground text-xs">Amount</Label>
+            <Label className="text-muted-foreground text-xs">Manual Amount</Label>
             <Input
               type="number"
               value={editingCell.value}
@@ -166,7 +167,15 @@ export default function ModalEditReimbursedBills() {
               step="0.01"
               autoFocus
             />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Manually-entered amount. Set to 0 to remove it; the Form Amount is unaffected.
+            </p>
           </div>
+
+          <AmountBreakdown
+            formAmount={getFormAmount(editingCell.category, editingCell.field, editingCell.month)}
+            manualAmount={editingCell.value}
+          />
 
           <div>
             <Label className="text-muted-foreground text-xs">Remarks</Label>
@@ -181,55 +190,17 @@ export default function ModalEditReimbursedBills() {
           {/* Receipt uploaded through Forms — visible in Income and Expenses area per client requirement */}
           <FormReceiptInModal carId={carId} year={year} editingCell={editingCell} isOpen={isOpen} />
 
-          <div>
-            <Label className="text-muted-foreground text-xs mb-2 block">Receipt Images</Label>
-            
-            {/* Beautiful Upload Button */}
-            <div className="relative">
-              <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-              multiple
-              onChange={handleFileChange}
-                className="hidden"
-                id="receipt-upload-reimbursed"
-              />
-              <label
-                htmlFor="receipt-upload-reimbursed"
-                className="flex items-center justify-center gap-2 w-full py-3 px-4 border-2 border-dashed border-primary/50 rounded-lg bg-card/50 hover:border-primary hover:bg-card transition-all cursor-pointer group"
-              >
-                <Upload className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                <span className="text-primary font-medium text-sm">
-                  {imageFiles.length > 0 
-                    ? `Add More Images (${imageFiles.length} selected)`
-                    : "Choose Images to Upload"
-                  }
-                </span>
-                <ImageIcon className="w-5 h-5 text-primary/70" />
-              </label>
-            </div>
-            
-            <p className="text-xs text-muted-foreground mt-2">
-              Supported formats: JPEG, PNG, GIF, WebP (Max 10MB per image)
-            </p>
-            
-            {/* Image Preview Grid */}
-            {(imageFiles.length > 0 || existingImages.length > 0 || isLoadingImages) && (
-              <div className="mt-4">
-                {isLoadingImages ? (
-                  <div className="text-center py-4 text-muted-foreground text-sm">Loading images...</div>
-                  ) : (
-                  <ImagePreview
-                    newImages={imageFiles}
-                    existingImages={existingImages}
-                    onRemoveNew={handleRemoveImage}
-                    onRemoveExisting={handleRemoveExistingImage}
-                  />
-                  )}
-              </div>
-            )}
-          </div>
+          <ReceiptUploadZone
+            inputId="receipt-upload-reimbursed"
+            imageFiles={imageFiles}
+            existingImages={existingImages}
+            isLoadingImages={isLoadingImages}
+            fileInputRef={fileInputRef}
+            onFileChange={handleFileChange}
+            onFilesDropped={handleFilesDropped}
+            onRemoveNew={handleRemoveImage}
+            onRemoveExisting={handleRemoveExistingImage}
+          />
         </div>
 
         <DialogFooter className="flex gap-2">
