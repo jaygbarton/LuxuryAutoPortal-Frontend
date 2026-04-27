@@ -5,7 +5,6 @@
 
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +24,7 @@ import {
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Copy, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Copy, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const LIMIT_CELL = 3;
@@ -96,26 +95,29 @@ function DayCellContent({
 
   if (cell.day === 0) {
     return (
-      <td className="min-w-[10rem] border-b border-border p-2 align-top">
-        <div className="h-[10rem]" />
+      <td className="w-[14.2857%] border-b border-r border-border bg-muted/30 p-0 align-top last:border-r-0">
+        <div className="h-32" />
       </td>
     );
   }
 
   return (
-    <td className="min-w-[10rem] border-b border-border p-2 align-top">
-      <div className="min-h-[10rem]">
-        <div className="mb-2 flex flex-wrap items-center gap-1">
+    <td className="w-[14.2857%] border-b border-r border-border p-2 align-top last:border-r-0 overflow-hidden">
+      <div className="min-h-32">
+        {/* Day number + actions */}
+        <div className="mb-1.5 flex flex-wrap items-center gap-1">
           <span
-            className={`inline-flex h-[21px] w-[21px] shrink-0 items-center justify-center rounded-full border text-center text-sm font-semibold ${
-              isToday ? "border-primary bg-primary text-primary-foreground" : "border-border text-foreground"
+            className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+              isToday
+                ? "bg-primary text-primary-foreground"
+                : "text-foreground"
             }`}
           >
             {cell.day}
           </span>
           <button
             type="button"
-            className="flex items-center gap-1 text-sm text-primary hover:underline"
+            className="flex items-center gap-0.5 text-xs text-primary hover:underline"
             onClick={() => onAdd(cell)}
           >
             <Plus className="h-3 w-3" /> Add
@@ -123,53 +125,52 @@ function DayCellContent({
           {hasEntries && (
             <button
               type="button"
-              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground hover:underline"
+              className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground hover:underline"
               onClick={() => onCopyToNextDay(cell)}
               title="Copy schedule to next day"
             >
-              <Copy className="h-3 w-3" /> Copy →
+              <Copy className="h-3 w-3" /> Copy
             </button>
           )}
         </div>
+
+        {/* Entries */}
         {isLoading ? (
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" /> Loading…
           </div>
         ) : (
           <div className="space-y-1">
             {list.map((entry) => (
               <div
                 key={entry.work_sched_aid}
-                className="rounded bg-primary/10 px-2 py-1 text-sm group"
+                className="group rounded-md border border-primary/20 bg-primary/8 px-1.5 py-1"
               >
-                <div className="flex items-center justify-between gap-1">
-                  <span className="truncate font-medium" title={entry.fullname}>
+                <div className="flex items-start justify-between gap-1">
+                  <span className="truncate text-xs font-medium leading-tight" title={entry.fullname}>
                     {entry.fullname}
                   </span>
-                  <span className="flex shrink-0 gap-0.5">
+                  <span className="flex shrink-0 gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       type="button"
-                      className="rounded p-0.5 opacity-70 hover:bg-black/10 hover:opacity-100"
+                      className="rounded p-0.5 hover:bg-black/10"
                       title="Edit"
                       onClick={() => onEdit(cell, entry)}
                     >
-                      <Pencil className="h-3 w-3" />
+                      <Pencil className="h-2.5 w-2.5" />
                     </button>
                     <button
                       type="button"
-                      className="rounded p-0.5 opacity-70 hover:bg-destructive/20 hover:opacity-100"
+                      className="rounded p-0.5 hover:bg-destructive/20 text-destructive"
                       title="Delete"
                       onClick={() => onDelete(entry)}
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-2.5 w-2.5" />
                     </button>
                   </span>
                 </div>
                 {entry.work_sched_time && (
-                  <div
-                    className="truncate text-xs uppercase text-muted-foreground"
-                    title={entry.work_sched_time}
-                  >
+                  <div className="truncate text-[10px] text-muted-foreground uppercase mt-0.5">
                     {entry.work_sched_time}
                   </div>
                 )}
@@ -178,10 +179,10 @@ function DayCellContent({
             {list.length >= LIMIT_CELL && (
               <button
                 type="button"
-                className="w-full text-center text-sm text-primary hover:underline"
+                className="w-full text-center text-xs text-primary hover:underline"
                 onClick={() => onViewMore(cell)}
               >
-                View More
+                View more…
               </button>
             )}
           </div>
@@ -642,71 +643,75 @@ export default function WorkSchedulePage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Work Schedule</h1>
-          <p className="text-muted-foreground">Manage employee work schedule by month and day.</p>
+      <div className="space-y-4">
+        {/* Header row */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">Work Schedule</h1>
+            <div className="flex flex-wrap items-center gap-2 mt-0.5">
+              <p className="text-sm text-muted-foreground">Manage employee work schedule by month and day.</p>
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                Mountain Time (MT) · UTC−7
+              </span>
+            </div>
+          </div>
+          {/* Inline month filter */}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="month" className="text-sm font-medium shrink-0">Month</Label>
+            <Input
+              id="month"
+              type="month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              className="w-44"
+            />
+          </div>
         </div>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-primary">
-              <Calendar className="h-5 w-5" />
-              Filter
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="max-w-xs">
-              <Label htmlFor="month">Month</Label>
-              <Input
-                id="month"
-                type="month"
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-0">
-            <div className="max-h-[calc(100vh-280px)] overflow-auto rounded-md border">
-              <table className="w-full border-collapse">
-                <thead className="sticky top-0 z-10 bg-muted">
-                  <tr>
-                    {WEEK_DAYS.map((d) => (
-                      <th key={d} className="border-b border-border p-2 text-center font-medium">
-                        {d}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {weeks.map((weekNum) => {
-                    const weekRow = getWeekRow(dayCells, weekNum);
-                    return (
-                      <tr key={weekNum}>
-                        {weekRow.map((cell, idx) => (
-                          <DayCellContent
-                            key={cell.originalDateCode || `w${weekNum}-${idx}`}
-                            cell={cell}
-                            month={month}
-                            onAdd={handleAdd}
-                            onViewMore={handleViewMore}
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
-                            onCopyToNextDay={handleCopyToNextDay}
-                          />
-                        ))}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Calendar */}
+        <div className="rounded-lg border bg-card overflow-hidden">
+          <div className="overflow-auto max-h-[calc(100vh-200px)]">
+            <table className="w-full border-collapse table-fixed">
+              <thead className="sticky top-0 z-10">
+                <tr>
+                  {WEEK_DAYS.map((d) => (
+                    <th
+                      key={d}
+                      className="w-[14.2857%] border-b border-border bg-muted px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                    >
+                      {d}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {weeks.map((weekNum) => {
+                  const weekRow = getWeekRow(dayCells, weekNum);
+                  return (
+                    <tr key={weekNum}>
+                      {weekRow.map((cell, idx) => (
+                        <DayCellContent
+                          key={cell.originalDateCode || `w${weekNum}-${idx}`}
+                          cell={cell}
+                          month={month}
+                          onAdd={handleAdd}
+                          onViewMore={handleViewMore}
+                          onEdit={handleEdit}
+                          onDelete={handleDelete}
+                          onCopyToNextDay={handleCopyToNextDay}
+                        />
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <AddEditModal

@@ -68,8 +68,8 @@ export function getArrayTotalDaysInMonthAndYear(dateVal: string): DayCell[] {
   for (let i = 0; i < 7 - getAllDaysInFirstWeek.length; i++) {
     firstWeek.push({
       day: 0,
-      currentDay: i + 1,
-      week_name: getWeekName(i + 1),
+      currentDay: i,
+      week_name: getWeekName(i),
       date: new Date(NaN),
       originalDate: "",
       originalDateCode: "",

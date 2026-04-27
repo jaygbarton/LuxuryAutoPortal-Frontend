@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient, getApiBaseUrl } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,6 +15,8 @@ import AdminDashboard from "@/pages/admin/dashboard";
 import AdminsPage from "@/pages/admin/admins";
 import ClientsPage from "@/pages/admin/clients";
 import ClientDetailPage from "@/pages/admin/client-detail";
+import ViewAsClientPage from "@/pages/admin/view-as-client";
+import ViewAsEmployeePage from "@/pages/admin/view-as-employee";
 import FormsPage from "@/pages/admin/forms";
 import CarsPage from "@/pages/admin/cars";
 import CarDetailPage from "@/pages/admin/car-detail";
@@ -74,7 +76,6 @@ import SignContract from "@/pages/sign-contract";
 import Signup from "@/pages/signup";
 import ResetPasswordPage from "@/pages/reset-password";
 import StaffDashboard from "@/pages/staff/dashboard";
-import StaffMyInfo from "@/pages/staff/my-info";
 import StaffMyInfoSection from "@/pages/staff/my-info-section";
 import StaffForms from "@/pages/staff/forms";
 import StaffFormsSubmit from "@/pages/staff/forms-submit";
@@ -121,7 +122,9 @@ function Router() {
           <Switch>
             <Route path="/staff/dashboard" component={StaffDashboard} />
             <Route path="/staff/my-info/:section" component={StaffMyInfoSection} />
-            <Route path="/staff/my-info" component={StaffMyInfo} />
+            <Route path="/staff/my-info">
+              <Redirect to="/staff/my-info/personal-information" />
+            </Route>
             <Route path="/staff/forms/submit" component={StaffFormsSubmit} />
             <Route path="/staff/forms/my-submissions" component={StaffFormsMySubmissions} />
             <Route path="/staff/forms" component={StaffForms} />
@@ -138,6 +141,8 @@ function Router() {
             <Route path="/admin/admins" component={AdminsPage} />
             <Route path="/admin/clients" component={ClientsPage} />
             <Route path="/admin/clients/:id" component={ClientDetailPage} />
+            <Route path="/admin/view-as-client" component={ViewAsClientPage} />
+            <Route path="/admin/view-as-employee" component={ViewAsEmployeePage} />
             <Route path="/admin/forms" component={FormsPage} />
             <Route path="/cars" component={CarsPage} />
             <Route path="/admin/view-car/:id" component={ViewCarPage} />

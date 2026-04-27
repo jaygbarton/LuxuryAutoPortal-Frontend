@@ -21,6 +21,18 @@ interface AuthMe {
     isAdmin?: boolean;
     isClient?: boolean;
     isEmployee?: boolean;
+    viewAsClient?: {
+      clientId: number;
+      clientEmail: string;
+      clientName: string;
+      startedAt: string;
+    };
+    viewAsEmployee?: {
+      employeeId: number;
+      employeeEmail: string;
+      employeeName: string;
+      startedAt: string;
+    };
   };
 }
 
@@ -51,6 +63,19 @@ export default function DashboardRouter() {
 
   if (!user) {
     setLocation("/admin/login");
+    return null;
+  }
+
+  // Admin "View as ..." impersonation: render the impersonated user's home.
+  // Note: backend flips isAdmin to false during impersonation, so the
+  // explicit viewAsClient/viewAsEmployee checks fire on user.isClient /
+  // user.isEmployee paths below — but we keep these explicit branches
+  // first as a defensive guard in case the flag flip ever changes.
+  if (user.viewAsClient?.clientId) {
+    return <ClientDashboardPage />;
+  }
+  if (user.viewAsEmployee?.employeeId) {
+    setLocation("/staff/dashboard");
     return null;
   }
 

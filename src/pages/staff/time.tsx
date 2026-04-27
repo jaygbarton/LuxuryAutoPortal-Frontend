@@ -1,3 +1,26 @@
+/**
+ * Staff Time Sheet (Hubstaff-style).
+ *
+ *  • One button: "Clock in" when not clocked in, "Clock out" when clocked in.
+ *  • Clock-out opens a small modal so the employee picks:
+ *      – "Clock out for break"  → server closes the session AND immediately opens
+ *        a new one, so they're auto-clocked back in when they return.
+ *      – "End of shift"         → server closes the session; they stay clocked out.
+ *  • Multiple clock-in / clock-out sessions per day are supported.
+ *  • Sessions list at the bottom is filterable by date / date range.
+ *  • All clock times are displayed in **Utah / America/Denver** time.
+ */
+
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Clock, Loader2, LogIn, LogOut, Coffee, ArrowLeft, ClipboardList } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,166 +30,340 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl } from "@/lib/queryClient";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, Loader2 } from "lucide-react";
-import { useState } from "react";
 
-function formatDate(d: string | null | undefined, fallback = "--") {
-  if (!d) return fallback;
-  try {
-    const x = new Date(String(d).replace(" ", "T"));
-    return isNaN(x.getTime()) ? fallback : x.toLocaleDateString();
-  } catch {
-    return fallback;
+const UTAH_TZ = "America/Denver";
+
+// ── End-of-shift questionnaire ─────────────────────────────────────────
+type QType = "numeric" | "text" | "energy";
+interface ShiftQuestion {
+  id: string;
+  label: string;
+  type: QType;
+}
+
+const ENERGY_OPTIONS = ["Very low", "Low", "Okay", "Good", "Great"];
+
+const SHIFT_QUESTIONS: ShiftQuestion[] = [
+  { id: "cars_pickup_airport_returning", label: "How Many Cars Picked Up From Airport Returning?", type: "numeric" },
+  { id: "cleaning_going_out", label: "How Many Cleaning Going Out?", type: "numeric" },
+  { id: "cars_reparked", label: "How Many Cars Re-Parked?", type: "numeric" },
+  { id: "gas_station_trips", label: "How Many Gas Station Trips?", type: "numeric" },
+  { id: "trip_swaps_client", label: "How Many Trip Swaps – Client?", type: "numeric" },
+  { id: "auto_body_pickup", label: "How Many Auto Body Pick Up?", type: "numeric" },
+  { id: "mechanic_pickup", label: "How Many Mechanic Pick Up?", type: "numeric" },
+  { id: "oil_lube_pickup", label: "How Many Oil & Lube Pick Up?", type: "numeric" },
+  { id: "tire_pickup_dropoff", label: "How Many Tire Pick Up or Drop Off?", type: "numeric" },
+  { id: "windshield_pickup", label: "How Many Windshield Pick Up?", type: "numeric" },
+  { id: "off_boarding_owners", label: "How Many Off Boarding Owners?", type: "numeric" },
+  { id: "on_boarding_new", label: "How Many On Boarding New?", type: "numeric" },
+  { id: "picture_of_new_cars", label: "How Many Pictures of New Cars?", type: "numeric" },
+  { id: "battery", label: "How Many Battery?", type: "numeric" },
+  { id: "license_emissions", label: "How Many License & Emissions?", type: "numeric" },
+  { id: "towing_yard_impound", label: "How Many Towing Yard – Impound?", type: "numeric" },
+  { id: "supply_trips", label: "How Many Supply Trips – Wipes/etc.?", type: "numeric" },
+  { id: "cleaning_extras", label: "How Many Cleaning Extras (Roof Racks, etc.)?", type: "numeric" },
+  { id: "energy_today", label: "How was my energy today?", type: "energy" },
+  { id: "grateful_for", label: "I am grateful for…", type: "text" },
+  { id: "additional_comments", label: "Additional Comments on Day", type: "text" },
+];
+
+const NUMERIC_OPTIONS = Array.from({ length: 21 }, (_, i) => String(i)); // 0..20
+
+function buildEmptyAnswers(): Record<string, string> {
+  return SHIFT_QUESTIONS.reduce<Record<string, string>>((acc, q) => {
+    acc[q.id] = "";
+    return acc;
+  }, {});
+}
+
+interface SessionRow {
+  time_aid: number;
+  time_date: string;
+  time_in: string | null;
+  time_out: string | null;
+  time_total_hours: string | null;
+  time_end_reason: "break" | "shift_end" | null;
+}
+
+interface LastResponse {
+  success: boolean;
+  data: {
+    openSession: SessionRow | null;
+    lastRecord: SessionRow | null;
+    isClockedIn: boolean;
+  };
+}
+
+interface SessionsResponse {
+  success: boolean;
+  data: { sessions: SessionRow[] };
+}
+
+// ── Time helpers (display in Utah TZ) ───────────────────────────────────
+
+function parseDb(d: string | null | undefined): Date | null {
+  if (!d) return null;
+  const s = String(d).trim();
+  // Date-only strings (YYYY-MM-DD) are Mountain calendar dates.
+  // Parse at noon UTC — safely within the same Mountain day through any DST shift.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const x = new Date(s + "T12:00:00Z");
+    return isNaN(x.getTime()) ? null : x;
   }
+  // Datetime strings are stored as UTC. Append "Z" so every browser treats
+  // them as UTC rather than local time.
+  const dt = s.replace(" ", "T");
+  const utc = dt.endsWith("Z") || dt.includes("+") ? dt : dt + "Z";
+  const x = new Date(utc);
+  return isNaN(x.getTime()) ? null : x;
 }
 
-function formatTime(d: string | null | undefined, fallback = "--") {
-  if (!d) return fallback;
-  try {
-    const x = new Date(String(d).replace(" ", "T"));
-    return isNaN(x.getTime())
-      ? fallback
-      : x.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  } catch {
-    return fallback;
-  }
+function utahDate(d: string | null | undefined, fallback = "—"): string {
+  const x = parseDb(d);
+  if (!x) return fallback;
+  return x.toLocaleDateString("en-US", {
+    timeZone: UTAH_TZ,
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
 }
 
-function decimalToHrsMin(decimal: number | string | undefined | null): string {
-  if (decimal === undefined || decimal === null || decimal === "") return "--";
-  const n = Number(decimal);
-  if (isNaN(n) || n <= 0) return "0h";
-  const h = Math.floor(n);
-  const m = Math.round((n - h) * 60);
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+function utahTime(d: string | null | undefined, fallback = "—"): string {
+  const x = parseDb(d);
+  if (!x) return fallback;
+  return x.toLocaleTimeString("en-US", {
+    timeZone: UTAH_TZ,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).toLowerCase();
 }
 
-type NextAction =
-  | "time_in"
-  | "lunch_out"
-  | "lunch_in"
-  | "time_out"
-  | "already_out"
-  | "no_schedule";
-
-interface LastRecord {
-  time_aid?: number;
-  time_date?: string;
-  time_working_hours?: string;
-  time_in?: string | null;
-  time_in_status?: number | null;
-  time_hours_per_day?: string | null;
-  time_in_hours?: string | null;
-  time_lunch_out?: string | null;
-  time_lunch_in?: string | null;
-  time_lunch_hours?: string | null;
-  time_out?: string | null;
-  time_out_hours?: string | null;
-  time_total_hours?: string | null;
-  time_amount?: string | null;
-  time_form_details?: string | null;
+/** Today as YYYY-MM-DD in Utah TZ. */
+function utahToday(): string {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: UTAH_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return fmt.format(new Date());
 }
+
+function formatDuration(start: string | null | undefined, end: string | null | undefined): string {
+  const s = parseDb(start);
+  const e = parseDb(end);
+  if (!s) return "—";
+  const stop = e ?? new Date();
+  let secs = Math.max(0, Math.floor((stop.getTime() - s.getTime()) / 1000));
+  const h = Math.floor(secs / 3600);
+  secs -= h * 3600;
+  const m = Math.floor(secs / 60);
+  const sec = secs - m * 60;
+  return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+}
+
+// ── Page ────────────────────────────────────────────────────────────────
 
 export default function StaffTime() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [actionLoading, setActionLoading] = useState(false);
-  const [timeOutModalOpen, setTimeOutModalOpen] = useState(false);
-  const [timeOutNotes, setTimeOutNotes] = useState("");
+  const qc = useQueryClient();
 
-  const { data: lastData, isLoading, error } = useQuery<{
-    success: boolean;
-    data: { lastRecord: LastRecord | null; nextAction: NextAction };
-  }>({
+  const [actionLoading, setActionLoading] = useState(false);
+  const [clockOutOpen, setClockOutOpen] = useState(false);
+  const [endNotes, setEndNotes] = useState("");
+  const [shiftStep, setShiftStep] = useState<"choose" | "questionnaire">("choose");
+  const [answers, setAnswers] = useState<Record<string, string>>(buildEmptyAnswers);
+
+  const today = utahToday();
+  const [fromDate, setFromDate] = useState<string>(today);
+  const [toDate, setToDate] = useState<string>(today);
+
+  // Force re-render every second so the running session's duration ticks.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const lastQuery = useQuery<LastResponse>({
     queryKey: ["/api/me/time-sheet/last"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/me/time-sheet/last"), {
+      const r = await fetch(buildApiUrl("/api/me/time-sheet/last"), {
         credentials: "include",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
         throw new Error(err.error || "Failed to load time sheet");
       }
-      return res.json();
+      return r.json();
     },
     retry: false,
   });
+  const open = lastQuery.data?.data.openSession ?? null;
+  const isClockedIn = !!lastQuery.data?.data.isClockedIn;
 
-  const last = lastData?.data?.lastRecord ?? null;
-  const nextAction = lastData?.data?.nextAction ?? "time_in";
+  const sessionsKey = useMemo(
+    () => ["/api/me/time-sheet/sessions", fromDate, toDate] as const,
+    [fromDate, toDate]
+  );
+  const sessionsQuery = useQuery<SessionsResponse>({
+    queryKey: sessionsKey,
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (fromDate) params.set("from", fromDate);
+      if (toDate) params.set("to", toDate);
+      const r = await fetch(
+        buildApiUrl(`/api/me/time-sheet/sessions?${params.toString()}`),
+        { credentials: "include" }
+      );
+      if (!r.ok) throw new Error("Failed to load sessions");
+      return r.json();
+    },
+  });
+  const sessions = sessionsQuery.data?.data.sessions ?? [];
 
-  const getButtonLabel = () => {
-    switch (nextAction) {
-      case "time_in":
-        return "Time in";
-      case "lunch_out":
-        return "Lunch out";
-      case "lunch_in":
-        return "Lunch in";
-      case "time_out":
-        return "Time out";
-      case "already_out":
-        return "Already clocked out";
-      case "no_schedule":
-        return "No schedule for today";
-      default:
-        return "Time in";
-    }
-  };
-
-  const runAction = async (body: { time_form_details?: string }) => {
+  // ── Actions ──
+  const clockIn = async () => {
     setActionLoading(true);
     try {
-      const res = await fetch(buildApiUrl("/api/me/time-sheet/action"), {
+      const r = await fetch(buildApiUrl("/api/me/time-sheet/clock-in"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(body),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok) {
         toast({
           title: "Error",
-          description: json.error || "Action failed",
+          description: json.error || "Could not clock in",
           variant: "destructive",
         });
         return;
       }
-      toast({
-        title: "Success",
-        description: json.message || "Updated.",
-      });
-      setTimeOutModalOpen(false);
-      setTimeOutNotes("");
-      queryClient.invalidateQueries({ queryKey: ["/api/me/time-sheet/last"] });
+      toast({ title: "Clocked in", description: json.message ?? "Have a great shift!" });
+      qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/last"] });
+      qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/sessions"] });
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleActionClick = () => {
-    if (nextAction === "already_out" || nextAction === "no_schedule") return;
-    if (nextAction === "time_out") {
-      setTimeOutModalOpen(true);
+  const submitClockOut = async (
+    endReason: "break" | "shift_end",
+    detailsArray: { name: string; description: string }[]
+  ) => {
+    setActionLoading(true);
+    try {
+      const r = await fetch(buildApiUrl("/api/me/time-sheet/clock-out"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endReason,
+          time_form_details: JSON.stringify(detailsArray),
+        }),
+      });
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        toast({
+          title: "Error",
+          description: json.error || "Could not clock out",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: endReason === "break" ? "Break started" : "Clocked out",
+        description: json.message ?? "",
+      });
+      setClockOutOpen(false);
+      setShiftStep("choose");
+      setAnswers(buildEmptyAnswers());
+      setEndNotes("");
+      qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/last"] });
+      qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/sessions"] });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const onClockOutBreak = () => {
+    const notes = endNotes.trim();
+    const details = notes ? [{ name: "Notes", description: notes }] : [];
+    void submitClockOut("break", details);
+  };
+
+  const onProceedToQuestionnaire = () => {
+    setShiftStep("questionnaire");
+  };
+
+  const onSubmitShiftEnd = () => {
+    const details = SHIFT_QUESTIONS.map((q) => ({
+      name: q.label,
+      description: answers[q.id]?.trim() ?? "",
+    }));
+    const notes = endNotes.trim();
+    if (notes) details.push({ name: "Notes", description: notes });
+    void submitClockOut("shift_end", details);
+  };
+
+  const setAnswer = (id: string, value: string) => {
+    setAnswers((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const onMainButton = () => {
+    if (actionLoading) return;
+    if (isClockedIn) {
+      setClockOutOpen(true);
+    } else {
+      void clockIn();
+    }
+  };
+
+  const setQuickRange = (kind: "today" | "week" | "month") => {
+    const now = new Date();
+    const utahNowStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: UTAH_TZ,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+    if (kind === "today") {
+      setFromDate(utahNowStr);
+      setToDate(utahNowStr);
       return;
     }
-    runAction({});
+    if (kind === "week") {
+      const d = new Date(utahNowStr + "T00:00:00");
+      const dow = d.getDay();
+      const start = new Date(d);
+      start.setDate(d.getDate() - dow);
+      const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
+      setFromDate(startStr);
+      setToDate(utahNowStr);
+      return;
+    }
+    if (kind === "month") {
+      const [y, m] = utahNowStr.split("-");
+      setFromDate(`${y}-${m}-01`);
+      setToDate(utahNowStr);
+    }
   };
-
-  const handleTimeOutSubmit = () => {
-    const notes = timeOutNotes.trim();
-    const details = notes
-      ? JSON.stringify([{ name: "Notes", description: notes }])
-      : "[]";
-    runAction({ time_form_details: details });
-  };
-
-  const canPunch =
-    nextAction !== "already_out" && nextAction !== "no_schedule" && !actionLoading;
 
   return (
     <AdminLayout>
@@ -174,22 +371,33 @@ export default function StaffTime() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold text-primary">Time Sheet</h1>
-            <p className="text-muted-foreground">Clock in, lunch, and clock out.</p>
+            <p className="text-muted-foreground">
+              Clock in and out throughout the day. Times shown in Utah (Mountain) time.
+            </p>
           </div>
-          <Button onClick={handleActionClick} disabled={!canPunch} className="gap-2">
-            {actionLoading || isLoading ? (
+          <Button
+            onClick={onMainButton}
+            disabled={actionLoading || lastQuery.isLoading}
+            className="gap-2 min-w-[140px]"
+            variant={isClockedIn ? "destructive" : "default"}
+          >
+            {actionLoading || lastQuery.isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
+            ) : isClockedIn ? (
+              <LogOut className="w-4 h-4" />
             ) : (
-              <Clock className="w-4 h-4" />
+              <LogIn className="w-4 h-4" />
             )}
-            {getButtonLabel()}
+            {isClockedIn ? "Clock out" : "Clock in"}
           </Button>
         </div>
 
-        {error && (
+        {lastQuery.error && (
           <Card className="bg-destructive/10 border-destructive/30">
             <CardContent className="p-3 text-sm text-destructive">
-              {error instanceof Error ? error.message : "Failed to load time sheet"}
+              {lastQuery.error instanceof Error
+                ? lastQuery.error.message
+                : "Failed to load time sheet"}
             </CardContent>
           </Card>
         )}
@@ -201,99 +409,319 @@ export default function StaffTime() {
               Current status
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {isLoading ? (
+          <CardContent className="space-y-2 text-sm">
+            {lastQuery.isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : !last ? (
+            ) : isClockedIn && open ? (
+              <>
+                <p>
+                  <span className="text-muted-foreground">Status: </span>
+                  <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                    Clocked in
+                  </span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Started: </span>
+                  {utahDate(open.time_in)} {utahTime(open.time_in)}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Elapsed: </span>
+                  <span className="font-mono tabular-nums">
+                    {formatDuration(open.time_in, null)}
+                  </span>
+                </p>
+              </>
+            ) : (
               <p className="text-muted-foreground">
-                {nextAction === "no_schedule"
-                  ? "You don't have a work schedule for today. Contact HR to add a schedule."
-                  : "No active time record. Use the button above to clock in."}
+                You're currently clocked out. Press <span className="font-medium">Clock in</span>{" "}
+                to start a session.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Sessions list with filters */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3 space-y-3">
+            <CardTitle className="flex items-center gap-2 text-primary">
+              <Clock className="w-5 h-5" />
+              Sessions
+            </CardTitle>
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">From</Label>
+                <Input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="w-44"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">To</Label>
+                <Input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="w-44"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => setQuickRange("today")}>
+                  Today
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setQuickRange("week")}>
+                  This week
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setQuickRange("month")}>
+                  This month
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setFromDate("");
+                    setToDate("");
+                  }}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {sessionsQuery.isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : sessions.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8 text-sm">
+                No sessions in this range.
               </p>
             ) : (
-              <div className="grid gap-2 text-sm">
-                <p>
-                  <span className="text-muted-foreground">Schedule: </span>
-                  {last.time_working_hours ?? "--"}
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Time in: </span>
-                  {formatDate(last.time_date)} {formatTime(last.time_in)}
-                  {last.time_in_status === 1 && (
-                    <span className="text-amber-600 ml-1">
-                      (Late: {decimalToHrsMin(last.time_in_hours)})
-                    </span>
-                  )}
-                </p>
-                {last.time_lunch_out && (
-                  <p>
-                    <span className="text-muted-foreground">Lunch out: </span>
-                    {formatTime(last.time_lunch_out)}
-                  </p>
-                )}
-                {last.time_lunch_in && (
-                  <p>
-                    <span className="text-muted-foreground">Lunch in: </span>
-                    {formatTime(last.time_lunch_in)}
-                    {last.time_lunch_hours != null && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        ({decimalToHrsMin(Number(last.time_lunch_hours))} break)
-                      </span>
-                    )}
-                  </p>
-                )}
-                {last.time_out && (
-                  <p>
-                    <span className="text-muted-foreground">Time out: </span>
-                    {formatDate(last.time_date)} {formatTime(last.time_out)}
-                    {last.time_total_hours != null && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        — Total: {decimalToHrsMin(Number(last.time_total_hours))}
-                      </span>
-                    )}
-                  </p>
-                )}
+              <div className="overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Duration</TableHead>
+                      <TableHead>Time</TableHead>
+                      <TableHead>Ended</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sessions.map((s) => {
+                      const isOpenSession = !s.time_out;
+                      const duration = isOpenSession
+                        ? formatDuration(s.time_in, null)
+                        : formatDuration(s.time_in, s.time_out);
+                      return (
+                        <TableRow key={s.time_aid}>
+                          <TableCell>{utahDate(s.time_date || s.time_in)}</TableCell>
+                          <TableCell className="font-mono tabular-nums text-primary">
+                            {duration}
+                          </TableCell>
+                          <TableCell>
+                            {utahTime(s.time_in)}
+                            {" - "}
+                            {isOpenSession ? (
+                              <span className="text-emerald-600 dark:text-emerald-400">
+                                in progress
+                              </span>
+                            ) : (
+                              utahTime(s.time_out)
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {isOpenSession ? (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            ) : s.time_end_reason === "break" ? (
+                              <span className="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
+                                <Coffee className="w-3 h-3" />
+                                Break
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Shift end</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      <Dialog open={timeOutModalOpen} onOpenChange={setTimeOutModalOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      {/* Clock-out modal */}
+      <Dialog
+        open={clockOutOpen}
+        onOpenChange={(v) => {
+          if (!v) {
+            setClockOutOpen(false);
+            setShiftStep("choose");
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Time out</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {shiftStep === "questionnaire" && (
+                <button
+                  type="button"
+                  onClick={() => setShiftStep("choose")}
+                  className="rounded p-1 hover:bg-muted"
+                  title="Back"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+              )}
+              {shiftStep === "questionnaire" ? (
+                <>
+                  <ClipboardList className="w-5 h-5 text-primary" />
+                  End-of-shift report
+                </>
+              ) : (
+                "Clock out"
+              )}
+            </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Add any notes about today's work before clocking out (optional).
-          </p>
-          <div className="space-y-1">
-            <Label htmlFor="timeout-notes">Notes</Label>
-            <textarea
-              id="timeout-notes"
-              className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={timeOutNotes}
-              onChange={(e) => setTimeOutNotes(e.target.value)}
-              placeholder="e.g. Completed vehicle inspections, assisted 3 clients…"
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setTimeOutModalOpen(false)}
-              disabled={actionLoading}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleTimeOutSubmit} disabled={actionLoading}>
-              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Submit time out
-            </Button>
-          </div>
+
+          {shiftStep === "choose" ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Are you stepping away for a break or ending your shift?
+              </p>
+
+              <div className="space-y-1">
+                <Label htmlFor="end-notes">Notes (optional)</Label>
+                <textarea
+                  id="end-notes"
+                  className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={endNotes}
+                  onChange={(e) => setEndNotes(e.target.value)}
+                  placeholder="What did you work on?"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  disabled={actionLoading}
+                  onClick={onClockOutBreak}
+                  className="gap-2"
+                >
+                  {actionLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Coffee className="w-4 h-4" />
+                  )}
+                  Clock out for break
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={actionLoading}
+                  onClick={onProceedToQuestionnaire}
+                  className="gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  End of shift
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground pt-1">
+                "Break" closes this session and immediately starts a new one — you'll be auto-clocked
+                back in. "End of shift" requires a quick report before you clock out.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Answer any questions that apply to your shift before clocking out. All fields are optional.
+              </p>
+
+              <div className="space-y-3">
+                {SHIFT_QUESTIONS.map((q) => {
+                  return (
+                    <div key={q.id} className="space-y-1">
+                      <Label htmlFor={`q-${q.id}`}>
+                        {q.label}
+                      </Label>
+                      {q.type === "numeric" && (
+                        <Select
+                          value={answers[q.id] || undefined}
+                          onValueChange={(v) => setAnswer(q.id, v)}
+                        >
+                          <SelectTrigger id={`q-${q.id}`}>
+                            <SelectValue placeholder="Select number" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {NUMERIC_OPTIONS.map((n) => (
+                              <SelectItem key={n} value={n}>
+                                {n}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {q.type === "energy" && (
+                        <Select
+                          value={answers[q.id] || undefined}
+                          onValueChange={(v) => setAnswer(q.id, v)}
+                        >
+                          <SelectTrigger id={`q-${q.id}`}>
+                            <SelectValue placeholder="Select energy level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ENERGY_OPTIONS.map((e) => (
+                              <SelectItem key={e} value={e}>
+                                {e}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {q.type === "text" && (
+                        <textarea
+                          id={`q-${q.id}`}
+                          className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={answers[q.id] ?? ""}
+                          onChange={(e) => setAnswer(q.id, e.target.value)}
+                          placeholder="Type your answer…"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setShiftStep("choose")}
+                  disabled={actionLoading}
+                >
+                  Back
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={onSubmitShiftEnd}
+                  disabled={actionLoading}
+                  className="gap-2"
+                >
+                  {actionLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <LogOut className="w-4 h-4" />
+                  )}
+                  Submit & Clock out
+                </Button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </AdminLayout>

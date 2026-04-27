@@ -1,13 +1,14 @@
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useRoute } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { buildApiUrl, buildUploadApiUrl } from "@/lib/queryClient";
 import { EmployeeDocumentImage } from "@/components/admin/EmployeeDocumentImage";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ChevronRight, Image, List, Loader2, Upload, User } from "lucide-react";
+import { AlertCircle, Image, List, Loader2, RefreshCw, Upload } from "lucide-react";
 
 type ProfileSection =
   | "personal-information"
@@ -103,6 +104,7 @@ function formatDateTime(dateString: string | null | undefined): string {
 
 export default function StaffMyInfoSection() {
   const [, params] = useRoute("/staff/my-info/:section");
+  const [, setLocation] = useLocation();
   const section = (params?.section as ProfileSection) || "personal-information";
   const isValidSection = PROFILE_SECTIONS.some((s) => s.id === section);
   const { toast } = useToast();
@@ -182,12 +184,13 @@ export default function StaffMyInfoSection() {
       <AdminLayout>
         <div className="p-6 text-center text-muted-foreground">
           <p>Invalid section.</p>
-          <Link href="/staff/my-info">
-            <Button variant="outline" className="mt-4 border-primary/30 text-primary">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to My Info
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            className="mt-4 border-primary/30 text-primary"
+            onClick={() => setLocation("/staff/my-info/personal-information")}
+          >
+            Go to Personal Information
+          </Button>
         </div>
       </AdminLayout>
     );
@@ -204,22 +207,48 @@ export default function StaffMyInfoSection() {
   }
 
   if (empError || !employee) {
+    const errorMessage = empError instanceof Error ? empError.message : null;
     return (
       <AdminLayout>
-        <div className="p-6 text-center">
-          <p className="text-red-700">We couldn’t load your employee record. You may not have an HR profile linked to this account.</p>
-          <Link href="/staff/my-info">
-            <Button variant="outline" className="mt-4 border-primary/30 text-primary">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to My Info
-            </Button>
-          </Link>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-primary">My Info</h1>
+            <p className="text-muted-foreground">Your profile and employment information.</p>
+          </div>
+          <Card className="bg-card border-border">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 shrink-0 text-destructive mt-0.5" />
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <p className="font-semibold text-foreground">We couldn&apos;t load your employee record.</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {errorMessage ||
+                        "You may not have an HR profile linked to this account. Please contact HR if you believe this is an error."}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/me/employee"] })}
+                    className="border-primary/30 text-primary hover:bg-primary/10"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Try again
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </AdminLayout>
     );
   }
 
-  const fullName = `${employee.employee_last_name}, ${employee.employee_first_name}`;
+  const fullName = [employee.employee_first_name, employee.employee_middle_name, employee.employee_last_name]
+    .map((part) => (part ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
 
   const renderSectionContent = () => {
     if (section === "personal-information") {
@@ -531,45 +560,74 @@ export default function StaffMyInfoSection() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link href="/staff/my-info">
-              <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-            </Link>
-            <h1 className="text-xl sm:text-2xl font-serif text-primary italic">{fullName}</h1>
-          </div>
+        <div>
+          <h1 className="text-2xl font-semibold text-primary">My Info</h1>
+          <p className="text-muted-foreground">Your profile and employment information.</p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="w-full lg:w-72 shrink-0">
-            <ul className="rounded-lg border border-border bg-card overflow-hidden">
-              {PROFILE_SECTIONS.map((s) => {
-                const isActive = section === s.id;
-                return (
-                  <li key={s.id}>
-                    <Link
-                      href={`/staff/my-info/${s.id}`}
-                      className={`flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm transition-colors hover:bg-card ${isActive ? "bg-primary/15 text-primary" : "text-muted-foreground"}`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <User className="h-4 w-4 shrink-0" />
-                        <span>{s.label}</span>
-                      </span>
-                      <ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
-                    </Link>
-                    {s.id !== "payslip" && <div className="h-px bg-muted" aria-hidden />}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-          <div className="flex-1 min-w-0">
+        <Card className="bg-card border-border overflow-hidden">
+          <CardContent className="p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="shrink-0">
+                {employee.employee_photo ? (
+                  <EmployeeDocumentImage
+                    value={employee.employee_photo}
+                    alt="Profile"
+                    className="h-20 w-20 rounded-full object-cover object-center border border-border"
+                  />
+                ) : (
+                  <div
+                    className="h-20 w-20 rounded-full border-2 border-border flex items-center justify-center bg-muted/30"
+                    title="No photo uploaded"
+                  >
+                    <Image className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xl font-serif text-primary italic truncate">
+                  {fullName || "Employee"}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  <span className="font-medium text-foreground">{unspecified(employee.employee_job_pay_job_title_name)}</span>
+                  <span className="mx-2 opacity-50">•</span>
+                  <span>{unspecified(employee.employee_job_pay_department_name)}</span>
+                </p>
+                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-xs text-muted-foreground">
+                  <div>
+                    <span className="font-semibold text-foreground">Employee #:</span>{" "}
+                    {unspecified(employee.employee_number)}
+                  </div>
+                  <div className="truncate">
+                    <span className="font-semibold text-foreground">Email:</span>{" "}
+                    {unspecified(employee.employee_job_pay_work_email ?? employee.employee_email)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Tabs
+          value={section}
+          onValueChange={(v) => setLocation(`/staff/my-info/${v}`)}
+          className="flex-1"
+        >
+          <TabsList className="bg-muted border border-border mb-6 flex-wrap h-auto gap-1 p-1">
+            {PROFILE_SECTIONS.map((s) => (
+              <TabsTrigger
+                key={s.id}
+                value={s.id}
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm"
+              >
+                {s.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          <div className="min-w-0">
             {renderSectionContent()}
           </div>
-        </div>
+        </Tabs>
       </div>
     </AdminLayout>
   );

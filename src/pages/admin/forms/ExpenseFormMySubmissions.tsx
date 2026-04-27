@@ -36,7 +36,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   directDelivery: "Direct Delivery",
   cogs: "COGS",
   reimbursedBills: "Reimbursed Bills",
-  income: "Income",
+  income: "Income & Expenses",
 };
 
 const MONTHS = [

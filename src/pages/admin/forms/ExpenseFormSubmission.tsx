@@ -23,7 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Upload, Loader2, X, FileText, Eye } from "lucide-react";
 
 const CATEGORY_LABELS: Record<string, string> = {
-  income: "Income",
+  income: "Income & Expenses",
   directDelivery: "Operating Expenses (Direct Delivery)",
   cogs: "Operating Expenses (COGS - Per Vehicle)",
   reimbursedBills: "Reimbursed and Non-Reimbursed Bills",

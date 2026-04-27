@@ -35,6 +35,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, buildApiUrl } from "@/lib/queryClient";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { SwitchableRolesSection } from "@/components/admin/SwitchableRolesSection";
 import { cn } from "@/lib/utils";
 import {
   Plus,
@@ -140,97 +141,6 @@ const userSchema = z.object({
     .or(z.literal("")),
   roleId: z.number().int().positive("Role is required"),
 });
-
-/** Section in edit-user modal: allow admin to set which roles this user can switch between (same login). */
-function SwitchableRolesSection({
-  userId,
-  roles,
-  onSaved,
-}: {
-  userId: number;
-  roles: Role[];
-  onSaved?: () => void;
-}) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-
-  const { data: rolesData } = useQuery({
-    queryKey: ["/api/admin/users", userId, "roles"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl(`/api/admin/users/${userId}/roles`), { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to load");
-      const json = await res.json();
-      return json as { roles: { id: number; name: string }[] };
-    },
-    enabled: !!userId && roles.length > 0,
-  });
-
-  useEffect(() => {
-    if (rolesData?.roles?.length) setSelectedIds(rolesData.roles.map((r) => r.id));
-    else if (roles.length > 0) setSelectedIds([]);
-  }, [rolesData?.roles, roles.length]);
-
-  const saveMutation = useMutation({
-    mutationFn: async (roleIds: number[]) => {
-      const res = await apiRequest("PUT", `/api/admin/users/${userId}/roles`, { roleIds });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || "Failed to save");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users", userId, "roles"] });
-      onSaved?.();
-      toast({ title: "Saved", description: "Switch account access updated." });
-    },
-    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
-
-  const toggle = (id: number) => {
-    const next = selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id];
-    setSelectedIds(next);
-  };
-
-  if (roles.length === 0) return null;
-
-  return (
-    <div className="rounded-md border border-border p-3 space-y-2">
-      <Label className="text-muted-foreground text-sm">Switch account access</Label>
-      <p className="text-xs text-muted-foreground">
-        Allow this user to switch between these roles with the same login (no separate emails).
-      </p>
-      <div className="flex flex-wrap gap-4">
-        {roles.map((role) => (
-          <div key={role.id} className="flex items-center space-x-2">
-            <Checkbox
-              id={`switch-role-${role.id}`}
-              checked={selectedIds.includes(role.id)}
-              onCheckedChange={() => toggle(role.id)}
-            />
-            <label
-              htmlFor={`switch-role-${role.id}`}
-              className="text-sm font-medium leading-none cursor-pointer"
-            >
-              {role.name}
-            </label>
-          </div>
-        ))}
-      </div>
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        onClick={() => saveMutation.mutate(selectedIds)}
-        disabled={saveMutation.isPending}
-      >
-        {saveMutation.isPending && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
-        Update switchable roles
-      </Button>
-    </div>
-  );
-}
 
 const quickLinkSchema = z.object({
   category: z.string().min(1, "Category is required"),
@@ -1057,7 +967,7 @@ export default function AdminsPage() {
                 {editingUser && (
                   <SwitchableRolesSection
                     userId={editingUser.id}
-                    roles={roles?.filter((r) => r.isAdmin || r.isEmployee) ?? []}
+                    roles={roles ?? []}
                     onSaved={() => queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] })}
                   />
                 )}

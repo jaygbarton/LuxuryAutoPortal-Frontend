@@ -143,7 +143,7 @@ export function CarComingBackForm({ onBack }: CarComingBackFormProps) {
       form_submit_miles: miles,
       ...values,
     };
-    const missing = COMING_BACK_SURVEY_FIELDS.filter((f) => !formValues[f.key]?.trim());
+    const missing = COMING_BACK_SURVEY_FIELDS.filter((f) => !formValues[f.key as keyof typeof formValues]?.trim());
     if (!carId || !gasGauge || !miles.trim()) {
       toast({ title: "Validation", description: "Please fill Date, Car, Gas Gauge, and Total Miles.", variant: "destructive" });
       return;

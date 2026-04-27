@@ -32,8 +32,10 @@ import {
   BarChart3,
   Route,
   ShieldAlert,
+  Eye,
 } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
+import { ViewAsClientBanner } from "./ViewAsClientBanner";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient, buildApiUrl } from "@/lib/queryClient";
 import { AuthGuard } from "./auth-guard";
@@ -65,7 +67,7 @@ const allSidebarItems: SidebarItem[] = [
   { href: "/client/my-car-tracking", label: "Track My Car", icon: Navigation, roles: ["client"] },
   { href: "/admin/admins", label: "Admins", icon: Users, roles: ["admin"] },
   { href: "/admin/clients", label: "Clients", icon: Users, roles: ["admin"] },
-  { href: "/cars", label: "Cars", icon: Car },
+  { href: "/cars", label: "Cars", icon: Car, roles: ["admin", "client"] },
   { href: "/admin/income-expenses", label: "Income and Expenses", icon: DollarSign, roles: ["admin"] },
   {
     href: "/admin/payments",
@@ -94,7 +96,7 @@ const allSidebarItems: SidebarItem[] = [
     ],
   },
   { href: "/admin/operations", label: "Operations", icon: Cog, roles: ["admin"] },
-  { href: "/admin/forms", label: "Forms", icon: ClipboardList },
+  { href: "/admin/forms", label: "Forms", icon: ClipboardList, roles: ["admin", "client"] },
   { href: "/admin/car-rental", label: "Car Rental", icon: Key, roles: ["admin"] },
   {
     href: "/admin/hr",
@@ -121,12 +123,13 @@ const allSidebarItems: SidebarItem[] = [
       { href: "/admin/payroll/report", label: "Report", icon: ClipboardList, roles: ["admin"] },
     ],
   },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
-  { href: "/admin/turo-guide", label: "Turo Guide", icon: BookOpen },
+  { href: "/admin/settings", label: "Settings", icon: Settings, roles: ["admin", "client"] },
+  { href: "/admin/turo-guide", label: "Turo Guide", icon: BookOpen, roles: ["admin", "client"] },
   { href: "/admin/training-manual", label: "System Tutorial", icon: GraduationCap, roles: ["admin"] },
   { href: "/tutorial", label: "System Tutorial", icon: GraduationCap, roles: ["client"] },
-  { href: "/admin/testimonials", label: "Client Testimonials", icon: Star },
-  { href: "/staff/dashboard", label: "Staff (view as staff)", icon: User, roles: ["admin"] },
+  { href: "/admin/testimonials", label: "Client Testimonials", icon: Star, roles: ["admin", "client"] },
+  { href: "/admin/view-as-employee", label: "View as Employee", icon: Eye, roles: ["admin"] },
+  { href: "/admin/view-as-client", label: "View as Client", icon: Eye, roles: ["admin"] },
 ];
 
 // Staff/employee sidebar: Dashboard, My Info, Forms, Task Management, Turo Guide, System Tutorial, Client Testimonials, Car Rental
@@ -231,14 +234,44 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
   const user = data?.user;
 
-  // When on /staff path, show staff sidebar for both employees and admins (managers) so staff functions are available
-  const showStaffSidebar = location.startsWith("/staff") && (user?.isEmployee === true || user?.isAdmin === true);
+  // When on /staff path, show staff sidebar for both employees and admins (managers) so staff functions are available.
+  // While impersonating an employee, the backend has already flipped
+  // user.isEmployee to true on /api/auth/me, so the staff sidebar appears
+  // automatically without the route-prefix fallback.
+  const showStaffSidebar =
+    !!(user as any)?.viewAsEmployee?.employeeId ||
+    (location.startsWith("/staff") && (user?.isEmployee === true || user?.isAdmin === true));
 
   // Filter sidebar items based on user role and path (employees see staff nav; on /staff path admins also see staff nav)
   const sidebarItems = useMemo(() => {
     if (!user) return [];
 
-    const userRole = user.isAdmin ? "admin" : user.isClient ? "client" : user.isEmployee ? "employee" : null;
+    // Resolve the user's effective role for sidebar filtering.
+    // We trust the boolean flags first, but fall back to the role name when
+    // none of the flags are true (defensive against legacy `role` rows where
+    // isClient/isEmployee may be missing). Without this fallback, a Client
+    // user with `isClient=false` would yield userRole=null, which lets every
+    // sidebar item that lacks an explicit `roles` restriction render — the
+    // exact symptom of "admin menus still showing after switching to client."
+    // If the admin is currently impersonating a client/employee via the
+    // "View as ..." features, force the effective role accordingly so the
+    // sidebar mirrors what that user would actually see (no admin-only
+    // items). This is what makes the impersonation faithful — without it,
+    // the banner says "viewing as ..." but the menu still exposes every
+    // admin route, defeating the purpose of the feature.
+    const isViewingAsClient = !!(user as any).viewAsClient?.clientId;
+    const isViewingAsEmployee = !!(user as any).viewAsEmployee?.employeeId;
+    const roleName = String((user as any).roleName || "").toLowerCase();
+    const userRole: "admin" | "client" | "employee" | null =
+      isViewingAsClient ? "client"
+      : isViewingAsEmployee ? "employee"
+      : user.isAdmin ? "admin"
+      : user.isEmployee ? "employee"
+      : user.isClient ? "client"
+      : /admin|owner|developer|manager/.test(roleName) ? "admin"
+      : /employee|staff/.test(roleName) ? "employee"
+      : /client|customer/.test(roleName) ? "client"
+      : null;
     const roleForStaffNav = showStaffSidebar ? "employee" : userRole;
 
     // Staff sidebar: when user is employee, or when on /staff path as admin (manager using staff view)
@@ -308,10 +341,21 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || "Failed to switch account");
       }
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      if (role.isAdmin) setLocation("/admin/dashboard");
-      else if (role.isEmployee) setLocation("/staff/dashboard");
-      else setLocation("/dashboard");
+
+      // Wipe React Query cache so prior role's data doesn't render briefly.
+      queryClient.clear();
+
+      // Force a full page reload (window.location.assign) instead of an SPA
+      // route change. Without a hard reload, mounted components keep their
+      // local state — including AuthGuard's `hasAuthenticated`, the layout's
+      // memoized `user` reference, and any in-flight queries — which causes
+      // admin menus / data to keep rendering for a moment after the session
+      // has actually flipped to client/employee. A reload guarantees that
+      // every component re-mounts, /api/auth/me is re-fetched fresh, and the
+      // sidebar + page contents reflect the new role from the very first
+      // paint.
+      const target = role.isEmployee ? "/staff/dashboard" : "/dashboard";
+      window.location.assign(target);
     } catch (e) {
       console.error("Switch role failed:", e);
     } finally {
@@ -499,7 +543,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                 <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-[120px] sm:max-w-none">
                   {user.firstName} {user.lastName} <span className="hidden sm:inline">({user.roleName})</span>
                 </span>
-                {(user as any).roles?.length > 1 && (
+                {(user as any).roles?.length > 1 && !(user as any).impersonatorIsAdmin && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -547,8 +591,9 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
           scroll position resets to the top. The sidebar and header are
           outside this subtree, so they stay mounted and do NOT reload.
         */}
-        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 bg-background">
-          <div key={location}>{children}</div>
+        <main className="flex-1 min-w-0 flex flex-col overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 bg-background">
+          <ViewAsClientBanner />
+          <div key={location} className="flex-1 min-h-0">{children}</div>
         </main>
       </div>
 

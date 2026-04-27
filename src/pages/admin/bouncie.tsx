@@ -694,7 +694,7 @@ export default function BouncieFleetPage() {
 
   return (
     <AdminLayout>
-      <div className="flex overflow-hidden -mx-3 -my-3 sm:-mx-4 sm:-my-4 md:-mx-6 md:-my-6" style={{ height: "calc(100vh - 56px)" }}>
+      <div className="flex overflow-hidden h-full -mr-3 -mt-3 -mb-3 sm:-mr-4 sm:-mt-4 sm:-mb-4 md:-mr-6 md:-mt-6 md:-mb-6">
 
         {/* ── Sidebar ──────────────────────────────────────────────── */}
         <div className="flex flex-col w-72 lg:w-80 flex-shrink-0 bg-[#1e1e1e] text-white overflow-hidden border-r border-[#2a2a2a]">
