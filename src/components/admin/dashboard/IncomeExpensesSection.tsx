@@ -137,17 +137,19 @@ function CenterLabel({ viewBox, value }: { viewBox?: { cx: number; cy: number };
 
 interface DonutChartProps {
   title: string;
+  subtitle?: string;
   data: { name: string; value: number; color: string }[];
   centerValue: string;
   formatValue?: (v: number) => string;
 }
 
-function DonutChart({ title, data, centerValue, formatValue = formatCurrency }: DonutChartProps) {
+function DonutChart({ title, subtitle, data, centerValue, formatValue = formatCurrency }: DonutChartProps) {
   return (
     <div className="min-w-[200px] flex-1 rounded-lg bg-white p-4">
-      <h4 className="mb-2 text-center text-xs font-bold uppercase tracking-wide text-gray-600">
-        {title}
-      </h4>
+      <div className="mb-2 text-center">
+        <h4 className="text-xs font-bold uppercase tracking-wide text-gray-600">{title}</h4>
+        {subtitle && <p className="mt-0.5 text-xs font-semibold text-amber-700">{subtitle}</p>}
+      </div>
       <ResponsiveContainer width="100%" height={180}>
         <PieChart>
           <Pie
@@ -464,6 +466,15 @@ export default function IncomeExpensesSection({
       ? `${formatFullMonth(prevMonthNum)} ${year}`
       : "";
 
+  // Right-side donut charts: show the most recent month for the selected year
+  const displayMonthNum = String(prevMonthYear) === year ? prevMonthNum : 12;
+  const displayMonthEntry = monthlyComputed.find((m) => m.month === displayMonthNum) ?? null;
+  const displayMonthLabel = `${formatShortMonth(displayMonthNum)} ${year}`;
+  const displayMgmtIncome = displayMonthEntry?.mgmtIncome ?? 0;
+  const displayMgmtExpenses = displayMonthEntry?.mgmtExpenses ?? 0;
+  const displayOwnerIncome = displayMonthEntry?.ownerIncome ?? 0;
+  const displayOwnerExpenses = displayMonthEntry?.ownerExpenses ?? 0;
+
   // ── Render ─────────────────────────────────────────────────────────
 
   return (
@@ -658,34 +669,34 @@ export default function IncomeExpensesSection({
               <DonutChart
                 title="TOTAL CAR MGMT INCOME & EXPENSES"
                 data={[
-                  { name: "Mgmt Income", value: totalMgmtIncome, color: "#d3bc8d" },
-                  { name: "Mgmt Expenses", value: totalMgmtExpenses, color: "#374151" },
+                  { name: "Mgmt Income", value: totalMgmtIncome, color: "#c9a84c" },
+                  { name: "Mgmt Expenses", value: totalMgmtExpenses, color: "#efe3c2" },
                 ]}
                 centerValue={formatCurrency(totalMgmtIncome - totalMgmtExpenses)}
               />
               <DonutChart
-                title="TOTAL CAR MGMT EXPENSES"
+                title={displayMonthLabel + " - TOTAL CAR MGMT EXPENSES"}
                 data={[
-                  { name: "Mgmt Expenses", value: totalMgmtExpenses, color: "#d3bc8d" },
-                  { name: "Mgmt Income", value: totalMgmtIncome, color: "#374151" },
+                  { name: "Mgmt Expenses", value: displayMgmtExpenses, color: "#efe3c2" },
+                  { name: "Mgmt Income", value: displayMgmtIncome, color: "#c9a84c" },
                 ]}
-                centerValue={formatCurrency(totalMgmtExpenses)}
+                centerValue={formatCurrency(displayMgmtExpenses)}
               />
               <DonutChart
                 title="TOTAL CAR OWNER INCOME AND EXPENSES"
                 data={[
-                  { name: "Owner Income", value: totalOwnerIncome, color: "#d3bc8d" },
-                  { name: "Owner Expenses", value: totalOwnerExpenses, color: "#374151" },
+                  { name: "Owner Income", value: totalOwnerIncome, color: "#c9a84c" },
+                  { name: "Owner Expenses", value: totalOwnerExpenses, color: "#efe3c2" },
                 ]}
                 centerValue={formatCurrency(totalOwnerIncome - totalOwnerExpenses)}
               />
               <DonutChart
-                title="TOTAL CAR OWNER EXPENSES"
+                title={displayMonthLabel + " - TOTAL CAR OWNER EXPENSES"}
                 data={[
-                  { name: "Owner Expenses", value: totalOwnerExpenses, color: "#d3bc8d" },
-                  { name: "Owner Income", value: totalOwnerIncome, color: "#374151" },
+                  { name: "Owner Expenses", value: displayOwnerExpenses, color: "#efe3c2" },
+                  { name: "Owner Income", value: displayOwnerIncome, color: "#c9a84c" },
                 ]}
-                centerValue={formatCurrency(totalOwnerExpenses)}
+                centerValue={formatCurrency(displayOwnerExpenses)}
               />
             </div>
 
