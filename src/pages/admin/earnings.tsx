@@ -1023,6 +1023,38 @@ export default function EarningsPage() {
 
   const chartImages = chartImagesData?.data || {};
 
+  // Fetch rental income uploaded images for all months (to display in Turo Earnings section)
+  const { data: rentalIncomeImagesData, refetch: refetchRentalIncomeImages } = useQuery<{
+    [month: number]: { id: string; url: string; filename: string }[];
+  }>({
+    queryKey: ["/api/income-expense/images/rental", carId, selectedYear],
+    queryFn: async () => {
+      if (!carId) throw new Error("Invalid car ID");
+      const monthPromises = Array.from({ length: 12 }, (_, i) => i + 1).map(async (month) => {
+        const url = buildApiUrl(
+          `/api/income-expense/images?carId=${carId}&year=${selectedYear}&month=${month}&category=income&field=rentalIncome`
+        );
+        const response = await fetch(url, { credentials: "include" });
+        if (response.ok) {
+          const data = await response.json();
+          return { month, images: data.images || data.data?.images || [] };
+        }
+        return { month, images: [] };
+      });
+      const results = await Promise.all(monthPromises);
+      const imagesByMonth: { [month: number]: { id: string; url: string; filename: string }[] } = {};
+      results.forEach(({ month, images }) => {
+        imagesByMonth[month] = images;
+      });
+      return imagesByMonth;
+    },
+    enabled: !!carId && !!selectedYear,
+    retry: false,
+  });
+
+  const rentalIncomeImages = rentalIncomeImagesData || {};
+  const [previewRentalImage, setPreviewRentalImage] = useState<string | null>(null);
+
   // Handle chart image upload
   const handleChartUpload = async (month: number, file: File) => {
     if (!carId) return;
@@ -1583,32 +1615,6 @@ export default function EarningsPage() {
                   />
                 </CategorySection>
 
-                {/* CAR RENTAL VALUE PER MONTH */}
-                <CategorySection
-                  title="CAR RENTAL VALUE PER MONTH"
-                  isExpanded={expandedSections.rentalValue}
-                  onToggle={() => toggleSection("rentalValue")}
-                >
-                  <TableRow
-                    label="Total Car Rental Income"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "rentalIncome"))}
-                  />
-                  <TableRow
-                    label="Trips Taken"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "tripsTaken"))}
-                    isInteger
-                  />
-                  <TableRow
-                    label="Ave Per Rental Per Trips Taken"
-                    values={MONTHS.map((_, i) => {
-                      const monthNum = i + 1;
-                      const rental = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], monthNum, "rentalIncome");
-                      const trips = getMonthValue(incomeExpenseDataValue?.history || [], monthNum, "tripsTaken");
-                      return trips > 0 ? rental / trips : 0;
-                    })}
-                  />
-                </CategorySection>
-
                 {/* REIMBURSED AND NON-REIMBURSED BILLS - Only visible to admin */}
                 {isAdmin && (
                   <CategorySection
@@ -1656,6 +1662,57 @@ export default function EarningsPage() {
                   </CategorySection>
                 )}
 
+                {/* HISTORY */}
+                <CategorySection
+                  title="HISTORY"
+                  isExpanded={expandedSections.history}
+                  onToggle={() => toggleSection("history")}
+                >
+                  <TableRow
+                    label="Days Rented"
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "daysRented"))}
+                    isInteger
+                  />
+                  {isAdmin && (
+                    <TableRow
+                      label="Cars Available For Rent"
+                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "carsAvailableForRent"))}
+                      isInteger
+                    />
+                  )}
+                  <TableRow
+                    label="Trips Taken"
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "tripsTaken"))}
+                    isInteger
+                  />
+                </CategorySection>
+
+                {/* CAR RENTAL VALUE PER MONTH */}
+                <CategorySection
+                  title="CAR RENTAL VALUE PER MONTH"
+                  isExpanded={expandedSections.rentalValue}
+                  onToggle={() => toggleSection("rentalValue")}
+                >
+                  <TableRow
+                    label="Total Car Rental Income"
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "rentalIncome"))}
+                  />
+                  <TableRow
+                    label="Trips Taken"
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "tripsTaken"))}
+                    isInteger
+                  />
+                  <TableRow
+                    label="Ave Per Rental Per Trips Taken"
+                    values={MONTHS.map((_, i) => {
+                      const monthNum = i + 1;
+                      const rental = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], monthNum, "rentalIncome");
+                      const trips = getMonthValue(incomeExpenseDataValue?.history || [], monthNum, "tripsTaken");
+                      return trips > 0 ? rental / trips : 0;
+                    })}
+                  />
+                </CategorySection>
+
                 {/* PARKING AIRPORT AVERAGE PER TRIP - GLA */}
                 <CategorySection
                   title="PARKING AIRPORT AVERAGE PER TRIP - GLA"
@@ -1679,31 +1736,6 @@ export default function EarningsPage() {
                       const trips = getMonthValue(incomeExpenseDataValue?.history || [], monthNum, "tripsTaken");
                       return trips > 0 ? parking / trips : 0;
                     })}
-                  />
-                </CategorySection>
-
-                {/* HISTORY */}
-                <CategorySection
-                  title="HISTORY"
-                  isExpanded={expandedSections.history}
-                  onToggle={() => toggleSection("history")}
-                >
-                  <TableRow
-                    label="Days Rented"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "daysRented"))}
-                    isInteger
-                  />
-                  {isAdmin && (
-                    <TableRow
-                      label="Cars Available For Rent"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "carsAvailableForRent"))}
-                      isInteger
-                    />
-                  )}
-                  <TableRow
-                    label="Trips Taken"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "tripsTaken"))}
-                    isInteger
                   />
                 </CategorySection>
               </tbody>
@@ -1763,6 +1795,8 @@ export default function EarningsPage() {
                   }] : []),
                 ];
 
+                const monthRentalImages = rentalIncomeImages[monthNum] || [];
+
                 return (
                 <div key={index} className="flex flex-col">
                     {/* Month Label with Rental Income */}
@@ -1772,7 +1806,7 @@ export default function EarningsPage() {
                   </div>
                     
                     {/* Chart Image Area */}
-                    <div className="bg-card border border-border rounded-b relative group min-h-[200px] flex items-center justify-center">
+                    <div className={cn("bg-card border border-border relative group min-h-[200px] flex items-center justify-center", monthRentalImages.length > 0 ? "rounded-b-none" : "rounded-b")}>
                       {chartImageUrl ? (
                         <>
                           {/* Manual Upload Override - Show uploaded image */}
@@ -1900,12 +1934,57 @@ export default function EarningsPage() {
                         </>
                       )}
                     </div>
+
+                  {/* Rental Income Uploaded Photos */}
+                  {monthRentalImages.length > 0 && (
+                    <div className="border border-t-0 border-border rounded-b px-3 py-2 bg-card">
+                      <p className="text-xs text-muted-foreground mb-2 font-medium">Rental Income Receipts</p>
+                      <div className="flex flex-wrap gap-2">
+                        {monthRentalImages.map((img) => (
+                          <button
+                            key={img.id}
+                            onClick={() => setPreviewRentalImage(img.url)}
+                            className="w-14 h-14 rounded border border-border overflow-hidden hover:border-primary transition-colors flex-shrink-0"
+                            title={img.filename}
+                          >
+                            <img
+                              src={img.url}
+                              alt={img.filename}
+                              className="w-full h-full object-cover"
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   </div>
                 );
               })}
             </div>
           </div>
         </div>
+
+        {/* Rental Income Image Preview Modal */}
+        {previewRentalImage && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+            onClick={() => setPreviewRentalImage(null)}
+          >
+            <div className="relative max-w-3xl max-h-[90vh] w-full mx-4" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setPreviewRentalImage(null)}
+                className="absolute -top-10 right-0 text-white hover:text-primary transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <img
+                src={previewRentalImage}
+                alt="Rental Income Receipt"
+                className="w-full h-auto max-h-[90vh] object-contain rounded-lg"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Graphs and Charts Report Section (moved from Graphs and Charts Report page) */}
         <GraphsChartsReportSection

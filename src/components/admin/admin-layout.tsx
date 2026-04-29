@@ -33,6 +33,7 @@ import {
   Route,
   ShieldAlert,
   Eye,
+  TreePalm,
 } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { ViewAsClientBanner } from "./ViewAsClientBanner";
@@ -136,6 +137,7 @@ const allSidebarItems: SidebarItem[] = [
 const employeeSidebarItems: SidebarItem[] = [
   { href: "/staff/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["employee"] },
   { href: "/staff/time", label: "Time Sheet", icon: Clock, roles: ["employee"] },
+  { href: "/staff/time-off", label: "Time Off", icon: TreePalm, roles: ["employee"] },
   { href: "/staff/my-info", label: "My Info", icon: User, roles: ["employee"] },
   { href: "/staff/forms", label: "Forms", icon: FileText, roles: ["employee"] },
   { href: "/staff/task-management", label: "Task Management", icon: Briefcase, roles: ["employee"] },
