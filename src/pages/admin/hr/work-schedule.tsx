@@ -29,6 +29,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const LIMIT_CELL = 3;
 
+interface LeaveOnDay {
+  employee_id: number;
+  fullname: string;
+}
+
 interface WorkSchedEntry {
   work_sched_aid: number;
   work_sched_date: string;
@@ -79,6 +84,7 @@ function DayCellContent({
   onEdit,
   onDelete,
   onCopyToNextDay,
+  leavesOnDay,
 }: {
   cell: DayCell;
   month: string;
@@ -87,9 +93,10 @@ function DayCellContent({
   onEdit: (cell: DayCell, entry: WorkSchedEntry) => void;
   onDelete: (entry: WorkSchedEntry) => void;
   onCopyToNextDay: (cell: DayCell) => void;
+  leavesOnDay: LeaveOnDay[];
 }) {
   const code = cell.originalDateCode;
-  const { data: list = [], isLoading, refetch } = useWorkSchedByCode(code, LIMIT_CELL);
+  const { data: list = [], isLoading } = useWorkSchedByCode(code, LIMIT_CELL);
   const isToday = code && new Date().toISOString().slice(0, 10).replace(/-/g, "") === code;
   const hasEntries = list.length > 0;
 
@@ -133,6 +140,25 @@ function DayCellContent({
             </button>
           )}
         </div>
+
+        {/* Day-off chips */}
+        {leavesOnDay.length > 0 && (
+          <div className="space-y-0.5 mb-1">
+            {leavesOnDay.map((l) => (
+              <div
+                key={l.employee_id}
+                className="flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 dark:border-rose-800 dark:bg-rose-950/40"
+              >
+                <span className="truncate text-[10px] font-medium text-rose-700 dark:text-rose-400" title={l.fullname}>
+                  {l.fullname}
+                </span>
+                <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wide text-rose-500 dark:text-rose-500">
+                  · Day Off
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Entries */}
         {isLoading ? (
@@ -198,12 +224,14 @@ function AddEditModal({
   cell,
   editEntry,
   onSuccess,
+  leavesOnDay,
 }: {
   open: boolean;
   onClose: () => void;
   cell: DayCell | null;
   editEntry: WorkSchedEntry | null;
   onSuccess: () => void;
+  leavesOnDay: LeaveOnDay[];
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -323,6 +351,10 @@ function AddEditModal({
 
   const pending = createMutation.isPending || updateMutation.isPending;
   const dateLabel = cell ? new Date(cell.originalDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "";
+  const isSelectedOnLeave = !!(
+    selectedEmployee &&
+    leavesOnDay.some((l) => l.employee_id === selectedEmployee.employee_aid)
+  );
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -392,6 +424,11 @@ function AddEditModal({
               </div>
             )}
           </div>
+          {isSelectedOnLeave && (
+            <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-400">
+              <strong>{selectedEmployee?.fullname}</strong> has an approved day off on this date. A work schedule cannot be added.
+            </div>
+          )}
           <div className="grid grid-cols-[1fr,auto,1fr] gap-2 items-end">
             <div>
               <Label>Start</Label>
@@ -407,7 +444,7 @@ function AddEditModal({
             <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={pending || isSelectedOnLeave}>
               {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isEdit ? "Update" : "Add"}
             </Button>
@@ -576,6 +613,35 @@ export default function WorkSchedulePage() {
   const [editEntry, setEditEntry] = useState<WorkSchedEntry | null>(null);
   const [deleteEntry, setDeleteEntry] = useState<WorkSchedEntry | null>(null);
 
+  // Fetch all approved leaves for the visible month so we can show day-off
+  // indicators and block scheduling an employee who is on leave.
+  const [monthYear, monthNum] = month.split("-");
+  const leaveFrom = `${month}-01`;
+  const leaveTo = `${month}-${new Date(Number(monthYear), Number(monthNum), 0).getDate().toString().padStart(2, "0")}`;
+  const { data: leavesData } = useQuery<{ data?: Array<{ leave_employee_id: number; leave_date: string; fullname: string; leave_is_status: number }> }>({
+    queryKey: ["work-sched", "approved-leaves", month],
+    queryFn: async () => {
+      const params = new URLSearchParams({ fromDate: leaveFrom, toDate: leaveTo, status: "approved", limit: "500" });
+      const res = await fetch(buildApiUrl(`/api/admin/hr/leave?${params}`), { credentials: "include" });
+      if (!res.ok) return { data: [] };
+      return res.json();
+    },
+  });
+
+  // Build a map from YYYY-MM-DD → employees on approved leave that day.
+  const leavesByDate = useCallback((): Record<string, LeaveOnDay[]> => {
+    const map: Record<string, LeaveOnDay[]> = {};
+    for (const row of leavesData?.data ?? []) {
+      if (row.leave_is_status !== 1) continue;
+      const date = row.leave_date?.slice(0, 10);
+      if (!date) continue;
+      if (!map[date]) map[date] = [];
+      map[date].push({ employee_id: row.leave_employee_id, fullname: row.fullname });
+    }
+    return map;
+  }, [leavesData])();
+
+
   const copyMutation = useMutation({
     mutationFn: async ({ fromDate, toDate }: { fromDate: string; toDate: string }) => {
       const res = await fetch(buildApiUrl("/api/admin/work-sched/copy"), {
@@ -703,6 +769,7 @@ export default function WorkSchedulePage() {
                           onEdit={handleEdit}
                           onDelete={handleDelete}
                           onCopyToNextDay={handleCopyToNextDay}
+                          leavesOnDay={leavesByDate[cell.originalDate] ?? []}
                         />
                       ))}
                     </tr>
@@ -720,6 +787,7 @@ export default function WorkSchedulePage() {
         cell={selectedCell}
         editEntry={editEntry}
         onSuccess={() => {}}
+        leavesOnDay={selectedCell ? (leavesByDate[selectedCell.originalDate] ?? []) : []}
       />
       <ViewMoreModal
         open={viewModalOpen}

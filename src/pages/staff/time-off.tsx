@@ -139,8 +139,6 @@ export default function StaffTimeOff() {
     () => new Date().toISOString().slice(0, 10)
   );
   const [formType, setFormType] = useState("paid time off");
-  const [formHours, setFormHours] = useState("");
-  const [formMinutes, setFormMinutes] = useState("0");
   const [formRemarks, setFormRemarks] = useState("");
 
   const offset = (page - 1) * pageSize;
@@ -228,21 +226,15 @@ export default function StaffTimeOff() {
     setApplyOpen(false);
     setFormDate(new Date().toISOString().slice(0, 10));
     setFormType("paid time off");
-    setFormHours("");
-    setFormMinutes("0");
     setFormRemarks("");
   }
 
   function handleApply() {
-    if (!formHours || parseInt(formHours, 10) < 0) {
-      toast({ title: "Hours required", description: "Please enter a valid number of hours.", variant: "destructive" });
-      return;
-    }
     createMutation.mutate({
       leave_date: formDate,
       leave_type: formType,
-      leave_hour: formHours,
-      leave_minute: formMinutes || "0",
+      leave_hour: "8",
+      leave_minute: "0",
       leave_remarks: formRemarks,
     });
   }
@@ -511,7 +503,7 @@ export default function StaffTimeOff() {
               />
             </div>
             <div>
-              <Label>Leave type</Label>
+              <Label>Day off</Label>
               <Select value={formType} onValueChange={setFormType}>
                 <SelectTrigger className="mt-1.5">
                   <SelectValue />
@@ -521,34 +513,6 @@ export default function StaffTimeOff() {
                   <SelectItem value="sick time off">Sick Time Off</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>
-                  Hours <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={24}
-                  placeholder="0"
-                  value={formHours}
-                  onChange={(e) => setFormHours(e.target.value)}
-                  className="mt-1.5"
-                />
-              </div>
-              <div>
-                <Label>Minutes</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={59}
-                  placeholder="0"
-                  value={formMinutes}
-                  onChange={(e) => setFormMinutes(e.target.value)}
-                  className="mt-1.5"
-                />
-              </div>
             </div>
             <div>
               <Label>Remarks</Label>
@@ -565,7 +529,7 @@ export default function StaffTimeOff() {
               </Button>
               <Button
                 onClick={handleApply}
-                disabled={createMutation.isPending || !formHours}
+                disabled={createMutation.isPending}
               >
                 {createMutation.isPending && (
                   <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
