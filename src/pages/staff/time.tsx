@@ -57,25 +57,28 @@ interface ShiftQuestion {
 
 const ENERGY_OPTIONS = ["Very low", "Low", "Okay", "Good", "Great"];
 
+// NOTE: numeric `id`s MUST match the canonical keys in the backend's
+// STATS_CATEGORIES (adminTimeSheetService.ts). The Employee Stats Report
+// aggregates `time.time_form_details` by these exact keys.
 const SHIFT_QUESTIONS: ShiftQuestion[] = [
-  { id: "cars_pickup_airport_returning", label: "How Many Cars Picked Up From Airport Returning?", type: "numeric" },
-  { id: "cleaning_going_out", label: "How Many Cleaning Going Out?", type: "numeric" },
-  { id: "cars_reparked", label: "How Many Cars Re-Parked?", type: "numeric" },
-  { id: "gas_station_trips", label: "How Many Gas Station Trips?", type: "numeric" },
-  { id: "trip_swaps_client", label: "How Many Trip Swaps – Client?", type: "numeric" },
-  { id: "auto_body_pickup", label: "How Many Auto Body Pick Up?", type: "numeric" },
-  { id: "mechanic_pickup", label: "How Many Mechanic Pick Up?", type: "numeric" },
-  { id: "oil_lube_pickup", label: "How Many Oil & Lube Pick Up?", type: "numeric" },
-  { id: "tire_pickup_dropoff", label: "How Many Tire Pick Up or Drop Off?", type: "numeric" },
-  { id: "windshield_pickup", label: "How Many Windshield Pick Up?", type: "numeric" },
-  { id: "off_boarding_owners", label: "How Many Off Boarding Owners?", type: "numeric" },
-  { id: "on_boarding_new", label: "How Many On Boarding New?", type: "numeric" },
-  { id: "picture_of_new_cars", label: "How Many Pictures of New Cars?", type: "numeric" },
-  { id: "battery", label: "How Many Battery?", type: "numeric" },
-  { id: "license_emissions", label: "How Many License & Emissions?", type: "numeric" },
-  { id: "towing_yard_impound", label: "How Many Towing Yard – Impound?", type: "numeric" },
-  { id: "supply_trips", label: "How Many Supply Trips – Wipes/etc.?", type: "numeric" },
-  { id: "cleaning_extras", label: "How Many Cleaning Extras (Roof Racks, etc.)?", type: "numeric" },
+  { id: "how_many_car_picked_up_from_airport_returning", label: "How Many Cars Picked Up From Airport Returning?", type: "numeric" },
+  { id: "how_many_cleaning_going_out", label: "How Many Cleaning Going Out?", type: "numeric" },
+  { id: "how_many_cars_re_parked", label: "How Many Cars Re-Parked?", type: "numeric" },
+  { id: "how_many_gas_station_trip", label: "How Many Gas Station Trips?", type: "numeric" },
+  { id: "how_many_trip_swaps_client_location", label: "How Many Trip Swaps – Client?", type: "numeric" },
+  { id: "how_many_auto_body_pick_up_or_drop_off", label: "How Many Auto Body Pick Up?", type: "numeric" },
+  { id: "how_many_mechanic_pick_up_or_drop_off", label: "How Many Mechanic Pick Up?", type: "numeric" },
+  { id: "how_many_oil_lube_pick_up_or_drop_off", label: "How Many Oil & Lube Pick Up?", type: "numeric" },
+  { id: "how_many_tire_pick_up_or_drop_off", label: "How Many Tire Pick Up or Drop Off?", type: "numeric" },
+  { id: "how_many_windshield_pick_up_or_drop_off", label: "How Many Windshield Pick Up?", type: "numeric" },
+  { id: "how_many_off_boarding_owner_removal", label: "How Many Off Boarding Owners?", type: "numeric" },
+  { id: "how_many_on_boarding_new_car_received", label: "How Many On Boarding New?", type: "numeric" },
+  { id: "how_many_picture_of_new_car", label: "How Many Pictures of New Cars?", type: "numeric" },
+  { id: "how_many_battery", label: "How Many Battery?", type: "numeric" },
+  { id: "how_many_license_emissions", label: "How Many License & Emissions?", type: "numeric" },
+  { id: "how_many_towing_yard_impounded", label: "How Many Towing Yard – Impound?", type: "numeric" },
+  { id: "how_many_supply_trips_wiper_blades_fluids_oil", label: "How Many Supply Trips – Wipes/etc.?", type: "numeric" },
+  { id: "how_many_cleaning_extras_car_seats_coolers_ski_racks", label: "How Many Cleaning Extras (Roof Racks, etc.)?", type: "numeric" },
   { id: "energy_today", label: "How was my energy today?", type: "energy" },
   { id: "grateful_for", label: "I am grateful for…", type: "text" },
   { id: "additional_comments", label: "Additional Comments on Day", type: "text" },
@@ -332,7 +335,12 @@ export default function StaffTime() {
 
   const submitClockOut = async (
     endReason: "break" | "shift_end",
-    detailsArray: { name: string; description: string }[]
+    detailsArray: Array<{
+      key?: string;
+      name: string;
+      value?: string | number;
+      description?: string;
+    }>
   ) => {
     setActionLoading(true);
     try {
@@ -375,7 +383,9 @@ export default function StaffTime() {
 
   const onClockOutBreak = () => {
     const notes = endNotes.trim();
-    const details = notes ? [{ name: "Notes", description: notes }] : [];
+    const details = notes
+      ? [{ key: "notes", name: "Notes", value: notes, description: notes }]
+      : [];
     void submitClockOut("break", details);
   };
 
@@ -384,12 +394,28 @@ export default function StaffTime() {
   };
 
   const onSubmitShiftEnd = () => {
-    const details = SHIFT_QUESTIONS.map((q) => ({
-      name: q.label,
-      description: answers[q.id]?.trim() ?? "",
-    }));
+    // Build entries that the backend's stats report can aggregate by `key`.
+    // For numeric questions we coerce the chosen value to a number so the
+    // server's parseFormDetails treats it as a count.
+    const details = SHIFT_QUESTIONS.map((q) => {
+      const raw = answers[q.id]?.trim() ?? "";
+      const value =
+        q.type === "numeric"
+          ? raw === ""
+            ? 0
+            : Number(raw) || 0
+          : raw;
+      return {
+        key: q.id,
+        name: q.label,
+        value,
+        description: raw,
+      };
+    });
     const notes = endNotes.trim();
-    if (notes) details.push({ name: "Notes", description: notes });
+    if (notes) {
+      details.push({ key: "notes", name: "Notes", value: notes, description: notes });
+    }
     void submitClockOut("shift_end", details);
   };
 

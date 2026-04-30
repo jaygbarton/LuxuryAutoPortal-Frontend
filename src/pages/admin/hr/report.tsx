@@ -400,6 +400,21 @@ export default function AdminHrReport() {
 
 // ── Stats table ──────────────────────────────────────────────────────────
 
+/** Strip the year from a bucket label so headers stay compact.
+ *  "Apr 28, 2026" → "Apr 28" | "2026 · Week 18" → "Wk 18" | "April 2026" → "Apr" | "2026" → "2026" */
+function shortBucketLabel(label: string): string {
+  // Daily: "Apr 28, 2026" or "Apr 28 2026"
+  const daily = label.match(/^([A-Za-z]{3}\s+\d{1,2})[,\s]+\d{4}$/);
+  if (daily) return daily[1];
+  // Weekly: "2026 · Week 18" or "2026 · Wk 18"
+  const weekly = label.match(/\bWeek\s*(\d+)\b/i) ?? label.match(/\bWk\s*(\d+)\b/i);
+  if (weekly) return `Wk ${weekly[1]}`;
+  // Monthly: "April 2026" or "Apr 2026"
+  const monthly = label.match(/^([A-Za-z]+)\s+\d{4}$/);
+  if (monthly) return monthly[1].slice(0, 3);
+  return label;
+}
+
 function StatsTable(props: { stats: StatsReport }) {
   const { stats } = props;
   return (
@@ -413,12 +428,13 @@ function StatsTable(props: { stats: StatsReport }) {
             {stats.buckets.map((b) => (
               <th
                 key={b.bucket}
-                className="min-w-[70px] px-2 py-2 text-center font-semibold whitespace-nowrap"
+                className="min-w-[56px] px-2 py-2 text-center font-semibold whitespace-nowrap"
+                title={b.label}
               >
-                {b.label}
+                {shortBucketLabel(b.label)}
               </th>
             ))}
-            <th className="min-w-[70px] bg-black px-2 py-2 text-center font-bold text-[#d3bc8d]">
+            <th className="min-w-[56px] bg-black px-2 py-2 text-center font-bold text-[#d3bc8d]">
               Total
             </th>
           </tr>
@@ -450,19 +466,6 @@ function StatsTable(props: { stats: StatsReport }) {
               </td>
             </tr>
           ))}
-          <tr className="bg-[#d3bc8d] font-bold">
-            <td className="sticky left-0 z-10 min-w-[240px] bg-[#d3bc8d] px-3 py-2 text-left font-bold text-black">
-              TOTAL
-            </td>
-            {stats.grandTotalByBucket.map((v, i) => (
-              <td key={i} className="px-2 py-2 text-center font-bold text-black">
-                {v > 0 ? v : "—"}
-              </td>
-            ))}
-            <td className="px-2 py-2 text-center font-bold text-black">
-              {stats.grandTotal > 0 ? stats.grandTotal : "—"}
-            </td>
-          </tr>
         </tbody>
       </table>
     </div>
