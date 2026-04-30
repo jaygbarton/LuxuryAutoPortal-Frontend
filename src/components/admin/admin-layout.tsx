@@ -121,7 +121,6 @@ const allSidebarItems: SidebarItem[] = [
     children: [
       { href: "/admin/payroll", label: "Pay Run", icon: DollarSign, roles: ["admin"] },
       { href: "/admin/payroll/commissions", label: "Commissions", icon: DollarSign, roles: ["admin"] },
-      { href: "/admin/payroll/report", label: "Report", icon: ClipboardList, roles: ["admin"] },
     ],
   },
   { href: "/admin/settings", label: "Settings", icon: Settings, roles: ["admin", "client"] },

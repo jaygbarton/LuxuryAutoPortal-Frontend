@@ -34,7 +34,8 @@ import {
 } from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Search, ChevronDown, X } from "lucide-react";
+import { useRef, useEffect } from "react";
 
 interface CommissionRow {
   commissions_aid: number;
@@ -44,10 +45,6 @@ interface CommissionRow {
   commissions_remarks: string;
   commissions_employee_id: number;
   commissions_date: string;
-  commissions_account_owner_name: string;
-  commissions_account_owner_id: string;
-  commissions_percentage: string;
-  commissions_percentage_amount: string;
   commissions_billed_gla_client?: number;
   fullname?: string;
 }
@@ -71,14 +68,12 @@ export default function PayrollCommissionsPage() {
     commissions_employee_id: 0,
     commissions_date: "",
     commissions_remarks: "",
-    commissions_account_owner_name: "",
-    commissions_account_owner_id: "",
-    commissions_percentage: "",
-    commissions_percentage_amount: "",
     commissions_billed_gla_client: 0,
   });
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [selectedEmployeeName, setSelectedEmployeeName] = useState("");
+  const [focusEmpSearch, setFocusEmpSearch] = useState(false);
+  const empSearchRef = useRef<HTMLDivElement>(null);
 
   const params = new URLSearchParams();
   if (search.trim()) params.set("search", search.trim());
@@ -97,9 +92,9 @@ export default function PayrollCommissionsPage() {
   });
 
   const { data: employeeSearchResult } = useQuery<{ success: boolean; data: { employee_aid: number; fullname: string }[] }>({
-    queryKey: ["/api/admin/hr/search-employee", employeeSearch],
+    queryKey: ["/api/admin/work-sched/search-employee", employeeSearch],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/admin/hr/search-employee"), {
+      const res = await fetch(buildApiUrl("/api/admin/work-sched/search-employee"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -108,7 +103,7 @@ export default function PayrollCommissionsPage() {
       if (!res.ok) throw new Error("Search failed");
       return res.json();
     },
-    enabled: employeeSearch.trim().length >= 2,
+    enabled: modalOpen,
   });
 
   const createMutation = useMutation({
@@ -211,18 +206,25 @@ export default function PayrollCommissionsPage() {
       commissions_employee_id: 0,
       commissions_date: "",
       commissions_remarks: "",
-      commissions_account_owner_name: "",
-      commissions_account_owner_id: "",
-      commissions_percentage: "",
-      commissions_percentage_amount: "",
       commissions_billed_gla_client: 0,
     });
     setEmployeeSearch("");
     setSelectedEmployeeName("");
+    setFocusEmpSearch(false);
   }
 
   const rows = data?.data ?? [];
   const employees = employeeSearchResult?.data ?? [];
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (empSearchRef.current && !empSearchRef.current.contains(e.target as Node)) {
+        setFocusEmpSearch(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   return (
     <AdminLayout>
@@ -342,10 +344,6 @@ export default function PayrollCommissionsPage() {
                                 commissions_employee_id: r.commissions_employee_id,
                                 commissions_date: r.commissions_date,
                                 commissions_remarks: r.commissions_remarks ?? "",
-                                commissions_account_owner_name: r.commissions_account_owner_name ?? "",
-                                commissions_account_owner_id: r.commissions_account_owner_id ?? "",
-                                commissions_percentage: r.commissions_percentage ?? "",
-                                commissions_percentage_amount: r.commissions_percentage_amount ?? "",
                                 commissions_billed_gla_client: r.commissions_billed_gla_client ? 1 : 0,
                               });
                               setSelectedEmployeeName(r.fullname ?? "");
@@ -385,34 +383,89 @@ export default function PayrollCommissionsPage() {
             {!editingId && (
               <div className="space-y-2">
                 <Label>Employee (search and select)</Label>
-                <Input
-                  placeholder="Type to search employee..."
-                  value={editingId ? selectedEmployeeName : employeeSearch}
-                  onChange={(e) => {
-                    if (!editingId) {
-                      setEmployeeSearch(e.target.value);
-                      setSelectedEmployeeName("");
-                    }
-                  }}
-                />
-                {employees.length > 0 && !editingId && (
-                  <ul className="border rounded-md max-h-32 overflow-auto">
-                    {employees.slice(0, 10).map((emp: { employee_aid: number; fullname: string }) => (
-                      <li
-                        key={emp.employee_aid}
-                        className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
-                        onClick={() => {
-                          setForm((f) => ({ ...f, commissions_employee_id: emp.employee_aid }));
-                          setSelectedEmployeeName(emp.fullname);
-                          setEmployeeSearch("");
-                        }}
-                      >
-                        {emp.fullname}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {editingId && <p className="text-sm text-muted-foreground">{selectedEmployeeName}</p>}
+                <div ref={empSearchRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setFocusEmpSearch((v) => !v)}
+                    className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    {selectedEmployeeName ? (
+                      <span className="truncate">{selectedEmployeeName}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Select employee...</span>
+                    )}
+                    <div className="flex items-center gap-1 ml-2 shrink-0">
+                      {selectedEmployeeName && (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.stopPropagation();
+                              setForm((f) => ({ ...f, commissions_employee_id: 0 }));
+                              setSelectedEmployeeName("");
+                              setEmployeeSearch("");
+                              setFocusEmpSearch(true);
+                            }
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setForm((f) => ({ ...f, commissions_employee_id: 0 }));
+                            setSelectedEmployeeName("");
+                            setEmployeeSearch("");
+                            setFocusEmpSearch(true);
+                          }}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </span>
+                      )}
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-150 ${focusEmpSearch ? "rotate-180" : ""}`} />
+                    </div>
+                  </button>
+                  {focusEmpSearch && (
+                    <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md">
+                      <div className="flex items-center border-b px-3 py-2 gap-2">
+                        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <input
+                          autoFocus
+                          type="text"
+                          value={employeeSearch}
+                          onChange={(e) => setEmployeeSearch(e.target.value)}
+                          placeholder="Search employee..."
+                          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                        />
+                        {employeeSearch && (
+                          <button type="button" onClick={() => setEmployeeSearch("")} className="text-muted-foreground hover:text-foreground">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      <ul className="max-h-48 overflow-auto py-1">
+                        {employees.length === 0 ? (
+                          <li className="px-3 py-2 text-sm text-muted-foreground">No employees found.</li>
+                        ) : (
+                          employees.map((emp) => (
+                            <li key={emp.employee_aid}>
+                              <button
+                                type="button"
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
+                                onClick={() => {
+                                  setForm((f) => ({ ...f, commissions_employee_id: emp.employee_aid }));
+                                  setSelectedEmployeeName(emp.fullname);
+                                  setEmployeeSearch("");
+                                  setFocusEmpSearch(false);
+                                }}
+                              >
+                                {emp.fullname}
+                              </button>
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             <div className="grid grid-cols-2 gap-2">
@@ -450,41 +503,6 @@ export default function PayrollCommissionsPage() {
                 onChange={(e) => setForm((f) => ({ ...f, commissions_remarks: e.target.value }))}
                 placeholder="Remarks"
               />
-            </div>
-            <div className="rounded-md border p-3 space-y-3">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Optional fields</p>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1.5">
-                  <Label>Account owner name</Label>
-                  <Input
-                    value={form.commissions_account_owner_name}
-                    onChange={(e) => setForm((f) => ({ ...f, commissions_account_owner_name: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Account owner ID</Label>
-                  <Input
-                    value={form.commissions_account_owner_id}
-                    onChange={(e) => setForm((f) => ({ ...f, commissions_account_owner_id: e.target.value }))}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1.5">
-                  <Label>Percentage</Label>
-                  <Input
-                    value={form.commissions_percentage}
-                    onChange={(e) => setForm((f) => ({ ...f, commissions_percentage: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Percentage amount</Label>
-                  <Input
-                    value={form.commissions_percentage_amount}
-                    onChange={(e) => setForm((f) => ({ ...f, commissions_percentage_amount: e.target.value }))}
-                  />
-                </div>
-              </div>
             </div>
             {isInsuranceType(form.commissions_type) && (
               <div className="flex items-center gap-2 rounded-md border p-3">
@@ -526,10 +544,6 @@ export default function PayrollCommissionsPage() {
                       commissions_amount: form.commissions_amount,
                       commissions_date: form.commissions_date,
                       commissions_remarks: form.commissions_remarks,
-                      commissions_account_owner_name: form.commissions_account_owner_name,
-                      commissions_account_owner_id: form.commissions_account_owner_id,
-                      commissions_percentage: form.commissions_percentage,
-                      commissions_percentage_amount: form.commissions_percentage_amount,
                       commissions_billed_gla_client: form.commissions_billed_gla_client,
                     },
                   });

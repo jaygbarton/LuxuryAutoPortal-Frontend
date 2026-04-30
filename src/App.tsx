@@ -52,8 +52,6 @@ import PayrollPage from "@/pages/admin/payroll";
 import PayrollByRunPage from "@/pages/admin/payroll/payroll-by-run";
 import PayslipPage from "@/pages/admin/payroll/payslip";
 import PayrollCommissionsPage from "@/pages/admin/payroll/commissions";
-import PayrollReportIndexPage from "@/pages/admin/payroll/report";
-import PayrollReportLoggedHoursPage from "@/pages/admin/payroll/report/logged-hours";
 import EmployeeFormPage from "@/pages/employee-form";
 import BouncieDevicesPage from "@/pages/admin/bouncie-devices";
 import BouncieFleetPage from "@/pages/admin/bouncie";
@@ -185,8 +183,6 @@ function Router() {
             <Route path="/admin/hr/report" component={AdminHrReport} />
             <Route path="/admin/payroll" component={PayrollPage} />
             <Route path="/admin/payroll/commissions" component={PayrollCommissionsPage} />
-            <Route path="/admin/payroll/report/logged-hours" component={PayrollReportLoggedHoursPage} />
-            <Route path="/admin/payroll/report" component={PayrollReportIndexPage} />
             <Route path="/admin/payroll/:payrunId/payslip/:employeeId" component={PayslipPage} />
             <Route path="/admin/payroll/:payrunId" component={PayrollByRunPage} />
             <Route path="/client/dashboard" component={ClientDashboardPage} />
