@@ -24,7 +24,7 @@ import {
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Copy, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const LIMIT_CELL = 3;
@@ -368,59 +368,98 @@ function AddEditModal({
           </p>
           <div ref={ref} className="relative">
             <Label>Employee</Label>
-            <Input
-              type="search"
-              value={selectedEmployee ? selectedEmployee.fullname : employeeSearch}
-              onChange={(e) => {
-                setEmployeeSearch(e.target.value);
-                if (!e.target.value) setSelectedEmployee(null);
-              }}
-              onFocus={() => setFocusSearch(true)}
-              placeholder="Search employee..."
-              className="mt-1"
-            />
-            {focusSearch && !selectedEmployee && (
-              <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-popover py-1 shadow-md">
-                {searchResults.length === 0 ? (
-                  <li className="px-3 py-2 text-sm text-muted-foreground">No results</li>
-                ) : (
-                  searchResults.map((emp) => {
-                    const dept = emp.employee_job_pay_department_name?.trim() ?? "";
-                    const title = emp.employee_job_pay_job_title_name?.trim() ?? "";
-                    const email = emp.employee_job_pay_work_email?.trim() ?? "";
-                    const subtitle = [dept, title].filter(Boolean).join(" · ") || email || null;
-                    return (
-                      <li key={emp.employee_aid}>
-                        <button
-                          type="button"
-                          className="w-full px-3 py-2 text-left hover:bg-accent"
-                          onClick={() => {
-                            setSelectedEmployee(emp);
-                            setEmployeeSearch(emp.fullname);
-                            setFocusSearch(false);
-                          }}
-                        >
-                          <div className="font-medium text-sm">{emp.fullname}</div>
-                          {subtitle && (
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              {subtitle}
-                            </div>
-                          )}
-                          {!emp.employee_job_pay_salary_rate && (
-                            <div className="text-xs text-destructive mt-0.5">NO SALARY RATE</div>
-                          )}
-                        </button>
-                      </li>
-                    );
-                  })
+            {/* Combobox trigger */}
+            <button
+              type="button"
+              onClick={() => setFocusSearch((v) => !v)}
+              className="mt-1 flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {selectedEmployee ? (
+                <span className="truncate">{selectedEmployee.fullname}</span>
+              ) : (
+                <span className="text-muted-foreground">Select employee...</span>
+              )}
+              <div className="flex items-center gap-1 ml-2 shrink-0">
+                {selectedEmployee && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setSelectedEmployee(null); setEmployeeSearch(""); setFocusSearch(true); } }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedEmployee(null);
+                      setEmployeeSearch("");
+                      setFocusSearch(true);
+                    }}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </span>
                 )}
-              </ul>
-            )}
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-150 ${focusSearch ? "rotate-180" : ""}`} />
+              </div>
+            </button>
+            {/* Selected employee subtitle */}
             {selectedEmployee && (selectedEmployee.employee_job_pay_department_name || selectedEmployee.employee_job_pay_job_title_name || selectedEmployee.employee_job_pay_work_email) && (
-              <div className="mt-1.5 text-xs text-muted-foreground">
+              <div className="mt-1 text-xs text-muted-foreground">
                 {[selectedEmployee.employee_job_pay_department_name, selectedEmployee.employee_job_pay_job_title_name]
                   .filter(Boolean)
                   .join(" · ") || selectedEmployee.employee_job_pay_work_email}
+              </div>
+            )}
+            {/* Dropdown panel */}
+            {focusSearch && (
+              <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md">
+                {/* Search input inside dropdown */}
+                <div className="flex items-center border-b px-3 py-2 gap-2">
+                  <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <input
+                    autoFocus
+                    type="text"
+                    value={employeeSearch}
+                    onChange={(e) => setEmployeeSearch(e.target.value)}
+                    placeholder="Search employee..."
+                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                  />
+                  {employeeSearch && (
+                    <button type="button" onClick={() => setEmployeeSearch("")} className="text-muted-foreground hover:text-foreground">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <ul className="max-h-56 overflow-auto py-1">
+                  {searchResults.length === 0 ? (
+                    <li className="px-3 py-2 text-sm text-muted-foreground">No results</li>
+                  ) : (
+                    searchResults.map((emp) => {
+                      const dept = emp.employee_job_pay_department_name?.trim() ?? "";
+                      const title = emp.employee_job_pay_job_title_name?.trim() ?? "";
+                      const email = emp.employee_job_pay_work_email?.trim() ?? "";
+                      const subtitle = [dept, title].filter(Boolean).join(" · ") || email || null;
+                      return (
+                        <li key={emp.employee_aid}>
+                          <button
+                            type="button"
+                            className="w-full px-3 py-2 text-left hover:bg-accent"
+                            onClick={() => {
+                              setSelectedEmployee(emp);
+                              setEmployeeSearch(emp.fullname);
+                              setFocusSearch(false);
+                            }}
+                          >
+                            <div className="font-medium text-sm">{emp.fullname}</div>
+                            {subtitle && (
+                              <div className="text-xs text-muted-foreground mt-0.5">{subtitle}</div>
+                            )}
+                            {!emp.employee_job_pay_salary_rate && (
+                              <div className="text-xs text-destructive mt-0.5">NO SALARY RATE</div>
+                            )}
+                          </button>
+                        </li>
+                      );
+                    })
+                  )}
+                </ul>
               </div>
             )}
           </div>
@@ -621,7 +660,7 @@ export default function WorkSchedulePage() {
   const { data: leavesData } = useQuery<{ data?: Array<{ leave_employee_id: number; leave_date: string; fullname: string; leave_is_status: number }> }>({
     queryKey: ["work-sched", "approved-leaves", month],
     queryFn: async () => {
-      const params = new URLSearchParams({ fromDate: leaveFrom, toDate: leaveTo, status: "approved", limit: "500" });
+      const params = new URLSearchParams({ fromDate: leaveFrom, toDate: leaveTo, status: "1", limit: "500" });
       const res = await fetch(buildApiUrl(`/api/admin/hr/leave?${params}`), { credentials: "include" });
       if (!res.ok) return { data: [] };
       return res.json();
