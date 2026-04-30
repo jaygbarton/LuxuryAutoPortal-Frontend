@@ -1804,18 +1804,56 @@ export default function EarningsPage() {
                       <span>{monthLabel}</span>
                       <span className="font-semibold">{formatCurrency(rentalIncome)}</span>
                   </div>
-                    
-                    {/* Chart Image Area */}
-                    <div className={cn("bg-card border border-border relative group min-h-[200px] flex items-center justify-center", monthRentalImages.length > 0 ? "rounded-b-none" : "rounded-b")}>
+
+                  {/* Main Card Body */}
+                  {monthRentalImages.length > 0 ? (
+                    <>
+                      {/* Rental Income Photo as main display (gla-v3 style) */}
+                      <div
+                        className="group relative h-[210px] border border-t-0 border-border rounded-b overflow-hidden cursor-pointer"
+                        onClick={() => setPreviewRentalImage(monthRentalImages[0].url)}
+                      >
+                        <div className="absolute top-0 left-0 z-20 h-full w-full transition ease-linear duration-100 hidden group-hover:flex justify-center items-center bg-black/50 text-white">
+                          <span className="text-sm font-medium">View</span>
+                        </div>
+                        <img
+                          src={monthRentalImages[0].url}
+                          alt={monthRentalImages[0].filename}
+                          className="h-full w-full object-cover object-center absolute top-0 left-0 z-10"
+                        />
+                      </div>
+                      {/* Additional images as thumbnails */}
+                      {monthRentalImages.length > 1 && (
+                        <div className="border border-t-0 border-border rounded-b px-3 py-2 bg-card">
+                          <div className="flex flex-wrap gap-2">
+                            {monthRentalImages.slice(1).map((img) => (
+                              <button
+                                key={img.id}
+                                onClick={() => setPreviewRentalImage(img.url)}
+                                className="w-14 h-14 rounded border border-border overflow-hidden hover:border-primary transition-colors flex-shrink-0"
+                                title={img.filename}
+                              >
+                                <img
+                                  src={img.url}
+                                  alt={img.filename}
+                                  className="w-full h-full object-cover"
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    /* Chart Image Area — shown only when no rental income photo */
+                    <div className="bg-card border border-t-0 border-border rounded-b relative group min-h-[210px] flex items-center justify-center">
                       {chartImageUrl ? (
                         <>
-                          {/* Manual Upload Override - Show uploaded image */}
                           <img
                             src={chartImageUrl}
                             alt={`Turo Earnings Chart - ${monthLabel}`}
                             className="w-full h-auto max-h-[300px] object-contain"
                           />
-                          {/* Delete button on hover */}
                           {isAdmin && (
                             <button
                               onClick={() => handleChartDelete(monthNum)}
@@ -1825,8 +1863,7 @@ export default function EarningsPage() {
                               <X className="w-4 h-4" />
                             </button>
                           )}
-                          {/* Upload overlay for replacing manual upload */}
-                          {chartImageUrl && isAdmin && (
+                          {isAdmin && (
                             <label className="absolute inset-0 bg-background bg-opacity-0 hover:bg-opacity-50 transition-all cursor-pointer flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-b">
                               <input
                                 type="file"
@@ -1834,26 +1871,18 @@ export default function EarningsPage() {
                                 className="hidden"
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
-                                  if (file) {
-                                    handleChartUpload(monthNum, file);
-                                  }
+                                  if (file) handleChartUpload(monthNum, file);
                                   e.target.value = "";
                                 }}
                                 disabled={isUploading}
                               />
                               <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/80 transition-colors">
                                 {isUploading ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span className="text-sm">Uploading...</span>
-                                  </>
+                                  <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Uploading...</span></>
                                 ) : (
-                                  <>
-                                    <Upload className="w-4 h-4" />
-                                    <span className="text-sm">Replace Chart</span>
-                                  </>
+                                  <><Upload className="w-4 h-4" /><span className="text-sm">Replace Chart</span></>
                                 )}
-                  </div>
+                              </div>
                             </label>
                           )}
                         </>
@@ -1862,42 +1891,41 @@ export default function EarningsPage() {
                           {/* Auto-Generated Chart */}
                           <div className="w-full h-full p-4">
                             <ResponsiveContainer width="100%" height={200}>
-                              <BarChart 
+                              <BarChart
                                 data={chartData}
                                 margin={{ top: 5, right: 5, left: 5, bottom: 40 }}
                               >
                                 <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
-                                <XAxis 
-                                  dataKey="name" 
+                                <XAxis
+                                  dataKey="name"
                                   stroke="#9ca3af"
                                   tick={{ fill: '#9ca3af', fontSize: 10 }}
                                   angle={-45}
                                   textAnchor="end"
                                   height={60}
                                 />
-                                <YAxis 
+                                <YAxis
                                   stroke="#9ca3af"
                                   tick={{ fill: '#9ca3af', fontSize: 10 }}
                                   tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
                                 />
-                                <Tooltip 
-                                  contentStyle={{ 
-                                    backgroundColor: '#1a1a1a', 
+                                <Tooltip
+                                  contentStyle={{
+                                    backgroundColor: '#1a1a1a',
                                     border: '1px solid #2a2a2a',
                                     borderRadius: '4px',
                                     color: '#fff'
                                   }}
                                   formatter={(value: number) => formatCurrency(value)}
                                 />
-                                <Bar 
+                                <Bar
                                   dataKey="value"
                                   radius={[4, 4, 0, 0]}
                                   fill="#D3BC8D"
                                 />
                               </BarChart>
                             </ResponsiveContainer>
-                </div>
-                          
+                          </div>
                           {/* Upload button overlay for auto-generated chart */}
                           {isAdmin && (
                             <div className="absolute inset-0 bg-background bg-opacity-0 hover:bg-opacity-30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-b">
@@ -1908,53 +1936,27 @@ export default function EarningsPage() {
                                   className="hidden"
                                   onChange={(e) => {
                                     const file = e.target.files?.[0];
-                                    if (file) {
-                                      handleChartUpload(monthNum, file);
-                                    }
+                                    if (file) handleChartUpload(monthNum, file);
                                     e.target.value = "";
                                   }}
                                   disabled={isUploading}
                                 />
                                 <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                   {isUploading ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                      <span className="text-sm">Uploading...</span>
-                                    </>
+                                    <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Uploading...</span></>
                                   ) : (
-                                    <>
-                                      <Upload className="w-4 h-4" />
-                                      <span className="text-sm">Upload Custom Chart</span>
-                                    </>
+                                    <><Upload className="w-4 h-4" /><span className="text-sm">Upload Custom Chart</span></>
                                   )}
-            </div>
+                                </div>
                               </label>
                             </div>
                           )}
+                          {/* Placeholder icon when no data */}
+                          {rentalIncome === 0 && reimbursedAmount === 0 && (
+                            <ImageIcon className="w-16 h-16 fill-muted-foreground/20 text-muted-foreground/20 absolute" />
+                          )}
                         </>
                       )}
-                    </div>
-
-                  {/* Rental Income Uploaded Photos */}
-                  {monthRentalImages.length > 0 && (
-                    <div className="border border-t-0 border-border rounded-b px-3 py-2 bg-card">
-                      <p className="text-xs text-muted-foreground mb-2 font-medium">Rental Income Receipts</p>
-                      <div className="flex flex-wrap gap-2">
-                        {monthRentalImages.map((img) => (
-                          <button
-                            key={img.id}
-                            onClick={() => setPreviewRentalImage(img.url)}
-                            className="w-14 h-14 rounded border border-border overflow-hidden hover:border-primary transition-colors flex-shrink-0"
-                            title={img.filename}
-                          >
-                            <img
-                              src={img.url}
-                              alt={img.filename}
-                              className="w-full h-full object-cover"
-                            />
-                          </button>
-                        ))}
-                      </div>
                     </div>
                   )}
                   </div>
