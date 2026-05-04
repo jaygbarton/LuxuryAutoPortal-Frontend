@@ -32,7 +32,6 @@ import { useToast } from "@/hooks/use-toast";
 import {
   RefreshCw,
   Calendar,
-  DollarSign,
   TrendingUp,
   TrendingDown,
   ExternalLink,
@@ -45,7 +44,7 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
-import { format, differenceInDays, differenceInHours } from "date-fns";
+import { format, differenceInHours } from "date-fns";
 
 interface TuroTrip {
   id: number;
@@ -56,6 +55,7 @@ interface TuroTrip {
   phoneNumber: string | null;
   carName: string | null;
   carLink: string | null;
+  plateNumber: string | null;
   tripStart: string;
   tripEnd: string;
   earnings: number;
@@ -66,6 +66,11 @@ interface TuroTrip {
   returnLocation: string | null;
   deliveryLocation: string | null;
   totalDistance: string | null;
+  extras: string | null;
+  milesIncluded: string | null;
+  milesDriven: string | null;
+  tripStartOdometer: number | null;
+  tripEndOdometer: number | null;
   emailSubject: string | null;
   emailReceivedAt: string | null;
   cancellationReason: string | null;
@@ -103,6 +108,9 @@ export default function TuroTripsPage() {
   const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  // Inline odometer editing: tripId → { start, end }
+  const [odometerEdits, setOdometerEdits] = useState<Record<number, { start: string; end: string }>>({});
+  const [savingOdometer, setSavingOdometer] = useState<number | null>(null);
   const itemsPerPage = 20;
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -189,6 +197,39 @@ export default function TuroTripsPage() {
       });
     },
   });
+
+  // Save odometer readings for a trip
+  const saveOdometers = async (trip: TuroTrip) => {
+    const edit = odometerEdits[trip.id];
+    const startVal = edit?.start !== undefined ? edit.start : String(trip.tripStartOdometer ?? "");
+    const endVal = edit?.end !== undefined ? edit.end : String(trip.tripEndOdometer ?? "");
+
+    setSavingOdometer(trip.id);
+    try {
+      const response = await fetch(buildApiUrl(`/api/turo-trips/${trip.id}/odometers`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tripStartOdometer: startVal !== "" ? parseInt(startVal) : null,
+          tripEndOdometer: endVal !== "" ? parseInt(endVal) : null,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      // Clear edit state for this trip
+      setOdometerEdits((prev) => {
+        const next = { ...prev };
+        delete next[trip.id];
+        return next;
+      });
+      toast({ title: "Odometer saved", description: `Reservation #${trip.reservationId}` });
+    } catch {
+      toast({ title: "Failed to save odometer", variant: "destructive" });
+    } finally {
+      setSavingOdometer(null);
+    }
+  };
 
   const trips = tripsData?.data || [];
   const totalTrips = tripsData?.total || 0;
@@ -488,31 +529,33 @@ export default function TuroTripsPage() {
             <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Reservation ID</TableHead>
-                    <TableHead>Guest</TableHead>
-                    <TableHead>Car</TableHead>
-                    <TableHead>Trip Booked</TableHead>
-                    <TableHead>Trip Start</TableHead>
-                    <TableHead>Trip End</TableHead>
-                    <TableHead>Pickup Location</TableHead>
-                    <TableHead>Return Location</TableHead>
-                    <TableHead className="text-center">Days</TableHead>
-                    <TableHead>Earnings</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Calendar</TableHead>
+                  <TableRow className="bg-muted/40">
+                    <TableHead className="whitespace-nowrap font-semibold">Reservation #</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">CAR</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">Plate #</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">Trip Start</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">Pick Up Location</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">Trip Ends</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">Drop Off Location</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">Extras</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">Miles Included</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">Miles Driven</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">Trip Start Odometer</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">Trip Ends Odometer</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">Total Miles</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">Earnings</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoadingTrips ? (
                     <TableRow>
-                      <TableCell colSpan={12} className="text-center py-8">
+                      <TableCell colSpan={14} className="text-center py-8">
                         <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                       </TableCell>
                     </TableRow>
                   ) : trips.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={12} className="text-center py-12">
+                      <TableCell colSpan={14} className="text-center py-12">
                         <div className="flex flex-col items-center gap-3 text-muted-foreground">
                           {debouncedSearchQuery || statusFilter !== "all" ? (
                             <>
@@ -546,79 +589,188 @@ export default function TuroTripsPage() {
                     </TableRow>
                   ) : (
                     trips.map((trip) => {
-                      const daysRented = calculateDaysRented(trip.tripStart, trip.tripEnd, trip.status);
+                      const edit = odometerEdits[trip.id];
+                      const startOdoVal = edit?.start !== undefined ? edit.start : String(trip.tripStartOdometer ?? "");
+                      const endOdoVal = edit?.end !== undefined ? edit.end : String(trip.tripEndOdometer ?? "");
+                      const startOdoNum = startOdoVal !== "" ? parseInt(startOdoVal) : null;
+                      const endOdoNum = endOdoVal !== "" ? parseInt(endOdoVal) : null;
+                      const totalMiles = startOdoNum != null && endOdoNum != null && endOdoNum >= startOdoNum
+                        ? endOdoNum - startOdoNum
+                        : null;
+                      const hasUnsavedEdits = edit !== undefined;
+
                       return (
                         <TableRow
                           key={trip.id}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => setSelectedTrip(trip)}
+                          className="hover:bg-muted/50"
                         >
-                          <TableCell className="font-mono text-sm">
+                          {/* Reservation # */}
+                          <TableCell
+                            className="font-mono text-sm cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
                             #{debouncedSearchQuery ? highlightText(trip.reservationId, debouncedSearchQuery) : trip.reservationId}
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                              {debouncedSearchQuery ? highlightText(trip.guestName, debouncedSearchQuery) : (trip.guestName || "Unknown")}
+
+                          {/* CAR */}
+                          <TableCell
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
+                            <div className="text-sm whitespace-nowrap">
+                              {debouncedSearchQuery ? highlightText(trip.carName, debouncedSearchQuery) : (trip.carName || "-")}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Car className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                              <span className="whitespace-nowrap">
-                                {debouncedSearchQuery ? highlightText(trip.carName, debouncedSearchQuery) : (trip.carName || "Unknown")}
-                              </span>
-                            </div>
+
+                          {/* Plate # */}
+                          <TableCell
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
+                            <span className="text-sm font-mono">
+                              {trip.plateNumber || "-"}
+                            </span>
                           </TableCell>
-                          <TableCell>
-                            <div className="text-sm whitespace-nowrap text-muted-foreground">
-                              {trip.dateBooked ? formatDateShort(trip.dateBooked) : "-"}
-                            </div>
-                          </TableCell>
-                          <TableCell>
+
+                          {/* Trip Start */}
+                          <TableCell
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
                             <div className="text-sm whitespace-nowrap">
                               {formatDateTime(trip.tripStart)}
                             </div>
                           </TableCell>
-                          <TableCell>
+
+                          {/* Pick Up Location */}
+                          <TableCell
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
+                            <div className="text-sm max-w-[160px] truncate" title={trip.pickupLocation || trip.deliveryLocation || ""}>
+                              {trip.pickupLocation || trip.deliveryLocation || "-"}
+                            </div>
+                          </TableCell>
+
+                          {/* Trip Ends */}
+                          <TableCell
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
                             <div className="text-sm whitespace-nowrap">
                               {formatDateTime(trip.tripEnd)}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="text-sm max-w-[150px] truncate" title={trip.pickupLocation || trip.deliveryLocation || ""}>
-                              {trip.pickupLocation || trip.deliveryLocation || "-"}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm max-w-[150px] truncate" title={trip.returnLocation || ""}>
+
+                          {/* Drop Off Location */}
+                          <TableCell
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
+                            <div className="text-sm max-w-[160px] truncate" title={trip.returnLocation || ""}>
                               {trip.returnLocation || "-"}
                             </div>
                           </TableCell>
-                          <TableCell className="text-center">
-                            <span className={`font-semibold ${daysRented === null ? "text-muted-foreground" : "text-foreground"}`}>
-                              {daysRented === null ? "-" : daysRented}
+
+                          {/* Extras */}
+                          <TableCell
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
+                            <div className="text-sm max-w-[120px] truncate" title={trip.extras || ""}>
+                              {trip.extras || "-"}
+                            </div>
+                          </TableCell>
+
+                          {/* Miles Included */}
+                          <TableCell
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
+                            <span className="text-sm whitespace-nowrap">
+                              {trip.milesIncluded || trip.totalDistance || "-"}
                             </span>
                           </TableCell>
+
+                          {/* Miles Driven */}
+                          <TableCell
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
+                            <span className="text-sm whitespace-nowrap">
+                              {trip.milesDriven || "-"}
+                            </span>
+                          </TableCell>
+
+                          {/* Trip Start Odometer — inline editable */}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              type="number"
+                              value={startOdoVal}
+                              onChange={(e) =>
+                                setOdometerEdits((prev) => ({
+                                  ...prev,
+                                  [trip.id]: { start: e.target.value, end: prev[trip.id]?.end ?? String(trip.tripEndOdometer ?? "") },
+                                }))
+                              }
+                              placeholder="0"
+                              className="w-24 h-8 text-sm"
+                            />
+                          </TableCell>
+
+                          {/* Trip Ends Odometer — inline editable */}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="number"
+                                value={endOdoVal}
+                                onChange={(e) =>
+                                  setOdometerEdits((prev) => ({
+                                    ...prev,
+                                    [trip.id]: { start: prev[trip.id]?.start ?? String(trip.tripStartOdometer ?? ""), end: e.target.value },
+                                  }))
+                                }
+                                placeholder="0"
+                                className="w-24 h-8 text-sm"
+                              />
+                              {hasUnsavedEdits && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs"
+                                  disabled={savingOdometer === trip.id}
+                                  onClick={() => saveOdometers(trip)}
+                                >
+                                  {savingOdometer === trip.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    "Save"
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+
+                          {/* Total Miles (auto-calculated) */}
                           <TableCell>
+                            <span className={`text-sm font-semibold ${totalMiles != null ? "text-foreground" : "text-muted-foreground"}`}>
+                              {totalMiles != null ? totalMiles.toLocaleString() : "-"}
+                            </span>
+                          </TableCell>
+
+                          {/* Earnings */}
+                          <TableCell
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
                             {trip.status === "cancelled" ? (
-                              <span className="text-red-600 font-semibold whitespace-nowrap">
+                              <span className="text-red-600 font-semibold whitespace-nowrap text-sm">
                                 ({formatCurrency(trip.cancelledEarnings)})
                               </span>
                             ) : (
-                              <span className="text-green-600 font-semibold whitespace-nowrap">
+                              <span className="text-green-600 font-semibold whitespace-nowrap text-sm">
                                 {formatCurrency(trip.earnings)}
                               </span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(trip.status)}
-                          </TableCell>
-                          <TableCell>
-                            {trip.calendarEventId ? (
-                              <CheckCircle className="w-4 h-4 text-green-500" />
-                            ) : (
-                              <XCircle className="w-4 h-4 text-muted-foreground" />
                             )}
                           </TableCell>
                         </TableRow>

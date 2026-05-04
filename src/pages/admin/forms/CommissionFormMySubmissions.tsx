@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { buildApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Eye, FileText, ExternalLink, DollarSign } from "lucide-react";
+import { Loader2, Eye, FileText, ExternalLink, DollarSign, ZoomIn, X } from "lucide-react";
 
 interface CommissionFormRow {
   cf_aid: number;
@@ -61,14 +61,10 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Pending</Badge>;
 }
 
-function receiptFileUrl(url: string) {
-  if (!url) return null;
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  return buildApiUrl(url);
-}
 
 export default function CommissionFormMySubmissions() {
   const [selectedRow, setSelectedRow] = useState<CommissionFormRow | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["/api/commission-forms/my"],
@@ -148,6 +144,27 @@ export default function CommissionFormMySubmissions() {
         </Table>
       </div>
 
+      {/* Receipt Lightbox */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white"
+            onClick={() => setLightboxUrl(null)}
+          >
+            <X className="h-7 w-7" />
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="Receipt full size"
+            className="max-w-full max-h-full rounded-lg shadow-2xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
       {/* Detail Dialog */}
       <Dialog open={!!selectedRow} onOpenChange={(open) => { if (!open) setSelectedRow(null); }}>
         <DialogContent className="max-w-lg">
@@ -211,14 +228,23 @@ export default function CommissionFormMySubmissions() {
                 <div className="pt-2">
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5">Receipt</p>
                   {selectedRow.cf_receipt_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                    <img
-                      src={receiptFileUrl(selectedRow.cf_receipt_url) ?? ""}
-                      alt="Receipt"
-                      className="max-h-48 rounded-md object-contain border border-border"
-                    />
+                    <button
+                      type="button"
+                      className="relative group block w-fit"
+                      onClick={() => setLightboxUrl(getProxiedImageUrl(selectedRow.cf_receipt_url ?? ""))}
+                    >
+                      <img
+                        src={getProxiedImageUrl(selectedRow.cf_receipt_url ?? "")}
+                        alt="Receipt"
+                        className="max-h-48 rounded-md object-contain border border-border transition-opacity group-hover:opacity-80"
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ZoomIn className="h-7 w-7 text-white drop-shadow-lg" />
+                      </span>
+                    </button>
                   ) : (
                     <a
-                      href={receiptFileUrl(selectedRow.cf_receipt_url) ?? "#"}
+                      href={getProxiedImageUrl(selectedRow.cf_receipt_url ?? "")}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-primary hover:underline text-sm"

@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { buildApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,7 @@ import {
   FileText,
   ExternalLink,
   DollarSign,
+  ZoomIn,
 } from "lucide-react";
 
 interface CommissionFormRow {
@@ -88,11 +89,6 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Pending</Badge>;
 }
 
-function receiptFileUrl(url: string) {
-  if (!url) return null;
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  return buildApiUrl(url);
-}
 
 export default function CommissionFormApprovalDashboard() {
   const { toast } = useToast();
@@ -106,6 +102,7 @@ export default function CommissionFormApprovalDashboard() {
 
   const [viewRow, setViewRow] = useState<CommissionFormRow | null>(null);
   const [editRow, setEditRow] = useState<CommissionFormRow | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [deleteRow, setDeleteRow] = useState<CommissionFormRow | null>(null);
   const [declineRow, setDeclineRow] = useState<CommissionFormRow | null>(null);
   const [declineReason, setDeclineReason] = useState("");
@@ -481,14 +478,23 @@ export default function CommissionFormApprovalDashboard() {
                 <div className="pt-1">
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5">Receipt</p>
                   {viewRow.cf_receipt_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                    <img
-                      src={receiptFileUrl(viewRow.cf_receipt_url) ?? ""}
-                      alt="Receipt"
-                      className="max-h-48 rounded-md object-contain border border-border"
-                    />
+                    <button
+                      type="button"
+                      className="relative group block w-fit"
+                      onClick={() => setLightboxUrl(getProxiedImageUrl(viewRow.cf_receipt_url ?? ""))}
+                    >
+                      <img
+                        src={getProxiedImageUrl(viewRow.cf_receipt_url ?? "")}
+                        alt="Receipt"
+                        className="max-h-48 rounded-md object-contain border border-border transition-opacity group-hover:opacity-80"
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ZoomIn className="h-7 w-7 text-white drop-shadow-lg" />
+                      </span>
+                    </button>
                   ) : (
                     <a
-                      href={receiptFileUrl(viewRow.cf_receipt_url) ?? "#"}
+                      href={getProxiedImageUrl(viewRow.cf_receipt_url ?? "")}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-primary hover:underline text-sm"
@@ -638,7 +644,7 @@ export default function CommissionFormApprovalDashboard() {
                   <p className="text-xs text-muted-foreground">
                     Current:{" "}
                     <a
-                      href={receiptFileUrl(editForm.cf_receipt_url) ?? "#"}
+                      href={getProxiedImageUrl(editForm.cf_receipt_url ?? "")}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:underline"
@@ -725,6 +731,27 @@ export default function CommissionFormApprovalDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Receipt Lightbox */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white"
+            onClick={() => setLightboxUrl(null)}
+          >
+            <X className="h-7 w-7" />
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="Receipt full size"
+            className="max-w-full max-h-full rounded-lg shadow-2xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
