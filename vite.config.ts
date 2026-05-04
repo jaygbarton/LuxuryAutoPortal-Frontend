@@ -166,6 +166,21 @@ export default defineConfig({
           });
         },
       },
+      "/uploads": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+        secure: false,
+        ws: false,
+        configure: (proxy, _options) => {
+          proxy.on("error", (err, _req, res) => {
+            console.error("Proxy error (uploads):", err.message);
+            if (res && !res.headersSent) {
+              (res as any).writeHead(502, { "Content-Type": "text/plain" });
+              (res as any).end("File not available");
+            }
+          });
+        },
+      },
     },
   },
 });

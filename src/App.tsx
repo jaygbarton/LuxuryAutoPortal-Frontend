@@ -87,6 +87,8 @@ import StaffClientTestimonials from "@/pages/staff/client-testimonials";
 import StaffCarRentalTrips from "@/pages/staff/car-rental-trips";
 import StaffCarRentalForms from "@/pages/staff/car-rental-forms";
 import StaffCarRentalFormSubmit from "@/pages/staff/car-rental-form-submit";
+import StaffCommissionForm from "@/pages/staff/commission-form";
+import StaffCommissionFormMySubmissions from "@/pages/staff/commission-form-my-submissions";
 import TuroTripsPage from "@/pages/admin/turo-trips";
 import AdminTestimonialsPage from "@/pages/admin/testimonials";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -126,6 +128,8 @@ function Router() {
             <Route path="/staff/forms/submit" component={StaffFormsSubmit} />
             <Route path="/staff/forms/my-submissions" component={StaffFormsMySubmissions} />
             <Route path="/staff/forms" component={StaffForms} />
+            <Route path="/staff/commission-form/my-submissions" component={StaffCommissionFormMySubmissions} />
+            <Route path="/staff/commission-form" component={StaffCommissionForm} />
             <Route path="/staff/task-management" component={StaffTaskManagement} />
             <Route path="/staff/time" component={StaffTime} />
             <Route path="/staff/time-off" component={StaffTimeOff} />

@@ -17,6 +17,9 @@ import CarOffboardingForm from "@/components/forms/CarOffboardingForm";
 import ExpenseFormSubmission from "./forms/ExpenseFormSubmission";
 import ExpenseFormMySubmissions from "./forms/ExpenseFormMySubmissions";
 import ExpenseFormApprovalDashboard from "./forms/ExpenseFormApprovalDashboard";
+import CommissionFormSubmission from "./forms/CommissionFormSubmission";
+import CommissionFormMySubmissions from "./forms/CommissionFormMySubmissions";
+import CommissionFormApprovalDashboard from "./forms/CommissionFormApprovalDashboard";
 import {
   EmployeeOnboardingFormContent,
   EmployeeContract1099Content,
@@ -304,6 +307,7 @@ export default function FormsPage() {
     "client-onboarding",
     "employee-onboarding-process",
     "employee-forms",
+    "commissions-forms",
   ]);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -392,7 +396,10 @@ export default function FormsPage() {
       itemId === "approval-dashboard" ||
       itemId === "employee-onboarding-form" ||
       itemId === "employee-contract-1099" ||
-      itemId === "employee-offboarding"
+      itemId === "employee-offboarding" ||
+      itemId === "commission-form-submit" ||
+      itemId === "commission-form-my-submissions" ||
+      itemId === "commission-form-approval"
     ) {
       setExpandedItems((prev) =>
         prev.includes(itemId)
@@ -850,7 +857,23 @@ export default function FormsPage() {
       { id: "employee-offboarding", title: "Employee Offboarding Form", icon: LogOut },
     ];
 
-    // Admin: Client Onboarding + Employee Onboarding Process + Income & Expenses Form
+    const commissionSubmitItem: FormItem = {
+      id: "commission-form-submit",
+      title: "Submit Commission Form",
+      icon: DollarSign,
+    };
+    const commissionMySubmissionsItem: FormItem = {
+      id: "commission-form-my-submissions",
+      title: "My Commission Submissions",
+      icon: FileText,
+    };
+    const commissionApprovalItem: FormItem = {
+      id: "commission-form-approval",
+      title: "Commission Form Approval Dashboard",
+      icon: FileCheck,
+    };
+
+    // Admin: Client Onboarding + Employee Onboarding Process + Income & Expenses Form + Commissions Form
     // Admins can both submit receipts (same form as employees) and review via Approval Dashboard.
     if (formVisibilityData?.isAdmin) {
       return [
@@ -872,10 +895,16 @@ export default function FormsPage() {
           icon: DollarSign,
           items: [expenseReceiptItem, approvalDashboardItem],
         },
+        {
+          id: "commissions-forms",
+          title: "Commissions Form",
+          icon: DollarSign,
+          items: [commissionSubmitItem, commissionMySubmissionsItem, commissionApprovalItem],
+        },
       ];
     }
 
-    // Employee (non-admin): show only Employee Forms section (expense receipt + my submissions, no Approval Dashboard)
+    // Employee (non-admin): expense receipt submission + view-only commission submissions
     if (formVisibilityData?.isEmployee) {
       return [
         {
@@ -883,6 +912,12 @@ export default function FormsPage() {
           title: "Income & Expenses Form",
           icon: DollarSign,
           items: [expenseReceiptItem],
+        },
+        {
+          id: "commissions-forms",
+          title: "Commissions Form",
+          icon: DollarSign,
+          items: [commissionMySubmissionsItem],
         },
       ];
     }
@@ -1036,7 +1071,10 @@ export default function FormsPage() {
                             item.id === "approval-dashboard" ||
                             item.id === "employee-onboarding-form" ||
                             item.id === "employee-contract-1099" ||
-                            item.id === "employee-offboarding") &&
+                            item.id === "employee-offboarding" ||
+                            item.id === "commission-form-submit" ||
+                            item.id === "commission-form-my-submissions" ||
+                            item.id === "commission-form-approval") &&
                           !item.comingSoon;
 
                         return (
@@ -1188,6 +1226,27 @@ export default function FormsPage() {
                             {isItemExpanded && item.id === "employee-offboarding" && (
                               <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
                                 <EmployeeOffboardingContent />
+                              </div>
+                            )}
+
+                            {/* Expanded content for Commission Form Submit */}
+                            {isItemExpanded && item.id === "commission-form-submit" && (
+                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
+                                <CommissionFormSubmission />
+                              </div>
+                            )}
+
+                            {/* Expanded content for Commission Form My Submissions */}
+                            {isItemExpanded && item.id === "commission-form-my-submissions" && (
+                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
+                                <CommissionFormMySubmissions />
+                              </div>
+                            )}
+
+                            {/* Expanded content for Commission Form Approval Dashboard (admins only) */}
+                            {isItemExpanded && item.id === "commission-form-approval" && (
+                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 min-w-0 max-w-full overflow-hidden">
+                                <CommissionFormApprovalDashboard />
                               </div>
                             )}
 
