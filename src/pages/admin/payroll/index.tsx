@@ -48,7 +48,7 @@ import {
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Search, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { Loader2, Plus, Search, Pencil, Trash2 } from "lucide-react";
 import { TableRowSkeleton } from "@/components/ui/skeletons";
 
 interface PayrunRow {
@@ -220,43 +220,6 @@ export default function PayrollPage() {
     },
   });
 
-  const generateMutation = useMutation({
-    mutationFn: async (payrunId: number) => {
-      const res = await fetch(
-        buildApiUrl(`/api/payroll/payruns/${payrunId}/generate`),
-        { method: "POST", credentials: "include" },
-      );
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to generate payroll");
-      }
-      return res.json() as Promise<{
-        success: boolean;
-        data: {
-          payrun_aid: number;
-          payrun_number: string;
-          totalAmount: number;
-          employeeCount: number;
-        };
-      }>;
-    },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/payroll/payruns"] });
-      const d = result?.data;
-      const total = (d?.totalAmount ?? 0).toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-      toast({
-        title: "Payroll generated from timesheet",
-        description: `${d?.payrun_number ?? "Pay run"}: ${d?.employeeCount ?? 0} employee(s), total $${total}.`,
-      });
-    },
-    onError: (e: Error) => {
-      toast({ variant: "destructive", title: "Error", description: e.message });
-    },
-  });
-
   const deleteMutation = useMutation({
     mutationFn: async (payrunId: number) => {
       const res = await fetch(buildApiUrl(`/api/payroll/payruns/${payrunId}`), {
@@ -413,46 +376,6 @@ export default function PayrollPage() {
                               className="flex items-center justify-end gap-1"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              {row.payrun_status !== 1 && (
-                                <ConfirmDialog
-                                  trigger={
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      title="Generate payroll from timesheet"
-                                      disabled={
-                                        generateMutation.isPending &&
-                                        generateMutation.variables === row.payrun_aid
-                                      }
-                                      data-testid={`button-generate-${row.payrun_aid}`}
-                                    >
-                                      {generateMutation.isPending &&
-                                      generateMutation.variables === row.payrun_aid ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        <RefreshCw className="h-4 w-4" />
-                                      )}
-                                    </Button>
-                                  }
-                                  title="Generate payroll from timesheet?"
-                                  description={
-                                    <>
-                                      This will replace the existing payslips for{" "}
-                                      <span className="font-medium">{row.payrun_number}</span>{" "}
-                                      with newly computed amounts based on the timesheet (hours
-                                      × hourly rate) plus any unpaid earnings/deductions in the
-                                      pay period{" "}
-                                      <span className="font-medium">
-                                        {formatDate(row.payrun_date_from)} –{" "}
-                                        {formatDate(row.payrun_date_to)}
-                                      </span>
-                                      .
-                                    </>
-                                  }
-                                  confirmText="Generate"
-                                  onConfirm={() => generateMutation.mutate(row.payrun_aid)}
-                                />
-                              )}
                               <Button
                                 variant="ghost"
                                 size="icon"

@@ -14,7 +14,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, Loader2, LogIn, LogOut, Coffee, ArrowLeft, ClipboardList } from "lucide-react";
+import { Clock, Loader2, LogIn, LogOut, Coffee, ArrowLeft, ClipboardList, BarChart2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -100,6 +100,14 @@ interface SessionRow {
   time_out: string | null;
   time_total_hours: string | null;
   time_end_reason: "break" | "shift_end" | null;
+  time_form_details?: string | null;
+}
+
+interface FormDetail {
+  key?: string;
+  name: string;
+  value?: string | number;
+  description?: string;
 }
 
 interface LastResponse {
@@ -154,7 +162,7 @@ function utahTime(d: string | null | undefined, fallback = "—"): string {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
-  }).toLowerCase();
+  });
 }
 
 /** Today as YYYY-MM-DD in Utah TZ. */
@@ -215,6 +223,18 @@ function formatUsd(amount: number): string {
   });
 }
 
+/** YYYY-MM-DD in Utah TZ derived from a stored timestamp (reliable even when time_date is null). */
+function utahDateKey(d: string | null | undefined): string {
+  const x = parseDb(d);
+  if (!x) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: UTAH_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(x);
+}
+
 /**
  * Compute totals across the visible sessions.
  *  • workedSec — sum of every session's duration (live for open sessions).
@@ -234,7 +254,11 @@ function computeTotals(sessions: SessionRow[]): { workedSec: number; breakSec: n
     if (cur.time_end_reason !== "break" || !cur.time_out) continue;
     const next = chrono[i + 1];
     if (!next || !next.time_in) continue;
-    if (next.time_date !== cur.time_date) continue;
+    // Derive calendar dates from the actual clock timestamps so the check
+    // works even when time_date is null or stored as a full datetime string.
+    const curDay = utahDateKey(cur.time_out);
+    const nextDay = utahDateKey(next.time_in);
+    if (curDay !== nextDay) continue;
     breakSec += secondsBetween(cur.time_out, next.time_in);
   }
   return { workedSec, breakSec };
@@ -251,6 +275,7 @@ export default function StaffTime() {
   const [endNotes, setEndNotes] = useState("");
   const [shiftStep, setShiftStep] = useState<"choose" | "questionnaire">("choose");
   const [answers, setAnswers] = useState<Record<string, string>>(buildEmptyAnswers);
+  const [statsSession, setStatsSession] = useState<SessionRow | null>(null);
 
   const today = utahToday();
   const [fromDate, setFromDate] = useState<string>(today);
@@ -607,6 +632,7 @@ export default function StaffTime() {
                       <TableHead>Duration</TableHead>
                       <TableHead>Time</TableHead>
                       <TableHead>Ended</TableHead>
+                      <TableHead>Stats</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -620,8 +646,8 @@ export default function StaffTime() {
                           <TableCell className="text-center text-muted-foreground text-xs">
                             {sessions.length - idx}
                           </TableCell>
-                          <TableCell>{utahDate(s.time_date || s.time_in)}</TableCell>
-                          <TableCell className="font-mono tabular-nums text-primary">
+                          <TableCell>{utahDate(s.time_in)}</TableCell>
+                          <TableCell className="font-mono tabular-nums text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 font-medium">
                             {duration}
                           </TableCell>
                           <TableCell>
@@ -647,6 +673,21 @@ export default function StaffTime() {
                               <span className="text-xs text-muted-foreground">Shift end</span>
                             )}
                           </TableCell>
+                          <TableCell>
+                            {!isOpenSession ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-1.5 text-xs h-7 px-2 text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 font-medium"
+                                onClick={() => setStatsSession(s)}
+                              >
+                                <BarChart2 className="w-3.5 h-3.5" />
+                                View stats
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -654,12 +695,12 @@ export default function StaffTime() {
                   <TableFooter>
                     <TableRow className="bg-muted/40 font-medium">
                       <TableCell />
-                      <TableCell className="text-primary">Total</TableCell>
+                      <TableCell className="text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 font-medium">Total</TableCell>
                       <TableCell>
-                        <div className="font-mono tabular-nums text-primary">
+                        <div className="font-mono tabular-nums text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 font-medium">
                           {formatHms(totals.workedSec)}
                         </div>
-                        <div className="text-xs text-muted-foreground tabular-nums">
+                        <div className="text-xs text-muted-foreground tabular-nums ">
                           {(totals.workedSec / 3600).toFixed(2)} hrs
                         </div>
                       </TableCell>
@@ -690,6 +731,7 @@ export default function StaffTime() {
                           <span className="text-xs text-muted-foreground">Rate not set</span>
                         )}
                       </TableCell>
+                      <TableCell />
                     </TableRow>
                   </TableFooter>
                 </Table>
@@ -865,6 +907,72 @@ export default function StaffTime() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+      {/* Stats viewer modal */}
+      <Dialog open={!!statsSession} onOpenChange={(v) => { if (!v) setStatsSession(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart2 className="w-5 h-5 text-primary" />
+              Shift stats — {statsSession ? utahDate(statsSession.time_date || statsSession.time_in) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {statsSession && (() => {
+            let details: FormDetail[] = [];
+            try {
+              const raw = statsSession.time_form_details;
+              if (raw) details = JSON.parse(raw) as FormDetail[];
+            } catch { /* ignore parse errors */ }
+            const numeric = details.filter(
+              (d) => d.key && d.key !== "notes" && d.key !== "grateful_for" && d.key !== "additional_comments" && d.key !== "energy_today"
+            );
+            const others = details.filter(
+              (d) => !d.key || ["notes", "grateful_for", "additional_comments", "energy_today"].includes(d.key)
+            );
+            return (
+              <div className="space-y-5 pt-1">
+                {numeric.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                      Activity counts
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {numeric.map((d, i) => (
+                        <div
+                          key={d.key ?? i}
+                          className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2"
+                        >
+                          <span className="text-sm text-muted-foreground leading-snug">{d.name}</span>
+                          <span className="text-sm font-semibold text-primary ml-3 tabular-nums">
+                            {d.value ?? "—"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {others.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                      Other responses
+                    </h3>
+                    <div className="space-y-2">
+                      {others.map((d, i) => (
+                        <div key={d.key ?? i} className="rounded-md border border-border bg-muted/30 px-3 py-2 space-y-0.5">
+                          <p className="text-xs text-muted-foreground">{d.name}</p>
+                          <p className="text-sm text-foreground">{d.description || d.value || "—"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {details.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">No stats recorded for this session.</p>
+                )}
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </AdminLayout>

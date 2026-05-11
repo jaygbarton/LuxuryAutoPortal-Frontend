@@ -108,76 +108,127 @@ function formatUsd(n: number): string {
   });
 }
 
-function formatDate(d: string | null | undefined): string {
-  if (!d) return "—";
-  try {
-    return new Date(String(d).replace(" ", "T")).toLocaleDateString();
-  } catch {
-    return "—";
+// All time-sheet values are anchored to Utah / America/Denver (Mountain) — the
+// company's reference timezone. The DB stores `time_in`/`time_out` as UTC
+// DATETIME (no offset) and `time_date` as a Utah calendar date. We normalize
+// both for display so admin and employee views always agree.
+const UTAH_TZ = "America/Denver";
+
+/** Parse a DB value treating bare DATETIME as UTC (matches backend writers). */
+function parseDb(d: string | null | undefined): Date | null {
+  if (!d) return null;
+  const s = String(d).trim();
+  // Pure date — interpret as Utah calendar day (parsed at noon UTC to dodge DST edges).
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const x = new Date(s + "T12:00:00Z");
+    return isNaN(x.getTime()) ? null : x;
   }
+  const dt = s.replace(" ", "T");
+  const utc = dt.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(dt) ? dt : dt + "Z";
+  const x = new Date(utc);
+  return isNaN(x.getTime()) ? null : x;
+}
+
+function formatDate(d: string | null | undefined): string {
+  // For pure YYYY-MM-DD strings, render directly so they never shift across TZs.
+  if (typeof d === "string") {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d);
+    if (m) return `${m[2]}/${m[3]}/${m[1]}`;
+  }
+  const x = parseDb(d);
+  if (!x) return "—";
+  return x.toLocaleDateString("en-US", { timeZone: UTAH_TZ });
 }
 
 function formatTime(d: string | null | undefined): string {
-  if (!d) return "—";
-  try {
-    return new Date(String(d).replace(" ", "T")).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
+  const x = parseDb(d);
+  if (!x) return "—";
+  return x.toLocaleTimeString("en-US", {
+    timeZone: UTAH_TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function formatDateTime(d: string | null | undefined): string {
-  if (!d) return "—";
-  try {
-    const dt = new Date(String(d).replace(" ", "T"));
-    return `${dt.toLocaleDateString()} ${dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  } catch {
-    return "—";
-  }
+  const x = parseDb(d);
+  if (!x) return "—";
+  return `${x.toLocaleDateString("en-US", { timeZone: UTAH_TZ })} ${x.toLocaleTimeString("en-US", {
+    timeZone: UTAH_TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
 }
 
-/** Convert a DATETIME string (or ISO) into the `datetime-local` <input> value ("YYYY-MM-DDTHH:mm"). */
+/** Extract Utah (Y, M, D, h, m) parts from a Date. */
+function utahParts(d: Date): { y: string; mo: string; da: string; hh: string; mm: string } {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: UTAH_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(d);
+  const get = (t: string) => fmt.find((p) => p.type === t)?.value ?? "00";
+  return {
+    y: get("year"),
+    mo: get("month"),
+    da: get("day"),
+    hh: get("hour") === "24" ? "00" : get("hour"),
+    mm: get("minute"),
+  };
+}
+
+/** Datetime-local input value ("YYYY-MM-DDTHH:mm") in Utah time. */
 function toLocalInput(d: string | null | undefined): string {
-  if (!d) return "";
-  try {
-    const dt = new Date(String(d).replace(" ", "T"));
-    if (isNaN(dt.getTime())) return "";
-    const y = dt.getFullYear();
-    const mo = String(dt.getMonth() + 1).padStart(2, "0");
-    const da = String(dt.getDate()).padStart(2, "0");
-    const hh = String(dt.getHours()).padStart(2, "0");
-    const mm = String(dt.getMinutes()).padStart(2, "0");
-    return `${y}-${mo}-${da}T${hh}:${mm}`;
-  } catch {
-    return "";
-  }
+  const x = parseDb(d);
+  if (!x) return "";
+  const p = utahParts(x);
+  return `${p.y}-${p.mo}-${p.da}T${p.hh}:${p.mm}`;
 }
 
-/** Back to MySQL DATETIME ("YYYY-MM-DD HH:mm:ss") or null. */
+/** Convert a Utah-time `datetime-local` value back to UTC MySQL DATETIME. */
 function fromLocalInput(v: string): string | null {
   if (!v) return null;
-  return `${v.replace("T", " ")}:00`;
+  // Treat the value as Utah local; compute the matching UTC instant.
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(v);
+  if (!m) return null;
+  const [, y, mo, da, hh, mm] = m;
+  // Parse twice to figure out Utah's offset at that moment (handles DST).
+  const naiveUTC = Date.UTC(+y, +mo - 1, +da, +hh, +mm, 0);
+  // Find the Utah offset (in minutes) at that instant.
+  const tzShort = new Intl.DateTimeFormat("en-US", { timeZone: UTAH_TZ, timeZoneName: "shortOffset" })
+    .formatToParts(new Date(naiveUTC))
+    .find((p) => p.type === "timeZoneName")?.value ?? "GMT-7";
+  const offMatch = /GMT([+-])(\d{1,2})(?::?(\d{2}))?/.exec(tzShort);
+  let offsetMin = 0;
+  if (offMatch) {
+    const sign = offMatch[1] === "+" ? 1 : -1;
+    offsetMin = sign * (Number(offMatch[2]) * 60 + Number(offMatch[3] ?? 0));
+  } else {
+    offsetMin = -7 * 60; // sensible fallback (MST)
+  }
+  const utcMs = naiveUTC - offsetMin * 60 * 1000;
+  const utc = new Date(utcMs);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${utc.getUTCFullYear()}-${pad(utc.getUTCMonth() + 1)}-${pad(utc.getUTCDate())} ${pad(utc.getUTCHours())}:${pad(utc.getUTCMinutes())}:00`;
 }
 
 function toDateInput(d: string | null | undefined): string {
-  if (!d) return "";
-  try {
-    const dt = new Date(String(d).replace(" ", "T"));
-    if (isNaN(dt.getTime())) return "";
-    const y = dt.getFullYear();
-    const mo = String(dt.getMonth() + 1).padStart(2, "0");
-    const da = String(dt.getDate()).padStart(2, "0");
-    return `${y}-${mo}-${da}`;
-  } catch {
-    return "";
+  if (typeof d === "string") {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d);
+    if (m) return `${m[1]}-${m[2]}-${m[3]}`;
   }
+  const x = parseDb(d);
+  if (!x) return "";
+  const p = utahParts(x);
+  return `${p.y}-${p.mo}-${p.da}`;
 }
 
 function emptyForm(): TimeFormState {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utahParts(new Date()).y + "-" + utahParts(new Date()).mo + "-" + utahParts(new Date()).da;
   return {
     employeeId: "",
     date: today,
