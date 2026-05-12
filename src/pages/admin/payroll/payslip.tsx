@@ -51,6 +51,18 @@ interface PayslipData {
   employee?: { fullname?: string; first_name?: string; last_name?: string };
 }
 
+interface CommissionRow {
+  commissions_aid: number;
+  commissions_type: string;
+  commissions_amount: string;
+  commissions_is_paid: number;
+  commissions_remarks: string;
+  commissions_employee_id: number;
+  commissions_date: string;
+  commissions_billed_gla_client?: number;
+  fullname?: string;
+}
+
 function formatDate(s: string) {
   if (!s) return "—";
   try {
@@ -97,6 +109,47 @@ export default function PayslipPage() {
     enabled: payrunId != null && employeeId != null,
   });
 
+  const payrunData = res?.data;
+
+  const { data: commissionsRes, isLoading: commissionsLoading } = useQuery<{
+    success: boolean;
+    data: CommissionRow[];
+    total: number;
+  }>({
+    queryKey: [
+      "/api/payroll/commissions",
+      payrunData?.payrun.payrun_date_from,
+      payrunData?.payrun.payrun_date_to,
+      employeeId,
+    ],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (payrunData?.payrun.payrun_date_from) params.set("dateFrom", payrunData.payrun.payrun_date_from);
+      if (payrunData?.payrun.payrun_date_to) params.set("dateTo", payrunData.payrun.payrun_date_to);
+      params.set("limit", "500");
+      const r = await fetch(
+        buildApiUrl(`/api/payroll/commissions?${params}`),
+        { credentials: "include" },
+      );
+      if (!r.ok) throw new Error("Failed to fetch commissions");
+      return r.json();
+    },
+    enabled:
+      payrunData != null &&
+      !!payrunData.payrun.payrun_date_from &&
+      !!payrunData.payrun.payrun_date_to &&
+      employeeId != null,
+  });
+
+  const employeeCommissions =
+    commissionsRes?.data?.filter(
+      (c) => c.commissions_employee_id === employeeId,
+    ) ?? [];
+  const commissionsTotal = employeeCommissions.reduce(
+    (sum, c) => sum + Number(c.commissions_amount || 0),
+    0,
+  );
+
   if (payrunId == null || employeeId == null || Number.isNaN(payrunId) || Number.isNaN(employeeId)) {
     return (
       <AdminLayout>
@@ -114,7 +167,7 @@ export default function PayslipPage() {
     );
   }
 
-  const data = res?.data;
+  const data = payrunData;
   const earnings = data?.paysummary?.filter((l) => Number(l.paysummary_is_deduction) === 0) ?? [];
   const deductions = data?.paysummary?.filter((l) => Number(l.paysummary_is_deduction) === 1) ?? [];
   const employeeName =
@@ -256,6 +309,50 @@ export default function PayslipPage() {
                   ))}
                 </div>
               )}
+
+              {/* Commissions */}
+              <div className="mt-6 rounded-md border overflow-hidden">
+                <div className="grid grid-cols-[8rem_1fr_8rem] bg-muted px-3 py-2 text-xs font-semibold uppercase tracking-wide">
+                  <div>Date</div>
+                  <div>Description</div>
+                  <div className="text-right">Amount</div>
+                </div>
+                {commissionsLoading ? (
+                  <div className="flex items-center justify-center gap-2 px-3 py-4 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading commissions…
+                  </div>
+                ) : employeeCommissions.length === 0 ? (
+                  <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+                    No commissions for this period.
+                  </div>
+                ) : (
+                  employeeCommissions.map((c) => (
+                    <div
+                      key={c.commissions_aid}
+                      className="grid grid-cols-[8rem_1fr_8rem] items-center border-t px-3 py-2 text-sm hover:bg-muted/50"
+                    >
+                      <div>{formatDate(c.commissions_date)}</div>
+                      <div>
+                        {c.commissions_type || "Commission"}
+                        {c.commissions_remarks ? (
+                          <span className="ml-1 text-muted-foreground">
+                            — {c.commissions_remarks}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="text-right font-medium">
+                        ${formatCurrency(c.commissions_amount)}
+                      </div>
+                    </div>
+                  ))
+                )}
+                <div className="grid grid-cols-[1fr_8rem] border-t bg-muted/60 px-3 py-2 text-sm font-semibold">
+                  <div className="uppercase tracking-wide">Total Commissions</div>
+                  <div className="text-right">
+                    ${formatCurrency(commissionsTotal)}
+                  </div>
+                </div>
+              </div>
 
               {/* Summary */}
               <div className="mt-6 rounded-md border overflow-hidden">

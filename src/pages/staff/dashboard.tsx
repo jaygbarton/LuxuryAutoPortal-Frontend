@@ -16,7 +16,6 @@
  *   12. Employee Stats — Monthly (individual)
  *   --- additional (toggleable) ---
  *   13. Work Schedule
- *   14. Logged Hours History
  *
  * Each section can be toggled via the Filter Sections panel; preference is
  * persisted in localStorage.
@@ -27,7 +26,6 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { buildApiUrl } from "@/lib/queryClient";
 import {
   EmployeeProfileSection,
-  LoggedHoursSection,
   CommissionsSection,
   EarningsHistorySection,
   MyPickupDropoffSection,
@@ -65,7 +63,6 @@ const ALL_SECTIONS: SectionDef[] = [
   { id: "my-stats-monthly", label: "Employee Stats (Monthly)" },
   // Additional sections at end
   { id: "my-work-schedule", label: "Work Schedule" },
-  { id: "logged-hours", label: "Logged Hours History" },
 ];
 
 const ALL_IDS = ALL_SECTIONS.map((s) => s.id);
@@ -213,7 +210,6 @@ export default function StaffDashboard() {
             {show["my-stats-daily"] && <MyEmployeeStatsSection />}
             {show["my-stats-monthly"] && <MyMonthlyStatsSection />}
             {show["my-work-schedule"] && <MyWorkScheduleSection />}
-            {show["logged-hours"] && <LoggedHoursSection />}
 
             {noneSelected && (
               <div className="py-20 text-center text-gray-400">
