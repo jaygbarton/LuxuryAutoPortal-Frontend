@@ -35,14 +35,12 @@ import { EditPayInfoModal } from "./components/EditPayInfoModal";
 type ProfileSection =
   | "personal-information"
   | "job-and-pay"
-  | "rate-history"
-  | "payslip";
+  | "rate-history";
 
 const PROFILE_SECTIONS: { id: ProfileSection; label: string }[] = [
   { id: "personal-information", label: "Personal Information" },
   { id: "job-and-pay", label: "Job and Pay" },
   { id: "rate-history", label: "Rate History" },
-  { id: "payslip", label: "Payslip" },
 ];
 
 interface Employee {
@@ -279,16 +277,6 @@ export default function EmployeeViewPage() {
     enabled: !!employeeId && activeSection === "rate-history",
   });
 
-  const { data: payslipsData, isLoading: payslipsLoading } = useQuery<{ success: boolean; data: { payrun_list_aid: number; payrun_number?: string; payrun_status?: number; payrun_list_gross: string; payrun_list_deduction: string; payrun_list_net: string }[] }>({
-    queryKey: ["/api/employees", employeeId, "payslips"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl(`/api/employees/${employeeId}/payslips`), { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch payslips");
-      return res.json();
-    },
-    enabled: !!employeeId && activeSection === "payslip",
-  });
-
   const { data: unpaidPayrollData } = useQuery<{ success: boolean; count: number }>({
     queryKey: ["/api/payroll/unpaid-count"],
     queryFn: async () => {
@@ -518,7 +506,7 @@ export default function EmployeeViewPage() {
                       </span>
                       <ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
                     </button>
-                    {section.id !== "payslip" && (
+                    {section.id !== "rate-history" && (
                       <div className="h-px bg-muted" aria-hidden />
                     )}
                   </li>
@@ -848,54 +836,6 @@ export default function EmployeeViewPage() {
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">No rate history recorded yet.</p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {activeSection === "payslip" && (
-              <Card className="bg-card border-border">
-                <CardContent className="p-6">
-                  <h3 className="text-primary font-semibold mb-3 border-b border-border pb-2">
-                    Payslip
-                  </h3>
-                  {payslipsLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                    </div>
-                  ) : payslipsData?.data?.length ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-border">
-                            <th className="text-left py-2 text-muted-foreground font-medium">#</th>
-                            <th className="text-left py-2 text-muted-foreground font-medium">Status</th>
-                            <th className="text-left py-2 text-muted-foreground font-medium">Payroll ID</th>
-                            <th className="text-right py-2 text-muted-foreground font-medium">Gross</th>
-                            <th className="text-right py-2 text-muted-foreground font-medium">Deduction</th>
-                            <th className="text-right py-2 text-muted-foreground font-medium">Net Pay</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {payslipsData.data.map((row, i) => (
-                            <tr key={row.payrun_list_aid} className="border-b border-border/50">
-                              <td className="py-2 text-muted-foreground">{i + 1}.</td>
-                              <td className="py-2">
-                                <span className={`px-2 py-0.5 text-xs rounded-full ${row.payrun_status === 1 ? "bg-green-500/20 text-green-700" : "bg-yellow-500/20 text-yellow-700"}`}>
-                                  {row.payrun_status === 1 ? "Paid" : "Unpaid"}
-                                </span>
-                              </td>
-                              <td className="py-2 text-muted-foreground">{row.payrun_number || "—"}</td>
-                              <td className="py-2 text-right text-muted-foreground">{formatCurrency(row.payrun_list_gross)}</td>
-                              <td className="py-2 text-right text-muted-foreground">{formatCurrency(row.payrun_list_deduction)}</td>
-                              <td className="py-2 text-right text-muted-foreground">{formatCurrency(row.payrun_list_net)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No payslips available yet.</p>
                   )}
                 </CardContent>
               </Card>

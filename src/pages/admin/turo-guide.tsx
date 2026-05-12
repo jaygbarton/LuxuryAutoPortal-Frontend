@@ -281,6 +281,7 @@ export default function AdminTuroGuidePage() {
                         <VideoPreview
                           url={row.turo_guide_file}
                           title={row.turo_guide_title}
+                          description={row.turo_guide_description}
                           className="group/preview relative block h-full w-full"
                         />
                       ) : (

@@ -1,9 +1,10 @@
 /**
- * Staff – Commission Form page (view-only)
- * Employees can only view their commission submissions. Admins manage entries.
+ * Staff – Commission Form page
+ * Employees can submit new commissions and view their existing submissions.
  */
 
 import { AdminLayout } from "@/components/admin/admin-layout";
+import CommissionFormSubmission from "@/pages/admin/forms/CommissionFormSubmission";
 import CommissionFormMySubmissions from "@/pages/admin/forms/CommissionFormMySubmissions";
 import { DollarSign } from "lucide-react";
 
@@ -17,10 +18,11 @@ export default function StaffCommissionForm() {
             My Commission Submissions
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            View your commission records submitted by the admin.
+            Submit and view your commission records.
           </p>
         </div>
 
+        <CommissionFormSubmission />
         <CommissionFormMySubmissions />
       </div>
     </AdminLayout>

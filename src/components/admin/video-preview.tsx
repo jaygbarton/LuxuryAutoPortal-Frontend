@@ -92,6 +92,7 @@ export function parseVideoUrl(raw: string): ParsedVideo {
 interface VideoPreviewProps {
   url: string;
   title?: string;
+  description?: string;
   className?: string;
 }
 
@@ -99,7 +100,7 @@ interface VideoPreviewProps {
  * Compact thumbnail for a video URL. Clicking opens a dialog with an embedded player.
  * Falls back to "Open" link for unknown URL types.
  */
-export function VideoPreview({ url, title, className }: VideoPreviewProps) {
+export function VideoPreview({ url, title, description, className }: VideoPreviewProps) {
   const [open, setOpen] = useState(false);
   if (!url) return <span className="text-muted-foreground text-xs">—</span>;
 
@@ -192,6 +193,11 @@ export function VideoPreview({ url, title, className }: VideoPreviewProps) {
               />
             ) : null}
           </div>
+          {description && description.trim() && (
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap pt-3">
+              {description}
+            </p>
+          )}
         </DialogContent>
       </Dialog>
     </>
