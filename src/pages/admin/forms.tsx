@@ -933,7 +933,7 @@ export default function FormsPage() {
       ];
     }
 
-    // Employee (non-admin): expense receipt submission + view-only commission submissions
+    // Employee (non-admin): expense receipt submission + commission submission + view-only submissions
     if (formVisibilityData?.isEmployee) {
       return [
         {
@@ -946,7 +946,7 @@ export default function FormsPage() {
           id: "commissions-forms",
           title: "Commissions Form",
           icon: DollarSign,
-          items: [commissionMySubmissionsItem],
+          items: [commissionSubmitItem, commissionMySubmissionsItem],
         },
       ];
     }

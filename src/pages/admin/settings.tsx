@@ -13,7 +13,7 @@ import { checkPasswordStrength, getPasswordStrengthColor, getPasswordStrengthLab
 
 interface SlackChannelConfig {
   id: number;
-  formType: "lyc" | "car_onboarding" | "car_offboarding" | "employee_onboarding" | "employee_time_in_out" | "expense_income" | "expense_direct_delivery" | "expense_cogs" | "expense_reimbursed_bills";
+  formType: "lyc" | "car_onboarding" | "car_offboarding" | "employee_onboarding" | "employee_time_in_out" | "expense_income" | "expense_direct_delivery" | "expense_cogs" | "expense_reimbursed_bills" | "commission_form";
   channelId: string;
   channelName: string | null;
   updatedAt: string;
@@ -29,6 +29,7 @@ const formTypeLabels: Record<string, string> = {
   expense_direct_delivery: "Expenses - Direct Delivery",
   expense_cogs: "Expenses - COGS",
   expense_reimbursed_bills: "Reimbursed & Non-Reimbursed Bills",
+  commission_form: "Commission Forms",
 };
 
 export default function SettingsPage() {
@@ -549,7 +550,9 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {channels.map((config) => {
+            {channels
+              .filter((config) => typeof config.formType === "string" && config.formType.length > 0)
+              .map((config) => {
               const isEditing = editingChannels.hasOwnProperty(config.formType);
               const editingValue = editingChannels[config.formType] || config.channelId;
 
