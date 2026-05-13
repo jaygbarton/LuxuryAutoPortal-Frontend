@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ExpenseFormSubmission from "@/pages/admin/forms/ExpenseFormSubmission";
 import ExpenseFormMySubmissions from "@/pages/admin/forms/ExpenseFormMySubmissions";
+import CommissionFormSubmission from "@/pages/admin/forms/CommissionFormSubmission";
 import CommissionFormMySubmissions from "@/pages/admin/forms/CommissionFormMySubmissions";
 import { ChevronDown, ChevronRight, DollarSign, FileText } from "lucide-react";
 
-type SectionId = "expense" | "expense-my" | "commission-my";
+type SectionId = "expense" | "expense-my" | "commission" | "commission-my";
 
 export default function StaffForms() {
   const [expanded, setExpanded] = useState<SectionId[]>(["expense"]);
@@ -37,6 +38,12 @@ export default function StaffForms() {
       label: "My Income & Expense Submissions",
       icon: FileText,
       content: <ExpenseFormMySubmissions />,
+    },
+    {
+      id: "commission",
+      label: "Submit Commission Form",
+      icon: DollarSign,
+      content: <CommissionFormSubmission />,
     },
     {
       id: "commission-my",
