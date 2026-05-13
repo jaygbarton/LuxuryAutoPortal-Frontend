@@ -108,6 +108,7 @@ export default function CommissionFormMySubmissions() {
               <TableHead className="w-[110px]">Commission Date</TableHead>
               <TableHead>Commission Type</TableHead>
               <TableHead>Car Name</TableHead>
+              <TableHead>Remarks</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead className="w-[100px] text-center">Status</TableHead>
               <TableHead className="w-[70px] text-center">View</TableHead>
@@ -121,6 +122,12 @@ export default function CommissionFormMySubmissions() {
                 <TableCell className="text-sm font-medium">{row.cf_commission_type}</TableCell>
                 <TableCell className="text-sm max-w-[200px] truncate" title={row.cf_car_name}>
                   {row.cf_car_name}
+                </TableCell>
+                <TableCell
+                  className="text-sm max-w-[240px] truncate text-muted-foreground"
+                  title={row.cf_remarks ?? ""}
+                >
+                  {row.cf_remarks?.trim() || "—"}
                 </TableCell>
                 <TableCell className="text-sm text-right font-mono">
                   {formatCurrency(row.cf_total_receipt_cost)}

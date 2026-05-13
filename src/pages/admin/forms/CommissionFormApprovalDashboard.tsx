@@ -3,7 +3,7 @@
  * Admin view: review, edit, approve, decline, and delete commission form submissions
  */
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -49,6 +49,7 @@ import {
   ExternalLink,
   DollarSign,
   ZoomIn,
+  History,
 } from "lucide-react";
 
 interface CommissionFormRow {
@@ -102,6 +103,7 @@ export default function CommissionFormApprovalDashboard() {
 
   const [viewRow, setViewRow] = useState<CommissionFormRow | null>(null);
   const [editRow, setEditRow] = useState<CommissionFormRow | null>(null);
+  const [historyRow, setHistoryRow] = useState<CommissionFormRow | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [deleteRow, setDeleteRow] = useState<CommissionFormRow | null>(null);
   const [declineRow, setDeclineRow] = useState<CommissionFormRow | null>(null);
@@ -341,9 +343,10 @@ export default function CommissionFormApprovalDashboard() {
                 <TableHead className="w-[110px]">Comm. Date</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Car</TableHead>
+                <TableHead>Remarks</TableHead>
                 <TableHead className="text-right w-[110px]">Amount</TableHead>
                 <TableHead className="w-[90px] text-center">Status</TableHead>
-                <TableHead className="w-[140px] text-center">Actions</TableHead>
+                <TableHead className="w-[160px] text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -355,6 +358,12 @@ export default function CommissionFormApprovalDashboard() {
                   <TableCell className="text-sm">{row.cf_commission_type}</TableCell>
                   <TableCell className="text-sm max-w-[150px] truncate" title={row.cf_car_name}>
                     {row.cf_car_name}
+                  </TableCell>
+                  <TableCell
+                    className="text-sm max-w-[200px] truncate text-muted-foreground"
+                    title={row.cf_remarks ?? ""}
+                  >
+                    {row.cf_remarks?.trim() || "—"}
                   </TableCell>
                   <TableCell className="text-right text-sm font-mono">
                     {formatCurrency(row.cf_total_receipt_cost)}
@@ -369,6 +378,15 @@ export default function CommissionFormApprovalDashboard() {
                       </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" title="Edit" onClick={() => openEdit(row)}>
                         <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Edit history"
+                        onClick={() => setHistoryRow(row)}
+                      >
+                        <History className="h-3.5 w-3.5" />
                       </Button>
                       {row.cf_status !== "approved" && (
                         <Button
@@ -732,6 +750,9 @@ export default function CommissionFormApprovalDashboard() {
         </DialogContent>
       </Dialog>
 
+      {/* History Dialog */}
+      <CommissionHistoryDialog row={historyRow} onClose={() => setHistoryRow(null)} />
+
       {/* Receipt Lightbox */}
       {lightboxUrl && (
         <div
@@ -753,5 +774,151 @@ export default function CommissionFormApprovalDashboard() {
         </div>
       )}
     </div>
+  );
+}
+
+// ── Audit history dialog ────────────────────────────────────────────────────
+
+interface CommissionAuditEntry {
+  cfa_aid: number;
+  cfa_cf_aid: number;
+  cfa_action: "create" | "update" | "approve" | "decline" | "delete";
+  cfa_actor_id: number | null;
+  cfa_actor_name: string | null;
+  cfa_before: string | null;
+  cfa_after: string | null;
+  cfa_notes: string | null;
+  cfa_created: string;
+}
+
+const AUDIT_FIELD_LABELS: Record<string, string> = {
+  cf_commission_date: "Commission Date",
+  cf_commission_type: "Commission Type",
+  cf_car_name: "Car",
+  cf_total_receipt_cost: "Amount",
+  cf_remarks: "Remarks",
+  cf_receipt_url: "Receipt",
+  cf_status: "Status",
+  cf_decline_reason: "Decline Reason",
+  cf_approved_by: "Approved By",
+  cf_approval_date: "Approval Date",
+};
+
+function formatAuditValue(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  if (typeof v === "string") return v.length > 80 ? v.slice(0, 77) + "…" : v;
+  return String(v);
+}
+
+function CommissionHistoryDialog(props: {
+  row: CommissionFormRow | null;
+  onClose: () => void;
+}) {
+  const { row, onClose } = props;
+  const { data, isLoading } = useQuery<{ success: boolean; data: CommissionAuditEntry[] }>({
+    queryKey: ["/api/admin/commission-forms", row?.cf_aid, "history"],
+    enabled: !!row,
+    queryFn: async () => {
+      const res = await fetch(
+        buildApiUrl(`/api/admin/commission-forms/${row!.cf_aid}/history`),
+        { credentials: "include" }
+      );
+      if (!res.ok) throw new Error("Failed to load history");
+      return res.json();
+    },
+  });
+  const entries = data?.data ?? [];
+
+  return (
+    <Dialog open={!!row} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-[720px]">
+        <DialogHeader>
+          <DialogTitle>Edit history</DialogTitle>
+          <DialogDescription>
+            {row ? `${row.employee_name || "—"} — ${row.cf_commission_type}` : ""}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="max-h-[60vh] overflow-auto space-y-3">
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : entries.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              No history recorded yet.
+            </p>
+          ) : (
+            entries.map((h) => {
+              let before: Record<string, unknown> | null = null;
+              let after: Record<string, unknown> | null = null;
+              try { before = h.cfa_before ? JSON.parse(h.cfa_before) : null; } catch { before = null; }
+              try { after = h.cfa_after ? JSON.parse(h.cfa_after) : null; } catch { after = null; }
+              const changedKeys = (() => {
+                if (h.cfa_action === "create") {
+                  return after ? Object.keys(AUDIT_FIELD_LABELS).filter((k) => after![k] != null && after![k] !== "") : [];
+                }
+                if (!before || !after) return Object.keys(AUDIT_FIELD_LABELS);
+                return Object.keys(AUDIT_FIELD_LABELS).filter((k) => {
+                  const b = (before as any)[k];
+                  const a = (after as any)[k];
+                  return JSON.stringify(b ?? null) !== JSON.stringify(a ?? null);
+                });
+              })();
+              const actionStyle =
+                h.cfa_action === "delete"
+                  ? "bg-destructive/10 text-destructive"
+                  : h.cfa_action === "decline"
+                    ? "bg-red-100 text-red-900"
+                    : h.cfa_action === "approve"
+                      ? "bg-emerald-100 text-emerald-900"
+                      : h.cfa_action === "create"
+                        ? "bg-blue-100 text-blue-900"
+                        : "bg-amber-100 text-amber-900";
+              return (
+                <div key={h.cfa_aid} className="rounded-md border p-3 text-sm space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`rounded px-2 py-0.5 text-xs font-medium ${actionStyle}`}>
+                        {h.cfa_action.toUpperCase()}
+                      </span>
+                      <span className="font-medium">{h.cfa_actor_name ?? "System"}</span>
+                    </div>
+                    <span className="text-muted-foreground text-xs">
+                      {new Date(h.cfa_created).toLocaleString()}
+                    </span>
+                  </div>
+                  {h.cfa_notes && (
+                    <div className="text-muted-foreground">Notes: {h.cfa_notes}</div>
+                  )}
+                  {changedKeys.length > 0 && (
+                    <div className="grid grid-cols-[140px,1fr,1fr] gap-x-2 gap-y-1 text-xs">
+                      <span className="font-medium text-muted-foreground">Field</span>
+                      <span className="font-medium text-muted-foreground">Before</span>
+                      <span className="font-medium text-muted-foreground">After</span>
+                      {changedKeys.map((k) => (
+                        <Fragment key={k}>
+                          <span className="text-foreground">{AUDIT_FIELD_LABELS[k] ?? k}</span>
+                          <span className="text-muted-foreground break-words">
+                            {formatAuditValue(before ? (before as any)[k] : null)}
+                          </span>
+                          <span className="text-foreground break-words">
+                            {formatAuditValue(after ? (after as any)[k] : null)}
+                          </span>
+                        </Fragment>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
