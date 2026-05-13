@@ -11,6 +11,9 @@ frontend/dist
 dist/
 backend/dist
 
+# TypeScript incremental build cache (auto-generated, should never be committed)
+*.tsbuildinfo
+
 # Node modules
 node_modules/
 frontend/node_modules/
