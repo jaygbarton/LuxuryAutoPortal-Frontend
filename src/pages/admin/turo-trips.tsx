@@ -111,6 +111,9 @@ export default function TuroTripsPage() {
   // Inline odometer editing: tripId → { start, end }
   const [odometerEdits, setOdometerEdits] = useState<Record<number, { start: string; end: string }>>({});
   const [savingOdometer, setSavingOdometer] = useState<number | null>(null);
+  // Inline extras editing: tripId → string
+  const [extrasEdits, setExtrasEdits] = useState<Record<number, string>>({});
+  const [savingExtras, setSavingExtras] = useState<number | null>(null);
   const itemsPerPage = 20;
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -228,6 +231,34 @@ export default function TuroTripsPage() {
       toast({ title: "Failed to save odometer", variant: "destructive" });
     } finally {
       setSavingOdometer(null);
+    }
+  };
+
+  // Save manually-entered extras for a trip
+  const saveExtras = async (trip: TuroTrip) => {
+    const edited = extrasEdits[trip.id];
+    if (edited === undefined) return;
+    const trimmed = edited.trim();
+    setSavingExtras(trip.id);
+    try {
+      const response = await fetch(buildApiUrl(`/api/turo-trips/${trip.id}/extras`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ extras: trimmed === "" ? null : trimmed }),
+      });
+      if (!response.ok) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      setExtrasEdits((prev) => {
+        const next = { ...prev };
+        delete next[trip.id];
+        return next;
+      });
+      toast({ title: "Extras saved", description: `Reservation #${trip.reservationId}` });
+    } catch {
+      toast({ title: "Failed to save extras", variant: "destructive" });
+    } finally {
+      setSavingExtras(null);
     }
   };
 
@@ -531,7 +562,7 @@ export default function TuroTripsPage() {
                 <TableHeader>
                   <TableRow className="bg-muted/40">
                     <TableHead className="whitespace-nowrap font-semibold">Reservation #</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">CAR</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">CAR Name</TableHead>
                     <TableHead className="whitespace-nowrap font-semibold">Plate #</TableHead>
                     <TableHead className="whitespace-nowrap font-semibold">Trip Start</TableHead>
                     <TableHead className="whitespace-nowrap font-semibold">Pick Up Location</TableHead>
@@ -598,6 +629,10 @@ export default function TuroTripsPage() {
                         ? endOdoNum - startOdoNum
                         : null;
                       const hasUnsavedEdits = edit !== undefined;
+                      const extrasVal = extrasEdits[trip.id] !== undefined
+                        ? extrasEdits[trip.id]
+                        : (trip.extras ?? "");
+                      const hasExtrasEdit = extrasEdits[trip.id] !== undefined;
 
                       return (
                         <TableRow
@@ -672,13 +707,43 @@ export default function TuroTripsPage() {
                             </div>
                           </TableCell>
 
-                          {/* Extras */}
-                          <TableCell
-                            className="cursor-pointer"
-                            onClick={() => setSelectedTrip(trip)}
-                          >
-                            <div className="text-sm max-w-[120px] truncate" title={trip.extras || ""}>
-                              {trip.extras || "-"}
+                          {/* Extras — manual entry */}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={extrasVal}
+                                onChange={(e) =>
+                                  setExtrasEdits((prev) => ({
+                                    ...prev,
+                                    [trip.id]: e.target.value,
+                                  }))
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && hasExtrasEdit) {
+                                    e.preventDefault();
+                                    saveExtras(trip);
+                                  }
+                                }}
+                                placeholder="-"
+                                className="w-36 h-8 text-sm"
+                                title={extrasVal || ""}
+                              />
+                              {hasExtrasEdit && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs"
+                                  disabled={savingExtras === trip.id}
+                                  onClick={() => saveExtras(trip)}
+                                >
+                                  {savingExtras === trip.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    "Save"
+                                  )}
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
 

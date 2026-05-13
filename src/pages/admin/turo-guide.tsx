@@ -289,11 +289,11 @@ export default function AdminTuroGuidePage() {
                           No video
                         </div>
                       )}
-                      <div className="absolute left-2 top-2">
-                        <Badge variant={row.turo_guide_is_active === 1 ? "default" : "secondary"}>
-                          {row.turo_guide_is_active === 1 ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
+                      {row.turo_guide_is_active !== 1 && (
+                        <div className="absolute left-2 top-2">
+                          <Badge variant="secondary">Inactive</Badge>
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-1 flex-col gap-2 p-3">
                       <h3 className="font-medium leading-tight line-clamp-2" title={row.turo_guide_title}>
