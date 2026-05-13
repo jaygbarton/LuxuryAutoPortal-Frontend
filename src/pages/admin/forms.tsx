@@ -23,6 +23,9 @@ import CommissionFormApprovalDashboard from "./forms/CommissionFormApprovalDashb
 import ReferralFormSubmission from "./forms/ReferralFormSubmission";
 import ReferralFormMySubmissions from "./forms/ReferralFormMySubmissions";
 import ReferralFormApprovalDashboard from "./forms/ReferralFormApprovalDashboard";
+import DocumentUpdateSubmission from "./forms/DocumentUpdateSubmission";
+import DocumentUpdateMySubmissions from "./forms/DocumentUpdateMySubmissions";
+import DocumentUpdateApprovalDashboard from "./forms/DocumentUpdateApprovalDashboard";
 import {
   EmployeeOnboardingFormContent,
   EmployeeContract1099Content,
@@ -406,7 +409,10 @@ export default function FormsPage() {
       itemId === "commission-form-approval" ||
       itemId === "referral-form-submit" ||
       itemId === "referral-form-my-submissions" ||
-      itemId === "referral-form-approval"
+      itemId === "referral-form-approval" ||
+      itemId === "document-update-submit" ||
+      itemId === "document-update-my-submissions" ||
+      itemId === "document-update-approval"
     ) {
       setExpandedItems((prev) =>
         prev.includes(itemId)
@@ -896,6 +902,22 @@ export default function FormsPage() {
       icon: FileCheck,
     };
 
+    const documentUpdateSubmitItem: FormItem = {
+      id: "document-update-submit",
+      title: "Submit License / Registration / Insurance Update",
+      icon: UserPlus,
+    };
+    const documentUpdateMySubmissionsItem: FormItem = {
+      id: "document-update-my-submissions",
+      title: "My Document Submissions",
+      icon: FileText,
+    };
+    const documentUpdateApprovalItem: FormItem = {
+      id: "document-update-approval",
+      title: "License / Registration / Insurance Approval Dashboard",
+      icon: FileCheck,
+    };
+
     // Admin: Client Onboarding + Employee Onboarding Process + Income & Expenses Form + Commissions Form
     // Admins can both submit receipts (same form as employees) and review via Approval Dashboard.
     if (formVisibilityData?.isAdmin) {
@@ -929,6 +951,16 @@ export default function FormsPage() {
           title: "Referral Form",
           icon: Users,
           items: [referralSubmitItem, referralMySubmissionsItem, referralApprovalItem],
+        },
+        {
+          id: "document-updates",
+          title: "License & Registration or Insurance Updates",
+          icon: FileText,
+          items: [
+            documentUpdateSubmitItem,
+            documentUpdateMySubmissionsItem,
+            documentUpdateApprovalItem,
+          ],
         },
       ];
     }
@@ -996,6 +1028,12 @@ export default function FormsPage() {
           title: "Referral Form",
           icon: Users,
           items: [referralSubmitItem, referralMySubmissionsItem],
+        },
+        {
+          id: "document-updates",
+          title: "License & Registration or Insurance Updates",
+          icon: FileText,
+          items: [documentUpdateSubmitItem, documentUpdateMySubmissionsItem],
         },
       ];
     }
@@ -1112,7 +1150,10 @@ export default function FormsPage() {
                             item.id === "commission-form-approval" ||
                             item.id === "referral-form-submit" ||
                             item.id === "referral-form-my-submissions" ||
-                            item.id === "referral-form-approval") &&
+                            item.id === "referral-form-approval" ||
+                            item.id === "document-update-submit" ||
+                            item.id === "document-update-my-submissions" ||
+                            item.id === "document-update-approval") &&
                           !item.comingSoon;
 
                         return (
@@ -1306,6 +1347,27 @@ export default function FormsPage() {
                             {isItemExpanded && item.id === "referral-form-approval" && (
                               <div className="bg-card border-t border-border px-3 sm:px-5 py-4 min-w-0 max-w-full overflow-hidden">
                                 <ReferralFormApprovalDashboard />
+                              </div>
+                            )}
+
+                            {/* Expanded content for License/Registration/Insurance Update submission */}
+                            {isItemExpanded && item.id === "document-update-submit" && (
+                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
+                                <DocumentUpdateSubmission />
+                              </div>
+                            )}
+
+                            {/* Expanded content for Document Update My Submissions */}
+                            {isItemExpanded && item.id === "document-update-my-submissions" && (
+                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
+                                <DocumentUpdateMySubmissions />
+                              </div>
+                            )}
+
+                            {/* Expanded content for Document Update Approval Dashboard (admins only) */}
+                            {isItemExpanded && item.id === "document-update-approval" && (
+                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 min-w-0 max-w-full overflow-hidden">
+                                <DocumentUpdateApprovalDashboard />
                               </div>
                             )}
 

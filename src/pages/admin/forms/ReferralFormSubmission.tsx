@@ -64,6 +64,11 @@ export default function ReferralFormSubmission() {
     },
   });
 
+  // Clients shouldn't be able to pick someone else as the referrer — that's an
+  // info leak (it exposes the full client roster) and a fraud vector. Only
+  // admins get the searchable dropdown; clients see their own name, read-only.
+  const isAdminUser = Boolean(currentUserData?.user?.isAdmin);
+
   const { data: searchData, isFetching: isSearching } = useQuery({
     queryKey: ["/api/referral-forms/client-search", debouncedSearch],
     queryFn: async () => {
@@ -74,7 +79,7 @@ export default function ReferralFormSubmission() {
       if (!res.ok) return null;
       return res.json();
     },
-    enabled: referrerDropdownOpen,
+    enabled: isAdminUser && referrerDropdownOpen,
   });
 
   const clients: ClientOption[] = searchData?.data ?? [];
@@ -283,61 +288,72 @@ export default function ReferralFormSubmission() {
             />
           </div>
 
-          {/* Referrer Name — searchable client dropdown */}
-          <div className="relative space-y-1.5">
-            <Label>
-              Referrer Name{" "}
-              <span className="text-xs text-muted-foreground font-normal">
-                (leave blank to use your own name)
-              </span>
-            </Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input
-                className="pl-9"
-                placeholder={sessionName || "Search by name or email…"}
-                value={displayedReferrerValue}
-                onChange={(e) => handleReferrerInput(e.target.value)}
-                onFocus={() => setReferrerDropdownOpen(true)}
-                onBlur={() => setTimeout(() => setReferrerDropdownOpen(false), 160)}
-              />
-              {isSearching && (
-                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-              )}
-            </div>
-            {/* Show referrer email as a subtle hint below the search — not a separate input */}
-            {referrerEmailDisplay && (
-              <p className="text-xs text-muted-foreground pl-1">
-                Email: <span className="font-medium">{referrerEmailDisplay}</span>
-              </p>
-            )}
-            {referrerDropdownOpen && (
-              <div className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-md border border-border bg-background shadow-lg">
-                {clients.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">
-                    {isSearching ? "Searching…" : debouncedSearch ? "No clients found." : "Type to search clients…"}
-                  </div>
-                ) : (
-                  clients.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className="w-full px-4 py-2.5 text-left hover:bg-primary/10 transition-colors"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        selectReferrer(c);
-                      }}
-                    >
-                      <span className="text-sm font-medium text-foreground">{c.name}</span>
-                      {c.email && (
-                        <span className="text-xs text-muted-foreground ml-2">{c.email}</span>
-                      )}
-                    </button>
-                  ))
+          {/* Referrer Name — admins can search and pick any client; clients see only themselves. */}
+          {isAdminUser ? (
+            <div className="relative space-y-1.5">
+              <Label>
+                Referrer Name{" "}
+                <span className="text-xs text-muted-foreground font-normal">
+                  (leave blank to use your own name)
+                </span>
+              </Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  className="pl-9"
+                  placeholder={sessionName || "Search by name or email…"}
+                  value={displayedReferrerValue}
+                  onChange={(e) => handleReferrerInput(e.target.value)}
+                  onFocus={() => setReferrerDropdownOpen(true)}
+                  onBlur={() => setTimeout(() => setReferrerDropdownOpen(false), 160)}
+                />
+                {isSearching && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
                 )}
               </div>
-            )}
-          </div>
+              {referrerEmailDisplay && (
+                <p className="text-xs text-muted-foreground pl-1">
+                  Email: <span className="font-medium">{referrerEmailDisplay}</span>
+                </p>
+              )}
+              {referrerDropdownOpen && (
+                <div className="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-md border border-border bg-background shadow-lg">
+                  {clients.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      {isSearching ? "Searching…" : debouncedSearch ? "No clients found." : "Type to search clients…"}
+                    </div>
+                  ) : (
+                    clients.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className="w-full px-4 py-2.5 text-left hover:bg-primary/10 transition-colors"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          selectReferrer(c);
+                        }}
+                      >
+                        <span className="text-sm font-medium text-foreground">{c.name}</span>
+                        {c.email && (
+                          <span className="text-xs text-muted-foreground ml-2">{c.email}</span>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label>Referrer Name</Label>
+              <Input value={sessionName} readOnly className="bg-muted/40 cursor-not-allowed" />
+              {referrerEmailDisplay && (
+                <p className="text-xs text-muted-foreground pl-1">
+                  Email: <span className="font-medium">{referrerEmailDisplay}</span>
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={handleReset}>
