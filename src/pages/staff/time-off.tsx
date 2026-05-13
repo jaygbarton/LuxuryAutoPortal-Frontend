@@ -138,7 +138,7 @@ export default function StaffTimeOff() {
   const [formDate, setFormDate] = useState(
     () => new Date().toISOString().slice(0, 10)
   );
-  const [formType, setFormType] = useState("paid time off");
+  const [formType, setFormType] = useState("day off");
   const [formRemarks, setFormRemarks] = useState("");
 
   const offset = (page - 1) * pageSize;
@@ -225,7 +225,7 @@ export default function StaffTimeOff() {
   function closeForm() {
     setApplyOpen(false);
     setFormDate(new Date().toISOString().slice(0, 10));
-    setFormType("paid time off");
+    setFormType("day off");
     setFormRemarks("");
   }
 
@@ -509,8 +509,6 @@ export default function StaffTimeOff() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="paid time off">Paid Time Off</SelectItem>
-                  <SelectItem value="sick time off">Sick Time Off</SelectItem>
                   <SelectItem value="day off">Day Off</SelectItem>
                 </SelectContent>
               </Select>
