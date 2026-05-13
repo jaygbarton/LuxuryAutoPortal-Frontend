@@ -189,6 +189,34 @@ function toLocalInput(d: string | null | undefined): string {
   return `${p.y}-${p.mo}-${p.da}T${p.hh}:${p.mm}`;
 }
 
+/** Utah offset (minutes from UTC, e.g. -360 for MDT) at the given instant. */
+function utahOffsetMin(at: Date): number {
+  // Read the wall-clock components Utah sees at `at`. The difference between
+  // those (interpreted as UTC) and `at` itself is the zone's UTC offset —
+  // works in every browser without relying on `timeZoneName: "shortOffset"`,
+  // which falls back to non-numeric abbreviations like "MDT" on older runtimes.
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: UTAH_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(at);
+  const get = (t: string) => Number(fmt.find((p) => p.type === t)?.value ?? "0");
+  const wallUTC = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour") === 24 ? 0 : get("hour"),
+    get("minute"),
+    get("second")
+  );
+  return Math.round((wallUTC - at.getTime()) / 60_000);
+}
+
 /** Convert a Utah-time `datetime-local` value back to UTC MySQL DATETIME. */
 function fromLocalInput(v: string): string | null {
   if (!v) return null;
@@ -196,20 +224,10 @@ function fromLocalInput(v: string): string | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(v);
   if (!m) return null;
   const [, y, mo, da, hh, mm] = m;
-  // Parse twice to figure out Utah's offset at that moment (handles DST).
+  // First-pass guess at the instant (treating the input as if it were UTC),
+  // then look up Utah's true offset at that instant to handle DST correctly.
   const naiveUTC = Date.UTC(+y, +mo - 1, +da, +hh, +mm, 0);
-  // Find the Utah offset (in minutes) at that instant.
-  const tzShort = new Intl.DateTimeFormat("en-US", { timeZone: UTAH_TZ, timeZoneName: "shortOffset" })
-    .formatToParts(new Date(naiveUTC))
-    .find((p) => p.type === "timeZoneName")?.value ?? "GMT-7";
-  const offMatch = /GMT([+-])(\d{1,2})(?::?(\d{2}))?/.exec(tzShort);
-  let offsetMin = 0;
-  if (offMatch) {
-    const sign = offMatch[1] === "+" ? 1 : -1;
-    offsetMin = sign * (Number(offMatch[2]) * 60 + Number(offMatch[3] ?? 0));
-  } else {
-    offsetMin = -7 * 60; // sensible fallback (MST)
-  }
+  const offsetMin = utahOffsetMin(new Date(naiveUTC));
   const utcMs = naiveUTC - offsetMin * 60 * 1000;
   const utc = new Date(utcMs);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -318,6 +336,9 @@ export default function AdminHrTime() {
       if (!res.ok) throw new Error("Failed to fetch time records");
       return res.json();
     },
+    // Pick up employee clock-ins/outs without a manual reload.
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
   });
   const rows = data?.data ?? [];
 

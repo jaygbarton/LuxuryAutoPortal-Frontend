@@ -301,6 +301,9 @@ export default function StaffTime() {
       return r.json();
     },
     retry: false,
+    // Pick up admin-side edits/deletes from /admin/hr/time without manual refresh.
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
   });
   const open = lastQuery.data?.data.openSession ?? null;
   const isClockedIn = !!lastQuery.data?.data.isClockedIn;
@@ -322,6 +325,8 @@ export default function StaffTime() {
       if (!r.ok) throw new Error("Failed to load sessions");
       return r.json();
     },
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
   });
   const sessions = sessionsQuery.data?.data.sessions ?? [];
   const hourlyRate = Number(sessionsQuery.data?.data.hourlyRate ?? 0);

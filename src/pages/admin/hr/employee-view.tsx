@@ -277,17 +277,10 @@ export default function EmployeeViewPage() {
     enabled: !!employeeId && activeSection === "rate-history",
   });
 
-  const { data: unpaidPayrollData } = useQuery<{ success: boolean; count: number }>({
-    queryKey: ["/api/payroll/unpaid-count"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/payroll/unpaid-count"), { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
-    },
-    enabled: !!employeeId && (activeSection === "job-and-pay" || activeSection === "rate-history"),
-  });
-
-  const canEditPay = (unpaidPayrollData?.count ?? 0) === 0;
+  // Pay Information and Rate History are always editable from this admin view.
+  // The previous "on-going payroll" lock was triggered by any unpaid payrun
+  // (including drafts in "To Pay" status), which blocked routine corrections.
+  const canEditPay = true;
   const isPending = employee?.employee_status === "pending";
   const isOffboarded = employee?.employee_status === "offboarded" || employee?.employee_status === "separated";
   const isActive = !isPending && !isOffboarded && employee?.employee_is_active === 1;
@@ -753,13 +746,9 @@ export default function EmployeeViewPage() {
                         <List className="h-4 w-4 text-primary" />
                         <span className="font-bold uppercase text-[13px] text-primary">Pay Information</span>
                       </div>
-                      {canEditPay ? (
-                        <button type="button" onClick={() => setEditPayOpen(true)} className="flex items-center gap-2 py-2 text-blue-700 hover:underline">
-                          <Pencil className="h-3 w-3" /> <span>Update</span>
-                        </button>
-                      ) : (
-                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-700 border border-yellow-500/30">On-going payroll</span>
-                      )}
+                      <button type="button" onClick={() => setEditPayOpen(true)} className="flex items-center gap-2 py-2 text-blue-700 hover:underline">
+                        <Pencil className="h-3 w-3" /> <span>Update</span>
+                      </button>
                     </div>
                     <ul className="grid grid-cols-[150px,1fr] md:grid-cols-[200px,1fr] gap-x-4 gap-y-1 text-sm text-muted-foreground">
                       <li className="font-bold text-muted-foreground">Payroll Eligibility:</li>
@@ -821,13 +810,7 @@ export default function EmployeeViewPage() {
                               <td className="py-3 text-muted-foreground">{row.rate_history_effective_end ? formatDate(row.rate_history_effective_end) : "—"}</td>
                               <td className="py-3 text-right text-muted-foreground">{formatCurrency(row.rate_history_amount)}</td>
                               <td className="py-3 text-muted-foreground">{formatDateTime(row.rate_history_created)}</td>
-                              <td className="py-3 text-right">
-                                {!canEditPay && i === 0 ? (
-                                  <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-yellow-500/20 text-yellow-700 border border-yellow-500/30">
-                                    On-going payroll
-                                  </span>
-                                ) : null}
-                              </td>
+                              <td className="py-3 text-right" />
                             </tr>
                           ))}
                         </tbody>

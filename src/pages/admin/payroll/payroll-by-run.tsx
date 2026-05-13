@@ -61,6 +61,7 @@ interface PayrollListItem {
   payrun_list_gross: string;
   payrun_list_deduction: string;
   payrun_list_net: string;
+  total_hours?: string | number | null;
   employee_name?: string;
   fullname?: string;
 }
@@ -330,19 +331,18 @@ export default function PayrollByRunPage() {
                     <TableHead className="w-10">#</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Employee Name</TableHead>
-                    <TableHead className="text-right">Gross</TableHead>
-                    <TableHead className="text-right">Deduction</TableHead>
-                    <TableHead className="text-right">Net Pay</TableHead>
+                    <TableHead className="text-right">Total Hours</TableHead>
+                    <TableHead className="text-right">Total Pay</TableHead>
                     <TableHead className="w-[220px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRowSkeleton colSpan={7} rows={5} />
+                    <TableRowSkeleton colSpan={6} rows={5} />
                   ) : list.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={7}
+                        colSpan={6}
                         className="text-center text-muted-foreground py-8"
                       >
                         No employees in this pay run.
@@ -385,11 +385,8 @@ export default function PayrollByRunPage() {
                           <TableCell className="font-medium" onClick={go}>
                             {empName}
                           </TableCell>
-                          <TableCell className="text-right" onClick={go}>
-                            ${formatCurrency(row.payrun_list_gross)}
-                          </TableCell>
-                          <TableCell className="text-right" onClick={go}>
-                            ${formatCurrency(row.payrun_list_deduction)}
+                          <TableCell className="text-right tabular-nums" onClick={go}>
+                            {Number(row.total_hours ?? 0).toFixed(2)}
                           </TableCell>
                           <TableCell className="text-right font-medium" onClick={go}>
                             ${formatCurrency(row.payrun_list_net)}
