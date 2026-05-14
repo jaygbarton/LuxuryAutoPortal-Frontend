@@ -340,9 +340,9 @@ export default function CommissionFormApprovalDashboard() {
               <TableRow className="bg-muted/40">
                 <TableHead className="w-[110px]">Date Submitted</TableHead>
                 <TableHead>Employee</TableHead>
-                <TableHead className="w-[110px]">Comm. Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Car</TableHead>
+                <TableHead className="w-[110px]">Commission Date</TableHead>
+                <TableHead>Commission Type</TableHead>
+                <TableHead>Car Name</TableHead>
                 <TableHead>Remarks</TableHead>
                 <TableHead className="text-right w-[110px]">Amount</TableHead>
                 <TableHead className="w-[90px] text-center">Status</TableHead>

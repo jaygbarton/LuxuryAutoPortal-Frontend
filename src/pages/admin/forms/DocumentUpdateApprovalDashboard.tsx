@@ -52,6 +52,7 @@ import {
   Search,
   ShieldCheck,
   StickyNote,
+  Trash2,
   X,
   XCircle,
   ZoomIn,
@@ -205,6 +206,7 @@ export default function DocumentUpdateApprovalDashboard() {
   const [requestMessage, setRequestMessage] = useState("");
   const [notesRow, setNotesRow] = useState<DocumentUpdateRow | null>(null);
   const [historyRow, setHistoryRow] = useState<DocumentUpdateRow | null>(null);
+  const [deleteRow, setDeleteRow] = useState<DocumentUpdateRow | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const [editForm, setEditForm] = useState({
@@ -313,6 +315,25 @@ export default function DocumentUpdateApprovalDashboard() {
       toast({ title: "Update request sent to client" });
       setRequestUpdatesRow(null);
       setRequestMessage("");
+      invalidate();
+    },
+    onError: (e: Error) =>
+      toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(
+        buildApiUrl(`/api/admin/document-updates/${id}`),
+        { method: "DELETE", credentials: "include" }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) throw new Error(json.error || "Delete failed");
+      return json;
+    },
+    onSuccess: () => {
+      toast({ title: "Deleted" });
+      setDeleteRow(null);
       invalidate();
     },
     onError: (e: Error) =>
@@ -559,6 +580,15 @@ export default function DocumentUpdateApprovalDashboard() {
                           onClick={() => setHistoryRow(row)}
                         >
                           <History className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          title="Delete"
+                          onClick={() => setDeleteRow(row)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </TableCell>
@@ -905,6 +935,35 @@ export default function DocumentUpdateApprovalDashboard() {
 
       <InternalNotesDialog row={notesRow} onClose={() => setNotesRow(null)} />
       <HistoryDialog row={historyRow} onClose={() => setHistoryRow(null)} />
+
+      {/* Delete confirmation */}
+      <Dialog open={!!deleteRow} onOpenChange={(o) => { if (!o) setDeleteRow(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete submission?</DialogTitle>
+            <DialogDescription>
+              {deleteRow
+                ? `This will permanently delete ${deleteRow.du_full_name}'s ${DOC_LABELS[deleteRow.du_document_type]} submission. The audit history will be preserved.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteRow(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteRow && deleteMutation.mutate(deleteRow.du_aid)}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Lightbox */}
       {lightboxUrl && (
