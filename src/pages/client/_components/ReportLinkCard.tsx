@@ -10,9 +10,9 @@ interface ReportLinkCardProps {
 
 export function ReportLinkCard({ href, icon: Icon, label, external = false }: ReportLinkCardProps) {
   const inner = (
-    <div className="flex flex-col items-center gap-2 p-4 rounded-lg border border-border bg-card hover:border-[#d3bc8d]/50 hover:bg-muted/30 transition-colors text-center cursor-pointer">
-      <Icon className="w-6 h-6 text-[#d3bc8d]" />
-      <span className="text-xs text-muted-foreground leading-tight">{label}</span>
+    <div className="flex items-center gap-3 py-1.5 px-1 rounded-md hover:bg-muted/40 transition-colors cursor-pointer">
+      <Icon className="w-5 h-5 shrink-0 text-foreground/80" strokeWidth={1.5} />
+      <span className="text-sm text-foreground leading-tight">{label}</span>
     </div>
   );
 

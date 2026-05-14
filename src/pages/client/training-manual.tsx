@@ -1,4 +1,5 @@
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OnboardingTutorial, useTutorial } from "@/components/onboarding/OnboardingTutorial";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -223,6 +224,8 @@ export default function ClientTrainingManual() {
         )}
 
         <OnboardingTutorial autoPlay={false} />
+
+        <ClientPageLinks />
       </div>
     </AdminLayout>
   );

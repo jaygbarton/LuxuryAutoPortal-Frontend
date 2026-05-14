@@ -4,11 +4,18 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Folder, Download, ExternalLink } from "lucide-react";
+import {
+  Folder, Download, ExternalLink,
+  DollarSign, TrendingUp, TrendingDown, Car, Calendar,
+  FileText, Wrench, BarChart3, CreditCard,
+  Globe, BookOpen, Calculator, ShoppingBag, Video,
+  Star, ClipboardList, PlusCircle, UserPlus, Map,
+} from "lucide-react";
 import { ProfileSkeleton } from "@/components/ui/skeletons";
 import { buildApiUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
-import QuickLinks from "@/components/admin/QuickLinks";
+import { ReportCenter } from "@/pages/client/_components/ReportCenter";
+import { SupportCenter } from "@/pages/client/_components/SupportCenter";
 import { useToast } from "@/hooks/use-toast";
 
 interface ClientProfileResponse {
@@ -59,6 +66,54 @@ export default function ClientProfilePage() {
   const bankingInfo = profile?.bankingInfo;
   const signedContracts: any[] = profile?.signedContracts || [];
   const cars: any[] = profile?.cars || [];
+
+  // Pull the "Book Your Car" Turo URL the same way the dashboard does, so the
+  // Support Center link matches behaviour across pages.
+  const { data: quickLinksData } = useQuery<{ title?: string; url?: string }[]>({
+    queryKey: ["/api/quick-links"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/quick-links"), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch quick links");
+      const d = await res.json();
+      return d.quickLinks ?? [];
+    },
+    retry: false,
+  });
+
+  const firstCarId = cars?.[0]?.id ?? null;
+  const turoViewLink =
+    (quickLinksData ?? []).find((l) => l.title?.toLowerCase().includes("turo") && l.url)?.url ?? null;
+
+  const carPath = firstCarId
+    ? (p: string) => `/admin/cars/${firstCarId}/${p}`
+    : (_: string) => "#";
+
+  const reportLinks = [
+    { href: carPath("earnings"),       icon: DollarSign,    label: "Earnings" },
+    { href: "/admin/turo-trips",       icon: ClipboardList, label: "History" },
+    { href: carPath("totals"),         icon: BarChart3,     label: "Totals" },
+    { href: carPath("records"),        icon: FileText,      label: "Records and Files" },
+    { href: carPath("graphs"),         icon: TrendingUp,    label: "Graphs and Charts Report" },
+    { href: carPath("maintenance"),    icon: Wrench,        label: "Maintenance" },
+    { href: carPath("income-expense"), icon: Calendar,      label: "Car Rental Value Per Month" },
+    { href: carPath("depreciation"),   icon: TrendingDown,  label: "NADA Depreciation Schedule" },
+    { href: carPath("purchase"),       icon: ShoppingBag,   label: "Purchase Details" },
+    { href: carPath("calculator"),     icon: Calculator,    label: "Payment Calculator" },
+    { href: carPath("payments"),       icon: CreditCard,    label: "Payment History" },
+  ];
+
+  const supportLinks = [
+    { href: "#",                   icon: ClipboardList, label: "Off-boarding Form" },
+    { href: "#",                   icon: Video,         label: "Schedule a Zoom Call" },
+    { href: "/onboarding",         icon: PlusCircle,    label: "List Another Car" },
+    { href: turoViewLink ?? "#",   icon: Car,           label: "Book Your Car", external: !!turoViewLink },
+    { href: "/profile",            icon: FileText,      label: "License Registration or Insurance Updates" },
+    { href: "/admin/forms",        icon: UserPlus,      label: "Refer Somebody" },
+    { href: "/tutorial",           icon: BookOpen,      label: "Training Manual" },
+    { href: "/admin/turo-guide",   icon: Map,           label: "Turo Guide" },
+    { href: "/admin/testimonials", icon: Star,          label: "Client Testimonials" },
+    { href: "#",                   icon: Globe,         label: "News & Media" },
+  ];
 
   // Debug: Log banking info to console
   useEffect(() => {
@@ -443,11 +498,11 @@ export default function ClientProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Quick Links (Reports / Support / Forms Center) */}
-              <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-foreground">Quick Links</h2>
-          <QuickLinks />
-              </div>
+        {/* Report Center + Support Center (placed directly under Signed Contracts) */}
+        <div className="space-y-6">
+          <ReportCenter reportLinks={reportLinks} />
+          <SupportCenter supportLinks={supportLinks} />
+        </div>
 
       </div>
 

@@ -6,7 +6,7 @@ import {
   DollarSign, TrendingUp, TrendingDown, Car, Calendar,
   FileText, Loader2, Wrench, BarChart3, CreditCard,
   Globe, BookOpen, Calculator, ShoppingBag, Video,
-  Star, ClipboardList, PlusCircle,
+  Star, ClipboardList, PlusCircle, UserPlus, Map,
 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { differenceInDays } from "date-fns";
@@ -250,8 +250,10 @@ export default function ClientDashboard() {
     { href: "#",                                      icon: Video,         label: "Schedule a Zoom Call" },
     { href: "/onboarding",                            icon: PlusCircle,    label: "List Another Car" },
     { href: turoViewLink ?? "#",                      icon: Car,           label: "Book Your Car", external: !!turoViewLink },
-    { href: "/profile",                               icon: FileText,      label: "License/Insurance Updates" },
+    { href: "/profile",                               icon: FileText,      label: "License Registration or Insurance Updates" },
+    { href: "/admin/forms",                           icon: UserPlus,      label: "Refer Somebody" },
     { href: "/tutorial",                              icon: BookOpen,      label: "Training Manual" },
+    { href: "/admin/turo-guide",                      icon: Map,           label: "Turo Guide" },
     { href: "/admin/testimonials",                    icon: Star,          label: "Client Testimonials" },
     { href: "#",                                      icon: Globe,         label: "News & Media" },
   ];
@@ -291,21 +293,9 @@ export default function ClientDashboard() {
           </div>
         )}
 
-        {/* ROW 1: Car Gallery + Monthly Update Video */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-          <CarGallery apiPhotos={carPhotosData?.photos ?? []} activeCar={activeCar} />
-          <div className="border border-border bg-card rounded-xl overflow-hidden h-full" style={{ minHeight: "300px", background: "#1a1a1a" }}>
-            <iframe
-              className="w-full h-full"
-              style={{ minHeight: "300px" }}
-              src="https://www.youtube.com/embed/W86cTIoMv2U?rel=0&modestbranding=1"
-              title="Golden Luxury Auto Monthly Update"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        </div>
+        {/* ROW 1: Car Gallery (full width — the Monthly Update Video tile was
+            removed per client request; the gallery now spans the row alone). */}
+        <CarGallery apiPhotos={carPhotosData?.photos ?? []} activeCar={activeCar} />
 
         {/* ROW 2: Vehicle/Owner Info + GLA Contact */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">

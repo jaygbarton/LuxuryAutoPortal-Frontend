@@ -6,6 +6,7 @@ import {
   keepPreviousData,
 } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1745,6 +1746,8 @@ export default function FormsPage() {
             })}
           </CardContent>
         </Card>
+
+        <ClientPageLinks />
       </div>
 
       {/* Submission Details Dialog */}
