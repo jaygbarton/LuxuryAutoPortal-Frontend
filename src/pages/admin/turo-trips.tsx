@@ -567,10 +567,10 @@ export default function TuroTripsPage() {
                     <TableHead className="whitespace-nowrap font-semibold">Trip Start</TableHead>
                     <TableHead className="whitespace-nowrap font-semibold">Pick Up Location</TableHead>
                     <TableHead className="whitespace-nowrap font-semibold">Trip Ends</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">Days Rented</TableHead>
                     <TableHead className="whitespace-nowrap font-semibold">Drop Off Location</TableHead>
                     <TableHead className="whitespace-nowrap font-semibold">Extras</TableHead>
                     <TableHead className="whitespace-nowrap font-semibold">Miles Included</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">Miles Driven</TableHead>
                     <TableHead className="whitespace-nowrap font-semibold">Trip Start Odometer</TableHead>
                     <TableHead className="whitespace-nowrap font-semibold">Trip Ends Odometer</TableHead>
                     <TableHead className="whitespace-nowrap font-semibold">Total Miles</TableHead>
@@ -697,6 +697,21 @@ export default function TuroTripsPage() {
                             </div>
                           </TableCell>
 
+                          {/* Days Rented — null for cancelled trips, ceil(hours/24) otherwise */}
+                          <TableCell
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
+                            {(() => {
+                              const days = calculateDaysRented(trip.tripStart, trip.tripEnd, trip.status);
+                              return (
+                                <span className={`text-sm tabular-nums ${days != null ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                                  {days != null ? days : "-"}
+                                </span>
+                              );
+                            })()}
+                          </TableCell>
+
                           {/* Drop Off Location */}
                           <TableCell
                             className="cursor-pointer"
@@ -754,16 +769,6 @@ export default function TuroTripsPage() {
                           >
                             <span className="text-sm whitespace-nowrap">
                               {trip.milesIncluded || trip.totalDistance || "-"}
-                            </span>
-                          </TableCell>
-
-                          {/* Miles Driven */}
-                          <TableCell
-                            className="cursor-pointer"
-                            onClick={() => setSelectedTrip(trip)}
-                          >
-                            <span className="text-sm whitespace-nowrap">
-                              {trip.milesDriven || "-"}
                             </span>
                           </TableCell>
 
