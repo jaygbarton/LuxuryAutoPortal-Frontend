@@ -4,6 +4,7 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -43,6 +44,7 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  Upload,
 } from "lucide-react";
 import { format, differenceInHours } from "date-fns";
 
@@ -114,6 +116,13 @@ export default function TuroTripsPage() {
   // Inline extras editing: tripId → string
   const [extrasEdits, setExtrasEdits] = useState<Record<number, string>>({});
   const [savingExtras, setSavingExtras] = useState<number | null>(null);
+  // Inline plate # editing: tripId → string
+  const [plateEdits, setPlateEdits] = useState<Record<number, string>>({});
+  const [savingPlate, setSavingPlate] = useState<number | null>(null);
+  // Bulk paste-import modal state
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importing, setImporting] = useState(false);
   const itemsPerPage = 20;
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -181,8 +190,15 @@ export default function TuroTripsPage() {
         method: "POST",
         credentials: "include",
       });
-      if (!response.ok) throw new Error("Failed to sync emails");
-      return response.json();
+      // The backend always returns JSON ({ success, message, error? }); surface
+      // its real `error` field on failure instead of a generic message so the
+      // admin can see "invalid_grant" / "GMAIL_REFRESH_TOKEN missing" / etc.
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        const reason = data?.error || data?.message || `HTTP ${response.status}`;
+        throw new Error(reason);
+      }
+      return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
@@ -259,6 +275,105 @@ export default function TuroTripsPage() {
       toast({ title: "Failed to save extras", variant: "destructive" });
     } finally {
       setSavingExtras(null);
+    }
+  };
+
+  // Save plate # for a trip (inline edit). The Turo email doesn't include the
+  // plate so this is purely admin-driven — either here or via the bulk import.
+  const savePlate = async (trip: TuroTrip) => {
+    const edited = plateEdits[trip.id];
+    if (edited === undefined) return;
+    const trimmed = edited.trim();
+    setSavingPlate(trip.id);
+    try {
+      const response = await fetch(buildApiUrl(`/api/turo-trips/${trip.id}/plate`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plateNumber: trimmed === "" ? null : trimmed }),
+      });
+      if (!response.ok) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      setPlateEdits((prev) => {
+        const next = { ...prev };
+        delete next[trip.id];
+        return next;
+      });
+      toast({ title: "Plate # saved", description: `Reservation #${trip.reservationId}` });
+    } catch {
+      toast({ title: "Failed to save plate #", variant: "destructive" });
+    } finally {
+      setSavingPlate(null);
+    }
+  };
+
+  // Parse the user's paste (tab or multi-space separated rows from Excel) and
+  // POST it to the bulk-import endpoint. We accept either a header row or none
+  // — column order is fixed: Reservation ID, Plate#, Trip Start Odometer,
+  // Trip Ends Odometer.
+  const runImport = async () => {
+    const raw = importText.trim();
+    if (!raw) {
+      toast({ title: "Nothing to import", description: "Paste rows from your Turo export first.", variant: "destructive" });
+      return;
+    }
+
+    const rows: any[] = [];
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) continue;
+      // Split on tabs first (Excel paste); fall back to runs of 2+ spaces.
+      const cols = trimmedLine.includes("\t")
+        ? trimmedLine.split("\t")
+        : trimmedLine.split(/ {2,}/);
+      const reservationId = (cols[0] ?? "").trim();
+      if (!reservationId) continue;
+      // Skip header row.
+      if (/reservation/i.test(reservationId)) continue;
+      // Plate may carry a leading '#' from the export — strip it.
+      const plateRaw = (cols[1] ?? "").trim();
+      const plateNumber = plateRaw === "" ? null : plateRaw.replace(/^#/, "");
+      const startRaw = (cols[2] ?? "").trim();
+      const endRaw = (cols[3] ?? "").trim();
+      const row: any = { reservationId };
+      // Only include fields the user actually filled in so we don't clobber
+      // existing values with blanks.
+      if (cols.length >= 2) row.plateNumber = plateNumber;
+      if (startRaw !== "") row.tripStartOdometer = startRaw;
+      if (endRaw !== "") row.tripEndOdometer = endRaw;
+      rows.push(row);
+    }
+
+    if (rows.length === 0) {
+      toast({ title: "No valid rows found", variant: "destructive" });
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const response = await fetch(buildApiUrl("/api/turo-trips/import"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.message || "Import failed");
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      toast({
+        title: "Import complete",
+        description: data.skipped?.length
+          ? `Updated ${data.updated}. Skipped ${data.skipped.length} unknown reservation ID(s).`
+          : `Updated ${data.updated} trip(s).`,
+      });
+      setImportOpen(false);
+      setImportText("");
+    } catch (e: any) {
+      toast({ title: "Import failed", description: e.message, variant: "destructive" });
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -364,22 +479,28 @@ export default function TuroTripsPage() {
               Automated trip tracking from Turo emails
             </p>
           </div>
-          <Button
-            onClick={() => syncMutation.mutate()}
-            disabled={syncMutation.isPending}
-          >
-            {syncMutation.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Syncing...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Sync Now
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Import from Turo
+            </Button>
+            <Button
+              onClick={() => syncMutation.mutate()}
+              disabled={syncMutation.isPending}
+            >
+              {syncMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Sync Now
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}
@@ -657,14 +778,48 @@ export default function TuroTripsPage() {
                             </div>
                           </TableCell>
 
-                          {/* Plate # */}
-                          <TableCell
-                            className="cursor-pointer"
-                            onClick={() => setSelectedTrip(trip)}
-                          >
-                            <span className="text-sm font-mono">
-                              {trip.plateNumber || "-"}
-                            </span>
+                          {/* Plate # — inline editable. Turo doesn't expose
+                              this in the booking email, so admins fill it in
+                              here (or via the bulk Import button). */}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1">
+                              <Input
+                                value={
+                                  plateEdits[trip.id] !== undefined
+                                    ? plateEdits[trip.id]
+                                    : trip.plateNumber ?? ""
+                                }
+                                placeholder="-"
+                                className="h-8 w-24 text-sm font-mono"
+                                onChange={(e) =>
+                                  setPlateEdits((prev) => ({ ...prev, [trip.id]: e.target.value }))
+                                }
+                                onBlur={() => {
+                                  if (plateEdits[trip.id] === undefined) return;
+                                  const current = trip.plateNumber ?? "";
+                                  if (plateEdits[trip.id].trim() === current.trim()) {
+                                    setPlateEdits((prev) => {
+                                      const next = { ...prev };
+                                      delete next[trip.id];
+                                      return next;
+                                    });
+                                    return;
+                                  }
+                                  savePlate(trip);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                                  if (e.key === "Escape") {
+                                    setPlateEdits((prev) => {
+                                      const next = { ...prev };
+                                      delete next[trip.id];
+                                      return next;
+                                    });
+                                  }
+                                }}
+                              />
+                              {savingPlate === trip.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                            </div>
                           </TableCell>
 
                           {/* Trip Start */}
@@ -1071,6 +1226,38 @@ export default function TuroTripsPage() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk import from Turo export. The user pastes rows straight from
+          their Excel export (tab-separated). We update plate # and odometers
+          by reservation_id; unknown reservation IDs are reported back. */}
+      <Dialog open={importOpen} onOpenChange={(open) => { if (!importing) setImportOpen(open); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Import from Turo Export</DialogTitle>
+            <DialogDescription>
+              Paste rows directly from your Turo Excel export. Column order:
+              <span className="font-mono"> Reservation ID, Plate#, Trip Start Odometer, Trip Ends Odometer</span>.
+              Plate # is required to fill the column; odometer values are optional and can be left blank. Unknown
+              reservation IDs are reported, not created.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            placeholder={"41899967\t#G022VR\t\t\n43472991\t#H868CW\t\t\n49053682\t#H516HL\t23044\t23144"}
+            className="font-mono text-xs h-64"
+            disabled={importing}
+          />
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setImportOpen(false)} disabled={importing}>
+              Cancel
+            </Button>
+            <Button onClick={runImport} disabled={importing}>
+              {importing ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Importing...</>) : (<><Upload className="w-4 h-4 mr-2" />Import</>)}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </AdminLayout>
