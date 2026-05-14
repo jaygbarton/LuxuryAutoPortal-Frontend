@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SummaryCard } from "@/components/admin/dashboard/SummaryCard";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
@@ -34,6 +36,11 @@ export function TripsOverviewTab() {
     return_location?: string;
     delivery_location?: string;
   }>({});
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterAssigned, setFilterAssigned] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
   const { data, isLoading } = useQuery<{ data: TuroTrip[] }>({
     queryKey: ["/api/turo-trips", { limit: 100 }],
@@ -53,11 +60,11 @@ export function TripsOverviewTab() {
     },
   });
 
-  const trips = data?.data || [];
+  const allTrips = data?.data || [];
   const allTasks = tasksData?.data || [];
-  const activeTrips = trips.filter((t) => t.status?.toLowerCase() === "booked" || t.status?.toLowerCase() === "active");
-  const completedTrips = trips.filter((t) => t.status?.toLowerCase() === "completed");
-  const cancelledTrips = trips.filter((t) => t.status?.toLowerCase() === "cancelled");
+  const activeTrips = allTrips.filter((t) => t.status?.toLowerCase() === "booked" || t.status?.toLowerCase() === "active");
+  const completedTrips = allTrips.filter((t) => t.status?.toLowerCase() === "completed");
+  const cancelledTrips = allTrips.filter((t) => t.status?.toLowerCase() === "cancelled");
 
   const getTasksForTrip = (tripId: number) => {
     return allTasks.filter(t => t.turo_trip_id === tripId);
@@ -65,6 +72,62 @@ export function TripsOverviewTab() {
 
   const hasTaskType = (tripId: number, taskType: TaskType) => {
     return allTasks.some(t => t.turo_trip_id === tripId && t.task_type === taskType);
+  };
+
+  const assigneeOptions = useMemo(() => {
+    const names = new Set<string>();
+    allTasks.forEach((t) => { if (t.assigned_to) names.add(t.assigned_to); });
+    return Array.from(names).sort();
+  }, [allTasks]);
+
+  const trips = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const from = dateFrom ? new Date(dateFrom).getTime() : null;
+    // include the full "to" day by adding 24h - 1ms
+    const to = dateTo ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1 : null;
+
+    return allTrips.filter((trip) => {
+      if (q) {
+        const hay = [trip.reservationId, trip.carName, trip.guestName, trip.status]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (filterStatus !== "all" && (trip.status || "").toLowerCase() !== filterStatus) return false;
+      if (filterAssigned !== "all") {
+        const tripTasks = getTasksForTrip(trip.id);
+        if (filterAssigned === "__unassigned__") {
+          if (tripTasks.length > 0) return false;
+        } else if (!tripTasks.some((t) => t.assigned_to === filterAssigned)) {
+          return false;
+        }
+      }
+      if (from != null || to != null) {
+        const start = trip.tripStart ? new Date(trip.tripStart).getTime() : null;
+        if (start == null) return false;
+        if (from != null && start < from) return false;
+        if (to != null && start > to) return false;
+      }
+      return true;
+    });
+  }, [allTrips, allTasks, search, filterStatus, filterAssigned, dateFrom, dateTo]);
+
+  const statusOptions = useMemo(() => {
+    const set = new Set<string>();
+    allTrips.forEach((t) => { if (t.status) set.add(t.status.toLowerCase()); });
+    return Array.from(set).sort();
+  }, [allTrips]);
+
+  const hasActiveFilters =
+    search !== "" || filterStatus !== "all" || filterAssigned !== "all" || dateFrom !== "" || dateTo !== "";
+
+  const clearFilters = () => {
+    setSearch("");
+    setFilterStatus("all");
+    setFilterAssigned("all");
+    setDateFrom("");
+    setDateTo("");
   };
 
   const openTaskModal = (trip: TuroTrip, taskType: TaskType) => {
@@ -94,7 +157,76 @@ export function TripsOverviewTab() {
 
       <div className="bg-card border border-border rounded-lg overflow-auto">
         <div className="p-4">
-          <div className="text-sm text-muted-foreground mb-3">Total: {trips.length} trips</div>
+          <div className="flex flex-col lg:flex-row lg:items-end gap-3 mb-4">
+            <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+              <label className="text-muted-foreground text-xs">Search</label>
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Reservation #, car, guest..."
+                className="bg-card border-border text-foreground h-9"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">Status</label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="bg-card border-border text-foreground w-[140px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground">
+                  <SelectItem value="all">All</SelectItem>
+                  {statusOptions.map((s) => (
+                    <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">Assigned To</label>
+              <Select value={filterAssigned} onValueChange={setFilterAssigned}>
+                <SelectTrigger className="bg-card border-border text-foreground w-[160px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground">
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="__unassigned__">Unassigned</SelectItem>
+                  {assigneeOptions.map((name) => (
+                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">Trip Start From</label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="bg-card border-border text-foreground h-9 w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">Trip Start To</label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="bg-card border-border text-foreground h-9 w-[150px]"
+              />
+            </div>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                onClick={clearFilters}
+                className="text-red-700 hover:text-red-700 hover:bg-red-900/20 h-9"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+          <div className="text-sm text-muted-foreground mb-3">
+            Total: {trips.length} {trips.length === allTrips.length ? "trips" : `of ${allTrips.length} trips`}
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -138,24 +270,22 @@ export function TripsOverviewTab() {
                         <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={trip.returnLocation || ""}>{trip.returnLocation || "--"}</TableCell>
                         <TableCell><StatusBadge status={trip.status} /></TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
-                            {hasCleaning && (
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500/20" title="Cleaning assigned">
-                                <Sparkles className="w-3 h-3 text-yellow-500" />
-                              </span>
-                            )}
-                            {hasDelivery && (
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/20" title="Delivery assigned">
-                                <Truck className="w-3 h-3 text-blue-400" />
-                              </span>
-                            )}
-                            {hasPickup && (
-                              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-500/20" title="Pickup assigned">
-                                <Package className="w-3 h-3 text-green-500" />
-                              </span>
-                            )}
-                            {tripTasks.length === 0 && <span className="text-muted-foreground text-xs">--</span>}
-                          </div>
+                          {tripTasks.length === 0 ? (
+                            <span className="text-muted-foreground text-xs">--</span>
+                          ) : (
+                            <div className="flex flex-col gap-0.5 text-xs">
+                              {tripTasks.map((t) => {
+                                const Icon = t.task_type === "cleaning" ? Sparkles : t.task_type === "delivery" ? Truck : Package;
+                                const color = t.task_type === "cleaning" ? "text-yellow-500" : t.task_type === "delivery" ? "text-blue-400" : "text-green-500";
+                                return (
+                                  <div key={t.id} className="flex items-center gap-1.5" title={`${t.task_type}: ${t.assigned_to}`}>
+                                    <Icon className={`w-3 h-3 ${color} shrink-0`} />
+                                    <span className="text-foreground truncate max-w-[120px]">{t.assigned_to || "--"}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-center gap-1">

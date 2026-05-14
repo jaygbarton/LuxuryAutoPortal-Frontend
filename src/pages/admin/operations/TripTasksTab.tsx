@@ -10,7 +10,7 @@ import { StatusBadge } from "./StatusBadge";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, History } from "lucide-react";
-import type { OperationTask, TaskType, TaskStatus } from "./types";
+import type { OperationTask, TaskType, TaskStatus, TuroTrip } from "./types";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -48,7 +48,17 @@ export function TripTasksTab() {
     },
   });
 
+  const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
+    queryKey: ["/api/turo-trips", { limit: 500 }],
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl("/api/turo-trips?limit=500"), { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch trips");
+      return response.json();
+    },
+  });
+
   const tasks = data?.data || [];
+  const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
 
   const statusUpdateMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -157,6 +167,9 @@ export function TripTasksTab() {
                   <TableHead className="text-foreground font-medium">Task Type</TableHead>
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
                   <TableHead className="text-foreground font-medium">Scheduled</TableHead>
+                  <TableHead className="text-foreground font-medium">Start Location</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip End</TableHead>
+                  <TableHead className="text-foreground font-medium">Return Location</TableHead>
                   <TableHead className="text-foreground font-medium">Due Date</TableHead>
                   <TableHead className="text-foreground font-medium">Location</TableHead>
                   <TableHead className="text-foreground font-medium">Status</TableHead>
@@ -166,14 +179,19 @@ export function TripTasksTab() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">Loading tasks...</TableCell>
+                    <TableCell colSpan={13} className="text-center py-12 text-muted-foreground">Loading tasks...</TableCell>
                   </TableRow>
                 ) : tasks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">No tasks found</TableCell>
+                    <TableCell colSpan={13} className="text-center py-12 text-muted-foreground">No tasks found</TableCell>
                   </TableRow>
                 ) : (
-                  tasks.map((task) => (
+                  tasks.map((task) => {
+                    const trip = task.turo_trip_id != null ? tripsById.get(task.turo_trip_id) : undefined;
+                    const startLocation = trip?.pickupLocation || trip?.deliveryLocation || "";
+                    const returnLocation = trip?.returnLocation || "";
+                    const tripEnd = trip?.tripEnd || null;
+                    return (
                     <TableRow key={task.id} className="border-border hover:bg-card/50 transition-colors">
                       <TableCell className="text-foreground font-mono text-sm">{task.reservation_id || "N/A"}</TableCell>
                       <TableCell className="text-foreground">{task.car_name}</TableCell>
@@ -181,6 +199,9 @@ export function TripTasksTab() {
                       <TableCell className="text-foreground capitalize">{task.task_type}</TableCell>
                       <TableCell className="text-foreground">{task.assigned_to}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{formatDate(task.scheduled_date)}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={startLocation || undefined}>{startLocation || "--"}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{formatDate(tripEnd)}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={returnLocation || undefined}>{returnLocation || "--"}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{formatDate(task.due_date)}</TableCell>
                       <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={task.scheduled_location || undefined}>{task.scheduled_location || "--"}</TableCell>
                       <TableCell>
@@ -231,7 +252,8 @@ export function TripTasksTab() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
