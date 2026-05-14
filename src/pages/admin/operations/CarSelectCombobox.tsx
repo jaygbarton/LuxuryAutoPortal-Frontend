@@ -13,15 +13,21 @@ interface CarOption {
   licensePlate: string | null;
   vin: string;
   status: string;
+  year?: number | null;
+  make?: string | null;
+  model?: string | null;
 }
 
 interface CarSelectComboboxProps {
   value: string;
   onChange: (value: string) => void;
+  /** Optional: receive the full selected car (id + make + model + plate + year)
+   *  so the caller can store the id alongside the legacy string. */
+  onSelectCar?: (car: CarOption | null) => void;
   disabled?: boolean;
 }
 
-export function CarSelectCombobox({ value, onChange, disabled }: CarSelectComboboxProps) {
+export function CarSelectCombobox({ value, onChange, onSelectCar, disabled }: CarSelectComboboxProps) {
   const [open, setOpen] = useState(false);
 
   const { data: carsData } = useQuery<{ data: CarOption[] }>({
@@ -85,6 +91,7 @@ export function CarSelectCombobox({ value, onChange, disabled }: CarSelectCombob
                   value={formatCarLabel(car)}
                   onSelect={() => {
                     onChange(car.makeModel);
+                    onSelectCar?.(car);
                     setOpen(false);
                   }}
                   className="text-foreground data-[selected=true]:bg-primary/20 data-[selected=true]:text-foreground cursor-pointer"

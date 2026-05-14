@@ -59,9 +59,12 @@ export interface Inspection {
 export interface MaintenanceRecord {
   id: number;
   inspection_id: number | null;
+  /** Foreign key to the car. Preferred over car_name for new rows. */
+  car_id: number | null;
   car_name: string;
   task_description: string;
   assigned_to: string;
+  assigned_to_id: number | null;
   scheduled_date: string | null;
   due_date: string | null;
   status: string;
@@ -71,6 +74,11 @@ export interface MaintenanceRecord {
   google_event_id: string | null;
   created_at: string;
   updated_at: string;
+  // Joined from the car table on read. Null on legacy rows without car_id.
+  car_make: string | null;
+  car_model: string | null;
+  car_year: number | null;
+  car_plate: string | null;
 }
 
 export type TaskType = "cleaning" | "delivery" | "pickup";

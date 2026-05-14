@@ -8,6 +8,7 @@ import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PhotoUpload } from "./PhotoUpload";
 import { CarSelectCombobox } from "./CarSelectCombobox";
+import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import type { MaintenanceRecord } from "./types";
 
 interface MaintenanceModalProps {
@@ -39,9 +40,11 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
 
   const [formData, setFormData] = useState({
     inspection_id: record?.inspection_id || prefill?.inspection_id || null,
+    car_id: record?.car_id ?? null,
     car_name: record?.car_name || prefill?.car_name || "",
     task_description: record?.task_description || prefill?.task_description || "",
     assigned_to: record?.assigned_to || "",
+    assigned_to_id: record?.assigned_to_id ?? null,
     scheduled_date: record?.scheduled_date ? record.scheduled_date.slice(0, 16) : "",
     due_date: record?.due_date ? record.due_date.slice(0, 16) : "",
     notes: record?.notes || prefill?.notes || "",
@@ -54,9 +57,11 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
     if (record) {
       setFormData({
         inspection_id: record.inspection_id,
+        car_id: record.car_id ?? null,
         car_name: record.car_name,
         task_description: record.task_description,
         assigned_to: record.assigned_to,
+        assigned_to_id: record.assigned_to_id ?? null,
         scheduled_date: record.scheduled_date ? record.scheduled_date.slice(0, 16) : "",
         due_date: record.due_date ? record.due_date.slice(0, 16) : "",
         notes: record.notes || "",
@@ -127,8 +132,18 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.car_name || !formData.task_description || !formData.assigned_to) {
-      toast({ title: "Error", description: "Please fill in required fields", variant: "destructive" });
+    if (
+      !formData.car_name ||
+      !formData.task_description ||
+      !formData.assigned_to ||
+      !formData.scheduled_date
+    ) {
+      toast({
+        title: "Missing required fields",
+        description:
+          "Car, Description, Assigned To, and Scheduled Date are all required.",
+        variant: "destructive",
+      });
       return;
     }
     mutation.mutate(formData);
@@ -146,6 +161,13 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
             <CarSelectCombobox
               value={formData.car_name}
               onChange={(v) => setFormData({ ...formData, car_name: v })}
+              onSelectCar={(car) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  car_id: car?.id ?? null,
+                  car_name: car?.makeModel ?? prev.car_name,
+                }))
+              }
             />
           </div>
 
@@ -163,24 +185,31 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
 
           <div>
             <label className="text-sm text-muted-foreground">Assigned To *</label>
-            <Input
+            <EmployeeSelectCombobox
               value={formData.assigned_to}
-              onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-              className="bg-card border-border text-foreground mt-1"
-              placeholder="Employee name"
-              required
+              onChange={(v) => setFormData({ ...formData, assigned_to: v })}
+              onSelectEmployee={(emp) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  assigned_to_id: emp?.employee_aid ?? null,
+                }))
+              }
             />
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground">Scheduled Date/Time</label>
+            <label className="text-sm text-muted-foreground">Scheduled Date/Time *</label>
             <Input
               type="datetime-local"
               value={formData.scheduled_date}
               onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
               className="bg-card border-border text-foreground mt-1"
               style={{ colorScheme: "dark" }}
+              required
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              Setting a scheduled date adds this maintenance to the Google Calendar.
+            </p>
           </div>
 
           <div>

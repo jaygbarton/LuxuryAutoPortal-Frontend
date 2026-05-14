@@ -144,7 +144,10 @@ export function MaintenanceTab({ defaultStatus = "all", lockedStatus = false }: 
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-foreground font-medium">Car</TableHead>
+                  <TableHead className="text-foreground font-medium">Make</TableHead>
+                  <TableHead className="text-foreground font-medium">Model</TableHead>
+                  <TableHead className="text-foreground font-medium">Year</TableHead>
+                  <TableHead className="text-foreground font-medium">Plate #</TableHead>
                   <TableHead className="text-foreground font-medium">Description</TableHead>
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
                   <TableHead className="text-foreground font-medium">Scheduled Date</TableHead>
@@ -159,16 +162,29 @@ export function MaintenanceTab({ defaultStatus = "all", lockedStatus = false }: 
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">Loading maintenance records...</TableCell>
+                    <TableCell colSpan={13} className="text-center py-12 text-muted-foreground">Loading maintenance records...</TableCell>
                   </TableRow>
                 ) : records.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">No maintenance records found</TableCell>
+                    <TableCell colSpan={13} className="text-center py-12 text-muted-foreground">No maintenance records found</TableCell>
                   </TableRow>
                 ) : (
-                  records.map((rec) => (
+                  records.map((rec) => {
+                    // Prefer the joined car fields (populated for rows created via the new
+                    // car-id-aware flow). For legacy rows where only car_name exists,
+                    // best-effort split on whitespace so the table still shows something.
+                    const fallbackParts = (rec.car_name || "").trim().split(/\s+/);
+                    const make = rec.car_make || fallbackParts[0] || "--";
+                    const model =
+                      rec.car_model || (fallbackParts.length > 1 ? fallbackParts.slice(1).join(" ") : "--");
+                    const year = rec.car_year != null ? String(rec.car_year) : "--";
+                    const plate = rec.car_plate || "--";
+                    return (
                     <TableRow key={rec.id} className="border-border hover:bg-card/50 transition-colors">
-                      <TableCell className="text-foreground">{rec.car_name}</TableCell>
+                      <TableCell className="text-foreground">{make}</TableCell>
+                      <TableCell className="text-foreground">{model}</TableCell>
+                      <TableCell className="text-foreground">{year}</TableCell>
+                      <TableCell className="text-foreground font-mono text-sm">{plate}</TableCell>
                       <TableCell className="text-foreground text-sm max-w-[200px] truncate" title={rec.task_description}>{rec.task_description}</TableCell>
                       <TableCell className="text-foreground">{rec.assigned_to}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{formatDate(rec.scheduled_date)}</TableCell>
@@ -230,7 +246,8 @@ export function MaintenanceTab({ defaultStatus = "all", lockedStatus = false }: 
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
