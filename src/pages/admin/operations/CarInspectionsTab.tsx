@@ -11,7 +11,7 @@ import { StatusBadge } from "./StatusBadge";
 import { InspectionModal } from "./InspectionModal";
 import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, ArrowRight, Wrench, History } from "lucide-react";
+import { Plus, Edit, Trash2, ArrowRight, Wrench, History, CheckCircle2 } from "lucide-react";
 import type { Inspection, MaintenanceRecord } from "./types";
 
 const formatDate = (dateStr: string | null): string => {
@@ -146,6 +146,7 @@ export function CarInspectionsTab() {
                   <SelectItem value="new">New</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="no_issues">No Car Issues</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -211,6 +212,7 @@ export function CarInspectionsTab() {
                               <SelectItem value="new">New</SelectItem>
                               <SelectItem value="in_progress">In Progress</SelectItem>
                               <SelectItem value="completed">Completed</SelectItem>
+                              <SelectItem value="no_issues">No Car Issues</SelectItem>
                             </SelectContent>
                           </Select>
                         </TableCell>
@@ -242,7 +244,7 @@ export function CarInspectionsTab() {
                             >
                               <History className="w-3.5 h-3.5" />
                             </Button>
-                            {!movedToMaint && (
+                            {!movedToMaint && insp.status !== "no_issues" && (
                               <Button
                                 variant="ghost" size="sm"
                                 onClick={() => moveToMaintenanceMutation.mutate(insp.id)}
@@ -250,6 +252,16 @@ export function CarInspectionsTab() {
                                 title="Move to Maintenance"
                               >
                                 <ArrowRight className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                            {!movedToMaint && insp.status !== "no_issues" && (
+                              <Button
+                                variant="ghost" size="sm"
+                                onClick={() => statusUpdateMutation.mutate({ id: insp.id, status: "no_issues" })}
+                                className="text-muted-foreground hover:text-emerald-400 h-8 px-2"
+                                title="Mark No Car Issues"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
                               </Button>
                             )}
                             <Button

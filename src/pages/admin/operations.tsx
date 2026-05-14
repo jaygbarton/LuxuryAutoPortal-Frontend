@@ -5,6 +5,7 @@ import { TripTasksTab } from "./operations/TripTasksTab";
 import { TuroInspectionTab } from "./operations/TuroInspectionTab";
 import { CarInspectionsTab } from "./operations/CarInspectionsTab";
 import { MaintenanceTab } from "./operations/MaintenanceTab";
+import { NoCarIssuesTab } from "./operations/NoCarIssuesTab";
 
 export default function OperationsPage() {
   return (
@@ -55,7 +56,7 @@ export default function OperationsPage() {
             <MaintenanceTab />
           </TabsContent>
           <TabsContent value="completed">
-            <MaintenanceTab defaultStatus="completed" lockedStatus />
+            <NoCarIssuesTab />
           </TabsContent>
         </Tabs>
       </div>

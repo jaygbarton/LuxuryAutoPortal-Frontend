@@ -12,6 +12,7 @@ const statusColors: Record<string, { bg: string; text: string }> = {
   in_review: { bg: "bg-purple-500/20", text: "text-purple-400" },
   in_repair: { bg: "bg-cyan-500/20", text: "text-cyan-400" },
   charged_customer: { bg: "bg-emerald-500/20", text: "text-emerald-400" },
+  no_issues: { bg: "bg-emerald-500/20", text: "text-emerald-400" },
 };
 
 const statusLabels: Record<string, string> = {
@@ -26,6 +27,7 @@ const statusLabels: Record<string, string> = {
   in_review: "In Review",
   in_repair: "In Repair",
   charged_customer: "Charged Customer",
+  no_issues: "No Car Issues",
 };
 
 interface StatusBadgeProps {

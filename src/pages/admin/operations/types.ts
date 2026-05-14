@@ -46,7 +46,7 @@ export interface Inspection {
   car_name: string;
   source: "turo_return" | "manual" | string;
   assigned_to: string;
-  status: "new" | "in_progress" | "completed";
+  status: "new" | "in_progress" | "completed" | "no_issues";
   inspection_date: string | null;
   due_date: string | null;
   moved_to_maintenance: boolean;
@@ -83,5 +83,5 @@ export interface MaintenanceRecord {
 
 export type TaskType = "cleaning" | "delivery" | "pickup";
 export type TaskStatus = "new" | "in_progress" | "completed" | "delivered";
-export type InspectionStatus = "new" | "in_progress" | "completed";
+export type InspectionStatus = "new" | "in_progress" | "completed" | "no_issues";
 export type MaintenanceStatus = "new" | "in_progress" | "completed" | "damage_reported" | "in_review" | "in_repair" | "charged_customer";

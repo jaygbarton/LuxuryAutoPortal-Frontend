@@ -10,7 +10,7 @@ import { StatusBadge } from "./StatusBadge";
 import { InspectionModal } from "./InspectionModal";
 import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, ArrowRight, CheckCircle, History } from "lucide-react";
+import { Edit, Trash2, ArrowRight, CheckCircle, CheckCircle2, ClipboardList, History } from "lucide-react";
 import type { Inspection } from "./types";
 
 const formatDate = (dateStr: string | null): string => {
@@ -61,6 +61,26 @@ export function TuroInspectionTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });
       toast({ title: "Success", description: "Inspection status updated" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const moveToInspectionsMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(buildApiUrl(`/api/operations/inspections/${id}`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ source: "manual" }),
+      });
+      if (!response.ok) throw new Error("Failed to move to Car Inspections");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });
+      toast({ title: "Success", description: "Moved to Car Inspections" });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -124,6 +144,7 @@ export function TuroInspectionTab() {
                   <SelectItem value="new">New</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="no_issues">No Car Issues</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -177,6 +198,7 @@ export function TuroInspectionTab() {
                             <SelectItem value="new">New</SelectItem>
                             <SelectItem value="in_progress">In Progress</SelectItem>
                             <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="no_issues">No Car Issues</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
@@ -218,11 +240,27 @@ export function TuroInspectionTab() {
                           </Button>
                           <Button
                             variant="ghost" size="sm"
+                            onClick={() => moveToInspectionsMutation.mutate(insp.id)}
+                            className="text-muted-foreground hover:text-primary h-8 px-2"
+                            title="Move to Car Inspections"
+                          >
+                            <ClipboardList className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="sm"
                             onClick={() => moveToMaintenanceMutation.mutate(insp.id)}
                             className="text-muted-foreground hover:text-blue-400 h-8 px-2"
                             title="Move to Maintenance"
                           >
                             <ArrowRight className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="sm"
+                            onClick={() => statusUpdateMutation.mutate({ id: insp.id, status: "no_issues" })}
+                            className="text-muted-foreground hover:text-emerald-400 h-8 px-2"
+                            title="Mark No Car Issues"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
                           </Button>
                           <Button
                             variant="ghost" size="sm"
