@@ -1,7 +1,13 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -89,7 +95,11 @@ interface TripsSummary {
   cancelledEarnings: number;
 }
 
-function calculateDaysRented(tripStart: string, tripEnd: string, status: string): number | null {
+function calculateDaysRented(
+  tripStart: string,
+  tripEnd: string,
+  status: string,
+): number | null {
   if (status === "cancelled") return null; // Show "-" for cancelled
   try {
     const start = new Date(tripStart);
@@ -105,13 +115,17 @@ function calculateDaysRented(tripStart: string, tripEnd: string, status: string)
 export default function TuroTripsPage() {
   const [selectedTrip, setSelectedTrip] = useState<TuroTrip | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "booked" | "cancelled" | "completed">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "booked" | "cancelled" | "completed"
+  >("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   // Inline odometer editing: tripId → { start, end }
-  const [odometerEdits, setOdometerEdits] = useState<Record<number, { start: string; end: string }>>({});
+  const [odometerEdits, setOdometerEdits] = useState<
+    Record<number, { start: string; end: string }>
+  >({});
   const [savingOdometer, setSavingOdometer] = useState<number | null>(null);
   // Inline extras editing: tripId → string
   const [extrasEdits, setExtrasEdits] = useState<Record<number, string>>({});
@@ -119,6 +133,11 @@ export default function TuroTripsPage() {
   // Inline plate # editing: tripId → string
   const [plateEdits, setPlateEdits] = useState<Record<number, string>>({});
   const [savingPlate, setSavingPlate] = useState<number | null>(null);
+  // Inline location editing: tripId → { pickup, dropoff, miles }
+  const [locationEdits, setLocationEdits] = useState<
+    Record<number, { pickup: string; dropoff: string; miles: string }>
+  >({});
+  const [savingLocations, setSavingLocations] = useState<number | null>(null);
   // Bulk paste-import modal state
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
@@ -141,10 +160,20 @@ export default function TuroTripsPage() {
     data: TuroTrip[];
     total: number;
   }>({
-    queryKey: ["/api/turo-trips", statusFilter, debouncedSearchQuery, currentPage, itemsPerPage, startDate, endDate],
+    queryKey: [
+      "/api/turo-trips",
+      statusFilter,
+      debouncedSearchQuery,
+      currentPage,
+      itemsPerPage,
+      startDate,
+      endDate,
+    ],
     queryFn: async () => {
       const offset = (currentPage - 1) * itemsPerPage;
-      let url = buildApiUrl(`/api/turo-trips?limit=${itemsPerPage}&offset=${offset}`);
+      let url = buildApiUrl(
+        `/api/turo-trips?limit=${itemsPerPage}&offset=${offset}`,
+      );
       if (statusFilter !== "all") {
         url += `&status=${statusFilter}`;
       }
@@ -195,7 +224,8 @@ export default function TuroTripsPage() {
       // admin can see "invalid_grant" / "GMAIL_REFRESH_TOKEN missing" / etc.
       const data = await response.json().catch(() => null);
       if (!response.ok || !data?.success) {
-        const reason = data?.error || data?.message || `HTTP ${response.status}`;
+        const reason =
+          data?.error || data?.message || `HTTP ${response.status}`;
         throw new Error(reason);
       }
       return data;
@@ -220,20 +250,27 @@ export default function TuroTripsPage() {
   // Save odometer readings for a trip
   const saveOdometers = async (trip: TuroTrip) => {
     const edit = odometerEdits[trip.id];
-    const startVal = edit?.start !== undefined ? edit.start : String(trip.tripStartOdometer ?? "");
-    const endVal = edit?.end !== undefined ? edit.end : String(trip.tripEndOdometer ?? "");
+    const startVal =
+      edit?.start !== undefined
+        ? edit.start
+        : String(trip.tripStartOdometer ?? "");
+    const endVal =
+      edit?.end !== undefined ? edit.end : String(trip.tripEndOdometer ?? "");
 
     setSavingOdometer(trip.id);
     try {
-      const response = await fetch(buildApiUrl(`/api/turo-trips/${trip.id}/odometers`), {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tripStartOdometer: startVal !== "" ? parseInt(startVal) : null,
-          tripEndOdometer: endVal !== "" ? parseInt(endVal) : null,
-        }),
-      });
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/${trip.id}/odometers`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tripStartOdometer: startVal !== "" ? parseInt(startVal) : null,
+            tripEndOdometer: endVal !== "" ? parseInt(endVal) : null,
+          }),
+        },
+      );
       if (!response.ok) throw new Error("Failed to save");
       queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
       // Clear edit state for this trip
@@ -242,7 +279,10 @@ export default function TuroTripsPage() {
         delete next[trip.id];
         return next;
       });
-      toast({ title: "Odometer saved", description: `Reservation #${trip.reservationId}` });
+      toast({
+        title: "Odometer saved",
+        description: `Reservation #${trip.reservationId}`,
+      });
     } catch {
       toast({ title: "Failed to save odometer", variant: "destructive" });
     } finally {
@@ -257,12 +297,15 @@ export default function TuroTripsPage() {
     const trimmed = edited.trim();
     setSavingExtras(trip.id);
     try {
-      const response = await fetch(buildApiUrl(`/api/turo-trips/${trip.id}/extras`), {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ extras: trimmed === "" ? null : trimmed }),
-      });
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/${trip.id}/extras`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ extras: trimmed === "" ? null : trimmed }),
+        },
+      );
       if (!response.ok) throw new Error("Failed to save");
       queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
       setExtrasEdits((prev) => {
@@ -270,11 +313,48 @@ export default function TuroTripsPage() {
         delete next[trip.id];
         return next;
       });
-      toast({ title: "Extras saved", description: `Reservation #${trip.reservationId}` });
+      toast({
+        title: "Extras saved",
+        description: `Reservation #${trip.reservationId}`,
+      });
     } catch {
       toast({ title: "Failed to save extras", variant: "destructive" });
     } finally {
       setSavingExtras(null);
+    }
+  };
+
+  const saveLocations = async (trip: TuroTrip) => {
+    const edited = locationEdits[trip.id];
+    if (!edited) return;
+    setSavingLocations(trip.id);
+    try {
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/${trip.id}/locations`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pickupLocation: edited.pickup,
+            returnLocation: edited.dropoff,
+            milesIncluded: edited.miles,
+          }),
+        },
+      );
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      const next = { ...locationEdits };
+      delete next[trip.id];
+      setLocationEdits(next);
+      toast({
+        title: response.ok ? "Locations updated" : "Error",
+        description: response.ok
+          ? "Trip locations have been saved."
+          : "Failed to save locations.",
+        variant: response.ok ? undefined : "destructive",
+      });
+    } finally {
+      setSavingLocations(null);
     }
   };
 
@@ -286,12 +366,17 @@ export default function TuroTripsPage() {
     const trimmed = edited.trim();
     setSavingPlate(trip.id);
     try {
-      const response = await fetch(buildApiUrl(`/api/turo-trips/${trip.id}/plate`), {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plateNumber: trimmed === "" ? null : trimmed }),
-      });
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/${trip.id}/plate`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            plateNumber: trimmed === "" ? null : trimmed,
+          }),
+        },
+      );
       if (!response.ok) throw new Error("Failed to save");
       queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
       setPlateEdits((prev) => {
@@ -299,7 +384,10 @@ export default function TuroTripsPage() {
         delete next[trip.id];
         return next;
       });
-      toast({ title: "Plate # saved", description: `Reservation #${trip.reservationId}` });
+      toast({
+        title: "Plate # saved",
+        description: `Reservation #${trip.reservationId}`,
+      });
     } catch {
       toast({ title: "Failed to save plate #", variant: "destructive" });
     } finally {
@@ -314,7 +402,11 @@ export default function TuroTripsPage() {
   const runImport = async () => {
     const raw = importText.trim();
     if (!raw) {
-      toast({ title: "Nothing to import", description: "Paste rows from your Turo export first.", variant: "destructive" });
+      toast({
+        title: "Nothing to import",
+        description: "Paste rows from your Turo export first.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -371,7 +463,11 @@ export default function TuroTripsPage() {
       setImportOpen(false);
       setImportText("");
     } catch (e: any) {
-      toast({ title: "Import failed", description: e.message, variant: "destructive" });
+      toast({
+        title: "Import failed",
+        description: e.message,
+        variant: "destructive",
+      });
     } finally {
       setImporting(false);
     }
@@ -390,18 +486,20 @@ export default function TuroTripsPage() {
   // Keyboard shortcuts
   React.useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
-        const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+        const searchInput = document.querySelector(
+          'input[placeholder*="Search"]',
+        ) as HTMLInputElement;
         searchInput?.focus();
       }
-      if (e.key === 'Escape' && searchQuery) {
+      if (e.key === "Escape" && searchQuery) {
         setSearchQuery("");
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
   }, [searchQuery]);
 
   const formatCurrency = (amount: number) => {
@@ -438,18 +536,21 @@ export default function TuroTripsPage() {
   // Highlight search terms in text
   const highlightText = (text: string | null, searchTerm: string) => {
     if (!text || !searchTerm) return text || "";
-    
-    const parts = text.split(new RegExp(`(${searchTerm})`, 'gi'));
+
+    const parts = text.split(new RegExp(`(${searchTerm})`, "gi"));
     return (
       <>
-        {parts.map((part, index) => 
+        {parts.map((part, index) =>
           part.toLowerCase() === searchTerm.toLowerCase() ? (
-            <mark key={index} className="bg-yellow-200 dark:bg-yellow-900 px-0.5 rounded">
+            <mark
+              key={index}
+              className="bg-yellow-200 dark:bg-yellow-900 px-0.5 rounded"
+            >
               {part}
             </mark>
           ) : (
             <span key={index}>{part}</span>
-          )
+          ),
         )}
       </>
     );
@@ -474,7 +575,9 @@ export default function TuroTripsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Turo Trips</h1>
+            <h1 className="text-2xl font-semibold text-foreground">
+              Turo Trips
+            </h1>
             <p className="text-muted-foreground mt-1">
               Automated trip tracking from Turo emails
             </p>
@@ -616,7 +719,9 @@ export default function TuroTripsPage() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-sm text-muted-foreground whitespace-nowrap">From:</label>
+                <label className="text-sm text-muted-foreground whitespace-nowrap">
+                  From:
+                </label>
                 <Input
                   type="date"
                   value={startDate}
@@ -625,7 +730,9 @@ export default function TuroTripsPage() {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-sm text-muted-foreground whitespace-nowrap">To:</label>
+                <label className="text-sm text-muted-foreground whitespace-nowrap">
+                  To:
+                </label>
                 <Input
                   type="date"
                   value={endDate}
@@ -647,7 +754,10 @@ export default function TuroTripsPage() {
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
-              {(searchQuery || statusFilter !== "all" || startDate || endDate) && (
+              {(searchQuery ||
+                statusFilter !== "all" ||
+                startDate ||
+                endDate) && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -668,10 +778,23 @@ export default function TuroTripsPage() {
             {debouncedSearchQuery && (
               <div className="mb-4 p-3 bg-muted/50 rounded-md">
                 <p className="text-sm text-muted-foreground">
-                  Found <span className="font-semibold text-foreground">{totalTrips}</span> result{totalTrips !== 1 ? 's' : ''} for{" "}
-                  <span className="font-semibold text-foreground">"{debouncedSearchQuery}"</span>
+                  Found{" "}
+                  <span className="font-semibold text-foreground">
+                    {totalTrips}
+                  </span>{" "}
+                  result{totalTrips !== 1 ? "s" : ""} for{" "}
+                  <span className="font-semibold text-foreground">
+                    "{debouncedSearchQuery}"
+                  </span>
                   {statusFilter !== "all" && (
-                    <> in <span className="font-semibold text-foreground">{statusFilter}</span> trips</>
+                    <>
+                      {" "}
+                      in{" "}
+                      <span className="font-semibold text-foreground">
+                        {statusFilter}
+                      </span>{" "}
+                      trips
+                    </>
                   )}
                 </p>
               </div>
@@ -682,20 +805,48 @@ export default function TuroTripsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40">
-                    <TableHead className="whitespace-nowrap font-semibold">Reservation #</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">CAR Name</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">Plate #</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">Trip Start</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">Pick Up Location</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">Trip Ends</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">Days Rented</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">Drop Off Location</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">Extras</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">Miles Included</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">Trip Start Odometer</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">Trip Ends Odometer</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">Total Miles</TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">Earnings</TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Reservation #
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      CAR Name
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Plate #
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Trip Start
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Pick Up Location
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Trip Ends
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Days Rented
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Drop Off Location
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Extras
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Miles Included
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Trip Start Odometer
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Trip Ends Odometer
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Total Miles
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Earnings
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -713,8 +864,12 @@ export default function TuroTripsPage() {
                             <>
                               <Calendar className="w-12 h-12 opacity-20" />
                               <div>
-                                <p className="font-medium text-foreground">No trips found</p>
-                                <p className="text-sm">Try adjusting your search or filters</p>
+                                <p className="font-medium text-foreground">
+                                  No trips found
+                                </p>
+                                <p className="text-sm">
+                                  Try adjusting your search or filters
+                                </p>
                               </div>
                               <Button
                                 variant="outline"
@@ -731,8 +886,13 @@ export default function TuroTripsPage() {
                             <>
                               <Calendar className="w-12 h-12 opacity-20" />
                               <div>
-                                <p className="font-medium text-foreground">No trips yet</p>
-                                <p className="text-sm">Click "Sync Now" to fetch trips from your emails</p>
+                                <p className="font-medium text-foreground">
+                                  No trips yet
+                                </p>
+                                <p className="text-sm">
+                                  Click "Sync Now" to fetch trips from your
+                                  emails
+                                </p>
                               </div>
                             </>
                           )}
@@ -742,30 +902,45 @@ export default function TuroTripsPage() {
                   ) : (
                     trips.map((trip) => {
                       const edit = odometerEdits[trip.id];
-                      const startOdoVal = edit?.start !== undefined ? edit.start : String(trip.tripStartOdometer ?? "");
-                      const endOdoVal = edit?.end !== undefined ? edit.end : String(trip.tripEndOdometer ?? "");
-                      const startOdoNum = startOdoVal !== "" ? parseInt(startOdoVal) : null;
-                      const endOdoNum = endOdoVal !== "" ? parseInt(endOdoVal) : null;
-                      const totalMiles = startOdoNum != null && endOdoNum != null && endOdoNum >= startOdoNum
-                        ? endOdoNum - startOdoNum
-                        : null;
+                      const startOdoVal =
+                        edit?.start !== undefined
+                          ? edit.start
+                          : String(trip.tripStartOdometer ?? "");
+                      const endOdoVal =
+                        edit?.end !== undefined
+                          ? edit.end
+                          : String(trip.tripEndOdometer ?? "");
+                      const startOdoNum =
+                        startOdoVal !== "" ? parseInt(startOdoVal) : null;
+                      const endOdoNum =
+                        endOdoVal !== "" ? parseInt(endOdoVal) : null;
+                      const totalMiles =
+                        startOdoNum != null &&
+                        endOdoNum != null &&
+                        endOdoNum >= startOdoNum
+                          ? endOdoNum - startOdoNum
+                          : null;
                       const hasUnsavedEdits = edit !== undefined;
-                      const extrasVal = extrasEdits[trip.id] !== undefined
-                        ? extrasEdits[trip.id]
-                        : (trip.extras ?? "");
+                      const extrasVal =
+                        extrasEdits[trip.id] !== undefined
+                          ? extrasEdits[trip.id]
+                          : (trip.extras ?? "");
                       const hasExtrasEdit = extrasEdits[trip.id] !== undefined;
 
                       return (
-                        <TableRow
-                          key={trip.id}
-                          className="hover:bg-muted/50"
-                        >
+                        <TableRow key={trip.id} className="hover:bg-muted/50">
                           {/* Reservation # */}
                           <TableCell
                             className="font-mono text-sm cursor-pointer"
                             onClick={() => setSelectedTrip(trip)}
                           >
-                            #{debouncedSearchQuery ? highlightText(trip.reservationId, debouncedSearchQuery) : trip.reservationId}
+                            #
+                            {debouncedSearchQuery
+                              ? highlightText(
+                                  trip.reservationId,
+                                  debouncedSearchQuery,
+                                )
+                              : trip.reservationId}
                           </TableCell>
 
                           {/* CAR */}
@@ -774,7 +949,12 @@ export default function TuroTripsPage() {
                             onClick={() => setSelectedTrip(trip)}
                           >
                             <div className="text-sm whitespace-nowrap">
-                              {debouncedSearchQuery ? highlightText(trip.carName, debouncedSearchQuery) : (trip.carName || "-")}
+                              {debouncedSearchQuery
+                                ? highlightText(
+                                    trip.carName,
+                                    debouncedSearchQuery,
+                                  )
+                                : trip.carName || "-"}
                             </div>
                           </TableCell>
 
@@ -787,17 +967,23 @@ export default function TuroTripsPage() {
                                 value={
                                   plateEdits[trip.id] !== undefined
                                     ? plateEdits[trip.id]
-                                    : trip.plateNumber ?? ""
+                                    : (trip.plateNumber ?? "")
                                 }
                                 placeholder="-"
                                 className="h-8 w-24 text-sm font-mono"
                                 onChange={(e) =>
-                                  setPlateEdits((prev) => ({ ...prev, [trip.id]: e.target.value }))
+                                  setPlateEdits((prev) => ({
+                                    ...prev,
+                                    [trip.id]: e.target.value,
+                                  }))
                                 }
                                 onBlur={() => {
                                   if (plateEdits[trip.id] === undefined) return;
                                   const current = trip.plateNumber ?? "";
-                                  if (plateEdits[trip.id].trim() === current.trim()) {
+                                  if (
+                                    plateEdits[trip.id].trim() ===
+                                    current.trim()
+                                  ) {
                                     setPlateEdits((prev) => {
                                       const next = { ...prev };
                                       delete next[trip.id];
@@ -808,7 +994,8 @@ export default function TuroTripsPage() {
                                   savePlate(trip);
                                 }}
                                 onKeyDown={(e) => {
-                                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                                  if (e.key === "Enter")
+                                    (e.target as HTMLInputElement).blur();
                                   if (e.key === "Escape") {
                                     setPlateEdits((prev) => {
                                       const next = { ...prev };
@@ -818,7 +1005,9 @@ export default function TuroTripsPage() {
                                   }
                                 }}
                               />
-                              {savingPlate === trip.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                              {savingPlate === trip.id && (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              )}
                             </div>
                           </TableCell>
 
@@ -832,14 +1021,48 @@ export default function TuroTripsPage() {
                             </div>
                           </TableCell>
 
-                          {/* Pick Up Location */}
-                          <TableCell
-                            className="cursor-pointer"
-                            onClick={() => setSelectedTrip(trip)}
-                          >
-                            <div className="text-sm max-w-[160px] truncate" title={trip.pickupLocation || trip.deliveryLocation || ""}>
-                              {trip.pickupLocation || trip.deliveryLocation || "-"}
-                            </div>
+                          {/* Pick Up Location — inline editable */}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              value={
+                                locationEdits[trip.id]?.pickup !== undefined
+                                  ? locationEdits[trip.id].pickup
+                                  : (trip.pickupLocation ??
+                                    trip.deliveryLocation ??
+                                    "")
+                              }
+                              placeholder="-"
+                              className="h-8 w-36 text-sm"
+                              onChange={(e) =>
+                                setLocationEdits((prev) => ({
+                                  ...prev,
+                                  [trip.id]: {
+                                    pickup: e.target.value,
+                                    dropoff:
+                                      prev[trip.id]?.dropoff !== undefined
+                                        ? prev[trip.id].dropoff
+                                        : (trip.returnLocation ?? ""),
+                                    miles:
+                                      prev[trip.id]?.miles !== undefined
+                                        ? prev[trip.id].miles
+                                        : (trip.milesIncluded ??
+                                          trip.totalDistance ??
+                                          ""),
+                                  },
+                                }))
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter")
+                                  (e.target as HTMLInputElement).blur();
+                                if (e.key === "Escape") {
+                                  setLocationEdits((prev) => {
+                                    const n = { ...prev };
+                                    delete n[trip.id];
+                                    return n;
+                                  });
+                                }
+                              }}
+                            />
                           </TableCell>
 
                           {/* Trip Ends */}
@@ -858,23 +1081,63 @@ export default function TuroTripsPage() {
                             onClick={() => setSelectedTrip(trip)}
                           >
                             {(() => {
-                              const days = calculateDaysRented(trip.tripStart, trip.tripEnd, trip.status);
+                              const days = calculateDaysRented(
+                                trip.tripStart,
+                                trip.tripEnd,
+                                trip.status,
+                              );
                               return (
-                                <span className={`text-sm tabular-nums ${days != null ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                                <span
+                                  className={`text-sm tabular-nums ${days != null ? "font-medium text-foreground" : "text-muted-foreground"}`}
+                                >
                                   {days != null ? days : "-"}
                                 </span>
                               );
                             })()}
                           </TableCell>
 
-                          {/* Drop Off Location */}
-                          <TableCell
-                            className="cursor-pointer"
-                            onClick={() => setSelectedTrip(trip)}
-                          >
-                            <div className="text-sm max-w-[160px] truncate" title={trip.returnLocation || ""}>
-                              {trip.returnLocation || "-"}
-                            </div>
+                          {/* Drop Off Location — inline editable */}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              value={
+                                locationEdits[trip.id]?.dropoff !== undefined
+                                  ? locationEdits[trip.id].dropoff
+                                  : (trip.returnLocation ?? "")
+                              }
+                              placeholder="-"
+                              className="h-8 w-36 text-sm"
+                              onChange={(e) =>
+                                setLocationEdits((prev) => ({
+                                  ...prev,
+                                  [trip.id]: {
+                                    pickup:
+                                      prev[trip.id]?.pickup !== undefined
+                                        ? prev[trip.id].pickup
+                                        : (trip.pickupLocation ??
+                                          trip.deliveryLocation ??
+                                          ""),
+                                    dropoff: e.target.value,
+                                    miles:
+                                      prev[trip.id]?.miles !== undefined
+                                        ? prev[trip.id].miles
+                                        : (trip.milesIncluded ??
+                                          trip.totalDistance ??
+                                          ""),
+                                  },
+                                }))
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter")
+                                  (e.target as HTMLInputElement).blur();
+                                if (e.key === "Escape") {
+                                  setLocationEdits((prev) => {
+                                    const n = { ...prev };
+                                    delete n[trip.id];
+                                    return n;
+                                  });
+                                }
+                              }}
+                            />
                           </TableCell>
 
                           {/* Extras — manual entry */}
@@ -917,14 +1180,70 @@ export default function TuroTripsPage() {
                             </div>
                           </TableCell>
 
-                          {/* Miles Included */}
-                          <TableCell
-                            className="cursor-pointer"
-                            onClick={() => setSelectedTrip(trip)}
-                          >
-                            <span className="text-sm whitespace-nowrap">
-                              {trip.milesIncluded || trip.totalDistance || "-"}
-                            </span>
+                          {/* Miles Included — inline editable; Save button appears after any location field is edited */}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1">
+                              <Input
+                                value={
+                                  locationEdits[trip.id]?.miles !== undefined
+                                    ? locationEdits[trip.id].miles
+                                    : (trip.milesIncluded ??
+                                      trip.totalDistance ??
+                                      "")
+                                }
+                                placeholder="-"
+                                className="h-8 w-24 text-sm"
+                                onChange={(e) =>
+                                  setLocationEdits((prev) => ({
+                                    ...prev,
+                                    [trip.id]: {
+                                      pickup:
+                                        prev[trip.id]?.pickup !== undefined
+                                          ? prev[trip.id].pickup
+                                          : (trip.pickupLocation ??
+                                            trip.deliveryLocation ??
+                                            ""),
+                                      dropoff:
+                                        prev[trip.id]?.dropoff !== undefined
+                                          ? prev[trip.id].dropoff
+                                          : (trip.returnLocation ?? ""),
+                                      miles: e.target.value,
+                                    },
+                                  }))
+                                }
+                                onKeyDown={(e) => {
+                                  if (
+                                    e.key === "Enter" &&
+                                    locationEdits[trip.id]
+                                  ) {
+                                    e.preventDefault();
+                                    saveLocations(trip);
+                                  }
+                                  if (e.key === "Escape") {
+                                    setLocationEdits((prev) => {
+                                      const n = { ...prev };
+                                      delete n[trip.id];
+                                      return n;
+                                    });
+                                  }
+                                }}
+                              />
+                              {locationEdits[trip.id] !== undefined && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs"
+                                  disabled={savingLocations === trip.id}
+                                  onClick={() => saveLocations(trip)}
+                                >
+                                  {savingLocations === trip.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    "Save"
+                                  )}
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
 
                           {/* Trip Start Odometer — inline editable */}
@@ -935,7 +1254,12 @@ export default function TuroTripsPage() {
                               onChange={(e) =>
                                 setOdometerEdits((prev) => ({
                                   ...prev,
-                                  [trip.id]: { start: e.target.value, end: prev[trip.id]?.end ?? String(trip.tripEndOdometer ?? "") },
+                                  [trip.id]: {
+                                    start: e.target.value,
+                                    end:
+                                      prev[trip.id]?.end ??
+                                      String(trip.tripEndOdometer ?? ""),
+                                  },
                                 }))
                               }
                               placeholder="0"
@@ -952,7 +1276,12 @@ export default function TuroTripsPage() {
                                 onChange={(e) =>
                                   setOdometerEdits((prev) => ({
                                     ...prev,
-                                    [trip.id]: { start: prev[trip.id]?.start ?? String(trip.tripStartOdometer ?? ""), end: e.target.value },
+                                    [trip.id]: {
+                                      start:
+                                        prev[trip.id]?.start ??
+                                        String(trip.tripStartOdometer ?? ""),
+                                      end: e.target.value,
+                                    },
                                   }))
                                 }
                                 placeholder="0"
@@ -978,8 +1307,12 @@ export default function TuroTripsPage() {
 
                           {/* Total Miles (auto-calculated) */}
                           <TableCell>
-                            <span className={`text-sm font-semibold ${totalMiles != null ? "text-foreground" : "text-muted-foreground"}`}>
-                              {totalMiles != null ? totalMiles.toLocaleString() : "-"}
+                            <span
+                              className={`text-sm font-semibold ${totalMiles != null ? "text-foreground" : "text-muted-foreground"}`}
+                            >
+                              {totalMiles != null
+                                ? totalMiles.toLocaleString()
+                                : "-"}
                             </span>
                           </TableCell>
 
@@ -1010,9 +1343,15 @@ export default function TuroTripsPage() {
             {totalPages > 1 && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t">
                 <div className="text-sm text-muted-foreground">
-                  Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
-                  <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalTrips)}</span> of{" "}
-                  <span className="font-medium">{totalTrips}</span> trips
+                  Showing{" "}
+                  <span className="font-medium">
+                    {(currentPage - 1) * itemsPerPage + 1}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-medium">
+                    {Math.min(currentPage * itemsPerPage, totalTrips)}
+                  </span>{" "}
+                  of <span className="font-medium">{totalTrips}</span> trips
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -1026,7 +1365,9 @@ export default function TuroTripsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
                     disabled={currentPage === 1}
                   >
                     Previous
@@ -1047,7 +1388,9 @@ export default function TuroTripsPage() {
                       return (
                         <Button
                           key={pageNum}
-                          variant={currentPage === pageNum ? "default" : "outline"}
+                          variant={
+                            currentPage === pageNum ? "default" : "outline"
+                          }
                           size="sm"
                           onClick={() => setCurrentPage(pageNum)}
                           className="w-10"
@@ -1060,7 +1403,9 @@ export default function TuroTripsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                    }
                     disabled={currentPage === totalPages}
                   >
                     Next
@@ -1103,7 +1448,9 @@ export default function TuroTripsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h4 className="text-sm font-semibold mb-2">Guest Information</h4>
+                  <h4 className="text-sm font-semibold mb-2">
+                    Guest Information
+                  </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-muted-foreground" />
@@ -1130,7 +1477,9 @@ export default function TuroTripsPage() {
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-semibold mb-2">Car Information</h4>
+                  <h4 className="text-sm font-semibold mb-2">
+                    Car Information
+                  </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
                       <Car className="w-4 h-4 text-muted-foreground" />
@@ -1173,15 +1522,21 @@ export default function TuroTripsPage() {
                     <Clock className="w-4 h-4 text-muted-foreground" />
                     <span className="font-medium">Days Rented:</span>
                     {(() => {
-                      const days = calculateDaysRented(selectedTrip.tripStart, selectedTrip.tripEnd, selectedTrip.status);
+                      const days = calculateDaysRented(
+                        selectedTrip.tripStart,
+                        selectedTrip.tripEnd,
+                        selectedTrip.status,
+                      );
                       return days === null ? "-" : days;
                     })()}
                   </div>
-                  {(selectedTrip.pickupLocation || selectedTrip.deliveryLocation) && (
+                  {(selectedTrip.pickupLocation ||
+                    selectedTrip.deliveryLocation) && (
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-muted-foreground" />
                       <span className="font-medium">Pickup:</span>
-                      {selectedTrip.pickupLocation || selectedTrip.deliveryLocation}
+                      {selectedTrip.pickupLocation ||
+                        selectedTrip.deliveryLocation}
                     </div>
                   )}
                   {selectedTrip.returnLocation && (
@@ -1218,7 +1573,9 @@ export default function TuroTripsPage() {
 
               {selectedTrip.cancellationReason && (
                 <div>
-                  <h4 className="text-sm font-semibold mb-2">Cancellation Reason</h4>
+                  <h4 className="text-sm font-semibold mb-2">
+                    Cancellation Reason
+                  </h4>
                   <p className="text-sm text-muted-foreground">
                     {selectedTrip.cancellationReason}
                   </p>
@@ -1232,30 +1589,55 @@ export default function TuroTripsPage() {
       {/* Bulk import from Turo export. The user pastes rows straight from
           their Excel export (tab-separated). We update plate # and odometers
           by reservation_id; unknown reservation IDs are reported back. */}
-      <Dialog open={importOpen} onOpenChange={(open) => { if (!importing) setImportOpen(open); }}>
+      <Dialog
+        open={importOpen}
+        onOpenChange={(open) => {
+          if (!importing) setImportOpen(open);
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Import from Turo Export</DialogTitle>
             <DialogDescription>
               Paste rows directly from your Turo Excel export. Column order:
-              <span className="font-mono"> Reservation ID, Plate#, Trip Start Odometer, Trip Ends Odometer</span>.
-              Plate # is required to fill the column; odometer values are optional and can be left blank. Unknown
-              reservation IDs are reported, not created.
+              <span className="font-mono">
+                {" "}
+                Reservation ID, Plate#, Trip Start Odometer, Trip Ends Odometer
+              </span>
+              . Plate # is required to fill the column; odometer values are
+              optional and can be left blank. Unknown reservation IDs are
+              reported, not created.
             </DialogDescription>
           </DialogHeader>
           <Textarea
             value={importText}
             onChange={(e) => setImportText(e.target.value)}
-            placeholder={"41899967\t#G022VR\t\t\n43472991\t#H868CW\t\t\n49053682\t#H516HL\t23044\t23144"}
+            placeholder={
+              "41899967\t#G022VR\t\t\n43472991\t#H868CW\t\t\n49053682\t#H516HL\t23044\t23144"
+            }
             className="font-mono text-xs h-64"
             disabled={importing}
           />
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setImportOpen(false)} disabled={importing}>
+            <Button
+              variant="outline"
+              onClick={() => setImportOpen(false)}
+              disabled={importing}
+            >
               Cancel
             </Button>
             <Button onClick={runImport} disabled={importing}>
-              {importing ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Importing...</>) : (<><Upload className="w-4 h-4 mr-2" />Import</>)}
+              {importing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Importing...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import
+                </>
+              )}
             </Button>
           </div>
         </DialogContent>
