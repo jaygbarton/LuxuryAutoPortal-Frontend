@@ -4,7 +4,7 @@
  * Car name uses the same searchable dropdown as the Income & Expense form.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Upload, X, FileText, DollarSign, CheckCircle } from "lucide-react";
 
@@ -41,6 +42,9 @@ export default function CommissionFormSubmission() {
     cf_total_receipt_cost: "",
     cf_remarks: "",
   });
+  // Admin-only: which employee this commission is being entered for. Empty
+  // string falls back to the current user on the backend.
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
 
   // Car search state (same pattern as ExpenseFormSubmission)
   const [carSearch, setCarSearch] = useState("");
@@ -73,6 +77,14 @@ export default function CommissionFormSubmission() {
 
   const cars: Car[] = options.cars ?? [];
 
+  // Default the employee dropdown to the current user once options arrive.
+  useEffect(() => {
+    if (selectedEmployeeId) return;
+    if (options.currentEmployeeId != null) {
+      setSelectedEmployeeId(String(options.currentEmployeeId));
+    }
+  }, [options.currentEmployeeId, selectedEmployeeId]);
+
   const filteredCars = cars.filter((car) => {
     const q = carSearch.trim().toLowerCase();
     if (!q) return true;
@@ -93,6 +105,10 @@ export default function CommissionFormSubmission() {
       fd.append("cf_car_name", carNameToSubmit);
       fd.append("cf_total_receipt_cost", form.cf_total_receipt_cost);
       fd.append("cf_remarks", form.cf_remarks.trim());
+      // Admin path only: server ignores this field for non-admins.
+      if (options.isAdmin && selectedEmployeeId) {
+        fd.append("cf_employee_id", selectedEmployeeId);
+      }
       if (receiptFile) fd.append("receipt", receiptFile);
 
       const res = await fetch(buildApiUrl("/api/commission-forms"), {
@@ -133,6 +149,9 @@ export default function CommissionFormSubmission() {
     e.preventDefault();
     if (!form.cf_commission_date) return toast({ title: "Commission date required", variant: "destructive" });
     if (!form.cf_commission_type.trim()) return toast({ title: "Commission type required", variant: "destructive" });
+    if (options.isAdmin && !selectedEmployeeId) {
+      return toast({ title: "Employee required", description: "Pick the employee this commission is for.", variant: "destructive" });
+    }
     const carNameToSubmit = selectedCarName || carSearch.trim();
     if (!carNameToSubmit) return toast({ title: "Car name required", variant: "destructive" });
     if (!form.cf_total_receipt_cost || parseFloat(form.cf_total_receipt_cost) <= 0) {
@@ -146,6 +165,9 @@ export default function CommissionFormSubmission() {
     setCarSearch("");
     setSelectedCarId(null);
     setSelectedCarName("");
+    // Reset to current user; the useEffect would re-populate it anyway, but
+    // this avoids a flash of empty state in the dropdown after reset.
+    setSelectedEmployeeId(options.currentEmployeeId != null ? String(options.currentEmployeeId) : "");
     setReceiptFile(null);
     setReceiptPreview(null);
     setSubmitted(false);
@@ -185,7 +207,7 @@ export default function CommissionFormSubmission() {
           <DollarSign className="h-5 w-5" />
           Commission Form
         </CardTitle>
-        {employeeName && (
+        {!options.isAdmin && employeeName && (
           <p className="text-sm text-muted-foreground">
             Submitting as: <span className="font-medium text-foreground">{employeeName}</span>
           </p>
@@ -193,6 +215,30 @@ export default function CommissionFormSubmission() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-5">
+
+          {/* Admin only: pick which employee this commission is for. */}
+          {options.isAdmin && (
+            <div className="space-y-1.5">
+              <Label htmlFor="cf_employee_id">
+                Employee <span className="text-destructive">*</span>
+              </Label>
+              <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+                <SelectTrigger id="cf_employee_id">
+                  <SelectValue placeholder="Select an employee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {options.employees.map((emp) => (
+                    <SelectItem key={emp.id} value={String(emp.id)}>
+                      {emp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Defaults to you. Pick another employee to enter a commission on their behalf.
+              </p>
+            </div>
+          )}
 
           {/* Row 1: Commission Date + Commission Type */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
