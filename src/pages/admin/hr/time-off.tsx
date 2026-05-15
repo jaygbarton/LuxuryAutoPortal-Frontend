@@ -73,11 +73,7 @@ interface EmployeeOption {
   employee_job_pay_work_email?: string | null;
 }
 
-const LEAVE_TYPE_OPTIONS = [
-  { value: "paid time off", label: "Paid Time Off" },
-  { value: "sick time off", label: "Sick Time Off" },
-  { value: "day off", label: "Day Off" },
-];
+const LEAVE_TYPE_OPTIONS = [{ value: "day off", label: "Day Off" }];
 
 const STATUS_OPTIONS = [
   { value: "0", label: "Pending" },
@@ -92,10 +88,12 @@ function LeaveStatusBadge({ status }: { status: number }) {
         Approved
       </Badge>
     );
-  if (status === 2)
-    return <Badge variant="destructive">Declined</Badge>;
+  if (status === 2) return <Badge variant="destructive">Declined</Badge>;
   return (
-    <Badge variant="outline" className="text-amber-600 border-amber-300 dark:border-amber-700 dark:text-amber-400">
+    <Badge
+      variant="outline"
+      className="text-amber-600 border-amber-300 dark:border-amber-700 dark:text-amber-400"
+    >
       Pending
     </Badge>
   );
@@ -162,7 +160,15 @@ export default function AdminHrTimeOff() {
     data: LeaveRow[];
     total: number;
   }>({
-    queryKey: ["/api/admin/hr/leave", search, fromDate, toDate, statusFilter, page, pageSize],
+    queryKey: [
+      "/api/admin/hr/leave",
+      search,
+      fromDate,
+      toDate,
+      statusFilter,
+      page,
+      pageSize,
+    ],
     queryFn: async () => {
       const res = await fetch(buildApiUrl(`/api/admin/hr/leave?${params}`), {
         credentials: "include",
@@ -376,7 +382,12 @@ export default function AdminHrTimeOff() {
                 <TreePalm className="w-10 h-10 opacity-25" />
                 <p className="text-sm">No leave records found.</p>
                 {hasActiveFilters && (
-                  <Button variant="ghost" size="sm" onClick={resetFilters} className="text-primary underline-offset-4 hover:underline">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetFilters}
+                    className="text-primary underline-offset-4 hover:underline"
+                  >
                     Clear filters
                   </Button>
                 )}
@@ -392,7 +403,9 @@ export default function AdminHrTimeOff() {
                       <TableHead>Duration</TableHead>
                       <TableHead>Remarks</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="w-40 text-center">Actions</TableHead>
+                      <TableHead className="w-40 text-center">
+                        Actions
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -480,7 +493,9 @@ export default function AdminHrTimeOff() {
                 {/* Pagination footer */}
                 <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-border">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Rows per page</span>
+                    <span className="text-sm text-muted-foreground">
+                      Rows per page
+                    </span>
                     <Select
                       value={String(pageSize)}
                       onValueChange={(v) => {
@@ -493,7 +508,9 @@ export default function AdminHrTimeOff() {
                       </SelectTrigger>
                       <SelectContent>
                         {PER_PAGE_OPTIONS.map((n) => (
-                          <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                          <SelectItem key={n} value={String(n)}>
+                            {n}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -520,7 +537,9 @@ export default function AdminHrTimeOff() {
                       variant="outline"
                       size="sm"
                       className="h-8 w-8 p-0"
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      onClick={() =>
+                        setPage((p) => Math.min(totalPages, p + 1))
+                      }
                       disabled={page >= totalPages}
                     >
                       <ChevronRight className="w-4 h-4" />
@@ -546,10 +565,7 @@ export default function AdminHrTimeOff() {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="gap-2 mt-2">
-              <Button
-                variant="outline"
-                onClick={() => setConfirmDecline(null)}
-              >
+              <Button variant="outline" onClick={() => setConfirmDecline(null)}>
                 Cancel
               </Button>
               <Button
@@ -579,12 +595,14 @@ export default function AdminHrTimeOff() {
             <DialogHeader>
               <DialogTitle>Delete this time off?</DialogTitle>
               <DialogDescription>
-                <strong>{confirmDelete.fullname}</strong>'s {toTitleCase(confirmDelete.leave_type)} on{" "}
+                <strong>{confirmDelete.fullname}</strong>'s{" "}
+                {toTitleCase(confirmDelete.leave_type)} on{" "}
                 <strong>{formatDate(confirmDelete.leave_date)}</strong> will be
                 permanently removed.
                 {confirmDelete.leave_is_status === 1 && (
                   <span className="block mt-2 text-amber-700 dark:text-amber-400">
-                    The corresponding Day Off entry in the work schedule will also be removed.
+                    The corresponding Day Off entry in the work schedule will
+                    also be removed.
                   </span>
                 )}
               </DialogDescription>
@@ -640,9 +658,10 @@ function TimeOffEditor({
   const isEdit = !!editing;
 
   const [employeeSearch, setEmployeeSearch] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeOption | null>(null);
+  const [selectedEmployee, setSelectedEmployee] =
+    useState<EmployeeOption | null>(null);
   const [date, setDate] = useState("");
-  const [type, setType] = useState("paid time off");
+  const [type, setType] = useState("day off");
   const [hour, setHour] = useState("8");
   const [minute, setMinute] = useState("0");
   const [remarks, setRemarks] = useState("");
@@ -660,7 +679,7 @@ function TimeOffEditor({
       });
       setEmployeeSearch(editing.fullname ?? "");
       setDate(toIsoDate(editing.leave_date));
-      setType(editing.leave_type || "paid time off");
+      setType(editing.leave_type || "day off");
       setHour(String(editing.leave_hour ?? "0"));
       setMinute(String(editing.leave_minute ?? "0"));
       setRemarks(editing.leave_remarks ?? "");
@@ -669,7 +688,7 @@ function TimeOffEditor({
       setSelectedEmployee(null);
       setEmployeeSearch("");
       setDate(new Date().toISOString().slice(0, 10));
-      setType("paid time off");
+      setType("day off");
       setHour("8");
       setMinute("0");
       setRemarks("");
@@ -692,12 +711,15 @@ function TimeOffEditor({
   const { data: searchResults = [] } = useQuery({
     queryKey: ["admin-hr-leave", "search-employee", employeeSearch, open],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/admin/work-sched/search-employee"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ searchValue: employeeSearch }),
-      });
+      const res = await fetch(
+        buildApiUrl("/api/admin/work-sched/search-employee"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ searchValue: employeeSearch }),
+        },
+      );
       if (!res.ok) throw new Error("Search failed");
       const json = await res.json();
       return (json.data ?? []) as EmployeeOption[];
@@ -820,7 +842,8 @@ function TimeOffEditor({
                     selectedEmployee.employee_job_pay_job_title_name,
                   ]
                     .filter(Boolean)
-                    .join(" · ") || selectedEmployee.employee_job_pay_work_email}
+                    .join(" · ") ||
+                    selectedEmployee.employee_job_pay_work_email}
                 </div>
               )}
             {pickerOpen && (
@@ -847,14 +870,21 @@ function TimeOffEditor({
                 </div>
                 <ul className="max-h-56 overflow-auto py-1">
                   {searchResults.length === 0 ? (
-                    <li className="px-3 py-2 text-sm text-muted-foreground">No results</li>
+                    <li className="px-3 py-2 text-sm text-muted-foreground">
+                      No results
+                    </li>
                   ) : (
                     searchResults.map((emp) => {
-                      const dept = emp.employee_job_pay_department_name?.trim() ?? "";
-                      const title = emp.employee_job_pay_job_title_name?.trim() ?? "";
-                      const email = emp.employee_job_pay_work_email?.trim() ?? "";
+                      const dept =
+                        emp.employee_job_pay_department_name?.trim() ?? "";
+                      const title =
+                        emp.employee_job_pay_job_title_name?.trim() ?? "";
+                      const email =
+                        emp.employee_job_pay_work_email?.trim() ?? "";
                       const subtitle =
-                        [dept, title].filter(Boolean).join(" · ") || email || null;
+                        [dept, title].filter(Boolean).join(" · ") ||
+                        email ||
+                        null;
                       return (
                         <li key={emp.employee_aid}>
                           <button
@@ -866,7 +896,9 @@ function TimeOffEditor({
                               setPickerOpen(false);
                             }}
                           >
-                            <div className="font-medium text-sm">{emp.fullname}</div>
+                            <div className="font-medium text-sm">
+                              {emp.fullname}
+                            </div>
                             {subtitle && (
                               <div className="text-xs text-muted-foreground mt-0.5">
                                 {subtitle}
@@ -910,44 +942,20 @@ function TimeOffEditor({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <Label>Hours</Label>
-              <Input
-                type="number"
-                min={0}
-                max={24}
-                value={hour}
-                onChange={(e) => setHour(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label>Minutes</Label>
-              <Input
-                type="number"
-                min={0}
-                max={59}
-                value={minute}
-                onChange={(e) => setMinute(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label>Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
