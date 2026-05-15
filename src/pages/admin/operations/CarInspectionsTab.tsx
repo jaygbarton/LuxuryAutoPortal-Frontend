@@ -47,7 +47,7 @@ export function CarInspectionsTab() {
     },
   });
 
-  const { data: maintenanceData } = useQuery<{ data: MaintenanceRecord[] }>({
+  const { data: maintenanceData, isLoading: isMaintLoading } = useQuery<{ data: MaintenanceRecord[] }>({
     queryKey: ["/api/operations/maintenance", "all"],
     queryFn: async () => {
       const response = await fetch(buildApiUrl("/api/operations/maintenance?limit=500"), { credentials: "include" });
@@ -174,7 +174,7 @@ export function CarInspectionsTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoading || isMaintLoading ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Loading inspections...</TableCell>
                   </TableRow>

@@ -508,12 +508,17 @@ export default function ExpenseFormApprovalDashboard({ isAdmin = true }: Expense
   });
   const employees = optionsData?.data?.employees || [];
   const cars = optionsData?.data?.cars || [];
+  // Server-driven dropdown options (DB subcategories merged with income).
+  // Falls back to the hardcoded list while the request is in flight so the
+  // filter row isn't briefly empty.
+  const liveCategoryFields: Record<string, { value: string; label: string }[]> =
+    optionsData?.data?.categoryFields || CATEGORY_FIELDS;
 
   const fieldOptions = useMemo(() => {
     if (categoryFilter === "all") {
       const all: { value: string; label: string }[] = [];
       const seen = new Set<string>();
-      Object.values(CATEGORY_FIELDS).forEach((arr) =>
+      Object.values(liveCategoryFields).forEach((arr) =>
         arr.forEach((f) => {
           if (!seen.has(f.value)) {
             seen.add(f.value);
@@ -523,8 +528,19 @@ export default function ExpenseFormApprovalDashboard({ isAdmin = true }: Expense
       );
       return all.sort((a, b) => a.label.localeCompare(b.label));
     }
-    return CATEGORY_FIELDS[categoryFilter] ?? [];
-  }, [categoryFilter]);
+    return liveCategoryFields[categoryFilter] ?? [];
+  }, [categoryFilter, liveCategoryFields]);
+
+  // Map saved `field` values to display labels. Newly-submitted rows have
+  // values like `db_42` and need the live options lookup; legacy rows have
+  // camelCase strings that the regex prettifier handles correctly.
+  const labelByValue = useMemo(() => {
+    const map = new Map<string, string>();
+    Object.values(liveCategoryFields).forEach((arr) =>
+      arr.forEach((f) => map.set(f.value, f.label))
+    );
+    return map;
+  }, [liveCategoryFields]);
 
   const hasActiveFilters =
     statusFilter !== "pending" ||
@@ -774,6 +790,8 @@ export default function ExpenseFormApprovalDashboard({ isAdmin = true }: Expense
   };
 
   const formatFieldLabel = (field: string) => {
+    const direct = labelByValue.get(field);
+    if (direct) return direct;
     return field
       .replace(/([A-Z])/g, " $1")
       .replace(/^./, (s) => s.toUpperCase())

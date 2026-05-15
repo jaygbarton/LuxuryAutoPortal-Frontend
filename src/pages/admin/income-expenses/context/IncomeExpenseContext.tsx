@@ -384,9 +384,19 @@ export function IncomeExpenseProvider({
           credentials: "include",
         }
       );
-      
-      if (!response.ok) throw new Error("Failed to delete subcategory");
-      
+
+      if (!response.ok) {
+        // Surface the backend's explanation (e.g. the 409 "total is not zero" guard).
+        let serverMessage = "Failed to delete subcategory";
+        try {
+          const body = await response.json();
+          if (body?.error) serverMessage = body.error;
+        } catch {
+          /* fall through to generic message */
+        }
+        throw new Error(serverMessage);
+      }
+
       await fetchDynamicSubcategories();
       toast({
         title: "Success",
@@ -394,7 +404,7 @@ export function IncomeExpenseProvider({
       });
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: "Cannot delete subcategory",
         description: error.message || "Failed to delete subcategory",
         variant: "destructive",
       });

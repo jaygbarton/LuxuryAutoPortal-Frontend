@@ -3,7 +3,7 @@
  * Shown to employees (and admins) to track their own submissions
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
@@ -63,7 +63,7 @@ interface Submission {
   createdAt: string;
 }
 
-function formatFieldLabel(field: string) {
+function fallbackFormatFieldLabel(field: string) {
   return field
     .replace(/([A-Z])/g, " $1")
     .replace(/^./, (s) => s.toUpperCase())
@@ -76,6 +76,27 @@ export default function ExpenseFormMySubmissions() {
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [viewReceiptsOpen, setViewReceiptsOpen] = useState(false);
   const limit = 10;
+
+  // Server-driven subcategory labels so `db_<id>` values resolve correctly.
+  const { data: optionsData } = useQuery({
+    queryKey: ["/api/expense-form-submissions/options"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/expense-form-submissions/options"), {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch options");
+      return res.json();
+    },
+  });
+  const labelByValue = useMemo(() => {
+    const map = new Map<string, string>();
+    const fields = optionsData?.data?.categoryFields || {};
+    Object.values(fields).forEach((arr: any) =>
+      arr.forEach((f: { value: string; label: string }) => map.set(f.value, f.label))
+    );
+    return map;
+  }, [optionsData?.data?.categoryFields]);
+  const formatFieldLabel = (field: string) => labelByValue.get(field) || fallbackFormatFieldLabel(field);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["/api/expense-form-submissions/mine", statusFilter, page, limit],
