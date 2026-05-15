@@ -4,6 +4,7 @@ export interface TuroTrip {
   dateBooked: string;
   carName: string | null;
   carLink: string | null;
+  plateNumber: string | null;
   guestName: string | null;
   guestLink: string | null;
   phoneNumber: string | null;
@@ -17,6 +18,11 @@ export interface TuroTrip {
   pickupLocation: string | null;
   returnLocation: string | null;
   totalDistance: string | null;
+  extras: string | null;
+  milesIncluded: string | null;
+  milesDriven: string | null;
+  tripStartOdometer: number | null;
+  tripEndOdometer: number | null;
   emailSubject: string | null;
   emailReceivedAt: string | null;
   cancellationReason: string | null;
@@ -83,5 +89,16 @@ export interface MaintenanceRecord {
 
 export type TaskType = "cleaning" | "delivery" | "pickup";
 export type TaskStatus = "new" | "in_progress" | "completed" | "delivered";
-export type InspectionStatus = "new" | "in_progress" | "completed" | "no_issues";
-export type MaintenanceStatus = "new" | "in_progress" | "completed" | "damage_reported" | "in_review" | "in_repair" | "charged_customer";
+export type InspectionStatus =
+  | "new"
+  | "in_progress"
+  | "completed"
+  | "no_issues";
+export type MaintenanceStatus =
+  | "new"
+  | "in_progress"
+  | "completed"
+  | "damage_reported"
+  | "in_review"
+  | "in_repair"
+  | "charged_customer";

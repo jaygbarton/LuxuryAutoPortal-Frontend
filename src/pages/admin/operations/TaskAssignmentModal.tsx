@@ -1,13 +1,25 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CarSelectCombobox } from "./CarSelectCombobox";
+import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import type { OperationTask, TaskType } from "./types";
 
 interface TaskAssignmentModalProps {
@@ -27,7 +39,11 @@ interface TaskAssignmentModalProps {
   };
 }
 
-function computeDefaultDueDate(taskType: TaskType, tripStart?: string, tripEnd?: string): string {
+function computeDefaultDueDate(
+  taskType: TaskType,
+  tripStart?: string,
+  tripEnd?: string,
+): string {
   if (taskType === "cleaning" && tripStart) {
     const d = new Date(tripStart);
     d.setMinutes(d.getMinutes() - 45);
@@ -42,7 +58,12 @@ function computeDefaultDueDate(taskType: TaskType, tripStart?: string, tripEnd?:
   return "";
 }
 
-export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskAssignmentModalProps) {
+export function TaskAssignmentModal({
+  open,
+  onOpenChange,
+  task,
+  prefill,
+}: TaskAssignmentModalProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isEdit = !!task;
@@ -52,14 +73,16 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
     reservation_id: task?.reservation_id || prefill?.reservation_id || "",
     car_name: task?.car_name || prefill?.car_name || "",
     guest_name: task?.guest_name || prefill?.guest_name || "",
-    task_type: task?.task_type || prefill?.task_type || ("cleaning" as TaskType),
+    task_type:
+      task?.task_type || prefill?.task_type || ("cleaning" as TaskType),
     assigned_to: task?.assigned_to || "",
-    scheduled_date: task?.scheduled_date ? task.scheduled_date.slice(0, 16) : "",
+    scheduled_date: task?.scheduled_date
+      ? task.scheduled_date.slice(0, 16)
+      : "",
     scheduled_location: task?.scheduled_location || "",
     due_date: task?.due_date ? task.due_date.slice(0, 16) : "",
     notes: task?.notes || "",
   });
-
 
   useEffect(() => {
     if (task) {
@@ -70,7 +93,9 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
         guest_name: task.guest_name || "",
         task_type: task.task_type,
         assigned_to: task.assigned_to,
-        scheduled_date: task.scheduled_date ? task.scheduled_date.slice(0, 16) : "",
+        scheduled_date: task.scheduled_date
+          ? task.scheduled_date.slice(0, 16)
+          : "",
         scheduled_location: task.scheduled_location || "",
         due_date: task.due_date ? task.due_date.slice(0, 16) : "",
         notes: task.notes || "",
@@ -80,19 +105,31 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
 
       let defaultScheduledDate = "";
       if (taskType === "pickup" && prefill.trip_end) {
-        defaultScheduledDate = new Date(prefill.trip_end).toISOString().slice(0, 16);
+        defaultScheduledDate = new Date(prefill.trip_end)
+          .toISOString()
+          .slice(0, 16);
       } else if (taskType === "delivery" && prefill.trip_start) {
-        defaultScheduledDate = new Date(prefill.trip_start).toISOString().slice(0, 16);
+        defaultScheduledDate = new Date(prefill.trip_start)
+          .toISOString()
+          .slice(0, 16);
       }
 
       let defaultLocation = "";
       if (taskType === "pickup" && prefill.return_location) {
         defaultLocation = prefill.return_location;
-      } else if (taskType === "delivery" && (prefill.delivery_location || prefill.return_location)) {
-        defaultLocation = prefill.delivery_location || prefill.return_location || "";
+      } else if (
+        taskType === "delivery" &&
+        (prefill.delivery_location || prefill.return_location)
+      ) {
+        defaultLocation =
+          prefill.delivery_location || prefill.return_location || "";
       }
 
-      const defaultDueDate = computeDefaultDueDate(taskType, prefill.trip_start, prefill.trip_end);
+      const defaultDueDate = computeDefaultDueDate(
+        taskType,
+        prefill.trip_start,
+        prefill.trip_end,
+      );
 
       setFormData((prev) => ({
         ...prev,
@@ -113,20 +150,25 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
       const defaultDueDate = computeDefaultDueDate(
         formData.task_type,
         prefill.trip_start,
-        prefill.trip_end
+        prefill.trip_end,
       );
       let defaultScheduledDate = formData.scheduled_date;
       let defaultLocation = formData.scheduled_location;
 
       if (formData.task_type === "pickup" && prefill.trip_end) {
-        defaultScheduledDate = new Date(prefill.trip_end).toISOString().slice(0, 16);
+        defaultScheduledDate = new Date(prefill.trip_end)
+          .toISOString()
+          .slice(0, 16);
         defaultLocation = prefill.return_location || "";
       } else if (formData.task_type === "delivery" && prefill.trip_start) {
-        defaultScheduledDate = new Date(prefill.trip_start).toISOString().slice(0, 16);
-        defaultLocation = prefill.delivery_location || prefill.return_location || "";
+        defaultScheduledDate = new Date(prefill.trip_start)
+          .toISOString()
+          .slice(0, 16);
+        defaultLocation =
+          prefill.delivery_location || prefill.return_location || "";
       }
 
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         scheduled_date: defaultScheduledDate,
         scheduled_location: defaultLocation,
@@ -154,18 +196,29 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/operations/tasks"] });
-      toast({ title: "Success", description: `Task ${isEdit ? "updated" : "created"} successfully` });
+      toast({
+        title: "Success",
+        description: `Task ${isEdit ? "updated" : "created"} successfully`,
+      });
       onOpenChange(false);
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.car_name || !formData.task_type || !formData.assigned_to) {
-      toast({ title: "Error", description: "Please fill in required fields", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Please fill in required fields",
+        variant: "destructive",
+      });
       return;
     }
     mutation.mutate(formData);
@@ -175,13 +228,19 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-card border-border text-foreground max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-foreground">{isEdit ? "Edit Task" : "Assign Task"}</DialogTitle>
+          <DialogTitle className="text-foreground">
+            {isEdit ? "Edit Task" : "Assign Task"}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-sm text-muted-foreground">Car *</label>
             {prefill?.car_name ? (
-              <Input value={formData.car_name} readOnly className="bg-card border-border text-foreground mt-1 opacity-70" />
+              <Input
+                value={formData.car_name}
+                readOnly
+                className="bg-card border-border text-foreground mt-1 opacity-70"
+              />
             ) : (
               <CarSelectCombobox
                 value={formData.car_name}
@@ -192,7 +251,12 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
 
           <div>
             <label className="text-sm text-muted-foreground">Task Type *</label>
-            <Select value={formData.task_type} onValueChange={(v) => setFormData({ ...formData, task_type: v as TaskType })}>
+            <Select
+              value={formData.task_type}
+              onValueChange={(v) =>
+                setFormData({ ...formData, task_type: v as TaskType })
+              }
+            >
               <SelectTrigger className="bg-card border-border text-foreground mt-1">
                 <SelectValue />
               </SelectTrigger>
@@ -205,10 +269,14 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground">Reservation ID</label>
+            <label className="text-sm text-muted-foreground">
+              Reservation ID
+            </label>
             <Input
               value={formData.reservation_id}
-              onChange={(e) => setFormData({ ...formData, reservation_id: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, reservation_id: e.target.value })
+              }
               className="bg-card border-border text-foreground mt-1"
               placeholder="Reservation ID (or N/A)"
             />
@@ -216,21 +284,23 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
 
           <div>
             <label className="text-sm text-muted-foreground">Assign To *</label>
-            <Input
+            <EmployeeSelectCombobox
               value={formData.assigned_to}
-              onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-              className="bg-card border-border text-foreground mt-1"
-              placeholder="Employee name"
-              required
+              onChange={(v) => setFormData({ ...formData, assigned_to: v })}
+              placeholder="Select an employee..."
             />
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground">Scheduled Date/Time</label>
+            <label className="text-sm text-muted-foreground">
+              Scheduled Date/Time
+            </label>
             <Input
               type="datetime-local"
               value={formData.scheduled_date}
-              onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, scheduled_date: e.target.value })
+              }
               className="bg-card border-border text-foreground mt-1"
               style={{ colorScheme: "dark" }}
             />
@@ -241,7 +311,9 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
             <Input
               type="datetime-local"
               value={formData.due_date}
-              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, due_date: e.target.value })
+              }
               className="bg-card border-border text-foreground mt-1"
               style={{ colorScheme: "dark" }}
             />
@@ -251,7 +323,9 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
             <label className="text-sm text-muted-foreground">Location</label>
             <Input
               value={formData.scheduled_location}
-              onChange={(e) => setFormData({ ...formData, scheduled_location: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, scheduled_location: e.target.value })
+              }
               className="bg-card border-border text-foreground mt-1"
               placeholder="Pickup/delivery location"
             />
@@ -261,7 +335,9 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
             <label className="text-sm text-muted-foreground">Notes</label>
             <Textarea
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
               className="bg-card border-border text-foreground mt-1"
               placeholder="Additional notes..."
               rows={3}
@@ -269,11 +345,24 @@ export function TaskAssignmentModal({ open, onOpenChange, task, prefill }: TaskA
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="bg-card text-foreground border-border">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="bg-card text-foreground border-border"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={mutation.isPending} className="bg-primary text-primary-foreground hover:bg-primary/80">
-              {mutation.isPending ? "Saving..." : isEdit ? "Update" : "Create Task"}
+            <Button
+              type="submit"
+              disabled={mutation.isPending}
+              className="bg-primary text-primary-foreground hover:bg-primary/80"
+            >
+              {mutation.isPending
+                ? "Saving..."
+                : isEdit
+                  ? "Update"
+                  : "Create Task"}
             </Button>
           </div>
         </form>
