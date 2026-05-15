@@ -847,18 +847,21 @@ export default function TuroTripsPage() {
                     <TableHead className="whitespace-nowrap font-semibold">
                       Earnings
                     </TableHead>
+                    <TableHead className="whitespace-nowrap font-semibold">
+                      Status
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoadingTrips ? (
                     <TableRow>
-                      <TableCell colSpan={14} className="text-center py-8">
+                      <TableCell colSpan={15} className="text-center py-8">
                         <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                       </TableCell>
                     </TableRow>
                   ) : trips.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={14} className="text-center py-12">
+                      <TableCell colSpan={15} className="text-center py-12">
                         <div className="flex flex-col items-center gap-3 text-muted-foreground">
                           {debouncedSearchQuery || statusFilter !== "all" ? (
                             <>
@@ -1330,6 +1333,14 @@ export default function TuroTripsPage() {
                                 {formatCurrency(trip.earnings)}
                               </span>
                             )}
+                          </TableCell>
+
+                          {/* Status */}
+                          <TableCell
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
+                            {getStatusBadge(trip.status)}
                           </TableCell>
                         </TableRow>
                       );
