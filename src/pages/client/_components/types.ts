@@ -43,6 +43,7 @@ export interface ClientProfile {
 
 export interface Payment {
   payments_aid: number;
+  payments_car_id: number;
   payments_year_month: string;
   payments_amount: number;
   payments_amount_payout: number;

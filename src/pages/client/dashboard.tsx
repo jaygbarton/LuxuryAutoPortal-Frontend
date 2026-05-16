@@ -1,12 +1,34 @@
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  DollarSign, TrendingUp, TrendingDown, Car, Calendar,
-  FileText, Loader2, Wrench, BarChart3, CreditCard,
-  Globe, BookOpen, Calculator, ShoppingBag, Video,
-  Star, ClipboardList, PlusCircle, UserPlus, Map,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  Car,
+  Calendar,
+  FileText,
+  Loader2,
+  Wrench,
+  BarChart3,
+  CreditCard,
+  Globe,
+  BookOpen,
+  Calculator,
+  ShoppingBag,
+  Video,
+  Star,
+  ClipboardList,
+  PlusCircle,
+  UserPlus,
+  Map,
 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { differenceInDays } from "date-fns";
@@ -14,37 +36,53 @@ import { differenceInDays } from "date-fns";
 import { MONTHS_SHORT } from "./_components/constants";
 import { tripDays } from "./_components/utils";
 import type {
-  ClientProfile, ClientCar, Payment, TuroTrip, QuickLink,
-  TotalsData, NadaDepreciation, MaintenanceRecord,
-  MonthlyTripRow, MonthlyDaysTripsRow, YearTotals, YearTotalsTrips,
+  ClientProfile,
+  ClientCar,
+  Payment,
+  TuroTrip,
+  QuickLink,
+  TotalsData,
+  NadaDepreciation,
+  MaintenanceRecord,
+  MonthlyTripRow,
+  MonthlyDaysTripsRow,
+  YearTotals,
+  YearTotalsTrips,
 } from "./_components/types";
 
-import { CarGallery }              from "./_components/CarGallery";
-import { VehicleOwnerInfo }        from "./_components/VehicleOwnerInfo";
-import { GlaContactCard }          from "./_components/GlaContactCard";
-import { IncomeExpensesSection }   from "./_components/IncomeExpensesSection";
-import { IncomeExpensesCharts }    from "./_components/IncomeExpensesCharts";
-import { DonutCharts }             from "./_components/DonutCharts";
-import { NadaChart }               from "./_components/NadaChart";
-import { PaymentHistoryCard }      from "./_components/PaymentHistoryCard";
-import { MaintenanceCard }         from "./_components/MaintenanceCard";
-import { ReportCenter }            from "./_components/ReportCenter";
-import { SupportCenter }           from "./_components/SupportCenter";
+import { CarGallery } from "./_components/CarGallery";
+import { VehicleOwnerInfo } from "./_components/VehicleOwnerInfo";
+import { GlaContactCard } from "./_components/GlaContactCard";
+import { IncomeExpensesSection } from "./_components/IncomeExpensesSection";
+import { IncomeExpensesCharts } from "./_components/IncomeExpensesCharts";
+import { DonutCharts } from "./_components/DonutCharts";
+import { NadaChart } from "./_components/NadaChart";
+import { PaymentHistoryCard } from "./_components/PaymentHistoryCard";
+import { MaintenanceCard } from "./_components/MaintenanceCard";
+import { ReportCenter } from "./_components/ReportCenter";
+import { SupportCenter } from "./_components/SupportCenter";
 
 export default function ClientDashboard() {
-  const currentYear  = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
-  const [selectedCarId,    setSelectedCarId]    = useState<number | null>(null);
-  const [selectedYear,     setSelectedYear]     = useState<string>(String(currentYear));
-  const [selectedYearTrips, setSelectedYearTrips] = useState<string>(String(currentYear));
+  const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
+  const [selectedYearTrips, setSelectedYearTrips] = useState<string>(
+    String(currentYear),
+  );
 
   // ── Data Fetching ─────────────────────────────────────────────────────────────
 
-  const { data: profileData, isLoading: profileLoading } = useQuery<{ success: boolean; data: ClientProfile }>({
+  const { data: profileData, isLoading: profileLoading } = useQuery<{
+    success: boolean;
+    data: ClientProfile;
+  }>({
     queryKey: ["/api/client/profile"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/client/profile"), { credentials: "include" });
+      const res = await fetch(buildApiUrl("/api/client/profile"), {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch profile");
       return res.json();
     },
@@ -52,21 +90,27 @@ export default function ClientDashboard() {
   });
 
   const profile = profileData?.data;
-  const cars    = profile?.cars ?? [];
+  const cars = profile?.cars ?? [];
 
   const activeCar = useMemo<ClientCar | undefined>(() => {
     if (!cars.length) return undefined;
-    if (selectedCarId) return cars.find((c) => c.id === selectedCarId) ?? cars[0];
+    if (selectedCarId)
+      return cars.find((c) => c.id === selectedCarId) ?? cars[0];
     return cars[0];
   }, [cars, selectedCarId]);
 
   const clientId = profile?.id ?? null;
-  const carId    = activeCar?.id ?? null;
+  const carId = activeCar?.id ?? null;
 
-  const { data: paymentsData, isLoading: paymentsLoading } = useQuery<{ success: boolean; data: Payment[] }>({
+  const { data: paymentsData, isLoading: paymentsLoading } = useQuery<{
+    success: boolean;
+    data: Payment[];
+  }>({
     queryKey: ["/api/payments/client", clientId],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl(`/api/payments/client/${clientId}`), { credentials: "include" });
+      const res = await fetch(buildApiUrl(`/api/payments/client/${clientId}`), {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch payments");
       return res.json();
     },
@@ -74,22 +118,37 @@ export default function ClientDashboard() {
     retry: false,
   });
 
-  const { data: tripsData, isLoading: tripsLoading } = useQuery<{ success: boolean; data: { trips: TuroTrip[] } }>({
+  const { data: tripsData, isLoading: tripsLoading } = useQuery<{
+    success: boolean;
+    data: { trips: TuroTrip[] };
+  }>({
     queryKey: ["/api/turo-trips", carId],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/turo-trips"), { credentials: "include" });
+      const res = await fetch(buildApiUrl("/api/turo-trips"), {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch trips");
       return res.json();
     },
     retry: false,
   });
 
-  const { data: totalsData, isLoading: totalsLoading } = useQuery<{ success: boolean; data: TotalsData }>({
+  const { data: totalsData, isLoading: totalsLoading } = useQuery<{
+    success: boolean;
+    data: TotalsData;
+  }>({
     queryKey: ["/api/cars", carId, "totals", selectedYear],
     queryFn: async () => {
       try {
-        const params = new URLSearchParams({ filter: "Year", from: selectedYear, to: selectedYear });
-        const res = await fetch(buildApiUrl(`/api/cars/${carId}/totals?${params}`), { credentials: "include" });
+        const params = new URLSearchParams({
+          filter: "Year",
+          from: selectedYear,
+          to: selectedYear,
+        });
+        const res = await fetch(
+          buildApiUrl(`/api/cars/${carId}/totals?${params}`),
+          { credentials: "include" },
+        );
         if (!res.ok) return { success: false, data: {} };
         return res.json();
       } catch {
@@ -103,7 +162,9 @@ export default function ClientDashboard() {
   const { data: quickLinksData } = useQuery<QuickLink[]>({
     queryKey: ["/api/quick-links"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/quick-links"), { credentials: "include" });
+      const res = await fetch(buildApiUrl("/api/quick-links"), {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch quick links");
       const d = await res.json();
       return d.quickLinks ?? [];
@@ -111,14 +172,21 @@ export default function ClientDashboard() {
     retry: false,
   });
 
-  const { data: nadaData, isLoading: nadaLoading } = useQuery<{ success: boolean; data: NadaDepreciation[]; count: number }>({
+  const { data: nadaData, isLoading: nadaLoading } = useQuery<{
+    success: boolean;
+    data: NadaDepreciation[];
+    count: number;
+  }>({
     queryKey: ["/api/nada-depreciation/read", carId, selectedYear],
     queryFn: async () => {
       const res = await fetch(buildApiUrl("/api/nada-depreciation/read"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ nada_depreciation_car_id: carId, nada_depreciation_date: selectedYear }),
+        body: JSON.stringify({
+          nada_depreciation_car_id: carId,
+          nada_depreciation_date: selectedYear,
+        }),
       });
       if (!res.ok) return { success: false, data: [], count: 0 };
       return res.json();
@@ -127,10 +195,15 @@ export default function ClientDashboard() {
     retry: false,
   });
 
-  const { data: carPhotosData } = useQuery<{ success: boolean; photos: string[] }>({
+  const { data: carPhotosData } = useQuery<{
+    success: boolean;
+    photos: string[];
+  }>({
     queryKey: ["/api/client/cars", carId, "photos"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl(`/api/client/cars/${carId}/photos`), { credentials: "include" });
+      const res = await fetch(buildApiUrl(`/api/client/cars/${carId}/photos`), {
+        credentials: "include",
+      });
       if (!res.ok) return { success: false, photos: [] };
       return res.json();
     },
@@ -141,14 +214,27 @@ export default function ClientDashboard() {
   // ── Derived Data ──────────────────────────────────────────────────────────────
 
   const payments = useMemo<Payment[]>(() => {
-    const raw = (paymentsData as any)?.data ?? (paymentsData as any)?.payments ?? [];
-    return Array.isArray(raw)
-      ? [...raw].sort((a, b) => b.payments_year_month.localeCompare(a.payments_year_month))
-      : [];
-  }, [paymentsData]);
+    const raw =
+      (paymentsData as any)?.data ?? (paymentsData as any)?.payments ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .filter((p: Payment) => {
+        // Filter by selected year — only show payments whose year_month starts with the selected year
+        const yearMatch =
+          !selectedYear ||
+          (p.payments_year_month || "").startsWith(selectedYear);
+        // Filter by active car — only show this car's payments when a specific car is selected
+        const carMatch = !carId || p.payments_car_id === carId;
+        return yearMatch && carMatch;
+      })
+      .sort((a: Payment, b: Payment) =>
+        b.payments_year_month.localeCompare(a.payments_year_month),
+      );
+  }, [paymentsData, selectedYear, carId]);
 
   const allTrips = useMemo<TuroTrip[]>(() => {
-    const raw = (tripsData as any)?.data?.trips ?? (tripsData as any)?.trips ?? [];
+    const raw =
+      (tripsData as any)?.data?.trips ?? (tripsData as any)?.trips ?? [];
     return Array.isArray(raw) ? raw : [];
   }, [tripsData]);
 
@@ -158,60 +244,100 @@ export default function ClientDashboard() {
     if (!activeCar) return [];
     const records: MaintenanceRecord[] = [];
     if (activeCar.lastOilChange)
-      records.push({ maintenanceType: "Oil Change", dateCompleted: activeCar.lastOilChange });
+      records.push({
+        maintenanceType: "Oil Change",
+        dateCompleted: activeCar.lastOilChange,
+      });
     if (activeCar.registrationExpiration)
-      records.push({ maintenanceType: "License Registration", dateCompleted: activeCar.registrationExpiration });
+      records.push({
+        maintenanceType: "License Registration",
+        dateCompleted: activeCar.registrationExpiration,
+      });
     return records;
   }, [activeCar]);
 
-  const yearNum      = parseInt(selectedYear, 10);
+  const yearNum = parseInt(selectedYear, 10);
   const yearNumTrips = parseInt(selectedYearTrips, 10);
 
   const monthlyTripData = useMemo<MonthlyTripRow[]>(() => {
     return MONTHS_SHORT.map((m, i) => {
-      const monthNum  = i + 1;
-      const monthKey  = `${yearNum}-${String(monthNum).padStart(2, "0")}`;
+      const monthNum = i + 1;
+      const monthKey = `${yearNum}-${String(monthNum).padStart(2, "0")}`;
       const monthTrips = allTrips.filter((t) => {
         if (t.status === "cancelled") return false;
         const d = new Date(t.tripStart);
         return d.getFullYear() === yearNum && d.getMonth() + 1 === monthNum;
       });
-      const days       = monthTrips.reduce((s, t) => s + tripDays(t), 0);
-      const trips      = monthTrips.length;
-      const income     = monthTrips.reduce((s, t) => s + (t.earnings || 0), 0);
-      const monthPayments = payments.filter((p) => p.payments_year_month === monthKey);
-      const expenses   = monthPayments.reduce((s, p) => s + (parseFloat(String(p.payments_amount)) || 0), 0);
-      const profit     = income - expenses;
-      return { month: `${m} ${yearNum}`, shortMonth: m, monthKey, income, expenses, profit, days, trips, avgPerTrip: trips > 0 ? income / trips : 0 };
+      const days = monthTrips.reduce((s, t) => s + tripDays(t), 0);
+      const trips = monthTrips.length;
+      const income = monthTrips.reduce((s, t) => s + (t.earnings || 0), 0);
+      const monthPayments = payments.filter(
+        (p) => p.payments_year_month === monthKey,
+      );
+      const expenses = monthPayments.reduce(
+        (s, p) => s + (parseFloat(String(p.payments_amount)) || 0),
+        0,
+      );
+      const profit = income - expenses;
+      return {
+        month: `${m} ${yearNum}`,
+        shortMonth: m,
+        monthKey,
+        income,
+        expenses,
+        profit,
+        days,
+        trips,
+        avgPerTrip: trips > 0 ? income / trips : 0,
+      };
     });
   }, [allTrips, payments, yearNum]);
 
   const yearTotals = useMemo<YearTotals>(() => {
     return monthlyTripData.reduce(
-      (acc, row) => ({ income: acc.income + row.income, expenses: acc.expenses + row.expenses, profit: acc.profit + row.profit, days: acc.days + row.days, trips: acc.trips + row.trips }),
-      { income: 0, expenses: 0, profit: 0, days: 0, trips: 0 }
+      (acc, row) => ({
+        income: acc.income + row.income,
+        expenses: acc.expenses + row.expenses,
+        profit: acc.profit + row.profit,
+        days: acc.days + row.days,
+        trips: acc.trips + row.trips,
+      }),
+      { income: 0, expenses: 0, profit: 0, days: 0, trips: 0 },
     );
   }, [monthlyTripData]);
 
   const monthlyDaysTripsData = useMemo<MonthlyDaysTripsRow[]>(() => {
     return MONTHS_SHORT.map((m, i) => {
-      const monthNum  = i + 1;
+      const monthNum = i + 1;
       const monthTrips = allTrips.filter((t) => {
         if (t.status === "cancelled") return false;
         const d = new Date(t.tripStart);
-        return d.getFullYear() === yearNumTrips && d.getMonth() + 1 === monthNum;
+        return (
+          d.getFullYear() === yearNumTrips && d.getMonth() + 1 === monthNum
+        );
       });
-      const days  = monthTrips.reduce((s, t) => s + tripDays(t), 0);
+      const days = monthTrips.reduce((s, t) => s + tripDays(t), 0);
       const trips = monthTrips.length;
       const income = monthTrips.reduce((s, t) => s + (t.earnings || 0), 0);
-      return { month: `${m} ${yearNumTrips}`, shortMonth: m, days, trips, avgPerTrip: trips > 0 ? income / trips : 0, income };
+      return {
+        month: `${m} ${yearNumTrips}`,
+        shortMonth: m,
+        days,
+        trips,
+        avgPerTrip: trips > 0 ? income / trips : 0,
+        income,
+      };
     });
   }, [allTrips, yearNumTrips]);
 
   const yearTotalsTrips = useMemo<YearTotalsTrips>(() => {
     return monthlyDaysTripsData.reduce(
-      (acc, row) => ({ days: acc.days + row.days, trips: acc.trips + row.trips, income: acc.income + row.income }),
-      { days: 0, trips: 0, income: 0 }
+      (acc, row) => ({
+        days: acc.days + row.days,
+        trips: acc.trips + row.trips,
+        income: acc.income + row.income,
+      }),
+      { days: 0, trips: 0, income: 0 },
     );
   }, [monthlyDaysTripsData]);
 
@@ -221,41 +347,93 @@ export default function ClientDashboard() {
     return years;
   }, [currentYear]);
 
-  const quickLinks    = (quickLinksData ?? []).filter((l) => l.visibleToClients);
-  const turoViewLink  = quickLinks.find((l) => l.title?.toLowerCase().includes("turo") && l.url)?.url ?? null;
+  const quickLinks = (quickLinksData ?? []).filter((l) => l.visibleToClients);
+  const turoViewLink =
+    quickLinks.find((l) => l.title?.toLowerCase().includes("turo") && l.url)
+      ?.url ?? null;
   const manufacturerUrl = (profile?.onboarding as any)?.manufacturerUrl ?? null;
 
-  const ownerName  = profile?.onboarding?.firstNameOwner
+  const ownerName = profile?.onboarding?.firstNameOwner
     ? `${profile.onboarding.firstNameOwner} ${profile.onboarding.lastNameOwner ?? ""}`.trim()
-    : [profile?.firstName, profile?.lastName].filter(Boolean).join(" ") || "Client";
+    : [profile?.firstName, profile?.lastName].filter(Boolean).join(" ") ||
+      "Client";
   const ownerEmail = profile?.onboarding?.emailOwner || profile?.email || "";
   const ownerPhone = profile?.onboarding?.phoneOwner || profile?.phone || "";
 
   const reportLinks = [
-    { href: activeCar ? `/admin/cars/${activeCar.id}/earnings` : "#",       icon: DollarSign,  label: "Earnings" },
-    { href: "/admin/turo-trips",                                              icon: ClipboardList, label: "History" },
-    { href: activeCar ? `/admin/cars/${activeCar.id}/totals` : "#",          icon: BarChart3,   label: "Totals" },
-    { href: activeCar ? `/admin/cars/${activeCar.id}/records` : "#",         icon: FileText,    label: "Records and Files" },
-    { href: activeCar ? `/admin/cars/${activeCar.id}/graphs` : "#",          icon: TrendingUp,  label: "Graphs and Charts Report" },
-    { href: activeCar ? `/admin/cars/${activeCar.id}/maintenance` : "#",     icon: Wrench,      label: "Maintenance" },
-    { href: activeCar ? `/admin/cars/${activeCar.id}/income-expense` : "#",  icon: Calendar,    label: "Car Rental Value Per Month" },
-    { href: activeCar ? `/admin/cars/${activeCar.id}/depreciation` : "#",    icon: TrendingDown, label: "NADA Depreciation Schedule" },
-    { href: activeCar ? `/admin/cars/${activeCar.id}/purchase` : "#",        icon: ShoppingBag, label: "Purchase Details" },
-    { href: activeCar ? `/admin/cars/${activeCar.id}/calculator` : "#",      icon: Calculator,  label: "Payment Calculator" },
-    { href: activeCar ? `/admin/cars/${activeCar.id}/payments` : "#",        icon: CreditCard,  label: "Payment History" },
+    {
+      href: activeCar ? `/admin/cars/${activeCar.id}/earnings` : "#",
+      icon: DollarSign,
+      label: "Earnings",
+    },
+    { href: "/admin/turo-trips", icon: ClipboardList, label: "History" },
+    {
+      href: activeCar ? `/admin/cars/${activeCar.id}/totals` : "#",
+      icon: BarChart3,
+      label: "Totals",
+    },
+    {
+      href: activeCar ? `/admin/cars/${activeCar.id}/records` : "#",
+      icon: FileText,
+      label: "Records and Files",
+    },
+    {
+      href: activeCar ? `/admin/cars/${activeCar.id}/graphs` : "#",
+      icon: TrendingUp,
+      label: "Graphs and Charts Report",
+    },
+    {
+      href: activeCar ? `/admin/cars/${activeCar.id}/maintenance` : "#",
+      icon: Wrench,
+      label: "Maintenance",
+    },
+    {
+      href: activeCar ? `/admin/cars/${activeCar.id}/income-expense` : "#",
+      icon: Calendar,
+      label: "Car Rental Value Per Month",
+    },
+    {
+      href: activeCar ? `/admin/cars/${activeCar.id}/depreciation` : "#",
+      icon: TrendingDown,
+      label: "NADA Depreciation Schedule",
+    },
+    {
+      href: activeCar ? `/admin/cars/${activeCar.id}/purchase` : "#",
+      icon: ShoppingBag,
+      label: "Purchase Details",
+    },
+    {
+      href: activeCar ? `/admin/cars/${activeCar.id}/calculator` : "#",
+      icon: Calculator,
+      label: "Payment Calculator",
+    },
+    {
+      href: activeCar ? `/admin/cars/${activeCar.id}/payments` : "#",
+      icon: CreditCard,
+      label: "Payment History",
+    },
   ];
 
   const supportLinks = [
-    { href: "#",                                      icon: ClipboardList, label: "Off-boarding Form" },
-    { href: "#",                                      icon: Video,         label: "Schedule a Zoom Call" },
-    { href: "/onboarding",                            icon: PlusCircle,    label: "List Another Car" },
-    { href: turoViewLink ?? "#",                      icon: Car,           label: "Book Your Car", external: !!turoViewLink },
-    { href: "/profile",                               icon: FileText,      label: "License Registration or Insurance Updates" },
-    { href: "/admin/forms",                           icon: UserPlus,      label: "Refer Somebody" },
-    { href: "/tutorial",                              icon: BookOpen,      label: "Training Manual" },
-    { href: "/admin/turo-guide",                      icon: Map,           label: "Turo Guide" },
-    { href: "/admin/testimonials",                    icon: Star,          label: "Client Testimonials" },
-    { href: "#",                                      icon: Globe,         label: "News & Media" },
+    { href: "#", icon: ClipboardList, label: "Off-boarding Form" },
+    { href: "#", icon: Video, label: "Schedule a Zoom Call" },
+    { href: "/onboarding", icon: PlusCircle, label: "List Another Car" },
+    {
+      href: turoViewLink ?? "#",
+      icon: Car,
+      label: "Book Your Car",
+      external: !!turoViewLink,
+    },
+    {
+      href: "/profile",
+      icon: FileText,
+      label: "License Registration or Insurance Updates",
+    },
+    { href: "/admin/forms", icon: UserPlus, label: "Refer Somebody" },
+    { href: "/tutorial", icon: BookOpen, label: "Training Manual" },
+    { href: "/admin/turo-guide", icon: Map, label: "Turo Guide" },
+    { href: "/admin/testimonials", icon: Star, label: "Client Testimonials" },
+    { href: "#", icon: Globe, label: "News & Media" },
   ];
 
   // ── Loading ───────────────────────────────────────────────────────────────────
@@ -275,18 +453,22 @@ export default function ClientDashboard() {
   return (
     <AdminLayout>
       <div className="flex flex-col gap-8 pb-12">
-
         {/* Car selector (multi-car clients) */}
         {cars.length > 1 && (
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Vehicle:</span>
-            <Select value={String(activeCar?.id ?? "")} onValueChange={(v) => setSelectedCarId(parseInt(v, 10))}>
+            <Select
+              value={String(activeCar?.id ?? "")}
+              onValueChange={(v) => setSelectedCarId(parseInt(v, 10))}
+            >
               <SelectTrigger className="w-52 h-9 text-sm">
                 <SelectValue placeholder="Select car" />
               </SelectTrigger>
               <SelectContent>
                 {cars.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>{c.makeModel || `Car #${c.id}`}</SelectItem>
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.makeModel || `Car #${c.id}`}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -295,7 +477,10 @@ export default function ClientDashboard() {
 
         {/* ROW 1: Car Gallery (full width — the Monthly Update Video tile was
             removed per client request; the gallery now spans the row alone). */}
-        <CarGallery apiPhotos={carPhotosData?.photos ?? []} activeCar={activeCar} />
+        <CarGallery
+          apiPhotos={carPhotosData?.photos ?? []}
+          activeCar={activeCar}
+        />
 
         {/* ROW 2: Vehicle/Owner Info + GLA Contact */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
@@ -348,11 +533,21 @@ export default function ClientDashboard() {
               currentMonth={currentMonth}
               isLoading={totalsLoading || tripsLoading}
             />
-            <NadaChart nadaRecords={nadaRecords} yearNum={yearNum} isLoading={nadaLoading} />
+            <NadaChart
+              nadaRecords={nadaRecords}
+              yearNum={yearNum}
+              isLoading={nadaLoading}
+            />
           </div>
           <div className="flex flex-col gap-6">
-            <PaymentHistoryCard payments={payments} isLoading={paymentsLoading} />
-            <MaintenanceCard maintenanceRecords={maintenanceRecords} activeCar={activeCar} />
+            <PaymentHistoryCard
+              payments={payments}
+              isLoading={paymentsLoading}
+            />
+            <MaintenanceCard
+              maintenanceRecords={maintenanceRecords}
+              activeCar={activeCar}
+            />
           </div>
         </div>
 
@@ -361,7 +556,6 @@ export default function ClientDashboard() {
 
         {/* Section 11: Support Center */}
         <SupportCenter supportLinks={supportLinks} />
-
       </div>
     </AdminLayout>
   );

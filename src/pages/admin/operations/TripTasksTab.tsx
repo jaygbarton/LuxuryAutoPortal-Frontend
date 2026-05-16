@@ -1,10 +1,30 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { StatusBadge } from "./StatusBadge";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
@@ -16,8 +36,15 @@ const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
   try {
     const d = new Date(dateStr);
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
-      " " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    return (
+      d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }) +
+      " " +
+      d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    );
   } catch {
     return dateStr;
   }
@@ -28,6 +55,9 @@ export function TripTasksTab() {
   const { toast } = useToast();
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [search, setSearch] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<OperationTask | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -42,7 +72,10 @@ export function TripTasksTab() {
       if (filterType !== "all") params.append("task_type", filterType);
       if (filterStatus !== "all") params.append("status", filterStatus);
       const qs = params.toString();
-      const response = await fetch(buildApiUrl(`/api/operations/tasks${qs ? `?${qs}` : ""}`), { credentials: "include" });
+      const response = await fetch(
+        buildApiUrl(`/api/operations/tasks${qs ? `?${qs}` : ""}`),
+        { credentials: "include" },
+      );
       if (!response.ok) throw new Error("Failed to fetch tasks");
       return response.json();
     },
@@ -51,7 +84,9 @@ export function TripTasksTab() {
   const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
     queryKey: ["/api/turo-trips", { limit: 500 }],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl("/api/turo-trips?limit=500"), { credentials: "include" });
+      const response = await fetch(buildApiUrl("/api/turo-trips?limit=500"), {
+        credentials: "include",
+      });
       if (!response.ok) throw new Error("Failed to fetch trips");
       return response.json();
     },
@@ -59,6 +94,37 @@ export function TripTasksTab() {
 
   const tasks = data?.data || [];
   const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
+
+  const filteredTasks = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const from = dateFrom ? new Date(dateFrom).getTime() : null;
+    const to = dateTo
+      ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1
+      : null;
+    return tasks.filter((task) => {
+      if (q) {
+        const hay = [
+          task.reservation_id,
+          task.car_name,
+          task.guest_name,
+          task.assigned_to,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (from != null || to != null) {
+        const d = task.scheduled_date
+          ? new Date(task.scheduled_date).getTime()
+          : null;
+        if (d == null) return false;
+        if (from != null && d < from) return false;
+        if (to != null && d > to) return false;
+      }
+      return true;
+    });
+  }, [tasks, search, dateFrom, dateTo]);
 
   const statusUpdateMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -76,7 +142,11 @@ export function TripTasksTab() {
       toast({ title: "Success", description: "Task status updated" });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -96,22 +166,40 @@ export function TripTasksTab() {
       setDeletingTask(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
   const handleClearFilters = () => {
     setFilterType("all");
     setFilterStatus("all");
+    setSearch("");
+    setDateFrom("");
+    setDateTo("");
   };
 
-  const hasActiveFilters = filterType !== "all" || filterStatus !== "all";
+  const hasActiveFilters =
+    filterType !== "all" ||
+    filterStatus !== "all" ||
+    search !== "" ||
+    dateFrom !== "" ||
+    dateTo !== "";
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <SectionHeader title="Trip Tasks" variant="plain" className="mb-0" />
-        <Button onClick={() => { setEditingTask(null); setTaskModalOpen(true); }} className="bg-primary text-primary-foreground hover:bg-primary/80">
+        <Button
+          onClick={() => {
+            setEditingTask(null);
+            setTaskModalOpen(true);
+          }}
+          className="bg-primary text-primary-foreground hover:bg-primary/80"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Add Task
         </Button>
@@ -119,7 +207,34 @@ export function TripTasksTab() {
 
       <div className="bg-card border border-border rounded-lg overflow-auto">
         <div className="p-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <label className="text-muted-foreground text-sm">Search:</label>
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Reservation, car, guest..."
+                className="bg-card border-border text-foreground w-[200px] h-8"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-muted-foreground text-sm">From:</label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="bg-card border-border text-foreground w-[140px] h-8"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-muted-foreground text-sm">To:</label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="bg-card border-border text-foreground w-[140px] h-8"
+              />
+            </div>
             <div className="flex items-center gap-2">
               <label className="text-muted-foreground text-sm">Type:</label>
               <Select value={filterType} onValueChange={setFilterType}>
@@ -150,108 +265,208 @@ export function TripTasksTab() {
               </Select>
             </div>
             {hasActiveFilters && (
-              <Button variant="ghost" onClick={handleClearFilters} className="text-red-700 hover:text-red-700 hover:bg-red-900/20">
+              <Button
+                variant="ghost"
+                onClick={handleClearFilters}
+                className="text-red-700 hover:text-red-700 hover:bg-red-900/20"
+              >
                 Clear Filters
               </Button>
             )}
-            <div className="ml-auto text-muted-foreground text-sm">Total: {tasks.length}</div>
+            <div className="ml-auto text-muted-foreground text-sm">
+              Total: {filteredTasks.length}
+            </div>
           </div>
 
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-foreground font-medium">Reservation #</TableHead>
-                  <TableHead className="text-foreground font-medium">Car</TableHead>
-                  <TableHead className="text-foreground font-medium">Guest</TableHead>
-                  <TableHead className="text-foreground font-medium">Task Type</TableHead>
-                  <TableHead className="text-foreground font-medium">Assigned To</TableHead>
-                  <TableHead className="text-foreground font-medium">Scheduled</TableHead>
-                  <TableHead className="text-foreground font-medium">Start Location</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip End</TableHead>
-                  <TableHead className="text-foreground font-medium">Return Location</TableHead>
-                  <TableHead className="text-foreground font-medium">Due Date</TableHead>
-                  <TableHead className="text-foreground font-medium">Location</TableHead>
-                  <TableHead className="text-foreground font-medium">Status</TableHead>
-                  <TableHead className="text-center text-foreground font-medium">Actions</TableHead>
+                  <TableHead className="text-foreground font-medium">
+                    Reservation #
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium">
+                    Car
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium">
+                    Guest
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium">
+                    Task Type
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium">
+                    Assigned To
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium">
+                    Scheduled
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium">
+                    Start Location
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium">
+                    Trip End
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium">
+                    Return Location
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium">
+                    Due Date
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium">
+                    Location
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-center text-foreground font-medium">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center py-12 text-muted-foreground">Loading tasks...</TableCell>
+                    <TableCell
+                      colSpan={13}
+                      className="text-center py-12 text-muted-foreground"
+                    >
+                      Loading tasks...
+                    </TableCell>
                   </TableRow>
-                ) : tasks.length === 0 ? (
+                ) : filteredTasks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center py-12 text-muted-foreground">No tasks found</TableCell>
+                    <TableCell
+                      colSpan={13}
+                      className="text-center py-12 text-muted-foreground"
+                    >
+                      No tasks found
+                    </TableCell>
                   </TableRow>
                 ) : (
-                  tasks.map((task) => {
-                    const trip = task.turo_trip_id != null ? tripsById.get(task.turo_trip_id) : undefined;
-                    const startLocation = trip?.pickupLocation || trip?.deliveryLocation || "";
+                  filteredTasks.map((task) => {
+                    const trip =
+                      task.turo_trip_id != null
+                        ? tripsById.get(task.turo_trip_id)
+                        : undefined;
+                    const startLocation =
+                      trip?.pickupLocation || trip?.deliveryLocation || "";
                     const returnLocation = trip?.returnLocation || "";
                     const tripEnd = trip?.tripEnd || null;
                     return (
-                    <TableRow key={task.id} className="border-border hover:bg-card/50 transition-colors">
-                      <TableCell className="text-foreground font-mono text-sm">{task.reservation_id || "N/A"}</TableCell>
-                      <TableCell className="text-foreground">{task.car_name}</TableCell>
-                      <TableCell className="text-muted-foreground">{task.guest_name || "--"}</TableCell>
-                      <TableCell className="text-foreground capitalize">{task.task_type}</TableCell>
-                      <TableCell className="text-foreground">{task.assigned_to}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{formatDate(task.scheduled_date)}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={startLocation || undefined}>{startLocation || "--"}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{formatDate(tripEnd)}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={returnLocation || undefined}>{returnLocation || "--"}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{formatDate(task.due_date)}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={task.scheduled_location || undefined}>{task.scheduled_location || "--"}</TableCell>
-                      <TableCell>
-                        <Select
-                          value={task.status}
-                          onValueChange={(v) => statusUpdateMutation.mutate({ id: task.id, status: v })}
+                      <TableRow
+                        key={task.id}
+                        className="border-border hover:bg-card/50 transition-colors"
+                      >
+                        <TableCell className="text-foreground font-mono text-sm">
+                          {task.reservation_id || "N/A"}
+                        </TableCell>
+                        <TableCell className="text-foreground">
+                          {task.car_name}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {task.guest_name || "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground capitalize">
+                          {task.task_type}
+                        </TableCell>
+                        <TableCell className="text-foreground">
+                          {task.assigned_to}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {formatDate(task.scheduled_date)}
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-sm max-w-[150px] truncate"
+                          title={startLocation || undefined}
                         >
-                          <SelectTrigger className="bg-transparent border-0 p-0 h-auto w-auto shadow-none focus:ring-0">
-                            <StatusBadge status={task.status} />
-                          </SelectTrigger>
-                          <SelectContent className="bg-card border-border text-foreground">
-                            <SelectItem value="new">New</SelectItem>
-                            <SelectItem value="in_progress">In Progress</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="delivered">Delivered</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => { setEditingTask(task); setTaskModalOpen(true); }}
-                            className="text-muted-foreground hover:text-primary h-8 px-2"
-                            title="Edit"
+                          {startLocation || "--"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {formatDate(tripEnd)}
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-sm max-w-[150px] truncate"
+                          title={returnLocation || undefined}
+                        >
+                          {returnLocation || "--"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {formatDate(task.due_date)}
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-sm max-w-[150px] truncate"
+                          title={task.scheduled_location || undefined}
+                        >
+                          {task.scheduled_location || "--"}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={task.status}
+                            onValueChange={(v) =>
+                              statusUpdateMutation.mutate({
+                                id: task.id,
+                                status: v,
+                              })
+                            }
                           >
-                            <Edit className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => { setHistoryTask(task); setHistoryModalOpen(true); }}
-                            className="text-muted-foreground hover:text-blue-400 h-8 px-2"
-                            title="View History"
-                          >
-                            <History className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => { setDeletingTask(task); setDeleteModalOpen(true); }}
-                            className="text-muted-foreground hover:text-red-700 h-8 px-2"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                            <SelectTrigger className="bg-transparent border-0 p-0 h-auto w-auto shadow-none focus:ring-0">
+                              <StatusBadge status={task.status} />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card border-border text-foreground">
+                              <SelectItem value="new">New</SelectItem>
+                              <SelectItem value="in_progress">
+                                In Progress
+                              </SelectItem>
+                              <SelectItem value="completed">
+                                Completed
+                              </SelectItem>
+                              <SelectItem value="delivered">
+                                Delivered
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingTask(task);
+                                setTaskModalOpen(true);
+                              }}
+                              className="text-muted-foreground hover:text-primary h-8 px-2"
+                              title="Edit"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setHistoryTask(task);
+                                setHistoryModalOpen(true);
+                              }}
+                              className="text-muted-foreground hover:text-blue-400 h-8 px-2"
+                              title="View History"
+                            >
+                              <History className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setDeletingTask(task);
+                                setDeleteModalOpen(true);
+                              }}
+                              className="text-muted-foreground hover:text-red-700 h-8 px-2"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
                     );
                   })
                 )}
@@ -263,7 +478,10 @@ export function TripTasksTab() {
 
       <TaskAssignmentModal
         open={taskModalOpen}
-        onOpenChange={(open) => { setTaskModalOpen(open); if (!open) setEditingTask(null); }}
+        onOpenChange={(open) => {
+          setTaskModalOpen(open);
+          if (!open) setEditingTask(null);
+        }}
         task={editingTask}
       />
 
@@ -273,11 +491,18 @@ export function TripTasksTab() {
             <DialogHeader>
               <DialogTitle className="text-foreground">Delete Task</DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                Are you sure you want to delete this {deletingTask.task_type} task for {deletingTask.car_name}?
+                Are you sure you want to delete this {deletingTask.task_type}{" "}
+                task for {deletingTask.car_name}?
               </DialogDescription>
             </DialogHeader>
             <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={() => setDeleteModalOpen(false)} className="bg-card text-foreground border-border">Cancel</Button>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteModalOpen(false)}
+                className="bg-card text-foreground border-border"
+              >
+                Cancel
+              </Button>
               <Button
                 onClick={() => deleteMutation.mutate(deletingTask.id)}
                 disabled={deleteMutation.isPending}
@@ -294,16 +519,22 @@ export function TripTasksTab() {
         <Dialog open={historyModalOpen} onOpenChange={setHistoryModalOpen}>
           <DialogContent className="bg-card border-border text-foreground max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-foreground">Edit History</DialogTitle>
+              <DialogTitle className="text-foreground">
+                Edit History
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between border-b border-border pb-2">
                 <span className="text-muted-foreground">Created</span>
-                <span className="text-foreground">{formatDate(historyTask.created_at)}</span>
+                <span className="text-foreground">
+                  {formatDate(historyTask.created_at)}
+                </span>
               </div>
               <div className="flex justify-between border-b border-border pb-2">
                 <span className="text-muted-foreground">Last Updated</span>
-                <span className="text-foreground">{formatDate(historyTask.updated_at)}</span>
+                <span className="text-foreground">
+                  {formatDate(historyTask.updated_at)}
+                </span>
               </div>
               <div className="flex justify-between border-b border-border pb-2">
                 <span className="text-muted-foreground">Current Status</span>
@@ -311,11 +542,15 @@ export function TripTasksTab() {
               </div>
               <div className="flex justify-between border-b border-border pb-2">
                 <span className="text-muted-foreground">Task Type</span>
-                <span className="text-foreground capitalize">{historyTask.task_type}</span>
+                <span className="text-foreground capitalize">
+                  {historyTask.task_type}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Assigned To</span>
-                <span className="text-foreground">{historyTask.assigned_to}</span>
+                <span className="text-foreground">
+                  {historyTask.assigned_to}
+                </span>
               </div>
             </div>
           </DialogContent>

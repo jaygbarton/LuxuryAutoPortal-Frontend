@@ -36,7 +36,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Search, Pencil, Archive, ArchiveRestore, Trash2, Link as LinkIcon } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Search,
+  Pencil,
+  Archive,
+  ArchiveRestore,
+  Trash2,
+  Link as LinkIcon,
+} from "lucide-react";
 import { VideoPreview } from "@/components/admin/video-preview";
 
 interface TuroGuideRow {
@@ -52,7 +61,11 @@ interface TuroGuideRow {
 function formatDate(s: string) {
   if (!s) return "—";
   try {
-    return new Date(s).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    return new Date(s).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   } catch {
     return s;
   }
@@ -75,6 +88,19 @@ export default function AdminTuroGuidePage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [addOpen, setAddOpen] = useState(false);
+
+  const { data: meData } = useQuery({
+    queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/auth/me"), {
+        credentials: "include",
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+  const isClient = Boolean(meData?.user?.isClient) && !meData?.user?.isAdmin;
   const [editItem, setEditItem] = useState<TuroGuideRow | null>(null);
   const [archiveId, setArchiveId] = useState<number | null>(null);
   const [restoreId, setRestoreId] = useState<number | null>(null);
@@ -97,7 +123,9 @@ export default function AdminTuroGuidePage() {
       params.set("limit", "20");
       if (search.trim()) params.set("search", search.trim());
       if (statusFilter !== "all") params.set("status", statusFilter);
-      const res = await fetch(buildApiUrl(`/api/turo-guides?${params}`), { credentials: "include" });
+      const res = await fetch(buildApiUrl(`/api/turo-guides?${params}`), {
+        credentials: "include",
+      });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Failed to load turo guides");
@@ -107,7 +135,11 @@ export default function AdminTuroGuidePage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (body: { turo_guide_title: string; turo_guide_description: string; turo_guide_file: string }) => {
+    mutationFn: async (body: {
+      turo_guide_title: string;
+      turo_guide_description: string;
+      turo_guide_file: string;
+    }) => {
       const res = await fetch(buildApiUrl("/api/turo-guides"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -128,11 +160,22 @@ export default function AdminTuroGuidePage() {
       setFormDescription("");
       setFormFile("");
     },
-    onError: (e: Error) => toast({ variant: "destructive", title: "Error", description: e.message }),
+    onError: (e: Error) =>
+      toast({ variant: "destructive", title: "Error", description: e.message }),
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, body }: { id: number; body: { turo_guide_title: string; turo_guide_description: string; turo_guide_file: string } }) => {
+    mutationFn: async ({
+      id,
+      body,
+    }: {
+      id: number;
+      body: {
+        turo_guide_title: string;
+        turo_guide_description: string;
+        turo_guide_file: string;
+      };
+    }) => {
       const res = await fetch(buildApiUrl(`/api/turo-guides/${id}`), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -153,7 +196,8 @@ export default function AdminTuroGuidePage() {
       setFormDescription("");
       setFormFile("");
     },
-    onError: (e: Error) => toast({ variant: "destructive", title: "Error", description: e.message }),
+    onError: (e: Error) =>
+      toast({ variant: "destructive", title: "Error", description: e.message }),
   });
 
   const setActiveMutation = useMutation({
@@ -176,7 +220,8 @@ export default function AdminTuroGuidePage() {
       setArchiveId(null);
       setRestoreId(null);
     },
-    onError: (e: Error) => toast({ variant: "destructive", title: "Error", description: e.message }),
+    onError: (e: Error) =>
+      toast({ variant: "destructive", title: "Error", description: e.message }),
   });
 
   const deleteMutation = useMutation({
@@ -195,7 +240,8 @@ export default function AdminTuroGuidePage() {
       toast({ title: "Turo guide deleted" });
       setDeleteId(null);
     },
-    onError: (e: Error) => toast({ variant: "destructive", title: "Error", description: e.message }),
+    onError: (e: Error) =>
+      toast({ variant: "destructive", title: "Error", description: e.message }),
   });
 
   const list = data?.list ?? [];
@@ -217,19 +263,24 @@ export default function AdminTuroGuidePage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold">Turo Guide</h1>
-            <p className="text-muted-foreground text-sm">Manage Turo hosting guide entries. Archive or restore to control visibility on staff/client views.</p>
+            <p className="text-muted-foreground text-sm">
+              Manage Turo hosting guide entries. Archive or restore to control
+              visibility on staff/client views.
+            </p>
           </div>
-          <Button
-            onClick={() => {
-              setFormTitle("");
-              setFormDescription("");
-              setFormFile("");
-              setAddOpen(true);
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add
-          </Button>
+          {!isClient && (
+            <Button
+              onClick={() => {
+                setFormTitle("");
+                setFormDescription("");
+                setFormFile("");
+                setAddOpen(true);
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add
+            </Button>
+          )}
         </div>
 
         <Card>
@@ -260,7 +311,10 @@ export default function AdminTuroGuidePage() {
             {isLoading ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="rounded-lg border border-border p-3 space-y-3">
+                  <div
+                    key={i}
+                    className="rounded-lg border border-border p-3 space-y-3"
+                  >
                     <Skeleton className="aspect-video w-full" />
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-3 w-full" />
@@ -269,7 +323,9 @@ export default function AdminTuroGuidePage() {
                 ))}
               </div>
             ) : list.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground">No turo guides found.</div>
+              <div className="py-16 text-center text-muted-foreground">
+                No turo guides found.
+              </div>
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {list.map((row) => (
@@ -297,7 +353,10 @@ export default function AdminTuroGuidePage() {
                       )}
                     </div>
                     <div className="flex flex-1 flex-col gap-2 p-3">
-                      <h3 className="font-medium leading-tight line-clamp-2" title={row.turo_guide_title}>
+                      <h3
+                        className="font-medium leading-tight line-clamp-2"
+                        title={row.turo_guide_title}
+                      >
                         {row.turo_guide_title}
                       </h3>
                       <p className="flex-1 text-xs text-muted-foreground line-clamp-3">
@@ -307,23 +366,49 @@ export default function AdminTuroGuidePage() {
                         <span className="text-xs text-muted-foreground">
                           {formatDate(row.turo_guide_datetime)}
                         </span>
-                        <div className="flex items-center gap-0.5">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(row)} title="Edit">
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          {row.turo_guide_is_active === 1 ? (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setArchiveId(row.turo_guide_aid)} title="Archive">
-                              <Archive className="h-3.5 w-3.5" />
+                        {!isClient && (
+                          <div className="flex items-center gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => openEdit(row)}
+                              title="Edit"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
                             </Button>
-                          ) : (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRestoreId(row.turo_guide_aid)} title="Restore">
-                              <ArchiveRestore className="h-3.5 w-3.5" />
+                            {row.turo_guide_is_active === 1 ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => setArchiveId(row.turo_guide_aid)}
+                                title="Archive"
+                              >
+                                <Archive className="h-3.5 w-3.5" />
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => setRestoreId(row.turo_guide_aid)}
+                                title="Restore"
+                              >
+                                <ArchiveRestore className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => setDeleteId(row.turo_guide_aid)}
+                              title="Delete"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
-                          )}
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(row.turo_guide_aid)} title="Delete">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -332,10 +417,26 @@ export default function AdminTuroGuidePage() {
             )}
             {totalPages > 1 && (
               <div className="mt-4 flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">Page {data?.page ?? 1} of {totalPages} ({total} total)</p>
+                <p className="text-sm text-muted-foreground">
+                  Page {data?.page ?? 1} of {totalPages} ({total} total)
+                </p>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-                  <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    Next
+                  </Button>
                 </div>
               </div>
             )}
@@ -350,12 +451,19 @@ export default function AdminTuroGuidePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Turo Guide</DialogTitle>
-            <DialogDescription>Paste a video link (YouTube, Drive, or direct .mp4) along with title and description.</DialogDescription>
+            <DialogDescription>
+              Paste a video link (YouTube, Drive, or direct .mp4) along with
+              title and description.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label>Title</Label>
-              <Input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="Title" />
+              <Input
+                value={formTitle}
+                onChange={(e) => setFormTitle(e.target.value)}
+                placeholder="Title"
+              />
             </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
@@ -369,7 +477,9 @@ export default function AdminTuroGuidePage() {
                 placeholder="https://example.com/video.mp4"
               />
               {!fileValid && (
-                <p className="text-xs text-destructive">Enter a valid http(s) URL</p>
+                <p className="text-xs text-destructive">
+                  Enter a valid http(s) URL
+                </p>
               )}
               {fileValid && formFile.trim() && (
                 <div className="pt-1">
@@ -383,16 +493,33 @@ export default function AdminTuroGuidePage() {
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Description" className="min-h-[80px]" />
+              <Textarea
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                placeholder="Description"
+                className="min-h-[80px]"
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>
+              Cancel
+            </Button>
             <Button
-              disabled={!formTitle.trim() || !fileValid || createMutation.isPending}
-              onClick={() => createMutation.mutate({ turo_guide_title: formTitle.trim(), turo_guide_description: formDescription.trim(), turo_guide_file: formFile.trim() })}
+              disabled={
+                !formTitle.trim() || !fileValid || createMutation.isPending
+              }
+              onClick={() =>
+                createMutation.mutate({
+                  turo_guide_title: formTitle.trim(),
+                  turo_guide_description: formDescription.trim(),
+                  turo_guide_file: formFile.trim(),
+                })
+              }
             >
-              {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {createMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Add
             </Button>
           </DialogFooter>
@@ -400,7 +527,10 @@ export default function AdminTuroGuidePage() {
       </Dialog>
 
       {/* Edit modal */}
-      <Dialog open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)}>
+      <Dialog
+        open={!!editItem}
+        onOpenChange={(open) => !open && setEditItem(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Turo Guide</DialogTitle>
@@ -410,7 +540,11 @@ export default function AdminTuroGuidePage() {
               <div className="grid gap-4 py-4">
                 <div className="space-y-2">
                   <Label>Title</Label>
-                  <Input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="Title" />
+                  <Input
+                    value={formTitle}
+                    onChange={(e) => setFormTitle(e.target.value)}
+                    placeholder="Title"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
@@ -424,7 +558,9 @@ export default function AdminTuroGuidePage() {
                     placeholder="https://example.com/video.mp4"
                   />
                   {!fileValid && (
-                    <p className="text-xs text-destructive">Enter a valid http(s) URL</p>
+                    <p className="text-xs text-destructive">
+                      Enter a valid http(s) URL
+                    </p>
                   )}
                   {fileValid && formFile.trim() && (
                     <div className="pt-1">
@@ -438,16 +574,36 @@ export default function AdminTuroGuidePage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Description</Label>
-                  <Textarea value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Description" className="min-h-[80px]" />
+                  <Textarea
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    placeholder="Description"
+                    className="min-h-[80px]"
+                  />
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setEditItem(null)}>Cancel</Button>
+                <Button variant="outline" onClick={() => setEditItem(null)}>
+                  Cancel
+                </Button>
                 <Button
-                  disabled={!formTitle.trim() || !fileValid || updateMutation.isPending}
-                  onClick={() => updateMutation.mutate({ id: editItem.turo_guide_aid, body: { turo_guide_title: formTitle.trim(), turo_guide_description: formDescription.trim(), turo_guide_file: formFile.trim() } })}
+                  disabled={
+                    !formTitle.trim() || !fileValid || updateMutation.isPending
+                  }
+                  onClick={() =>
+                    updateMutation.mutate({
+                      id: editItem.turo_guide_aid,
+                      body: {
+                        turo_guide_title: formTitle.trim(),
+                        turo_guide_description: formDescription.trim(),
+                        turo_guide_file: formFile.trim(),
+                      },
+                    })
+                  }
                 >
-                  {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {updateMutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
                   Save
                 </Button>
               </DialogFooter>
@@ -457,58 +613,94 @@ export default function AdminTuroGuidePage() {
       </Dialog>
 
       {/* Archive confirm */}
-      <AlertDialog open={archiveId !== null} onOpenChange={(open) => !open && setArchiveId(null)}>
+      <AlertDialog
+        open={archiveId !== null}
+        onOpenChange={(open) => !open && setArchiveId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Archive turo guide?</AlertDialogTitle>
-            <AlertDialogDescription>It will be hidden from staff and client views. You can restore it later.</AlertDialogDescription>
+            <AlertDialogDescription>
+              It will be hidden from staff and client views. You can restore it
+              later.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => archiveId != null && setActiveMutation.mutate({ id: archiveId, isActive: 0 })}
+              onClick={() =>
+                archiveId != null &&
+                setActiveMutation.mutate({ id: archiveId, isActive: 0 })
+              }
               disabled={setActiveMutation.isPending}
             >
-              {setActiveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Archive"}
+              {setActiveMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Archive"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Restore confirm */}
-      <AlertDialog open={restoreId !== null} onOpenChange={(open) => !open && setRestoreId(null)}>
+      <AlertDialog
+        open={restoreId !== null}
+        onOpenChange={(open) => !open && setRestoreId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Restore turo guide?</AlertDialogTitle>
-            <AlertDialogDescription>It will be visible again on staff and client views.</AlertDialogDescription>
+            <AlertDialogDescription>
+              It will be visible again on staff and client views.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => restoreId != null && setActiveMutation.mutate({ id: restoreId, isActive: 1 })}
+              onClick={() =>
+                restoreId != null &&
+                setActiveMutation.mutate({ id: restoreId, isActive: 1 })
+              }
               disabled={setActiveMutation.isPending}
             >
-              {setActiveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Restore"}
+              {setActiveMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Restore"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Delete confirm */}
-      <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete turo guide?</AlertDialogTitle>
-            <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+            <AlertDialogDescription>
+              This cannot be undone.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteId != null && deleteMutation.mutate(deleteId)}
+              onClick={() =>
+                deleteId != null && deleteMutation.mutate(deleteId)
+              }
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+              {deleteMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

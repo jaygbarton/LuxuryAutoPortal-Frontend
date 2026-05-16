@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,11 +18,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { SummaryCard } from "@/components/admin/dashboard/SummaryCard";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { StatusBadge } from "./StatusBadge";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
-import { Truck, Sparkles, Package } from "lucide-react";
+import { Truck, Sparkles, Package, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import type { TuroTrip, OperationTask, TaskType } from "./types";
 
 const formatDateTime = (dateStr: string | null): string => {
@@ -73,6 +82,10 @@ const formatCurrency = (n: number | null | undefined): string => {
 };
 
 export function TripsOverviewTab() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Create-new-task modal state
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [taskPrefill, setTaskPrefill] = useState<{
     turo_trip_id?: number;
@@ -90,6 +103,32 @@ export function TripsOverviewTab() {
   const [filterAssigned, setFilterAssigned] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+
+  // Edit existing task modal state
+  const [editingTask, setEditingTask] = useState<OperationTask | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+
+  // Delete task confirmation state
+  const [confirmDeleteTask, setConfirmDeleteTask] =
+    useState<OperationTask | null>(null);
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (taskId: number) => {
+      const res = await fetch(buildApiUrl(`/api/operations/tasks/${taskId}`), {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete task");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/operations/tasks"] });
+      toast({ title: "Task deleted" });
+      setConfirmDeleteTask(null);
+    },
+    onError: () => {
+      toast({ title: "Failed to delete task", variant: "destructive" });
+    },
+  });
 
   const { data, isLoading } = useQuery<{ data: TuroTrip[] }>({
     queryKey: ["/api/turo-trips", { limit: 100 }],
@@ -349,10 +388,10 @@ export function TripsOverviewTab() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
+                  <TableHead className="sticky left-0 z-20 bg-muted/40 text-foreground font-medium whitespace-nowrap">
                     Reservation #
                   </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
+                  <TableHead className="sticky left-[130px] z-20 bg-muted/40 text-foreground font-medium whitespace-nowrap">
                     CAR Name
                   </TableHead>
                   <TableHead className="text-foreground font-medium whitespace-nowrap">
@@ -424,9 +463,18 @@ export function TripsOverviewTab() {
                 ) : (
                   trips.map((trip) => {
                     const tripTasks = getTasksForTrip(trip.id);
-                    const hasCleaning = hasTaskType(trip.id, "cleaning");
-                    const hasDelivery = hasTaskType(trip.id, "delivery");
-                    const hasPickup = hasTaskType(trip.id, "pickup");
+                    const cleaningTask = tripTasks.find(
+                      (t) => t.task_type === "cleaning",
+                    );
+                    const deliveryTask = tripTasks.find(
+                      (t) => t.task_type === "delivery",
+                    );
+                    const pickupTask = tripTasks.find(
+                      (t) => t.task_type === "pickup",
+                    );
+                    const hasCleaning = !!cleaningTask;
+                    const hasDelivery = !!deliveryTask;
+                    const hasPickup = !!pickupTask;
                     const daysRented = calculateDaysRented(
                       trip.tripStart,
                       trip.tripEnd,
@@ -444,10 +492,10 @@ export function TripsOverviewTab() {
                         key={trip.id}
                         className="border-border hover:bg-card/50 transition-colors"
                       >
-                        <TableCell className="text-foreground font-mono text-sm whitespace-nowrap">
+                        <TableCell className="sticky left-0 z-10 bg-card text-foreground font-mono text-sm whitespace-nowrap">
                           {trip.reservationId || "--"}
                         </TableCell>
-                        <TableCell className="text-foreground whitespace-nowrap">
+                        <TableCell className="sticky left-[130px] z-10 bg-card text-foreground whitespace-nowrap">
                           {trip.carName || "--"}
                         </TableCell>
                         <TableCell className="text-foreground font-mono text-sm whitespace-nowrap">
@@ -544,35 +592,107 @@ export function TripsOverviewTab() {
                             </div>
                           )}
                         </TableCell>
+                        {/* Actions — each task type shows: icon (create or edit) + optional delete */}
                         <TableCell>
                           <div className="flex items-center justify-center gap-1">
+                            {/* Cleaning */}
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => openTaskModal(trip, "cleaning")}
+                              onClick={() => {
+                                if (cleaningTask) {
+                                  setEditingTask(cleaningTask);
+                                  setEditModalOpen(true);
+                                } else {
+                                  openTaskModal(trip, "cleaning");
+                                }
+                              }}
                               className={`h-8 px-2 ${hasCleaning ? "text-yellow-500" : "text-muted-foreground hover:text-primary"}`}
-                              title="Assign Cleaning"
+                              title={
+                                hasCleaning
+                                  ? "Edit Cleaning Task"
+                                  : "Assign Cleaning"
+                              }
                             >
                               <Sparkles className="w-3.5 h-3.5" />
                             </Button>
+                            {cleaningTask && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  setConfirmDeleteTask(cleaningTask)
+                                }
+                                className="h-8 px-2 text-muted-foreground hover:text-red-500"
+                                title="Delete Cleaning Task"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
+                            {/* Delivery */}
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => openTaskModal(trip, "delivery")}
+                              onClick={() => {
+                                if (deliveryTask) {
+                                  setEditingTask(deliveryTask);
+                                  setEditModalOpen(true);
+                                } else {
+                                  openTaskModal(trip, "delivery");
+                                }
+                              }}
                               className={`h-8 px-2 ${hasDelivery ? "text-blue-400" : "text-muted-foreground hover:text-primary"}`}
-                              title="Assign Delivery"
+                              title={
+                                hasDelivery
+                                  ? "Edit Delivery Task"
+                                  : "Assign Delivery"
+                              }
                             >
                               <Truck className="w-3.5 h-3.5" />
                             </Button>
+                            {deliveryTask && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  setConfirmDeleteTask(deliveryTask)
+                                }
+                                className="h-8 px-2 text-muted-foreground hover:text-red-500"
+                                title="Delete Delivery Task"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
+                            {/* Pickup */}
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => openTaskModal(trip, "pickup")}
+                              onClick={() => {
+                                if (pickupTask) {
+                                  setEditingTask(pickupTask);
+                                  setEditModalOpen(true);
+                                } else {
+                                  openTaskModal(trip, "pickup");
+                                }
+                              }}
                               className={`h-8 px-2 ${hasPickup ? "text-green-500" : "text-muted-foreground hover:text-primary"}`}
-                              title="Assign Pickup"
+                              title={
+                                hasPickup ? "Edit Pickup Task" : "Assign Pickup"
+                              }
                             >
                               <Package className="w-3.5 h-3.5" />
                             </Button>
+                            {pickupTask && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setConfirmDeleteTask(pickupTask)}
+                                className="h-8 px-2 text-muted-foreground hover:text-red-500"
+                                title="Delete Pickup Task"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -585,11 +705,59 @@ export function TripsOverviewTab() {
         </div>
       </div>
 
+      {/* Create new task modal */}
       <TaskAssignmentModal
         open={taskModalOpen}
         onOpenChange={setTaskModalOpen}
         prefill={taskPrefill}
       />
+
+      {/* Edit existing task modal */}
+      <TaskAssignmentModal
+        open={editModalOpen}
+        onOpenChange={(open) => {
+          setEditModalOpen(open);
+          if (!open) setEditingTask(null);
+        }}
+        task={editingTask}
+      />
+
+      {/* Delete task confirmation */}
+      {confirmDeleteTask && (
+        <Dialog
+          open
+          onOpenChange={(open) => !open && setConfirmDeleteTask(null)}
+        >
+          <DialogContent className="bg-card border-border text-foreground max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Delete Task?</DialogTitle>
+              <DialogDescription>
+                Delete the{" "}
+                <strong className="capitalize">
+                  {confirmDeleteTask.task_type}
+                </strong>{" "}
+                task assigned to{" "}
+                <strong>{confirmDeleteTask.assigned_to}</strong>?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 mt-2">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmDeleteTask(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => deleteTaskMutation.mutate(confirmDeleteTask.id)}
+                disabled={deleteTaskMutation.isPending}
+              >
+                {deleteTaskMutation.isPending ? "Deleting..." : "Delete"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
