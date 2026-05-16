@@ -136,34 +136,49 @@ function CenterLabel({ viewBox, value }: { viewBox?: { cx: number; cy: number };
 // ── Donut chart wrapper ────────────────────────────────────────────────
 
 interface DonutChartProps {
-  title: string;
-  subtitle?: string;
   data: { name: string; value: number; color: string }[];
-  centerValue: string;
+  centerValue?: string;
   formatValue?: (v: number) => string;
 }
 
-function DonutChart({ title, subtitle, data, centerValue, formatValue = formatCurrency }: DonutChartProps) {
+function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
+  const total = data.reduce((s, d) => s + d.value, 0);
   return (
-    <div className="min-w-[200px] flex-1 rounded-lg bg-white p-4">
-      <div className="mb-2 text-center">
-        <h4 className="text-xs font-bold uppercase tracking-wide text-gray-600">{title}</h4>
-        {subtitle && <p className="mt-0.5 text-xs font-semibold text-amber-700">{subtitle}</p>}
-      </div>
-      <ResponsiveContainer width="100%" height={180}>
+    <div className="flex flex-col items-center">
+      <ResponsiveContainer width="100%" height={220}>
         <PieChart>
           <Pie
             data={data}
             dataKey="value"
             innerRadius={55}
-            outerRadius={80}
-            paddingAngle={2}
-            label={false}
+            outerRadius={85}
+            paddingAngle={0}
+            label={({ cx, cy, midAngle, outerRadius, value, name, index }) => {
+              const RADIAN = Math.PI / 180;
+              const radius = outerRadius + 20;
+              const x = cx + radius * Math.cos(-midAngle * RADIAN);
+              const y = cy + radius * Math.sin(-midAngle * RADIAN);
+              const pct = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+              return (
+                <text
+                  x={x}
+                  y={y}
+                  textAnchor={x > cx ? "start" : "end"}
+                  dominantBaseline="central"
+                  className="fill-gray-700"
+                  style={{ fontSize: 10 }}
+                >
+                  <tspan x={x} dy="-0.6em" style={{ fontWeight: 600 }}>{formatValue(value)}</tspan>
+                  <tspan x={x} dy="1.2em">{name}</tspan>
+                  <tspan x={x} dy="1.2em">{pct}%</tspan>
+                </text>
+              );
+            }}
+            labelLine={false}
           >
             {data.map((entry, idx) => (
-              <Cell key={idx} fill={entry.color} />
+              <Cell key={idx} fill={entry.color} stroke="none" />
             ))}
-            <CenterLabel value={centerValue} />
           </Pie>
           <Tooltip
             formatter={(v: number) => formatValue(v)}
@@ -175,18 +190,6 @@ function DonutChart({ title, subtitle, data, centerValue, formatValue = formatCu
           />
         </PieChart>
       </ResponsiveContainer>
-      <div className="mt-2 flex flex-wrap justify-center gap-4">
-        {data.map((d) => (
-          <div key={d.name} className="flex items-center gap-1.5 text-xs text-gray-700">
-            <span
-              className="inline-block h-3 w-3 rounded-sm"
-              style={{ backgroundColor: d.color }}
-            />
-            <span>{d.name}</span>
-            <span className="font-semibold">{formatValue(d.value)}</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -198,19 +201,15 @@ interface BarChartCardProps {
   data: Record<string, string | number>[];
   bars: { dataKey: string; fill: string }[];
   yAxisPrefix?: string;
-  subtitle?: string;
 }
 
-function BarChartCard({ title, data, bars, yAxisPrefix = "$", subtitle }: BarChartCardProps) {
+function BarChartCard({ title, data, bars, yAxisPrefix = "$" }: BarChartCardProps) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="mb-3">
-        <h4 className="text-xs font-bold uppercase tracking-wide text-gray-600">
-          {title}
-        </h4>
-        {subtitle && <p className="mt-1 text-xs text-gray-500">{subtitle}</p>}
-      </div>
-      <ResponsiveContainer width="100%" height={300}>
+    <div className="bg-white">
+      <h4 className="mb-3 text-sm font-bold uppercase tracking-wide text-black">
+        {title}
+      </h4>
+      <ResponsiveContainer width="100%" height={250}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis dataKey="month" tick={{ fontSize: 11 }} />
@@ -247,19 +246,15 @@ interface LineChartCardProps {
   data: Record<string, string | number>[];
   lines: { dataKey: string; stroke: string }[];
   yAxisPrefix?: string;
-  subtitle?: string;
 }
 
-function LineChartCard({ title, data, lines, yAxisPrefix = "$", subtitle }: LineChartCardProps) {
+function LineChartCard({ title, data, lines, yAxisPrefix = "$" }: LineChartCardProps) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="mb-3">
-        <h4 className="text-xs font-bold uppercase tracking-wide text-gray-800">
-          {title}
-        </h4>
-        {subtitle && <p className="mt-1 text-xs text-gray-500">{subtitle}</p>}
-      </div>
-      <ResponsiveContainer width="100%" height={250}>
+    <div className="bg-white">
+      <h4 className="mb-3 text-sm font-bold uppercase tracking-wide text-black">
+        {title}
+      </h4>
+      <ResponsiveContainer width="100%" height={220}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis dataKey="month" tick={{ fontSize: 10 }} />
@@ -374,7 +369,11 @@ export default function IncomeExpensesSection({
   ];
 
   const tableRows = monthlyComputed.map((mc) => ({
-    month: formatFullMonth(mc.month),
+    month: (
+      <span className="inline-block rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+        {formatShortMonth(mc.month)} {year}
+      </span>
+    ),
     rentalIncome: formatCurrency(mc.gross),
     mgmtExpenses: formatCurrency(mc.mgmtExpenses),
     mgmtSplit: formatCurrency(mc.mgmtIncome),
@@ -423,19 +422,19 @@ export default function IncomeExpensesSection({
   // ── Donut data ─────────────────────────────────────────────────────
 
   const incomeDonut = [
-    { name: "Management Income", value: totalMgmtIncome, color: "#d3bc8d" },
-    { name: "Car Owner Income", value: totalOwnerIncome, color: "#B8860B" },
+    { name: "Management Income", value: totalMgmtIncome, color: "#FFCC00" },
+    { name: "Car Owner Income", value: totalOwnerIncome, color: "#111111" },
   ];
 
   const expenseDonut = [
-    { name: "Management Expenses", value: totalMgmtExpenses, color: "#d3bc8d" },
-    { name: "Car Owner Expenses", value: totalOwnerExpenses, color: "#B8860B" },
+    { name: "Management Expenses", value: totalMgmtExpenses, color: "#FFCC00" },
+    { name: "Car Owner Expenses", value: totalOwnerExpenses, color: "#111111" },
   ];
 
   const totalAvailableDays = totalCarsAvailable * 30;
   const unusedDays = Math.max(0, totalAvailableDays - totalDaysRented);
   const activityDonut = [
-    { name: "Days Rented", value: totalDaysRented, color: "#d3bc8d" },
+    { name: "Days Rented", value: totalDaysRented, color: "#FFCC00" },
     { name: "Days Unused", value: unusedDays, color: "#666666" },
   ];
   const totalGrossIncome = monthlyComputed.reduce((s, m) => s + m.gross, 0);
@@ -479,10 +478,7 @@ export default function IncomeExpensesSection({
 
   return (
     <div className="mb-8">
-      <SectionHeader
-        title="INCOME AND EXPENSES"
-        subtitle="Cleaner financial summary, clearer monthly trends, and real utilization metrics for quick admin review."
-      />
+      <SectionHeader title="INCOME AND EXPENSES" />
 
       {/* Year Selector */}
       <div className="mt-4 flex items-center gap-3 px-4">
@@ -516,103 +512,62 @@ export default function IncomeExpensesSection({
       {!isLoading && !isError && ieData && (
         <div className="mt-4 space-y-6 px-4">
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <SummaryCard
-              label="Fleet Utilization"
-              value={`${utilizationRate.toFixed(1)}%`}
-              subtitle={`${totalDaysRented.toLocaleString()} rented days / ${totalAvailableDays.toLocaleString()} available days`}
-              variant="gold"
-              className="rounded-xl shadow-sm"
-            />
-            <SummaryCard
-              label="Gross Rental Income"
-              value={formatCurrency(totalGrossIncome)}
-              subtitle={`${formatCurrency(totalGrossIncome / 12)} avg / month`}
-              variant="dark"
-              className="rounded-xl shadow-sm"
-            />
-            <SummaryCard
-              label="Management Profit"
-              value={formatCurrency(managementProfit)}
-              subtitle={`${totalTripsTaken.toLocaleString()} trips taken`}
-              variant="white"
-              className="rounded-xl shadow-sm"
-            />
-            <SummaryCard
-              label="Car Owner Profit"
-              value={formatCurrency(ownerProfit)}
-              subtitle={`${avgDaysRentedPerMonth.toFixed(1)} avg rented days / month`}
-              variant="white"
-              className="rounded-xl shadow-sm"
-            />
-          </div>
-
           {/* ── Row 1: Summary Cards (left) + Monthly Table (right) ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
-            {/* Left: Summary Cards */}
-            <div className="xl:col-span-1 flex flex-col justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+            {/* Left: Summary Cards — no outer box, stacked sections */}
+            <div className="xl:col-span-1 flex flex-col gap-5">
               {/* Total Management Income and Expenses */}
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wide text-black mb-1.5">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Total Management Income and Expenses
                 </h3>
                 <div className="grid grid-cols-3 gap-1.5">
-                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="gold" />
-                  <SummaryCard label="Total Management Expenses" value={formatCurrency(totalMgmtExpenses)} variant="white" />
-                  <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome - totalMgmtExpenses)} variant="dark" />
+                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" />
+                  <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" />
+                  <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" />
                 </div>
               </div>
 
               {/* Management Income and Expenses */}
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wide text-black mb-1.5">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Management Income and Expenses
                 </h3>
                 <div className="grid grid-cols-3 gap-1.5">
-                  <SummaryCard label="Total Management Income" value={formatCurrency(totalMgmtIncome)} variant="gold" />
+                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" />
                   <SummaryCard label="Total Management Expenses" value={formatCurrency(totalMgmtExpenses)} variant="white" />
-                  <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome - totalMgmtExpenses)} variant="dark" />
+                  <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome - totalMgmtExpenses)} variant="gold" />
                 </div>
                 <div className="grid grid-cols-3 gap-1.5 mt-1.5">
-                  <SummaryCard label={`${prevMonthLabel} Mgmt Income`} value={formatCurrency(prevMonth?.mgmtIncome ?? 0)} variant="gold" />
+                  <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" />
                   <SummaryCard label={`${prevMonthLabel} Mgmt Expenses`} value={formatCurrency(prevMonth?.mgmtExpenses ?? 0)} variant="white" />
-                  <SummaryCard label={`${prevMonthLabel} Mgmt Profit`} value={formatCurrency((prevMonth?.mgmtIncome ?? 0) - (prevMonth?.mgmtExpenses ?? 0))} variant="dark" />
+                  <SummaryCard label={`${prevMonthLabel} Mgmt Profit`} value={formatCurrency((prevMonth?.mgmtIncome ?? 0) - (prevMonth?.mgmtExpenses ?? 0))} variant="gold" />
                 </div>
               </div>
 
               {/* Car Owner Income and Expenses */}
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wide text-black mb-1.5">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Car Owner Income and Expenses
                 </h3>
                 <div className="grid grid-cols-3 gap-1.5">
-                  <SummaryCard label="Total Car Owner Income" value={formatCurrency(totalOwnerIncome)} variant="gold" />
+                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" />
                   <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" />
-                  <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="dark" />
+                  <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" />
                 </div>
                 <div className="grid grid-cols-3 gap-1.5 mt-1.5">
-                  <SummaryCard label={`${prevMonthLabel} Owner Income`} value={formatCurrency(prevMonth?.ownerIncome ?? 0)} variant="gold" />
+                  <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" />
                   <SummaryCard label={`${prevMonthLabel} Owner Expenses`} value={formatCurrency(prevMonth?.ownerExpenses ?? 0)} variant="white" />
-                  <SummaryCard label={`${prevMonthLabel} Owner Profit`} value={formatCurrency((prevMonth?.ownerIncome ?? 0) - (prevMonth?.ownerExpenses ?? 0))} variant="dark" />
+                  <SummaryCard label={`${prevMonthLabel} Owner Profit`} value={formatCurrency((prevMonth?.ownerIncome ?? 0) - (prevMonth?.ownerExpenses ?? 0))} variant="gold" />
                 </div>
               </div>
             </div>
 
             {/* Right: Monthly Income & Expenses Table */}
-            <div className="xl:col-span-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-black mb-1.5">
-                    Monthly Income and Expenses
-                  </h3>
-                  <p className="text-xs text-gray-500">
-                    Month-by-month gross income, management split, owner split, and trip activity.
-                  </p>
-                </div>
-                <div className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-700">
-                  {year} overview
-                </div>
-              </div>
+            <div className="xl:col-span-2 bg-white">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
+                Monthly Income and Expenses
+              </h3>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -644,7 +599,7 @@ export default function IncomeExpensesSection({
                         ))}
                       </tr>
                     ))}
-                    <tr className="bg-[#d3bc8d] font-bold">
+                    <tr className="bg-[#FFCC00] font-bold">
                       {tableColumns.map((col) => (
                         <td
                           key={col.key}
@@ -662,112 +617,92 @@ export default function IncomeExpensesSection({
             </div>
           </div>
 
-          {/* ── Row 2: Donut Charts (left) + Line Charts (right) ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {/* Left: Donut Charts — TOTAL for the year */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <DonutChart
-                title="TOTAL CAR MGMT INCOME & EXPENSES"
-                data={[
-                  { name: "Mgmt Income", value: totalMgmtIncome, color: "#c9a84c" },
-                  { name: "Mgmt Expenses", value: totalMgmtExpenses, color: "#efe3c2" },
-                ]}
-                centerValue={formatCurrency(totalMgmtIncome - totalMgmtExpenses)}
-              />
-              <DonutChart
-                title={displayMonthLabel + " - TOTAL CAR MGMT EXPENSES"}
-                data={[
-                  { name: "Mgmt Expenses", value: displayMgmtExpenses, color: "#efe3c2" },
-                  { name: "Mgmt Income", value: displayMgmtIncome, color: "#c9a84c" },
-                ]}
-                centerValue={formatCurrency(displayMgmtExpenses)}
-              />
-              <DonutChart
-                title="TOTAL CAR OWNER INCOME AND EXPENSES"
-                data={[
-                  { name: "Owner Income", value: totalOwnerIncome, color: "#c9a84c" },
-                  { name: "Owner Expenses", value: totalOwnerExpenses, color: "#efe3c2" },
-                ]}
-                centerValue={formatCurrency(totalOwnerIncome - totalOwnerExpenses)}
-              />
-              <DonutChart
-                title={displayMonthLabel + " - TOTAL CAR OWNER EXPENSES"}
-                data={[
-                  { name: "Owner Expenses", value: displayOwnerExpenses, color: "#efe3c2" },
-                  { name: "Owner Income", value: displayOwnerIncome, color: "#c9a84c" },
-                ]}
-                centerValue={formatCurrency(displayOwnerExpenses)}
-              />
+          {/* ── Row 2: Donut Charts + Horizontal Bars (left) + Stacked Line/Bar Charts (right) ── */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            {/* Left column */}
+            <div className="space-y-6">
+              {/* 2x2 Donut grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <DonutChart
+                  data={[
+                    { name: "Total Car Mngmt Expenses", value: totalMgmtExpenses, color: "#FFCC00" },
+                    { name: "Total Car Mngmt Profit", value: Math.max(0, totalMgmtIncome - totalMgmtExpenses), color: "#FFE680" },
+                  ]}
+                  centerValue=""
+                />
+                <DonutChart
+                  data={[
+                    { name: "Total Car Mngmt Profit", value: Math.max(0, displayMgmtIncome - displayMgmtExpenses), color: "#FFCC00" },
+                    { name: "Total Car Mngmt Expenses", value: displayMgmtExpenses, color: "#FFE680" },
+                  ]}
+                  centerValue=""
+                />
+                <DonutChart
+                  data={[
+                    { name: "Total Car Owner Expenses", value: totalOwnerExpenses, color: "#FFCC00" },
+                    { name: "Total Car Owner Profit", value: Math.max(0, totalOwnerIncome - totalOwnerExpenses), color: "#FFE680" },
+                  ]}
+                  centerValue=""
+                />
+                <DonutChart
+                  data={[
+                    { name: "Total Car Owner Profit", value: Math.max(0, displayOwnerIncome - displayOwnerExpenses), color: "#FFCC00" },
+                    { name: "Total Car Owner Expenses", value: displayOwnerExpenses, color: "#FFE680" },
+                  ]}
+                  centerValue=""
+                />
+              </div>
+
+              {/* Horizontal summary bars */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-semibold text-gray-700 w-28 shrink-0">Total Trips Taken</span>
+                  <div className="flex-1 bg-gray-100 rounded h-6 relative overflow-hidden">
+                    <div
+                      className="bg-[#FFCC00] h-full rounded"
+                      style={{ width: `${Math.min(100, totalDaysRented > 0 ? (totalTripsTaken / totalDaysRented) * 100 : 0)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-gray-800 w-16 text-right">
+                    {totalTripsTaken.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-semibold text-gray-700 w-28 shrink-0">Total Days Rented</span>
+                  <div className="flex-1 bg-gray-100 rounded h-6 relative overflow-hidden">
+                    <div className="bg-[#FFCC00] h-full rounded w-full" />
+                  </div>
+                  <span className="text-xs font-bold text-gray-800 w-16 text-right">
+                    {totalDaysRented.toLocaleString()}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* Right: Line Charts — Previous month data */}
-            <div className="space-y-4">
+            {/* Right column: 3 stacked charts */}
+            <div className="space-y-6">
               <LineChartCard
-                title="MANAGEMENT INCOME VS EXPENSES"
-                subtitle="Monthly management split and expense trend across the selected year."
+                title="Management Income and Expenses"
                 data={mgmtBarData}
                 lines={[
-                  { dataKey: "Income", stroke: "#d3bc8d" },
-                  { dataKey: "Expenses", stroke: "#B8860B" },
+                  { dataKey: "Income", stroke: "#FFCC00" },
+                  { dataKey: "Expenses", stroke: "#FFE680" },
                 ]}
               />
               <LineChartCard
-                title="CAR OWNER INCOME VS EXPENSES"
-                subtitle="Monthly owner split and owner expense trend across the selected year."
+                title="Car Owner Income and Expenses"
                 data={ownerBarData}
                 lines={[
-                  { dataKey: "Income", stroke: "#d3bc8d" },
-                  { dataKey: "Expenses", stroke: "#B8860B" },
+                  { dataKey: "Income", stroke: "#FFCC00" },
+                  { dataKey: "Expenses", stroke: "#E0B84A" },
                 ]}
               />
-            </div>
-          </div>
-
-          {/* ── Row 3: Days Rented horizontal bar + bar chart ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            {/* Left: Horizontal summary bars */}
-            <div className="xl:col-span-1 space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-semibold text-gray-600 w-24 shrink-0">Total Trips Taken</span>
-                <div className="flex-1 bg-gray-100 rounded h-6 relative overflow-hidden">
-                  <div
-                    className="bg-[#d3bc8d] h-full rounded"
-                    style={{ width: `${Math.min(100, (monthlyComputed.reduce((s, m) => s + m.tripsTaken, 0) / Math.max(1, totalDaysRented)) * 100)}%` }}
-                  />
-                </div>
-                <span className="text-xs font-bold text-gray-800 w-16 text-right">
-                  {monthlyComputed.reduce((s, m) => s + m.tripsTaken, 0).toLocaleString()}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-semibold text-gray-600 w-24 shrink-0">Total Days Rented</span>
-                <div className="flex-1 bg-gray-100 rounded h-6 relative overflow-hidden">
-                  <div className="bg-[#d3bc8d] h-full rounded w-full" />
-                </div>
-                <span className="text-xs font-bold text-gray-800 w-16 text-right">
-                  {totalDaysRented.toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            {/* Right: Days Rented bar chart */}
-            <div className="xl:col-span-2 space-y-6">
               <BarChartCard
-                title="DAYS RENTED AND TRIPS TAKEN"
-                subtitle="Operational activity by month for the selected year."
+                title="Days Rented and Trips Taken"
                 data={activityBarData}
                 bars={[
-                  { dataKey: "Days Rented", fill: "#d3bc8d" },
-                  { dataKey: "Trips Taken", fill: "#B8860B" },
-                ]}
-                yAxisPrefix=""
-              />
-              <LineChartCard
-                title="FLEET UTILIZATION %"
-                subtitle="Actual utilization percentage by month. This replaces the misleading dollar-scaled utilization view."
-                data={chartTrendData}
-                lines={[
-                  { dataKey: "Fleet Utilization %", stroke: "#111111" },
+                  { dataKey: "Days Rented", fill: "#FFCC00" },
+                  { dataKey: "Trips Taken", fill: "#E0B84A" },
                 ]}
                 yAxisPrefix=""
               />

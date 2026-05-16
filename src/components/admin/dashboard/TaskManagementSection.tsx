@@ -60,7 +60,7 @@ function formatDate(dateStr: string): string {
 function StatusBadge({ status }: { status: number }) {
   const config: Record<number, { label: string; className: string }> = {
     0: { label: "Not Started", className: "bg-red-600 text-white" },
-    1: { label: "In Progress", className: "bg-[#d3bc8d] text-black" },
+    1: { label: "In Progress", className: "bg-[#FFCC00] text-black" },
     2: { label: "Completed", className: "bg-green-600 text-white" },
   };
 

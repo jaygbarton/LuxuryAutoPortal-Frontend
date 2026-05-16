@@ -73,7 +73,7 @@ export function DashboardTable({
             </tr>
           ))}
           {totalsRow && (
-            <tr className="bg-[#d3bc8d] font-bold">
+            <tr className="bg-[#FFCC00] font-bold">
               {columns.map((col) => (
                 <td
                   key={col.key}

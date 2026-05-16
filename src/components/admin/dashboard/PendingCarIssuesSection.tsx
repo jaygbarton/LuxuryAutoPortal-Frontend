@@ -163,10 +163,10 @@ export default function PendingCarIssuesSection() {
   return (
     <div className="mt-6">
       <div className="rounded-t-lg bg-black px-4 py-2">
-        <p className="text-sm font-bold uppercase text-[#d3bc8d]">
+        <p className="text-sm font-bold uppercase text-[#FFCC00]">
           Pending Car Issues
           {!isLoading && rows.length > 0 && (
-            <span className="ml-2 rounded-full bg-[#d3bc8d] px-2 py-0.5 text-xs text-black">
+            <span className="ml-2 rounded-full bg-[#FFCC00] px-2 py-0.5 text-xs text-black">
               {rows.length}
             </span>
           )}
@@ -265,7 +265,7 @@ export default function PendingCarIssuesSection() {
                       <td className="px-3 py-2 text-sm">
                         <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                           <button
-                            className="rounded bg-[#d3bc8d] px-2 py-1 text-xs font-semibold text-black hover:bg-[#c4a974] disabled:opacity-50"
+                            className="rounded bg-[#FFCC00] px-2 py-1 text-xs font-semibold text-black hover:bg-[#c4a974] disabled:opacity-50"
                             disabled={openScheduleMutation.isPending}
                             onClick={() => openScheduleMutation.mutate(row)}
                           >

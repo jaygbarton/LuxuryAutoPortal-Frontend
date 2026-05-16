@@ -126,7 +126,7 @@ export default function AirportParkingSection({ year }: AirportParkingSectionPro
             <div className="min-w-[300px] flex-1">
               <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
                 <div className="bg-black px-4 py-2">
-                  <p className="text-sm font-bold uppercase text-[#d3bc8d]">
+                  <p className="text-sm font-bold uppercase text-[#FFCC00]">
                     System Parking Airport Expenses and Trips Taken
                   </p>
                 </div>
@@ -142,7 +142,7 @@ export default function AirportParkingSection({ year }: AirportParkingSectionPro
             <div className="min-w-[300px] flex-1">
               <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
                 <div className="bg-black px-4 py-2">
-                  <p className="text-sm font-bold uppercase text-[#d3bc8d]">
+                  <p className="text-sm font-bold uppercase text-[#FFCC00]">
                     QuickBooks Parking Airport Expenses and Trips Taken
                   </p>
                 </div>

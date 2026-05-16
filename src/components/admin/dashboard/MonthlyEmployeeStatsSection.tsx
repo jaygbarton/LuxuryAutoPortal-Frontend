@@ -171,7 +171,7 @@ export default function MonthlyEmployeeStatsSection({
                       {m} {year}
                     </th>
                   ))}
-                  <th className="min-w-[60px] bg-black px-2 py-2 text-center font-bold text-[#d3bc8d]">
+                  <th className="min-w-[60px] bg-black px-2 py-2 text-center font-bold text-[#FFCC00]">
                     Total
                   </th>
                 </tr>
@@ -209,8 +209,8 @@ export default function MonthlyEmployeeStatsSection({
                   </tr>
                 ))}
                 {/* Grand Total Row */}
-                <tr className="bg-[#d3bc8d] font-bold">
-                  <td className="sticky left-0 z-10 min-w-[220px] bg-[#d3bc8d] px-3 py-2 text-left text-xs font-bold text-black">
+                <tr className="bg-[#FFCC00] font-bold">
+                  <td className="sticky left-0 z-10 min-w-[220px] bg-[#FFCC00] px-3 py-2 text-left text-xs font-bold text-black">
                     TOTAL
                   </td>
                   {grandTotalMonthly.map((val, mIdx) => (

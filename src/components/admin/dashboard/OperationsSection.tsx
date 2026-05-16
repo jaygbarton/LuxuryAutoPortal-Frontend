@@ -53,7 +53,7 @@ function formatTripDate(dateStr: string): string {
 
 function StatusBadge({ status }: { status: TuroTrip["status"] }) {
   const styles: Record<TuroTrip["status"], string> = {
-    booked: "bg-[#d3bc8d] text-black",
+    booked: "bg-[#FFCC00] text-black",
     completed: "bg-green-600 text-white",
     cancelled: "bg-red-600 text-white",
   };
@@ -129,7 +129,7 @@ export default function OperationsSection() {
 
   return (
     <div className="mb-8">
-      <SectionHeader title="OPERATIONS — PICK UP AND DROP OFF" />
+      <SectionHeader title="OPERATIONS" subtitle="PICK UP AND DROP OFF" />
 
       {isLoading ? (
         <LoadingSkeleton />

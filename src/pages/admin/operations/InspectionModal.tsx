@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PhotoUpload } from "./PhotoUpload";
@@ -32,6 +39,13 @@ interface InspectionModalProps {
   };
 }
 
+function getEmployeeName(emp: any): string {
+  if (emp.fullname) return emp.fullname;
+  const first = emp.first_name || emp.emp_first_name || "";
+  const last = emp.last_name || emp.emp_last_name || "";
+  return `${first} ${last}`.trim() || `Employee ${emp.id}`;
+}
+
 export function InspectionModal({
   open,
   onOpenChange,
@@ -41,6 +55,19 @@ export function InspectionModal({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isEdit = !!inspection;
+
+  const { data: employeesData } = useQuery({
+    queryKey: ["/api/employees"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/employees"), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch employees");
+      return res.json();
+    },
+  });
+  const employeeNames: string[] = (employeesData?.data ?? [])
+    .map(getEmployeeName)
+    .filter(Boolean)
+    .sort();
 
   const [formData, setFormData] = useState({
     turo_trip_id: inspection?.turo_trip_id || prefill?.turo_trip_id || null,
@@ -186,14 +213,21 @@ export function InspectionModal({
               <label className="text-xs text-muted-foreground">
                 Inspected By
               </label>
-              <Input
+              <Select
                 value={formData.assigned_to}
-                onChange={(e) =>
-                  setFormData({ ...formData, assigned_to: e.target.value })
-                }
-                className="bg-card border-border text-foreground mt-1"
-                placeholder="Employee name"
-              />
+                onValueChange={(v) => setFormData({ ...formData, assigned_to: v })}
+              >
+                <SelectTrigger className="bg-card border-border text-foreground mt-1">
+                  <SelectValue placeholder="Select employee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employeeNames.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -233,12 +267,21 @@ export function InspectionModal({
                 <label className="text-xs text-muted-foreground">
                   Inspected By
                 </label>
-                <Input
+                <Select
                   value={entry.inspector}
-                  onChange={(e) => updateEntry(i, "inspector", e.target.value)}
-                  className="bg-card border-border text-foreground mt-1"
-                  placeholder="Employee name"
-                />
+                  onValueChange={(v) => updateEntry(i, "inspector", v)}
+                >
+                  <SelectTrigger className="bg-card border-border text-foreground mt-1">
+                    <SelectValue placeholder="Select employee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employeeNames.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           ))}

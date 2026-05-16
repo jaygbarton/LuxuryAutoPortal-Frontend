@@ -24,28 +24,40 @@ export function SummaryCard({
   return (
     <div
       className={cn(
-        "rounded-md px-3 py-2 transition-shadow",
+        "rounded-md px-3 py-3 flex flex-col items-center justify-center text-center transition-shadow",
         variant === "gold"
-          ? "bg-[#d3bc8d] text-black"
+          ? "bg-[#FFCC00]"
           : variant === "white"
-            ? "bg-white text-black border border-gray-200"
-            : "bg-[#111111] text-white",
+            ? "bg-[#e5e5e5]"
+            : "bg-[#111111]",
         className,
       )}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-wide opacity-80 leading-tight">
-        {label}
-      </p>
       <p
         className={cn(
-          "mt-0.5 text-lg font-bold leading-tight",
-          variant === "dark" ? "text-[#d3bc8d]" : "text-black",
+          "text-xl font-bold leading-tight",
+          variant === "dark" ? "text-[#FFCC00]" : "text-black",
         )}
       >
         {value}
       </p>
+      <p
+        className={cn(
+          "mt-1 text-[10px] font-semibold uppercase tracking-wide leading-tight",
+          variant === "dark" ? "text-white" : "text-black/70",
+        )}
+      >
+        {label}
+      </p>
       {subtitle && (
-        <p className="mt-1 line-clamp-2 text-xs opacity-70">{subtitle}</p>
+        <p
+          className={cn(
+            "mt-1 line-clamp-2 text-xs",
+            variant === "dark" ? "text-white/50" : "text-black/50",
+          )}
+        >
+          {subtitle}
+        </p>
       )}
     </div>
   );

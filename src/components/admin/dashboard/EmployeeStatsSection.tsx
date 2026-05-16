@@ -234,7 +234,7 @@ export default function EmployeeStatsSection() {
                       {d}
                     </th>
                   ))}
-                  <th className="min-w-[50px] bg-black px-2 py-2 text-center font-bold text-[#d3bc8d]">
+                  <th className="min-w-[50px] bg-black px-2 py-2 text-center font-bold text-[#FFCC00]">
                     Total
                   </th>
                 </tr>
@@ -272,8 +272,8 @@ export default function EmployeeStatsSection() {
                   </tr>
                 ))}
                 {/* Grand Total Row */}
-                <tr className="bg-[#d3bc8d] font-bold">
-                  <td className="sticky left-0 z-10 min-w-[220px] bg-[#d3bc8d] px-3 py-2 text-left text-xs font-bold text-black">
+                <tr className="bg-[#FFCC00] font-bold">
+                  <td className="sticky left-0 z-10 min-w-[220px] bg-[#FFCC00] px-3 py-2 text-left text-xs font-bold text-black">
                     TOTAL
                   </td>
                   {grandTotalDaily.map((val, dayIdx) => (
