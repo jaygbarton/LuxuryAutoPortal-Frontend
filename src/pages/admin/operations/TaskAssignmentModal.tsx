@@ -304,6 +304,10 @@ export function TaskAssignmentModal({
               className="bg-card border-border text-foreground mt-1"
               style={{ colorScheme: "dark" }}
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              Setting a scheduled date adds this task to the Google Calendar
+              (e.g. “Mercedes-Benz C-Class 2023 - ABC9999 - Pick Up - Cathy”).
+            </p>
           </div>
 
           <div>
