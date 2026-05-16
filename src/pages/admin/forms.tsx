@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import ContractManagement from "./ContractManagement";
 import CarOnboarding from "./CarOnboarding";
 import CarOffboarding from "./CarOffboarding";
+import CarIssueFormSubmission from "./forms/CarIssueFormSubmission";
 import CarOnboardingForm from "@/components/forms/CarOnboardingForm";
 import CarOffboardingForm from "@/components/forms/CarOffboardingForm";
 import ExpenseFormSubmission from "./forms/ExpenseFormSubmission";
@@ -326,19 +327,23 @@ export default function FormsPage() {
   const [showAccessConfirmation, setShowAccessConfirmation] = useState(false);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
-  const [submissionToDecline, setSubmissionToDecline] = useState<OnboardingSubmission | null>(null);
+  const [submissionToDecline, setSubmissionToDecline] =
+    useState<OnboardingSubmission | null>(null);
   const [fullScreenDocument, setFullScreenDocument] = useState<{
     url: string;
-    type: 'insurance' | 'license';
+    type: "insurance" | "license";
     index?: number;
     isPdf?: boolean;
   } | null>(null);
   const [insuranceCardFile, setInsuranceCardFile] = useState<File | null>(null);
-  const [insuranceCardPreview, setInsuranceCardPreview] = useState<string | null>(null);
+  const [insuranceCardPreview, setInsuranceCardPreview] = useState<
+    string | null
+  >(null);
   const [driversLicenseFiles, setDriversLicenseFiles] = useState<File[]>([]);
-  const [driversLicensePreviews, setDriversLicensePreviews] = useState<string[]>([]);
+  const [driversLicensePreviews, setDriversLicensePreviews] = useState<
+    string[]
+  >([]);
   const [page, setPage] = useState(1);
-
 
   // Load items per page from localStorage, default to 10
   const [itemsPerPage, setItemsPerPage] = useState<ItemsPerPage>(() => {
@@ -381,7 +386,9 @@ export default function FormsPage() {
   useEffect(() => {
     if (formVisibilityData?.isAdmin) {
       setExpandedItems((prev) =>
-        prev.includes("approval-dashboard") ? prev : [...prev, "approval-dashboard"]
+        prev.includes("approval-dashboard")
+          ? prev
+          : [...prev, "approval-dashboard"],
       );
     }
   }, [formVisibilityData?.isAdmin]);
@@ -390,7 +397,7 @@ export default function FormsPage() {
     setExpandedSections((prev) =>
       prev.includes(sectionId)
         ? prev.filter((id) => id !== sectionId)
-        : [...prev, sectionId]
+        : [...prev, sectionId],
     );
   };
 
@@ -413,12 +420,13 @@ export default function FormsPage() {
       itemId === "referral-form-approval" ||
       itemId === "document-update-submit" ||
       itemId === "document-update-my-submissions" ||
-      itemId === "document-update-approval"
+      itemId === "document-update-approval" ||
+      itemId === "car-issue-submit"
     ) {
       setExpandedItems((prev) =>
         prev.includes(itemId)
           ? prev.filter((id) => id !== itemId)
-          : [...prev, itemId]
+          : [...prev, itemId],
       );
     }
   };
@@ -449,7 +457,7 @@ export default function FormsPage() {
         params.append("search", searchQuery);
       }
       const url = buildApiUrl(
-        `/api/onboarding/submissions?${params.toString()}`
+        `/api/onboarding/submissions?${params.toString()}`,
       );
       console.log("🔍 [FORMS PAGE] Fetching submissions from:", url);
 
@@ -460,7 +468,7 @@ export default function FormsPage() {
       console.log(
         "📥 [FORMS PAGE] Response status:",
         response.status,
-        response.statusText
+        response.statusText,
       );
 
       if (!response.ok) {
@@ -470,7 +478,7 @@ export default function FormsPage() {
         console.error("❌ [FORMS PAGE] API error:", errorData);
         throw new Error(
           errorData.error ||
-            `Failed to fetch submissions: ${response.status} ${response.statusText}`
+            `Failed to fetch submissions: ${response.status} ${response.statusText}`,
         );
       }
 
@@ -498,7 +506,7 @@ export default function FormsPage() {
     const currentSignedIds = new Set(
       submissionsData.data
         .filter((s: OnboardingSubmission) => s.contractStatus === "signed")
-        .map((s: OnboardingSubmission) => s.id)
+        .map((s: OnboardingSubmission) => s.id),
     );
 
     const previousSignedIds = previousSignedIdsRef.current;
@@ -506,12 +514,12 @@ export default function FormsPage() {
     // Find newly signed contracts
     if (previousSignedIds.size > 0) {
       const newSignedIds = Array.from(currentSignedIds).filter(
-        (id) => !previousSignedIds.has(id)
+        (id) => !previousSignedIds.has(id),
       );
 
       newSignedIds.forEach((id) => {
         const submission = submissionsData.data.find(
-          (s: OnboardingSubmission) => s.id === id
+          (s: OnboardingSubmission) => s.id === id,
         );
         if (submission) {
           toast({
@@ -547,7 +555,7 @@ export default function FormsPage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ reason }),
-        }
+        },
       );
       if (!response.ok) {
         const error = await response
@@ -574,18 +582,27 @@ export default function FormsPage() {
       setDeclineReason("");
       setSubmissionToDecline(null);
       // Update the submission in the table cache so the row remains with new status (data stays in table)
-      const newStatus = variables.action === "approve" ? "approved" : "rejected";
+      const newStatus =
+        variables.action === "approve" ? "approved" : "rejected";
       queryClient.setQueriesData(
         { queryKey: ["onboarding-submissions"] },
-        (old: { data?: OnboardingSubmission[]; pagination?: { total: number }; success?: boolean } | undefined) => {
+        (
+          old:
+            | {
+                data?: OnboardingSubmission[];
+                pagination?: { total: number };
+                success?: boolean;
+              }
+            | undefined,
+        ) => {
           if (!old?.data) return old;
           return {
             ...old,
             data: old.data.map((s) =>
-              s.id === variables.id ? { ...s, status: newStatus } : s
+              s.id === variables.id ? { ...s, status: newStatus } : s,
             ),
           };
-        }
+        },
       );
       // Invalidate cars list so cars page updates (car status changes when approved)
       queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
@@ -612,7 +629,7 @@ export default function FormsPage() {
         buildApiUrl(`/api/onboarding/submissions/${selectedSubmission?.id}`),
         {
           credentials: "include",
-        }
+        },
       );
       if (!response.ok) throw new Error("Failed to fetch submission details");
       return response.json();
@@ -632,12 +649,14 @@ export default function FormsPage() {
   };
 
   // Handle insurance card file selection
-  const handleInsuranceCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInsuranceCardChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
       setInsuranceCardFile(file);
       // Generate preview
-      if (file.type === 'application/pdf') {
+      if (file.type === "application/pdf") {
         setInsuranceCardPreview(null); // PDF preview handled separately
       } else {
         const reader = new FileReader();
@@ -650,7 +669,9 @@ export default function FormsPage() {
   };
 
   // Handle drivers license files selection
-  const handleDriversLicenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDriversLicenseChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       const fileArray = Array.from(files);
@@ -659,8 +680,8 @@ export default function FormsPage() {
       const previews: string[] = [];
       let loadedCount = 0;
       fileArray.forEach((file) => {
-        if (file.type === 'application/pdf') {
-          previews.push('');
+        if (file.type === "application/pdf") {
+          previews.push("");
           loadedCount++;
           if (loadedCount === fileArray.length) {
             setDriversLicensePreviews(previews);
@@ -684,8 +705,10 @@ export default function FormsPage() {
   const handleRemoveInsuranceCard = () => {
     setInsuranceCardFile(null);
     setInsuranceCardPreview(null);
-    const input = document.getElementById('insurance-card-input-forms') as HTMLInputElement;
-    if (input) input.value = '';
+    const input = document.getElementById(
+      "insurance-card-input-forms",
+    ) as HTMLInputElement;
+    if (input) input.value = "";
   };
 
   // Remove drivers license file
@@ -695,8 +718,10 @@ export default function FormsPage() {
     setDriversLicenseFiles(newFiles);
     setDriversLicensePreviews(newPreviews);
     if (newFiles.length === 0) {
-      const input = document.getElementById('drivers-license-input-forms') as HTMLInputElement;
-      if (input) input.value = '';
+      const input = document.getElementById(
+        "drivers-license-input-forms",
+      ) as HTMLInputElement;
+      if (input) input.value = "";
     }
   };
 
@@ -704,11 +729,11 @@ export default function FormsPage() {
   const updateDocumentsMutation = useMutation({
     mutationFn: async (submissionId: number) => {
       const formData = new FormData();
-      
+
       if (insuranceCardFile) {
         formData.append("insuranceCard", insuranceCardFile);
       }
-      
+
       if (driversLicenseFiles.length > 0) {
         driversLicenseFiles.forEach((file) => {
           formData.append("driversLicense", file);
@@ -721,7 +746,7 @@ export default function FormsPage() {
           method: "PUT",
           body: formData,
           credentials: "include",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -742,8 +767,12 @@ export default function FormsPage() {
       setDriversLicenseFiles([]);
       setDriversLicensePreviews([]);
       // Refetch submission details
-      queryClient.invalidateQueries({ queryKey: ["onboarding-submission", selectedSubmission?.id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/submissions"] });
+      queryClient.invalidateQueries({
+        queryKey: ["onboarding-submission", selectedSubmission?.id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/onboarding/submissions"],
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -762,7 +791,7 @@ export default function FormsPage() {
         {
           method: "POST",
           credentials: "include",
-        }
+        },
       );
       if (!response.ok) throw new Error("Failed to log access");
       return response.json();
@@ -798,7 +827,10 @@ export default function FormsPage() {
       const today = new Date();
       const age = today.getFullYear() - birthDate.getFullYear();
       const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < birthDate.getDate())
+      ) {
         return `Age ${age - 1}`;
       }
       return `Age ${age}`;
@@ -816,7 +848,7 @@ export default function FormsPage() {
   const formatAddress = (
     city: string | null | undefined,
     state: string | null | undefined,
-    zipCode: string | null | undefined
+    zipCode: string | null | undefined,
   ): string => {
     const parts: string[] = [];
     if (city) parts.push(city);
@@ -866,9 +898,21 @@ export default function FormsPage() {
     };
 
     const employeeOnboardingItems: FormItem[] = [
-      { id: "employee-onboarding-form", title: "Employee Onboarding Form", icon: UserPlus },
-      { id: "employee-contract-1099", title: "Contract GLA Contractor Policy 1099", icon: FileText },
-      { id: "employee-offboarding", title: "Employee Offboarding Form", icon: LogOut },
+      {
+        id: "employee-onboarding-form",
+        title: "Employee Onboarding Form",
+        icon: UserPlus,
+      },
+      {
+        id: "employee-contract-1099",
+        title: "Contract GLA Contractor Policy 1099",
+        icon: FileText,
+      },
+      {
+        id: "employee-offboarding",
+        title: "Employee Offboarding Form",
+        icon: LogOut,
+      },
     ];
 
     const commissionSubmitItem: FormItem = {
@@ -921,6 +965,12 @@ export default function FormsPage() {
 
     // Admin: Client Onboarding + Employee Onboarding Process + Income & Expenses Form + Commissions Form
     // Admins can both submit receipts (same form as employees) and review via Approval Dashboard.
+    const carIssueSubmitItem: FormItem = {
+      id: "car-issue-submit",
+      title: "Car Issue Report",
+      icon: Car,
+    };
+
     if (formVisibilityData?.isAdmin) {
       return [
         {
@@ -945,13 +995,21 @@ export default function FormsPage() {
           id: "commissions-forms",
           title: "Commissions Form",
           icon: DollarSign,
-          items: [commissionSubmitItem, commissionMySubmissionsItem, commissionApprovalItem],
+          items: [
+            commissionSubmitItem,
+            commissionMySubmissionsItem,
+            commissionApprovalItem,
+          ],
         },
         {
           id: "referral-forms",
           title: "Referral Form",
           icon: Users,
-          items: [referralSubmitItem, referralMySubmissionsItem, referralApprovalItem],
+          items: [
+            referralSubmitItem,
+            referralMySubmissionsItem,
+            referralApprovalItem,
+          ],
         },
         {
           id: "document-updates",
@@ -962,6 +1020,12 @@ export default function FormsPage() {
             documentUpdateMySubmissionsItem,
             documentUpdateApprovalItem,
           ],
+        },
+        {
+          id: "car-issue-forms",
+          title: "Car Issue Form",
+          icon: Car,
+          items: [carIssueSubmitItem],
         },
       ];
     }
@@ -980,6 +1044,12 @@ export default function FormsPage() {
           title: "Commissions Form",
           icon: DollarSign,
           items: [commissionSubmitItem, commissionMySubmissionsItem],
+        },
+        {
+          id: "car-issue-forms",
+          title: "Car Issue Form",
+          icon: Car,
+          items: [carIssueSubmitItem],
         },
       ];
     }
@@ -1014,7 +1084,10 @@ export default function FormsPage() {
           if (!formName) return;
           const visibility = formVisibilityData?.formVisibility?.[formName];
           if (!visibility || !visibility.isVisible) return;
-          visibleItems.push({ ...item, externalUrl: visibility.externalUrl ?? null } as FormItem);
+          visibleItems.push({
+            ...item,
+            externalUrl: visibility.externalUrl ?? null,
+          } as FormItem);
         });
 
       return [
@@ -1053,7 +1126,10 @@ export default function FormsPage() {
         if (!formName) return null;
         const visibility = formVisibilityData?.formVisibility?.[formName];
         if (!visibility || !visibility.isVisible) return null;
-        return { ...item, externalUrl: visibility.externalUrl ?? null } as FormItem;
+        return {
+          ...item,
+          externalUrl: visibility.externalUrl ?? null,
+        } as FormItem;
       })
       .filter((item): item is FormItem => item !== null);
 
@@ -1086,7 +1162,8 @@ export default function FormsPage() {
 
               // For client users, clicking "Client Onboarding Form" header redirects to /onboarding
               const isClientOnboardingRedirect =
-                formVisibilityData?.isClient && section.id === "client-onboarding";
+                formVisibilityData?.isClient &&
+                section.id === "client-onboarding";
               const onboardingRedirectUrl =
                 typeof window !== "undefined"
                   ? `${window.location.origin}/onboarding`
@@ -1112,23 +1189,23 @@ export default function FormsPage() {
                       <ChevronRight className="w-5 h-5 text-muted-foreground" />
                     </a>
                   ) : (
-                  <button
-                    onClick={() => toggleSection(section.id)}
-                    className="w-full flex items-center justify-between px-5 py-4 hover:bg-card transition-colors"
-                    data-testid={`button-section-${section.id}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <SectionIcon className="w-5 h-5 text-primary" />
-                      <span className="text-primary font-semibold text-base">
-                        {section.title}
-                      </span>
-                    </div>
-                    {isExpanded ? (
-                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                    )}
-                  </button>
+                    <button
+                      onClick={() => toggleSection(section.id)}
+                      className="w-full flex items-center justify-between px-5 py-4 hover:bg-card transition-colors"
+                      data-testid={`button-section-${section.id}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <SectionIcon className="w-5 h-5 text-primary" />
+                        <span className="text-primary font-semibold text-base">
+                          {section.title}
+                        </span>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      )}
+                    </button>
                   )}
 
                   {(isExpanded || isClientOnboardingRedirect) && (
@@ -1154,7 +1231,8 @@ export default function FormsPage() {
                             item.id === "referral-form-approval" ||
                             item.id === "document-update-submit" ||
                             item.id === "document-update-my-submissions" ||
-                            item.id === "document-update-approval") &&
+                            item.id === "document-update-approval" ||
+                            item.id === "car-issue-submit") &&
                           !item.comingSoon;
 
                         return (
@@ -1167,7 +1245,7 @@ export default function FormsPage() {
                                 rel="noopener noreferrer"
                                 className={cn(
                                   "w-full flex items-center justify-between px-5 py-3.5 transition-colors border-t border-border",
-                                  "hover:bg-card cursor-pointer"
+                                  "hover:bg-card cursor-pointer",
                                 )}
                                 data-testid={`button-form-${item.id}`}
                               >
@@ -1187,7 +1265,7 @@ export default function FormsPage() {
                                   "w-full flex items-center justify-between px-5 py-3.5 transition-colors border-t border-border",
                                   item.comingSoon
                                     ? "cursor-default"
-                                    : "hover:bg-card cursor-pointer"
+                                    : "hover:bg-card cursor-pointer",
                                 )}
                                 disabled={item.comingSoon}
                                 onClick={() => canExpand && toggleItem(item.id)}
@@ -1199,7 +1277,7 @@ export default function FormsPage() {
                                       "w-4 h-4",
                                       item.comingSoon
                                         ? "text-muted-foreground"
-                                        : "text-primary"
+                                        : "text-primary",
                                     )}
                                   />
                                   <span
@@ -1207,7 +1285,7 @@ export default function FormsPage() {
                                       "text-sm font-medium",
                                       item.comingSoon
                                         ? "text-muted-foreground"
-                                        : "text-primary"
+                                        : "text-primary",
                                     )}
                                   >
                                     {item.title}
@@ -1233,7 +1311,7 @@ export default function FormsPage() {
                                       "w-4 h-4",
                                       item.comingSoon
                                         ? "text-gray-700"
-                                        : "text-muted-foreground"
+                                        : "text-muted-foreground",
                                     )}
                                   />
                                 )}
@@ -1274,103 +1352,127 @@ export default function FormsPage() {
                             )}
 
                             {/* Expanded content for Income & Expense Receipt Submission (employees and admins) */}
-                            {isItemExpanded && item.id === "expense-receipt" && (
-                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
-                                <ExpenseFormSubmission />
-                                <ExpenseFormMySubmissions />
-                              </div>
-                            )}
+                            {isItemExpanded &&
+                              item.id === "expense-receipt" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
+                                  <ExpenseFormSubmission />
+                                  <ExpenseFormMySubmissions />
+                                </div>
+                              )}
 
                             {/* Expanded content for Approval Dashboard (admins only) */}
-                            {isItemExpanded && item.id === "approval-dashboard" && (
-                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 min-w-0 max-w-full overflow-hidden">
-                                <ExpenseFormApprovalDashboard isAdmin={true} />
-                              </div>
-                            )}
+                            {isItemExpanded &&
+                              item.id === "approval-dashboard" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 min-w-0 max-w-full overflow-hidden">
+                                  <ExpenseFormApprovalDashboard
+                                    isAdmin={true}
+                                  />
+                                </div>
+                              )}
 
                             {/* Expanded content for Employee Onboarding Form */}
-                            {isItemExpanded && item.id === "employee-onboarding-form" && (
-                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
-                                <EmployeeOnboardingFormContent />
-                              </div>
-                            )}
+                            {isItemExpanded &&
+                              item.id === "employee-onboarding-form" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
+                                  <EmployeeOnboardingFormContent />
+                                </div>
+                              )}
 
                             {/* Expanded content for Contract GLA Contractor Policy 1099 */}
-                            {isItemExpanded && item.id === "employee-contract-1099" && (
-                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
-                                <EmployeeContract1099Content />
-                              </div>
-                            )}
+                            {isItemExpanded &&
+                              item.id === "employee-contract-1099" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
+                                  <EmployeeContract1099Content />
+                                </div>
+                              )}
 
                             {/* Expanded content for Employee Offboarding Form */}
-                            {isItemExpanded && item.id === "employee-offboarding" && (
-                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
-                                <EmployeeOffboardingContent />
-                              </div>
-                            )}
+                            {isItemExpanded &&
+                              item.id === "employee-offboarding" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
+                                  <EmployeeOffboardingContent />
+                                </div>
+                              )}
 
                             {/* Expanded content for Commission Form Submit */}
-                            {isItemExpanded && item.id === "commission-form-submit" && (
-                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
-                                <CommissionFormSubmission />
-                              </div>
-                            )}
+                            {isItemExpanded &&
+                              item.id === "commission-form-submit" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
+                                  <CommissionFormSubmission />
+                                </div>
+                              )}
 
                             {/* Expanded content for Commission Form My Submissions */}
-                            {isItemExpanded && item.id === "commission-form-my-submissions" && (
-                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
-                                <CommissionFormMySubmissions />
-                              </div>
-                            )}
+                            {isItemExpanded &&
+                              item.id === "commission-form-my-submissions" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
+                                  <CommissionFormMySubmissions />
+                                </div>
+                              )}
 
                             {/* Expanded content for Commission Form Approval Dashboard (admins only) */}
-                            {isItemExpanded && item.id === "commission-form-approval" && (
-                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 min-w-0 max-w-full overflow-hidden">
-                                <CommissionFormApprovalDashboard />
-                              </div>
-                            )}
+                            {isItemExpanded &&
+                              item.id === "commission-form-approval" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 min-w-0 max-w-full overflow-hidden">
+                                  <CommissionFormApprovalDashboard />
+                                </div>
+                              )}
 
                             {/* Expanded content for Referral Form Submit */}
-                            {isItemExpanded && item.id === "referral-form-submit" && (
-                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
-                                <ReferralFormSubmission />
-                              </div>
-                            )}
+                            {isItemExpanded &&
+                              item.id === "referral-form-submit" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
+                                  <ReferralFormSubmission />
+                                </div>
+                              )}
 
                             {/* Expanded content for Referral Form My Submissions */}
-                            {isItemExpanded && item.id === "referral-form-my-submissions" && (
-                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
-                                <ReferralFormMySubmissions />
-                              </div>
-                            )}
+                            {isItemExpanded &&
+                              item.id === "referral-form-my-submissions" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
+                                  <ReferralFormMySubmissions />
+                                </div>
+                              )}
 
                             {/* Expanded content for Referral Form Approval Dashboard (admins only) */}
-                            {isItemExpanded && item.id === "referral-form-approval" && (
-                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 min-w-0 max-w-full overflow-hidden">
-                                <ReferralFormApprovalDashboard />
-                              </div>
-                            )}
+                            {isItemExpanded &&
+                              item.id === "referral-form-approval" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 min-w-0 max-w-full overflow-hidden">
+                                  <ReferralFormApprovalDashboard />
+                                </div>
+                              )}
 
                             {/* Expanded content for License/Registration/Insurance Update submission */}
-                            {isItemExpanded && item.id === "document-update-submit" && (
-                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
-                                <DocumentUpdateSubmission />
-                              </div>
-                            )}
+                            {isItemExpanded &&
+                              item.id === "document-update-submit" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
+                                  <DocumentUpdateSubmission />
+                                </div>
+                              )}
 
                             {/* Expanded content for Document Update My Submissions */}
-                            {isItemExpanded && item.id === "document-update-my-submissions" && (
-                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
-                                <DocumentUpdateMySubmissions />
-                              </div>
-                            )}
+                            {isItemExpanded &&
+                              item.id === "document-update-my-submissions" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
+                                  <DocumentUpdateMySubmissions />
+                                </div>
+                              )}
 
                             {/* Expanded content for Document Update Approval Dashboard (admins only) */}
-                            {isItemExpanded && item.id === "document-update-approval" && (
-                              <div className="bg-card border-t border-border px-3 sm:px-5 py-4 min-w-0 max-w-full overflow-hidden">
-                                <DocumentUpdateApprovalDashboard />
-                              </div>
-                            )}
+                            {isItemExpanded &&
+                              item.id === "document-update-approval" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 min-w-0 max-w-full overflow-hidden">
+                                  <DocumentUpdateApprovalDashboard />
+                                </div>
+                              )}
+
+                            {/* Expanded content for Car Issue Form */}
+                            {isItemExpanded &&
+                              item.id === "car-issue-submit" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
+                                  <CarIssueFormSubmission />
+                                </div>
+                              )}
 
                             {/* Expanded content for LYC form */}
                             {isItemExpanded && item.id === "lyc" && (
@@ -1412,294 +1514,338 @@ export default function FormsPage() {
                                 ) : submissionsData?.data &&
                                   submissionsData.data.length > 0 ? (
                                   <div className="w-full overflow-hidden">
-                                  <div className="overflow-x-auto">
+                                    <div className="overflow-x-auto">
                                       <table className="w-full text-sm table-auto">
-                                      <thead>
-                                        <tr className="border-b border-border">
-                                          <th className="text-left py-3 px-2 sm:px-3 text-foreground font-medium text-xs whitespace-nowrap">
-                                            Name
-                                          </th>
-                                          <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden md:table-cell whitespace-nowrap">
-                                            Email
-                                          </th>
-                                          <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden lg:table-cell whitespace-nowrap">
-                                            Phone
-                                          </th>
-                                          <th className="text-left py-3 px-2 sm:px-3 text-foreground font-medium text-xs whitespace-nowrap">
-                                            Vehicle
-                                          </th>
-                                          <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden xl:table-cell whitespace-nowrap">
-                                            VIN#
-                                          </th>
-                                          <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden xl:table-cell whitespace-nowrap">
-                                            Plate #
-                                          </th>
-                                          <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden lg:table-cell whitespace-nowrap">
-                                            Submitted
-                                          </th>
-                                          <th className="text-left py-3 px-2 sm:px-3 text-foreground font-medium text-xs whitespace-nowrap">
-                                            Status
-                                          </th>
-                                          <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden md:table-cell whitespace-nowrap">
-                                            Contract
-                                          </th>
-                                          <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden 2xl:table-cell whitespace-nowrap">
-                                            Car Onboarding Date
-                                          </th>
-                                          <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden 2xl:table-cell whitespace-nowrap">
-                                            Car Offboarding Date
-                                          </th>
-                                          <th className="text-left py-3 px-2 sm:px-3 text-foreground font-medium text-xs whitespace-nowrap">
-                                            Actions
-                                          </th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {submissionsData.data.map(
-                                          (submission) => (
-                                            <tr
-                                              key={submission.id}
-                                              className="border-b border-border hover:bg-card transition-colors"
-                                            >
-                                              <td className="py-3 px-2 sm:px-3 text-foreground text-xs sm:text-sm max-w-[120px] truncate" title={`${submission.firstNameOwner} ${submission.lastNameOwner}`}>
-                                                {submission.firstNameOwner}{" "}
-                                                {submission.lastNameOwner}
-                                              </td>
-                                              <td className="py-3 px-2 sm:px-3 text-muted-foreground text-xs sm:text-sm hidden md:table-cell max-w-[150px] truncate" title={submission.emailOwner}>
-                                                {submission.emailOwner}
-                                              </td>
-                                              <td className="py-3 px-2 sm:px-3 text-muted-foreground text-xs sm:text-sm hidden lg:table-cell max-w-[120px] truncate" title={submission.phoneOwner}>
-                                                {submission.phoneOwner}
-                                              </td>
-                                              <td className="py-3 px-2 sm:px-3 text-muted-foreground text-xs sm:text-sm max-w-[150px] truncate" title={`${submission.vehicleMake} ${submission.vehicleModel} ${submission.vehicleYear}`}>
-                                                {submission.vehicleMake}{" "}
-                                                {submission.vehicleModel}{" "}
-                                                {submission.vehicleYear}
-                                              </td>
-                                              <td className="py-3 px-2 sm:px-3 text-muted-foreground font-mono text-xs hidden xl:table-cell max-w-[120px] truncate" title={submission.vinNumber || "N/A"}>
-                                                {submission.vinNumber || (
-                                                  <span className="text-muted-foreground">
-                                                    N/A
-                                                  </span>
-                                                )}
-                                              </td>
-                                              <td className="py-3 px-2 sm:px-3 text-muted-foreground font-mono text-xs hidden xl:table-cell max-w-[100px] truncate" title={submission.licensePlate || "N/A"}>
-                                                {submission.licensePlate || (
-                                                  <span className="text-muted-foreground">
-                                                    N/A
-                                                  </span>
-                                                )}
-                                              </td>
-                                              <td className="py-3 px-2 sm:px-3 text-muted-foreground text-xs sm:text-sm hidden lg:table-cell whitespace-nowrap">
-                                                {new Date(
-                                                  submission.createdAt
-                                                ).toLocaleDateString()}
-                                              </td>
-                                              <td className="py-3 px-2 sm:px-3 whitespace-nowrap">
-                                                <Badge
-                                                  variant="outline"
-                                                  className={cn(
-                                                    "text-xs",
-                                                    submission.status ===
-                                                      "pending"
-                                                      ? "border-yellow-500/50 text-yellow-800 bg-yellow-500/20 font-semibold"
-                                                      : submission.status ===
-                                                        "approved"
-                                                      ? "border-green-500/50 text-green-700 bg-green-500/20 font-semibold"
-                                                      : submission.status ===
-                                                        "rejected"
-                                                      ? "border-red-500/50 text-red-700 bg-red-500/20 font-semibold"
-                                                      : "border-gray-500/50 text-gray-700 bg-gray-500/20 font-semibold"
-                                                  )}
+                                        <thead>
+                                          <tr className="border-b border-border">
+                                            <th className="text-left py-3 px-2 sm:px-3 text-foreground font-medium text-xs whitespace-nowrap">
+                                              Name
+                                            </th>
+                                            <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden md:table-cell whitespace-nowrap">
+                                              Email
+                                            </th>
+                                            <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden lg:table-cell whitespace-nowrap">
+                                              Phone
+                                            </th>
+                                            <th className="text-left py-3 px-2 sm:px-3 text-foreground font-medium text-xs whitespace-nowrap">
+                                              Vehicle
+                                            </th>
+                                            <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden xl:table-cell whitespace-nowrap">
+                                              VIN#
+                                            </th>
+                                            <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden xl:table-cell whitespace-nowrap">
+                                              Plate #
+                                            </th>
+                                            <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden lg:table-cell whitespace-nowrap">
+                                              Submitted
+                                            </th>
+                                            <th className="text-left py-3 px-2 sm:px-3 text-foreground font-medium text-xs whitespace-nowrap">
+                                              Status
+                                            </th>
+                                            <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden md:table-cell whitespace-nowrap">
+                                              Contract
+                                            </th>
+                                            <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden 2xl:table-cell whitespace-nowrap">
+                                              Car Onboarding Date
+                                            </th>
+                                            <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden 2xl:table-cell whitespace-nowrap">
+                                              Car Offboarding Date
+                                            </th>
+                                            <th className="text-left py-3 px-2 sm:px-3 text-foreground font-medium text-xs whitespace-nowrap">
+                                              Actions
+                                            </th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {submissionsData.data.map(
+                                            (submission) => (
+                                              <tr
+                                                key={submission.id}
+                                                className="border-b border-border hover:bg-card transition-colors"
+                                              >
+                                                <td
+                                                  className="py-3 px-2 sm:px-3 text-foreground text-xs sm:text-sm max-w-[120px] truncate"
+                                                  title={`${submission.firstNameOwner} ${submission.lastNameOwner}`}
                                                 >
-                                                  {submission.status ||
-                                                    "pending"}
-                                                </Badge>
-                                              </td>
-                                              <td className="py-3 px-2 sm:px-3 hidden md:table-cell whitespace-nowrap">
-                                                <div className="flex items-center gap-2">
-                                                  {submission.contractStatus ===
-                                                    "sent" && (
-                                                    <Badge
-                                                      variant="outline"
-                                                      className="border-blue-500/50 text-blue-700 bg-blue-500/10 text-xs"
-                                                    >
-                                                      Sent
-                                                    </Badge>
+                                                  {submission.firstNameOwner}{" "}
+                                                  {submission.lastNameOwner}
+                                                </td>
+                                                <td
+                                                  className="py-3 px-2 sm:px-3 text-muted-foreground text-xs sm:text-sm hidden md:table-cell max-w-[150px] truncate"
+                                                  title={submission.emailOwner}
+                                                >
+                                                  {submission.emailOwner}
+                                                </td>
+                                                <td
+                                                  className="py-3 px-2 sm:px-3 text-muted-foreground text-xs sm:text-sm hidden lg:table-cell max-w-[120px] truncate"
+                                                  title={submission.phoneOwner}
+                                                >
+                                                  {submission.phoneOwner}
+                                                </td>
+                                                <td
+                                                  className="py-3 px-2 sm:px-3 text-muted-foreground text-xs sm:text-sm max-w-[150px] truncate"
+                                                  title={`${submission.vehicleMake} ${submission.vehicleModel} ${submission.vehicleYear}`}
+                                                >
+                                                  {submission.vehicleMake}{" "}
+                                                  {submission.vehicleModel}{" "}
+                                                  {submission.vehicleYear}
+                                                </td>
+                                                <td
+                                                  className="py-3 px-2 sm:px-3 text-muted-foreground font-mono text-xs hidden xl:table-cell max-w-[120px] truncate"
+                                                  title={
+                                                    submission.vinNumber ||
+                                                    "N/A"
+                                                  }
+                                                >
+                                                  {submission.vinNumber || (
+                                                    <span className="text-muted-foreground">
+                                                      N/A
+                                                    </span>
                                                   )}
-                                                  {submission.contractStatus ===
-                                                    "opened" && (
-                                                    <Badge
-                                                      variant="outline"
-                                                      className="border-blue-500/50 text-blue-700 bg-blue-500/10 text-xs"
-                                                    >
-                                                      Sent
-                                                    </Badge>
+                                                </td>
+                                                <td
+                                                  className="py-3 px-2 sm:px-3 text-muted-foreground font-mono text-xs hidden xl:table-cell max-w-[100px] truncate"
+                                                  title={
+                                                    submission.licensePlate ||
+                                                    "N/A"
+                                                  }
+                                                >
+                                                  {submission.licensePlate || (
+                                                    <span className="text-muted-foreground">
+                                                      N/A
+                                                    </span>
                                                   )}
-                                                  {submission.contractStatus ===
-                                                    "signed" && (
-                                                    <>
+                                                </td>
+                                                <td className="py-3 px-2 sm:px-3 text-muted-foreground text-xs sm:text-sm hidden lg:table-cell whitespace-nowrap">
+                                                  {new Date(
+                                                    submission.createdAt,
+                                                  ).toLocaleDateString()}
+                                                </td>
+                                                <td className="py-3 px-2 sm:px-3 whitespace-nowrap">
+                                                  <Badge
+                                                    variant="outline"
+                                                    className={cn(
+                                                      "text-xs",
+                                                      submission.status ===
+                                                        "pending"
+                                                        ? "border-yellow-500/50 text-yellow-800 bg-yellow-500/20 font-semibold"
+                                                        : submission.status ===
+                                                            "approved"
+                                                          ? "border-green-500/50 text-green-700 bg-green-500/20 font-semibold"
+                                                          : submission.status ===
+                                                              "rejected"
+                                                            ? "border-red-500/50 text-red-700 bg-red-500/20 font-semibold"
+                                                            : "border-gray-500/50 text-gray-700 bg-gray-500/20 font-semibold",
+                                                    )}
+                                                  >
+                                                    {submission.status ||
+                                                      "pending"}
+                                                  </Badge>
+                                                </td>
+                                                <td className="py-3 px-2 sm:px-3 hidden md:table-cell whitespace-nowrap">
+                                                  <div className="flex items-center gap-2">
+                                                    {submission.contractStatus ===
+                                                      "sent" && (
                                                       <Badge
                                                         variant="outline"
-                                                        className="border-green-500/50 text-green-700 bg-green-500/10 text-xs"
+                                                        className="border-blue-500/50 text-blue-700 bg-blue-500/10 text-xs"
                                                       >
-                                                        Signed
+                                                        Sent
                                                       </Badge>
-                                                      <Button
-                                                        size="sm"
+                                                    )}
+                                                    {submission.contractStatus ===
+                                                      "opened" && (
+                                                      <Badge
                                                         variant="outline"
-                                                        className="h-7 px-2 bg-green-500/10 border-green-500/30 text-green-700 hover:bg-green-500/20"
-                                                        onClick={() => {
-                                                          // Use proxy endpoint for authenticated access
-                                                          window.open(
-                                                            buildApiUrl(`/api/contracts/${submission.id}/view`),
-                                                            "_blank"
-                                                          );
-                                                        }}
+                                                        className="border-blue-500/50 text-blue-700 bg-blue-500/10 text-xs"
                                                       >
-                                                        <ExternalLink className="w-3 h-3 mr-1" />
-                                                        View PDF
-                                                      </Button>
-                                                    </>
+                                                        Sent
+                                                      </Badge>
+                                                    )}
+                                                    {submission.contractStatus ===
+                                                      "signed" && (
+                                                      <>
+                                                        <Badge
+                                                          variant="outline"
+                                                          className="border-green-500/50 text-green-700 bg-green-500/10 text-xs"
+                                                        >
+                                                          Signed
+                                                        </Badge>
+                                                        <Button
+                                                          size="sm"
+                                                          variant="outline"
+                                                          className="h-7 px-2 bg-green-500/10 border-green-500/30 text-green-700 hover:bg-green-500/20"
+                                                          onClick={() => {
+                                                            // Use proxy endpoint for authenticated access
+                                                            window.open(
+                                                              buildApiUrl(
+                                                                `/api/contracts/${submission.id}/view`,
+                                                              ),
+                                                              "_blank",
+                                                            );
+                                                          }}
+                                                        >
+                                                          <ExternalLink className="w-3 h-3 mr-1" />
+                                                          View PDF
+                                                        </Button>
+                                                      </>
+                                                    )}
+                                                    {submission.contractStatus ===
+                                                      "declined" && (
+                                                      <Badge
+                                                        variant="outline"
+                                                        className="border-red-500/50 text-red-700 bg-red-500/10 text-xs"
+                                                      >
+                                                        Declined
+                                                      </Badge>
+                                                    )}
+                                                    {(!submission.contractStatus ||
+                                                      submission.contractStatus ===
+                                                        "pending") && (
+                                                      <Badge
+                                                        variant="outline"
+                                                        className="border-yellow-500/50 text-yellow-800 bg-yellow-500/20 text-xs font-semibold"
+                                                      >
+                                                        Pending
+                                                      </Badge>
+                                                    )}
+                                                  </div>
+                                                </td>
+                                                <td className="py-3 px-2 sm:px-3 text-muted-foreground text-xs sm:text-sm hidden 2xl:table-cell whitespace-nowrap">
+                                                  {submission.contractSignedAt ? (
+                                                    new Date(
+                                                      submission.contractSignedAt,
+                                                    ).toLocaleDateString()
+                                                  ) : (
+                                                    <span className="text-muted-foreground">
+                                                      Not signed
+                                                    </span>
                                                   )}
-                                                  {submission.contractStatus ===
-                                                    "declined" && (
-                                                    <Badge
-                                                      variant="outline"
-                                                      className="border-red-500/50 text-red-700 bg-red-500/10 text-xs"
+                                                </td>
+                                                <td className="py-3 px-2 sm:px-3 text-muted-foreground text-xs sm:text-sm hidden 2xl:table-cell whitespace-nowrap">
+                                                  {submission.carOffboardAt ? (
+                                                    new Date(
+                                                      submission.carOffboardAt,
+                                                    ).toLocaleDateString()
+                                                  ) : (
+                                                    <span className="text-muted-foreground">
+                                                      N/A
+                                                    </span>
+                                                  )}
+                                                </td>
+                                                <td className="py-3 px-2 sm:px-3 whitespace-nowrap">
+                                                  <div className="flex items-center gap-2">
+                                                    <Button
+                                                      size="sm"
+                                                      variant="ghost"
+                                                      className="h-8 w-8 p-0 hover:bg-muted/50"
+                                                      onClick={() =>
+                                                        handleViewDetails(
+                                                          submission,
+                                                        )
+                                                      }
+                                                      title="View Details"
                                                     >
-                                                      Declined
-                                                    </Badge>
-                                                  )}
-                                                  {(!submission.contractStatus ||
-                                                    submission.contractStatus ===
-                                                      "pending") && (
-                                                    <Badge
-                                                      variant="outline"
-                                                      className="border-yellow-500/50 text-yellow-800 bg-yellow-500/20 text-xs font-semibold"
-                                                    >
-                                                      Pending
-                                                    </Badge>
-                                                  )}
-                                                </div>
-                                              </td>
-                                              <td className="py-3 px-2 sm:px-3 text-muted-foreground text-xs sm:text-sm hidden 2xl:table-cell whitespace-nowrap">
-                                                {submission.contractSignedAt ? (
-                                                  new Date(
-                                                    submission.contractSignedAt
-                                                  ).toLocaleDateString()
-                                                ) : (
-                                                  <span className="text-muted-foreground">
-                                                    Not signed
-                                                  </span>
-                                                )}
-                                              </td>
-                                              <td className="py-3 px-2 sm:px-3 text-muted-foreground text-xs sm:text-sm hidden 2xl:table-cell whitespace-nowrap">
-                                                {submission.carOffboardAt ? (
-                                                  new Date(
-                                                    submission.carOffboardAt
-                                                  ).toLocaleDateString()
-                                                ) : (
-                                                  <span className="text-muted-foreground">
-                                                    N/A
-                                                  </span>
-                                                )}
-                                              </td>
-                                              <td className="py-3 px-2 sm:px-3 whitespace-nowrap">
-                                                <div className="flex items-center gap-2">
-                                                  <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="h-8 w-8 p-0 hover:bg-muted/50"
-                                                    onClick={() =>
-                                                      handleViewDetails(
-                                                        submission
-                                                      )
-                                                    }
-                                                    title="View Details"
-                                                  >
-                                                    <Eye className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                                                  </Button>
+                                                      <Eye className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                                                    </Button>
 
-                                                  {/* Always show Approve/Decline buttons for consistent layout */}
-                                                  {/* Allow approval if contract is signed OR if contract status is null/empty (imported submissions) */}
-                                                  <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="h-8 w-8 p-0 text-[#d4af37]"
-                                                    onClick={() => {
-                                                      approvalMutation.mutate({
-                                                        id: submission.id,
-                                                        action: "approve",
-                                                      });
-                                                    }}
-                                                    disabled={
-                                                      (submission.contractStatus !== "signed" && 
-                                                       submission.contractStatus !== null && 
-                                                       submission.contractStatus !== undefined) ||
-                                                      submission.status ===
-                                                        "approved" ||
-                                                      submission.status ===
-                                                        "rejected" ||
-                                                      approvalMutation.isPending
-                                                    }
-                                                    title={
-                                                      (submission.contractStatus !== "signed" && 
-                                                       submission.contractStatus !== null && 
-                                                       submission.contractStatus !== undefined)
-                                                        ? "Contract must be signed before approval"
-                                                        : submission.status ===
-                                                          "approved"
-                                                        ? "Already approved"
-                                                        : submission.status ===
-                                                          "rejected"
-                                                        ? "Already rejected"
-                                                        : "Approve submission"
-                                                    }
-                                                  >
-                                                    <CheckCircle className="w-4 h-4" />
-                                                  </Button>
-                                                  <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="h-8 w-8 p-0 text-red-700"
-                                                    onClick={() => {
-                                                      setSubmissionToDecline(submission);
-                                                      setShowDeclineModal(true);
-                                                    }}
-                                                    disabled={
-                                                      (submission.contractStatus !== "signed" && 
-                                                       submission.contractStatus !== null && 
-                                                       submission.contractStatus !== undefined) ||
-                                                      submission.status ===
-                                                        "approved" ||
-                                                      submission.status ===
-                                                        "rejected" ||
-                                                      approvalMutation.isPending
-                                                    }
-                                                    title={
-                                                      (submission.contractStatus !== "signed" && 
-                                                       submission.contractStatus !== null && 
-                                                       submission.contractStatus !== undefined)
-                                                        ? "Contract must be signed before decline"
-                                                        : submission.status ===
-                                                          "approved"
-                                                        ? "Already approved"
-                                                        : submission.status ===
-                                                          "rejected"
-                                                        ? "Already declined"
-                                                        : "Decline submission"
-                                                    }
-                                                  >
-                                                    <XCircle className="w-4 h-4" />
-                                                  </Button>
-                                                </div>
-                                              </td>
-                                            </tr>
-                                          )
-                                        )}
-                                      </tbody>
-                                    </table>
+                                                    {/* Always show Approve/Decline buttons for consistent layout */}
+                                                    {/* Allow approval if contract is signed OR if contract status is null/empty (imported submissions) */}
+                                                    <Button
+                                                      size="sm"
+                                                      variant="ghost"
+                                                      className="h-8 w-8 p-0 text-[#d4af37]"
+                                                      onClick={() => {
+                                                        approvalMutation.mutate(
+                                                          {
+                                                            id: submission.id,
+                                                            action: "approve",
+                                                          },
+                                                        );
+                                                      }}
+                                                      disabled={
+                                                        (submission.contractStatus !==
+                                                          "signed" &&
+                                                          submission.contractStatus !==
+                                                            null &&
+                                                          submission.contractStatus !==
+                                                            undefined) ||
+                                                        submission.status ===
+                                                          "approved" ||
+                                                        submission.status ===
+                                                          "rejected" ||
+                                                        approvalMutation.isPending
+                                                      }
+                                                      title={
+                                                        submission.contractStatus !==
+                                                          "signed" &&
+                                                        submission.contractStatus !==
+                                                          null &&
+                                                        submission.contractStatus !==
+                                                          undefined
+                                                          ? "Contract must be signed before approval"
+                                                          : submission.status ===
+                                                              "approved"
+                                                            ? "Already approved"
+                                                            : submission.status ===
+                                                                "rejected"
+                                                              ? "Already rejected"
+                                                              : "Approve submission"
+                                                      }
+                                                    >
+                                                      <CheckCircle className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button
+                                                      size="sm"
+                                                      variant="ghost"
+                                                      className="h-8 w-8 p-0 text-red-700"
+                                                      onClick={() => {
+                                                        setSubmissionToDecline(
+                                                          submission,
+                                                        );
+                                                        setShowDeclineModal(
+                                                          true,
+                                                        );
+                                                      }}
+                                                      disabled={
+                                                        (submission.contractStatus !==
+                                                          "signed" &&
+                                                          submission.contractStatus !==
+                                                            null &&
+                                                          submission.contractStatus !==
+                                                            undefined) ||
+                                                        submission.status ===
+                                                          "approved" ||
+                                                        submission.status ===
+                                                          "rejected" ||
+                                                        approvalMutation.isPending
+                                                      }
+                                                      title={
+                                                        submission.contractStatus !==
+                                                          "signed" &&
+                                                        submission.contractStatus !==
+                                                          null &&
+                                                        submission.contractStatus !==
+                                                          undefined
+                                                          ? "Contract must be signed before decline"
+                                                          : submission.status ===
+                                                              "approved"
+                                                            ? "Already approved"
+                                                            : submission.status ===
+                                                                "rejected"
+                                                              ? "Already declined"
+                                                              : "Decline submission"
+                                                      }
+                                                    >
+                                                      <XCircle className="w-4 h-4" />
+                                                    </Button>
+                                                  </div>
+                                                </td>
+                                              </tr>
+                                            ),
+                                          )}
+                                        </tbody>
+                                      </table>
                                     </div>
 
                                     {/* Pagination */}
@@ -1765,13 +1911,13 @@ export default function FormsPage() {
           <DialogHeader>
             <div className="flex items-start justify-between">
               <div>
-            <DialogTitle className="text-foreground text-2xl">
-              Complete Submission Details
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Full onboarding form submission information - All data from
-              database
-            </DialogDescription>
+                <DialogTitle className="text-foreground text-2xl">
+                  Complete Submission Details
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  Full onboarding form submission information - All data from
+                  database
+                </DialogDescription>
               </div>
               {!showSensitiveData && (
                 <Button
@@ -1786,7 +1932,10 @@ export default function FormsPage() {
           </DialogHeader>
 
           {/* Confirmation Dialog for Sensitive Data Access */}
-          <Dialog open={showAccessConfirmation} onOpenChange={setShowAccessConfirmation}>
+          <Dialog
+            open={showAccessConfirmation}
+            onOpenChange={setShowAccessConfirmation}
+          >
             <DialogContent className="bg-card border-primary/30 border-2 text-foreground max-w-md">
               <DialogHeader>
                 <DialogTitle className="text-foreground text-xl">
@@ -1833,7 +1982,7 @@ export default function FormsPage() {
                 };
 
                 const formatDate = (
-                  dateStr: string | null | undefined
+                  dateStr: string | null | undefined,
                 ): string => {
                   if (!dateStr) return "Not provided";
                   try {
@@ -1859,16 +2008,18 @@ export default function FormsPage() {
                 const isPdfDocument = (url: string): boolean => {
                   if (!url) return false;
                   const lowerUrl = url.toLowerCase();
-                  return lowerUrl.endsWith('.pdf') || lowerUrl.includes('.pdf');
+                  return lowerUrl.endsWith(".pdf") || lowerUrl.includes(".pdf");
                 };
 
                 // Parse driversLicenseUrls if it's a string
                 let driversLicenseUrlsArray: string[] = [];
                 if (data.driversLicenseUrls) {
-                  if (typeof data.driversLicenseUrls === 'string') {
+                  if (typeof data.driversLicenseUrls === "string") {
                     try {
                       const parsed = JSON.parse(data.driversLicenseUrls);
-                      driversLicenseUrlsArray = Array.isArray(parsed) ? parsed : [];
+                      driversLicenseUrlsArray = Array.isArray(parsed)
+                        ? parsed
+                        : [];
                     } catch {
                       driversLicenseUrlsArray = [];
                     }
@@ -1929,14 +2080,14 @@ export default function FormsPage() {
                           </span>
                         </div>
                         {showSensitiveData && (
-                        <div>
-                          <span className="text-muted-foreground block mb-1">
+                          <div>
+                            <span className="text-muted-foreground block mb-1">
                               SSN:
-                          </span>
+                            </span>
                             <span className="text-foreground font-mono">
                               {maskSSN(data.ssn)}
-                          </span>
-                        </div>
+                            </span>
+                          </div>
                         )}
                         <div>
                           <span className="text-muted-foreground block mb-1">
@@ -1956,22 +2107,22 @@ export default function FormsPage() {
                         </div>
                         {showSensitiveData && (
                           <>
-                        <div>
-                          <span className="text-muted-foreground block mb-1">
-                            Emergency Contact Name:
-                          </span>
-                          <span className="text-foreground">
-                            {formatValue(data.emergencyContactName)}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground block mb-1">
-                            Emergency Contact Phone:
-                          </span>
-                          <span className="text-foreground">
-                            {formatValue(data.emergencyContactPhone)}
-                          </span>
-                        </div>
+                            <div>
+                              <span className="text-muted-foreground block mb-1">
+                                Emergency Contact Name:
+                              </span>
+                              <span className="text-foreground">
+                                {formatValue(data.emergencyContactName)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground block mb-1">
+                                Emergency Contact Phone:
+                              </span>
+                              <span className="text-foreground">
+                                {formatValue(data.emergencyContactPhone)}
+                              </span>
+                            </div>
                           </>
                         )}
                       </div>
@@ -2225,27 +2376,39 @@ export default function FormsPage() {
                               {(() => {
                                 let featuresArray: string[] = [];
                                 try {
-                                  if (typeof data.vehicleFeatures === 'string') {
-                                    const parsed = JSON.parse(data.vehicleFeatures);
-                                    featuresArray = Array.isArray(parsed) ? parsed : [];
-                                  } else if (Array.isArray(data.vehicleFeatures)) {
+                                  if (
+                                    typeof data.vehicleFeatures === "string"
+                                  ) {
+                                    const parsed = JSON.parse(
+                                      data.vehicleFeatures,
+                                    );
+                                    featuresArray = Array.isArray(parsed)
+                                      ? parsed
+                                      : [];
+                                  } else if (
+                                    Array.isArray(data.vehicleFeatures)
+                                  ) {
                                     featuresArray = data.vehicleFeatures;
                                   }
                                 } catch {
                                   featuresArray = [];
                                 }
                                 return featuresArray.length > 0 ? (
-                                  featuresArray.map((feature: string, index: number) => (
-                                    <Badge
-                                      key={index}
-                                      variant="outline"
-                                      className="border-primary/50 text-primary bg-[#D3BC8D]/10 text-xs"
-                                    >
-                                      {feature}
-                                    </Badge>
-                                  ))
+                                  featuresArray.map(
+                                    (feature: string, index: number) => (
+                                      <Badge
+                                        key={index}
+                                        variant="outline"
+                                        className="border-primary/50 text-primary bg-[#D3BC8D]/10 text-xs"
+                                      >
+                                        {feature}
+                                      </Badge>
+                                    ),
+                                  )
                                 ) : (
-                                  <span className="text-muted-foreground text-sm">No features selected</span>
+                                  <span className="text-muted-foreground text-sm">
+                                    No features selected
+                                  </span>
                                 );
                               })()}
                             </div>
@@ -2261,10 +2424,11 @@ export default function FormsPage() {
                         </div>
                         <div>
                           <span className="text-muted-foreground block mb-1">
-                            If Yes, For How Many Years of Oil Changes OR What Oil Package:
+                            If Yes, For How Many Years of Oil Changes OR What
+                            Oil Package:
                           </span>
                           <span className="text-foreground">
-                            {data.freeDealershipOilChanges === "Yes" 
+                            {data.freeDealershipOilChanges === "Yes"
                               ? formatValue(data.oilPackageDetails)
                               : "N/A"}
                           </span>
@@ -2273,7 +2437,9 @@ export default function FormsPage() {
                     </div>
 
                     {/* Vehicle Recall Missing Error - Prominent overlay */}
-                    {(!data.vehicleRecall || data.vehicleRecall.trim() === '' || data.vehicleRecall === 'Not provided') && (
+                    {(!data.vehicleRecall ||
+                      data.vehicleRecall.trim() === "" ||
+                      data.vehicleRecall === "Not provided") && (
                       <div className="relative my-4 z-20">
                         <div className="bg-white border-4 border-red-500 rounded-lg p-6 shadow-2xl flex items-center justify-center">
                           <p className="text-red-500 text-xl font-semibold text-center m-0">
@@ -2284,7 +2450,9 @@ export default function FormsPage() {
                     )}
 
                     {/* Financial Information */}
-                    <div className={`bg-card p-4 rounded-lg border border-primary/20 ${(!data.vehicleRecall || data.vehicleRecall.trim() === '' || data.vehicleRecall === 'Not provided') ? 'opacity-30' : ''}`}>
+                    <div
+                      className={`bg-card p-4 rounded-lg border border-primary/20 ${!data.vehicleRecall || data.vehicleRecall.trim() === "" || data.vehicleRecall === "Not provided" ? "opacity-30" : ""}`}
+                    >
                       <h3 className="text-lg font-semibold text-primary mb-4 pb-2 border-b border-primary/30">
                         Financial Information
                       </h3>
@@ -2364,22 +2532,22 @@ export default function FormsPage() {
                         </div>
                         {showSensitiveData && (
                           <>
-                        <div>
-                          <span className="text-muted-foreground block mb-1">
-                            Routing Number:
-                          </span>
-                          <span className="text-foreground font-mono">
+                            <div>
+                              <span className="text-muted-foreground block mb-1">
+                                Routing Number:
+                              </span>
+                              <span className="text-foreground font-mono">
                                 {maskAccountInfo(data.routingNumber)}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground block mb-1">
-                            Account Number:
-                          </span>
-                          <span className="text-foreground font-mono">
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground block mb-1">
+                                Account Number:
+                              </span>
+                              <span className="text-foreground font-mono">
                                 {maskAccountInfo(data.accountNumber)}
-                          </span>
-                        </div>
+                              </span>
+                            </div>
                           </>
                         )}
                         {data.businessName && (
@@ -2398,7 +2566,9 @@ export default function FormsPage() {
                               EIN:
                             </span>
                             <span className="text-foreground font-mono">
-                              {showSensitiveData ? formatValue(data.ein) : maskAccountInfo(data.ein)}
+                              {showSensitiveData
+                                ? formatValue(data.ein)
+                                : maskAccountInfo(data.ein)}
                             </span>
                           </div>
                         )}
@@ -2408,7 +2578,9 @@ export default function FormsPage() {
                               SSN:
                             </span>
                             <span className="text-foreground font-mono">
-                              {showSensitiveData ? formatValue(data.ssn) : maskAccountInfo(data.ssn)}
+                              {showSensitiveData
+                                ? formatValue(data.ssn)
+                                : maskAccountInfo(data.ssn)}
                             </span>
                           </div>
                         )}
@@ -2430,14 +2602,14 @@ export default function FormsPage() {
                           </span>
                         </div>
                         {showSensitiveData && (
-                        <div>
-                          <span className="text-muted-foreground block mb-1">
-                            Policy Number:
-                          </span>
-                          <span className="text-foreground">
-                            {formatValue(data.policyNumber)}
-                          </span>
-                        </div>
+                          <div>
+                            <span className="text-muted-foreground block mb-1">
+                              Policy Number:
+                            </span>
+                            <span className="text-foreground">
+                              {formatValue(data.policyNumber)}
+                            </span>
+                          </div>
                         )}
                         <div>
                           <span className="text-muted-foreground block mb-1">
@@ -2475,26 +2647,26 @@ export default function FormsPage() {
                               data.contractStatus === "signed"
                                 ? "border-green-500/50 text-green-700 bg-green-500/20 font-semibold"
                                 : data.contractStatus === "sent"
-                                ? "border-blue-500/50 text-blue-700 bg-blue-500/20 font-semibold"
-                                : data.contractStatus === "opened"
-                                ? "border-yellow-500/50 text-yellow-800 bg-yellow-500/20 font-semibold"
-                                : data.contractStatus === "declined"
-                                ? "border-red-500/50 text-red-700 bg-red-500/20 font-semibold"
-                                : "border-yellow-500/50 text-yellow-800 bg-yellow-500/20 font-semibold"
+                                  ? "border-blue-500/50 text-blue-700 bg-blue-500/20 font-semibold"
+                                  : data.contractStatus === "opened"
+                                    ? "border-yellow-500/50 text-yellow-800 bg-yellow-500/20 font-semibold"
+                                    : data.contractStatus === "declined"
+                                      ? "border-red-500/50 text-red-700 bg-red-500/20 font-semibold"
+                                      : "border-yellow-500/50 text-yellow-800 bg-yellow-500/20 font-semibold",
                             )}
                           >
                             {formatValue(data.contractStatus || "Not sent")}
                           </Badge>
                         </div>
                         {showSensitiveData && (
-                        <div>
-                          <span className="text-muted-foreground block mb-1">
-                            Contract Token:
-                          </span>
-                          <span className="text-foreground font-mono text-xs break-all">
-                            {formatValue(data.contractToken)}
-                          </span>
-                        </div>
+                          <div>
+                            <span className="text-muted-foreground block mb-1">
+                              Contract Token:
+                            </span>
+                            <span className="text-foreground font-mono text-xs break-all">
+                              {formatValue(data.contractToken)}
+                            </span>
+                          </div>
                         )}
                         <div>
                           <span className="text-muted-foreground block mb-1">
@@ -2543,7 +2715,7 @@ export default function FormsPage() {
                                 // Use proxy endpoint for authenticated access
                                 window.open(
                                   buildApiUrl(`/api/contracts/${data.id}/view`),
-                                  "_blank"
+                                  "_blank",
                                 );
                               }}
                               className="bg-primary text-primary-foreground hover:bg-primary/80"
@@ -2566,142 +2738,214 @@ export default function FormsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Health Insurance Card */}
                         <div className="space-y-4">
-                          <h4 className="text-base font-semibold text-muted-foreground">Insurance Card</h4>
-                          
+                          <h4 className="text-base font-semibold text-muted-foreground">
+                            Insurance Card
+                          </h4>
+
                           {/* Insurance Card Display */}
-                          {data.insuranceCardUrl ? (() => {
-                            const documentUrl = data.insuranceCardUrl.startsWith('http') 
-                              ? data.insuranceCardUrl 
-                              : buildApiUrl(data.insuranceCardUrl);
-                            const isPdf = isPdfDocument(data.insuranceCardUrl);
-                            
-                            return (
-                              <div 
-                                className="relative group cursor-pointer"
-                                onClick={() => {
-                                  setFullScreenDocument({ url: documentUrl, type: 'insurance', isPdf });
-                                }}
-                              >
-                                <div className={`relative w-full aspect-[4/3] bg-background rounded-lg border-2 transition-all overflow-hidden shadow-lg ${
-                                  isPdf 
-                                    ? 'border-primary/50 hover:border-primary shadow-[#D3BC8D]/20' 
-                                    : 'border-primary/30 hover:border-primary shadow-[#D3BC8D]/20'
-                                }`}>
-                                  {isPdf ? (
-                                    <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                                      <FileText className="w-16 h-16 text-primary mb-2" />
-                                      <p className="text-primary text-sm font-semibold">PDF Document</p>
-                                      <p className="text-muted-foreground text-xs mt-1">Click to open in PDF viewer</p>
+                          {data.insuranceCardUrl ? (
+                            (() => {
+                              const documentUrl =
+                                data.insuranceCardUrl.startsWith("http")
+                                  ? data.insuranceCardUrl
+                                  : buildApiUrl(data.insuranceCardUrl);
+                              const isPdf = isPdfDocument(
+                                data.insuranceCardUrl,
+                              );
+
+                              return (
+                                <div
+                                  className="relative group cursor-pointer"
+                                  onClick={() => {
+                                    setFullScreenDocument({
+                                      url: documentUrl,
+                                      type: "insurance",
+                                      isPdf,
+                                    });
+                                  }}
+                                >
+                                  <div
+                                    className={`relative w-full aspect-[4/3] bg-background rounded-lg border-2 transition-all overflow-hidden shadow-lg ${
+                                      isPdf
+                                        ? "border-primary/50 hover:border-primary shadow-[#D3BC8D]/20"
+                                        : "border-primary/30 hover:border-primary shadow-[#D3BC8D]/20"
+                                    }`}
+                                  >
+                                    {isPdf ? (
+                                      <div className="w-full h-full flex flex-col items-center justify-center p-4">
+                                        <FileText className="w-16 h-16 text-primary mb-2" />
+                                        <p className="text-primary text-sm font-semibold">
+                                          PDF Document
+                                        </p>
+                                        <p className="text-muted-foreground text-xs mt-1">
+                                          Click to open in PDF viewer
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <img
+                                        src={documentUrl}
+                                        alt="Insurance Card"
+                                        className="w-full h-full object-contain p-2"
+                                        onError={(e) => {
+                                          console.error(
+                                            "Failed to load insurance card image:",
+                                            data.insuranceCardUrl,
+                                          );
+                                          const target =
+                                            e.target as HTMLImageElement;
+                                          target.style.display = "none";
+                                          const parent =
+                                            target.parentElement?.parentElement;
+                                          if (
+                                            parent &&
+                                            !parent.querySelector(
+                                              ".error-message",
+                                            )
+                                          ) {
+                                            const errorDiv =
+                                              document.createElement("div");
+                                            errorDiv.className =
+                                              "error-message text-sm text-muted-foreground absolute inset-0 flex items-center justify-center";
+                                            errorDiv.textContent =
+                                              "Failed to load image";
+                                            parent.appendChild(errorDiv);
+                                          }
+                                        }}
+                                      />
+                                    )}
+                                    <div className="absolute inset-0 bg-background/0 group-hover:bg-background/10 transition-colors flex items-center justify-center">
+                                      <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-background/70 text-foreground px-4 py-2 rounded-lg text-sm font-medium">
+                                        {isPdf
+                                          ? "Click to open PDF"
+                                          : "Click to view full screen"}
+                                      </div>
                                     </div>
-                                  ) : (
-                                    <img
-                                      src={documentUrl}
-                                      alt="Insurance Card"
-                                      className="w-full h-full object-contain p-2"
-                                      onError={(e) => {
-                                        console.error('Failed to load insurance card image:', data.insuranceCardUrl);
-                                        const target = e.target as HTMLImageElement;
-                                        target.style.display = "none";
-                                        const parent = target.parentElement?.parentElement;
-                                        if (parent && !parent.querySelector(".error-message")) {
-                                          const errorDiv = document.createElement("div");
-                                          errorDiv.className = "error-message text-sm text-muted-foreground absolute inset-0 flex items-center justify-center";
-                                          errorDiv.textContent = "Failed to load image";
-                                          parent.appendChild(errorDiv);
-                                        }
-                                      }}
-                                    />
-                                  )}
-                                  <div className="absolute inset-0 bg-background/0 group-hover:bg-background/10 transition-colors flex items-center justify-center">
-                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-background/70 text-foreground px-4 py-2 rounded-lg text-sm font-medium">
-                                      {isPdf ? 'Click to open PDF' : 'Click to view full screen'}
-                                    </div>
+                                    {isPdf && (
+                                      <div className="absolute top-2 right-2 bg-primary/90 text-primary-foreground text-xs px-2 py-1 rounded font-semibold">
+                                        PDF
+                                      </div>
+                                    )}
                                   </div>
-                                  {isPdf && (
-                                    <div className="absolute top-2 right-2 bg-primary/90 text-primary-foreground text-xs px-2 py-1 rounded font-semibold">
-                                      PDF
-                                    </div>
-                                  )}
                                 </div>
-                              </div>
-                            );
-                          })() : (
+                              );
+                            })()
+                          ) : (
                             <div className="w-full aspect-[4/3] bg-background rounded-lg border border-border flex items-center justify-center">
-                              <p className="text-sm text-muted-foreground">No insurance card uploaded</p>
+                              <p className="text-sm text-muted-foreground">
+                                No insurance card uploaded
+                              </p>
                             </div>
                           )}
                         </div>
 
                         {/* Driver's License */}
                         <div className="space-y-4">
-                          <h4 className="text-base font-semibold text-muted-foreground">Driver License</h4>
-                          
+                          <h4 className="text-base font-semibold text-muted-foreground">
+                            Driver License
+                          </h4>
+
                           {/* Driver's License Display */}
                           {driversLicenseUrlsArray.length > 0 ? (
                             <div className="space-y-4">
-                              {driversLicenseUrlsArray.map((url: string, index: number) => {
-                                const documentUrl = url.startsWith('http') ? url : buildApiUrl(url);
-                                const isPdf = isPdfDocument(url);
-                                
-                                return (
-                                  <div 
-                                    key={index}
-                                    className="relative group cursor-pointer"
-                                    onClick={() => setFullScreenDocument({ url: documentUrl, type: 'license', index, isPdf })}
-                                  >
-                                    <div className={`relative w-full aspect-[4/3] bg-background rounded-lg border-2 transition-all overflow-hidden shadow-lg ${
-                                      isPdf 
-                                        ? 'border-primary/50 hover:border-primary shadow-[#D3BC8D]/20' 
-                                        : 'border-primary/30 hover:border-primary shadow-[#D3BC8D]/20'
-                                    }`}>
-                                      {isPdf ? (
-                                        <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                                          <FileText className="w-16 h-16 text-primary mb-2" />
-                                          <p className="text-primary text-sm font-semibold">PDF Document</p>
-                                          <p className="text-muted-foreground text-xs mt-1">Click to open in PDF viewer</p>
+                              {driversLicenseUrlsArray.map(
+                                (url: string, index: number) => {
+                                  const documentUrl = url.startsWith("http")
+                                    ? url
+                                    : buildApiUrl(url);
+                                  const isPdf = isPdfDocument(url);
+
+                                  return (
+                                    <div
+                                      key={index}
+                                      className="relative group cursor-pointer"
+                                      onClick={() =>
+                                        setFullScreenDocument({
+                                          url: documentUrl,
+                                          type: "license",
+                                          index,
+                                          isPdf,
+                                        })
+                                      }
+                                    >
+                                      <div
+                                        className={`relative w-full aspect-[4/3] bg-background rounded-lg border-2 transition-all overflow-hidden shadow-lg ${
+                                          isPdf
+                                            ? "border-primary/50 hover:border-primary shadow-[#D3BC8D]/20"
+                                            : "border-primary/30 hover:border-primary shadow-[#D3BC8D]/20"
+                                        }`}
+                                      >
+                                        {isPdf ? (
+                                          <div className="w-full h-full flex flex-col items-center justify-center p-4">
+                                            <FileText className="w-16 h-16 text-primary mb-2" />
+                                            <p className="text-primary text-sm font-semibold">
+                                              PDF Document
+                                            </p>
+                                            <p className="text-muted-foreground text-xs mt-1">
+                                              Click to open in PDF viewer
+                                            </p>
+                                          </div>
+                                        ) : (
+                                          <img
+                                            src={documentUrl}
+                                            alt={`Driver's License ${index + 1}`}
+                                            className="w-full h-full object-contain p-2"
+                                            onError={(e) => {
+                                              console.error(
+                                                "Failed to load drivers license image:",
+                                                url,
+                                              );
+                                              const target =
+                                                e.target as HTMLImageElement;
+                                              target.style.display = "none";
+                                              const parent =
+                                                target.parentElement
+                                                  ?.parentElement;
+                                              if (
+                                                parent &&
+                                                !parent.querySelector(
+                                                  ".error-message",
+                                                )
+                                              ) {
+                                                const errorDiv =
+                                                  document.createElement("div");
+                                                errorDiv.className =
+                                                  "error-message text-sm text-muted-foreground absolute inset-0 flex items-center justify-center";
+                                                errorDiv.textContent =
+                                                  "Failed to load image";
+                                                parent.appendChild(errorDiv);
+                                              }
+                                            }}
+                                          />
+                                        )}
+                                        <div className="absolute inset-0 bg-background/0 group-hover:bg-background/10 transition-colors flex items-center justify-center">
+                                          <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-background/70 text-foreground px-4 py-2 rounded-lg text-sm font-medium">
+                                            {isPdf
+                                              ? "Click to open PDF"
+                                              : "Click to view full screen"}
+                                          </div>
                                         </div>
-                                      ) : (
-                                        <img
-                                          src={documentUrl}
-                                          alt={`Driver's License ${index + 1}`}
-                                          className="w-full h-full object-contain p-2"
-                                          onError={(e) => {
-                                            console.error('Failed to load drivers license image:', url);
-                                            const target = e.target as HTMLImageElement;
-                                            target.style.display = "none";
-                                            const parent = target.parentElement?.parentElement;
-                                            if (parent && !parent.querySelector(".error-message")) {
-                                              const errorDiv = document.createElement("div");
-                                              errorDiv.className = "error-message text-sm text-muted-foreground absolute inset-0 flex items-center justify-center";
-                                              errorDiv.textContent = "Failed to load image";
-                                              parent.appendChild(errorDiv);
-                                            }
-                                          }}
-                                        />
-                                      )}
-                                      <div className="absolute inset-0 bg-background/0 group-hover:bg-background/10 transition-colors flex items-center justify-center">
-                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-background/70 text-foreground px-4 py-2 rounded-lg text-sm font-medium">
-                                          {isPdf ? 'Click to open PDF' : 'Click to view full screen'}
-                                        </div>
+                                        {isPdf && (
+                                          <div className="absolute top-2 right-2 bg-[#D3BC8D]/90 text-black text-xs px-2 py-1 rounded font-semibold">
+                                            PDF
+                                          </div>
+                                        )}
+                                        {driversLicenseUrlsArray.length > 1 && (
+                                          <div className="absolute top-2 left-2 bg-background/80 text-foreground text-xs px-2 py-1 rounded">
+                                            {index + 1} /{" "}
+                                            {driversLicenseUrlsArray.length}
+                                          </div>
+                                        )}
                                       </div>
-                                      {isPdf && (
-                                        <div className="absolute top-2 right-2 bg-[#D3BC8D]/90 text-black text-xs px-2 py-1 rounded font-semibold">
-                                          PDF
-                                        </div>
-                                      )}
-                                      {driversLicenseUrlsArray.length > 1 && (
-                                        <div className="absolute top-2 left-2 bg-background/80 text-foreground text-xs px-2 py-1 rounded">
-                                          {index + 1} / {driversLicenseUrlsArray.length}
-                                        </div>
-                                      )}
                                     </div>
-                                  </div>
-                                );
-                              })}
+                                  );
+                                },
+                              )}
                             </div>
                           ) : (
                             <div className="w-full aspect-[4/3] bg-background rounded-lg border border-border flex items-center justify-center">
-                              <p className="text-sm text-muted-foreground">No driver's license uploaded</p>
+                              <p className="text-sm text-muted-foreground">
+                                No driver's license uploaded
+                              </p>
                             </div>
                           )}
                         </div>
@@ -2752,7 +2996,8 @@ export default function FormsPage() {
               Decline Submission
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Please provide a reason for declining this submission. The client will receive an email with this reason.
+              Please provide a reason for declining this submission. The client
+              will receive an email with this reason.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -2831,7 +3076,7 @@ export default function FormsPage() {
 
       {/* Full Screen Document Viewer Dialog */}
       {fullScreenDocument && (
-        <div 
+        <div
           className="fixed inset-0 z-[100] bg-background/98 flex items-center justify-center"
           onClick={() => setFullScreenDocument(null)}
         >
@@ -2846,9 +3091,9 @@ export default function FormsPage() {
             className="fixed top-4 right-4 z-[9999] h-14 w-14 bg-red-500/20 text-red-700 border-red-500/50/90 hover:bg-red-500/20 text-red-700 border-red-500/50 text-foreground border-2 border-white rounded-full shadow-2xl backdrop-blur-sm transition-all hover:scale-110 flex items-center justify-center"
             aria-label="Close full screen view"
             style={{
-              position: 'fixed',
-              top: '1rem',
-              right: '1rem',
+              position: "fixed",
+              top: "1rem",
+              right: "1rem",
               zIndex: 9999,
             }}
           >
@@ -2857,102 +3102,134 @@ export default function FormsPage() {
 
           <div className="relative w-full h-full flex items-center justify-center p-8">
             {/* Image Counter - Bottom Center (for multiple drivers licenses) */}
-            {fullScreenDocument.type === 'license' && 
-             submissionDetails?.data?.driversLicenseUrls && 
-             fullScreenDocument.index !== undefined && (() => {
-               let driversLicenseUrlsArray: string[] = [];
-               if (submissionDetails.data.driversLicenseUrls) {
-                 if (typeof submissionDetails.data.driversLicenseUrls === 'string') {
-                   try {
-                     const parsed = JSON.parse(submissionDetails.data.driversLicenseUrls);
-                     driversLicenseUrlsArray = Array.isArray(parsed) ? parsed : [];
-                   } catch {
-                     driversLicenseUrlsArray = [];
-                   }
-                 } else if (Array.isArray(submissionDetails.data.driversLicenseUrls)) {
-                   driversLicenseUrlsArray = submissionDetails.data.driversLicenseUrls;
-                 }
-               }
-               return driversLicenseUrlsArray.length > 1 ? (
-                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[101] bg-background/80 backdrop-blur-sm px-6 py-3 rounded-full border-2 border-white/40 shadow-2xl">
-                   <span className="text-foreground text-base font-semibold tracking-wide">
-                     {fullScreenDocument.index + 1} / {driversLicenseUrlsArray.length}
-                   </span>
-                 </div>
-               ) : null;
-             })()}
+            {fullScreenDocument.type === "license" &&
+              submissionDetails?.data?.driversLicenseUrls &&
+              fullScreenDocument.index !== undefined &&
+              (() => {
+                let driversLicenseUrlsArray: string[] = [];
+                if (submissionDetails.data.driversLicenseUrls) {
+                  if (
+                    typeof submissionDetails.data.driversLicenseUrls ===
+                    "string"
+                  ) {
+                    try {
+                      const parsed = JSON.parse(
+                        submissionDetails.data.driversLicenseUrls,
+                      );
+                      driversLicenseUrlsArray = Array.isArray(parsed)
+                        ? parsed
+                        : [];
+                    } catch {
+                      driversLicenseUrlsArray = [];
+                    }
+                  } else if (
+                    Array.isArray(submissionDetails.data.driversLicenseUrls)
+                  ) {
+                    driversLicenseUrlsArray =
+                      submissionDetails.data.driversLicenseUrls;
+                  }
+                }
+                return driversLicenseUrlsArray.length > 1 ? (
+                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[101] bg-background/80 backdrop-blur-sm px-6 py-3 rounded-full border-2 border-white/40 shadow-2xl">
+                    <span className="text-foreground text-base font-semibold tracking-wide">
+                      {fullScreenDocument.index + 1} /{" "}
+                      {driversLicenseUrlsArray.length}
+                    </span>
+                  </div>
+                ) : null;
+              })()}
 
             {/* Navigation Buttons (for multiple drivers licenses) */}
-            {fullScreenDocument.type === 'license' && 
-             submissionDetails?.data?.driversLicenseUrls && 
-             fullScreenDocument.index !== undefined && (() => {
-               let driversLicenseUrlsArray: string[] = [];
-               if (submissionDetails.data.driversLicenseUrls) {
-                 if (typeof submissionDetails.data.driversLicenseUrls === 'string') {
-                   try {
-                     const parsed = JSON.parse(submissionDetails.data.driversLicenseUrls);
-                     driversLicenseUrlsArray = Array.isArray(parsed) ? parsed : [];
-                   } catch {
-                     driversLicenseUrlsArray = [];
-                   }
-                 } else if (Array.isArray(submissionDetails.data.driversLicenseUrls)) {
-                   driversLicenseUrlsArray = submissionDetails.data.driversLicenseUrls;
-                 }
-               }
-               return driversLicenseUrlsArray.length > 1 ? (
-                 <>
-                   {/* Previous Button */}
-                   {fullScreenDocument.index > 0 && (
-                     <Button
-                       variant="ghost"
-                       size="icon"
-                       onClick={(e) => {
-                         e.stopPropagation();
-                         const prevIndex = fullScreenDocument.index! - 1;
-                         const prevUrl = driversLicenseUrlsArray[prevIndex];
-                         const imageUrl = prevUrl.startsWith('http') ? prevUrl : buildApiUrl(prevUrl);
-                         const isPdf = prevUrl.toLowerCase().endsWith('.pdf') || prevUrl.toLowerCase().includes('.pdf');
-                         setFullScreenDocument({ 
-                           url: imageUrl, 
-                           type: 'license', 
-                           index: prevIndex,
-                           isPdf
-                         });
-                       }}
-                       className="fixed left-6 top-1/2 -translate-y-1/2 z-[200] h-14 w-14 bg-background/90 hover:bg-muted/50D3BC8D]/20 text-foreground border-2 border-white/60 rounded-full shadow-2xl backdrop-blur-sm transition-all hover:scale-110"
-                       aria-label="Previous image"
-                     >
-                       <ChevronLeft className="w-6 h-6" />
-                     </Button>
-                   )}
+            {fullScreenDocument.type === "license" &&
+              submissionDetails?.data?.driversLicenseUrls &&
+              fullScreenDocument.index !== undefined &&
+              (() => {
+                let driversLicenseUrlsArray: string[] = [];
+                if (submissionDetails.data.driversLicenseUrls) {
+                  if (
+                    typeof submissionDetails.data.driversLicenseUrls ===
+                    "string"
+                  ) {
+                    try {
+                      const parsed = JSON.parse(
+                        submissionDetails.data.driversLicenseUrls,
+                      );
+                      driversLicenseUrlsArray = Array.isArray(parsed)
+                        ? parsed
+                        : [];
+                    } catch {
+                      driversLicenseUrlsArray = [];
+                    }
+                  } else if (
+                    Array.isArray(submissionDetails.data.driversLicenseUrls)
+                  ) {
+                    driversLicenseUrlsArray =
+                      submissionDetails.data.driversLicenseUrls;
+                  }
+                }
+                return driversLicenseUrlsArray.length > 1 ? (
+                  <>
+                    {/* Previous Button */}
+                    {fullScreenDocument.index > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const prevIndex = fullScreenDocument.index! - 1;
+                          const prevUrl = driversLicenseUrlsArray[prevIndex];
+                          const imageUrl = prevUrl.startsWith("http")
+                            ? prevUrl
+                            : buildApiUrl(prevUrl);
+                          const isPdf =
+                            prevUrl.toLowerCase().endsWith(".pdf") ||
+                            prevUrl.toLowerCase().includes(".pdf");
+                          setFullScreenDocument({
+                            url: imageUrl,
+                            type: "license",
+                            index: prevIndex,
+                            isPdf,
+                          });
+                        }}
+                        className="fixed left-6 top-1/2 -translate-y-1/2 z-[200] h-14 w-14 bg-background/90 hover:bg-muted/50D3BC8D]/20 text-foreground border-2 border-white/60 rounded-full shadow-2xl backdrop-blur-sm transition-all hover:scale-110"
+                        aria-label="Previous image"
+                      >
+                        <ChevronLeft className="w-6 h-6" />
+                      </Button>
+                    )}
 
-                   {/* Next Button */}
-                   {fullScreenDocument.index < driversLicenseUrlsArray.length - 1 && (
-                     <Button
-                       variant="ghost"
-                       size="icon"
-                       onClick={(e) => {
-                         e.stopPropagation();
-                         const nextIndex = fullScreenDocument.index! + 1;
-                         const nextUrl = driversLicenseUrlsArray[nextIndex];
-                         const imageUrl = nextUrl.startsWith('http') ? nextUrl : buildApiUrl(nextUrl);
-                         const isPdf = nextUrl.toLowerCase().endsWith('.pdf') || nextUrl.toLowerCase().includes('.pdf');
-                         setFullScreenDocument({ 
-                           url: imageUrl, 
-                           type: 'license', 
-                           index: nextIndex,
-                           isPdf
-                         });
-                       }}
-                       className="fixed right-6 top-1/2 -translate-y-1/2 z-[200] h-14 w-14 bg-background/90 hover:bg-muted/50D3BC8D]/20 text-foreground border-2 border-white/60 rounded-full shadow-2xl backdrop-blur-sm transition-all hover:scale-110"
-                       aria-label="Next image"
-                     >
-                       <ChevronRight className="w-6 h-6" />
-                     </Button>
-                   )}
-                 </>
-               ) : null;
-             })()}
+                    {/* Next Button */}
+                    {fullScreenDocument.index <
+                      driversLicenseUrlsArray.length - 1 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const nextIndex = fullScreenDocument.index! + 1;
+                          const nextUrl = driversLicenseUrlsArray[nextIndex];
+                          const imageUrl = nextUrl.startsWith("http")
+                            ? nextUrl
+                            : buildApiUrl(nextUrl);
+                          const isPdf =
+                            nextUrl.toLowerCase().endsWith(".pdf") ||
+                            nextUrl.toLowerCase().includes(".pdf");
+                          setFullScreenDocument({
+                            url: imageUrl,
+                            type: "license",
+                            index: nextIndex,
+                            isPdf,
+                          });
+                        }}
+                        className="fixed right-6 top-1/2 -translate-y-1/2 z-[200] h-14 w-14 bg-background/90 hover:bg-muted/50D3BC8D]/20 text-foreground border-2 border-white/60 rounded-full shadow-2xl backdrop-blur-sm transition-all hover:scale-110"
+                        aria-label="Next image"
+                      >
+                        <ChevronRight className="w-6 h-6" />
+                      </Button>
+                    )}
+                  </>
+                ) : null;
+              })()}
 
             {/* Full Screen Document Display - PDF or Image */}
             {fullScreenDocument.isPdf ? (
@@ -2960,25 +3237,36 @@ export default function FormsPage() {
                 src={fullScreenDocument.url}
                 className="w-full h-full border-0"
                 style={{
-                  maxWidth: '100vw',
-                  maxHeight: '100vh',
+                  maxWidth: "100vw",
+                  maxHeight: "100vh",
                 }}
                 onClick={(e) => e.stopPropagation()}
-                title={fullScreenDocument.type === 'insurance' ? 'Insurance Card PDF' : `Driver's License PDF ${fullScreenDocument.index !== undefined ? fullScreenDocument.index + 1 : ''}`}
+                title={
+                  fullScreenDocument.type === "insurance"
+                    ? "Insurance Card PDF"
+                    : `Driver's License PDF ${fullScreenDocument.index !== undefined ? fullScreenDocument.index + 1 : ""}`
+                }
               />
             ) : (
               <img
                 src={fullScreenDocument.url}
-                alt={fullScreenDocument.type === 'insurance' ? 'Insurance Card' : `Driver's License ${fullScreenDocument.index !== undefined ? fullScreenDocument.index + 1 : ''}`}
+                alt={
+                  fullScreenDocument.type === "insurance"
+                    ? "Insurance Card"
+                    : `Driver's License ${fullScreenDocument.index !== undefined ? fullScreenDocument.index + 1 : ""}`
+                }
                 className="w-full h-full object-contain"
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  maxWidth: '100vw',
-                  maxHeight: '100vh',
+                  maxWidth: "100vw",
+                  maxHeight: "100vh",
                 }}
                 onError={(e) => {
-                  console.error('Failed to load image in full screen viewer:', fullScreenDocument.url);
-                  (e.target as HTMLImageElement).style.display = 'none';
+                  console.error(
+                    "Failed to load image in full screen viewer:",
+                    fullScreenDocument.url,
+                  );
+                  (e.target as HTMLImageElement).style.display = "none";
                 }}
               />
             )}

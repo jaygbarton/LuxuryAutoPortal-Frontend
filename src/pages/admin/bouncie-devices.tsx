@@ -32,6 +32,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl } from "@/lib/queryClient";
+import React, { useEffect } from "react";
 import {
   Plus,
   Edit,
@@ -40,6 +41,7 @@ import {
   Wifi,
   WifiOff,
   RefreshCw,
+  Download,
 } from "lucide-react";
 import { BouncieConnectionBanner } from "@/components/admin/BouncieConnectionBanner";
 
@@ -79,18 +81,34 @@ const UNASSIGNED = "__none__";
 
 export default function BouncieDevicesPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingDevice, setEditingDevice] = useState<BouncieDevice | null>(null);
-  const [addFormData, setAddFormData] = useState<AddDeviceData>({ imei: "", nickname: "", carId: "" });
-  const [editFormData, setEditFormData] = useState<UpdateDeviceData>({ nickname: "", carId: "", isActive: true });
+  const [editingDevice, setEditingDevice] = useState<BouncieDevice | null>(
+    null,
+  );
+  const [addFormData, setAddFormData] = useState<AddDeviceData>({
+    imei: "",
+    nickname: "",
+    carId: "",
+  });
+  const [editFormData, setEditFormData] = useState<UpdateDeviceData>({
+    nickname: "",
+    carId: "",
+    isActive: true,
+  });
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch devices
-  const { data: devicesData, isLoading, error } = useQuery<{ success: boolean; data: BouncieDevice[] }>({
+  const {
+    data: devicesData,
+    isLoading,
+    error,
+  } = useQuery<{ success: boolean; data: BouncieDevice[] }>({
     queryKey: ["/api/bouncie/devices"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/bouncie/devices"), { credentials: "include" });
+      const res = await fetch(buildApiUrl("/api/bouncie/devices"), {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch devices");
       return res.json();
     },
@@ -100,7 +118,9 @@ export default function BouncieDevicesPage() {
   const { data: carsData } = useQuery<{ success: boolean; data: GlaCar[] }>({
     queryKey: ["/api/bouncie/cars"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/bouncie/cars"), { credentials: "include" });
+      const res = await fetch(buildApiUrl("/api/bouncie/cars"), {
+        credentials: "include",
+      });
       if (!res.ok) return { success: true, data: [] };
       return res.json();
     },
@@ -128,12 +148,23 @@ export default function BouncieDevicesPage() {
       setAddFormData({ imei: "", nickname: "", carId: "" });
       toast({ title: "Success", description: "Device added successfully" });
     },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: Error) =>
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      }),
   });
 
   // Update device
   const updateDeviceMutation = useMutation({
-    mutationFn: async ({ deviceId, data }: { deviceId: string; data: UpdateDeviceData }) => {
+    mutationFn: async ({
+      deviceId,
+      data,
+    }: {
+      deviceId: string;
+      data: UpdateDeviceData;
+    }) => {
       const res = await fetch(buildApiUrl(`/api/bouncie/devices/${deviceId}`), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -151,7 +182,12 @@ export default function BouncieDevicesPage() {
       setEditingDevice(null);
       toast({ title: "Success", description: "Device updated successfully" });
     },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: Error) =>
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      }),
   });
 
   // Delete device
@@ -171,29 +207,52 @@ export default function BouncieDevicesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/bouncie/devices"] });
       toast({ title: "Success", description: "Device deleted successfully" });
     },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: Error) =>
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      }),
   });
 
   const handleAddDevice = () => {
     if (!addFormData.imei.trim()) {
-      toast({ title: "Error", description: "IMEI is required", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "IMEI is required",
+        variant: "destructive",
+      });
       return;
     }
     if (!/^\d{15}$/.test(addFormData.imei.replace(/\s/g, ""))) {
-      toast({ title: "Error", description: "IMEI must be exactly 15 digits", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "IMEI must be exactly 15 digits",
+        variant: "destructive",
+      });
       return;
     }
-    addDeviceMutation.mutate({ ...addFormData, imei: addFormData.imei.replace(/\s/g, "") });
+    addDeviceMutation.mutate({
+      ...addFormData,
+      imei: addFormData.imei.replace(/\s/g, ""),
+    });
   };
 
   const handleEditDevice = (device: BouncieDevice) => {
     setEditingDevice(device);
-    setEditFormData({ nickname: device.nickname || "", carId: device.carId || "", isActive: device.isActive });
+    setEditFormData({
+      nickname: device.nickname || "",
+      carId: device.carId || "",
+      isActive: device.isActive,
+    });
   };
 
   const handleUpdateDevice = () => {
     if (!editingDevice) return;
-    updateDeviceMutation.mutate({ deviceId: editingDevice.id, data: editFormData });
+    updateDeviceMutation.mutate({
+      deviceId: editingDevice.id,
+      data: editFormData,
+    });
   };
 
   const handleDeleteDevice = (deviceId: string) => {
@@ -203,11 +262,18 @@ export default function BouncieDevicesPage() {
   };
 
   const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   const carLabel = (carId?: string) => {
     if (!carId) return "-";
-    const car = cars.find(c => c.id === carId);
+    // Compare as strings because MySQL returns car_aid as number but carId is a string
+    const car = cars.find((c) => String(c.id) === String(carId));
     return car ? car.label.trim() || carId : carId;
   };
 
@@ -219,7 +285,10 @@ export default function BouncieDevicesPage() {
     value?: string;
     onChange: (val: string) => void;
   }) => (
-    <Select value={value || UNASSIGNED} onValueChange={(v) => onChange(v === UNASSIGNED ? "" : v)}>
+    <Select
+      value={value || UNASSIGNED}
+      onValueChange={(v) => onChange(v === UNASSIGNED ? "" : v)}
+    >
       <SelectTrigger>
         <SelectValue placeholder="Select a GLA car…" />
       </SelectTrigger>
@@ -238,12 +307,73 @@ export default function BouncieDevicesPage() {
   if (error) {
     return (
       <AdminLayout>
-        <div className="p-6 text-red-600">Error loading devices: {(error as Error).message}</div>
+        <div className="p-6 text-red-600">
+          Error loading devices: {(error as Error).message}
+        </div>
       </AdminLayout>
     );
   }
 
   const devices = devicesData?.data ?? [];
+
+  // Auto-sync mutation: registers all Bouncie vehicles that don't have a device yet
+  const autoSyncMutation = useMutation({
+    mutationFn: async () => {
+      // Fetch current Bouncie vehicles
+      const fleetRes = await fetch(buildApiUrl("/api/bouncie/fleet-overview"), {
+        credentials: "include",
+      });
+      if (!fleetRes.ok) throw new Error("Failed to fetch Bouncie fleet");
+      const fleet = await fleetRes.json();
+      const vehicles: any[] = fleet?.data?.vehicles ?? [];
+
+      // Get existing IMEIs
+      const existingImeis = new Set(
+        (devicesData?.data ?? []).map((d) => d.imei),
+      );
+
+      // Register each new vehicle
+      let added = 0;
+      for (const v of vehicles) {
+        const imei = v.imei || v.device_id;
+        if (!imei || existingImeis.has(imei)) continue;
+        const nickname =
+          v.liveStatus?.vehicleInfo?.nickname ||
+          (v.make && v.model ? `${v.make} ${v.model}` : imei);
+        await fetch(buildApiUrl("/api/bouncie/devices"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ imei, nickname }),
+        });
+        added++;
+      }
+      return added;
+    },
+    onSuccess: (added) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/bouncie/devices"] });
+      if (added > 0) {
+        toast({
+          title: "Devices synced",
+          description: `${added} new device${added === 1 ? "" : "s"} added from Bouncie.`,
+        });
+      }
+    },
+    onError: (err: Error) =>
+      toast({
+        title: "Sync failed",
+        description: err.message,
+        variant: "destructive",
+      }),
+  });
+
+  // Auto-sync on first load when devices are loaded and Bouncie is connected
+  useEffect(() => {
+    if (devicesData && !autoSyncMutation.isPending) {
+      autoSyncMutation.mutate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!devicesData]); // run once after devices data first arrives
 
   return (
     <AdminLayout>
@@ -253,11 +383,22 @@ export default function BouncieDevicesPage() {
         <div className="flex justify-between items-center mb-6 mt-4">
           <div>
             <h1 className="text-3xl font-bold">Bouncie Device Management</h1>
-            <p className="text-muted-foreground mt-2">Manage GPS tracking devices and link them to fleet vehicles</p>
+            <p className="text-muted-foreground mt-2">
+              Devices are automatically synced from your Bouncie account. Use
+              the edit icon to assign a device to a specific GLA car.
+            </p>
           </div>
-          <Button onClick={() => setShowAddDialog(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Device
+          <Button
+            variant="outline"
+            onClick={() => autoSyncMutation.mutate()}
+            disabled={autoSyncMutation.isPending}
+          >
+            {autoSyncMutation.isPending ? (
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            Sync from Bouncie
           </Button>
         </div>
 
@@ -274,8 +415,12 @@ export default function BouncieDevicesPage() {
             ) : devices.length === 0 ? (
               <div className="text-center py-8">
                 <MapPin className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No Bouncie Devices</h3>
-                <p className="text-muted-foreground mb-4">Add your first GPS tracking device to monitor your fleet.</p>
+                <h3 className="text-lg font-semibold mb-2">
+                  No Bouncie Devices
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Add your first GPS tracking device to monitor your fleet.
+                </p>
                 <Button onClick={() => setShowAddDialog(true)}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Your First Device
@@ -298,11 +443,17 @@ export default function BouncieDevicesPage() {
                   <TableBody>
                     {devices.map((device) => (
                       <TableRow key={device.id}>
-                        <TableCell className="font-mono text-sm">{device.imei}</TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {device.imei}
+                        </TableCell>
                         <TableCell>{device.nickname || "-"}</TableCell>
-                        <TableCell className="text-sm">{carLabel(device.carId)}</TableCell>
+                        <TableCell className="text-sm">
+                          {carLabel(device.carId)}
+                        </TableCell>
                         <TableCell>
-                          <Badge variant={device.isActive ? "default" : "secondary"}>
+                          <Badge
+                            variant={device.isActive ? "default" : "secondary"}
+                          >
                             {device.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
@@ -317,13 +468,23 @@ export default function BouncieDevicesPage() {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{formatDate(device.createdAt)}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {formatDate(device.createdAt)}
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handleEditDevice(device)}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditDevice(device)}
+                            >
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleDeleteDevice(device.id)}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteDevice(device.id)}
+                            >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
@@ -342,7 +503,10 @@ export default function BouncieDevicesPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Bouncie Device</DialogTitle>
-              <DialogDescription>Register a new GPS tracking device to monitor vehicle location and activity.</DialogDescription>
+              <DialogDescription>
+                Register a new GPS tracking device to monitor vehicle location
+                and activity.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -351,20 +515,26 @@ export default function BouncieDevicesPage() {
                   id="imei"
                   value={addFormData.imei}
                   onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "").slice(0, 15);
+                    const value = e.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, 15);
                     setAddFormData({ ...addFormData, imei: value });
                   }}
                   placeholder="123456789012345"
                   maxLength={15}
                 />
-                <p className="text-xs text-muted-foreground mt-1">Found on device label or in Bouncie app</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Found on device label or in Bouncie app
+                </p>
               </div>
               <div>
                 <Label htmlFor="nickname">Nickname</Label>
                 <Input
                   id="nickname"
                   value={addFormData.nickname}
-                  onChange={(e) => setAddFormData({ ...addFormData, nickname: e.target.value })}
+                  onChange={(e) =>
+                    setAddFormData({ ...addFormData, nickname: e.target.value })
+                  }
                   placeholder="Optional display name"
                 />
               </div>
@@ -372,14 +542,23 @@ export default function BouncieDevicesPage() {
                 <Label>Assign to GLA Car</Label>
                 <CarPicker
                   value={addFormData.carId}
-                  onChange={(val) => setAddFormData({ ...addFormData, carId: val })}
+                  onChange={(val) =>
+                    setAddFormData({ ...addFormData, carId: val })
+                  }
                 />
-                <p className="text-xs text-muted-foreground mt-1">Link this device to a specific rental car</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Link this device to a specific rental car
+                </p>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-              <Button onClick={handleAddDevice} disabled={!addFormData.imei || addDeviceMutation.isPending}>
+              <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAddDevice}
+                disabled={!addFormData.imei || addDeviceMutation.isPending}
+              >
                 {addDeviceMutation.isPending ? "Adding…" : "Add Device"}
               </Button>
             </DialogFooter>
@@ -387,23 +566,35 @@ export default function BouncieDevicesPage() {
         </Dialog>
 
         {/* Edit Device Dialog */}
-        <Dialog open={!!editingDevice} onOpenChange={() => setEditingDevice(null)}>
+        <Dialog
+          open={!!editingDevice}
+          onOpenChange={() => setEditingDevice(null)}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit Device</DialogTitle>
-              <DialogDescription>Update device information and assignment.</DialogDescription>
+              <DialogDescription>
+                Update device information and assignment.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
                 <Label>IMEI</Label>
-                <p className="text-sm font-mono text-muted-foreground mt-1">{editingDevice?.imei}</p>
+                <p className="text-sm font-mono text-muted-foreground mt-1">
+                  {editingDevice?.imei}
+                </p>
               </div>
               <div>
                 <Label htmlFor="edit-nickname">Nickname</Label>
                 <Input
                   id="edit-nickname"
                   value={editFormData.nickname}
-                  onChange={(e) => setEditFormData({ ...editFormData, nickname: e.target.value })}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      nickname: e.target.value,
+                    })
+                  }
                   placeholder="Optional display name"
                 />
               </div>
@@ -411,21 +602,30 @@ export default function BouncieDevicesPage() {
                 <Label>Assign to GLA Car</Label>
                 <CarPicker
                   value={editFormData.carId}
-                  onChange={(val) => setEditFormData({ ...editFormData, carId: val })}
+                  onChange={(val) =>
+                    setEditFormData({ ...editFormData, carId: val })
+                  }
                 />
               </div>
               <div className="flex items-center gap-3">
                 <Switch
                   id="edit-isActive"
                   checked={editFormData.isActive}
-                  onCheckedChange={(checked) => setEditFormData({ ...editFormData, isActive: checked })}
+                  onCheckedChange={(checked) =>
+                    setEditFormData({ ...editFormData, isActive: checked })
+                  }
                 />
                 <Label htmlFor="edit-isActive">Active tracking enabled</Label>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setEditingDevice(null)}>Cancel</Button>
-              <Button onClick={handleUpdateDevice} disabled={updateDeviceMutation.isPending}>
+              <Button variant="outline" onClick={() => setEditingDevice(null)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpdateDevice}
+                disabled={updateDeviceMutation.isPending}
+              >
                 {updateDeviceMutation.isPending ? "Updating…" : "Save Changes"}
               </Button>
             </DialogFooter>

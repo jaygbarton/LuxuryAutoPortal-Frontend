@@ -63,15 +63,27 @@ function parseEmpList(json: string | undefined): { fullname: string }[] {
 
 function TaskStatusBadge({ status }: { status?: number }) {
   const s = Number(status);
-  if (s === 1)
+  if (s === 3)
     return (
       <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-        Complete
+        Completed
+      </span>
+    );
+  if (s === 2)
+    return (
+      <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
+        On Hold
+      </span>
+    );
+  if (s === 1)
+    return (
+      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+        In Progress
       </span>
     );
   return (
-    <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
-      Ongoing
+    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+      New
     </span>
   );
 }
@@ -100,7 +112,8 @@ export default function StaffTaskManagement() {
     queryKey: ["staff-task-management", listUrl],
     queryFn: async () => {
       const res = await fetch(buildApiUrl(listUrl), { credentials: "include" });
-      if (res.status === 404 || res.status === 501) return { success: true, data: [], total: 0 };
+      if (res.status === 404 || res.status === 501)
+        return { success: true, data: [], total: 0 };
       if (!res.ok) throw new Error("Failed to load tasks");
       return res.json();
     },
@@ -122,8 +135,12 @@ export default function StaffTaskManagement() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-primary">Task Management</h1>
-          <p className="text-muted-foreground">View and manage your assigned tasks.</p>
+          <h1 className="text-2xl font-semibold text-primary">
+            Task Management
+          </h1>
+          <p className="text-muted-foreground">
+            View and manage your assigned tasks.
+          </p>
         </div>
 
         <Card className="bg-card border-border">
@@ -137,14 +154,19 @@ export default function StaffTaskManagement() {
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
                 <label className="text-sm text-muted-foreground">Status</label>
-                <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}>
+                <Select
+                  value={statusFilter || "all"}
+                  onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}
+                >
                   <SelectTrigger className="w-[120px]">
                     <SelectValue placeholder="All" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="0">Ongoing</SelectItem>
-                    <SelectItem value="1">Complete</SelectItem>
+                    <SelectItem value="0">New</SelectItem>
+                    <SelectItem value="1">In Progress</SelectItem>
+                    <SelectItem value="2">On Hold</SelectItem>
+                    <SelectItem value="3">Completed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -217,7 +239,8 @@ export default function StaffTaskManagement() {
                       <TableRow key={item.task_timer_aid ?? idx}>
                         <TableCell>{idx + 1}.</TableCell>
                         <TableCell>
-                          {formatDate(item.task_timer_date_start)} to {formatDate(item.task_timer_date_end)}
+                          {formatDate(item.task_timer_date_start)} to{" "}
+                          {formatDate(item.task_timer_date_end)}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate">
                           {parseEmpList(item.task_timer_emp_list)
@@ -225,7 +248,9 @@ export default function StaffTaskManagement() {
                             .join(", ") || "--"}
                         </TableCell>
                         <TableCell>{item.task_timer_name ?? "--"}</TableCell>
-                        <TableCell>{item.task_timer_car_name ?? "--"}</TableCell>
+                        <TableCell>
+                          {item.task_timer_car_name ?? "--"}
+                        </TableCell>
                         <TableCell className="text-center">
                           <TaskStatusBadge status={item.task_timer_status} />
                         </TableCell>
@@ -265,21 +290,48 @@ export default function StaffTaskManagement() {
       </div>
 
       {/* View details modal */}
-      <Dialog open={!!viewItem} onOpenChange={(open) => !open && setViewItem(null)}>
+      <Dialog
+        open={!!viewItem}
+        onOpenChange={(open) => !open && setViewItem(null)}
+      >
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Task details</DialogTitle>
           </DialogHeader>
           {viewItem && (
             <div className="space-y-3 text-sm">
-              <p><span className="font-medium">Date range:</span> {formatDate(viewItem.task_timer_date_start)} to {formatDate(viewItem.task_timer_date_end)}</p>
-              <p><span className="font-medium">Status:</span> <TaskStatusBadge status={viewItem.task_timer_status} /></p>
-              <p><span className="font-medium">Car:</span> {viewItem.task_timer_car_name ?? "--"}</p>
-              <p><span className="font-medium">Task name:</span> {viewItem.task_timer_name ?? "--"}</p>
-              <p><span className="font-medium">Assign to:</span> {parseEmpList(viewItem.task_timer_emp_list).map((e) => e.fullname).join(", ") || "--"}</p>
-              <p><span className="font-medium">Description:</span> {viewItem.task_timer_description ?? "--"}</p>
+              <p>
+                <span className="font-medium">Date range:</span>{" "}
+                {formatDate(viewItem.task_timer_date_start)} to{" "}
+                {formatDate(viewItem.task_timer_date_end)}
+              </p>
+              <p>
+                <span className="font-medium">Status:</span>{" "}
+                <TaskStatusBadge status={viewItem.task_timer_status} />
+              </p>
+              <p>
+                <span className="font-medium">Car:</span>{" "}
+                {viewItem.task_timer_car_name ?? "--"}
+              </p>
+              <p>
+                <span className="font-medium">Task name:</span>{" "}
+                {viewItem.task_timer_name ?? "--"}
+              </p>
+              <p>
+                <span className="font-medium">Assign to:</span>{" "}
+                {parseEmpList(viewItem.task_timer_emp_list)
+                  .map((e) => e.fullname)
+                  .join(", ") || "--"}
+              </p>
+              <p>
+                <span className="font-medium">Description:</span>{" "}
+                {viewItem.task_timer_description ?? "--"}
+              </p>
               {viewItem.task_timer_other_not_related_car && (
-                <p><span className="font-medium">Other:</span> {viewItem.task_timer_other_not_related_car}</p>
+                <p>
+                  <span className="font-medium">Other:</span>{" "}
+                  {viewItem.task_timer_other_not_related_car}
+                </p>
               )}
             </div>
           )}
@@ -287,14 +339,18 @@ export default function StaffTaskManagement() {
       </Dialog>
 
       {/* Comment modal */}
-      <Dialog open={!!commentItem} onOpenChange={(open) => !open && setCommentItem(null)}>
+      <Dialog
+        open={!!commentItem}
+        onOpenChange={(open) => !open && setCommentItem(null)}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Comments</DialogTitle>
           </DialogHeader>
           {commentItem && (
             <p className="text-sm text-muted-foreground">
-              Task: {commentItem.task_timer_name ?? "--"}. Comment feature can be wired to the backend when available.
+              Task: {commentItem.task_timer_name ?? "--"}. Comment feature can
+              be wired to the backend when available.
             </p>
           )}
         </DialogContent>

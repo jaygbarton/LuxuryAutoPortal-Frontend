@@ -40,6 +40,7 @@ import {
   ShieldAlert,
   Eye,
   TreePalm,
+  Newspaper,
 } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { ViewAsClientBanner } from "./ViewAsClientBanner";
@@ -268,6 +269,12 @@ const allSidebarItems: SidebarItem[] = [
     label: "Client Testimonials",
     icon: Star,
     roles: ["admin", "client"],
+  },
+  {
+    href: "/admin/news-media",
+    label: "News & Media",
+    icon: Newspaper,
+    roles: ["admin"],
   },
   {
     href: "/admin/view-as-employee",

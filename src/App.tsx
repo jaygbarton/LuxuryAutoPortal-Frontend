@@ -92,6 +92,7 @@ import StaffCommissionFormMySubmissions from "@/pages/staff/commission-form-my-s
 import TuroTripsPage from "@/pages/admin/turo-trips";
 import AdminTestimonialsPage from "@/pages/admin/testimonials";
 import AdminTuroGuidePage from "@/pages/admin/turo-guide";
+import NewsMediaPage from "@/pages/admin/news-media";
 import { AdminLayout } from "@/components/admin/admin-layout";
 
 function Router() {
@@ -122,82 +123,182 @@ function Router() {
         <AdminLayout>
           <Switch>
             <Route path="/staff/dashboard" component={StaffDashboard} />
-            <Route path="/staff/my-info/:section" component={StaffMyInfoSection} />
+            <Route
+              path="/staff/my-info/:section"
+              component={StaffMyInfoSection}
+            />
             <Route path="/staff/my-info">
               <Redirect to="/staff/my-info/personal-information" />
             </Route>
             <Route path="/staff/forms/submit" component={StaffFormsSubmit} />
-            <Route path="/staff/forms/my-submissions" component={StaffFormsMySubmissions} />
+            <Route
+              path="/staff/forms/my-submissions"
+              component={StaffFormsMySubmissions}
+            />
             <Route path="/staff/forms" component={StaffForms} />
-            <Route path="/staff/commission-form/my-submissions" component={StaffCommissionFormMySubmissions} />
-            <Route path="/staff/commission-form" component={StaffCommissionForm} />
-            <Route path="/staff/task-management" component={StaffTaskManagement} />
+            <Route
+              path="/staff/commission-form/my-submissions"
+              component={StaffCommissionFormMySubmissions}
+            />
+            <Route
+              path="/staff/commission-form"
+              component={StaffCommissionForm}
+            />
+            <Route
+              path="/staff/task-management"
+              component={StaffTaskManagement}
+            />
             <Route path="/staff/time" component={StaffTime} />
             <Route path="/staff/time-off" component={StaffTimeOff} />
             <Route path="/staff/turo-guide" component={StaffTuroGuide} />
-            <Route path="/staff/training-manual" component={StaffTrainingManual} />
-            <Route path="/staff/client-testimonials" component={StaffClientTestimonials} />
-            <Route path="/staff/car-rental/trips" component={StaffCarRentalTrips} />
-            <Route path="/staff/car-rental/forms/submit" component={StaffCarRentalFormSubmit} />
-            <Route path="/staff/car-rental/forms" component={StaffCarRentalForms} />
+            <Route
+              path="/staff/training-manual"
+              component={StaffTrainingManual}
+            />
+            <Route
+              path="/staff/client-testimonials"
+              component={StaffClientTestimonials}
+            />
+            <Route
+              path="/staff/car-rental/trips"
+              component={StaffCarRentalTrips}
+            />
+            <Route
+              path="/staff/car-rental/forms/submit"
+              component={StaffCarRentalFormSubmit}
+            />
+            <Route
+              path="/staff/car-rental/forms"
+              component={StaffCarRentalForms}
+            />
             <Route path="/dashboard" component={DashboardRouter} />
             <Route path="/admin/admins" component={AdminsPage} />
             <Route path="/admin/clients" component={ClientsPage} />
             <Route path="/admin/clients/:id" component={ClientDetailPage} />
             <Route path="/admin/view-as-client" component={ViewAsClientPage} />
-            <Route path="/admin/view-as-employee" component={ViewAsEmployeePage} />
+            <Route
+              path="/admin/view-as-employee"
+              component={ViewAsEmployeePage}
+            />
             <Route path="/admin/forms" component={FormsPage} />
             <Route path="/cars" component={CarsPage} />
             <Route path="/admin/view-car/:id" component={ViewCarPage} />
             <Route path="/admin/cars/:id/earnings" component={EarningsPage} />
-            <Route path="/admin/cars/:id/expenses" component={TotalExpensesPage} />
-            <Route path="/admin/cars/:id/depreciation" component={NADADepreciationPage} />
-            <Route path="/admin/cars/:id/purchase" component={PurchaseDetailsPage} />
+            <Route
+              path="/admin/cars/:id/expenses"
+              component={TotalExpensesPage}
+            />
+            <Route
+              path="/admin/cars/:id/depreciation"
+              component={NADADepreciationPage}
+            />
+            <Route
+              path="/admin/cars/:id/purchase"
+              component={PurchaseDetailsPage}
+            />
             <Route path="/admin/cars/:id/graphs" component={GraphsChartsPage} />
-            <Route path="/admin/cars/:id/calculator" component={PaymentCalculatorPage} />
-            <Route path="/admin/cars/:id/maintenance" component={MaintenancePage} />
+            <Route
+              path="/admin/cars/:id/calculator"
+              component={PaymentCalculatorPage}
+            />
+            <Route
+              path="/admin/cars/:id/maintenance"
+              component={MaintenancePage}
+            />
             <Route path="/admin/cars/:id/totals" component={TotalsPage} />
             <Route path="/admin/totals/all" component={TotalsPage} />
             <Route path="/admin/totals" component={TotalsPage} />
             <Route path="/admin/cars/:id/records" component={RecordsPage} />
-            <Route path="/admin/cars/:carId/records/:recordId/files" component={ViewRecordFilesPage} />
+            <Route
+              path="/admin/cars/:carId/records/:recordId/files"
+              component={ViewRecordFilesPage}
+            />
             <Route path="/admin/payments" component={PaymentsMainPage} />
             <Route path="/admin/payment-status" component={PaymentStatusPage} />
             <Route path="/admin/cars/:id/payments" component={PaymentsPage} />
-            <Route path="/admin/cars/:id/income-expense/log" component={IncomeExpenseLogPage} />
-            <Route path="/admin/cars/:id/income-expense" component={CarIncomeExpensePage} />
+            <Route
+              path="/admin/cars/:id/income-expense/log"
+              component={IncomeExpenseLogPage}
+            />
+            <Route
+              path="/admin/cars/:id/income-expense"
+              component={CarIncomeExpensePage}
+            />
             <Route path="/admin/cars/:id" component={CarDetailPage} />
-            <Route path="/admin/income-expenses" component={IncomeExpensesPageWrapper} />
+            <Route
+              path="/admin/income-expenses"
+              component={IncomeExpensesPageWrapper}
+            />
             <Route path="/admin/settings" component={SettingsPage} />
             <Route path="/admin/operations" component={OperationsPage} />
             <Route path="/admin/bouncie" component={BouncieFleetPage} />
-            <Route path="/admin/bouncie-devices" component={BouncieDevicesPage} />
+            <Route
+              path="/admin/bouncie-devices"
+              component={BouncieDevicesPage}
+            />
             <Route path="/admin/bouncie-trips" component={BouncieTripsPage} />
-            <Route path="/admin/bouncie-behavior" component={BouncieBehaviorPage} />
-            <Route path="/admin/bouncie-geofence" component={BouncieGeofencePage} />
-            <Route path="/admin/bouncie-analytics" component={BouncieAnalyticsPage} />
+            <Route
+              path="/admin/bouncie-behavior"
+              component={BouncieBehaviorPage}
+            />
+            <Route
+              path="/admin/bouncie-geofence"
+              component={BouncieGeofencePage}
+            />
+            <Route
+              path="/admin/bouncie-analytics"
+              component={BouncieAnalyticsPage}
+            />
             <Route path="/admin/hr" component={HumanResourcesPage} />
             <Route path="/admin/work-schedule" component={WorkSchedulePage} />
-            <Route path="/admin/hr/work-schedule" component={WorkSchedulePage} />
-            <Route path="/admin/hr/employees/view" component={EmployeeViewPage} />
+            <Route
+              path="/admin/hr/work-schedule"
+              component={WorkSchedulePage}
+            />
+            <Route
+              path="/admin/hr/employees/view"
+              component={EmployeeViewPage}
+            />
             <Route path="/admin/hr/employees" component={EmployeesPage} />
-            <Route path="/admin/hr/task-management" component={AdminHrTaskManagement} />
+            <Route
+              path="/admin/hr/task-management"
+              component={AdminHrTaskManagement}
+            />
             <Route path="/admin/hr/time" component={AdminHrTime} />
             <Route path="/admin/hr/time-off" component={AdminHrTimeOff} />
             <Route path="/admin/hr/overtime" component={AdminHrOvertime} />
             <Route path="/admin/hr/report" component={AdminHrReport} />
             <Route path="/admin/payroll" component={PayrollPage} />
-            <Route path="/admin/payroll/commissions" component={PayrollCommissionsPage} />
-            <Route path="/admin/payroll/:payrunId/payslip/:employeeId" component={PayslipPage} />
-            <Route path="/admin/payroll/:payrunId" component={PayrollByRunPage} />
+            <Route
+              path="/admin/payroll/commissions"
+              component={PayrollCommissionsPage}
+            />
+            <Route
+              path="/admin/payroll/:payrunId/payslip/:employeeId"
+              component={PayslipPage}
+            />
+            <Route
+              path="/admin/payroll/:payrunId"
+              component={PayrollByRunPage}
+            />
             <Route path="/client/dashboard" component={ClientDashboardPage} />
-            <Route path="/client/my-car-tracking" component={ClientCarTrackingPage} />
+            <Route
+              path="/client/my-car-tracking"
+              component={ClientCarTrackingPage}
+            />
             <Route path="/profile" component={ClientProfilePage} />
             <Route path="/tutorial" component={ClientTrainingManualPage} />
-            <Route path="/admin/training-manual" component={TrainingManualPage} />
+            <Route
+              path="/admin/training-manual"
+              component={TrainingManualPage}
+            />
             <Route path="/admin/turo-trips" component={TuroTripsPage} />
-            <Route path="/admin/testimonials" component={AdminTestimonialsPage} />
+            <Route
+              path="/admin/testimonials"
+              component={AdminTestimonialsPage}
+            />
             <Route path="/admin/turo-guide" component={AdminTuroGuidePage} />
+            <Route path="/admin/news-media" component={NewsMediaPage} />
             <Route component={NotFound} />
           </Switch>
         </AdminLayout>
@@ -213,8 +314,14 @@ function App() {
     console.log("[APP] Environment: development");
     console.log("[APP] API base:", apiBaseUrl || "relative (Vite proxy)");
   }
-  if (import.meta.env.PROD && typeof window !== "undefined" && !import.meta.env.VITE_API_URL) {
-    console.warn("⚠️ [APP] VITE_API_URL is not set in production; API calls may fail.");
+  if (
+    import.meta.env.PROD &&
+    typeof window !== "undefined" &&
+    !import.meta.env.VITE_API_URL
+  ) {
+    console.warn(
+      "⚠️ [APP] VITE_API_URL is not set in production; API calls may fail.",
+    );
   }
 
   return (
