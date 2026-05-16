@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useEffect, createContext, useContext } from "react";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  createContext,
+  useContext,
+} from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -65,52 +71,152 @@ const allSidebarItems: SidebarItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   // Client-only profile link for logged-in clients
   { href: "/profile", label: "Profile", icon: User, roles: ["client"] },
-  { href: "/client/my-car-tracking", label: "Track My Car", icon: Navigation, roles: ["client"] },
+  {
+    href: "/client/my-car-tracking",
+    label: "Track My Car",
+    icon: Navigation,
+    roles: ["client"],
+  },
   { href: "/admin/admins", label: "Admins", icon: Users, roles: ["admin"] },
   { href: "/admin/clients", label: "Clients", icon: Users, roles: ["admin"] },
   { href: "/cars", label: "Cars", icon: Car, roles: ["admin", "client"] },
-  { href: "/admin/income-expenses", label: "Income and Expenses", icon: DollarSign, roles: ["admin"] },
+  {
+    href: "/admin/income-expenses",
+    label: "Income and Expenses",
+    icon: DollarSign,
+    roles: ["admin"],
+  },
   {
     href: "/admin/payments",
     label: "Client Payments",
     icon: CreditCard,
     roles: ["admin"],
     children: [
-      { href: "/admin/payments", label: "Payments", icon: CreditCard, roles: ["admin"] },
-      { href: "/admin/payment-status", label: "Status", icon: ClipboardList, roles: ["admin"] },
+      {
+        href: "/admin/payments",
+        label: "Payments",
+        icon: CreditCard,
+        roles: ["admin"],
+      },
+      {
+        href: "/admin/payment-status",
+        label: "Status",
+        icon: ClipboardList,
+        roles: ["admin"],
+      },
     ],
   },
-  { href: "/admin/totals", label: "Totals", icon: Calculator, roles: ["admin"] },
-  { href: "/admin/turo-trips", label: "Turo Trips", icon: Mail, roles: ["admin"] },
+  {
+    href: "/admin/totals",
+    label: "Totals",
+    icon: Calculator,
+    roles: ["admin"],
+  },
+  {
+    href: "/admin/turo-trips",
+    label: "Turo Trips",
+    icon: Mail,
+    roles: ["admin"],
+  },
   {
     href: "/admin/bouncie",
     label: "BOUNCIE",
     icon: MapPin,
     roles: ["admin"],
     children: [
-      { href: "/admin/bouncie", label: "Fleet Tracking", icon: Navigation, roles: ["admin"] },
-      { href: "/admin/bouncie-devices", label: "Devices", icon: Cpu, roles: ["admin"] },
-      { href: "/admin/bouncie-trips", label: "Trip History", icon: Route, roles: ["admin"] },
-      { href: "/admin/bouncie-behavior", label: "Driving Behavior", icon: ShieldAlert, roles: ["admin"] },
-      { href: "/admin/bouncie-geofence", label: "Geofence", icon: MapPin, roles: ["admin"] },
-      { href: "/admin/bouncie-analytics", label: "Analytics", icon: BarChart3, roles: ["admin"] },
+      {
+        href: "/admin/bouncie",
+        label: "Fleet Tracking",
+        icon: Navigation,
+        roles: ["admin"],
+      },
+      {
+        href: "/admin/bouncie-devices",
+        label: "Devices",
+        icon: Cpu,
+        roles: ["admin"],
+      },
+      {
+        href: "/admin/bouncie-trips",
+        label: "Trip History",
+        icon: Route,
+        roles: ["admin"],
+      },
+      {
+        href: "/admin/bouncie-behavior",
+        label: "Driving Behavior",
+        icon: ShieldAlert,
+        roles: ["admin"],
+      },
+      {
+        href: "/admin/bouncie-geofence",
+        label: "Geofence",
+        icon: MapPin,
+        roles: ["admin"],
+      },
+      {
+        href: "/admin/bouncie-analytics",
+        label: "Analytics",
+        icon: BarChart3,
+        roles: ["admin"],
+      },
     ],
   },
-  { href: "/admin/operations", label: "Operations", icon: Cog, roles: ["admin"] },
-  { href: "/admin/forms", label: "Forms", icon: ClipboardList, roles: ["admin", "client"] },
-  { href: "/admin/car-rental", label: "Car Rental", icon: Key, roles: ["admin"] },
+  {
+    href: "/admin/operations",
+    label: "Operations",
+    icon: Cog,
+    roles: ["admin"],
+  },
+  {
+    href: "/admin/forms",
+    label: "Forms",
+    icon: ClipboardList,
+    roles: ["admin", "client"],
+  },
+  {
+    href: "/admin/car-rental",
+    label: "Car Rental",
+    icon: Key,
+    roles: ["admin"],
+  },
   {
     href: "/admin/hr",
     label: "Human Resources",
     icon: Briefcase,
     roles: ["admin"],
     children: [
-      { href: "/admin/hr/employees", label: "Employees", icon: Users, roles: ["admin"] },
-      { href: "/admin/hr/work-schedule", label: "Work Schedule", icon: Clock, roles: ["admin"] },
-      { href: "/admin/hr/task-management", label: "Task Management", icon: Briefcase, roles: ["admin"] },
+      {
+        href: "/admin/hr/employees",
+        label: "Employees",
+        icon: Users,
+        roles: ["admin"],
+      },
+      {
+        href: "/admin/hr/work-schedule",
+        label: "Work Schedule",
+        icon: Clock,
+        roles: ["admin"],
+      },
+      {
+        href: "/admin/hr/task-management",
+        label: "Task Management",
+        icon: Briefcase,
+        roles: ["admin"],
+      },
       { href: "/admin/hr/time", label: "Time", icon: Clock, roles: ["admin"] },
-      { href: "/admin/hr/time-off", label: "Time Off", icon: Clock, roles: ["admin"] },
-      { href: "/admin/hr/report", label: "Report", icon: ClipboardList, roles: ["admin"] },
+      {
+        href: "/admin/hr/time-off",
+        label: "Time Off",
+        icon: Clock,
+        roles: ["admin"],
+      },
+      {
+        href: "/admin/hr/report",
+        label: "Report",
+        icon: ClipboardList,
+        roles: ["admin"],
+      },
     ],
   },
   {
@@ -119,38 +225,154 @@ const allSidebarItems: SidebarItem[] = [
     icon: DollarSign,
     roles: ["admin"],
     children: [
-      { href: "/admin/payroll", label: "Pay Run", icon: DollarSign, roles: ["admin"] },
-      { href: "/admin/payroll/commissions", label: "Commissions", icon: DollarSign, roles: ["admin"] },
+      {
+        href: "/admin/payroll",
+        label: "Pay Run",
+        icon: DollarSign,
+        roles: ["admin"],
+      },
+      {
+        href: "/admin/payroll/commissions",
+        label: "Commissions",
+        icon: DollarSign,
+        roles: ["admin"],
+      },
     ],
   },
-  { href: "/admin/settings", label: "Settings", icon: Settings, roles: ["admin", "client"] },
-  { href: "/admin/turo-guide", label: "Turo Guide", icon: BookOpen, roles: ["admin", "client"] },
-  { href: "/admin/training-manual", label: "System Tutorial", icon: GraduationCap, roles: ["admin"] },
-  { href: "/tutorial", label: "System Tutorial", icon: GraduationCap, roles: ["client"] },
-  { href: "/admin/testimonials", label: "Client Testimonials", icon: Star, roles: ["admin", "client"] },
-  { href: "/admin/view-as-employee", label: "View as Employee", icon: Eye, roles: ["admin"] },
-  { href: "/admin/view-as-client", label: "View as Client", icon: Eye, roles: ["admin"] },
+  {
+    href: "/admin/settings",
+    label: "Settings",
+    icon: Settings,
+    roles: ["admin", "client"],
+  },
+  {
+    href: "/admin/turo-guide",
+    label: "Turo Guide",
+    icon: BookOpen,
+    roles: ["admin", "client"],
+  },
+  {
+    href: "/admin/training-manual",
+    label: "System Tutorial",
+    icon: GraduationCap,
+    roles: ["admin"],
+  },
+  {
+    href: "/tutorial",
+    label: "System Tutorial",
+    icon: GraduationCap,
+    roles: ["client"],
+  },
+  {
+    href: "/admin/testimonials",
+    label: "Client Testimonials",
+    icon: Star,
+    roles: ["admin", "client"],
+  },
+  {
+    href: "/admin/view-as-employee",
+    label: "View as Employee",
+    icon: Eye,
+    roles: ["admin"],
+  },
+  {
+    href: "/admin/view-as-client",
+    label: "View as Client",
+    icon: Eye,
+    roles: ["admin"],
+  },
 ];
 
 // Staff/employee sidebar: Dashboard, My Info, Forms, Task Management, Turo Guide, System Tutorial, Client Testimonials, Car Rental
 const employeeSidebarItems: SidebarItem[] = [
-  { href: "/staff/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["employee"] },
-  { href: "/staff/time", label: "Time Sheet", icon: Clock, roles: ["employee"] },
-  { href: "/staff/time-off", label: "Time Off", icon: TreePalm, roles: ["employee"] },
+  {
+    href: "/staff/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    roles: ["employee"],
+  },
+  {
+    href: "/staff/time",
+    label: "Time Sheet",
+    icon: Clock,
+    roles: ["employee"],
+  },
+  {
+    href: "/staff/time-off",
+    label: "Time Off",
+    icon: TreePalm,
+    roles: ["employee"],
+  },
   { href: "/staff/my-info", label: "My Info", icon: User, roles: ["employee"] },
   { href: "/staff/forms", label: "Forms", icon: FileText, roles: ["employee"] },
-  { href: "/staff/task-management", label: "Task Management", icon: Briefcase, roles: ["employee"] },
-  { href: "/staff/turo-guide", label: "Turo Guide", icon: BookOpen, roles: ["employee"] },
-  { href: "/staff/training-manual", label: "System Tutorial", icon: GraduationCap, roles: ["employee"] },
-  { href: "/staff/client-testimonials", label: "Client Testimonials", icon: MessageCircle, roles: ["employee"] },
+  {
+    href: "/staff/task-management",
+    label: "Task Management",
+    icon: Briefcase,
+    roles: ["employee"],
+  },
+  {
+    href: "/admin/operations",
+    label: "Operations",
+    icon: Briefcase,
+    roles: ["employee"],
+  },
+  {
+    href: "/admin/bouncie",
+    label: "BOUNCIE",
+    icon: Navigation,
+    roles: ["employee"],
+    children: [
+      {
+        href: "/admin/bouncie",
+        label: "Fleet Tracking",
+        icon: Navigation,
+        roles: ["employee"],
+      },
+      {
+        href: "/admin/bouncie-trips",
+        label: "Trip History",
+        icon: Route,
+        roles: ["employee"],
+      },
+    ],
+  },
+  {
+    href: "/staff/turo-guide",
+    label: "Turo Guide",
+    icon: BookOpen,
+    roles: ["employee"],
+  },
+  {
+    href: "/staff/training-manual",
+    label: "System Tutorial",
+    icon: GraduationCap,
+    roles: ["employee"],
+  },
+  {
+    href: "/staff/client-testimonials",
+    label: "Client Testimonials",
+    icon: MessageCircle,
+    roles: ["employee"],
+  },
   {
     href: "/staff/car-rental",
     label: "Car Rental",
     icon: Car,
     roles: ["employee"],
     children: [
-      { href: "/staff/car-rental/trips", label: "Trips", icon: Car, roles: ["employee"] },
-      { href: "/staff/car-rental/forms", label: "Forms", icon: FileText, roles: ["employee"] },
+      {
+        href: "/staff/car-rental/trips",
+        label: "Trips",
+        icon: Car,
+        roles: ["employee"],
+      },
+      {
+        href: "/staff/car-rental/forms",
+        label: "Forms",
+        icon: FileText,
+        roles: ["employee"],
+      },
     ],
   },
 ];
@@ -169,7 +391,9 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   const [location, setLocation] = useLocation();
   const [switching, setSwitching] = useState(false);
 
-  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>(() => {
+  const [expandedParents, setExpandedParents] = useState<
+    Record<string, boolean>
+  >(() => {
     const obj: Record<string, boolean> = {};
     const matches = (pathname: string, href: string) => {
       if (pathname === href) return true;
@@ -184,7 +408,8 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     return obj;
   });
 
-  const toggleExpand = (href: string) => setExpandedParents((prev) => ({ ...prev, [href]: !prev[href] }));
+  const toggleExpand = (href: string) =>
+    setExpandedParents((prev) => ({ ...prev, [href]: !prev[href] }));
 
   // Proper path-boundary match so e.g. "/admin/bouncie" does NOT match "/admin/bouncie-devices".
   const isPathActive = (pathname: string, href: string) => {
@@ -199,7 +424,9 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     const newState = { ...expandedParents };
     [...allSidebarItems, ...employeeSidebarItems].forEach((it) => {
       if (it.children && it.children.length > 0) {
-        const childActive = it.children.some((c) => isPathActive(location, c.href));
+        const childActive = it.children.some((c) =>
+          isPathActive(location, c.href),
+        );
         if (childActive && !newState[it.href]) {
           newState[it.href] = true;
           changed = true;
@@ -214,7 +441,9 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     queryFn: async () => {
       const { buildApiUrl } = await import("@/lib/queryClient");
       try {
-        const response = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
+        const response = await fetch(buildApiUrl("/api/auth/me"), {
+          credentials: "include",
+        });
         if (!response.ok) {
           // 401 is expected when not authenticated - don't log as error
           if (response.status === 401) {
@@ -241,7 +470,8 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   // automatically without the route-prefix fallback.
   const showStaffSidebar =
     !!(user as any)?.viewAsEmployee?.employeeId ||
-    (location.startsWith("/staff") && (user?.isEmployee === true || user?.isAdmin === true));
+    (location.startsWith("/staff") &&
+      (user?.isEmployee === true || user?.isAdmin === true));
 
   // Filter sidebar items based on user role and path (employees see staff nav; on /staff path admins also see staff nav)
   const sidebarItems = useMemo(() => {
@@ -263,44 +493,74 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     const isViewingAsClient = !!(user as any).viewAsClient?.clientId;
     const isViewingAsEmployee = !!(user as any).viewAsEmployee?.employeeId;
     const roleName = String((user as any).roleName || "").toLowerCase();
-    const userRole: "admin" | "client" | "employee" | null =
-      isViewingAsClient ? "client"
-      : isViewingAsEmployee ? "employee"
-      : user.isAdmin ? "admin"
-      : user.isEmployee ? "employee"
-      : user.isClient ? "client"
-      : /admin|owner|developer|manager/.test(roleName) ? "admin"
-      : /employee|staff/.test(roleName) ? "employee"
-      : /client|customer/.test(roleName) ? "client"
-      : null;
+    const userRole: "admin" | "client" | "employee" | null = isViewingAsClient
+      ? "client"
+      : isViewingAsEmployee
+        ? "employee"
+        : user.isAdmin
+          ? "admin"
+          : user.isEmployee
+            ? "employee"
+            : user.isClient
+              ? "client"
+              : /admin|owner|developer|manager/.test(roleName)
+                ? "admin"
+                : /employee|staff/.test(roleName)
+                  ? "employee"
+                  : /client|customer/.test(roleName)
+                    ? "client"
+                    : null;
     const roleForStaffNav = showStaffSidebar ? "employee" : userRole;
 
     // Staff sidebar: when user is employee, or when on /staff path as admin (manager using staff view)
     if (user.isEmployee || showStaffSidebar) {
-      return employeeSidebarItems.filter((item) => {
-        const visible = !item.roles || item.roles.length === 0 || (roleForStaffNav && item.roles.includes(roleForStaffNav));
-        if (!visible) return false;
-        if (item.children && item.children.length > 0) {
-          const filteredChildren = item.children.filter((c) => !c.roles || c.roles.length === 0 || (roleForStaffNav && c.roles.includes(roleForStaffNav)));
-          return filteredChildren.length > 0;
-        }
-        return true;
-      }).map((item) => {
-        if (item.children && item.children.length > 0) {
-          const filteredChildren = item.children.filter((c) => !c.roles || c.roles.length === 0 || (roleForStaffNav && c.roles.includes(roleForStaffNav)));
-          return { ...item, children: filteredChildren };
-        }
-        return item;
-      }) as SidebarItem[];
+      return employeeSidebarItems
+        .filter((item) => {
+          const visible =
+            !item.roles ||
+            item.roles.length === 0 ||
+            (roleForStaffNav && item.roles.includes(roleForStaffNav));
+          if (!visible) return false;
+          if (item.children && item.children.length > 0) {
+            const filteredChildren = item.children.filter(
+              (c) =>
+                !c.roles ||
+                c.roles.length === 0 ||
+                (roleForStaffNav && c.roles.includes(roleForStaffNav)),
+            );
+            return filteredChildren.length > 0;
+          }
+          return true;
+        })
+        .map((item) => {
+          if (item.children && item.children.length > 0) {
+            const filteredChildren = item.children.filter(
+              (c) =>
+                !c.roles ||
+                c.roles.length === 0 ||
+                (roleForStaffNav && c.roles.includes(roleForStaffNav)),
+            );
+            return { ...item, children: filteredChildren };
+          }
+          return item;
+        }) as SidebarItem[];
     }
 
     return allSidebarItems
       .map((item) => {
-        const visible = !item.roles || item.roles.length === 0 || (userRole && item.roles.includes(userRole));
+        const visible =
+          !item.roles ||
+          item.roles.length === 0 ||
+          (userRole && item.roles.includes(userRole));
         if (!visible) return null;
 
         if (item.children && item.children.length > 0) {
-          const filteredChildren = item.children.filter((c) => !c.roles || c.roles.length === 0 || (userRole && c.roles.includes(userRole)));
+          const filteredChildren = item.children.filter(
+            (c) =>
+              !c.roles ||
+              c.roles.length === 0 ||
+              (userRole && c.roles.includes(userRole)),
+          );
           return { ...item, children: filteredChildren };
         }
 
@@ -312,14 +572,14 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   const handleLogout = async () => {
     try {
       await apiRequest("POST", "/api/auth/logout");
-      
+
       // Clear ALL query caches to prevent showing previous user's data
       // This ensures when a new user logs in, they see fresh data, not cached data from previous user
       queryClient.clear();
-      
+
       // Also invalidate auth query explicitly
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      
+
       setLocation("/admin/login");
     } catch (error) {
       console.error("Logout failed:", error);
@@ -374,28 +634,30 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     //     than the viewport, which used to visually "cut" the main content
     //     during browser resizes.
     <div className="flex h-screen bg-background overflow-hidden">
-      <aside className={cn(
-        // Base: flex column chrome for the sidebar.
-        "z-50 flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300",
-        // Mobile (< lg): fixed overlay that slides in from the left.
-        "fixed inset-y-0 left-0",
-        mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
-        // Desktop (lg+): promote the sidebar to a normal flex child so it
-        // naturally contributes its width to the row and <main> doesn't need
-        // a hand-tuned margin. `lg:translate-x-0` cancels the mobile slide
-        // transform; `lg:h-screen` guarantees full height even when the flex
-        // parent's stretch ever gets overridden.
-        "lg:static lg:translate-x-0 lg:h-screen lg:flex-shrink-0",
-        sidebarOpen ? "w-64" : "w-20"
-      )}>
+      <aside
+        className={cn(
+          // Base: flex column chrome for the sidebar.
+          "z-50 flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300",
+          // Mobile (< lg): fixed overlay that slides in from the left.
+          "fixed inset-y-0 left-0",
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
+          // Desktop (lg+): promote the sidebar to a normal flex child so it
+          // naturally contributes its width to the row and <main> doesn't need
+          // a hand-tuned margin. `lg:translate-x-0` cancels the mobile slide
+          // transform; `lg:h-screen` guarantees full height even when the flex
+          // parent's stretch ever gets overridden.
+          "lg:static lg:translate-x-0 lg:h-screen lg:flex-shrink-0",
+          sidebarOpen ? "w-64" : "w-20",
+        )}
+      >
         <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <img 
-              src="/logo.png" 
-              alt="Golden Luxury Auto" 
+            <img
+              src="/logo.png"
+              alt="Golden Luxury Auto"
               className={cn(
                 "object-contain transition-all duration-300 drop-shadow-[0_0_8px_rgba(234,235,128,0.3)]",
-                sidebarOpen ? "w-[180px] md:w-[200px]" : "w-[40px]"
+                sidebarOpen ? "w-[180px] md:w-[200px]" : "w-[40px]",
               )}
             />
           </Link>
@@ -423,7 +685,9 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
             if (item.children && item.children.length > 0) {
               // Parent is considered active only when a child path is active.
-              const isParentActive = item.children.some((c) => isPathActive(location, c.href));
+              const isParentActive = item.children.some((c) =>
+                isPathActive(location, c.href),
+              );
               const expanded = expandedParents[item.href] ?? isParentActive;
 
               return (
@@ -431,16 +695,18 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                   <div
                     className={cn(
                       "flex items-center gap-3 px-3 py-2 rounded-md transition-colors relative cursor-pointer border-l-2",
-                      isParentActive ? activeClasses : inactiveClasses
+                      isParentActive ? activeClasses : inactiveClasses,
                     )}
                     onClick={() => toggleExpand(item.href)}
-                    data-testid={`link-admin-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    data-testid={`link-admin-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
                     {sidebarOpen && (
                       <>
                         <span className="text-sm flex-1">{item.label}</span>
-                        <ChevronDown className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+                        />
                       </>
                     )}
                   </div>
@@ -456,12 +722,21 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                             href={child.href}
                             className={cn(
                               "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors border-l-2",
-                              childActive ? childActiveClasses : inactiveClasses
+                              childActive
+                                ? childActiveClasses
+                                : inactiveClasses,
                             )}
                             onClick={() => setMobileMenuOpen(false)}
-                            data-testid={`link-admin-${child.label.toLowerCase().replace(/\s+/g, '-')}`}
+                            data-testid={`link-admin-${child.label.toLowerCase().replace(/\s+/g, "-")}`}
                           >
-                            <ChildIcon className={cn("w-3 h-3 shrink-0", childActive ? "text-[hsl(var(--sidebar-primary-foreground))]" : "text-muted-foreground")} />
+                            <ChildIcon
+                              className={cn(
+                                "w-3 h-3 shrink-0",
+                                childActive
+                                  ? "text-[hsl(var(--sidebar-primary-foreground))]"
+                                  : "text-muted-foreground",
+                              )}
+                            />
                             <span>{child.label}</span>
                           </Link>
                         );
@@ -480,10 +755,10 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                 href={item.href}
                 className={cn(
                   "flex items-center gap-3 mx-2 px-3 py-2 rounded-md transition-colors relative border-l-2",
-                  isActive ? childActiveClasses : inactiveClasses
+                  isActive ? childActiveClasses : inactiveClasses,
                 )}
                 onClick={() => setMobileMenuOpen(false)}
-                data-testid={`link-admin-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                data-testid={`link-admin-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
               >
                 <Icon className="w-4 h-4 shrink-0" />
                 {sidebarOpen && (
@@ -542,42 +817,46 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
             {user && (
               <div className="flex items-center gap-2">
                 <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-[120px] sm:max-w-none">
-                  {user.firstName} {user.lastName} <span className="hidden sm:inline">({user.roleName})</span>
+                  {user.firstName} {user.lastName}{" "}
+                  <span className="hidden sm:inline">({user.roleName})</span>
                 </span>
-                {(user as any).roles?.length > 1 && !(user as any).impersonatorIsAdmin && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground"
-                        disabled={switching}
-                        title="Switch account (same login)"
-                      >
-                        {switching ? (
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <RefreshCw className="h-4 w-4 sm:mr-1" />
-                            <span className="hidden sm:inline">Switch account</span>
-                          </>
-                        )}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel>Switch to</DropdownMenuLabel>
-                      {((user as any).roles as RoleOption[]).map((r) => (
-                        <DropdownMenuItem
-                          key={r.id}
-                          onClick={() => handleSwitchRole(r.id, r)}
-                          disabled={r.id === user.roleId || switching}
+                {(user as any).roles?.length > 1 &&
+                  !(user as any).impersonatorIsAdmin && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground"
+                          disabled={switching}
+                          title="Switch account (same login)"
                         >
-                          {r.name} {r.id === user.roleId ? "(current)" : ""}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
+                          {switching ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <RefreshCw className="h-4 w-4 sm:mr-1" />
+                              <span className="hidden sm:inline">
+                                Switch account
+                              </span>
+                            </>
+                          )}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuLabel>Switch to</DropdownMenuLabel>
+                        {((user as any).roles as RoleOption[]).map((r) => (
+                          <DropdownMenuItem
+                            key={r.id}
+                            onClick={() => handleSwitchRole(r.id, r)}
+                            disabled={r.id === user.roleId || switching}
+                          >
+                            {r.name} {r.id === user.roleId ? "(current)" : ""}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
               </div>
             )}
           </div>
@@ -594,12 +873,14 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         */}
         <main className="flex-1 min-w-0 flex flex-col overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 bg-background">
           <ViewAsClientBanner />
-          <div key={location} className="flex-1 min-h-0">{children}</div>
+          <div key={location} className="flex-1 min-h-0">
+            {children}
+          </div>
         </main>
       </div>
 
       {mobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-foreground/20 z-40 lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
