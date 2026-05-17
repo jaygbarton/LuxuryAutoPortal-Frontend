@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
-import { TablePagination, type ItemsPerPage } from "@/components/ui/table-pagination";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
+import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { StatusBadge } from "./StatusBadge";
@@ -25,7 +29,14 @@ export function NoCarIssuesTab() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<ItemsPerPage>(20);
+  const [pageSize, setPageSize] = usePersistentPageSize(
+    "operations.noCarIssues",
+  );
+  const carNameWithYear = useCarNameWithYear();
+  const [search, setSearch] = useState<string>("");
+  const [filterSource, setFilterSource] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
   const { data, isLoading } = useQuery<{ data: Inspection[] }>({
     queryKey: ["/api/operations/inspections", "no_issues"],
@@ -47,11 +58,39 @@ export function NoCarIssuesTab() {
   });
   const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
 
-  const inspections = data?.data || [];
+  const rawInspections = data?.data || [];
+
+  const inspections = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const from = dateFrom ? new Date(dateFrom).getTime() : null;
+    const to = dateTo
+      ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1
+      : null;
+    return rawInspections.filter((insp) => {
+      if (q) {
+        const hay = [insp.car_name, insp.reservation_id, insp.assigned_to, insp.source]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (filterSource !== "all" && insp.source !== filterSource) return false;
+      if (from != null || to != null) {
+        const d = insp.inspection_date ? new Date(insp.inspection_date).getTime() : null;
+        if (d == null) return false;
+        if (from != null && d < from) return false;
+        if (to != null && d > to) return false;
+      }
+      return true;
+    });
+  }, [rawInspections, search, filterSource, dateFrom, dateTo]);
+
+  const hasActiveFilters =
+    search !== "" || filterSource !== "all" || dateFrom !== "" || dateTo !== "";
 
   useEffect(() => {
     setPage(1);
-  }, [pageSize]);
+  }, [search, filterSource, dateFrom, dateTo, pageSize]);
 
   const pagedInspections = useMemo(
     () => inspections.slice((page - 1) * pageSize, page * pageSize),
@@ -84,8 +123,68 @@ export function NoCarIssuesTab() {
 
       <div className="bg-card border border-border rounded-lg overflow-auto">
         <div className="p-4">
-          <div className="flex items-center mb-4">
-            <div className="ml-auto text-muted-foreground text-sm">Total: {inspections.length}</div>
+          <div className="flex flex-col lg:flex-row lg:items-end gap-3 mb-4">
+            <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+              <label className="text-muted-foreground text-xs">Search</label>
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Car, reservation, assignee..."
+                className="bg-card border-border text-foreground h-9"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">Source</label>
+              <Select value={filterSource} onValueChange={setFilterSource}>
+                <SelectTrigger className="bg-card border-border text-foreground w-[150px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground">
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                  <SelectItem value="turo_return">Turo Return</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">
+                Inspection From
+              </label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="bg-card border-border text-foreground h-9 w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">
+                Inspection To
+              </label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="bg-card border-border text-foreground h-9 w-[150px]"
+              />
+            </div>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setSearch("");
+                  setFilterSource("all");
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+                className="text-red-700 hover:text-red-700 hover:bg-red-900/20 h-9"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+          <div className="text-sm text-muted-foreground mb-3">
+            Total: {inspections.length}
           </div>
 
           <div className="overflow-x-auto">
@@ -118,7 +217,7 @@ export function NoCarIssuesTab() {
                     const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
                     return (
                     <TableRow key={insp.id} className="border-border hover:bg-card/50 transition-colors">
-                      <TableCell className="text-foreground">{insp.car_name}</TableCell>
+                      <TableCell className="text-foreground">{carNameWithYear(insp.car_name, trip?.plateNumber)}</TableCell>
                       <TableCell className="text-foreground font-mono text-sm">{trip?.plateNumber || "--"}</TableCell>
                       <TableCell className="text-foreground font-mono text-sm">{insp.reservation_id || "--"}</TableCell>
                       <TableCell className="text-muted-foreground capitalize text-sm">{insp.source?.replace(/_/g, " ") || "--"}</TableCell>

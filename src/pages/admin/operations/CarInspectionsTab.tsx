@@ -7,11 +7,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
-import { TablePagination, type ItemsPerPage } from "@/components/ui/table-pagination";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
+import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
 import { StatusBadge } from "./StatusBadge";
 import { InspectionModal } from "./InspectionModal";
 import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 import { Plus, Edit, Trash2, ArrowRight, Wrench, History, CheckCircle2 } from "lucide-react";
 import type { Inspection, MaintenanceRecord, TuroTrip } from "./types";
 
@@ -29,6 +32,10 @@ export function CarInspectionsTab() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterSource, setFilterSource] = useState<string>("all");
+  const [search, setSearch] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingInspection, setEditingInspection] = useState<Inspection | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -36,7 +43,10 @@ export function CarInspectionsTab() {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [historyInspection, setHistoryInspection] = useState<Inspection | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<ItemsPerPage>(20);
+  const [pageSize, setPageSize] = usePersistentPageSize(
+    "operations.carIssues",
+  );
+  const carNameWithYear = useCarNameWithYear();
 
   const { data, isLoading } = useQuery<{ data: Inspection[] }>({
     queryKey: ["/api/operations/inspections", "all_sources", filterStatus],
@@ -72,12 +82,51 @@ export function CarInspectionsTab() {
   });
   const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
 
-  const inspections = data?.data || [];
+  const rawInspections = data?.data || [];
   const maintenanceRecords = maintenanceData?.data || [];
+
+  const inspections = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const from = dateFrom ? new Date(dateFrom).getTime() : null;
+    const to = dateTo
+      ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1
+      : null;
+    return rawInspections.filter((insp) => {
+      if (q) {
+        const hay = [
+          insp.car_name,
+          insp.reservation_id,
+          insp.assigned_to,
+          insp.source,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (filterSource !== "all" && insp.source !== filterSource) return false;
+      if (from != null || to != null) {
+        const d = insp.inspection_date
+          ? new Date(insp.inspection_date).getTime()
+          : null;
+        if (d == null) return false;
+        if (from != null && d < from) return false;
+        if (to != null && d > to) return false;
+      }
+      return true;
+    });
+  }, [rawInspections, search, filterSource, dateFrom, dateTo]);
+
+  const hasActiveFilters =
+    filterStatus !== "all" ||
+    filterSource !== "all" ||
+    search !== "" ||
+    dateFrom !== "" ||
+    dateTo !== "";
 
   useEffect(() => {
     setPage(1);
-  }, [filterStatus, pageSize]);
+  }, [filterStatus, filterSource, search, dateFrom, dateTo, pageSize]);
 
   const pagedInspections = useMemo(
     () => inspections.slice((page - 1) * pageSize, page * pageSize),
@@ -159,11 +208,20 @@ export function CarInspectionsTab() {
 
       <div className="bg-card border border-border rounded-lg overflow-auto">
         <div className="p-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
-            <div className="flex items-center gap-2">
-              <label className="text-muted-foreground text-sm">Status:</label>
+          <div className="flex flex-col lg:flex-row lg:items-end gap-3 mb-4">
+            <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+              <label className="text-muted-foreground text-xs">Search</label>
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Car, reservation, assignee..."
+                className="bg-card border-border text-foreground h-9"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">Status</label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="bg-card border-border text-foreground w-[130px]">
+                <SelectTrigger className="bg-card border-border text-foreground w-[160px] h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground">
@@ -175,12 +233,59 @@ export function CarInspectionsTab() {
                 </SelectContent>
               </Select>
             </div>
-            {filterStatus !== "all" && (
-              <Button variant="ghost" onClick={() => setFilterStatus("all")} className="text-red-700 hover:text-red-700 hover:bg-red-900/20">
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">Source</label>
+              <Select value={filterSource} onValueChange={setFilterSource}>
+                <SelectTrigger className="bg-card border-border text-foreground w-[150px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground">
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                  <SelectItem value="turo_return">Turo Return</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">
+                Inspection From
+              </label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="bg-card border-border text-foreground h-9 w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">
+                Inspection To
+              </label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="bg-card border-border text-foreground h-9 w-[150px]"
+              />
+            </div>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setFilterStatus("all");
+                  setFilterSource("all");
+                  setSearch("");
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+                className="text-red-700 hover:text-red-700 hover:bg-red-900/20 h-9"
+              >
                 Clear Filters
               </Button>
             )}
-            <div className="ml-auto text-muted-foreground text-sm">Total: {inspections.length}</div>
+          </div>
+          <div className="text-sm text-muted-foreground mb-3">
+            Total: {inspections.length}
           </div>
 
           <div className="overflow-x-auto">
@@ -217,7 +322,9 @@ export function CarInspectionsTab() {
                       <TableRow key={insp.id} className="border-border hover:bg-card/50 transition-colors">
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <span className="text-foreground">{insp.car_name}</span>
+                            <span className="text-foreground">
+                              {carNameWithYear(insp.car_name, trip?.plateNumber)}
+                            </span>
                             {movedToMaint && (
                               <Badge className="bg-blue-500/20 text-blue-400 border-0 text-[10px] px-1.5 py-0 gap-1">
                                 <Wrench className="w-2.5 h-2.5" />

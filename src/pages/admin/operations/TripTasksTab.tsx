@@ -26,7 +26,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
-import { TablePagination, type ItemsPerPage } from "@/components/ui/table-pagination";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
+import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
 import { StatusBadge } from "./StatusBadge";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { useToast } from "@/hooks/use-toast";
@@ -60,7 +62,10 @@ export function TripTasksTab() {
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<ItemsPerPage>(20);
+  const [pageSize, setPageSize] = usePersistentPageSize(
+    "operations.tripTasks",
+  );
+  const carNameWithYear = useCarNameWithYear();
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<OperationTask | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -219,38 +224,20 @@ export function TripTasksTab() {
 
       <div className="bg-card border border-border rounded-lg overflow-auto">
         <div className="p-4">
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <div className="flex items-center gap-2">
-              <label className="text-muted-foreground text-sm">Search:</label>
+          <div className="flex flex-col lg:flex-row lg:items-end gap-3 mb-4">
+            <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+              <label className="text-muted-foreground text-xs">Search</label>
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Reservation, car, guest..."
-                className="bg-card border-border text-foreground w-[200px] h-8"
+                className="bg-card border-border text-foreground h-9"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-muted-foreground text-sm">From:</label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="bg-card border-border text-foreground w-[140px] h-8"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-muted-foreground text-sm">To:</label>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="bg-card border-border text-foreground w-[140px] h-8"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-muted-foreground text-sm">Type:</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">Type</label>
               <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="bg-card border-border text-foreground w-[130px]">
+                <SelectTrigger className="bg-card border-border text-foreground w-[140px] h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground">
@@ -261,10 +248,10 @@ export function TripTasksTab() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-muted-foreground text-sm">Status:</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">Status</label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="bg-card border-border text-foreground w-[130px]">
+                <SelectTrigger className="bg-card border-border text-foreground w-[140px] h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground">
@@ -276,18 +263,40 @@ export function TripTasksTab() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">
+                Scheduled From
+              </label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="bg-card border-border text-foreground h-9 w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">
+                Scheduled To
+              </label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="bg-card border-border text-foreground h-9 w-[150px]"
+              />
+            </div>
             {hasActiveFilters && (
               <Button
                 variant="ghost"
                 onClick={handleClearFilters}
-                className="text-red-700 hover:text-red-700 hover:bg-red-900/20"
+                className="text-red-700 hover:text-red-700 hover:bg-red-900/20 h-9"
               >
                 Clear Filters
               </Button>
             )}
-            <div className="ml-auto text-muted-foreground text-sm">
-              Total: {filteredTasks.length}
-            </div>
+          </div>
+          <div className="text-sm text-muted-foreground mb-3">
+            Total: {filteredTasks.length}
           </div>
 
           <div className="overflow-x-auto">
@@ -376,7 +385,7 @@ export function TripTasksTab() {
                           {task.reservation_id || "N/A"}
                         </TableCell>
                         <TableCell className="text-foreground">
-                          {task.car_name}
+                          {carNameWithYear(task.car_name, trip?.plateNumber)}
                         </TableCell>
                         <TableCell className="text-foreground font-mono text-sm">
                           {trip?.plateNumber || "--"}

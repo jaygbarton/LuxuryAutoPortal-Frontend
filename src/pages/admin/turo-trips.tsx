@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
 import {
   RefreshCw,
   Calendar,
@@ -240,14 +241,6 @@ export default function TuroTripsPage() {
       return res.json();
     },
   });
-  const carsByPlate = React.useMemo(() => {
-    const map = new Map<string, { make?: string | null; model?: string | null; year?: number | null }>();
-    for (const c of carsData?.data || []) {
-      const plate = (c.plateNumber || c.licensePlate || "").trim().toUpperCase();
-      if (plate) map.set(plate, c);
-    }
-    return map;
-  }, [carsData]);
   const carsByMakeModel = React.useMemo(() => {
     const map = new Map<
       string,
@@ -284,28 +277,9 @@ export default function TuroTripsPage() {
     [carsByMakeModel],
   );
 
-  const carNameWithYear = (
-    carName: string | null,
-    plate: string | null,
-  ): string => {
-    if (!carName) return "-";
-    // If the carName already contains a 4-digit year anywhere, leave it alone
-    // (handles both "2024 Toyota Sequoia" and "Toyota Sequoia 2024").
-    if (/\b(19|20)\d{2}\b/.test(carName)) return carName;
-    // Prefer plate-based match — plate # uniquely identifies one car.
-    if (plate) {
-      const hit = carsByPlate.get(plate.trim().toUpperCase());
-      if (hit?.year) return `${carName} ${hit.year}`;
-    }
-    // Fallback: scan for any car whose "make model" appears in carName.
-    const lower = carName.toLowerCase();
-    for (const [key, c] of carsByMakeModel.entries()) {
-      if (key && lower.includes(key) && c.year) {
-        return `${carName} ${c.year}`;
-      }
-    }
-    return carName;
-  };
+  // Shared hook (same implementation as before, now lives in one place so
+  // every operations tab uses the same matching logic).
+  const carNameWithYear = useCarNameWithYear();
 
   // Sync emails mutation
   const syncMutation = useMutation({

@@ -26,7 +26,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
-import { TablePagination, type ItemsPerPage } from "@/components/ui/table-pagination";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
+import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
 import { StatusBadge } from "./StatusBadge";
 import { InspectionModal } from "./InspectionModal";
 import { PhotoUpload } from "./PhotoUpload";
@@ -64,7 +66,10 @@ export function TuroInspectionTab() {
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<ItemsPerPage>(20);
+  const [pageSize, setPageSize] = usePersistentPageSize(
+    "operations.turoMessages",
+  );
+  const carNameWithYear = useCarNameWithYear();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingInspection, setEditingInspection] = useState<Inspection | null>(
     null,
@@ -292,38 +297,20 @@ export function TuroInspectionTab() {
 
       <div className="bg-card border border-border rounded-lg overflow-auto">
         <div className="p-4">
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <div className="flex items-center gap-2">
-              <label className="text-muted-foreground text-sm">Search:</label>
+          <div className="flex flex-col lg:flex-row lg:items-end gap-3 mb-4">
+            <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+              <label className="text-muted-foreground text-xs">Search</label>
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Car, reservation, assignee..."
-                className="bg-card border-border text-foreground w-[200px] h-8"
+                className="bg-card border-border text-foreground h-9"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-muted-foreground text-sm">From:</label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="bg-card border-border text-foreground w-[140px] h-8"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-muted-foreground text-sm">To:</label>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="bg-card border-border text-foreground w-[140px] h-8"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-muted-foreground text-sm">Status:</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">Status</label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="bg-card border-border text-foreground w-[130px]">
+                <SelectTrigger className="bg-card border-border text-foreground w-[160px] h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground">
@@ -335,6 +322,28 @@ export function TuroInspectionTab() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">
+                Inspection From
+              </label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="bg-card border-border text-foreground h-9 w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">
+                Inspection To
+              </label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="bg-card border-border text-foreground h-9 w-[150px]"
+              />
+            </div>
             {hasActiveFilters && (
               <Button
                 variant="ghost"
@@ -344,14 +353,14 @@ export function TuroInspectionTab() {
                   setDateFrom("");
                   setDateTo("");
                 }}
-                className="text-red-700 hover:text-red-700 hover:bg-red-900/20"
+                className="text-red-700 hover:text-red-700 hover:bg-red-900/20 h-9"
               >
                 Clear Filters
               </Button>
             )}
-            <div className="ml-auto text-muted-foreground text-sm">
-              Total: {filteredInspections.length}
-            </div>
+          </div>
+          <div className="text-sm text-muted-foreground mb-3">
+            Total: {filteredInspections.length}
           </div>
 
           <div className="overflow-x-auto">
@@ -421,7 +430,7 @@ export function TuroInspectionTab() {
                       className="border-border hover:bg-card/50 transition-colors"
                     >
                       <TableCell className="text-foreground">
-                        {insp.car_name}
+                        {carNameWithYear(insp.car_name, trip?.plateNumber)}
                       </TableCell>
                       <TableCell className="text-foreground font-mono text-sm">
                         {trip?.plateNumber || "--"}

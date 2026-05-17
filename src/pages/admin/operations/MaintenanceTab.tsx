@@ -25,11 +25,14 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
-import { TablePagination, type ItemsPerPage } from "@/components/ui/table-pagination";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
+import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
 import { StatusBadge } from "./StatusBadge";
 import { MaintenanceModal } from "./MaintenanceModal";
 import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 import { Plus, Edit, Trash2, History } from "lucide-react";
 import type { MaintenanceRecord } from "./types";
 
@@ -83,6 +86,9 @@ export function MaintenanceTab({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>(defaultStatus);
+  const [search, setSearch] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<MaintenanceRecord | null>(
     null,
@@ -95,7 +101,10 @@ export function MaintenanceTab({
     null,
   );
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<ItemsPerPage>(20);
+  const [pageSize, setPageSize] = usePersistentPageSize(
+    "operations.maintenance",
+  );
+  const carNameWithYear = useCarNameWithYear();
 
   const { data, isLoading } = useQuery<{ data: MaintenanceRecord[] }>({
     queryKey: ["/api/operations/maintenance", filterStatus],
@@ -112,11 +121,51 @@ export function MaintenanceTab({
     },
   });
 
-  const records = data?.data || [];
+  const rawRecords = data?.data || [];
+
+  const records = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const from = dateFrom ? new Date(dateFrom).getTime() : null;
+    const to = dateTo
+      ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1
+      : null;
+    return rawRecords.filter((rec) => {
+      if (q) {
+        const hay = [
+          rec.car_name,
+          rec.car_make,
+          rec.car_model,
+          rec.car_plate,
+          rec.task_description,
+          rec.assigned_to,
+          rec.repair_shop,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (from != null || to != null) {
+        const d = rec.scheduled_date
+          ? new Date(rec.scheduled_date).getTime()
+          : null;
+        if (d == null) return false;
+        if (from != null && d < from) return false;
+        if (to != null && d > to) return false;
+      }
+      return true;
+    });
+  }, [rawRecords, search, dateFrom, dateTo]);
+
+  const hasActiveFilters =
+    filterStatus !== (defaultStatus ?? "all") ||
+    search !== "" ||
+    dateFrom !== "" ||
+    dateTo !== "";
 
   useEffect(() => {
     setPage(1);
-  }, [filterStatus, pageSize]);
+  }, [filterStatus, search, dateFrom, dateTo, pageSize]);
 
   const pagedRecords = useMemo(
     () => records.slice((page - 1) * pageSize, page * pageSize),
@@ -199,49 +248,79 @@ export function MaintenanceTab({
 
       <div className="bg-card border border-border rounded-lg overflow-auto">
         <div className="p-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
-            {!lockedStatus && (
-              <>
-                <div className="flex items-center gap-2">
-                  <label className="text-muted-foreground text-sm">
-                    Status:
-                  </label>
-                  <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="bg-card border-border text-foreground w-[170px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border text-foreground">
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="new">New</SelectItem>
-                      <SelectItem value="damage_reported">
-                        Damage Reported
-                      </SelectItem>
-                      <SelectItem value="in_review">In Review</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="in_repair">In Repair</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="charged_customer">
-                        Charged Customer
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {filterStatus !== "all" && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => setFilterStatus("all")}
-                    className="text-red-700 hover:text-red-700 hover:bg-red-900/20"
-                  >
-                    Clear Filters
-                  </Button>
-                )}
-              </>
-            )}
-            <div className={lockedStatus ? "" : "ml-auto"}>
-              <span className="text-muted-foreground text-sm">
-                Total: {records.length}
-              </span>
+          <div className="flex flex-col lg:flex-row lg:items-end gap-3 mb-4">
+            <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+              <label className="text-muted-foreground text-xs">Search</label>
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Car, plate, description, assignee..."
+                className="bg-card border-border text-foreground h-9"
+              />
             </div>
+            {!lockedStatus && (
+              <div className="flex flex-col gap-1">
+                <label className="text-muted-foreground text-xs">Status</label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="bg-card border-border text-foreground w-[170px] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border text-foreground">
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="damage_reported">
+                      Damage Reported
+                    </SelectItem>
+                    <SelectItem value="in_review">In Review</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="in_repair">In Repair</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="charged_customer">
+                      Charged Customer
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">
+                Scheduled From
+              </label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="bg-card border-border text-foreground h-9 w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-muted-foreground text-xs">
+                Scheduled To
+              </label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="bg-card border-border text-foreground h-9 w-[150px]"
+              />
+            </div>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setFilterStatus(defaultStatus ?? "all");
+                  setSearch("");
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+                className="text-red-700 hover:text-red-700 hover:bg-red-900/20 h-9"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+          <div className="text-sm text-muted-foreground mb-3">
+            Total: {records.length}
           </div>
 
           <div className="overflow-x-auto">
@@ -322,8 +401,17 @@ export function MaintenanceTab({
                       (fallbackParts.length > 1
                         ? fallbackParts.slice(1).join(" ")
                         : "--");
-                    const year =
-                      rec.car_year != null ? String(rec.car_year) : "--";
+                    // Fall back to looking up the year via the shared helper for
+                    // legacy rows whose car_year is null but whose car_name matches
+                    // a row in the Cars table.
+                    let year =
+                      rec.car_year != null ? String(rec.car_year) : "";
+                    if (!year && rec.car_name) {
+                      const enriched = carNameWithYear(rec.car_name, rec.car_plate);
+                      const match = enriched.match(/\b(19|20)\d{2}\b/);
+                      if (match) year = match[0];
+                    }
+                    if (!year) year = "--";
                     const plate = rec.car_plate || "--";
                     return (
                       <TableRow

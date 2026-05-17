@@ -28,10 +28,12 @@ import {
 } from "@/components/ui/dialog";
 import { SummaryCard } from "@/components/admin/dashboard/SummaryCard";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
-import { TablePagination, type ItemsPerPage } from "@/components/ui/table-pagination";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
+import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
 import { StatusBadge } from "./StatusBadge";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
-import { Truck, Sparkles, Package, Trash2 } from "lucide-react";
+import { Truck, Sparkles, Package, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { TuroTrip, OperationTask, TaskType } from "./types";
 
@@ -85,6 +87,78 @@ const formatCurrency = (n: number | null | undefined): string => {
   }).format(n);
 };
 
+// A single per-task-type action chip used in the Actions column.
+//   • If `task` is null → renders one grey icon button; click calls onAssign
+//   • If `task` exists  → renders a coloured pill (icon body + corner ×).
+//       - Click body  → onEdit
+//       - Click ×     → onDelete (parent shows confirm dialog)
+// Replaces the older "edit icon + separate trash icon" pair so each row has
+// at most one button per task type.
+function TaskChip({
+  icon: Icon,
+  task,
+  assignedColor,
+  assignedBg,
+  labelEmpty,
+  labelAssigned,
+  labelDelete,
+  onAssign,
+  onEdit,
+  onDelete,
+}: {
+  icon: typeof Sparkles;
+  task: OperationTask | undefined;
+  assignedColor: string;
+  assignedBg: string;
+  labelEmpty: string;
+  labelAssigned: string;
+  labelDelete: string;
+  onAssign: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  if (!task) {
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={onAssign}
+        title={labelEmpty}
+        className="h-8 px-2 text-muted-foreground hover:text-primary"
+      >
+        <Icon className="w-3.5 h-3.5" />
+      </Button>
+    );
+  }
+  return (
+    <div className="relative inline-flex">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={onEdit}
+        title={labelAssigned}
+        className={`h-8 px-2 ${assignedBg} ${assignedColor} hover:opacity-80`}
+      >
+        <Icon className="w-3.5 h-3.5" />
+      </Button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+        title={labelDelete}
+        aria-label={labelDelete}
+        className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
+      >
+        <X className="w-2.5 h-2.5" />
+      </button>
+    </div>
+  );
+}
+
 export function TripsOverviewTab() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -108,7 +182,10 @@ export function TripsOverviewTab() {
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<ItemsPerPage>(20);
+  const [pageSize, setPageSize] = usePersistentPageSize(
+    "operations.tripsOverview",
+  );
+  const carNameWithYear = useCarNameWithYear();
 
   // Edit existing task modal state
   const [editingTask, setEditingTask] = useState<OperationTask | null>(null);
@@ -489,9 +566,6 @@ export function TripsOverviewTab() {
                     const pickupTask = tripTasks.find(
                       (t) => t.task_type === "pickup",
                     );
-                    const hasCleaning = !!cleaningTask;
-                    const hasDelivery = !!deliveryTask;
-                    const hasPickup = !!pickupTask;
                     const daysRented = calculateDaysRented(
                       trip.tripStart,
                       trip.tripEnd,
@@ -512,7 +586,7 @@ export function TripsOverviewTab() {
                           {trip.reservationId || "--"}
                         </TableCell>
                         <TableCell className="sticky left-[130px] z-10 bg-card text-foreground whitespace-nowrap">
-                          {trip.carName || "--"}
+                          {carNameWithYear(trip.carName, trip.plateNumber)}
                         </TableCell>
                         <TableCell className="text-foreground font-mono text-sm whitespace-nowrap">
                           {trip.plateNumber || "--"}
@@ -613,107 +687,72 @@ export function TripsOverviewTab() {
                             </div>
                           )}
                         </TableCell>
-                        {/* Actions — each task type shows: icon (create or edit) + optional delete */}
+                        {/* Actions — one chip per task type.
+                            • Empty (grey icon)     → click to assign
+                            • Assigned (colored)    → click body to edit, click × to delete
+                            The × is only rendered for assigned tasks, so the row
+                            never shows three identical trash icons. */}
                         <TableCell>
-                          <div className="flex items-center justify-center gap-1">
-                            {/* Cleaning */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
+                          <div className="flex items-center justify-center gap-2">
+                            <TaskChip
+                              icon={Sparkles}
+                              task={cleaningTask}
+                              assignedColor="text-yellow-500"
+                              assignedBg="bg-yellow-500/10"
+                              labelEmpty="Assign Cleaning"
+                              labelAssigned="Edit Cleaning Task"
+                              labelDelete="Delete Cleaning Task"
+                              onAssign={() => openTaskModal(trip, "cleaning")}
+                              onEdit={() => {
                                 if (cleaningTask) {
                                   setEditingTask(cleaningTask);
                                   setEditModalOpen(true);
-                                } else {
-                                  openTaskModal(trip, "cleaning");
                                 }
                               }}
-                              className={`h-8 px-2 ${hasCleaning ? "text-yellow-500" : "text-muted-foreground hover:text-primary"}`}
-                              title={
-                                hasCleaning
-                                  ? "Edit Cleaning Task"
-                                  : "Assign Cleaning"
+                              onDelete={() =>
+                                cleaningTask &&
+                                setConfirmDeleteTask(cleaningTask)
                               }
-                            >
-                              <Sparkles className="w-3.5 h-3.5" />
-                            </Button>
-                            {cleaningTask && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  setConfirmDeleteTask(cleaningTask)
-                                }
-                                className="h-8 px-2 text-muted-foreground hover:text-red-500"
-                                title="Delete Cleaning Task"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            )}
-                            {/* Delivery */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
+                            />
+                            <TaskChip
+                              icon={Truck}
+                              task={deliveryTask}
+                              assignedColor="text-blue-400"
+                              assignedBg="bg-blue-400/10"
+                              labelEmpty="Assign Delivery"
+                              labelAssigned="Edit Delivery Task"
+                              labelDelete="Delete Delivery Task"
+                              onAssign={() => openTaskModal(trip, "delivery")}
+                              onEdit={() => {
                                 if (deliveryTask) {
                                   setEditingTask(deliveryTask);
                                   setEditModalOpen(true);
-                                } else {
-                                  openTaskModal(trip, "delivery");
                                 }
                               }}
-                              className={`h-8 px-2 ${hasDelivery ? "text-blue-400" : "text-muted-foreground hover:text-primary"}`}
-                              title={
-                                hasDelivery
-                                  ? "Edit Delivery Task"
-                                  : "Assign Delivery"
+                              onDelete={() =>
+                                deliveryTask &&
+                                setConfirmDeleteTask(deliveryTask)
                               }
-                            >
-                              <Truck className="w-3.5 h-3.5" />
-                            </Button>
-                            {deliveryTask && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  setConfirmDeleteTask(deliveryTask)
-                                }
-                                className="h-8 px-2 text-muted-foreground hover:text-red-500"
-                                title="Delete Delivery Task"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            )}
-                            {/* Pickup */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
+                            />
+                            <TaskChip
+                              icon={Package}
+                              task={pickupTask}
+                              assignedColor="text-green-500"
+                              assignedBg="bg-green-500/10"
+                              labelEmpty="Assign Pickup"
+                              labelAssigned="Edit Pickup Task"
+                              labelDelete="Delete Pickup Task"
+                              onAssign={() => openTaskModal(trip, "pickup")}
+                              onEdit={() => {
                                 if (pickupTask) {
                                   setEditingTask(pickupTask);
                                   setEditModalOpen(true);
-                                } else {
-                                  openTaskModal(trip, "pickup");
                                 }
                               }}
-                              className={`h-8 px-2 ${hasPickup ? "text-green-500" : "text-muted-foreground hover:text-primary"}`}
-                              title={
-                                hasPickup ? "Edit Pickup Task" : "Assign Pickup"
+                              onDelete={() =>
+                                pickupTask && setConfirmDeleteTask(pickupTask)
                               }
-                            >
-                              <Package className="w-3.5 h-3.5" />
-                            </Button>
-                            {pickupTask && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setConfirmDeleteTask(pickupTask)}
-                                className="h-8 px-2 text-muted-foreground hover:text-red-500"
-                                title="Delete Pickup Task"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            )}
+                            />
                           </div>
                         </TableCell>
                       </TableRow>
