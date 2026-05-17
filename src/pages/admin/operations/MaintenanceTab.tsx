@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
+import { TablePagination, type ItemsPerPage } from "@/components/ui/table-pagination";
 import { StatusBadge } from "./StatusBadge";
 import { MaintenanceModal } from "./MaintenanceModal";
 import { PhotoUpload } from "./PhotoUpload";
@@ -93,6 +94,8 @@ export function MaintenanceTab({
   const [historyRecord, setHistoryRecord] = useState<MaintenanceRecord | null>(
     null,
   );
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<ItemsPerPage>(20);
 
   const { data, isLoading } = useQuery<{ data: MaintenanceRecord[] }>({
     queryKey: ["/api/operations/maintenance", filterStatus],
@@ -110,6 +113,15 @@ export function MaintenanceTab({
   });
 
   const records = data?.data || [];
+
+  useEffect(() => {
+    setPage(1);
+  }, [filterStatus, pageSize]);
+
+  const pagedRecords = useMemo(
+    () => records.slice((page - 1) * pageSize, page * pageSize),
+    [records, page, pageSize],
+  );
 
   const statusUpdateMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -297,7 +309,7 @@ export function MaintenanceTab({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  records.map((rec) => {
+                  pagedRecords.map((rec) => {
                     // Prefer the joined car fields (populated for rows created via the new
                     // car-id-aware flow). For legacy rows where only car_name exists,
                     // best-effort split on whitespace so the table still shows something.
@@ -456,6 +468,14 @@ export function MaintenanceTab({
             </Table>
           </div>
         </div>
+        <TablePagination
+          totalItems={records.length}
+          itemsPerPage={pageSize}
+          currentPage={page}
+          onPageChange={setPage}
+          onItemsPerPageChange={setPageSize}
+          isLoading={isLoading}
+        />
       </div>
 
       <MaintenanceModal

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
+import { TablePagination, type ItemsPerPage } from "@/components/ui/table-pagination";
 import { StatusBadge } from "./StatusBadge";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { useToast } from "@/hooks/use-toast";
@@ -58,6 +59,8 @@ export function TripTasksTab() {
   const [search, setSearch] = useState<string>("");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<ItemsPerPage>(20);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<OperationTask | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -125,6 +128,15 @@ export function TripTasksTab() {
       return true;
     });
   }, [tasks, search, dateFrom, dateTo]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, dateFrom, dateTo, filterType, filterStatus, pageSize]);
+
+  const pagedTasks = useMemo(
+    () => filteredTasks.slice((page - 1) * pageSize, page * pageSize),
+    [filteredTasks, page, pageSize],
+  );
 
   const statusUpdateMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -289,6 +301,9 @@ export function TripTasksTab() {
                     Car
                   </TableHead>
                   <TableHead className="text-foreground font-medium">
+                    Plate #
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium">
                     Guest
                   </TableHead>
                   <TableHead className="text-foreground font-medium">
@@ -327,7 +342,7 @@ export function TripTasksTab() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={13}
+                      colSpan={14}
                       className="text-center py-12 text-muted-foreground"
                     >
                       Loading tasks...
@@ -336,14 +351,14 @@ export function TripTasksTab() {
                 ) : filteredTasks.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={13}
+                      colSpan={14}
                       className="text-center py-12 text-muted-foreground"
                     >
                       No tasks found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredTasks.map((task) => {
+                  pagedTasks.map((task) => {
                     const trip =
                       task.turo_trip_id != null
                         ? tripsById.get(task.turo_trip_id)
@@ -362,6 +377,9 @@ export function TripTasksTab() {
                         </TableCell>
                         <TableCell className="text-foreground">
                           {task.car_name}
+                        </TableCell>
+                        <TableCell className="text-foreground font-mono text-sm">
+                          {trip?.plateNumber || "--"}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {task.guest_name || "--"}
@@ -474,6 +492,14 @@ export function TripTasksTab() {
             </Table>
           </div>
         </div>
+        <TablePagination
+          totalItems={filteredTasks.length}
+          itemsPerPage={pageSize}
+          currentPage={page}
+          onPageChange={setPage}
+          onItemsPerPageChange={setPageSize}
+          isLoading={isLoading}
+        />
       </div>
 
       <TaskAssignmentModal

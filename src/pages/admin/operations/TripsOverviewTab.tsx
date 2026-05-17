@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { SummaryCard } from "@/components/admin/dashboard/SummaryCard";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
+import { TablePagination, type ItemsPerPage } from "@/components/ui/table-pagination";
 import { StatusBadge } from "./StatusBadge";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { Truck, Sparkles, Package, Trash2 } from "lucide-react";
@@ -53,19 +54,22 @@ const formatDateTime = (dateStr: string | null): string => {
 };
 
 /**
- * Compute days rented as ceil(hours / 24); cancelled trips don't count.
+ * Compute days rented as ceil(hours / 24).
+ * We compute this for every trip — including cancelled ones — so the column
+ * is never blank. Earnings/financials handle the cancelled case separately.
  * Mirrors the logic on the Turo Trips page so the two screens agree.
  */
 const calculateDaysRented = (
   tripStart: string | null,
   tripEnd: string | null,
-  status: string | null,
 ): number | null => {
   if (!tripStart || !tripEnd) return null;
-  if ((status || "").toLowerCase() === "cancelled") return null;
   try {
     const start = new Date(tripStart).getTime();
     const end = new Date(tripEnd).getTime();
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+      return null;
+    }
     const hours = (end - start) / (1000 * 60 * 60);
     return Math.max(1, Math.ceil(hours / 24));
   } catch {
@@ -103,6 +107,8 @@ export function TripsOverviewTab() {
   const [filterAssigned, setFilterAssigned] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<ItemsPerPage>(20);
 
   // Edit existing task modal state
   const [editingTask, setEditingTask] = useState<OperationTask | null>(null);
@@ -238,6 +244,17 @@ export function TripsOverviewTab() {
     dateFrom,
     dateTo,
   ]);
+
+  // Reset to page 1 whenever filters change so we don't end up on an
+  // out-of-range page after the result set shrinks.
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterStatus, filterAssigned, dateFrom, dateTo, pageSize]);
+
+  const pagedTrips = useMemo(
+    () => trips.slice((page - 1) * pageSize, page * pageSize),
+    [trips, page, pageSize],
+  );
 
   const statusOptions = useMemo(() => {
     const set = new Set<string>();
@@ -461,7 +478,7 @@ export function TripsOverviewTab() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  trips.map((trip) => {
+                  pagedTrips.map((trip) => {
                     const tripTasks = getTasksForTrip(trip.id);
                     const cleaningTask = tripTasks.find(
                       (t) => t.task_type === "cleaning",
@@ -478,7 +495,6 @@ export function TripsOverviewTab() {
                     const daysRented = calculateDaysRented(
                       trip.tripStart,
                       trip.tripEnd,
-                      trip.status,
                     );
                     const totalMiles =
                       trip.tripStartOdometer != null &&
@@ -560,7 +576,7 @@ export function TripsOverviewTab() {
                               --
                             </span>
                           ) : (
-                            <div className="flex flex-col gap-0.5 text-xs">
+                            <div className="flex flex-col gap-1 text-xs">
                               {tripTasks.map((t) => {
                                 const Icon =
                                   t.task_type === "cleaning"
@@ -583,6 +599,11 @@ export function TripsOverviewTab() {
                                     <Icon
                                       className={`w-3 h-3 ${color} shrink-0`}
                                     />
+                                    <span
+                                      className={`${color} capitalize text-[10px] font-medium shrink-0`}
+                                    >
+                                      {t.task_type}:
+                                    </span>
                                     <span className="text-foreground truncate max-w-[120px]">
                                       {t.assigned_to || "--"}
                                     </span>
@@ -703,6 +724,14 @@ export function TripsOverviewTab() {
             </Table>
           </div>
         </div>
+        <TablePagination
+          totalItems={trips.length}
+          itemsPerPage={pageSize}
+          currentPage={page}
+          onPageChange={setPage}
+          onItemsPerPageChange={setPageSize}
+          isLoading={isLoading}
+        />
       </div>
 
       {/* Create new task modal */}

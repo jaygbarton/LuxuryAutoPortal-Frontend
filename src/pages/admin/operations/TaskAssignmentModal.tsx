@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -177,6 +177,22 @@ export function TaskAssignmentModal({
     }
   }, [formData.task_type]);
 
+  // Fetch all existing tasks once the modal opens so we can block duplicates
+  // (same trip + same task type) before sending the create request.
+  const { data: existingTasksResp } = useQuery<{ data: OperationTask[] }>({
+    queryKey: ["/api/operations/tasks", "duplicate-check"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/operations/tasks?limit=1000"), {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to load tasks");
+      return res.json();
+    },
+    enabled: open,
+    staleTime: 30_000,
+  });
+  const existingTasks = existingTasksResp?.data ?? [];
+
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const url = isEdit
@@ -220,6 +236,25 @@ export function TaskAssignmentModal({
         variant: "destructive",
       });
       return;
+    }
+    // Block creating a second task of the same type on the same trip.
+    // One trip should have exactly one cleaning, one delivery, and one pickup
+    // task — duplicates cause confusion (e.g. "Cathy / Cathy" in the Assigned
+    // column) and double-bill operations.
+    if (!isEdit && formData.turo_trip_id) {
+      const existsForSameTrip = existingTasks.some(
+        (t) =>
+          t.turo_trip_id === formData.turo_trip_id &&
+          t.task_type === formData.task_type,
+      );
+      if (existsForSameTrip) {
+        toast({
+          title: "Duplicate task",
+          description: `A ${formData.task_type} task already exists for this trip. Edit the existing one instead.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
     mutation.mutate(formData);
   };

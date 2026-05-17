@@ -26,6 +26,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
+import { TablePagination, type ItemsPerPage } from "@/components/ui/table-pagination";
 import { StatusBadge } from "./StatusBadge";
 import { InspectionModal } from "./InspectionModal";
 import { PhotoUpload } from "./PhotoUpload";
@@ -39,7 +40,7 @@ import {
   ClipboardList,
   History,
 } from "lucide-react";
-import type { Inspection } from "./types";
+import type { Inspection, TuroTrip } from "./types";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -62,6 +63,8 @@ export function TuroInspectionTab() {
   const [search, setSearch] = useState<string>("");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<ItemsPerPage>(20);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingInspection, setEditingInspection] = useState<Inspection | null>(
     null,
@@ -109,6 +112,19 @@ export function TuroInspectionTab() {
     },
   });
 
+  // Trips lookup so we can show plate # alongside the car name.
+  const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
+    queryKey: ["/api/turo-trips", { limit: 500 }],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/turo-trips?limit=500"), {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch trips");
+      return res.json();
+    },
+  });
+  const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
+
   const inspections = data?.data || [];
 
   const filteredInspections = useMemo(() => {
@@ -136,6 +152,15 @@ export function TuroInspectionTab() {
       return true;
     });
   }, [inspections, search, dateFrom, dateTo]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, dateFrom, dateTo, filterStatus, pageSize]);
+
+  const pagedInspections = useMemo(
+    () => filteredInspections.slice((page - 1) * pageSize, page * pageSize),
+    [filteredInspections, page, pageSize],
+  );
 
   const hasActiveFilters =
     filterStatus !== "all" || search !== "" || dateFrom !== "" || dateTo !== "";
@@ -337,6 +362,9 @@ export function TuroInspectionTab() {
                     Car
                   </TableHead>
                   <TableHead className="text-foreground font-medium">
+                    Plate #
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium">
                     Reservation #
                   </TableHead>
                   <TableHead className="text-foreground font-medium">
@@ -366,7 +394,7 @@ export function TuroInspectionTab() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={9}
+                      colSpan={10}
                       className="text-center py-12 text-muted-foreground"
                     >
                       Loading inspections...
@@ -375,20 +403,28 @@ export function TuroInspectionTab() {
                 ) : filteredInspections.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={9}
+                      colSpan={10}
                       className="text-center py-12 text-muted-foreground"
                     >
                       No Turo return inspections found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredInspections.map((insp) => (
+                  pagedInspections.map((insp) => {
+                    const trip =
+                      insp.turo_trip_id != null
+                        ? tripsById.get(insp.turo_trip_id)
+                        : undefined;
+                    return (
                     <TableRow
                       key={insp.id}
                       className="border-border hover:bg-card/50 transition-colors"
                     >
                       <TableCell className="text-foreground">
                         {insp.car_name}
+                      </TableCell>
+                      <TableCell className="text-foreground font-mono text-sm">
+                        {trip?.plateNumber || "--"}
                       </TableCell>
                       <TableCell className="text-foreground font-mono text-sm">
                         {insp.reservation_id || "--"}
@@ -539,12 +575,21 @@ export function TuroInspectionTab() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
           </div>
         </div>
+        <TablePagination
+          totalItems={filteredInspections.length}
+          itemsPerPage={pageSize}
+          currentPage={page}
+          onPageChange={setPage}
+          onItemsPerPageChange={setPageSize}
+          isLoading={isLoading}
+        />
       </div>
 
       <InspectionModal

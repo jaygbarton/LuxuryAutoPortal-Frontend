@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
+import { TablePagination, type ItemsPerPage } from "@/components/ui/table-pagination";
 import { StatusBadge } from "./StatusBadge";
 import { InspectionModal } from "./InspectionModal";
 import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, ArrowRight, Wrench, History, CheckCircle2 } from "lucide-react";
-import type { Inspection, MaintenanceRecord } from "./types";
+import type { Inspection, MaintenanceRecord, TuroTrip } from "./types";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -34,6 +35,8 @@ export function CarInspectionsTab() {
   const [deletingInspection, setDeletingInspection] = useState<Inspection | null>(null);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [historyInspection, setHistoryInspection] = useState<Inspection | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<ItemsPerPage>(20);
 
   const { data, isLoading } = useQuery<{ data: Inspection[] }>({
     queryKey: ["/api/operations/inspections", "all_sources", filterStatus],
@@ -56,8 +59,30 @@ export function CarInspectionsTab() {
     },
   });
 
+  // Trips lookup so we can show plate # from the linked Turo trip.
+  const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
+    queryKey: ["/api/turo-trips", { limit: 500 }],
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl("/api/turo-trips?limit=500"), {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch trips");
+      return response.json();
+    },
+  });
+  const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
+
   const inspections = data?.data || [];
   const maintenanceRecords = maintenanceData?.data || [];
+
+  useEffect(() => {
+    setPage(1);
+  }, [filterStatus, pageSize]);
+
+  const pagedInspections = useMemo(
+    () => inspections.slice((page - 1) * pageSize, page * pageSize),
+    [inspections, page, pageSize],
+  );
 
   const isMovedToMaintenance = (inspectionId: number): boolean => {
     return maintenanceRecords.some(m => m.inspection_id === inspectionId);
@@ -163,6 +188,8 @@ export function CarInspectionsTab() {
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="text-foreground font-medium">Car</TableHead>
+                  <TableHead className="text-foreground font-medium">Plate #</TableHead>
+                  <TableHead className="text-foreground font-medium">Reservation #</TableHead>
                   <TableHead className="text-foreground font-medium">Source</TableHead>
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
                   <TableHead className="text-foreground font-medium">Status</TableHead>
@@ -176,15 +203,16 @@ export function CarInspectionsTab() {
               <TableBody>
                 {isLoading || isMaintLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Loading inspections...</TableCell>
+                    <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Loading inspections...</TableCell>
                   </TableRow>
                 ) : inspections.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">No inspections found</TableCell>
+                    <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">No inspections found</TableCell>
                   </TableRow>
                 ) : (
-                  inspections.map((insp) => {
+                  pagedInspections.map((insp) => {
                     const movedToMaint = isMovedToMaintenance(insp.id);
+                    const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
                     return (
                       <TableRow key={insp.id} className="border-border hover:bg-card/50 transition-colors">
                         <TableCell>
@@ -198,6 +226,8 @@ export function CarInspectionsTab() {
                             )}
                           </div>
                         </TableCell>
+                        <TableCell className="text-foreground font-mono text-sm">{trip?.plateNumber || "--"}</TableCell>
+                        <TableCell className="text-foreground font-mono text-sm">{insp.reservation_id || "--"}</TableCell>
                         <TableCell className="text-muted-foreground capitalize text-sm">{insp.source?.replace(/_/g, " ") || "--"}</TableCell>
                         <TableCell className="text-foreground">{insp.assigned_to}</TableCell>
                         <TableCell>
@@ -282,6 +312,14 @@ export function CarInspectionsTab() {
             </Table>
           </div>
         </div>
+        <TablePagination
+          totalItems={inspections.length}
+          itemsPerPage={pageSize}
+          currentPage={page}
+          onPageChange={setPage}
+          onItemsPerPageChange={setPageSize}
+          isLoading={isLoading || isMaintLoading}
+        />
       </div>
 
       <InspectionModal

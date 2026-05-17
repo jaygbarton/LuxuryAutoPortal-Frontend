@@ -1,5 +1,7 @@
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
+import { TablePagination, type ItemsPerPage } from "@/components/ui/table-pagination";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
@@ -7,7 +9,7 @@ import { StatusBadge } from "./StatusBadge";
 import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
 import { RotateCcw } from "lucide-react";
-import type { Inspection } from "./types";
+import type { Inspection, TuroTrip } from "./types";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -22,6 +24,8 @@ const formatDate = (dateStr: string | null): string => {
 export function NoCarIssuesTab() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<ItemsPerPage>(20);
 
   const { data, isLoading } = useQuery<{ data: Inspection[] }>({
     queryKey: ["/api/operations/inspections", "no_issues"],
@@ -32,7 +36,27 @@ export function NoCarIssuesTab() {
     },
   });
 
+  // Trips lookup for plate # alongside car name.
+  const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
+    queryKey: ["/api/turo-trips", { limit: 500 }],
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl("/api/turo-trips?limit=500"), { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch trips");
+      return response.json();
+    },
+  });
+  const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
+
   const inspections = data?.data || [];
+
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize]);
+
+  const pagedInspections = useMemo(
+    () => inspections.slice((page - 1) * pageSize, page * pageSize),
+    [inspections, page, pageSize],
+  );
 
   const reopenMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -69,6 +93,8 @@ export function NoCarIssuesTab() {
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="text-foreground font-medium">Car</TableHead>
+                  <TableHead className="text-foreground font-medium">Plate #</TableHead>
+                  <TableHead className="text-foreground font-medium">Reservation #</TableHead>
                   <TableHead className="text-foreground font-medium">Source</TableHead>
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
                   <TableHead className="text-foreground font-medium">Status</TableHead>
@@ -81,16 +107,20 @@ export function NoCarIssuesTab() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">Loading...</TableCell>
+                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">Loading...</TableCell>
                   </TableRow>
                 ) : inspections.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">No resolved inspections yet</TableCell>
+                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">No resolved inspections yet</TableCell>
                   </TableRow>
                 ) : (
-                  inspections.map((insp) => (
+                  pagedInspections.map((insp) => {
+                    const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+                    return (
                     <TableRow key={insp.id} className="border-border hover:bg-card/50 transition-colors">
                       <TableCell className="text-foreground">{insp.car_name}</TableCell>
+                      <TableCell className="text-foreground font-mono text-sm">{trip?.plateNumber || "--"}</TableCell>
+                      <TableCell className="text-foreground font-mono text-sm">{insp.reservation_id || "--"}</TableCell>
                       <TableCell className="text-muted-foreground capitalize text-sm">{insp.source?.replace(/_/g, " ") || "--"}</TableCell>
                       <TableCell className="text-foreground">{insp.assigned_to}</TableCell>
                       <TableCell><StatusBadge status={insp.status} /></TableCell>
@@ -116,12 +146,21 @@ export function NoCarIssuesTab() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
           </div>
         </div>
+        <TablePagination
+          totalItems={inspections.length}
+          itemsPerPage={pageSize}
+          currentPage={page}
+          onPageChange={setPage}
+          onItemsPerPageChange={setPageSize}
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );

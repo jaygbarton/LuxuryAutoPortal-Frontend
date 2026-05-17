@@ -98,17 +98,20 @@ interface TripsSummary {
 function calculateDaysRented(
   tripStart: string,
   tripEnd: string,
-  status: string,
+  _status?: string,
 ): number | null {
-  if (status === "cancelled") return null; // Show "-" for cancelled
+  // Show days for every trip including cancelled — the duration is still
+  // information operations may care about, and we no longer want blank cells.
   try {
+    if (!tripStart || !tripEnd) return null;
     const start = new Date(tripStart);
     const end = new Date(tripEnd);
     const hours = differenceInHours(end, start);
+    if (!Number.isFinite(hours) || hours <= 0) return null;
     // Round up: any partial day counts as a day
     return Math.max(1, Math.ceil(hours / 24));
   } catch {
-    return 0;
+    return null;
   }
 }
 
@@ -211,6 +214,98 @@ export default function TuroTripsPage() {
       return response.json();
     },
   });
+
+  // Fetch cars so we can enrich Turo's bare "Make Model" string with the
+  // car's year (e.g. "Lexus GX" → "2023 Lexus GX"). Turo emails don't ship
+  // the year; we match by license plate first (unique) and fall back to a
+  // make+model substring match.
+  const { data: carsData } = useQuery<{
+    success: boolean;
+    data: Array<{
+      id: number;
+      make?: string | null;
+      model?: string | null;
+      year?: number | null;
+      makeModel?: string | null;
+      plateNumber?: string | null;
+      licensePlate?: string | null;
+    }>;
+  }>({
+    queryKey: ["/api/cars", "for-turo-trips"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/cars?limit=500"), {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch cars");
+      return res.json();
+    },
+  });
+  const carsByPlate = React.useMemo(() => {
+    const map = new Map<string, { make?: string | null; model?: string | null; year?: number | null }>();
+    for (const c of carsData?.data || []) {
+      const plate = (c.plateNumber || c.licensePlate || "").trim().toUpperCase();
+      if (plate) map.set(plate, c);
+    }
+    return map;
+  }, [carsData]);
+  const carsByMakeModel = React.useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        year?: number | null;
+        plateNumber?: string | null;
+        licensePlate?: string | null;
+      }
+    >();
+    for (const c of carsData?.data || []) {
+      const key = `${c.make || ""} ${c.model || ""}`.trim().toLowerCase();
+      if (key) map.set(key, c);
+    }
+    return map;
+  }, [carsData]);
+
+  // Resolve a plate # for a trip when Turo's email didn't ship one.
+  // We try to match the trip's car name (e.g. "GMC HUMMER EV SUV 2025") to a
+  // row in the Cars table by make+model substring and return its plate. This
+  // keeps the column from showing "-" for cars we already have in the system.
+  const resolvePlate = React.useCallback(
+    (carName: string | null, currentPlate: string | null): string | null => {
+      if (currentPlate && currentPlate.trim()) return currentPlate;
+      if (!carName) return null;
+      const lower = carName.toLowerCase();
+      for (const [key, c] of carsByMakeModel.entries()) {
+        if (key && lower.includes(key)) {
+          const plate = (c.plateNumber || c.licensePlate || "").trim();
+          if (plate) return plate;
+        }
+      }
+      return null;
+    },
+    [carsByMakeModel],
+  );
+
+  const carNameWithYear = (
+    carName: string | null,
+    plate: string | null,
+  ): string => {
+    if (!carName) return "-";
+    // If the carName already contains a 4-digit year anywhere, leave it alone
+    // (handles both "2024 Toyota Sequoia" and "Toyota Sequoia 2024").
+    if (/\b(19|20)\d{2}\b/.test(carName)) return carName;
+    // Prefer plate-based match — plate # uniquely identifies one car.
+    if (plate) {
+      const hit = carsByPlate.get(plate.trim().toUpperCase());
+      if (hit?.year) return `${carName} ${hit.year}`;
+    }
+    // Fallback: scan for any car whose "make model" appears in carName.
+    const lower = carName.toLowerCase();
+    for (const [key, c] of carsByMakeModel.entries()) {
+      if (key && lower.includes(key) && c.year) {
+        return `${carName} ${c.year}`;
+      }
+    }
+    return carName;
+  };
 
   // Sync emails mutation
   const syncMutation = useMutation({
@@ -360,8 +455,9 @@ export default function TuroTripsPage() {
 
   // Save plate # for a trip (inline edit). The Turo email doesn't include the
   // plate so this is purely admin-driven — either here or via the bulk import.
-  const savePlate = async (trip: TuroTrip) => {
-    const edited = plateEdits[trip.id];
+  const savePlate = async (trip: TuroTrip, valueOverride?: string) => {
+    const edited =
+      valueOverride !== undefined ? valueOverride : plateEdits[trip.id];
     if (edited === undefined) return;
     const trimmed = edited.trim();
     setSavingPlate(trip.id);
@@ -952,66 +1048,95 @@ export default function TuroTripsPage() {
                             onClick={() => setSelectedTrip(trip)}
                           >
                             <div className="text-sm whitespace-nowrap">
-                              {debouncedSearchQuery
-                                ? highlightText(
-                                    trip.carName,
-                                    debouncedSearchQuery,
-                                  )
-                                : trip.carName || "-"}
+                              {(() => {
+                                const display = carNameWithYear(
+                                  trip.carName,
+                                  trip.plateNumber,
+                                );
+                                return debouncedSearchQuery
+                                  ? highlightText(display, debouncedSearchQuery)
+                                  : display;
+                              })()}
                             </div>
                           </TableCell>
 
                           {/* Plate # — inline editable. Turo doesn't expose
                               this in the booking email, so admins fill it in
-                              here (or via the bulk Import button). */}
+                              here (or via the bulk Import button).
+                              When the trip has no plate but the car exists in
+                              our Cars table, we suggest that plate inline so
+                              the admin can one-click apply it. */}
                           <TableCell onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center gap-1">
-                              <Input
-                                value={
-                                  plateEdits[trip.id] !== undefined
-                                    ? plateEdits[trip.id]
-                                    : (trip.plateNumber ?? "")
-                                }
-                                placeholder="-"
-                                className="h-8 w-24 text-sm font-mono"
-                                onChange={(e) =>
-                                  setPlateEdits((prev) => ({
-                                    ...prev,
-                                    [trip.id]: e.target.value,
-                                  }))
-                                }
-                                onBlur={() => {
-                                  if (plateEdits[trip.id] === undefined) return;
-                                  const current = trip.plateNumber ?? "";
-                                  if (
-                                    plateEdits[trip.id].trim() ===
-                                    current.trim()
-                                  ) {
-                                    setPlateEdits((prev) => {
-                                      const next = { ...prev };
-                                      delete next[trip.id];
-                                      return next;
-                                    });
-                                    return;
-                                  }
-                                  savePlate(trip);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter")
-                                    (e.target as HTMLInputElement).blur();
-                                  if (e.key === "Escape") {
-                                    setPlateEdits((prev) => {
-                                      const next = { ...prev };
-                                      delete next[trip.id];
-                                      return next;
-                                    });
-                                  }
-                                }}
-                              />
-                              {savingPlate === trip.id && (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              )}
-                            </div>
+                            {(() => {
+                              const editing = plateEdits[trip.id] !== undefined;
+                              const current = trip.plateNumber ?? "";
+                              const inputValue = editing
+                                ? plateEdits[trip.id]
+                                : current;
+                              const suggestion =
+                                !current && !editing
+                                  ? resolvePlate(trip.carName, current)
+                                  : null;
+                              return (
+                                <div className="flex items-center gap-1">
+                                  <Input
+                                    value={inputValue}
+                                    placeholder={suggestion ?? "-"}
+                                    className="h-8 w-24 text-sm font-mono"
+                                    onChange={(e) =>
+                                      setPlateEdits((prev) => ({
+                                        ...prev,
+                                        [trip.id]: e.target.value,
+                                      }))
+                                    }
+                                    onBlur={() => {
+                                      if (plateEdits[trip.id] === undefined) return;
+                                      if (
+                                        plateEdits[trip.id].trim() ===
+                                        current.trim()
+                                      ) {
+                                        setPlateEdits((prev) => {
+                                          const next = { ...prev };
+                                          delete next[trip.id];
+                                          return next;
+                                        });
+                                        return;
+                                      }
+                                      savePlate(trip);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter")
+                                        (e.target as HTMLInputElement).blur();
+                                      if (e.key === "Escape") {
+                                        setPlateEdits((prev) => {
+                                          const next = { ...prev };
+                                          delete next[trip.id];
+                                          return next;
+                                        });
+                                      }
+                                    }}
+                                  />
+                                  {suggestion && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 text-[10px] text-amber-700 hover:bg-amber-100"
+                                      title={`Apply plate ${suggestion} from Cars`}
+                                      disabled={savingPlate === trip.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        savePlate(trip, suggestion);
+                                      }}
+                                    >
+                                      Use {suggestion}
+                                    </Button>
+                                  )}
+                                  {savingPlate === trip.id && (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
 
                           {/* Trip Start */}
@@ -1494,7 +1619,10 @@ export default function TuroTripsPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
                       <Car className="w-4 h-4 text-muted-foreground" />
-                      {selectedTrip.carName || "Unknown"}
+                      {carNameWithYear(
+                        selectedTrip.carName,
+                        selectedTrip.plateNumber,
+                      )}
                     </div>
                     {selectedTrip.carLink && (
                       <a
