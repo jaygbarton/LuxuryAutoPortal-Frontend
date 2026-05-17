@@ -8,6 +8,7 @@
  */
 
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
@@ -39,7 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { History, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, History, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { Fragment, useMemo, useState } from "react";
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -63,6 +64,7 @@ interface TimeRow {
   employee_first_name: string | null;
   employee_last_name: string | null;
   employee_job_pay_salary_rate: string | null;
+  employee_job_pay_eligible?: number | null;
 }
 
 interface EmployeeOption {
@@ -420,6 +422,34 @@ export default function AdminHrTime() {
       toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
+  // Enable payroll eligibility for an employee directly from the time sheet.
+  // Why: time logs show wages owed, but if employee_job_pay_eligible=0 the
+  // payroll run silently excludes them. This lets admins fix the mismatch in
+  // one click without leaving the time sheet.
+  const enableEligibilityMut = useMutation({
+    mutationFn: async (employeeId: number) => {
+      const res = await fetch(buildApiUrl(`/api/employees/${employeeId}/job-and-pay`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employee_job_pay_eligible: 1 }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || "Failed to enable payroll eligibility");
+      return json;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Payroll enabled",
+        description: "Employee will be included in the next payroll run.",
+      });
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+    },
+    onError: (err: Error) =>
+      toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
   // ── Handlers ──
   const openAdd = () => {
     setAddForm(emptyForm());
@@ -527,7 +557,33 @@ export default function AdminHrTime() {
                       const amount = hrs != null && rate != null ? hrs * rate : null;
                       return (
                         <TableRow key={r.time_aid}>
-                          <TableCell className="font-medium">{r.fullname || "—"}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span>{r.fullname || "—"}</span>
+                              {Number(r.employee_job_pay_eligible ?? 0) !== 1 && (
+                                <span className="flex items-center gap-1">
+                                  <Badge
+                                    variant="outline"
+                                    className="border-amber-500 bg-amber-50 text-amber-700 text-[10px] gap-1"
+                                    title="This employee is not eligible for payroll — their hours will not appear in the next payroll run."
+                                  >
+                                    <AlertTriangle className="h-3 w-3" />
+                                    Not in payroll
+                                  </Badge>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-[10px] text-amber-700 hover:bg-amber-100"
+                                    disabled={enableEligibilityMut.isPending}
+                                    onClick={() => enableEligibilityMut.mutate(r.time_employee_id)}
+                                  >
+                                    Enable
+                                  </Button>
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell>{formatDate(r.time_date)}</TableCell>
                           <TableCell>{formatTime(r.time_in)}</TableCell>
                           <TableCell>{formatTime(r.time_out)}</TableCell>

@@ -52,6 +52,7 @@ import { TableRowSkeleton } from "@/components/ui/skeletons";
 import { TablePagination, ItemsPerPage } from "@/components/ui/table-pagination";
 import { cn } from "@/lib/utils";
 import {
+  AlertTriangle,
   Copy,
   Download,
   Eye,
@@ -100,6 +101,7 @@ interface Employee {
   employee_job_pay_work_email?: string | null;
   employee_job_pay_department_name?: string | null;
   employee_job_pay_job_title_name?: string | null;
+  employee_job_pay_eligible?: number | null;
   fullname?: string;
 }
 
@@ -971,7 +973,19 @@ export default function EmployeesPage() {
                             {emp.employee_number || <span className="text-gray-600">N/A</span>}
                           </TableCell>
                           <TableCell className="text-left text-foreground font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 align-middle text-xs sm:text-sm">
-                            {emp.employee_last_name}, {emp.employee_first_name}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span>{emp.employee_last_name}, {emp.employee_first_name}</span>
+                              {emp.employee_is_active === 1 && Number(emp.employee_job_pay_eligible ?? 0) !== 1 && (
+                                <Badge
+                                  variant="outline"
+                                  className="border-amber-500 bg-amber-50 text-amber-700 text-[10px] gap-1"
+                                  title="Active but not eligible for payroll. Open Job & Pay and check 'Payroll Eligibility' so this employee appears in payroll runs."
+                                >
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Not in payroll
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-left text-muted-foreground px-2 sm:px-4 md:px-6 py-3 sm:py-4 align-middle text-xs sm:text-sm hidden lg:table-cell">
                             {emp.employee_job_pay_work_email || emp.employee_email || (

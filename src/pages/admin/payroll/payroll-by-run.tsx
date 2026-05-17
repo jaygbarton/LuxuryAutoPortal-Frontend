@@ -31,6 +31,7 @@ import {
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
+  AlertTriangle,
   ArrowLeft,
   Search,
   FileText,
@@ -213,6 +214,87 @@ export default function PayrollByRunPage() {
   const total = payrollData?.total ?? 0;
   const totalPages = payrollData?.limit ? Math.ceil(total / payrollData.limit) : 1;
 
+  // ── Detect employees silently excluded from this payrun ──────────────
+  // Backend filters payroll by employee_job_pay_eligible=1. If an admin
+  // logged hours for an active employee whose eligibility flag is 0, those
+  // hours never reach the payrun — surface this as a banner with a fix link.
+  const { data: timeForPeriod } = useQuery<{
+    success: boolean;
+    data: Array<{
+      time_employee_id: number;
+      fullname: string | null;
+      employee_job_pay_eligible?: number | null;
+    }>;
+  }>({
+    queryKey: [
+      "/api/admin/hr/time",
+      "payrun-coverage",
+      payrun?.payrun_date_from,
+      payrun?.payrun_date_to,
+    ],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (payrun?.payrun_date_from) params.set("fromDate", payrun.payrun_date_from);
+      if (payrun?.payrun_date_to) params.set("toDate", payrun.payrun_date_to);
+      const res = await fetch(buildApiUrl(`/api/admin/hr/time?${params}`), {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to load time logs");
+      return res.json();
+    },
+    enabled: Boolean(payrun?.payrun_date_from && payrun?.payrun_date_to),
+  });
+
+  const includedEmployeeIds = new Set(list.map((r) => Number(r.payrun_list_emp_id)));
+  const excludedFromPayrun = (() => {
+    const rows = timeForPeriod?.data ?? [];
+    const byEmp = new Map<
+      number,
+      { id: number; name: string; eligible: number }
+    >();
+    for (const r of rows) {
+      const eligible = Number(r.employee_job_pay_eligible ?? 0);
+      if (eligible === 1) continue;
+      if (includedEmployeeIds.has(Number(r.time_employee_id))) continue;
+      const id = Number(r.time_employee_id);
+      if (!byEmp.has(id)) {
+        byEmp.set(id, {
+          id,
+          name: r.fullname ?? `Employee #${id}`,
+          eligible,
+        });
+      }
+    }
+    return Array.from(byEmp.values());
+  })();
+
+  const enableEligibilityMut = useMutation({
+    mutationFn: async (employeeId: number) => {
+      const res = await fetch(buildApiUrl(`/api/employees/${employeeId}/job-and-pay`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employee_job_pay_eligible: 1 }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || "Failed to enable payroll");
+      return json;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Payroll enabled",
+        description: "Re-generate the payrun to include this employee.",
+      });
+      // Broad prefix match invalidates the time-sheet listing too, so the
+      // "Not in payroll" badge there clears as soon as the user navigates.
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/hr/time"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+    },
+    onError: (e: Error) => {
+      toast({ variant: "destructive", title: "Error", description: e.message });
+    },
+  });
+
   if (payrunId == null || Number.isNaN(payrunId)) {
     return (
       <AdminLayout>
@@ -288,6 +370,51 @@ export default function PayrollByRunPage() {
             />
           )}
         </div>
+
+        {excludedFromPayrun.length > 0 && (
+          <Card className="border-amber-400 bg-amber-50">
+            <CardContent className="py-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-900">
+                    {excludedFromPayrun.length === 1
+                      ? "1 employee with time logs is missing from this payroll"
+                      : `${excludedFromPayrun.length} employees with time logs are missing from this payroll`}
+                  </p>
+                  <p className="text-sm text-amber-800 mt-1">
+                    These employees clocked hours in the pay period but their{" "}
+                    <strong>Payroll Eligibility</strong> is off, so they were excluded.
+                    Enable each one below and click <strong>Generate from Timesheet</strong>{" "}
+                    again to include them.
+                  </p>
+                  <ul className="mt-3 space-y-2">
+                    {excludedFromPayrun.map((emp) => (
+                      <li
+                        key={emp.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300 bg-white px-3 py-2"
+                      >
+                        <span className="text-sm font-medium text-amber-900">
+                          {emp.name}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="border-amber-500 text-amber-800 hover:bg-amber-100"
+                          disabled={enableEligibilityMut.isPending}
+                          onClick={() => enableEligibilityMut.mutate(emp.id)}
+                        >
+                          Enable payroll
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="pb-3">

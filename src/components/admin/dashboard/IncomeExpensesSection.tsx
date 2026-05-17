@@ -116,78 +116,78 @@ function LoadingSkeleton() {
   );
 }
 
-// ── Donut chart center label ───────────────────────────────────────────
-
-function CenterLabel({ viewBox, value }: { viewBox?: { cx: number; cy: number }; value: string }) {
-  if (!viewBox) return null;
-  return (
-    <text
-      x={viewBox.cx}
-      y={viewBox.cy}
-      textAnchor="middle"
-      dominantBaseline="central"
-      className="fill-gray-800 text-sm font-bold"
-    >
-      {value}
-    </text>
-  );
-}
-
 // ── Donut chart wrapper ────────────────────────────────────────────────
 
 interface DonutChartProps {
   data: { name: string; value: number; color: string }[];
-  centerValue?: string;
   formatValue?: (v: number) => string;
 }
 
 function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
   const total = data.reduce((s, d) => s + d.value, 0);
+
+  const renderLabel = (props: any) => {
+    const { cx, cy, midAngle, outerRadius, value, name } = props;
+    const RADIAN = Math.PI / 180;
+    const sin = Math.sin(-midAngle * RADIAN);
+    const cos = Math.cos(-midAngle * RADIAN);
+    const sx = cx + outerRadius * cos;
+    const sy = cy + outerRadius * sin;
+    const mx = cx + (outerRadius + 12) * cos;
+    const my = cy + (outerRadius + 12) * sin;
+    const ex = mx + (cos >= 0 ? 1 : -1) * 18;
+    const ey = my;
+    const textAnchor = cos >= 0 ? "start" : "end";
+    const pct = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+    return (
+      <g>
+        <path
+          d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`}
+          stroke="#999999"
+          strokeWidth={1}
+          fill="none"
+        />
+        <text
+          x={ex + (cos >= 0 ? 4 : -4)}
+          y={ey}
+          textAnchor={textAnchor}
+          dominantBaseline="central"
+          fill="#000000"
+        >
+          <tspan x={ex + (cos >= 0 ? 4 : -4)} dy="-0.6em" style={{ fontWeight: 700, fontSize: 13 }}>
+            {formatValue(value)}
+          </tspan>
+          <tspan x={ex + (cos >= 0 ? 4 : -4)} dy="1.3em" style={{ fontSize: 11 }}>
+            {name}
+          </tspan>
+          <tspan x={ex + (cos >= 0 ? 4 : -4)} dy="1.3em" style={{ fontSize: 11 }}>
+            {pct}%
+          </tspan>
+        </text>
+      </g>
+    );
+  };
+
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex justify-center">
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
           <Pie
             data={data}
             dataKey="value"
+            cx="50%"
+            cy="50%"
             innerRadius={55}
-            outerRadius={85}
+            outerRadius={90}
             paddingAngle={0}
-            label={({ cx, cy, midAngle, outerRadius, value, name, index }) => {
-              const RADIAN = Math.PI / 180;
-              const radius = outerRadius + 20;
-              const x = cx + radius * Math.cos(-midAngle * RADIAN);
-              const y = cy + radius * Math.sin(-midAngle * RADIAN);
-              const pct = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
-              return (
-                <text
-                  x={x}
-                  y={y}
-                  textAnchor={x > cx ? "start" : "end"}
-                  dominantBaseline="central"
-                  className="fill-gray-700"
-                  style={{ fontSize: 10 }}
-                >
-                  <tspan x={x} dy="-0.6em" style={{ fontWeight: 600 }}>{formatValue(value)}</tspan>
-                  <tspan x={x} dy="1.2em">{name}</tspan>
-                  <tspan x={x} dy="1.2em">{pct}%</tspan>
-                </text>
-              );
-            }}
+            label={renderLabel}
             labelLine={false}
+            isAnimationActive={false}
           >
             {data.map((entry, idx) => (
               <Cell key={idx} fill={entry.color} stroke="none" />
             ))}
           </Pie>
-          <Tooltip
-            formatter={(v: number) => formatValue(v)}
-            contentStyle={{
-              backgroundColor: "#fff",
-              border: "1px solid #e5e7eb",
-              borderRadius: 6,
-            }}
-          />
         </PieChart>
       </ResponsiveContainer>
     </div>
@@ -206,15 +206,22 @@ interface BarChartCardProps {
 function BarChartCard({ title, data, bars, yAxisPrefix = "$" }: BarChartCardProps) {
   return (
     <div className="bg-white">
-      <h4 className="mb-3 text-sm font-bold uppercase tracking-wide text-black">
+      <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-black" style={{ letterSpacing: "0.3px" }}>
         {title}
       </h4>
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+      <ResponsiveContainer width="100%" height={280}>
+        <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke="#E8E8E8" vertical={false} />
+          <XAxis
+            dataKey="month"
+            tick={{ fontSize: 12, fill: "#000000" }}
+            axisLine={false}
+            tickLine={false}
+          />
           <YAxis
-            tick={{ fontSize: 11 }}
+            tick={{ fontSize: 12, fill: "#6B6B6B" }}
+            axisLine={false}
+            tickLine={false}
             tickFormatter={(v: number) =>
               yAxisPrefix === "$" ? `$${v.toLocaleString()}` : v.toLocaleString()
             }
@@ -229,9 +236,8 @@ function BarChartCard({ title, data, bars, yAxisPrefix = "$" }: BarChartCardProp
               borderRadius: 6,
             }}
           />
-          <Legend />
           {bars.map((b) => (
-            <Bar key={b.dataKey} dataKey={b.dataKey} fill={b.fill} radius={[2, 2, 0, 0]} />
+            <Bar key={b.dataKey} dataKey={b.dataKey} fill={b.fill} barSize={12} />
           ))}
         </BarChart>
       </ResponsiveContainer>
@@ -251,15 +257,22 @@ interface LineChartCardProps {
 function LineChartCard({ title, data, lines, yAxisPrefix = "$" }: LineChartCardProps) {
   return (
     <div className="bg-white">
-      <h4 className="mb-3 text-sm font-bold uppercase tracking-wide text-black">
+      <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-black" style={{ letterSpacing: "0.3px" }}>
         {title}
       </h4>
-      <ResponsiveContainer width="100%" height={220}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+      <ResponsiveContainer width="100%" height={280}>
+        <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke="#E8E8E8" vertical={false} />
+          <XAxis
+            dataKey="month"
+            tick={{ fontSize: 12, fill: "#000000" }}
+            axisLine={false}
+            tickLine={false}
+          />
           <YAxis
-            tick={{ fontSize: 11 }}
+            tick={{ fontSize: 12, fill: "#6B6B6B" }}
+            axisLine={false}
+            tickLine={false}
             tickFormatter={(v: number) =>
               yAxisPrefix === "$" ? `$${v.toLocaleString()}` : v.toLocaleString()
             }
@@ -281,11 +294,78 @@ function LineChartCard({ title, data, lines, yAxisPrefix = "$" }: LineChartCardP
               dataKey={l.dataKey}
               stroke={l.stroke}
               strokeWidth={2}
-              dot={{ r: 3, fill: l.stroke }}
+              dot={{ r: 2.5, fill: l.stroke, stroke: l.stroke }}
+              activeDot={{ r: 4 }}
             />
           ))}
         </LineChart>
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ── Horizontal bar chart with x-axis scale ────────────────────────────
+
+interface HorizontalBarChartProps {
+  items: { label: string; value: number }[];
+}
+
+function HorizontalBarChart({ items }: HorizontalBarChartProps) {
+  const maxValue = Math.max(...items.map((i) => i.value), 1);
+  // Round up max to next nice tick for axis
+  const niceMax = (() => {
+    const order = Math.pow(10, Math.floor(Math.log10(maxValue)));
+    const norm = maxValue / order;
+    let nice: number;
+    if (norm <= 1) nice = 1;
+    else if (norm <= 2) nice = 2;
+    else if (norm <= 5) nice = 5;
+    else nice = 10;
+    return nice * order;
+  })();
+  const ticks = [0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => Math.round(niceMax * t));
+  const labelColWidth = 130;
+  const valueColWidth = 60;
+
+  return (
+    <div className="w-full">
+      <div className="space-y-5">
+        {items.map((item) => (
+          <div key={item.label} className="flex items-center gap-3">
+            <div
+              className="shrink-0 text-xs text-black"
+              style={{ width: labelColWidth }}
+            >
+              {item.label}
+            </div>
+            <div className="relative h-10 flex-1 bg-transparent">
+              <div
+                className="h-full bg-[#E8C547]"
+                style={{
+                  width: `${niceMax > 0 ? (item.value / niceMax) * 100 : 0}%`,
+                }}
+              />
+            </div>
+            <div
+              className="shrink-0 text-right text-xs text-black"
+              style={{ width: valueColWidth }}
+            >
+              {item.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* x-axis */}
+      <div
+        className="mt-2 flex items-center"
+        style={{ paddingLeft: labelColWidth + 12, paddingRight: valueColWidth + 12 }}
+      >
+        <div className="flex w-full justify-between text-[11px] text-[#6B6B6B]">
+          {ticks.map((t) => (
+            <span key={t}>{t.toLocaleString()}</span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -397,19 +477,19 @@ export default function IncomeExpensesSection({
   // ── Chart data ─────────────────────────────────────────────────────
 
   const mgmtBarData = monthlyComputed.map((mc) => ({
-    month: formatShortMonth(mc.month),
+    month: `${formatShortMonth(mc.month)} ${year}`,
     Income: mc.mgmtIncome,
     Expenses: mc.mgmtExpenses,
   }));
 
   const ownerBarData = monthlyComputed.map((mc) => ({
-    month: formatShortMonth(mc.month),
+    month: `${formatShortMonth(mc.month)} ${year}`,
     Income: mc.ownerIncome,
     Expenses: mc.ownerExpenses,
   }));
 
   const activityBarData = monthlyComputed.map((mc) => ({
-    month: formatShortMonth(mc.month),
+    month: `${formatShortMonth(mc.month)} ${year}`,
     "Days Rented": mc.daysRented,
     "Trips Taken": mc.tripsTaken,
   }));
@@ -617,92 +697,71 @@ export default function IncomeExpensesSection({
             </div>
           </div>
 
-          {/* ── Row 2: Donut Charts + Horizontal Bars (left) + Stacked Line/Bar Charts (right) ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            {/* Left column */}
-            <div className="space-y-6">
+          {/* ── Row 2: Donuts + Horizontal bars (40%) + Line/Bar charts (60%) ── */}
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-12">
+            {/* Left column — 2/5 (40%) */}
+            <div className="xl:col-span-2 space-y-8">
               {/* 2x2 Donut grid */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2">
                 <DonutChart
                   data={[
-                    { name: "Total Car Mngmt Expenses", value: totalMgmtExpenses, color: "#FFCC00" },
-                    { name: "Total Car Mngmt Profit", value: Math.max(0, totalMgmtIncome - totalMgmtExpenses), color: "#FFE680" },
+                    { name: "Total Car Mngmt Expenses", value: totalMgmtExpenses, color: "#E8C547" },
+                    { name: "Total Car Mngmt Profit", value: Math.max(0, totalMgmtIncome - totalMgmtExpenses), color: "#F5E6A8" },
                   ]}
-                  centerValue=""
                 />
                 <DonutChart
                   data={[
-                    { name: "Total Car Mngmt Profit", value: Math.max(0, displayMgmtIncome - displayMgmtExpenses), color: "#FFCC00" },
-                    { name: "Total Car Mngmt Expenses", value: displayMgmtExpenses, color: "#FFE680" },
+                    { name: "Total Car Mngmt Profit", value: Math.max(0, displayMgmtIncome - displayMgmtExpenses), color: "#E8C547" },
+                    { name: "Total Car Mngmt Expenses", value: displayMgmtExpenses, color: "#F5E6A8" },
                   ]}
-                  centerValue=""
                 />
                 <DonutChart
                   data={[
-                    { name: "Total Car Owner Expenses", value: totalOwnerExpenses, color: "#FFCC00" },
-                    { name: "Total Car Owner Profit", value: Math.max(0, totalOwnerIncome - totalOwnerExpenses), color: "#FFE680" },
+                    { name: "Total Car Owner Expenses", value: totalOwnerExpenses, color: "#E8C547" },
+                    { name: "Total Car Owner Profit", value: Math.max(0, totalOwnerIncome - totalOwnerExpenses), color: "#F5E6A8" },
                   ]}
-                  centerValue=""
                 />
                 <DonutChart
                   data={[
-                    { name: "Total Car Owner Profit", value: Math.max(0, displayOwnerIncome - displayOwnerExpenses), color: "#FFCC00" },
-                    { name: "Total Car Owner Expenses", value: displayOwnerExpenses, color: "#FFE680" },
+                    { name: "Total Car Owner Profit", value: Math.max(0, displayOwnerIncome - displayOwnerExpenses), color: "#E8C547" },
+                    { name: "Total Car Owner Expenses", value: displayOwnerExpenses, color: "#F5E6A8" },
                   ]}
-                  centerValue=""
                 />
               </div>
 
-              {/* Horizontal summary bars */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-semibold text-gray-700 w-28 shrink-0">Total Trips Taken</span>
-                  <div className="flex-1 bg-gray-100 rounded h-6 relative overflow-hidden">
-                    <div
-                      className="bg-[#FFCC00] h-full rounded"
-                      style={{ width: `${Math.min(100, totalDaysRented > 0 ? (totalTripsTaken / totalDaysRented) * 100 : 0)}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-bold text-gray-800 w-16 text-right">
-                    {totalTripsTaken.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-semibold text-gray-700 w-28 shrink-0">Total Days Rented</span>
-                  <div className="flex-1 bg-gray-100 rounded h-6 relative overflow-hidden">
-                    <div className="bg-[#FFCC00] h-full rounded w-full" />
-                  </div>
-                  <span className="text-xs font-bold text-gray-800 w-16 text-right">
-                    {totalDaysRented.toLocaleString()}
-                  </span>
-                </div>
-              </div>
+              {/* Horizontal bar chart with x-axis */}
+              <HorizontalBarChart
+                items={[
+                  { label: "Total Trips Taken", value: totalTripsTaken },
+                  { label: "Total Days Rented", value: totalDaysRented },
+                ]}
+              />
             </div>
 
-            {/* Right column: 3 stacked charts */}
-            <div className="space-y-6">
+            {/* Right column — 3/5 (60%) — stacked charts */}
+            <div className="xl:col-span-3 space-y-8">
               <LineChartCard
                 title="Management Income and Expenses"
                 data={mgmtBarData}
                 lines={[
-                  { dataKey: "Income", stroke: "#FFCC00" },
-                  { dataKey: "Expenses", stroke: "#FFE680" },
+                  { dataKey: "Income", stroke: "#E8C547" },
+                  { dataKey: "Expenses", stroke: "#F5E6A8" },
                 ]}
               />
               <LineChartCard
                 title="Car Owner Income and Expenses"
                 data={ownerBarData}
                 lines={[
-                  { dataKey: "Income", stroke: "#FFCC00" },
-                  { dataKey: "Expenses", stroke: "#E0B84A" },
+                  { dataKey: "Income", stroke: "#E8C547" },
+                  { dataKey: "Expenses", stroke: "#B8860B" },
                 ]}
               />
               <BarChartCard
                 title="Days Rented and Trips Taken"
                 data={activityBarData}
                 bars={[
-                  { dataKey: "Days Rented", fill: "#FFCC00" },
-                  { dataKey: "Trips Taken", fill: "#E0B84A" },
+                  { dataKey: "Days Rented", fill: "#E8C547" },
+                  { dataKey: "Trips Taken", fill: "#C9A227" },
                 ]}
                 yAxisPrefix=""
               />
