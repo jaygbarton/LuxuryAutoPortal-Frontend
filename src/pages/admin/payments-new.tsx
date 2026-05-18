@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -574,6 +575,7 @@ export default function PaymentsPage() {
           />
         )}
       </div>
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

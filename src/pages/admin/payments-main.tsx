@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import {
   Select,
   SelectContent,
@@ -1656,6 +1657,7 @@ export default function PaymentsMainPage() {
           </Dialog>
         )}
       </div>
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

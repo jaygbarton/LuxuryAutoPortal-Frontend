@@ -2,6 +2,8 @@
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
+import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, ExternalLink, Plus, Image as ImageIcon, ChevronDown, ChevronRight, Upload, X, Loader2 } from "lucide-react";
@@ -2000,6 +2002,8 @@ export default function EarningsPage() {
           getMonthValue={getMonthValue}
         />
       </div>
+      <ClientPageLinks />
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

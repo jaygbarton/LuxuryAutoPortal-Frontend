@@ -4,6 +4,7 @@
  */
 
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
 import CommissionFormSubmission from "@/pages/admin/forms/CommissionFormSubmission";
 import CommissionFormMySubmissions from "@/pages/admin/forms/CommissionFormMySubmissions";
 import { DollarSign } from "lucide-react";
@@ -25,6 +26,7 @@ export default function StaffCommissionForm() {
         <CommissionFormSubmission />
         <CommissionFormMySubmissions />
       </div>
+      <EmployeePageLinks />
     </AdminLayout>
   );
 }

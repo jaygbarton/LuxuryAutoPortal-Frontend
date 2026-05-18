@@ -1,4 +1,5 @@
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -66,6 +67,7 @@ export default function StaffCarRentalForms() {
           </CardContent>
         </Card>
       </div>
+      <EmployeePageLinks />
     </AdminLayout>
   );
 }

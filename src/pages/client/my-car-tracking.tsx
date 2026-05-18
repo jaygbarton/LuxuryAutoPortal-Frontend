@@ -2,6 +2,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import {
   MapPin, Car, Clock, Gauge, Battery,
@@ -584,6 +585,7 @@ export default function ClientCarTrackingPage() {
           {selectedVehicle && <VehicleDetailPanel v={selectedVehicle} onClose={() => setSelectedId(null)} />}
         </div>
       </div>
+      <ClientPageLinks />
     </AdminLayout>
   );
 }

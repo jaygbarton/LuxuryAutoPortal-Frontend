@@ -15,6 +15,8 @@ import {
   Car,
   Calendar,
   FileText,
+  Folder,
+  History,
   Loader2,
   Wrench,
   BarChart3,
@@ -360,80 +362,42 @@ export default function ClientDashboard() {
   const ownerEmail = profile?.onboarding?.emailOwner || profile?.email || "";
   const ownerPhone = profile?.onboarding?.phoneOwner || profile?.phone || "";
 
+  // Order is row-major across the 4-column grid — kept in sync with
+  // src/components/client/ClientPageLinks.tsx so every client-facing page
+  // shows the same Report Center / Support Center layout.
+  const carHref = (segment: string) =>
+    activeCar ? `/admin/cars/${activeCar.id}/${segment}` : "#";
+
   const reportLinks = [
-    {
-      href: activeCar ? `/admin/cars/${activeCar.id}/earnings` : "#",
-      icon: DollarSign,
-      label: "Earnings",
-    },
-    { href: "/admin/turo-trips", icon: ClipboardList, label: "History" },
-    {
-      href: activeCar ? `/admin/cars/${activeCar.id}/totals` : "#",
-      icon: BarChart3,
-      label: "Totals",
-    },
-    {
-      href: activeCar ? `/admin/cars/${activeCar.id}/records` : "#",
-      icon: FileText,
-      label: "Records and Files",
-    },
-    {
-      href: activeCar ? `/admin/cars/${activeCar.id}/graphs` : "#",
-      icon: TrendingUp,
-      label: "Graphs and Charts Report",
-    },
-    {
-      href: activeCar ? `/admin/cars/${activeCar.id}/maintenance` : "#",
-      icon: Wrench,
-      label: "Maintenance",
-    },
-    {
-      href: activeCar ? `/admin/cars/${activeCar.id}/income-expense` : "#",
-      icon: Calendar,
-      label: "Car Rental Value Per Month",
-    },
-    {
-      href: activeCar ? `/admin/cars/${activeCar.id}/depreciation` : "#",
-      icon: TrendingDown,
-      label: "NADA Depreciation Schedule",
-    },
-    {
-      href: activeCar ? `/admin/cars/${activeCar.id}/purchase` : "#",
-      icon: ShoppingBag,
-      label: "Purchase Details",
-    },
-    {
-      href: activeCar ? `/admin/cars/${activeCar.id}/calculator` : "#",
-      icon: Calculator,
-      label: "Payment Calculator",
-    },
-    {
-      href: activeCar ? `/admin/cars/${activeCar.id}/payments` : "#",
-      icon: CreditCard,
-      label: "Payment History",
-    },
+    { href: carHref("earnings"),       icon: DollarSign,   label: "Earnings" },
+    { href: carHref("records"),        icon: Folder,       label: "Records and Files" },
+    { href: carHref("income-expense"), icon: Calendar,     label: "Car Rental Value Per Month" },
+    { href: carHref("calculator"),     icon: Calculator,   label: "Payment Calculator" },
+
+    { href: "/admin/turo-trips",       icon: History,      label: "History" },
+    { href: carHref("graphs"),         icon: TrendingUp,   label: "Graphs and Charts Report" },
+    { href: carHref("depreciation"),   icon: TrendingDown, label: "NADA Depreciation Schedule" },
+    { href: carHref("payments"),       icon: CreditCard,   label: "Payment History" },
+
+    { href: carHref("totals"),         icon: BarChart3,    label: "Totals" },
+    { href: carHref("maintenance"),    icon: Wrench,       label: "Maintenance" },
+    { href: carHref("purchase"),       icon: ShoppingBag,  label: "Purchase Details" },
   ];
 
   const supportLinks = [
-    { href: "#", icon: ClipboardList, label: "Off-boarding Form" },
-    { href: "#", icon: Video, label: "Schedule a Zoom Call" },
-    { href: "/onboarding", icon: PlusCircle, label: "List Another Car" },
-    {
-      href: turoViewLink ?? "#",
-      icon: Car,
-      label: "Book Your Car",
-      external: !!turoViewLink,
-    },
-    {
-      href: "/profile",
-      icon: FileText,
-      label: "License Registration or Insurance Updates",
-    },
-    { href: "/admin/forms", icon: UserPlus, label: "Refer Somebody" },
-    { href: "/tutorial", icon: BookOpen, label: "Training Manual" },
-    { href: "/admin/turo-guide", icon: Map, label: "Turo Guide" },
-    { href: "/admin/testimonials", icon: Star, label: "Client Testimonials" },
-    { href: "#", icon: Globe, label: "News & Media" },
+    { href: "#",                   icon: ClipboardList, label: "Off-boarding Form" },
+    { href: turoViewLink ?? "#",   icon: Car,           label: "Book Your Car", external: !!turoViewLink },
+    { href: "/tutorial",           icon: BookOpen,      label: "Training Manual" },
+    { href: "#",                   icon: Globe,         label: "News & Media" },
+
+    { href: "#",                   icon: Video,         label: "Schedule a Zoom Call" },
+    { href: "/profile",            icon: FileText,      label: "License Registration or Insurance Updates" },
+    { href: "/admin/turo-guide",   icon: Map,           label: "Turo Guide" },
+    { href: "",                    icon: Map,           label: "",                placeholder: true },
+
+    { href: "/onboarding",         icon: PlusCircle,    label: "List Another Car" },
+    { href: "/admin/forms",        icon: UserPlus,      label: "Refer Somebody" },
+    { href: "/admin/testimonials", icon: Star,          label: "Client Testimonials" },
   ];
 
   // ── Loading ───────────────────────────────────────────────────────────────────
@@ -551,11 +515,11 @@ export default function ClientDashboard() {
           </div>
         </div>
 
-        {/* Section 10: Report Center */}
-        <ReportCenter reportLinks={reportLinks} />
-
-        {/* Section 11: Support Center */}
-        <SupportCenter supportLinks={supportLinks} />
+        {/* Sections 10 & 11: Report Center + Support Center */}
+        <div className="space-y-6 mt-8 mb-12">
+          <ReportCenter reportLinks={reportLinks} />
+          <SupportCenter supportLinks={supportLinks} />
+        </div>
       </div>
     </AdminLayout>
   );

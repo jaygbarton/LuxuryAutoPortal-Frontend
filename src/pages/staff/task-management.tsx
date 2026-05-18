@@ -1,4 +1,5 @@
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -355,6 +356,7 @@ export default function StaffTaskManagement() {
           )}
         </DialogContent>
       </Dialog>
+      <EmployeePageLinks />
     </AdminLayout>
   );
 }

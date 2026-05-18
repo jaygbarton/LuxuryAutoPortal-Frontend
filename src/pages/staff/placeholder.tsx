@@ -1,4 +1,5 @@
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface StaffPlaceholderProps {
@@ -27,6 +28,7 @@ export default function StaffPlaceholder({ title, description, icon }: StaffPlac
           </CardContent>
         </Card>
       </div>
+      <EmployeePageLinks />
     </AdminLayout>
   );
 }

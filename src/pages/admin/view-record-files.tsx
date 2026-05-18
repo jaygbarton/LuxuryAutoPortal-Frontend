@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1101,6 +1102,7 @@ export default function ViewRecordFilesPage() {
           carBacklogPage="records-and-files-view"
         />
       )}
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

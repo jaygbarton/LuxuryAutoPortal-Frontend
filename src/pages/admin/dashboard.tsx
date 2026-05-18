@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { OnboardingTutorial, useTutorial } from "@/components/onboarding/OnboardingTutorial";
 import { buildApiUrl } from "@/lib/queryClient";
 
@@ -358,6 +359,7 @@ export default function AdminDashboard() {
 
       {/* Tutorial */}
       {(isAdmin || isClient || isEmployee) && <OnboardingTutorial />}
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

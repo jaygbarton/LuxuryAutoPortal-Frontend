@@ -23,6 +23,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
 import { buildApiUrl } from "@/lib/queryClient";
 import {
   EmployeeProfileSection,
@@ -223,6 +224,7 @@ export default function StaffDashboard() {
           </div>
         </div>
       </div>
+      <EmployeePageLinks />
     </AdminLayout>
   );
 }

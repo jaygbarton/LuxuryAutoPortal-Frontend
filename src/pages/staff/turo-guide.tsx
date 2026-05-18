@@ -1,4 +1,5 @@
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Loader2, Map } from "lucide-react";
@@ -110,6 +111,7 @@ export default function StaffTuroGuide() {
           </div>
         )}
       </div>
+      <EmployeePageLinks />
     </AdminLayout>
   );
 }

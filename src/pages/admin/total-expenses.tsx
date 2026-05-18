@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
+import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, ExternalLink } from "lucide-react";
@@ -422,6 +424,8 @@ export default function TotalExpensesPage() {
           </div>
         </div>
       </div>
+      <ClientPageLinks />
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

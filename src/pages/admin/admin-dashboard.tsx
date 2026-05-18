@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import IncomeExpensesSection from "@/components/admin/dashboard/IncomeExpensesSection";
 import AirportParkingSection from "@/components/admin/dashboard/AirportParkingSection";
 import CommissionsSection from "@/components/admin/dashboard/CommissionsSection";
@@ -244,6 +245,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </div>
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

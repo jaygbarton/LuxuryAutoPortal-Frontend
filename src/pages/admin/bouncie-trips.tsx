@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearch } from "wouter";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
+import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -455,6 +457,8 @@ export default function BouncieTripsPage() {
           </div>
         </div>
       </div>
+      <ClientPageLinks />
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

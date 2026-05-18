@@ -1,4 +1,6 @@
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
+import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TripsOverviewTab } from "./operations/TripsOverviewTab";
 import { TripTasksTab } from "./operations/TripTasksTab";
@@ -60,6 +62,8 @@ export default function OperationsPage() {
           </TabsContent>
         </Tabs>
       </div>
+      <ClientPageLinks />
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

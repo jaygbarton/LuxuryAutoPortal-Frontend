@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ExpenseFormSubmission from "@/pages/admin/forms/ExpenseFormSubmission";
@@ -97,6 +98,7 @@ export default function StaffForms() {
           </CardContent>
         </Card>
       </div>
+      <EmployeePageLinks />
     </AdminLayout>
   );
 }

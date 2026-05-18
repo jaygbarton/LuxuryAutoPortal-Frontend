@@ -2,6 +2,8 @@ import React, { useState, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
+import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -1572,6 +1574,8 @@ export default function NADADepreciationPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <ClientPageLinks />
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

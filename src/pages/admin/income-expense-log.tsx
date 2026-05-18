@@ -1,6 +1,7 @@
 // Log page for viewing edit history of income and expenses
 import React, { useState } from "react";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -238,6 +239,7 @@ export default function IncomeExpenseLogPage() {
           )}
         </div>
       </div>
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

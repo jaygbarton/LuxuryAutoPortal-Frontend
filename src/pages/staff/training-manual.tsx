@@ -1,4 +1,5 @@
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OnboardingTutorial, useTutorial } from "@/components/onboarding/OnboardingTutorial";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -224,6 +225,7 @@ export default function StaffTrainingManual() {
 
         <OnboardingTutorial autoPlay={false} />
       </div>
+      <EmployeePageLinks />
     </AdminLayout>
   );
 }

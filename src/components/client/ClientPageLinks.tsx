@@ -23,7 +23,9 @@ import {
   CreditCard,
   DollarSign,
   FileText,
+  Folder,
   Globe,
+  History,
   Map,
   PlusCircle,
   ShoppingBag,
@@ -83,35 +85,53 @@ export function ClientPageLinks() {
     ? (p: string) => `/admin/cars/${firstCarId}/${p}`
     : (_: string) => "#";
 
+  // Order is row-major across the 4-column grid: each row is a left-to-right
+  // sweep, and we wrap to the next row after every 4 items.
+  //
+  //   Row 1: Earnings | Records and Files | Car Rental Value Per Month | Payment Calculator
+  //   Row 2: History  | Graphs and Charts Report | NADA Depreciation Schedule | Payment History
+  //   Row 3: Totals   | Maintenance              | Purchase Details
   const reportLinks = [
-    { href: carPath("earnings"),       icon: DollarSign,    label: "Earnings" },
-    { href: "/admin/turo-trips",       icon: ClipboardList, label: "History" },
-    { href: carPath("totals"),         icon: BarChart3,     label: "Totals" },
-    { href: carPath("records"),        icon: FileText,      label: "Records and Files" },
-    { href: carPath("graphs"),         icon: TrendingUp,    label: "Graphs and Charts Report" },
-    { href: carPath("maintenance"),    icon: Wrench,        label: "Maintenance" },
-    { href: carPath("income-expense"), icon: Calendar,      label: "Car Rental Value Per Month" },
-    { href: carPath("depreciation"),   icon: TrendingDown,  label: "NADA Depreciation Schedule" },
-    { href: carPath("purchase"),       icon: ShoppingBag,   label: "Purchase Details" },
-    { href: carPath("calculator"),     icon: Calculator,    label: "Payment Calculator" },
-    { href: carPath("payments"),       icon: CreditCard,    label: "Payment History" },
+    { href: carPath("earnings"),       icon: DollarSign,   label: "Earnings" },
+    { href: carPath("records"),        icon: Folder,       label: "Records and Files" },
+    { href: carPath("income-expense"), icon: Calendar,     label: "Car Rental Value Per Month" },
+    { href: carPath("calculator"),     icon: Calculator,   label: "Payment Calculator" },
+
+    { href: "/admin/turo-trips",       icon: History,      label: "History" },
+    { href: carPath("graphs"),         icon: TrendingUp,   label: "Graphs and Charts Report" },
+    { href: carPath("depreciation"),   icon: TrendingDown, label: "NADA Depreciation Schedule" },
+    { href: carPath("payments"),       icon: CreditCard,   label: "Payment History" },
+
+    { href: carPath("totals"),         icon: BarChart3,    label: "Totals" },
+    { href: carPath("maintenance"),    icon: Wrench,       label: "Maintenance" },
+    { href: carPath("purchase"),       icon: ShoppingBag,  label: "Purchase Details" },
   ];
 
+  //   Row 1: Off-boarding Form | Book Your Car | Training Manual | News & Media
+  //   Row 2: Schedule a Zoom Call | License Registration or Insurance Updates | Turo Guide | (blank)
+  //   Row 3: List Another Car  | Refer Somebody | Client Testimonials
+  //
+  // The empty 4th cell on row 2 is held by a `placeholder: true` entry so
+  // CSS Grid auto-flow drops "List Another Car" onto row 3 instead of
+  // tucking it next to "Turo Guide".
   const supportLinks = [
     { href: "#",                   icon: ClipboardList, label: "Off-boarding Form" },
-    { href: "#",                   icon: Video,         label: "Schedule a Zoom Call" },
-    { href: "/onboarding",         icon: PlusCircle,    label: "List Another Car" },
     { href: turoViewLink ?? "#",   icon: Car,           label: "Book Your Car", external: !!turoViewLink },
-    { href: "/profile",            icon: FileText,      label: "License Registration or Insurance Updates" },
-    { href: "/admin/forms",        icon: UserPlus,      label: "Refer Somebody" },
     { href: "/tutorial",           icon: BookOpen,      label: "Training Manual" },
-    { href: "/admin/turo-guide",   icon: Map,           label: "Turo Guide" },
-    { href: "/admin/testimonials", icon: Star,          label: "Client Testimonials" },
     { href: "#",                   icon: Globe,         label: "News & Media" },
+
+    { href: "#",                   icon: Video,         label: "Schedule a Zoom Call" },
+    { href: "/profile",            icon: FileText,      label: "License Registration or Insurance Updates" },
+    { href: "/admin/turo-guide",   icon: Map,           label: "Turo Guide" },
+    { href: "",                    icon: Map,           label: "",                placeholder: true },
+
+    { href: "/onboarding",         icon: PlusCircle,    label: "List Another Car" },
+    { href: "/admin/forms",        icon: UserPlus,      label: "Refer Somebody" },
+    { href: "/admin/testimonials", icon: Star,          label: "Client Testimonials" },
   ];
 
   return (
-    <div className="space-y-6 mt-8">
+    <div className="space-y-6 mt-8 mb-12">
       <ReportCenter reportLinks={reportLinks} />
       <SupportCenter supportLinks={supportLinks} />
     </div>

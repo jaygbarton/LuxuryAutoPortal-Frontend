@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -627,6 +628,7 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
           <ModalEditParkingAirportQB />
           <ModalEditDynamicSubcategory />
         </div>
+        <ClientPageLinks />
       </AdminLayout>
     </IncomeExpenseProvider>
   );

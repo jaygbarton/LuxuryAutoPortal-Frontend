@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
+import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ExternalLink, Download, FileText } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -469,6 +471,8 @@ export default function PurchaseDetailsPage() {
           </div>
         </div>
       </div>
+      <ClientPageLinks />
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

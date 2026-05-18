@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import {
   Card,
   CardContent,
@@ -1755,6 +1756,7 @@ export default function TuroTripsPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

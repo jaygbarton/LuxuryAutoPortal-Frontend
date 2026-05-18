@@ -4,6 +4,7 @@
 
 import { Link } from "wouter";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
 import { Button } from "@/components/ui/button";
 import ExpenseFormMySubmissions from "@/pages/admin/forms/ExpenseFormMySubmissions";
 import { ArrowLeft } from "lucide-react";
@@ -22,6 +23,7 @@ export default function StaffFormsMySubmissions() {
         </div>
         <ExpenseFormMySubmissions />
       </div>
+      <EmployeePageLinks />
     </AdminLayout>
   );
 }

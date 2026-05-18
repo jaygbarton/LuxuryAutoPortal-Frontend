@@ -2,6 +2,7 @@ import "leaflet/dist/leaflet.css";
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -909,6 +910,7 @@ export default function BouncieGeofencePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

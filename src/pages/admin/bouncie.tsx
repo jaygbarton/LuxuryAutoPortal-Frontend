@@ -7,6 +7,7 @@ import {
   keepPreviousData,
 } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import {
@@ -1197,6 +1198,7 @@ export default function BouncieFleetPage() {
           )}
         </div>
       </div>
+      <AdminPageLinks />
     </AdminLayout>
   );
 }

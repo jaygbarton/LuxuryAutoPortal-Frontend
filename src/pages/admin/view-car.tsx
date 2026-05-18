@@ -1,6 +1,7 @@
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ArrowLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -323,6 +324,7 @@ export default function ViewCarPage() {
           </div>
         </div>
       </div>
+      <AdminPageLinks />
     </AdminLayout>
   );
 }
