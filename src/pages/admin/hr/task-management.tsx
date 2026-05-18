@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -40,8 +42,9 @@ import {
   Pencil,
   Image as ImageIcon,
   X,
+  History as HistoryIcon,
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { Fragment, useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 // ─── Status helpers ───────────────────────────────────────────────────────────
@@ -213,6 +216,7 @@ export default function AdminHrTaskManagement() {
   const [toDate, setToDate] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any | null>(null);
+  const [historyTask, setHistoryTask] = useState<any | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [photos, setPhotos] = useState<File[]>([]);
 
@@ -534,6 +538,15 @@ export default function AdminHrTaskManagement() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
+                              onClick={() => setHistoryTask(r)}
+                              title="Edit history"
+                            >
+                              <HistoryIcon className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="h-8 w-8 text-muted-foreground hover:text-destructive"
                               onClick={() => {
                                 if (
@@ -582,7 +595,7 @@ export default function AdminHrTaskManagement() {
 
             {/* Assignee (User) */}
             <div>
-              <Label>Assignee (User — who is assigning this task)</Label>
+              <Label>Assignee</Label>
               <Input
                 className="mt-1"
                 value={form.assigneeName}
@@ -692,6 +705,272 @@ export default function AdminHrTaskManagement() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit history dialog */}
+      <TaskHistoryDialog
+        task={historyTask}
+        onClose={() => setHistoryTask(null)}
+      />
     </AdminLayout>
+  );
+}
+
+// ─── Edit history dialog ───────────────────────────────────────────────────
+
+interface TaskTimerAuditRow {
+  task_timer_audit_aid: number;
+  task_timer_audit_task_aid: number;
+  task_timer_audit_action: "create" | "update" | "delete";
+  task_timer_audit_actor_id: number | null;
+  task_timer_audit_actor_name: string | null;
+  task_timer_audit_before: string | null;
+  task_timer_audit_after: string | null;
+  task_timer_audit_notes: string | null;
+  task_timer_audit_created: string;
+}
+
+function formatDateTime(s: string | null | undefined): string {
+  if (!s) return "—";
+  try {
+    const d = new Date(String(s).replace(" ", "T"));
+    if (Number.isNaN(d.getTime())) return s;
+    return d.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return s;
+  }
+}
+
+function safeParse(s: string | null): Record<string, unknown> | null {
+  if (!s) return null;
+  try {
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
+}
+
+function TaskHistoryDialog(props: {
+  task: { task_timer_aid: number; task_timer_name?: string } | null;
+  onClose: () => void;
+}) {
+  const { task, onClose } = props;
+  const { data, isLoading } = useQuery<{
+    success: boolean;
+    data: TaskTimerAuditRow[];
+  }>({
+    queryKey: ["/api/admin/hr/task-timers", task?.task_timer_aid, "history"],
+    enabled: !!task,
+    queryFn: async () => {
+      const res = await fetch(
+        buildApiUrl(
+          `/api/admin/hr/task-timers/${task!.task_timer_aid}/history`,
+        ),
+        { credentials: "include" },
+      );
+      if (!res.ok) throw new Error("Failed to load history");
+      return res.json();
+    },
+  });
+  const entries = data?.data ?? [];
+
+  return (
+    <Dialog open={!!task} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-[720px] max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Edit history</DialogTitle>
+          <DialogDescription>
+            {task?.task_timer_name || "Task"}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 overflow-auto space-y-3 pr-1">
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : entries.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              No history recorded yet.
+            </p>
+          ) : (
+            entries.map((h) => (
+              <div
+                key={h.task_timer_audit_aid}
+                className="rounded-md border p-3 text-sm space-y-1"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={
+                        "rounded px-2 py-0.5 text-xs font-medium " +
+                        (h.task_timer_audit_action === "delete"
+                          ? "bg-destructive/10 text-destructive"
+                          : h.task_timer_audit_action === "update"
+                            ? "bg-amber-100 text-amber-900"
+                            : "bg-emerald-100 text-emerald-900")
+                      }
+                    >
+                      {h.task_timer_audit_action.toUpperCase()}
+                    </span>
+                    <span className="font-medium">
+                      {h.task_timer_audit_actor_name ?? "System"}
+                    </span>
+                  </div>
+                  <span className="text-muted-foreground text-xs">
+                    {formatDateTime(h.task_timer_audit_created)}
+                  </span>
+                </div>
+                {h.task_timer_audit_notes && (
+                  <div className="text-muted-foreground">
+                    Notes: {h.task_timer_audit_notes}
+                  </div>
+                )}
+                <TaskHistoryDiff
+                  action={h.task_timer_audit_action}
+                  before={h.task_timer_audit_before}
+                  after={h.task_timer_audit_after}
+                />
+              </div>
+            ))
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TaskHistoryDiff(props: {
+  action: "create" | "update" | "delete";
+  before: string | null;
+  after: string | null;
+}) {
+  const beforeObj = safeParse(props.before);
+  const afterObj = safeParse(props.after);
+
+  // Fields to show and their labels. task_timer_emp_id is intentionally
+  // omitted — we already show the employee name via task_timer_emp_list.
+  const FIELDS: { key: string; label: string }[] = [
+    { key: "task_timer_name", label: "Task name" },
+    { key: "task_timer_goal", label: "Assignee" },
+    { key: "task_timer_emp_list", label: "Assigned to" },
+    { key: "task_timer_date_end", label: "Due date" },
+    { key: "task_timer_date_start", label: "Start date" },
+    { key: "task_timer_status", label: "Status" },
+    { key: "task_timer_description", label: "Description" },
+    { key: "task_timer_car_name", label: "Car" },
+  ];
+
+  /**
+   * Convert `task_timer_emp_list` JSON  →  human-readable names.
+   * Handles: `[{"id":"27","name":"Cathy"}]` and legacy CSV strings.
+   */
+  function fmtEmpList(raw: unknown): string {
+    if (raw == null || raw === "" || raw === "[]") return "—";
+    const str = String(raw).trim();
+    // Try JSON array first
+    try {
+      const parsed = JSON.parse(str);
+      if (Array.isArray(parsed)) {
+        const names = parsed
+          .map((entry: unknown) => {
+            if (typeof entry === "object" && entry !== null) {
+              const e = entry as Record<string, unknown>;
+              const name = String(e.name ?? "").trim();
+              return name || String(e.id ?? "").trim() || null;
+            }
+            return String(entry).trim() || null;
+          })
+          .filter(Boolean);
+        return names.length ? names.join(", ") : "—";
+      }
+    } catch {
+      // not JSON — fall through to plain string
+    }
+    return str || "—";
+  }
+
+  /** Map numeric status codes to the same labels shown in the table. */
+  function fmtStatus(raw: unknown): string {
+    const code = Number(raw);
+    const found = STATUS_OPTIONS.find((s) => Number(s.value) === code);
+    return found ? found.label : String(raw ?? "—");
+  }
+
+  /** Generic formatter — falls back to plain string. */
+  function fmt(key: string, v: unknown): string {
+    if (v == null || v === "") return "—";
+    if (key === "task_timer_emp_list") return fmtEmpList(v);
+    if (key === "task_timer_status") return fmtStatus(v);
+    return String(v);
+  }
+
+  // CREATE / DELETE: show the full snapshot in a single column.
+  if (props.action === "create" || props.action === "delete") {
+    const snapshot = props.action === "create" ? afterObj : beforeObj;
+    if (!snapshot) return null;
+    const rows = FIELDS.filter((f) => {
+      const v = snapshot[f.key];
+      return v != null && v !== "" && v !== "[]";
+    });
+    if (rows.length === 0) {
+      return (
+        <div className="text-xs text-muted-foreground">No field details.</div>
+      );
+    }
+    return (
+      <div className="mt-1 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs">
+        {rows.map((f) => (
+          <Fragment key={f.key}>
+            <div className="text-muted-foreground">{f.label}:</div>
+            <div className="whitespace-pre-wrap break-words">
+              {fmt(f.key, snapshot[f.key])}
+            </div>
+          </Fragment>
+        ))}
+      </div>
+    );
+  }
+
+  // UPDATE: side-by-side before → after, only for fields that changed.
+  // Compare the *formatted* strings so that JSON whitespace differences
+  // don’t produce spurious diff rows.
+  const diffs = FIELDS.filter((f) => {
+    const b = fmt(f.key, beforeObj?.[f.key]);
+    const a = fmt(f.key, afterObj?.[f.key]);
+    return b !== a;
+  });
+
+  if (!beforeObj && !afterObj) return null;
+  if (diffs.length === 0) {
+    return (
+      <div className="text-xs text-muted-foreground">No field changes.</div>
+    );
+  }
+
+  return (
+    <div className="mt-1 grid grid-cols-[auto_1fr_auto_1fr] gap-x-2 gap-y-1 text-xs">
+      {diffs.map((f) => (
+        <Fragment key={f.key}>
+          <div className="text-muted-foreground font-medium">{f.label}:</div>
+          <div className="line-through text-destructive/80 whitespace-pre-wrap break-words">
+            {fmt(f.key, beforeObj?.[f.key])}
+          </div>
+          <div className="text-muted-foreground">→</div>
+          <div className="text-emerald-700 whitespace-pre-wrap break-words">
+            {fmt(f.key, afterObj?.[f.key])}
+          </div>
+        </Fragment>
+      ))}
+    </div>
   );
 }

@@ -387,7 +387,12 @@ export default function NewsMediaPage() {
                     >
                       <div className="relative aspect-video w-full overflow-hidden bg-muted">
                         {row.client_testimonial_file ? (
-                          <VideoPreview url={row.client_testimonial_file} />
+                          <VideoPreview
+                            url={row.client_testimonial_file}
+                            title={displayTitle}
+                            description={row.client_testimonial_description}
+                            className="group/preview relative block h-full w-full"
+                          />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <Newspaper className="w-8 h-8 text-muted-foreground/40" />
@@ -506,7 +511,11 @@ export default function NewsMediaPage() {
                 )}
                 {fileValid && formFile.trim() && (
                   <div className="pt-1">
-                    <VideoPreview url={formFile.trim()} />
+                    <VideoPreview
+                      url={formFile.trim()}
+                      title={formTitle.trim() || "Preview"}
+                      className="group relative h-24 w-40 overflow-hidden rounded border border-border bg-muted hover:border-primary"
+                    />
                   </div>
                 )}
               </div>
@@ -581,7 +590,11 @@ export default function NewsMediaPage() {
                   )}
                   {fileValid && formFile.trim() && (
                     <div className="pt-1">
-                      <VideoPreview url={formFile.trim()} />
+                      <VideoPreview
+                        url={formFile.trim()}
+                        title={formTitle.trim() || "Preview"}
+                        className="group relative h-24 w-40 overflow-hidden rounded border border-border bg-muted hover:border-primary"
+                      />
                     </div>
                   )}
                 </div>

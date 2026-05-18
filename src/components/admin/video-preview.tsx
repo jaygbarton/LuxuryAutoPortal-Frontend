@@ -97,6 +97,17 @@ interface VideoPreviewProps {
   url: string;
   title?: string;
   description?: string;
+  /**
+   * CSS classes applied to the clickable thumbnail button.
+   *
+   * Default (when omitted): fills the parent container — `"group/preview
+   * relative block h-full w-full overflow-hidden"`.  This is the correct
+   * behaviour when VideoPreview sits inside an `aspect-video` card cell.
+   *
+   * For small inline previews (e.g. inside a form dialog) pass an explicit
+   * size, e.g.:
+   *   className="group relative h-24 w-40 overflow-hidden rounded …"
+   */
   className?: string;
 }
 
@@ -135,9 +146,12 @@ export function VideoPreview({
       <button
         type="button"
         onClick={() => setOpen(true)}
+        // When no className is provided VideoPreview fills its parent.
+        // Callers that need a fixed small size (form dialogs, table cells)
+        // must pass an explicit className — never rely on the fallback.
         className={
           className ??
-          "group relative h-12 w-20 overflow-hidden rounded border border-border bg-muted hover:border-primary"
+          "group/preview relative block h-full w-full overflow-hidden"
         }
         title={title || url}
       >

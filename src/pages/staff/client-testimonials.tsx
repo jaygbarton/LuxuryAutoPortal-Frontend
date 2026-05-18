@@ -84,7 +84,12 @@ export default function StaffClientTestimonials() {
                 {/* Video / Media preview */}
                 <div className="relative aspect-video w-full overflow-hidden bg-muted">
                   {item.client_testimonial_file ? (
-                    <VideoPreview url={item.client_testimonial_file} />
+                    <VideoPreview
+                      url={item.client_testimonial_file}
+                      title={item.client_testimonial_title}
+                      description={item.client_testimonial_description}
+                      className="group/preview relative block h-full w-full"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <MessageCircle className="w-8 h-8 text-muted-foreground/30" />
