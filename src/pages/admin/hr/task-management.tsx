@@ -341,15 +341,16 @@ export default function AdminHrTaskManagement() {
   function openEdit(task: any) {
     setEditingTask(task);
     setPhotos([]);
-    // Parse assigned employee
+    // Parse assigned employee id AND name from task_timer_emp_list
     let empId = task.task_timer_emp_id || "";
     let empName = "";
-    if (!empId && task.task_timer_emp_list) {
+    if (task.task_timer_emp_list) {
       try {
         const parsed = JSON.parse(task.task_timer_emp_list);
         if (Array.isArray(parsed) && parsed.length > 0) {
           const first = parsed[0];
-          empId = String(first?.id ?? first ?? "");
+          if (!empId) empId = String(first?.id ?? first ?? "");
+          empName = String(first?.name ?? "").trim();
         }
       } catch {}
     }
@@ -760,6 +761,8 @@ function TaskHistoryDialog(props: {
   onClose: () => void;
 }) {
   const { task, onClose } = props;
+
+  // Fetch history entries
   const { data, isLoading } = useQuery<{
     success: boolean;
     data: TaskTimerAuditRow[];
@@ -777,6 +780,31 @@ function TaskHistoryDialog(props: {
       return res.json();
     },
   });
+
+  // Fetch employee list so we can resolve IDs → names when the stored
+  // name field is blank (happens when tasks were saved before the fix).
+  const { data: empData } = useQuery<{ data: any[] }>({
+    queryKey: ["/api/employees", "history-name-lookup"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/employees?limit=500"), {
+        credentials: "include",
+      });
+      if (!res.ok) return { data: [] };
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+  // Build id → display-name map
+  const empById = new Map<string, string>(
+    (empData?.data ?? []).map((e: any) => {
+      const name =
+        e.fullname ||
+        `${e.employee_first_name ?? ""} ${e.employee_last_name ?? ""}`.trim() ||
+        `Employee ${e.employee_aid ?? e.id}`;
+      return [String(e.employee_aid ?? e.id), name];
+    }),
+  );
+
   const entries = data?.data ?? [];
 
   return (
@@ -834,6 +862,7 @@ function TaskHistoryDialog(props: {
                   action={h.task_timer_audit_action}
                   before={h.task_timer_audit_before}
                   after={h.task_timer_audit_after}
+                  empById={empById}
                 />
               </div>
             ))
@@ -853,7 +882,9 @@ function TaskHistoryDiff(props: {
   action: "create" | "update" | "delete";
   before: string | null;
   after: string | null;
+  empById?: Map<string, string>;
 }) {
+  const { empById = new Map() } = props;
   const beforeObj = safeParse(props.before);
   const afterObj = safeParse(props.after);
 
@@ -871,13 +902,13 @@ function TaskHistoryDiff(props: {
   ];
 
   /**
-   * Convert `task_timer_emp_list` JSON  →  human-readable names.
+   * Convert `task_timer_emp_list` JSON → human-readable names.
+   * Priority: stored name → employee API lookup by id → nothing shown.
    * Handles: `[{"id":"27","name":"Cathy"}]` and legacy CSV strings.
    */
   function fmtEmpList(raw: unknown): string {
     if (raw == null || raw === "" || raw === "[]") return "—";
     const str = String(raw).trim();
-    // Try JSON array first
     try {
       const parsed = JSON.parse(str);
       if (Array.isArray(parsed)) {
@@ -885,13 +916,21 @@ function TaskHistoryDiff(props: {
           .map((entry: unknown) => {
             if (typeof entry === "object" && entry !== null) {
               const e = entry as Record<string, unknown>;
-              const name = String(e.name ?? "").trim();
-              return name || String(e.id ?? "").trim() || null;
+              // 1. Use stored name if present
+              const stored = String(e.name ?? "").trim();
+              if (stored) return stored;
+              // 2. Look up from employees API by id
+              const id = String(e.id ?? "").trim();
+              if (id && empById.has(id)) return empById.get(id)!;
+              // 3. Nothing meaningful to show
+              return null;
             }
-            return String(entry).trim() || null;
+            // Plain string / number entry — try as an id lookup
+            const id = String(entry).trim();
+            return empById.get(id) ?? null;
           })
           .filter(Boolean);
-        return names.length ? names.join(", ") : "—";
+        return names.length ? (names as string[]).join(", ") : "—";
       }
     } catch {
       // not JSON — fall through to plain string
