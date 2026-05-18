@@ -274,7 +274,7 @@ const allSidebarItems: SidebarItem[] = [
     href: "/admin/news-media",
     label: "News & Media",
     icon: Newspaper,
-    roles: ["admin"],
+    roles: ["admin", "client"],
   },
   {
     href: "/admin/view-as-employee",

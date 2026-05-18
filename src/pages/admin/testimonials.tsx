@@ -103,6 +103,10 @@ export default function AdminTestimonialsPage() {
     staleTime: 1000 * 60 * 5,
   });
   const isClient = Boolean(meData?.user?.isClient) && !meData?.user?.isAdmin;
+  // Wait for auth check before deciding which API endpoint to hit.
+  // - Clients use /api/client-testimonials/active (no admin auth required, active-only)
+  // - Admins use /api/client-testimonials        (requireAdmin, full CRUD view)
+  const authResolved = meData !== undefined;
   const [editItem, setEditItem] = useState<ClientTestimonialRow | null>(null);
   const [archiveId, setArchiveId] = useState<number | null>(null);
   const [restoreId, setRestoreId] = useState<number | null>(null);
@@ -118,12 +122,30 @@ export default function AdminTestimonialsPage() {
     page: number;
     limit: number;
   }>({
-    queryKey: ["/api/client-testimonials", page, search, statusFilter],
+    queryKey: isClient
+      ? ["/api/client-testimonials/active", page, search]
+      : ["/api/client-testimonials", page, search, statusFilter],
+    enabled: authResolved,
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set("page", String(page));
       params.set("limit", "20");
       if (search.trim()) params.set("search", search.trim());
+
+      if (isClient) {
+        // Active-only endpoint — accessible without admin role
+        const res = await fetch(
+          buildApiUrl(`/api/client-testimonials/active?${params}`),
+          { credentials: "include" },
+        );
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Failed to load testimonials");
+        }
+        return res.json();
+      }
+
+      // Admin endpoint — includes inactive entries and status filter
       if (statusFilter !== "all") params.set("status", statusFilter);
       const res = await fetch(
         buildApiUrl(`/api/client-testimonials?${params}`),
@@ -270,8 +292,9 @@ export default function AdminTestimonialsPage() {
           <div>
             <h1 className="text-2xl font-semibold">Client Testimonials</h1>
             <p className="text-muted-foreground text-sm">
-              Manage client testimonials. Archive or restore to control
-              visibility on staff/client views.
+              {isClient
+                ? "Watch and explore client testimonials."
+                : "Manage client testimonials. Archive or restore to control visibility on staff/client views."}
             </p>
           </div>
           {!isClient && (
@@ -301,20 +324,23 @@ export default function AdminTestimonialsPage() {
                   className="pl-8"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="1">Active</SelectItem>
-                  <SelectItem value="0">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Status filter is only meaningful for admins */}
+              {!isClient && (
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="1">Active</SelectItem>
+                    <SelectItem value="0">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {!authResolved || isLoading ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <div
