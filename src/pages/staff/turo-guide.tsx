@@ -84,7 +84,12 @@ export default function StaffTuroGuide() {
                 {/* Video / Media preview */}
                 <div className="relative aspect-video w-full overflow-hidden bg-muted">
                   {item.turo_guide_file ? (
-                    <VideoPreview url={item.turo_guide_file} />
+                    <VideoPreview
+                      url={item.turo_guide_file}
+                      title={item.turo_guide_title}
+                      description={item.turo_guide_description}
+                      className="group/preview relative block h-full w-full"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <BookOpen className="w-8 h-8 text-muted-foreground/30" />

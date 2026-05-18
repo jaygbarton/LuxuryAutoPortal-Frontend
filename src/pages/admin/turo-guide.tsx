@@ -110,6 +110,12 @@ export default function AdminTuroGuidePage() {
   const [formDescription, setFormDescription] = useState("");
   const [formFile, setFormFile] = useState("");
 
+  // Wait for auth check so we know whether the caller is a client or admin
+  // before deciding which API endpoint to hit.
+  // - Clients use /api/turo-guides/active (no auth required, active-only)
+  // - Admins use /api/turo-guides        (requireAdmin, full CRUD view)
+  const authResolved = meData !== undefined;
+
   const { data, isLoading } = useQuery<{
     success: boolean;
     list: TuroGuideRow[];
@@ -117,12 +123,30 @@ export default function AdminTuroGuidePage() {
     page: number;
     limit: number;
   }>({
-    queryKey: ["/api/turo-guides", page, search, statusFilter],
+    queryKey: isClient
+      ? ["/api/turo-guides/active", page, search]
+      : ["/api/turo-guides", page, search, statusFilter],
+    enabled: authResolved,
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set("page", String(page));
       params.set("limit", "20");
       if (search.trim()) params.set("search", search.trim());
+
+      if (isClient) {
+        // Active-only endpoint — accessible without admin role
+        const res = await fetch(
+          buildApiUrl(`/api/turo-guides/active?${params}`),
+          { credentials: "include" },
+        );
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Failed to load turo guides");
+        }
+        return res.json();
+      }
+
+      // Admin endpoint — includes inactive entries and status filter
       if (statusFilter !== "all") params.set("status", statusFilter);
       const res = await fetch(buildApiUrl(`/api/turo-guides?${params}`), {
         credentials: "include",
@@ -265,8 +289,9 @@ export default function AdminTuroGuidePage() {
           <div>
             <h1 className="text-2xl font-semibold">Turo Guide</h1>
             <p className="text-muted-foreground text-sm">
-              Manage Turo hosting guide entries. Archive or restore to control
-              visibility on staff/client views.
+              {isClient
+                ? "Turo hosting and operations guide videos and resources."
+                : "Manage Turo hosting guide entries. Archive or restore to control visibility on staff/client views."}
             </p>
           </div>
           {!isClient && (
@@ -296,20 +321,23 @@ export default function AdminTuroGuidePage() {
                   className="pl-8"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="1">Active</SelectItem>
-                  <SelectItem value="0">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Status filter is only meaningful for admins */}
+              {!isClient && (
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="1">Active</SelectItem>
+                    <SelectItem value="0">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {!authResolved || isLoading ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <div

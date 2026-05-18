@@ -4,7 +4,7 @@
  * Submitting creates a manual inspection record in the Operations → Car Issues tab.
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Loader2, Car, AlertTriangle } from "lucide-react";
+import { CheckCircle, Loader2, Car, AlertTriangle, Upload } from "lucide-react";
 
 /** A simple car picker populated from /api/cars (shared endpoint) */
 function CarSelect({
@@ -72,7 +72,72 @@ function CarSelect({
   );
 }
 
-/** Simple photo upload using the operations/inspections photo endpoint after the record is created */
+/** Employee picker populated from /api/employees */
+function EmployeeSelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (name: string) => void;
+}) {
+  const { data } = useQuery<{
+    success: boolean;
+    data: {
+      id?: number;
+      employee_aid?: number;
+      fullname?: string;
+      first_name?: string;
+      last_name?: string;
+      emp_first_name?: string;
+      emp_last_name?: string;
+      employee_first_name?: string;
+      employee_last_name?: string;
+    }[];
+  }>({
+    queryKey: ["/api/employees", "car-issue-picker"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/employees?limit=500"), {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch employees");
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const employees = data?.data ?? [];
+
+  function getEmployeeName(emp: (typeof employees)[0]): string {
+    if (emp.fullname) return emp.fullname;
+    const first =
+      emp.first_name || emp.emp_first_name || emp.employee_first_name || "";
+    const last =
+      emp.last_name || emp.emp_last_name || emp.employee_last_name || "";
+    const id = emp.id ?? emp.employee_aid;
+    return `${first} ${last}`.trim() || (id ? `Employee ${id}` : "");
+  }
+
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+    >
+      <option value="">Select employee…</option>
+      {employees.map((emp) => {
+        const name = getEmployeeName(emp);
+        const id = emp.id ?? emp.employee_aid;
+        return (
+          <option key={id} value={name}>
+            {name}
+          </option>
+        );
+      })}
+    </select>
+  );
+}
+
+/** Photo upload with click-to-browse AND drag-and-drop support */
 function PhotoRow({
   files,
   onAdd,
@@ -82,26 +147,66 @@ function PhotoRow({
   onAdd: (f: File) => void;
   onRemove: (i: number) => void;
 }) {
+  const [isDragging, setIsDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFiles = (fileList: FileList | null) => {
+    if (!fileList) return;
+    Array.from(fileList).forEach(onAdd);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    handleFiles(e.dataTransfer.files);
+  };
+
   return (
     <div className="space-y-2">
       <input
+        ref={inputRef}
         type="file"
         accept="image/*"
         multiple
         className="hidden"
         id="car-issue-photos"
         onChange={(e) => {
-          Array.from(e.target.files ?? []).forEach(onAdd);
+          handleFiles(e.target.files);
           e.target.value = "";
         }}
       />
-      <label
-        htmlFor="car-issue-photos"
-        className="flex items-center justify-center gap-2 h-24 rounded-md border-2 border-dashed border-border text-muted-foreground text-sm cursor-pointer hover:border-primary/50 hover:text-primary transition-colors"
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => inputRef.current?.click()}
+        className={`flex flex-col items-center justify-center gap-1.5 h-28 rounded-md border-2 border-dashed text-sm cursor-pointer transition-colors ${
+          isDragging
+            ? "border-primary bg-primary/5 text-primary"
+            : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary"
+        }`}
       >
-        <Car className="w-5 h-5" />
-        Click to upload photos (optional)
-      </label>
+        <Upload className="w-5 h-5" />
+        <span>
+          <span className="font-medium text-primary">Drag &amp; drop</span>{" "}
+          photos here, or{" "}
+          <span className="font-medium text-primary">click to browse</span>
+        </span>
+        <span className="text-xs text-muted-foreground">(optional)</span>
+      </div>
       {files.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {files.map((f, i) => (
@@ -113,7 +218,10 @@ function PhotoRow({
               />
               <button
                 type="button"
-                onClick={() => onRemove(i)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(i);
+                }}
                 className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center leading-none"
               >
                 ×
@@ -261,16 +369,12 @@ export default function CarIssueFormSubmission() {
             />
           </div>
 
-          {/* Assigned To */}
+          {/* Assigned To — employee dropdown */}
           <div className="space-y-1.5">
-            <Label htmlFor="assigned-to">Reported / Inspected By</Label>
-            <Input
-              id="assigned-to"
+            <Label>Reported / Inspected By</Label>
+            <EmployeeSelect
               value={form.assigned_to}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, assigned_to: e.target.value }))
-              }
-              placeholder="Your name"
+              onChange={(v) => setForm((p) => ({ ...p, assigned_to: v }))}
             />
           </div>
 

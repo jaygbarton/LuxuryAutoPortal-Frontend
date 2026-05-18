@@ -5,7 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ExternalLink, PlayCircle, Video as VideoIcon } from "lucide-react";
+import { ExternalLink, PlayCircle } from "lucide-react";
 
 type VideoKind = "youtube" | "vimeo" | "drive" | "file" | "image" | "other";
 
@@ -31,7 +31,11 @@ export function parseVideoUrl(raw: string): ParsedVideo {
   const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
 
   // YouTube
-  if (host === "youtube.com" || host === "m.youtube.com" || host === "youtu.be") {
+  if (
+    host === "youtube.com" ||
+    host === "m.youtube.com" ||
+    host === "youtu.be"
+  ) {
     let id: string | null = null;
     if (host === "youtu.be") {
       id = parsed.pathname.replace(/^\//, "").split("/")[0] || null;
@@ -100,7 +104,12 @@ interface VideoPreviewProps {
  * Compact thumbnail for a video URL. Clicking opens a dialog with an embedded player.
  * Falls back to "Open" link for unknown URL types.
  */
-export function VideoPreview({ url, title, description, className }: VideoPreviewProps) {
+export function VideoPreview({
+  url,
+  title,
+  description,
+  className,
+}: VideoPreviewProps) {
   const [open, setOpen] = useState(false);
   if (!url) return <span className="text-muted-foreground text-xs">—</span>;
 
@@ -133,31 +142,38 @@ export function VideoPreview({ url, title, description, className }: VideoPrevie
         title={title || url}
       >
         {info.thumbnailUrl ? (
-          <img
-            src={info.thumbnailUrl}
-            alt={title || "Video thumbnail"}
-            className="h-full w-full object-cover"
-            loading="lazy"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-            }}
-          />
-        ) : info.kind === "file" ? (
-          <video
-            src={url}
-            preload="metadata"
-            muted
-            playsInline
-            className="h-full w-full object-cover"
-          />
+          <>
+            <img
+              src={info.thumbnailUrl}
+              alt={title || "Video thumbnail"}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              onError={(e) => {
+                // Hide broken thumbnail image; the play-button overlay below stays visible
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+            {/* Play button — always visible so there's always something to see */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover/preview:bg-black/40">
+              <PlayCircle className="h-10 w-10 text-white drop-shadow-md" />
+            </div>
+          </>
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <VideoIcon className="h-5 w-5 text-muted-foreground" />
+          // No thumbnail available (direct file, Vimeo without thumbnail, etc.)
+          // Show a styled placeholder instead of a blank <video> element
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted">
+            <PlayCircle className="h-10 w-10 text-muted-foreground/50" />
+            {info.kind === "file" && (
+              <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wide">
+                Video
+              </span>
+            )}
           </div>
         )}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
-          <PlayCircle className="h-6 w-6 text-white" />
-        </div>
+        {/* Hover overlay for non-thumbnail cards */}
+        {!info.thumbnailUrl && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover/preview:bg-black/20" />
+        )}
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -182,7 +198,11 @@ export function VideoPreview({ url, title, description, className }: VideoPrevie
                 Your browser does not support video playback.
               </video>
             ) : info.kind === "image" ? (
-              <img src={url} alt={title || "Preview"} className="h-full w-full object-contain" />
+              <img
+                src={url}
+                alt={title || "Preview"}
+                className="h-full w-full object-contain"
+              />
             ) : info.embedUrl ? (
               <iframe
                 src={info.embedUrl}
