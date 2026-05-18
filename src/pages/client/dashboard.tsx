@@ -55,6 +55,7 @@ import type {
 import { CarGallery } from "./_components/CarGallery";
 import { VehicleOwnerInfo } from "./_components/VehicleOwnerInfo";
 import { GlaContactCard } from "./_components/GlaContactCard";
+import { NewsMediaSlot } from "./_components/NewsMediaSlot";
 import { IncomeExpensesSection } from "./_components/IncomeExpensesSection";
 import { IncomeExpensesCharts } from "./_components/IncomeExpensesCharts";
 import { DonutCharts } from "./_components/DonutCharts";
@@ -194,6 +195,22 @@ export default function ClientDashboard() {
       return res.json();
     },
     enabled: !!carId,
+    retry: false,
+  });
+
+  const { data: newsDashboardData } = useQuery<{
+    success: boolean;
+    slot1: any[];
+    slot2: any[];
+  }>({
+    queryKey: ["/api/news-media/dashboard"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/news-media/dashboard"), {
+        credentials: "include",
+      });
+      if (!res.ok) return { success: false, slot1: [], slot2: [] };
+      return res.json();
+    },
     retry: false,
   });
 
@@ -458,6 +475,19 @@ export default function ClientDashboard() {
           />
           <GlaContactCard />
         </div>
+
+        {/* News & Media slots */}
+        {((newsDashboardData?.slot1?.length ?? 0) > 0 ||
+          (newsDashboardData?.slot2?.length ?? 0) > 0) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {(newsDashboardData?.slot1?.length ?? 0) > 0 && (
+              <NewsMediaSlot slot={1} items={newsDashboardData!.slot1} />
+            )}
+            {(newsDashboardData?.slot2?.length ?? 0) > 0 && (
+              <NewsMediaSlot slot={2} items={newsDashboardData!.slot2} />
+            )}
+          </div>
+        )}
 
         {/* Sections 3 & 4: Income/Expenses + Days/Trips (headers, summaries, tables) */}
         <IncomeExpensesSection

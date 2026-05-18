@@ -12,11 +12,12 @@ interface VideoFileInputProps {
   onChange: (url: string) => void;
   label?: string;
   id?: string;
+  allowImages?: boolean;
 }
 
 type Tab = "url" | "upload";
 
-export function VideoFileInput({ value, onChange, label, id = "video-input" }: VideoFileInputProps) {
+export function VideoFileInput({ value, onChange, label, id = "video-input", allowImages = false }: VideoFileInputProps) {
   const [tab, setTab] = useState<Tab>("url");
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -31,10 +32,11 @@ export function VideoFileInput({ value, onChange, label, id = "video-input" }: V
     setUploading(true);
     setProgress(0);
 
+    const isImage = file.type.startsWith("image/");
     const formData = new FormData();
-    formData.append("video", file);
+    formData.append(isImage ? "image" : "video", file);
 
-    const url = buildUploadApiUrl("/api/upload/video");
+    const url = buildUploadApiUrl(isImage ? "/api/upload/image" : "/api/upload/video");
 
     return new Promise<void>((resolve) => {
       const xhr = new XMLHttpRequest();
@@ -134,7 +136,7 @@ export function VideoFileInput({ value, onChange, label, id = "video-input" }: V
               className="gap-1.5"
             >
               <Upload className="h-4 w-4" />
-              {uploading ? "Uploading…" : "Choose video"}
+              {uploading ? "Uploading…" : allowImages ? "Choose file" : "Choose video"}
             </Button>
             {value && (
               <button
@@ -146,13 +148,17 @@ export function VideoFileInput({ value, onChange, label, id = "video-input" }: V
                 <X className="h-4 w-4" />
               </button>
             )}
-            <span className="text-xs text-muted-foreground">MP4, WebM, MOV — max 500 MB</span>
+            <span className="text-xs text-muted-foreground">
+              {allowImages ? "MP4, WebM, MOV, JPG, PNG — video max 500 MB, image max 20 MB" : "MP4, WebM, MOV — max 500 MB"}
+            </span>
           </div>
 
           <input
             ref={fileRef}
             type="file"
-            accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-m4v"
+            accept={allowImages
+              ? "video/mp4,video/webm,video/ogg,video/quicktime,video/x-m4v,image/jpeg,image/png,image/gif,image/webp"
+              : "video/mp4,video/webm,video/ogg,video/quicktime,video/x-m4v"}
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];

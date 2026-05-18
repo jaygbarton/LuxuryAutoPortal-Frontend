@@ -50,18 +50,24 @@ import {
   ArchiveRestore,
   Trash2,
   Newspaper,
+  LayoutDashboard,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { VideoPreview } from "@/components/admin/video-preview";
 import { VideoFileInput } from "@/components/admin/video-file-input";
 
 interface NewsMediaRow {
-  client_testimonial_aid: number; // reuse the testimonials endpoint with a tag
+  client_testimonial_aid: number;
   client_testimonial_is_active: number;
   client_testimonial_file: string;
   client_testimonial_title: string;
   client_testimonial_description: string;
   client_testimonial_created: string;
   client_testimonial_datetime: string;
+  news_show_in_dashboard: number;
+  news_dashboard_slot: number;
+  news_media_type: string;
 }
 
 function formatDate(s: string) {
@@ -91,6 +97,9 @@ export default function NewsMediaPage() {
   const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formFile, setFormFile] = useState("");
+  const [formShowInDashboard, setFormShowInDashboard] = useState(false);
+  const [formDashboardSlot, setFormDashboardSlot] = useState<"1" | "2">("1");
+  const [formMediaType, setFormMediaType] = useState<"video" | "photo">("video");
 
   const { data: meData } = useQuery({
     queryKey: ["/api/auth/me"],
@@ -161,9 +170,8 @@ export default function NewsMediaPage() {
 
   const createMutation = useMutation({
     mutationFn: async (body: {
-      title: string;
-      description: string;
-      file: string;
+      title: string; description: string; file: string;
+      showInDashboard: boolean; dashboardSlot: number; mediaType: string;
     }) => {
       const res = await fetch(buildApiUrl("/api/client-testimonials"), {
         method: "POST",
@@ -173,6 +181,9 @@ export default function NewsMediaPage() {
           client_testimonial_title: `${NEWS_PREFIX}${body.title}`,
           client_testimonial_description: body.description,
           client_testimonial_file: body.file,
+          news_show_in_dashboard: body.showInDashboard ? 1 : 0,
+          news_dashboard_slot: body.dashboardSlot,
+          news_media_type: body.mediaType,
         }),
       });
       if (!res.ok) throw new Error("Failed to create");
@@ -181,11 +192,10 @@ export default function NewsMediaPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/news-media"] });
       queryClient.invalidateQueries({ queryKey: ["/api/client-testimonials"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/news-media/dashboard"] });
       toast({ title: "News & Media item created" });
       setAddOpen(false);
-      setFormTitle("");
-      setFormDescription("");
-      setFormFile("");
+      resetForm();
     },
     onError: (e: Error) =>
       toast({ variant: "destructive", title: "Error", description: e.message }),
@@ -193,11 +203,11 @@ export default function NewsMediaPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({
-      id,
-      body,
+      id, body,
     }: {
       id: number;
-      body: { title: string; description: string; file: string };
+      body: { title: string; description: string; file: string;
+              showInDashboard: boolean; dashboardSlot: number; mediaType: string; };
     }) => {
       const res = await fetch(buildApiUrl(`/api/client-testimonials/${id}`), {
         method: "PUT",
@@ -207,6 +217,9 @@ export default function NewsMediaPage() {
           client_testimonial_title: `${NEWS_PREFIX}${body.title}`,
           client_testimonial_description: body.description,
           client_testimonial_file: body.file,
+          news_show_in_dashboard: body.showInDashboard ? 1 : 0,
+          news_dashboard_slot: body.dashboardSlot,
+          news_media_type: body.mediaType,
         }),
       });
       if (!res.ok) throw new Error("Failed to update");
@@ -215,11 +228,10 @@ export default function NewsMediaPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/news-media"] });
       queryClient.invalidateQueries({ queryKey: ["/api/client-testimonials"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/news-media/dashboard"] });
       toast({ title: "Updated" });
       setEditItem(null);
-      setFormTitle("");
-      setFormDescription("");
-      setFormFile("");
+      resetForm();
     },
     onError: (e: Error) =>
       toast({ variant: "destructive", title: "Error", description: e.message }),
@@ -277,6 +289,18 @@ export default function NewsMediaPage() {
     setFormTitle(displayTitle);
     setFormDescription(row.client_testimonial_description);
     setFormFile(row.client_testimonial_file);
+    setFormShowInDashboard(row.news_show_in_dashboard === 1);
+    setFormDashboardSlot(row.news_dashboard_slot === 2 ? "2" : "1");
+    setFormMediaType(row.news_media_type === "photo" ? "photo" : "video");
+  };
+
+  const resetForm = () => {
+    setFormTitle("");
+    setFormDescription("");
+    setFormFile("");
+    setFormShowInDashboard(false);
+    setFormDashboardSlot("1");
+    setFormMediaType("video");
   };
 
   return (
@@ -296,12 +320,7 @@ export default function NewsMediaPage() {
           </div>
           {!isClient && (
             <Button
-              onClick={() => {
-                setFormTitle("");
-                setFormDescription("");
-                setFormFile("");
-                setAddOpen(true);
-              }}
+              onClick={() => { resetForm(); setAddOpen(true); }}
             >
               <Plus className="mr-2 h-4 w-4" />
               Add Item
@@ -391,6 +410,12 @@ export default function NewsMediaPage() {
                             Archived
                           </span>
                         )}
+                        {row.news_show_in_dashboard === 1 && (
+                          <span className="absolute top-1.5 right-1.5 flex items-center gap-0.5 rounded bg-primary/90 px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                            <LayoutDashboard className="h-2.5 w-2.5" />
+                            S{row.news_dashboard_slot}
+                          </span>
+                        )}
                       </div>
                       <div className="flex flex-1 flex-col gap-2 p-3">
                         <h3
@@ -478,45 +503,52 @@ export default function NewsMediaPage() {
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <Label>Title</Label>
-                <Input
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="Title"
-                />
+                <Input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="Title" />
               </div>
-              <VideoFileInput
-                label="Video / Media"
-                id="add-news-video"
-                value={formFile}
-                onChange={setFormFile}
-              />
+              <VideoFileInput label="Video / Media" id="add-news-video" value={formFile} onChange={setFormFile} allowImages />
               <div className="space-y-2">
                 <Label>Description</Label>
-                <Textarea
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  placeholder="Description"
-                  className="min-h-[80px]"
-                />
+                <Textarea value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Description" className="min-h-[80px]" />
+              </div>
+              {/* Dashboard settings */}
+              <div className="rounded-md border p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-1.5 cursor-pointer">
+                    <LayoutDashboard className="h-3.5 w-3.5 text-muted-foreground" />
+                    Show in Dashboard
+                  </Label>
+                  <Switch checked={formShowInDashboard} onCheckedChange={setFormShowInDashboard} />
+                </div>
+                {formShowInDashboard && (
+                  <div className="grid grid-cols-2 gap-4 pt-1">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Dashboard Section</Label>
+                      <RadioGroup value={formDashboardSlot} onValueChange={(v) => setFormDashboardSlot(v as "1" | "2")} className="flex gap-4">
+                        <div className="flex items-center gap-1.5"><RadioGroupItem value="1" id="add-slot-1" /><Label htmlFor="add-slot-1" className="cursor-pointer">Section 1</Label></div>
+                        <div className="flex items-center gap-1.5"><RadioGroupItem value="2" id="add-slot-2" /><Label htmlFor="add-slot-2" className="cursor-pointer">Section 2</Label></div>
+                      </RadioGroup>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Media Type</Label>
+                      <RadioGroup value={formMediaType} onValueChange={(v) => setFormMediaType(v as "video" | "photo")} className="flex gap-4">
+                        <div className="flex items-center gap-1.5"><RadioGroupItem value="video" id="add-type-video" /><Label htmlFor="add-type-video" className="cursor-pointer">Video</Label></div>
+                        <div className="flex items-center gap-1.5"><RadioGroupItem value="photo" id="add-type-photo" /><Label htmlFor="add-type-photo" className="cursor-pointer">Photo</Label></div>
+                      </RadioGroup>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setAddOpen(false)}>
-                Cancel
-              </Button>
+              <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
               <Button
                 disabled={!formTitle.trim() || createMutation.isPending}
-                onClick={() =>
-                  createMutation.mutate({
-                    title: formTitle.trim(),
-                    description: formDescription.trim(),
-                    file: formFile.trim(),
-                  })
-                }
+                onClick={() => createMutation.mutate({
+                  title: formTitle.trim(), description: formDescription.trim(), file: formFile.trim(),
+                  showInDashboard: formShowInDashboard, dashboardSlot: Number(formDashboardSlot), mediaType: formMediaType,
+                })}
               >
-                {createMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+                {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Add
               </Button>
             </DialogFooter>
@@ -524,10 +556,7 @@ export default function NewsMediaPage() {
         </Dialog>
 
         {/* Edit modal */}
-        <Dialog
-          open={!!editItem}
-          onOpenChange={(open) => !open && setEditItem(null)}
-        >
+        <Dialog open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit News & Media Item</DialogTitle>
@@ -536,50 +565,56 @@ export default function NewsMediaPage() {
               <div className="grid gap-4 py-4">
                 <div className="space-y-2">
                   <Label>Title</Label>
-                  <Input
-                    value={formTitle}
-                    onChange={(e) => setFormTitle(e.target.value)}
-                    placeholder="Title"
-                  />
+                  <Input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="Title" />
                 </div>
-                <VideoFileInput
-                  label="Video / Media"
-                  id="edit-news-video"
-                  value={formFile}
-                  onChange={setFormFile}
-                />
+                <VideoFileInput label="Video / Media" id="edit-news-video" value={formFile} onChange={setFormFile} allowImages />
                 <div className="space-y-2">
                   <Label>Description</Label>
-                  <Textarea
-                    value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                    placeholder="Description"
-                    className="min-h-[80px]"
-                  />
+                  <Textarea value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Description" className="min-h-[80px]" />
+                </div>
+                {/* Dashboard settings */}
+                <div className="rounded-md border p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="flex items-center gap-1.5 cursor-pointer">
+                      <LayoutDashboard className="h-3.5 w-3.5 text-muted-foreground" />
+                      Show in Dashboard
+                    </Label>
+                    <Switch checked={formShowInDashboard} onCheckedChange={setFormShowInDashboard} />
+                  </div>
+                  {formShowInDashboard && (
+                    <div className="grid grid-cols-2 gap-4 pt-1">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">Dashboard Section</Label>
+                        <RadioGroup value={formDashboardSlot} onValueChange={(v) => setFormDashboardSlot(v as "1" | "2")} className="flex gap-4">
+                          <div className="flex items-center gap-1.5"><RadioGroupItem value="1" id="edit-slot-1" /><Label htmlFor="edit-slot-1" className="cursor-pointer">Section 1</Label></div>
+                          <div className="flex items-center gap-1.5"><RadioGroupItem value="2" id="edit-slot-2" /><Label htmlFor="edit-slot-2" className="cursor-pointer">Section 2</Label></div>
+                        </RadioGroup>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">Media Type</Label>
+                        <RadioGroup value={formMediaType} onValueChange={(v) => setFormMediaType(v as "video" | "photo")} className="flex gap-4">
+                          <div className="flex items-center gap-1.5"><RadioGroupItem value="video" id="edit-type-video" /><Label htmlFor="edit-type-video" className="cursor-pointer">Video</Label></div>
+                          <div className="flex items-center gap-1.5"><RadioGroupItem value="photo" id="edit-type-photo" /><Label htmlFor="edit-type-photo" className="cursor-pointer">Photo</Label></div>
+                        </RadioGroup>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setEditItem(null)}>
-                Cancel
-              </Button>
+              <Button variant="outline" onClick={() => setEditItem(null)}>Cancel</Button>
               <Button
                 disabled={!formTitle.trim() || updateMutation.isPending}
-                onClick={() =>
-                  editItem &&
-                  updateMutation.mutate({
-                    id: editItem.client_testimonial_aid,
-                    body: {
-                      title: formTitle.trim(),
-                      description: formDescription.trim(),
-                      file: formFile.trim(),
-                    },
-                  })
-                }
+                onClick={() => editItem && updateMutation.mutate({
+                  id: editItem.client_testimonial_aid,
+                  body: {
+                    title: formTitle.trim(), description: formDescription.trim(), file: formFile.trim(),
+                    showInDashboard: formShowInDashboard, dashboardSlot: Number(formDashboardSlot), mediaType: formMediaType,
+                  },
+                })}
               >
-                {updateMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+                {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save
               </Button>
             </DialogFooter>
