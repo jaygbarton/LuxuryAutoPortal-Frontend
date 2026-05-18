@@ -49,10 +49,10 @@ import {
   Archive,
   ArchiveRestore,
   Trash2,
-  Link as LinkIcon,
   Newspaper,
 } from "lucide-react";
 import { VideoPreview } from "@/components/admin/video-preview";
+import { VideoFileInput } from "@/components/admin/video-file-input";
 
 interface NewsMediaRow {
   client_testimonial_aid: number; // reuse the testimonials endpoint with a tag
@@ -74,16 +74,6 @@ function formatDate(s: string) {
     });
   } catch {
     return s;
-  }
-}
-
-function isValidUrl(s: string): boolean {
-  if (!s) return true;
-  try {
-    new URL(s);
-    return true;
-  } catch {
-    return false;
   }
 }
 
@@ -289,8 +279,6 @@ export default function NewsMediaPage() {
     setFormFile(row.client_testimonial_file);
   };
 
-  const fileValid = isValidUrl(formFile);
-
   return (
     <AdminLayout>
       <div className="space-y-6 p-4 md:p-6">
@@ -388,7 +376,7 @@ export default function NewsMediaPage() {
                       <div className="relative aspect-video w-full overflow-hidden bg-muted">
                         {row.client_testimonial_file ? (
                           <VideoPreview
-                            url={row.client_testimonial_file}
+                            url={row.client_testimonial_file?.startsWith("/uploads/") ? buildApiUrl(row.client_testimonial_file) : row.client_testimonial_file}
                             title={displayTitle}
                             description={row.client_testimonial_description}
                             className="group/preview relative block h-full w-full"
@@ -483,7 +471,8 @@ export default function NewsMediaPage() {
             <DialogHeader>
               <DialogTitle>Add News & Media Item</DialogTitle>
               <DialogDescription>
-                Add a YouTube video, photo link, or news article URL.
+                Paste a video link (YouTube, Drive, or direct URL) or upload a
+                video file.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -495,30 +484,12 @@ export default function NewsMediaPage() {
                   placeholder="Title"
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  URL <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                </Label>
-                <Input
-                  value={formFile}
-                  onChange={(e) => setFormFile(e.target.value)}
-                  placeholder="https://youtube.com/... or https://..."
-                />
-                {!fileValid && (
-                  <p className="text-xs text-destructive">
-                    Enter a valid http(s) URL
-                  </p>
-                )}
-                {fileValid && formFile.trim() && (
-                  <div className="pt-1">
-                    <VideoPreview
-                      url={formFile.trim()}
-                      title={formTitle.trim() || "Preview"}
-                      className="group relative h-24 w-40 overflow-hidden rounded border border-border bg-muted hover:border-primary"
-                    />
-                  </div>
-                )}
-              </div>
+              <VideoFileInput
+                label="Video / Media"
+                id="add-news-video"
+                value={formFile}
+                onChange={setFormFile}
+              />
               <div className="space-y-2">
                 <Label>Description</Label>
                 <Textarea
@@ -534,9 +505,7 @@ export default function NewsMediaPage() {
                 Cancel
               </Button>
               <Button
-                disabled={
-                  !formTitle.trim() || !fileValid || createMutation.isPending
-                }
+                disabled={!formTitle.trim() || createMutation.isPending}
                 onClick={() =>
                   createMutation.mutate({
                     title: formTitle.trim(),
@@ -573,31 +542,12 @@ export default function NewsMediaPage() {
                     placeholder="Title"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    URL{" "}
-                    <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                  </Label>
-                  <Input
-                    value={formFile}
-                    onChange={(e) => setFormFile(e.target.value)}
-                    placeholder="https://..."
-                  />
-                  {!fileValid && (
-                    <p className="text-xs text-destructive">
-                      Enter a valid http(s) URL
-                    </p>
-                  )}
-                  {fileValid && formFile.trim() && (
-                    <div className="pt-1">
-                      <VideoPreview
-                        url={formFile.trim()}
-                        title={formTitle.trim() || "Preview"}
-                        className="group relative h-24 w-40 overflow-hidden rounded border border-border bg-muted hover:border-primary"
-                      />
-                    </div>
-                  )}
-                </div>
+                <VideoFileInput
+                  label="Video / Media"
+                  id="edit-news-video"
+                  value={formFile}
+                  onChange={setFormFile}
+                />
                 <div className="space-y-2">
                   <Label>Description</Label>
                   <Textarea
@@ -614,9 +564,7 @@ export default function NewsMediaPage() {
                 Cancel
               </Button>
               <Button
-                disabled={
-                  !formTitle.trim() || !fileValid || updateMutation.isPending
-                }
+                disabled={!formTitle.trim() || updateMutation.isPending}
                 onClick={() =>
                   editItem &&
                   updateMutation.mutate({

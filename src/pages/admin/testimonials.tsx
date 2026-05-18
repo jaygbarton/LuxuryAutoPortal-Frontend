@@ -45,9 +45,9 @@ import {
   Archive,
   ArchiveRestore,
   Trash2,
-  Link as LinkIcon,
 } from "lucide-react";
 import { VideoPreview } from "@/components/admin/video-preview";
+import { VideoFileInput } from "@/components/admin/video-file-input";
 
 interface ClientTestimonialRow {
   client_testimonial_aid: number;
@@ -57,16 +57,6 @@ interface ClientTestimonialRow {
   client_testimonial_description: string;
   client_testimonial_created: string;
   client_testimonial_datetime: string;
-}
-
-function isValidUrl(s: string): boolean {
-  if (!s) return true;
-  try {
-    const u = new URL(s.trim());
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
 }
 
 function formatDate(s: string) {
@@ -283,8 +273,6 @@ export default function AdminTestimonialsPage() {
     setFormFile(row.client_testimonial_file || "");
   };
 
-  const fileValid = isValidUrl(formFile);
-
   return (
     <AdminLayout>
       <div className="space-y-6 p-4 md:p-6">
@@ -368,7 +356,7 @@ export default function AdminTestimonialsPage() {
                     <div className="relative aspect-video w-full overflow-hidden bg-muted">
                       {row.client_testimonial_file ? (
                         <VideoPreview
-                          url={row.client_testimonial_file}
+                          url={row.client_testimonial_file?.startsWith("/uploads/") ? buildApiUrl(row.client_testimonial_file) : row.client_testimonial_file}
                           title={row.client_testimonial_title}
                           description={row.client_testimonial_description}
                           className="group/preview relative block h-full w-full"
@@ -490,8 +478,8 @@ export default function AdminTestimonialsPage() {
           <DialogHeader>
             <DialogTitle>Add Client Testimonial</DialogTitle>
             <DialogDescription>
-              Paste a video link (YouTube, Drive, or direct .mp4) along with
-              title and description.
+              Paste a video link (YouTube, Drive, or direct URL) or upload a
+              video file.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -503,32 +491,12 @@ export default function AdminTestimonialsPage() {
                 placeholder="Title"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <LinkIcon className="h-3.5 w-3.5" />
-                Video URL
-              </Label>
-              <Input
-                type="url"
-                value={formFile}
-                onChange={(e) => setFormFile(e.target.value)}
-                placeholder="https://example.com/video.mp4"
-              />
-              {!fileValid && (
-                <p className="text-xs text-destructive">
-                  Enter a valid http(s) URL
-                </p>
-              )}
-              {fileValid && formFile.trim() && (
-                <div className="pt-1">
-                  <VideoPreview
-                    url={formFile.trim()}
-                    title={formTitle.trim() || "Preview"}
-                    className="group relative h-24 w-40 overflow-hidden rounded border border-border bg-muted hover:border-primary"
-                  />
-                </div>
-              )}
-            </div>
+            <VideoFileInput
+              label="Video"
+              id="add-testimonial-video"
+              value={formFile}
+              onChange={setFormFile}
+            />
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea
@@ -544,9 +512,7 @@ export default function AdminTestimonialsPage() {
               Cancel
             </Button>
             <Button
-              disabled={
-                !formTitle.trim() || !fileValid || createMutation.isPending
-              }
+              disabled={!formTitle.trim() || createMutation.isPending}
               onClick={() =>
                 createMutation.mutate({
                   client_testimonial_title: formTitle.trim(),
@@ -584,32 +550,12 @@ export default function AdminTestimonialsPage() {
                     placeholder="Title"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <LinkIcon className="h-3.5 w-3.5" />
-                    Video URL
-                  </Label>
-                  <Input
-                    type="url"
-                    value={formFile}
-                    onChange={(e) => setFormFile(e.target.value)}
-                    placeholder="https://example.com/video.mp4"
-                  />
-                  {!fileValid && (
-                    <p className="text-xs text-destructive">
-                      Enter a valid http(s) URL
-                    </p>
-                  )}
-                  {fileValid && formFile.trim() && (
-                    <div className="pt-1">
-                      <VideoPreview
-                        url={formFile.trim()}
-                        title={formTitle.trim() || "Preview"}
-                        className="group relative h-24 w-40 overflow-hidden rounded border border-border bg-muted hover:border-primary"
-                      />
-                    </div>
-                  )}
-                </div>
+                <VideoFileInput
+                  label="Video"
+                  id="edit-testimonial-video"
+                  value={formFile}
+                  onChange={setFormFile}
+                />
                 <div className="space-y-2">
                   <Label>Description</Label>
                   <Textarea
@@ -625,9 +571,7 @@ export default function AdminTestimonialsPage() {
                   Cancel
                 </Button>
                 <Button
-                  disabled={
-                    !formTitle.trim() || !fileValid || updateMutation.isPending
-                  }
+                  disabled={!formTitle.trim() || updateMutation.isPending}
                   onClick={() =>
                     updateMutation.mutate({
                       id: editItem.client_testimonial_aid,

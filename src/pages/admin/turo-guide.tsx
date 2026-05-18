@@ -45,9 +45,9 @@ import {
   Archive,
   ArchiveRestore,
   Trash2,
-  Link as LinkIcon,
 } from "lucide-react";
 import { VideoPreview } from "@/components/admin/video-preview";
+import { VideoFileInput } from "@/components/admin/video-file-input";
 
 interface TuroGuideRow {
   turo_guide_aid: number;
@@ -72,15 +72,6 @@ function formatDate(s: string) {
   }
 }
 
-function isValidUrl(s: string): boolean {
-  if (!s) return true;
-  try {
-    const u = new URL(s.trim());
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
 
 export default function AdminTuroGuidePage() {
   const { toast } = useToast();
@@ -280,8 +271,6 @@ export default function AdminTuroGuidePage() {
     setFormFile(row.turo_guide_file || "");
   };
 
-  const fileValid = isValidUrl(formFile);
-
   return (
     <AdminLayout>
       <div className="space-y-6 p-4 md:p-6">
@@ -365,7 +354,7 @@ export default function AdminTuroGuidePage() {
                     <div className="relative aspect-video w-full overflow-hidden bg-muted">
                       {row.turo_guide_file ? (
                         <VideoPreview
-                          url={row.turo_guide_file}
+                          url={row.turo_guide_file?.startsWith("/uploads/") ? buildApiUrl(row.turo_guide_file) : row.turo_guide_file}
                           title={row.turo_guide_title}
                           description={row.turo_guide_description}
                           className="group/preview relative block h-full w-full"
@@ -481,8 +470,8 @@ export default function AdminTuroGuidePage() {
           <DialogHeader>
             <DialogTitle>Add Turo Guide</DialogTitle>
             <DialogDescription>
-              Paste a video link (YouTube, Drive, or direct .mp4) along with
-              title and description.
+              Paste a video link (YouTube, Drive, or direct URL) or upload a
+              video file.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -494,32 +483,12 @@ export default function AdminTuroGuidePage() {
                 placeholder="Title"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <LinkIcon className="h-3.5 w-3.5" />
-                Video URL
-              </Label>
-              <Input
-                type="url"
-                value={formFile}
-                onChange={(e) => setFormFile(e.target.value)}
-                placeholder="https://example.com/video.mp4"
-              />
-              {!fileValid && (
-                <p className="text-xs text-destructive">
-                  Enter a valid http(s) URL
-                </p>
-              )}
-              {fileValid && formFile.trim() && (
-                <div className="pt-1">
-                  <VideoPreview
-                    url={formFile.trim()}
-                    title={formTitle.trim() || "Preview"}
-                    className="group relative h-24 w-40 overflow-hidden rounded border border-border bg-muted hover:border-primary"
-                  />
-                </div>
-              )}
-            </div>
+            <VideoFileInput
+              label="Video"
+              id="add-turo-video"
+              value={formFile}
+              onChange={setFormFile}
+            />
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea
@@ -535,9 +504,7 @@ export default function AdminTuroGuidePage() {
               Cancel
             </Button>
             <Button
-              disabled={
-                !formTitle.trim() || !fileValid || createMutation.isPending
-              }
+              disabled={!formTitle.trim() || createMutation.isPending}
               onClick={() =>
                 createMutation.mutate({
                   turo_guide_title: formTitle.trim(),
@@ -575,32 +542,12 @@ export default function AdminTuroGuidePage() {
                     placeholder="Title"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <LinkIcon className="h-3.5 w-3.5" />
-                    Video URL
-                  </Label>
-                  <Input
-                    type="url"
-                    value={formFile}
-                    onChange={(e) => setFormFile(e.target.value)}
-                    placeholder="https://example.com/video.mp4"
-                  />
-                  {!fileValid && (
-                    <p className="text-xs text-destructive">
-                      Enter a valid http(s) URL
-                    </p>
-                  )}
-                  {fileValid && formFile.trim() && (
-                    <div className="pt-1">
-                      <VideoPreview
-                        url={formFile.trim()}
-                        title={formTitle.trim() || "Preview"}
-                        className="group relative h-24 w-40 overflow-hidden rounded border border-border bg-muted hover:border-primary"
-                      />
-                    </div>
-                  )}
-                </div>
+                <VideoFileInput
+                  label="Video"
+                  id="edit-turo-video"
+                  value={formFile}
+                  onChange={setFormFile}
+                />
                 <div className="space-y-2">
                   <Label>Description</Label>
                   <Textarea
@@ -616,9 +563,7 @@ export default function AdminTuroGuidePage() {
                   Cancel
                 </Button>
                 <Button
-                  disabled={
-                    !formTitle.trim() || !fileValid || updateMutation.isPending
-                  }
+                  disabled={!formTitle.trim() || updateMutation.isPending}
                   onClick={() =>
                     updateMutation.mutate({
                       id: editItem.turo_guide_aid,
