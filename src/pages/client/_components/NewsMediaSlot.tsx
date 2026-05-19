@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { VideoPreview } from "@/components/admin/video-preview";
+import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { parseVideoUrl } from "@/components/admin/video-preview";
 import { buildApiUrl } from "@/lib/queryClient";
 
 interface NewsItem {
@@ -16,22 +16,126 @@ interface NewsMediaSlotProps {
   slot: 1 | 2;
 }
 
+const NEWS_PREFIX = "[NEWS] ";
+
+function resolveUrl(file: string): string {
+  if (!file) return "";
+  if (file.startsWith("/uploads/")) return buildApiUrl(file);
+  return file;
+}
+
+/**
+ * Render the media inline based on URL kind, falling back to news_media_type
+ * only when the URL itself is ambiguous (kind === "other").
+ */
+function MediaInline({
+  url,
+  title,
+  mediaTypeHint,
+}: {
+  url: string;
+  title: string;
+  mediaTypeHint: string;
+}) {
+  if (!url) {
+    return (
+      <div className="h-full w-full flex items-center justify-center text-muted-foreground text-sm">
+        No media
+      </div>
+    );
+  }
+
+  const info = parseVideoUrl(url);
+
+  if (info.kind === "image") {
+    return (
+      <img
+        src={url}
+        alt={title || "News media"}
+        className="h-full w-full object-cover"
+        loading="lazy"
+      />
+    );
+  }
+
+  if (info.kind === "file") {
+    return (
+      <video
+        src={url}
+        controls
+        playsInline
+        preload="metadata"
+        className="h-full w-full bg-black object-contain"
+      >
+        Your browser does not support video playback.
+      </video>
+    );
+  }
+
+  if (info.kind === "youtube" || info.kind === "vimeo" || info.kind === "drive") {
+    return (
+      <iframe
+        src={info.embedUrl}
+        title={title || "Media"}
+        className="h-full w-full border-0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+      />
+    );
+  }
+
+  // Ambiguous URL — fall back to the admin-selected media type.
+  if (mediaTypeHint === "photo") {
+    return (
+      <img
+        src={url}
+        alt={title || "News media"}
+        className="h-full w-full object-cover"
+        loading="lazy"
+      />
+    );
+  }
+  if (mediaTypeHint === "video") {
+    return (
+      <video
+        src={url}
+        controls
+        playsInline
+        preload="metadata"
+        className="h-full w-full bg-black object-contain"
+      >
+        Your browser does not support video playback.
+      </video>
+    );
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex h-full w-full items-center justify-center gap-1 bg-muted text-primary hover:underline"
+    >
+      <ExternalLink className="h-4 w-4" />
+      <span className="text-sm">Open media</span>
+    </a>
+  );
+}
+
 export function NewsMediaSlot({ items, slot }: NewsMediaSlotProps) {
   const [index, setIndex] = useState(0);
 
   if (!items || items.length === 0) return null;
 
-  const item = items[index];
+  const safeIndex = Math.min(index, items.length - 1);
+  const item = items[safeIndex];
   const total = items.length;
 
-  const NEWS_PREFIX = "[NEWS] ";
   const title = item.client_testimonial_title.startsWith(NEWS_PREFIX)
     ? item.client_testimonial_title.slice(NEWS_PREFIX.length)
     : item.client_testimonial_title;
 
-  const fileUrl = item.client_testimonial_file?.startsWith("/uploads/")
-    ? buildApiUrl(item.client_testimonial_file)
-    : item.client_testimonial_file;
+  const fileUrl = resolveUrl(item.client_testimonial_file);
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -51,7 +155,7 @@ export function NewsMediaSlot({ items, slot }: NewsMediaSlotProps) {
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="text-xs text-muted-foreground w-10 text-center">
-              {index + 1} / {total}
+              {safeIndex + 1} / {total}
             </span>
             <button
               type="button"
@@ -67,18 +171,11 @@ export function NewsMediaSlot({ items, slot }: NewsMediaSlotProps) {
 
       {/* Media */}
       <div className="aspect-video w-full overflow-hidden bg-black">
-        {fileUrl ? (
-          <VideoPreview
-            url={fileUrl}
-            title={title}
-            description={item.client_testimonial_description}
-            className="group/preview relative block h-full w-full"
-          />
-        ) : (
-          <div className="h-full w-full flex items-center justify-center text-muted-foreground text-sm">
-            No media
-          </div>
-        )}
+        <MediaInline
+          url={fileUrl}
+          title={title}
+          mediaTypeHint={item.news_media_type}
+        />
       </div>
 
       {/* Caption */}
@@ -102,7 +199,7 @@ export function NewsMediaSlot({ items, slot }: NewsMediaSlotProps) {
               type="button"
               onClick={() => setIndex(i)}
               className={`h-1.5 rounded-full transition-all ${
-                i === index ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30"
+                i === safeIndex ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30"
               }`}
               aria-label={`Go to item ${i + 1}`}
             />
