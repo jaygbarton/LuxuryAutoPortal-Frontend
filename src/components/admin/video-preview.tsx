@@ -172,21 +172,41 @@ export function VideoPreview({
               <PlayCircle className="h-10 w-10 text-white drop-shadow-md" />
             </div>
           </>
+        ) : info.kind === "file" ? (
+          // Direct video file — render a muted <video> seeked to the first frame
+          // so the browser paints a real thumbnail without server-side generation.
+          // #t=0.1 forces seek-on-load in browsers that support media fragments.
+          <>
+            <video
+              src={`${url}${url.includes("#") ? "" : "#t=0.1"}`}
+              muted
+              playsInline
+              preload="metadata"
+              // `disableRemotePlayback` and `controls=false` keep this strictly visual
+              className="h-full w-full object-cover bg-black pointer-events-none"
+              onLoadedMetadata={(e) => {
+                // Some browsers won't honour #t fragment — seek manually as a fallback.
+                const v = e.currentTarget;
+                if (v.currentTime === 0 && v.duration > 0.1) {
+                  try { v.currentTime = 0.1; } catch { /* ignore */ }
+                }
+              }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover/preview:bg-black/40">
+              <PlayCircle className="h-10 w-10 text-white drop-shadow-md" />
+            </div>
+          </>
         ) : (
-          // No thumbnail available (direct file, Vimeo without thumbnail, etc.)
-          // Show a styled placeholder instead of a blank <video> element
-          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted">
-            <PlayCircle className="h-10 w-10 text-muted-foreground/50" />
-            {info.kind === "file" && (
+          // Truly unknown (e.g. Vimeo without thumbnail, "other" URLs)
+          <>
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted">
+              <PlayCircle className="h-10 w-10 text-muted-foreground/50" />
               <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wide">
                 Video
               </span>
-            )}
-          </div>
-        )}
-        {/* Hover overlay for non-thumbnail cards */}
-        {!info.thumbnailUrl && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover/preview:bg-black/20" />
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover/preview:bg-black/20" />
+          </>
         )}
       </button>
 
