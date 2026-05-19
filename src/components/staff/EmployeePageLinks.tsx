@@ -1,41 +1,28 @@
 /**
- * "Report Center + Support Center" block for employee pages.
+ * Quick-links footer for employee (/staff/*) pages.
  *
- * Same contents/order as the client-side block (see ClientPageLinks.tsx) —
- * the team agreed everyone sees the same footer regardless of role; only the
- * sidebar nav differs by role. Self-gates on isEmployee && !isAdmin so that
- * an admin previewing an employee page doesn't get duplicate blocks.
+ * Two sections as specified by the project manager:
+ *   Report Center  — time sheet, time-off, my info, forms, task mgmt, operations, bouncie
+ *   Support Center — turo guide, system tutorial, client testimonials
  *
- * Mount as a normal block at the bottom of any /staff/* page; it has no
- * fixed positioning and never overlaps surrounding content.
+ * Self-gates on isEmployee && !isAdmin so admins previewing staff pages
+ * never see a duplicate block alongside AdminPageLinks.
  */
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import {
-  BarChart3,
+  Anchor,
   BookOpen,
-  Calculator,
-  Calendar,
-  Car,
+  CalendarOff,
+  CheckSquare,
+  Clock,
   ClipboardList,
-  CreditCard,
-  DollarSign,
-  FileText,
-  Folder,
-  Globe,
-  History,
   Map,
-  PlusCircle,
-  ShoppingBag,
+  Radio,
   Star,
-  TrendingDown,
-  TrendingUp,
-  UserPlus,
-  Video,
-  Wrench,
+  User,
 } from "lucide-react";
-import { ReportCenter } from "@/pages/client/_components/ReportCenter";
-import { SupportCenter } from "@/pages/client/_components/SupportCenter";
+import { QuickLinksSection } from "@/pages/client/_components/QuickLinksSection";
 
 export function EmployeePageLinks() {
   const { data: meData } = useQuery<{
@@ -55,55 +42,28 @@ export function EmployeePageLinks() {
   const isEmployee = Boolean(meData?.user?.isEmployee);
   const isAdmin = Boolean(meData?.user?.isAdmin);
 
-  // Only render for true employees. Admins see their own block via
-  // AdminPageLinks so we don't render twice.
   if (!isEmployee || isAdmin) return null;
 
-  const turoViewLink: string | null = null; // Employees don't get the per-client Turo link.
-
-  // Same row-major order as ClientPageLinks.
-  //   Row 1: Earnings | Records and Files | Car Rental Value Per Month | Payment Calculator
-  //   Row 2: History  | Graphs and Charts Report | NADA Depreciation Schedule | Payment History
-  //   Row 3: Totals   | Maintenance              | Purchase Details
   const reportLinks = [
-    { href: "#",                  icon: DollarSign,   label: "Earnings" },
-    { href: "#",                  icon: Folder,       label: "Records and Files" },
-    { href: "#",                  icon: Calendar,     label: "Car Rental Value Per Month" },
-    { href: "#",                  icon: Calculator,   label: "Payment Calculator" },
-
-    { href: "/admin/turo-trips",  icon: History,      label: "History" },
-    { href: "#",                  icon: TrendingUp,   label: "Graphs and Charts Report" },
-    { href: "#",                  icon: TrendingDown, label: "NADA Depreciation Schedule" },
-    { href: "#",                  icon: CreditCard,   label: "Payment History" },
-
-    { href: "#",                  icon: BarChart3,    label: "Totals" },
-    { href: "#",                  icon: Wrench,       label: "Maintenance" },
-    { href: "#",                  icon: ShoppingBag,  label: "Purchase Details" },
+    { href: "/staff/time",             icon: Clock,         label: "Time Sheet" },
+    { href: "/staff/time-off",         icon: CalendarOff,   label: "Request Time Off" },
+    { href: "/staff/my-info/personal-information", icon: User, label: "My Info" },
+    { href: "/staff/forms",            icon: ClipboardList, label: "Forms" },
+    { href: "/staff/task-management",  icon: CheckSquare,   label: "Task Management" },
+    { href: "/admin/operations",       icon: Anchor,        label: "Operations" },
+    { href: "/admin/bouncie",          icon: Radio,         label: "Bouncie" },
   ];
 
-  //   Row 1: Off-boarding Form | Book Your Car | Training Manual | News & Media
-  //   Row 2: Schedule a Zoom Call | License Registration or Insurance Updates | Turo Guide | (blank)
-  //   Row 3: List Another Car  | Refer Somebody | Client Testimonials
   const supportLinks = [
-    { href: "#",                          icon: ClipboardList, label: "Off-boarding Form" },
-    { href: turoViewLink ?? "#",          icon: Car,           label: "Book Your Car", external: !!turoViewLink },
-    { href: "/staff/training-manual",     icon: BookOpen,      label: "Training Manual" },
-    { href: "#",                          icon: Globe,         label: "News & Media" },
-
-    { href: "#",                          icon: Video,         label: "Schedule a Zoom Call" },
-    { href: "/staff/my-info/personal-information", icon: FileText, label: "License Registration or Insurance Updates" },
-    { href: "/staff/turo-guide",          icon: Map,           label: "Turo Guide" },
-    { href: "",                           icon: Map,           label: "",                                            placeholder: true },
-
-    { href: "#",                          icon: PlusCircle,    label: "List Another Car" },
-    { href: "/admin/forms",               icon: UserPlus,      label: "Refer Somebody" },
-    { href: "/staff/client-testimonials", icon: Star,          label: "Client Testimonials" },
+    { href: "/staff/turo-guide",          icon: Map,      label: "Turo Guide" },
+    { href: "/staff/training-manual",     icon: BookOpen, label: "System Tutorial" },
+    { href: "/staff/client-testimonials", icon: Star,     label: "Client Testimonials" },
   ];
 
   return (
-    <div className="space-y-6 mt-8 mb-12">
-      <ReportCenter reportLinks={reportLinks} />
-      <SupportCenter supportLinks={supportLinks} />
+    <div className="space-y-4 mt-8 mb-12">
+      <QuickLinksSection title="Report Center"  links={reportLinks} />
+      <QuickLinksSection title="Support Center" links={supportLinks} />
     </div>
   );
 }

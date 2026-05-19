@@ -19,7 +19,6 @@ import EmployeeStatsSection from "@/components/admin/dashboard/EmployeeStatsSect
 import MonthlyEmployeeStatsSection from "@/components/admin/dashboard/MonthlyEmployeeStatsSection";
 import TuroInspectionsSection from "@/components/admin/dashboard/TuroInspectionsSection";
 import CarIssuesSection from "@/components/admin/dashboard/CarIssuesSection";
-import QuickLinks from "@/components/admin/QuickLinks";
 
 /* ── Section filter configuration ── */
 const STORAGE_KEY = "gla-admin-dashboard-sections";
@@ -41,7 +40,6 @@ const ALL_SECTIONS: SectionDef[] = [
   { id: "notice-board", label: "Notice Board" },
   { id: "employee-stats", label: "Employee Stats" },
   { id: "monthly-employee-stats", label: "Monthly Employee Stats" },
-  { id: "quick-links", label: "Quick Links" },
 ];
 
 const ALL_IDS = ALL_SECTIONS.map((s) => s.id);
@@ -366,13 +364,6 @@ export default function AdminDashboard() {
 
           {show["monthly-employee-stats"] && (
             <MonthlyEmployeeStatsSection year={selectedYear} />
-          )}
-
-          {show["quick-links"] && (
-            <div>
-              <h2 className="text-lg font-semibold text-foreground mb-3">Quick Links</h2>
-              <QuickLinks />
-            </div>
           )}
 
           {noneSelected && (

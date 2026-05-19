@@ -44,7 +44,6 @@ import {
 } from "lucide-react";
 import { buildApiUrl, buildUploadApiUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
-import QuickLinks from "@/components/admin/QuickLinks";
 import { getOnlineStatusBadge, formatLastLogin } from "@/lib/onlineStatus";
 import {
   Dialog,
@@ -137,8 +136,7 @@ export default function ClientDetailPage() {
   const { toast } = useToast();
   const clientId = params?.id ? parseInt(params.id, 10) : null;
   const [activeSection, setActiveSection] = useState<Section>("profile");
-  const [quickLinksExpanded, setQuickLinksExpanded] = useState(true);
-  const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
+const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
   
   // Edit modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
