@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
+import { NewsMediaSlot } from "@/pages/client/_components/NewsMediaSlot";
 import { OnboardingTutorial, useTutorial } from "@/components/onboarding/OnboardingTutorial";
 import { buildApiUrl } from "@/lib/queryClient";
 
@@ -127,6 +128,25 @@ export default function AdminDashboard() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // News & Media items grouped by dashboard slot
+  const { data: newsDashboardData } = useQuery<{
+    success: boolean;
+    slot1: any[];
+    slot2: any[];
+  }>({
+    queryKey: ["/api/news-media/dashboard"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/news-media/dashboard"), {
+        credentials: "include",
+      });
+      if (!res.ok) return { success: false, slot1: [], slot2: [] };
+      return res.json();
+    },
+    retry: false,
+  });
+  const newsSlot1Items = newsDashboardData?.slot1 ?? [];
+  const newsSlot2Items = newsDashboardData?.slot2 ?? [];
+
   const markTourShownMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(buildApiUrl("/api/auth/mark-tour-shown"), {
@@ -209,26 +229,36 @@ export default function AdminDashboard() {
               />
             </div>
 
-            {/* Center — Fleet Car Image with Link */}
-            <a href="/cars" className="block overflow-hidden rounded-lg shadow-md transition hover:shadow-xl">
-              <img
-                src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                alt="Golden Luxury Auto Fleet"
-                className="h-full w-full object-cover"
-              />
-            </a>
+            {/* Center — News & Media Section 1 (managed in /admin/news-media) */}
+            <div>
+              {newsSlot1Items.length > 0 ? (
+                <NewsMediaSlot slot={1} items={newsSlot1Items} />
+              ) : (
+                <a
+                  href="/admin/news-media"
+                  className="block h-full overflow-hidden rounded-lg border border-dashed border-gray-300 bg-gray-50 shadow-sm transition hover:bg-gray-100"
+                >
+                  <div className="flex h-full min-h-[200px] w-full items-center justify-center px-4 text-center text-xs text-gray-500">
+                    Section 1 — add media in News &amp; Media
+                  </div>
+                </a>
+              )}
+            </div>
 
-            {/* Right — YouTube Video */}
-            <div className="relative overflow-hidden rounded-lg shadow-md" style={{ minHeight: "200px" }}>
-              <iframe
-                className="absolute inset-0 h-full w-full"
-                src="https://www.youtube.com/embed/jsdo0yDeFCs?si=Le_SJZ8P7cqyx2Bn"
-                title="Golden Luxury Auto Monthly Update"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerPolicy="strict-origin-when-cross-origin"
-                allowFullScreen
-              />
+            {/* Right — News & Media Section 2 (managed in /admin/news-media) */}
+            <div>
+              {newsSlot2Items.length > 0 ? (
+                <NewsMediaSlot slot={2} items={newsSlot2Items} />
+              ) : (
+                <a
+                  href="/admin/news-media"
+                  className="block h-full overflow-hidden rounded-lg border border-dashed border-gray-300 bg-gray-50 shadow-sm transition hover:bg-gray-100"
+                >
+                  <div className="flex h-full min-h-[200px] w-full items-center justify-center px-4 text-center text-xs text-gray-500">
+                    Section 2 — add media in News &amp; Media
+                  </div>
+                </a>
+              )}
             </div>
           </div>
 

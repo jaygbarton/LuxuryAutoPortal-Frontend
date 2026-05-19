@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
-import { NewsMediaSlot } from "@/pages/client/_components/NewsMediaSlot";
-import { buildApiUrl } from "@/lib/queryClient";
 import IncomeExpensesSection from "@/components/admin/dashboard/IncomeExpensesSection";
 import AirportParkingSection from "@/components/admin/dashboard/AirportParkingSection";
 import CommissionsSection from "@/components/admin/dashboard/CommissionsSection";
@@ -58,25 +55,6 @@ export default function AdminDashboardPage() {
   const [visible, setVisible] = useState<Set<string>>(loadVisibleSections);
   const [filterOpen, setFilterOpen] = useState(false);
 
-  const { data: newsDashboardData } = useQuery<{
-    success: boolean;
-    slot1: any[];
-    slot2: any[];
-  }>({
-    queryKey: ["/api/news-media/dashboard"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/news-media/dashboard"), {
-        credentials: "include",
-      });
-      if (!res.ok) return { success: false, slot1: [], slot2: [] };
-      return res.json();
-    },
-    retry: false,
-  });
-
-  const slot1Items = newsDashboardData?.slot1 ?? [];
-  const slot2Items = newsDashboardData?.slot2 ?? [];
-
   // Persist to localStorage whenever visible changes
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...visible]));
@@ -121,39 +99,29 @@ export default function AdminDashboardPage() {
               />
             </div>
 
-            {/* Center — News & Media Section 1 (managed in /admin/news-media) */}
+            {/* Center — Fleet Car Image with Link */}
             <div className="flex justify-center">
-              <div className="w-full max-w-[360px]">
-                {slot1Items.length > 0 ? (
-                  <NewsMediaSlot slot={1} items={slot1Items} />
-                ) : (
-                  <a
-                    href="/admin/news-media"
-                    className="block overflow-hidden rounded-lg border border-dashed border-gray-300 bg-gray-50 shadow-sm transition hover:bg-gray-100"
-                  >
-                    <div className="flex aspect-video w-full items-center justify-center text-center text-xs text-gray-500">
-                      Section 1 — add media in News &amp; Media
-                    </div>
-                  </a>
-                )}
-              </div>
+              <a href="/cars" className="block overflow-hidden rounded-lg shadow-md transition hover:shadow-xl">
+                <img
+                  src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                  alt="Golden Luxury Auto Fleet"
+                  className="h-44 w-full object-cover"
+                />
+              </a>
             </div>
 
-            {/* Right — News & Media Section 2 (managed in /admin/news-media) */}
+            {/* Right — YouTube Video */}
             <div className="flex justify-center md:justify-end">
-              <div className="w-full max-w-[360px]">
-                {slot2Items.length > 0 ? (
-                  <NewsMediaSlot slot={2} items={slot2Items} />
-                ) : (
-                  <a
-                    href="/admin/news-media"
-                    className="block overflow-hidden rounded-lg border border-dashed border-gray-300 bg-gray-50 shadow-sm transition hover:bg-gray-100"
-                  >
-                    <div className="flex aspect-video w-full items-center justify-center text-center text-xs text-gray-500">
-                      Section 2 — add media in News &amp; Media
-                    </div>
-                  </a>
-                )}
+              <div className="relative aspect-video w-full max-w-[320px] overflow-hidden rounded-lg shadow-md">
+                <iframe
+                  className="absolute inset-0 h-full w-full"
+                  src="https://www.youtube.com/embed/jsdo0yDeFCs?si=Le_SJZ8P7cqyx2Bn"
+                  title="Golden Luxury Auto Monthly Update"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                />
               </div>
             </div>
           </div>
