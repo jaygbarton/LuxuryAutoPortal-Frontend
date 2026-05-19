@@ -168,6 +168,19 @@ function HomeLocationManager({ cars }: { cars: GlaCar[] }) {
     }
   }
 
+  async function simulateAlert(path: string, label: string) {
+    setRunning(true);
+    try {
+      const res = await fetch(buildApiUrl(path), { method: "POST", credentials: "include" });
+      const d = await res.json();
+      toast({ title: d.success ? `${label} sent` : "Error", description: d.message || d.error });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setRunning(false);
+    }
+  }
+
   return (
     <Card className="mt-6">
       <CardHeader>
@@ -220,7 +233,7 @@ function HomeLocationManager({ cars }: { cars: GlaCar[] }) {
           </div>
         )}
 
-        <div className="border-t pt-4">
+        <div className="border-t pt-4 space-y-3">
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={runAlerts} disabled={running} className="gap-1.5">
               <Bell className="w-4 h-4" />
@@ -231,9 +244,31 @@ function HomeLocationManager({ cars }: { cars: GlaCar[] }) {
               {running ? "Running…" : "Clear Dedup & Re-run (Testing)"}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Checks run automatically every 5 minutes. Alerts deduplicate over 24 hours —
-            use "Clear Dedup &amp; Re-run" if you need the same alert to fire again while testing.
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant="secondary"
+              onClick={() => simulateAlert("/api/bouncie/alerts/simulate-pre-trip-end", "Pre-trip-end alert")}
+              disabled={running}
+              className="gap-1.5"
+            >
+              <Bell className="w-4 h-4" />
+              Simulate: Car not returning (Alert 2)
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => simulateAlert("/api/bouncie/alerts/simulate-gas-not-full", "Gas-not-full alert")}
+              disabled={running}
+              className="gap-1.5"
+            >
+              <Bell className="w-4 h-4" />
+              Simulate: Gas not full (Alert 3)
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Checks run automatically every 5 minutes. Use "Simulate" buttons to test
+            alerts 2 &amp; 3 without waiting for real conditions (active trip ending
+            in 30 min, or recent trip with low fuel). Simulated alerts use real Slack +
+            bell delivery so the message will appear marked as <strong>[SIMULATED]</strong>.
           </p>
         </div>
       </CardContent>
