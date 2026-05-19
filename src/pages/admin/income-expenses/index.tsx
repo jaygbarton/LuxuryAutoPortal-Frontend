@@ -68,21 +68,30 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
     }
   }, [carIdFromQuery]);
 
-  // Fetch car details if carIdFromQuery is present
+  // Determine activeCarId early so the car-details query can use it.
+  // We compute it here (before the early-return guards) so the query hook
+  // is always called unconditionally (React rules of hooks).
+  const activeCarIdForFetch = useMemo(() => {
+    if (carIdFromRoute) return carIdFromRoute;
+    const parsed = parseInt(selectedCar, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  }, [carIdFromRoute, selectedCar]);
+
+  // Fetch car details whenever a specific car is selected (route param OR dropdown).
   const { data: carData, isLoading: isCarLoading, error: carError } = useQuery<{
     success: boolean;
     data: any;
   }>({
-    queryKey: ["/api/cars", carIdFromQuery],
+    queryKey: ["/api/cars", activeCarIdForFetch],
     queryFn: async () => {
-      if (!carIdFromQuery) throw new Error("Invalid car ID");
-      const response = await fetch(buildApiUrl(`/api/cars/${carIdFromQuery}`), {
+      if (!activeCarIdForFetch) throw new Error("Invalid car ID");
+      const response = await fetch(buildApiUrl(`/api/cars/${activeCarIdForFetch}`), {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch car");
       return response.json();
     },
-    enabled: !!carIdFromQuery,
+    enabled: !!activeCarIdForFetch,
     retry: false,
   });
 
@@ -339,7 +348,7 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
     const placeholderCarId = 0;
     
     return (
-      <IncomeExpenseProvider carId={placeholderCarId} year={selectedYear} isAllCars={true}>
+      <IncomeExpenseProvider key={`allcars-${selectedYear}`} carId={placeholderCarId} year={selectedYear} isAllCars={true}>
         <AdminLayout>
           <div className="flex flex-col w-full">
             {/* Header */}
@@ -468,7 +477,7 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
   //   2. `isAllCarsView` → shows all-cars view and returns
   // So activeCarId is guaranteed to be a non-null number here.
   return (
-    <IncomeExpenseProvider carId={activeCarId!} year={selectedYear}>
+    <IncomeExpenseProvider key={`${activeCarId}-${selectedYear}`} carId={activeCarId!} year={selectedYear}>
       <AdminLayout>
         <div className="flex flex-col w-full">
           {/* Header */}

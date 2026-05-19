@@ -119,48 +119,74 @@ function LoadingSkeleton() {
 // ── Donut chart wrapper ────────────────────────────────────────────────
 
 interface DonutChartProps {
-  data: { name: string; value: number; color: string }[];
+  data: { name: string; value: number }[];
   formatValue?: (v: number) => string;
 }
 
+// Light = larger share, Dark = smaller share. Per-slice color is decided
+// from the value's rank, not the array order, to match the design.
+const DONUT_COLOR_LIGHT = "#F5E6A8";
+const DONUT_COLOR_DARK = "#E8C547";
+
 function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
   const total = data.reduce((s, d) => s + d.value, 0);
+  const maxValue = Math.max(...data.map((d) => d.value), 0);
 
+  // Render the dominant slice's value INSIDE the ring; small slices get an
+  // external leader-line label so text doesn't overlap.
   const renderLabel = (props: any) => {
-    const { cx, cy, midAngle, outerRadius, value, name } = props;
+    const { cx, cy, midAngle, innerRadius, outerRadius, value, name } = props;
     const RADIAN = Math.PI / 180;
+    const pct = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+    const isDominant = value === maxValue && total > 0 && value / total >= 0.5;
+
+    if (isDominant) {
+      // Place text on the slice (between inner and outer radius).
+      const r = (innerRadius + outerRadius) / 2;
+      const x = cx + r * Math.cos(-midAngle * RADIAN);
+      const y = cy + r * Math.sin(-midAngle * RADIAN);
+      return (
+        <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fill="#000000">
+          <tspan x={x} dy="-0.4em" style={{ fontWeight: 700, fontSize: 12 }}>
+            {formatValue(value)}
+          </tspan>
+          <tspan x={x} dy="1.2em" style={{ fontSize: 9 }}>
+            {name}
+          </tspan>
+          <tspan x={x} dy="1.2em" style={{ fontSize: 9 }}>
+            {pct}%
+          </tspan>
+        </text>
+      );
+    }
+
+    // Small slice — external leader line
     const sin = Math.sin(-midAngle * RADIAN);
     const cos = Math.cos(-midAngle * RADIAN);
     const sx = cx + outerRadius * cos;
     const sy = cy + outerRadius * sin;
-    const mx = cx + (outerRadius + 12) * cos;
-    const my = cy + (outerRadius + 12) * sin;
-    const ex = mx + (cos >= 0 ? 1 : -1) * 18;
+    const mx = cx + (outerRadius + 10) * cos;
+    const my = cy + (outerRadius + 10) * sin;
+    const ex = mx + (cos >= 0 ? 1 : -1) * 14;
     const ey = my;
     const textAnchor = cos >= 0 ? "start" : "end";
-    const pct = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
     return (
       <g>
-        <path
-          d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`}
-          stroke="#999999"
-          strokeWidth={1}
-          fill="none"
-        />
+        <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke="#999999" strokeWidth={1} fill="none" />
         <text
-          x={ex + (cos >= 0 ? 4 : -4)}
+          x={ex + (cos >= 0 ? 3 : -3)}
           y={ey}
           textAnchor={textAnchor}
           dominantBaseline="central"
           fill="#000000"
         >
-          <tspan x={ex + (cos >= 0 ? 4 : -4)} dy="-0.6em" style={{ fontWeight: 700, fontSize: 13 }}>
+          <tspan x={ex + (cos >= 0 ? 3 : -3)} dy="-0.6em" style={{ fontWeight: 700, fontSize: 11 }}>
             {formatValue(value)}
           </tspan>
-          <tspan x={ex + (cos >= 0 ? 4 : -4)} dy="1.3em" style={{ fontSize: 11 }}>
+          <tspan x={ex + (cos >= 0 ? 3 : -3)} dy="1.2em" style={{ fontSize: 9 }}>
             {name}
           </tspan>
-          <tspan x={ex + (cos >= 0 ? 4 : -4)} dy="1.3em" style={{ fontSize: 11 }}>
+          <tspan x={ex + (cos >= 0 ? 3 : -3)} dy="1.2em" style={{ fontSize: 9 }}>
             {pct}%
           </tspan>
         </text>
@@ -169,23 +195,27 @@ function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
   };
 
   return (
-    <div className="flex justify-center">
-      <ResponsiveContainer width="100%" height={220}>
-        <PieChart>
+    <div className="h-full w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart margin={{ top: 8, right: 24, bottom: 8, left: 24 }}>
           <Pie
             data={data}
             dataKey="value"
             cx="50%"
             cy="50%"
-            innerRadius={55}
-            outerRadius={90}
+            innerRadius="48%"
+            outerRadius="88%"
             paddingAngle={0}
             label={renderLabel}
             labelLine={false}
             isAnimationActive={false}
           >
             {data.map((entry, idx) => (
-              <Cell key={idx} fill={entry.color} stroke="none" />
+              <Cell
+                key={idx}
+                fill={entry.value === maxValue ? DONUT_COLOR_LIGHT : DONUT_COLOR_DARK}
+                stroke="none"
+              />
             ))}
           </Pie>
         </PieChart>
@@ -237,7 +267,7 @@ function BarChartCard({ title, data, bars, yAxisPrefix = "$" }: BarChartCardProp
             }}
           />
           {bars.map((b) => (
-            <Bar key={b.dataKey} dataKey={b.dataKey} fill={b.fill} barSize={12} />
+            <Bar key={b.dataKey} dataKey={b.dataKey} fill={b.fill} barSize={22} />
           ))}
         </BarChart>
       </ResponsiveContainer>
@@ -290,7 +320,7 @@ function LineChartCard({ title, data, lines, yAxisPrefix = "$" }: LineChartCardP
           {lines.map((l) => (
             <Line
               key={l.dataKey}
-              type="monotone"
+              type="linear"
               dataKey={l.dataKey}
               stroke={l.stroke}
               strokeWidth={2}
@@ -328,8 +358,9 @@ function HorizontalBarChart({ items }: HorizontalBarChartProps) {
   const valueColWidth = 60;
 
   return (
-    <div className="w-full">
-      <div className="space-y-5">
+    <div className="flex h-full w-full flex-col">
+      {/* Bars area fills available height — each bar splits the area evenly */}
+      <div className="flex flex-1 flex-col justify-around gap-4 pt-2">
         {items.map((item) => (
           <div key={item.label} className="flex items-center gap-3">
             <div
@@ -338,7 +369,7 @@ function HorizontalBarChart({ items }: HorizontalBarChartProps) {
             >
               {item.label}
             </div>
-            <div className="relative h-10 flex-1 bg-transparent">
+            <div className="relative h-12 flex-1 bg-transparent">
               <div
                 className="h-full bg-[#E8C547]"
                 style={{
@@ -697,49 +728,55 @@ export default function IncomeExpensesSection({
             </div>
           </div>
 
-          {/* ── Row 2: Donuts + Horizontal bars (40%) + Line/Bar charts (60%) ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-5 gap-12">
-            {/* Left column — 2/5 (40%) */}
-            <div className="xl:col-span-2 space-y-8">
-              {/* 2x2 Donut grid */}
-              <div className="grid grid-cols-2 gap-2">
+          {/* ── Row 2: Donuts + Horizontal bars (1/3) + Line/Bar charts (2/3) ── */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            {/* Left column — 1/3. Each row is height-matched to its sibling on the right. */}
+            <div className="xl:col-span-1 space-y-8">
+              {/* Row 1 — Mgmt donuts (aligns with Management line chart on the right) */}
+              <div className="grid grid-cols-2 gap-2 h-[310px]">
                 <DonutChart
                   data={[
-                    { name: "Total Car Mngmt Expenses", value: totalMgmtExpenses, color: "#E8C547" },
-                    { name: "Total Car Mngmt Profit", value: Math.max(0, totalMgmtIncome - totalMgmtExpenses), color: "#F5E6A8" },
+                    { name: "Total Car Mngmt Expenses", value: totalMgmtExpenses },
+                    { name: "Total Car Mngmt Profit", value: Math.max(0, totalMgmtIncome - totalMgmtExpenses) },
                   ]}
                 />
                 <DonutChart
                   data={[
-                    { name: "Total Car Mngmt Profit", value: Math.max(0, displayMgmtIncome - displayMgmtExpenses), color: "#E8C547" },
-                    { name: "Total Car Mngmt Expenses", value: displayMgmtExpenses, color: "#F5E6A8" },
-                  ]}
-                />
-                <DonutChart
-                  data={[
-                    { name: "Total Car Owner Expenses", value: totalOwnerExpenses, color: "#E8C547" },
-                    { name: "Total Car Owner Profit", value: Math.max(0, totalOwnerIncome - totalOwnerExpenses), color: "#F5E6A8" },
-                  ]}
-                />
-                <DonutChart
-                  data={[
-                    { name: "Total Car Owner Profit", value: Math.max(0, displayOwnerIncome - displayOwnerExpenses), color: "#E8C547" },
-                    { name: "Total Car Owner Expenses", value: displayOwnerExpenses, color: "#F5E6A8" },
+                    { name: "Total Car Mngmt Profit", value: Math.max(0, displayMgmtIncome - displayMgmtExpenses) },
+                    { name: "Total Car Mngmt Expenses", value: displayMgmtExpenses },
                   ]}
                 />
               </div>
 
-              {/* Horizontal bar chart with x-axis */}
-              <HorizontalBarChart
-                items={[
-                  { label: "Total Trips Taken", value: totalTripsTaken },
-                  { label: "Total Days Rented", value: totalDaysRented },
-                ]}
-              />
+              {/* Row 2 — Car Owner donuts (aligns with Car Owner line chart on the right) */}
+              <div className="grid grid-cols-2 gap-2 h-[310px]">
+                <DonutChart
+                  data={[
+                    { name: "Total Car Owner Expenses", value: totalOwnerExpenses },
+                    { name: "Total Car Owner Profit", value: Math.max(0, totalOwnerIncome - totalOwnerExpenses) },
+                  ]}
+                />
+                <DonutChart
+                  data={[
+                    { name: "Total Car Owner Profit", value: Math.max(0, displayOwnerIncome - displayOwnerExpenses) },
+                    { name: "Total Car Owner Expenses", value: displayOwnerExpenses },
+                  ]}
+                />
+              </div>
+
+              {/* Row 3 — Horizontal bar chart (aligns with the vertical bar chart on the right) */}
+              <div className="h-[310px]">
+                <HorizontalBarChart
+                  items={[
+                    { label: "Total Trips Taken", value: totalTripsTaken },
+                    { label: "Total Days Rented", value: totalDaysRented },
+                  ]}
+                />
+              </div>
             </div>
 
-            {/* Right column — 3/5 (60%) — stacked charts */}
-            <div className="xl:col-span-3 space-y-8">
+            {/* Right column — 2/3 — stacked charts */}
+            <div className="xl:col-span-2 space-y-8">
               <LineChartCard
                 title="Management Income and Expenses"
                 data={mgmtBarData}

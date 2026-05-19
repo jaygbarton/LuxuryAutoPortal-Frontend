@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
-import { exportAllIncomeExpenseData, parseImportedCSV } from "../utils/exportImportUtils";
+import { exportAllAsZip, importFromFileWithReceipts } from "../utils/exportImportUtils";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -32,8 +32,10 @@ export default function TableActions({
   car,
 }: TableActionsProps) {
   const { toast } = useToast();
-  const [location, setLocation] = useLocation();
-  const isReadOnly = location.startsWith("/admin/income-expenses");
+  const [, setLocation] = useLocation();
+  // Import / Export / Template only make sense when a specific car is selected.
+  // carId=0 means the all-cars aggregate view — hide those actions there.
+  const isReadOnly = !carId;
   const { data, monthModes, year, dynamicSubcategories, skiRacksOwner } = useIncomeExpense();
   const queryClient = useQueryClient();
   
@@ -121,7 +123,9 @@ export default function TableActions({
     enabled: !!carId && !!selectedYear && !!previousYearData?.data, // Only fetch if we have previous year data
   });
 
-  const handleExportCSV = () => {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportCSV = async () => {
     // Merge previous year's dynamic subcategories into previousYearData if they exist
     let prevYearDataForExport = previousYearData?.data || null;
     if (prevYearDataForExport && prevYearDynamicSubcategories) {
@@ -130,18 +134,43 @@ export default function TableActions({
         dynamicSubcategories: prevYearDynamicSubcategories,
       };
     }
-    exportAllIncomeExpenseData(data, car, selectedYear, monthModes, dynamicSubcategories, prevYearDataForExport, skiRacksOwner);
-    toast({
-      title: "Export Successful",
-      description: `CSV file downloaded for ${car?.makeModel || 'car'} (${selectedYear})`,
-    });
+    setIsExporting(true);
+    try {
+      const result = await exportAllAsZip(
+        data,
+        car,
+        selectedYear,
+        monthModes,
+        carId,
+        dynamicSubcategories,
+        prevYearDataForExport,
+        skiRacksOwner,
+      );
+      const carName = car?.makeModel || "car";
+      const receiptMsg =
+        result.receiptCount > 0
+          ? ` (${result.receiptCount} receipt${result.receiptCount === 1 ? "" : "s"} bundled${result.missingCount ? `, ${result.missingCount} missing` : ""})`
+          : "";
+      toast({
+        title: "Export Successful",
+        description: `ZIP downloaded for ${carName} (${selectedYear})${receiptMsg}`,
+      });
+    } catch (e: any) {
+      toast({
+        title: "Export Failed",
+        description: e?.message || "Could not build the export bundle",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleImportFile = async () => {
     if (!importFile) {
       toast({
         title: "No File Selected",
-        description: "Please select a CSV file to import",
+        description: "Please select a CSV or ZIP file to import",
         variant: "destructive",
       });
       return;
@@ -150,37 +179,29 @@ export default function TableActions({
     setIsImporting(true);
 
     try {
-      const fileContent = await importFile.text();
-      const parsed = parseImportedCSV(fileContent);
+      const result = await importFromFileWithReceipts(
+        importFile,
+        carId,
+        parseInt(selectedYear),
+      );
 
-      if (!parsed.success) {
-        throw new Error(parsed.error || "Failed to parse CSV");
-      }
-
-      // Send parsed data to backend
-      const response = await fetch(buildApiUrl("/api/income-expense/import"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          carId,
-          year: parseInt(selectedYear),
-          sections: parsed.sections,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Import failed");
-      }
-
-      // Refresh data
+      // Refresh I&E data and submission receipts
       queryClient.invalidateQueries({ queryKey: ["/api/income-expense", carId, selectedYear] });
+      queryClient.invalidateQueries({ queryKey: ["/api/expense-form-submissions"] });
 
+      const receiptMsg = result.receiptCount > 0
+        ? ` + ${result.receiptCount} receipt${result.receiptCount === 1 ? "" : "s"} imported`
+        : "";
       toast({
         title: "Import Successful",
-        description: "All data has been imported successfully",
+        description: `All data has been imported successfully${receiptMsg}.${result.warnings.length ? ` (${result.warnings.length} warning${result.warnings.length === 1 ? "" : "s"})` : ""}`,
       });
+
+      if (result.warnings.length) {
+        result.warnings.forEach((w) =>
+          console.warn("[Import]", w)
+        );
+      }
 
       setIsImportModalOpen(false);
       setImportFile(null);
@@ -329,15 +350,16 @@ Trips Taken,0,0,0,0,0,0,0,0,0,0,0,0`;
           </Button>
         )}
 
-        {/* Export Button */}
+        {/* Export Button — bundles CSV + receipts into a ZIP. */}
         <Button
           onClick={handleExportCSV}
           variant="outline"
           size="sm"
           className="border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+          disabled={isExporting}
         >
           <Download className="w-4 h-4 mr-2" />
-          Export CSV
+          {isExporting ? "Exporting..." : "Export ZIP"}
         </Button>
 
         {/* View Log Button */}
@@ -350,6 +372,7 @@ Trips Taken,0,0,0,0,0,0,0,0,0,0,0,0`;
           <History className="w-4 h-4 mr-2" />
           Log
         </Button>
+
       </div>
 
       {/* Import Modal */}
@@ -360,7 +383,8 @@ Trips Taken,0,0,0,0,0,0,0,0,0,0,0,0`;
               Import Income and Expense Data
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Upload a CSV file to import all income and expense data for {car?.makeModel || 'this car'} ({selectedYear})
+              Importing into: <strong className="text-foreground">{car?.makeModel || `Car #${carId}`}</strong> — Year <strong className="text-foreground">{selectedYear}</strong> (Car ID: {carId})
+              <br />Upload a <strong>ZIP</strong> (exported from this app — includes receipts) or a legacy <strong>CSV</strong>.
             </DialogDescription>
           </DialogHeader>
 
@@ -368,7 +392,7 @@ Trips Taken,0,0,0,0,0,0,0,0,0,0,0,0`;
             <div className="border-2 border-dashed border-border rounded-lg p-6">
               <input
                 type="file"
-                accept=".csv"
+                accept=".zip,.csv,application/zip,application/x-zip-compressed,text/csv"
                 onChange={(e) => setImportFile(e.target.files?.[0] || null)}
                 className="w-full text-sm text-muted-foreground
                   file:mr-4 file:py-2 file:px-4
@@ -388,15 +412,16 @@ Trips Taken,0,0,0,0,0,0,0,0,0,0,0,0`;
               <h4 className="text-foreground font-medium mb-2">What will be imported:</h4>
               <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                 <li>Car Management Owner Split (with mode settings)</li>
-                <li>Income & Expenses (all income categories)</li>
+                <li>Income &amp; Expenses (all income categories)</li>
                 <li>Operating Expense (Direct Delivery)</li>
                 <li>Operating Expense (COGS – Per Vehicle)</li>
-                <li>Parking Fee & Labor Cleaning</li>
+                <li>Parking Fee &amp; Labor Cleaning</li>
                 <li>Reimburse and Non-Reimburse Bills</li>
                 <li>History (days rented, trips, etc.)</li>
+                <li className="font-medium text-foreground">Receipt images (ZIP only — click-to-view preserved)</li>
               </ul>
               <p className="text-yellow-700 text-xs mt-3">
-                ⚠️ This will update all data for the selected year. Existing data will be overwritten.
+                ⚠️ This will overwrite all data for the selected year.
               </p>
             </div>
           </div>

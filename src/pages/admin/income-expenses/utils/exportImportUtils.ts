@@ -1,11 +1,15 @@
 // Consolidated Export/Import utility functions for Income and Expenses
+import JSZip from "jszip";
 import type { IncomeExpenseData } from "../types";
+import { buildApiUrl } from "@/lib/queryClient";
 
 /**
- * Export all income and expense data to CSV format
- * Includes all categories in a single file with proper sections
+ * Build the CSV content for the full income/expense export.
+ * (Pure function — returns the string instead of triggering a download.)
+ * Used both by the CSV-only download path and by the ZIP exporter that
+ * bundles the CSV alongside receipt images.
  */
-export function exportAllIncomeExpenseData(
+export function buildIncomeExpenseCSV(
   data: IncomeExpenseData,
   carInfo: any,
   year: string,
@@ -18,7 +22,7 @@ export function exportAllIncomeExpenseData(
   },
   previousYearData?: IncomeExpenseData | null,
   skiRacksOwner?: { [month: number]: "GLA" | "CAR_OWNER" }
-): void {
+): string {
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   
   // Helper functions to calculate values - MUST match the logic used in IncomeExpenseTable.tsx
@@ -985,8 +989,8 @@ export function exportAllIncomeExpenseData(
     { field: 'cleaningSuppliesTools', label: 'Cleaning Supplies / Tools' },
     { field: 'emissions', label: 'Emissions' },
     { field: 'gpsSystem', label: 'GPS System' },
-    { field: 'keyFob', label: 'Keys & Fob' },
-    { field: 'laborCleaning', label: 'Labor - Detailing' },
+    { field: 'keyFob', label: 'Key & Fob' },
+    { field: 'laborCleaning', label: 'Labor - Cleaning (COGS)' },
     { field: 'windshield', label: 'Windshield' },
     { field: 'wipers', label: 'Wipers' },
     { field: 'uberLyftLime', label: 'Uber/Lyft/Lime' },
@@ -1303,21 +1307,366 @@ export function exportAllIncomeExpenseData(
     aveParkingGLATotal += Number(value);
   });
   csvContent += `$0.00,$0.00,$${aveParkingGLATotal.toFixed(2)}\n`;
-  
-  // ========================================
-  // Download CSV File
-  // ========================================
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
+
+  return csvContent;
+}
+
+function triggerBlobDownload(blob: Blob, fileName: string): void {
+  const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
-  const fileName = `Income-Expense-${carInfo?.makeModel?.replace(/\s+/g, '-') || 'Car'}-${year}.csv`;
-  
-  link.setAttribute('href', url);
-  link.setAttribute('download', fileName);
-  link.style.visibility = 'hidden';
+  link.setAttribute("href", url);
+  link.setAttribute("download", fileName);
+  link.style.visibility = "hidden";
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function makeExportBaseName(carInfo: any, year: string): string {
+  return `Income-Expense-${carInfo?.makeModel?.replace(/\s+/g, "-") || "Car"}-${year}`;
+}
+
+/**
+ * Backwards-compatible CSV-only export.
+ * Use {@link exportAllAsZip} when you want to bundle receipts as well.
+ */
+export function exportAllIncomeExpenseData(
+  data: IncomeExpenseData,
+  carInfo: any,
+  year: string,
+  monthModes: { [month: number]: 50 | 70 },
+  dynamicSubcategories?: {
+    directDelivery: any[];
+    cogs: any[];
+    parkingFeeLabor: any[];
+    reimbursedBills: any[];
+  },
+  previousYearData?: IncomeExpenseData | null,
+  skiRacksOwner?: { [month: number]: "GLA" | "CAR_OWNER" }
+): void {
+  const csvContent = buildIncomeExpenseCSV(
+    data,
+    carInfo,
+    year,
+    monthModes,
+    dynamicSubcategories,
+    previousYearData,
+    skiRacksOwner,
+  );
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  triggerBlobDownload(blob, `${makeExportBaseName(carInfo, year)}.csv`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// ZIP export — CSV + receipts/ + receipts.json manifest
+// ─────────────────────────────────────────────────────────────────────────
+
+interface ApprovedSubmissionForExport {
+  id: number;
+  carId: number;
+  year: number;
+  month: number;
+  category: string;
+  field: string;
+  amount: number;
+  receiptUrls: string[] | null;
+  remarks: string | null;
+}
+
+interface ReceiptManifestEntry {
+  /** Section in the ZIP that owns this receipt — matches submission category. */
+  category: "directDelivery" | "cogs" | "reimbursedBills" | "income";
+  /** Field within the section (e.g. "parts", "mechanic"). */
+  field: string;
+  /** Calendar month 1-12. */
+  month: number;
+  /** Relative path inside the ZIP (e.g. "receipts/cogs/parts/01-abc.jpg"). */
+  file: string;
+  /** Original URL on the server (kept for debugging / traceability). */
+  originalUrl: string;
+}
+
+interface ReceiptManifest {
+  schemaVersion: 1;
+  carId: number;
+  year: number;
+  exportedAt: string;
+  entries: ReceiptManifestEntry[];
+}
+
+function safeName(s: string): string {
+  return s.replace(/[^a-z0-9._-]+/gi, "_").slice(0, 80) || "unnamed";
+}
+
+function extFromUrl(url: string): string {
+  const clean = url.split("?")[0].split("#")[0];
+  const m = clean.match(/\.(jpg|jpeg|png|webp|gif|pdf|heic)$/i);
+  return m ? m[1].toLowerCase() : "bin";
+}
+
+/**
+ * Pulls a receipt file from our server. The receipt API expects credentials
+ * and a fileId derived from the stored URL — but the URL itself works for
+ * GCS/public ones, so try direct fetch first and fall back to the
+ * /receipt/file endpoint if needed.
+ */
+async function fetchReceiptBlob(url: string, submissionId: number): Promise<Blob | null> {
+  try {
+    const direct = await fetch(url, { credentials: "include" });
+    if (direct.ok) return await direct.blob();
+  } catch {
+    /* fall through */
+  }
+  try {
+    const proxied = await fetch(
+      buildApiUrl(
+        `/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(url)}&submissionId=${submissionId}`,
+      ),
+      { credentials: "include" },
+    );
+    if (proxied.ok) return await proxied.blob();
+  } catch {
+    /* nothing more to try */
+  }
+  return null;
+}
+
+/**
+ * Export I&E data AND attached receipts as a single ZIP. The ZIP layout:
+ *   data.csv               — identical to the legacy CSV export
+ *   receipts.json          — manifest mapping each file to its cell
+ *   receipts/<cat>/<field>/<MM>-<n>.<ext>
+ */
+export async function exportAllAsZip(
+  data: IncomeExpenseData,
+  carInfo: any,
+  year: string,
+  monthModes: { [month: number]: 50 | 70 },
+  carId: number,
+  dynamicSubcategories?: {
+    directDelivery: any[];
+    cogs: any[];
+    parkingFeeLabor: any[];
+    reimbursedBills: any[];
+  },
+  previousYearData?: IncomeExpenseData | null,
+  skiRacksOwner?: { [month: number]: "GLA" | "CAR_OWNER" },
+): Promise<{ receiptCount: number; missingCount: number }> {
+  const csvContent = buildIncomeExpenseCSV(
+    data,
+    carInfo,
+    year,
+    monthModes,
+    dynamicSubcategories,
+    previousYearData,
+    skiRacksOwner,
+  );
+
+  const zip = new JSZip();
+  zip.file("data.csv", csvContent);
+
+  // Pull approved submissions for this car+year.
+  let submissions: ApprovedSubmissionForExport[] = [];
+  try {
+    const res = await fetch(
+      buildApiUrl(`/api/expense-form-submissions/approved-by-car?carId=${carId}&year=${year}`),
+      { credentials: "include" },
+    );
+    if (res.ok) {
+      const json = await res.json();
+      submissions = (json?.data ?? json ?? []) as ApprovedSubmissionForExport[];
+    }
+  } catch {
+    /* If we can't reach the receipts API, just export the CSV alone. */
+  }
+
+  const manifest: ReceiptManifest = {
+    schemaVersion: 1,
+    carId,
+    year: Number(year),
+    exportedAt: new Date().toISOString(),
+    entries: [],
+  };
+  let missing = 0;
+
+  for (const sub of submissions) {
+    const urls = sub.receiptUrls ?? [];
+    if (!urls.length) continue;
+    for (let i = 0; i < urls.length; i++) {
+      const url = urls[i];
+      const blob = await fetchReceiptBlob(url, sub.id);
+      if (!blob) {
+        missing++;
+        continue;
+      }
+      const monthStr = String(sub.month).padStart(2, "0");
+      const ext = extFromUrl(url);
+      const fileName = `${monthStr}-${sub.id}-${i + 1}.${ext}`;
+      const path = `receipts/${safeName(sub.category)}/${safeName(sub.field)}/${fileName}`;
+      // Use ArrayBuffer so JSZip works in both browser and Node (test) environments.
+      zip.file(path, await blob.arrayBuffer());
+      manifest.entries.push({
+        category: sub.category as ReceiptManifestEntry["category"],
+        field: sub.field,
+        month: sub.month,
+        file: path,
+        originalUrl: url,
+      });
+    }
+  }
+
+  zip.file("receipts.json", JSON.stringify(manifest, null, 2));
+
+  const archive = await zip.generateAsync({ type: "blob" });
+  triggerBlobDownload(archive, `${makeExportBaseName(carInfo, year)}.zip`);
+
+  return { receiptCount: manifest.entries.length, missingCount: missing };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// ZIP import — accepts either a plain CSV (legacy) or the ZIP produced by
+// exportAllAsZip (CSV + receipts.json + receipt files).
+// ─────────────────────────────────────────────────────────────────────────
+
+export interface ImportZipResult {
+  csvImported: boolean;
+  receiptCount: number;
+  warnings: string[];
+}
+
+function isZipFile(file: File): boolean {
+  return (
+    file.type === "application/zip" ||
+    file.type === "application/x-zip-compressed" ||
+    file.name.toLowerCase().endsWith(".zip")
+  );
+}
+
+/**
+ * Import I&E data from either a CSV or a ZIP produced by exportAllAsZip.
+ * Handles uploading receipts and creating approved submissions so click-to-view works.
+ */
+export async function importFromFileWithReceipts(
+  file: File,
+  carId: number,
+  year: number,
+): Promise<ImportZipResult> {
+  const warnings: string[] = [];
+  let receiptCount = 0;
+
+  // Detect ZIP by magic bytes (PK header) rather than trusting MIME/extension,
+  // since browsers often report application/octet-stream for .zip files.
+  const headerBytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+  const isPK = headerBytes[0] === 0x50 && headerBytes[1] === 0x4b; // PK magic
+
+  if (!isPK) {
+    // Legacy CSV path
+    const text = await file.text();
+    const parsed = parseImportedCSV(text);
+    if (!parsed.success) throw new Error(parsed.error || "Failed to parse CSV");
+    await postCsvSections(carId, year, parsed.sections!);
+    return { csvImported: true, receiptCount: 0, warnings: [] };
+  }
+
+  // ── ZIP path ──
+  const zip = new JSZip();
+  const archive = await zip.loadAsync(await file.arrayBuffer());
+
+  // 1. Parse CSV — try root-level first, then any data.csv in a subdirectory.
+  let csvFile = archive.file("data.csv");
+  if (!csvFile) {
+    const found = Object.keys(archive.files).find(n => n.endsWith("data.csv") && !archive.files[n].dir);
+    if (found) csvFile = archive.file(found);
+  }
+  if (!csvFile) throw new Error("ZIP does not contain data.csv");
+  const csvText = await csvFile.async("string");
+  const parsed = parseImportedCSV(csvText);
+  if (!parsed.success) throw new Error(parsed.error || "Failed to parse CSV");
+  await postCsvSections(carId, year, parsed.sections!);
+
+  // 2. Parse receipt manifest
+  const manifestFile = archive.file("receipts.json");
+  if (!manifestFile) {
+    warnings.push("No receipts.json found — data imported without receipts.");
+    return { csvImported: true, receiptCount: 0, warnings };
+  }
+  const manifest: ReceiptManifest = JSON.parse(await manifestFile.async("string"));
+
+  // 3. Group entries by (category, field, month) so we can batch-upload per cell.
+  // Use a Map keyed by a structured object-ref to avoid any delimiter collision.
+  type CellKey = string; // JSON-stable key
+  const byCell = new Map<CellKey, { category: string; field: string; month: number; entries: ReceiptManifestEntry[] }>();
+  for (const entry of manifest.entries) {
+    const key = JSON.stringify([entry.category, entry.field, entry.month]);
+    if (!byCell.has(key)) byCell.set(key, { category: entry.category, field: entry.field, month: entry.month, entries: [] });
+    byCell.get(key)!.entries.push(entry);
+  }
+
+  // 4. For each cell, upload files then register the receipt submission
+  const receiptPayload: { category: string; field: string; month: number; fileIds: string[] }[] = [];
+
+  for (const [, cell] of byCell) {
+    const { category, field, month, entries } = cell;
+    const fileIds: string[] = [];
+
+    for (const entry of cell.entries) {
+      const zipEntry = archive.file(entry.file);
+      if (!zipEntry) {
+        warnings.push(`Missing file in ZIP: ${entry.file}`);
+        continue;
+      }
+      const blob = new Blob([await zipEntry.async("arraybuffer")]);
+      const ext = entry.file.split(".").pop() || "bin";
+      const formData = new FormData();
+      formData.append("receipts", blob, `import-${category}-${field}-${month}.${ext}`);
+
+      const uploadRes = await fetch(
+        buildApiUrl("/api/expense-form-submissions/receipts/upload"),
+        { method: "POST", credentials: "include", body: formData },
+      );
+      if (!uploadRes.ok) {
+        warnings.push(`Failed to upload receipt for ${category}/${field} month ${month}`);
+        continue;
+      }
+      const { fileIds: uploaded } = await uploadRes.json();
+      fileIds.push(...(uploaded as string[]));
+    }
+
+    if (fileIds.length) {
+      receiptPayload.push({ category, field, month, fileIds });
+      receiptCount += fileIds.length;
+    }
+  }
+
+  // 5. Register all receipts as approved submissions in one backend call
+  if (receiptPayload.length) {
+    const importRes = await fetch(buildApiUrl("/api/income-expense/import-receipts"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ carId, year, receipts: receiptPayload }),
+    });
+    if (!importRes.ok) {
+      const err = await importRes.json().catch(() => ({}));
+      warnings.push(`Receipt registration failed: ${(err as any).error || "Unknown error"}`);
+    }
+  }
+
+  return { csvImported: true, receiptCount, warnings };
+}
+
+async function postCsvSections(carId: number, year: number, sections: any): Promise<void> {
+  const res = await fetch(buildApiUrl("/api/income-expense/import"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ carId, year, sections }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as any).message || (err as any).error || "Import failed");
+  }
 }
 
 /**
@@ -1408,60 +1757,96 @@ export function parseImportedCSV(
       
       const cells = parseCSVLine(line);
       
-      // Skip empty rows
-      if (cells.length === 0 || (cells.length === 1 && !cells[0])) {
-        currentSection = ''; // Reset section on empty line
-        continue;
+      // Skip blank separator rows (empty line or all-comma row like ",,,,,,,,,,,,")
+      if (cells.length === 0 || cells.every(c => !c)) {
+        continue; // Don't reset currentSection — sections flow until the next SECTION marker
       }
       
-      // Detect section headers
+      // Detect section headers.
+      // The exporter writes:  SECTION,<Section Name>[,...]
+      // Legacy CSVs write the section name directly in column 0.
+      // We handle both formats so old and new files both import correctly.
       const firstCell = cells[0].toUpperCase();
-      
-      // Check for INCOME & EXPENSES section (first line with month headers)
-      if (firstCell.includes('INCOME') && firstCell.includes('EXPENSES') && cells.length > 1) {
-        currentSection = 'INCOME & EXPENSES';
-        continue; // Skip header line
+      // Section header detection.
+      // New format (written by current exporter): first cell is the literal word "SECTION",
+      // section name is in cell[1].
+      // Legacy format: section name IS the first cell (no values after it, or just blank cells).
+      const isNewSectionRow = firstCell === 'SECTION' && !!cells[1]?.trim();
+      // Legacy: treat as section header only if col-0 looks like a section keyword AND
+      // the row has no numeric values (all remaining cells are empty).
+      const looksLikeLegacySectionHeader =
+        !isNewSectionRow &&
+        cells.slice(1).every(c => !c || c === '$0.00') &&
+        (firstCell.includes('INCOME') || firstCell.includes('OPERATING') ||
+         firstCell === 'HISTORY' || firstCell.includes('PARKING FEE'));
+
+      if (isNewSectionRow || looksLikeLegacySectionHeader) {
+        const sectionLabel = isNewSectionRow ? cells[1].toUpperCase() : firstCell;
+
+        if (sectionLabel.includes('CAR MANAGEMENT OWNER SPLIT')) {
+          currentSection = 'CAR MANAGEMENT OWNER SPLIT';
+          continue;
+        }
+        if (sectionLabel.includes('INCOME') && sectionLabel.includes('EXPENSES')) {
+          currentSection = 'INCOME & EXPENSES';
+          continue;
+        }
+        if (sectionLabel.includes('OPERATING EXPENSE') && sectionLabel.includes('DIRECT DELIVERY')) {
+          currentSection = 'OPERATING EXPENSE (Direct Delivery)';
+          skipNextLine = true;
+          continue;
+        }
+        if (sectionLabel.includes('OPERATING EXPENSE') && sectionLabel.includes('COGS')) {
+          currentSection = 'OPERATING EXPENSE (COGS - Per Vehicle)';
+          continue;
+        }
+        if (sectionLabel.includes('PARKING FEE') && sectionLabel.includes('LABOR')) {
+          currentSection = 'PARKING FEE & LABOR CLEANING';
+          continue;
+        }
+        if (sectionLabel.includes('REIMBURSE') || sectionLabel.includes('NON-REIMBURSE')) {
+          currentSection = 'REIMBURSE AND NON-REIMBURSE BILLS';
+          continue;
+        }
+        if (sectionLabel === 'HISTORY') {
+          currentSection = 'HISTORY';
+          continue;
+        }
+        // Skip-only sections (computed totals, not raw input)
+        if (
+          sectionLabel.includes('CAR RENTAL VALUE') ||
+          sectionLabel.includes('PARKING AIRPORT AVERAGE') ||
+          sectionLabel.includes('TOTAL TRIPS') ||
+          sectionLabel.includes('TOTAL MANAGEMENT') ||
+          sectionLabel.includes('TOTAL CAR OWNER')
+        ) {
+          currentSection = 'SKIP';
+          continue;
+        }
       }
-      
-      // Check for OPERATING EXPENSE (Direct Delivery) section
-      if (firstCell.includes('OPERATING EXPENSE') && firstCell.includes('DIRECT DELIVERY')) {
-        currentSection = 'OPERATING EXPENSE (Direct Delivery)';
-        skipNextLine = true; // Next line will be "Category" header
-        continue;
-      }
-      
-      // Check for OPERATING EXPENSE (COGS) section
-      if (firstCell.includes('OPERATING EXPENSE') && firstCell.includes('COGS')) {
-        currentSection = 'OPERATING EXPENSE (COGS - Per Vehicle)';
-        continue; // Skip header line
-      }
-      
-      // Check for PARKING FEE & LABOR CLEANING section
-      if (firstCell.includes('PARKING FEE') && firstCell.includes('LABOR')) {
-        currentSection = 'PARKING FEE & LABOR CLEANING';
-        continue; // Skip header line
-      }
-      
-      // Check for REIMBURSE section
-      if (firstCell.includes('REIMBURSE') || firstCell.includes('NON-REIMBURSE')) {
-        currentSection = 'REIMBURSE AND NON-REIMBURSE BILLS';
-        continue; // Skip header line
-      }
-      
-      // Check for HISTORY section
-      if (firstCell === 'HISTORY') {
-        currentSection = 'HISTORY';
-        continue; // Skip header line
-      }
-      
-      // Skip "Category" header lines
-      if (firstCell === 'CATEGORY' || skipNextLine) {
+
+      // Skip the line flagged by the previous section header (e.g. the "Category" sub-header after Direct Delivery)
+      if (skipNextLine) {
         skipNextLine = false;
         continue;
       }
       
-      // Parse data rows based on current section
-      if (currentSection && cells.length > 1 && cells[0]) {
+      // Parse data rows based on current section.
+      // Skip: unrecognised sections, summary/total rows, and the CAR MANAGEMENT OWNER SPLIT section.
+      // "Car Payment" is a formula row inside INCOME & EXPENSES (skip it there),
+      // but it is also a real data row inside COGS (keep it there).
+      const isIncomeSection = currentSection === 'INCOME & EXPENSES';
+      const isSummaryRow = firstCell.startsWith('TOTAL') ||
+        firstCell.startsWith('CAR MANAGEMENT') ||
+        firstCell.startsWith('CAR OWNER') ||
+        firstCell === 'NEGATIVE BALANCE CARRY OVER' ||
+        (firstCell === 'CAR PAYMENT' && isIncomeSection) ||
+        firstCell === 'TOTAL EXPENSES' ||
+        firstCell === 'CATEGORY' ||                 // column header row
+        firstCell === '0' ||                        // history filler rows
+        firstCell.includes('SECTION');              // stray SECTION markers
+
+      if (currentSection && currentSection !== 'SKIP' && currentSection !== 'CAR MANAGEMENT OWNER SPLIT' && cells.length > 1 && cells[0] && !isSummaryRow) {
         const rowData: any = { category: cells[0] };
         
         // Parse 12 month values (columns 1-12)
