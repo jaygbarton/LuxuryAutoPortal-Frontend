@@ -43,6 +43,9 @@ import {
   WifiOff,
   RefreshCw,
   Download,
+  Home,
+  Navigation,
+  Bell,
 } from "lucide-react";
 import { BouncieConnectionBanner } from "@/components/admin/BouncieConnectionBanner";
 
@@ -79,6 +82,144 @@ interface UpdateDeviceData {
 }
 
 const UNASSIGNED = "__none__";
+
+/** Home Location Manager card — set per-car home location for alert checks */
+function HomeLocationManager({ cars }: { cars: GlaCar[] }) {
+  const { toast } = useToast();
+  const [selectedCarId, setSelectedCarId] = useState("");
+  const [lat, setLat] = useState("");
+  const [lon, setLon] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [running, setRunning] = useState(false);
+
+  const { data: homeLoc, refetch: refetchHome } = useQuery<{ success: boolean; lat: number | null; lon: number | null }>({
+    queryKey: ["/api/bouncie/cars", selectedCarId, "home-location"],
+    queryFn: async () => {
+      if (!selectedCarId) return { success: true, lat: null, lon: null };
+      const res = await fetch(buildApiUrl(`/api/bouncie/cars/${selectedCarId}/home-location`), { credentials: "include" });
+      if (!res.ok) return { success: true, lat: null, lon: null };
+      return res.json();
+    },
+    enabled: !!selectedCarId,
+  });
+
+  useEffect(() => {
+    if (homeLoc) {
+      setLat(homeLoc.lat != null ? String(homeLoc.lat) : "");
+      setLon(homeLoc.lon != null ? String(homeLoc.lon) : "");
+    }
+  }, [homeLoc]);
+
+  async function saveHomeLocation() {
+    if (!selectedCarId) return;
+    setSaving(true);
+    try {
+      const res = await fetch(buildApiUrl(`/api/bouncie/cars/${selectedCarId}/home-location`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ lat: lat ? parseFloat(lat) : null, lon: lon ? parseFloat(lon) : null }),
+      });
+      const d = await res.json();
+      if (!d.success) throw new Error(d.error);
+      toast({ title: "Saved", description: "Home location updated." });
+      refetchHome();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function useCurrentPosition() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLat(String(pos.coords.latitude.toFixed(6)));
+        setLon(String(pos.coords.longitude.toFixed(6)));
+      },
+      () => toast({ title: "Error", description: "Could not get location", variant: "destructive" }),
+    );
+  }
+
+  async function runAlerts() {
+    setRunning(true);
+    try {
+      const res = await fetch(buildApiUrl("/api/bouncie/alerts/run"), { method: "POST", credentials: "include" });
+      const d = await res.json();
+      toast({ title: d.success ? "Done" : "Error", description: d.message || d.error });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Home className="w-5 h-5" />
+          Bouncie Alert Settings
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Set each car's home/garage location. Alerts fire via Slack + system notifications when:
+          (1) car returns home, (2) car is &gt;30 mi away 30 min before a Turo trip ends, (3) gas is not full after a trip.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label>Select Car</Label>
+          <Select value={selectedCarId} onValueChange={setSelectedCarId}>
+            <SelectTrigger className="w-72">
+              <SelectValue placeholder="Pick a car…" />
+            </SelectTrigger>
+            <SelectContent>
+              {cars.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {selectedCarId && (
+          <div className="space-y-3">
+            <div className="flex gap-3 items-end">
+              <div className="space-y-1">
+                <Label htmlFor="home-lat">Home Latitude</Label>
+                <Input id="home-lat" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="e.g. 40.7589" className="w-44" />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="home-lon">Home Longitude</Label>
+                <Input id="home-lon" value={lon} onChange={(e) => setLon(e.target.value)} placeholder="e.g. -111.8883" className="w-44" />
+              </div>
+              <Button variant="outline" size="sm" onClick={useCurrentPosition} className="gap-1.5">
+                <Navigation className="w-4 h-4" /> Use My Location
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Enter the lat/lon of the home garage. "Use My Location" fills in your current browser position.
+            </p>
+            <Button onClick={saveHomeLocation} disabled={saving || (!lat && !lon)} className="gap-1.5">
+              <MapPin className="w-4 h-4" />
+              {saving ? "Saving…" : "Save Home Location"}
+            </Button>
+          </div>
+        )}
+
+        <div className="border-t pt-4">
+          <Button variant="outline" onClick={runAlerts} disabled={running} className="gap-1.5">
+            <Bell className="w-4 h-4" />
+            {running ? "Running…" : "Run Alert Checks Now"}
+          </Button>
+          <p className="text-xs text-muted-foreground mt-1">
+            Checks run automatically every 5 minutes. Click to test immediately.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function BouncieDevicesPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -498,6 +639,8 @@ export default function BouncieDevicesPage() {
             )}
           </CardContent>
         </Card>
+
+        <HomeLocationManager cars={cars} />
 
         {/* Add Device Dialog */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
