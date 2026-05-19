@@ -121,6 +121,8 @@ export default function AdminTestimonialsPage() {
       params.set("page", String(page));
       params.set("limit", "20");
       if (search.trim()) params.set("search", search.trim());
+      // Testimonials list must NOT include [NEWS] items — those belong to News & Media.
+      params.set("excludeTitlePrefix", "[NEWS] ");
 
       if (isClient) {
         // Active-only endpoint — accessible without admin role
@@ -262,7 +264,11 @@ export default function AdminTestimonialsPage() {
       toast({ variant: "destructive", title: "Error", description: e.message }),
   });
 
-  const list = data?.list ?? [];
+  // Defense-in-depth: also filter [NEWS] items client-side in case any slip through
+  // (e.g. older backend without excludeTitlePrefix support).
+  const list = (data?.list ?? []).filter(
+    (r) => !r.client_testimonial_title.startsWith("[NEWS] "),
+  );
   const total = data?.total ?? 0;
   const totalPages = data?.limit ? Math.ceil(total / data.limit) : 1;
 

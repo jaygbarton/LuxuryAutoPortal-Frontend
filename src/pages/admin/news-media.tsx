@@ -137,10 +137,10 @@ export default function NewsMediaPage() {
       const params = new URLSearchParams();
       params.set("page", String(page));
       params.set("limit", "20");
+      // Only include news/media rows (those whose title starts with the NEWS prefix).
+      params.set("titlePrefix", NEWS_PREFIX);
+      if (search.trim()) params.set("search", search.trim());
       if (isClient) {
-        if (search.trim())
-          params.set("search", `${NEWS_PREFIX}${search.trim()}`);
-        else params.set("search", NEWS_PREFIX);
         const res = await fetch(
           buildApiUrl(`/api/client-testimonials/active?${params}`),
           { credentials: "include" },
@@ -149,8 +149,6 @@ export default function NewsMediaPage() {
           return { success: false, list: [], total: 0, page: 1, limit: 20 };
         return res.json();
       }
-      if (search.trim()) params.set("search", `${NEWS_PREFIX}${search.trim()}`);
-      else params.set("search", NEWS_PREFIX);
       if (statusFilter !== "all") params.set("status", statusFilter);
       const res = await fetch(
         buildApiUrl(`/api/client-testimonials?${params}`),

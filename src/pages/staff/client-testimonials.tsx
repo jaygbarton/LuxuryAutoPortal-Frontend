@@ -38,8 +38,11 @@ export default function StaffClientTestimonials() {
   }>({
     queryKey: ["client-testimonials-active"],
     queryFn: async () => {
+      // excludeTitlePrefix keeps News & Media items out of the testimonials view.
       const res = await fetch(
-        buildApiUrl("/api/client-testimonials/active?limit=100"),
+        buildApiUrl(
+          `/api/client-testimonials/active?limit=100&excludeTitlePrefix=${encodeURIComponent("[NEWS] ")}`,
+        ),
         { credentials: "include" },
       );
       if (!res.ok) throw new Error("Failed to load testimonials");
@@ -47,7 +50,8 @@ export default function StaffClientTestimonials() {
     },
   });
 
-  // Filter out [NEWS] items — those are News & Media, not testimonials
+  // Defense-in-depth: also filter client-side in case any [NEWS] rows slip through
+  // (older backend without excludeTitlePrefix support).
   const rows: ClientTestimonialItem[] = (data?.list ?? []).filter(
     (r) => !r.client_testimonial_title.startsWith("[NEWS]"),
   );
