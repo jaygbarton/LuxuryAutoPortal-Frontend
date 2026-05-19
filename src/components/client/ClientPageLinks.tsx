@@ -70,29 +70,11 @@ export function ClientPageLinks() {
     retry: false,
   });
 
-  const { data: quickLinksData } = useQuery<{ title?: string; url?: string }[]>(
-    {
-      queryKey: ["/api/quick-links"],
-      queryFn: async () => {
-        const res = await fetch(buildApiUrl("/api/quick-links"), {
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error("Failed to fetch quick links");
-        const d = await res.json();
-        return d.quickLinks ?? [];
-      },
-      enabled: isClient,
-      retry: false,
-    },
-  );
-
   if (!isClient) return null;
 
   const firstCarId = profileData?.data?.cars?.[0]?.id ?? null;
-  const turoViewLink =
-    (quickLinksData ?? []).find(
-      (l) => l.title?.toLowerCase().includes("turo") && l.url,
-    )?.url ?? null;
+  // GLA's Turo host page — shows all cars available to book.
+  const turoViewLink = "https://turo.com/us/en/host/4325673";
 
   const carPath = firstCarId
     ? (p: string) => `/admin/cars/${firstCarId}/${p}`
