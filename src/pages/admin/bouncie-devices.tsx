@@ -155,6 +155,19 @@ function HomeLocationManager({ cars }: { cars: GlaCar[] }) {
     }
   }
 
+  async function clearAndRunAlerts() {
+    setRunning(true);
+    try {
+      const res = await fetch(buildApiUrl("/api/bouncie/alerts/clear-and-run"), { method: "POST", credentials: "include" });
+      const d = await res.json();
+      toast({ title: d.success ? "Done" : "Error", description: d.message || d.error });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setRunning(false);
+    }
+  }
+
   return (
     <Card className="mt-6">
       <CardHeader>
@@ -208,12 +221,19 @@ function HomeLocationManager({ cars }: { cars: GlaCar[] }) {
         )}
 
         <div className="border-t pt-4">
-          <Button variant="outline" onClick={runAlerts} disabled={running} className="gap-1.5">
-            <Bell className="w-4 h-4" />
-            {running ? "Running…" : "Run Alert Checks Now"}
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={runAlerts} disabled={running} className="gap-1.5">
+              <Bell className="w-4 h-4" />
+              {running ? "Running…" : "Run Alert Checks Now"}
+            </Button>
+            <Button variant="outline" onClick={clearAndRunAlerts} disabled={running} className="gap-1.5">
+              <RefreshCw className="w-4 h-4" />
+              {running ? "Running…" : "Clear Dedup & Re-run (Testing)"}
+            </Button>
+          </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Checks run automatically every 5 minutes. Click to test immediately.
+            Checks run automatically every 5 minutes. Alerts deduplicate over 24 hours —
+            use "Clear Dedup &amp; Re-run" if you need the same alert to fire again while testing.
           </p>
         </div>
       </CardContent>
