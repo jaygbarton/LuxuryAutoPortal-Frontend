@@ -155,31 +155,6 @@ function HomeLocationManager({ cars }: { cars: GlaCar[] }) {
     }
   }
 
-  async function clearAndRunAlerts() {
-    setRunning(true);
-    try {
-      const res = await fetch(buildApiUrl("/api/bouncie/alerts/clear-and-run"), { method: "POST", credentials: "include" });
-      const d = await res.json();
-      toast({ title: d.success ? "Done" : "Error", description: d.message || d.error });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    } finally {
-      setRunning(false);
-    }
-  }
-
-  async function simulateAlert(path: string, label: string) {
-    setRunning(true);
-    try {
-      const res = await fetch(buildApiUrl(path), { method: "POST", credentials: "include" });
-      const d = await res.json();
-      toast({ title: d.success ? `${label} sent` : "Error", description: d.message || d.error });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    } finally {
-      setRunning(false);
-    }
-  }
 
   return (
     <Card className="mt-6">
@@ -233,42 +208,13 @@ function HomeLocationManager({ cars }: { cars: GlaCar[] }) {
           </div>
         )}
 
-        <div className="border-t pt-4 space-y-3">
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" onClick={runAlerts} disabled={running} className="gap-1.5">
-              <Bell className="w-4 h-4" />
-              {running ? "Running…" : "Run Alert Checks Now"}
-            </Button>
-            <Button variant="outline" onClick={clearAndRunAlerts} disabled={running} className="gap-1.5">
-              <RefreshCw className="w-4 h-4" />
-              {running ? "Running…" : "Clear Dedup & Re-run (Testing)"}
-            </Button>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              variant="secondary"
-              onClick={() => simulateAlert("/api/bouncie/alerts/simulate-pre-trip-end", "Pre-trip-end alert")}
-              disabled={running}
-              className="gap-1.5"
-            >
-              <Bell className="w-4 h-4" />
-              Simulate: Car not returning (Alert 2)
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => simulateAlert("/api/bouncie/alerts/simulate-gas-not-full", "Gas-not-full alert")}
-              disabled={running}
-              className="gap-1.5"
-            >
-              <Bell className="w-4 h-4" />
-              Simulate: Gas not full (Alert 3)
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Checks run automatically every 5 minutes. Use "Simulate" buttons to test
-            alerts 2 &amp; 3 without waiting for real conditions (active trip ending
-            in 30 min, or recent trip with low fuel). Simulated alerts use real Slack +
-            bell delivery so the message will appear marked as <strong>[SIMULATED]</strong>.
+        <div className="border-t pt-4">
+          <Button variant="outline" onClick={runAlerts} disabled={running} className="gap-1.5">
+            <Bell className="w-4 h-4" />
+            {running ? "Running…" : "Run Alert Checks Now"}
+          </Button>
+          <p className="text-xs text-muted-foreground mt-1">
+            Checks run automatically every 5 minutes. Click to test immediately.
           </p>
         </div>
       </CardContent>
