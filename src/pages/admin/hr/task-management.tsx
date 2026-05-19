@@ -219,6 +219,27 @@ export default function AdminHrTaskManagement() {
   const [historyTask, setHistoryTask] = useState<any | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [photos, setPhotos] = useState<File[]>([]);
+  const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // Fetch all employees once so we can resolve IDs → names in the table.
+  const { data: employeesData } = useQuery<{ success: boolean; data: any[] }>({
+    queryKey: ["/api/employees", "task-picker"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/employees?limit=500"), { credentials: "include" });
+      if (!res.ok) return { success: false, data: [] };
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+  const employeeMap = new Map<string, string>(
+    (employeesData?.data ?? []).map((e: any) => [
+      String(e.employee_aid),
+      `${e.employee_first_name || ""} ${e.employee_last_name || ""}`.trim() ||
+        e.employee_email ||
+        `Employee #${e.employee_aid}`,
+    ]),
+  );
 
   const params = new URLSearchParams();
   if (fromDate) params.set("fromDate", fromDate);
@@ -401,20 +422,47 @@ export default function AdminHrTaskManagement() {
 
   const isBusy = createMutation.isPending || updateMutation.isPending;
 
-  // Parse assigned employee name for display
+  // Parse assigned employee name for display.
+  // Priority: emp_list JSON names → employee map lookup by ID → raw ID → "—"
   function getAssignedName(task: any): string {
     if (task.task_timer_emp_list) {
       try {
         const parsed = JSON.parse(task.task_timer_emp_list);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed
-            .map((x: any) => x?.name ?? x)
-            .filter(Boolean)
-            .join(", ");
+          const names = parsed
+            .map((x: any) => {
+              const name = x?.name ?? "";
+              if (name) return name;
+              // If name is missing from JSON, look up by id from the employee map
+              const id = String(x?.id ?? x ?? "");
+              return employeeMap.get(id) || id;
+            })
+            .filter(Boolean);
+          if (names.length > 0) return names.join(", ");
         }
       } catch {}
     }
-    return task.task_timer_emp_id || "—";
+    // Fall back to looking up the raw emp_id in the employee map
+    if (task.task_timer_emp_id) {
+      return employeeMap.get(String(task.task_timer_emp_id)) || task.task_timer_emp_id;
+    }
+    return "—";
+  }
+
+  // Parse photo URLs stored as JSON in task_timer_photos
+  function getTaskPhotos(task: any): string[] {
+    if (!task.task_timer_photos) return [];
+    try {
+      const parsed = JSON.parse(task.task_timer_photos);
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function openLightbox(photos: string[], startIndex: number) {
+    setLightboxPhotos(photos);
+    setLightboxIndex(startIndex);
   }
 
   return (
@@ -491,6 +539,7 @@ export default function AdminHrTaskManagement() {
                       <TableHead className="font-medium">Due Date</TableHead>
                       <TableHead className="font-medium">Status</TableHead>
                       <TableHead className="font-medium">Description</TableHead>
+                      <TableHead className="font-medium">Photos</TableHead>
                       <TableHead className="text-center font-medium w-24">
                         Actions
                       </TableHead>
@@ -524,6 +573,40 @@ export default function AdminHrTaskManagement() {
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">
                           {r.task_timer_description || "—"}
+                        </TableCell>
+                        <TableCell>
+                          {(() => {
+                            const taskPhotos = getTaskPhotos(r);
+                            if (taskPhotos.length === 0) return <span className="text-muted-foreground text-xs">—</span>;
+                            return (
+                              <div className="flex items-center gap-1 flex-wrap">
+                                {taskPhotos.slice(0, 3).map((src, i) => (
+                                  <button
+                                    key={i}
+                                    type="button"
+                                    onClick={() => openLightbox(taskPhotos, i)}
+                                    className="focus:outline-none"
+                                    title="View photo"
+                                  >
+                                    <img
+                                      src={buildApiUrl(src)}
+                                      alt={`Photo ${i + 1}`}
+                                      className="w-10 h-10 object-cover rounded border border-border hover:opacity-80 transition-opacity"
+                                    />
+                                  </button>
+                                ))}
+                                {taskPhotos.length > 3 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => openLightbox(taskPhotos, 3)}
+                                    className="w-10 h-10 rounded border border-border bg-muted flex items-center justify-center text-xs text-muted-foreground hover:bg-muted/80 transition-colors"
+                                  >
+                                    +{taskPhotos.length - 3}
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-center gap-1">
@@ -712,6 +795,57 @@ export default function AdminHrTaskManagement() {
         task={historyTask}
         onClose={() => setHistoryTask(null)}
       />
+
+      {/* Photo lightbox */}
+      {lightboxPhotos.length > 0 && (
+        <Dialog open onOpenChange={() => setLightboxPhotos([])}>
+          <DialogContent className="max-w-3xl p-2 bg-black/95 border-none">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Photo viewer</DialogTitle>
+            </DialogHeader>
+            <div className="relative flex items-center justify-center min-h-[400px]">
+              <img
+                src={buildApiUrl(lightboxPhotos[lightboxIndex])}
+                alt={`Photo ${lightboxIndex + 1} of ${lightboxPhotos.length}`}
+                className="max-h-[70vh] max-w-full object-contain rounded"
+              />
+              {/* Prev / Next */}
+              {lightboxPhotos.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setLightboxIndex(i => (i - 1 + lightboxPhotos.length) % lightboxPhotos.length)}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white rounded-full w-9 h-9 flex items-center justify-center text-lg transition-colors"
+                  >‹</button>
+                  <button
+                    type="button"
+                    onClick={() => setLightboxIndex(i => (i + 1) % lightboxPhotos.length)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white rounded-full w-9 h-9 flex items-center justify-center text-lg transition-colors"
+                  >›</button>
+                </>
+              )}
+            </div>
+            {/* Thumbnail strip */}
+            {lightboxPhotos.length > 1 && (
+              <div className="flex gap-2 justify-center pb-2 flex-wrap">
+                {lightboxPhotos.map((src, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setLightboxIndex(i)}
+                    className={`w-12 h-12 rounded border-2 overflow-hidden transition-all ${i === lightboxIndex ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"}`}
+                  >
+                    <img src={buildApiUrl(src)} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="text-center text-xs text-white/60 pb-1">
+              {lightboxIndex + 1} / {lightboxPhotos.length}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </AdminLayout>
   );
 }
