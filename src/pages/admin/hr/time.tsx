@@ -770,8 +770,18 @@ function TimeEntryForm(props: {
   submitLabel: string;
 }) {
   const { form, onChange, employees, onSubmit, onCancel, submitting, submitLabel } = props;
-  const set = (k: keyof TimeFormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    onChange({ ...form, [k]: e.target.value });
+  const set = (k: keyof TimeFormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    // Keep `date` in sync with whatever day the admin picked for `timeIn`,
+    // so the Date column in the table reflects the time-in's day after save.
+    // Without this, time_date stays at the original day when only timeIn changes.
+    if (k === "timeIn" && value) {
+      const day = value.slice(0, 10);
+      onChange({ ...form, timeIn: value, date: day });
+      return;
+    }
+    onChange({ ...form, [k]: value });
+  };
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">

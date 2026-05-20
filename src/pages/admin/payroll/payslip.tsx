@@ -1,13 +1,14 @@
 /**
- * Admin Payroll – Employee payslip (gla-v3 parity).
+ * Admin Payroll – Employee payslip.
  *
- * Mirrors `PayslipList.jsx` from gla-v3:
- *  - Header: Payroll Number, Date Range, Employee Name
+ *  - Header: Payroll Number, Date Range, Pay Date, Employee Name
  *  - Earnings table with Hours / Rate / Amount columns
  *  - Total Earnings line
- *  - Deductions list
- *  - Total Deductions / Tax / Net summary block
+ *  - Net Pay summary
  *  - Print button (uses browser print with a print-friendly layout)
+ *
+ * Commissions are tracked separately under /admin/payroll/commissions.
+ * Deductions and Tax are intentionally omitted for now.
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +18,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { buildApiUrl } from "@/lib/queryClient";
 import { ArrowLeft, Printer, Loader2 } from "lucide-react";
+
+interface EmployeeLookupRow {
+  employee_aid: number;
+  employee_first_name?: string | null;
+  employee_last_name?: string | null;
+  fullname?: string | null;
+}
 
 interface PayrunRow {
   payrun_aid: number;
@@ -49,18 +57,6 @@ interface PayslipData {
   payrunList: PayrunListRow;
   paysummary: PaysummaryRow[];
   employee?: { fullname?: string; first_name?: string; last_name?: string };
-}
-
-interface CommissionRow {
-  commissions_aid: number;
-  commissions_type: string;
-  commissions_amount: string;
-  commissions_is_paid: number;
-  commissions_remarks: string;
-  commissions_employee_id: number;
-  commissions_date: string;
-  commissions_billed_gla_client?: number;
-  fullname?: string;
 }
 
 function formatDate(s: string) {
@@ -111,44 +107,28 @@ export default function PayslipPage() {
 
   const payrunData = res?.data;
 
-  const { data: commissionsRes, isLoading: commissionsLoading } = useQuery<{
-    success: boolean;
-    data: CommissionRow[];
-    total: number;
-  }>({
-    queryKey: [
-      "/api/payroll/commissions",
-      payrunData?.payrun.payrun_date_from,
-      payrunData?.payrun.payrun_date_to,
-      employeeId,
-    ],
+  // Fallback employee lookup — used when the payslip payload doesn't already
+  // carry the employee's name (older payruns generated before the JOIN was
+  // added). Without this we'd render "Employee #16" on the slip.
+  const payslipName =
+    payrunData?.payrunList.fullname ??
+    payrunData?.payrunList.employee_name ??
+    payrunData?.employee?.fullname ??
+    (payrunData?.employee?.first_name
+      ? `${payrunData.employee.first_name} ${payrunData.employee.last_name ?? ""}`.trim()
+      : "");
+
+  const { data: empRes } = useQuery<{ success: boolean; data: EmployeeLookupRow }>({
+    queryKey: ["/api/employees", employeeId, "payslip-name"],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (payrunData?.payrun.payrun_date_from) params.set("dateFrom", payrunData.payrun.payrun_date_from);
-      if (payrunData?.payrun.payrun_date_to) params.set("dateTo", payrunData.payrun.payrun_date_to);
-      params.set("limit", "500");
-      const r = await fetch(
-        buildApiUrl(`/api/payroll/commissions?${params}`),
-        { credentials: "include" },
-      );
-      if (!r.ok) throw new Error("Failed to fetch commissions");
+      const r = await fetch(buildApiUrl(`/api/employees/${employeeId}`), {
+        credentials: "include",
+      });
+      if (!r.ok) throw new Error("Failed to fetch employee");
       return r.json();
     },
-    enabled:
-      payrunData != null &&
-      !!payrunData.payrun.payrun_date_from &&
-      !!payrunData.payrun.payrun_date_to &&
-      employeeId != null,
+    enabled: employeeId != null && !payslipName,
   });
-
-  const employeeCommissions =
-    commissionsRes?.data?.filter(
-      (c) => c.commissions_employee_id === employeeId,
-    ) ?? [];
-  const commissionsTotal = employeeCommissions.reduce(
-    (sum, c) => sum + Number(c.commissions_amount || 0),
-    0,
-  );
 
   if (payrunId == null || employeeId == null || Number.isNaN(payrunId) || Number.isNaN(employeeId)) {
     return (
@@ -169,14 +149,12 @@ export default function PayslipPage() {
 
   const data = payrunData;
   const earnings = data?.paysummary?.filter((l) => Number(l.paysummary_is_deduction) === 0) ?? [];
-  const deductions = data?.paysummary?.filter((l) => Number(l.paysummary_is_deduction) === 1) ?? [];
-  const employeeName =
-    data?.payrunList.fullname ??
-    data?.payrunList.employee_name ??
-    data?.employee?.fullname ??
-    (data?.employee?.first_name
-      ? `${data.employee.first_name} ${data.employee.last_name ?? ""}`.trim()
-      : `Employee #${employeeId}`);
+  const empLookup = empRes?.data;
+  const lookupName = empLookup
+    ? (empLookup.fullname ??
+        `${empLookup.employee_first_name ?? ""} ${empLookup.employee_last_name ?? ""}`.trim())
+    : "";
+  const employeeName = payslipName || lookupName || `Employee #${employeeId}`;
 
   const handlePrint = () => {
     if (!data) return;
@@ -289,85 +267,8 @@ export default function PayslipPage() {
                 </div>
               </div>
 
-              {/* Deductions */}
-              {deductions.length > 0 && (
-                <div className="mt-6 rounded-md border overflow-hidden">
-                  <div className="grid grid-cols-[1fr_8rem] bg-muted px-3 py-2 text-xs font-semibold uppercase tracking-wide">
-                    <div>Deductions</div>
-                    <div className="text-right">Amount</div>
-                  </div>
-                  {deductions.map((line, i) => (
-                    <div
-                      key={i}
-                      className="grid grid-cols-[1fr_8rem] border-t px-3 py-2 text-sm hover:bg-muted/50"
-                    >
-                      <div>{line.paysummary_name || "Deduction"}</div>
-                      <div className="text-right font-medium">
-                        ${formatCurrency(line.paysummary_amount)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Commissions */}
-              <div className="mt-6 rounded-md border overflow-hidden">
-                <div className="grid grid-cols-[8rem_1fr_8rem] bg-muted px-3 py-2 text-xs font-semibold uppercase tracking-wide">
-                  <div>Date</div>
-                  <div>Description</div>
-                  <div className="text-right">Amount</div>
-                </div>
-                {commissionsLoading ? (
-                  <div className="flex items-center justify-center gap-2 px-3 py-4 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Loading commissions…
-                  </div>
-                ) : employeeCommissions.length === 0 ? (
-                  <div className="px-3 py-4 text-center text-sm text-muted-foreground">
-                    No commissions for this period.
-                  </div>
-                ) : (
-                  employeeCommissions.map((c) => (
-                    <div
-                      key={c.commissions_aid}
-                      className="grid grid-cols-[8rem_1fr_8rem] items-center border-t px-3 py-2 text-sm hover:bg-muted/50"
-                    >
-                      <div>{formatDate(c.commissions_date)}</div>
-                      <div>
-                        {c.commissions_type || "Commission"}
-                        {c.commissions_remarks ? (
-                          <span className="ml-1 text-muted-foreground">
-                            — {c.commissions_remarks}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="text-right font-medium">
-                        ${formatCurrency(c.commissions_amount)}
-                      </div>
-                    </div>
-                  ))
-                )}
-                <div className="grid grid-cols-[1fr_8rem] border-t bg-muted/60 px-3 py-2 text-sm font-semibold">
-                  <div className="uppercase tracking-wide">Total Commissions</div>
-                  <div className="text-right">
-                    ${formatCurrency(commissionsTotal)}
-                  </div>
-                </div>
-              </div>
-
               {/* Summary */}
               <div className="mt-6 rounded-md border overflow-hidden">
-                <div className="grid grid-cols-[1fr_8rem] border-t bg-muted/40 px-3 py-2 text-sm">
-                  <div className="uppercase tracking-wide text-muted-foreground">
-                    Total Deduction
-                  </div>
-                  <div className="text-right">
-                    -${formatCurrency(data.payrunList.payrun_list_deduction)}
-                  </div>
-                </div>
-                <div className="grid grid-cols-[1fr_8rem] border-t bg-muted/40 px-3 py-2 text-sm">
-                  <div className="uppercase tracking-wide text-muted-foreground">Tax</div>
-                  <div className="text-right">${formatCurrency(0)}</div>
-                </div>
                 <div className="grid grid-cols-[1fr_8rem] border-t-2 border-foreground bg-primary px-3 py-3 text-base font-bold text-primary-foreground">
                   <div className="uppercase tracking-wide">Net Pay</div>
                   <div className="text-right">

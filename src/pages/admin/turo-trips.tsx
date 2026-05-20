@@ -183,7 +183,7 @@ export default function TuroTripsPage() {
         url += `&status=${statusFilter}`;
       }
       if (debouncedSearchQuery) {
-        url += `&guestName=${encodeURIComponent(debouncedSearchQuery)}`;
+        url += `&q=${encodeURIComponent(debouncedSearchQuery)}`;
       }
       if (startDate) {
         url += `&startDate=${encodeURIComponent(startDate)}`;
@@ -773,7 +773,7 @@ export default function TuroTripsPage() {
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <div className="flex-1 relative">
                 <Input
-                  placeholder="Search by guest, car, or reservation ID... (Ctrl+K)"
+                  placeholder="Search any column — guest, car, plate, location, extras, miles, odometer, earnings, status... (Ctrl+K)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pr-10"
@@ -871,54 +871,59 @@ export default function TuroTripsPage() {
               </div>
             )}
 
-            {/* Trips Table */}
-            <div className="rounded-md border overflow-x-auto">
+            {/* Trips Table — freeze panes:
+                  • header row sticks to the top while scrolling vertically
+                  • first column (Reservation #) stays pinned while scrolling horizontally
+                Tailwind `[&>div]:…` targets the shadcn Table's internal scroll
+                wrapper so the body scrolls inside the table instead of moving
+                the whole page. */}
+            <div className="rounded-md border [&>div]:max-h-[calc(100vh-280px)] [&>div]:overflow-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/40">
-                    <TableHead className="whitespace-nowrap font-semibold">
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="sticky top-0 left-0 z-30 bg-muted whitespace-nowrap font-semibold w-[140px] min-w-[140px]">
                       Reservation #
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">
+                    <TableHead className="sticky top-0 left-[140px] z-30 bg-muted whitespace-nowrap font-semibold w-[200px] min-w-[200px] border-r">
                       CAR Name
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Plate #
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Trip Start
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Pick Up Location
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Trip Ends
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Days Rented
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Drop Off Location
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Extras
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Miles Included
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Trip Start Odometer
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Trip Ends Odometer
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Total Miles
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Earnings
                     </TableHead>
-                    <TableHead className="whitespace-nowrap font-semibold">
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Status
                     </TableHead>
                   </TableRow>
@@ -1002,10 +1007,12 @@ export default function TuroTripsPage() {
                       const hasExtrasEdit = extrasEdits[trip.id] !== undefined;
 
                       return (
-                        <TableRow key={trip.id} className="hover:bg-muted/50">
-                          {/* Reservation # */}
+                        <TableRow key={trip.id} className="group hover:bg-muted/50">
+                          {/* Reservation # — pinned to the left so it stays
+                              visible while scrolling horizontally. Needs an
+                              opaque background or other cells bleed through. */}
                           <TableCell
-                            className="font-mono text-sm cursor-pointer"
+                            className="sticky left-0 z-10 bg-background group-hover:bg-muted/50 font-mono text-sm cursor-pointer w-[140px] min-w-[140px]"
                             onClick={() => setSelectedTrip(trip)}
                           >
                             #
@@ -1017,9 +1024,11 @@ export default function TuroTripsPage() {
                               : trip.reservationId}
                           </TableCell>
 
-                          {/* CAR */}
+                          {/* CAR — also pinned to the left so admins keep the
+                              car identity in view while scrolling horizontally
+                              across location / odometer / earnings columns. */}
                           <TableCell
-                            className="cursor-pointer"
+                            className="sticky left-[140px] z-10 bg-background group-hover:bg-muted/50 cursor-pointer w-[200px] min-w-[200px] border-r"
                             onClick={() => setSelectedTrip(trip)}
                           >
                             <div className="text-sm whitespace-nowrap">
@@ -1144,7 +1153,9 @@ export default function TuroTripsPage() {
                                     dropoff:
                                       prev[trip.id]?.dropoff !== undefined
                                         ? prev[trip.id].dropoff
-                                        : (trip.returnLocation ?? ""),
+                                        : (trip.returnLocation ??
+                                          trip.deliveryLocation ??
+                                          ""),
                                     miles:
                                       prev[trip.id]?.miles !== undefined
                                         ? prev[trip.id].miles
@@ -1205,7 +1216,9 @@ export default function TuroTripsPage() {
                               value={
                                 locationEdits[trip.id]?.dropoff !== undefined
                                   ? locationEdits[trip.id].dropoff
-                                  : (trip.returnLocation ?? "")
+                                  : (trip.returnLocation ??
+                                    trip.deliveryLocation ??
+                                    "")
                               }
                               placeholder="-"
                               className="h-8 w-36 text-sm"
@@ -1309,7 +1322,9 @@ export default function TuroTripsPage() {
                                       dropoff:
                                         prev[trip.id]?.dropoff !== undefined
                                           ? prev[trip.id].dropoff
-                                          : (trip.returnLocation ?? ""),
+                                          : (trip.returnLocation ??
+                                          trip.deliveryLocation ??
+                                          ""),
                                       miles: e.target.value,
                                     },
                                   }))
@@ -1653,11 +1668,13 @@ export default function TuroTripsPage() {
                         selectedTrip.deliveryLocation}
                     </div>
                   )}
-                  {selectedTrip.returnLocation && (
+                  {(selectedTrip.returnLocation ||
+                    selectedTrip.deliveryLocation) && (
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-muted-foreground" />
                       <span className="font-medium">Return:</span>
-                      {selectedTrip.returnLocation}
+                      {selectedTrip.returnLocation ||
+                        selectedTrip.deliveryLocation}
                     </div>
                   )}
                   {selectedTrip.totalDistance && (
