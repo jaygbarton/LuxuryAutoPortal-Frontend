@@ -34,7 +34,7 @@ import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Plus, Edit, Trash2, History } from "lucide-react";
-import type { MaintenanceRecord } from "./types";
+import type { Inspection, MaintenanceRecord, TuroTrip } from "./types";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -50,11 +50,6 @@ const formatDate = (dateStr: string | null): string => {
   }
 };
 
-/**
- * Format a datetime as e.g. "May 15, 2026, 2:30 PM". Used for the Scheduled
- * Date and Due Date columns where the time component matters (it drives the
- * Google Calendar event time).
- */
 const formatDateTime = (dateStr: string | null): string => {
   if (!dateStr) return "--";
   try {
@@ -72,10 +67,29 @@ const formatDateTime = (dateStr: string | null): string => {
   }
 };
 
+const formatCurrency = (n: number | null | undefined): string => {
+  if (n == null || isNaN(n)) return "--";
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+};
+
+const calculateDaysRented = (
+  tripStart: string | null,
+  tripEnd: string | null,
+): number | null => {
+  if (!tripStart || !tripEnd) return null;
+  try {
+    const start = new Date(tripStart).getTime();
+    const end = new Date(tripEnd).getTime();
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+    const hours = (end - start) / (1000 * 60 * 60);
+    return Math.max(1, Math.ceil(hours / 24));
+  } catch {
+    return null;
+  }
+};
+
 interface MaintenanceTabProps {
-  /** Pre-select a status filter on mount. */
   defaultStatus?: string;
-  /** When true, hide the status filter row (the tab already implies the filter). */
   lockedStatus?: boolean;
 }
 
@@ -121,6 +135,32 @@ export function MaintenanceTab({
     },
   });
 
+  // Fetch inspections so we can resolve inspection_id → turo_trip_id
+  const { data: inspectionsData } = useQuery<{ data: Inspection[] }>({
+    queryKey: ["/api/operations/inspections", "all_sources", "all"],
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl("/api/operations/inspections"), {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch inspections");
+      return response.json();
+    },
+  });
+
+  const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
+    queryKey: ["/api/turo-trips", { limit: 500 }],
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl("/api/turo-trips?limit=500"), {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch trips");
+      return response.json();
+    },
+  });
+
+  const inspectionsById = new Map((inspectionsData?.data || []).map((i) => [i.id, i]));
+  const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
+
   const rawRecords = data?.data || [];
 
   const records = useMemo(() => {
@@ -131,6 +171,8 @@ export function MaintenanceTab({
       : null;
     return rawRecords.filter((rec) => {
       if (q) {
+        const insp = rec.inspection_id != null ? inspectionsById.get(rec.inspection_id) : undefined;
+        const trip = insp?.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
         const hay = [
           rec.car_name,
           rec.car_make,
@@ -139,6 +181,14 @@ export function MaintenanceTab({
           rec.task_description,
           rec.assigned_to,
           rec.repair_shop,
+          insp?.reservation_id,
+          trip?.plateNumber,
+          trip?.pickupLocation,
+          trip?.deliveryLocation,
+          trip?.returnLocation,
+          trip?.extras,
+          trip?.milesIncluded,
+          trip?.status,
         ]
           .filter(Boolean)
           .join(" ")
@@ -155,7 +205,7 @@ export function MaintenanceTab({
       }
       return true;
     });
-  }, [rawRecords, search, dateFrom, dateTo]);
+  }, [rawRecords, inspectionsById, tripsById, search, dateFrom, dateTo]);
 
   const hasActiveFilters =
     filterStatus !== (defaultStatus ?? "all") ||
@@ -254,7 +304,7 @@ export function MaintenanceTab({
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Car, plate, description, assignee..."
+                placeholder="Car, plate, description, assignee, location..."
                 className="bg-card border-border text-foreground h-9"
               />
             </div>
@@ -327,52 +377,37 @@ export function MaintenanceTab({
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-foreground font-medium">
-                    Make
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Model
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Year
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Plate #
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Description
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Assigned To
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Scheduled Date
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Due Date
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Status
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Repair Shop
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Notes
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Photos
-                  </TableHead>
-                  <TableHead className="text-center text-foreground font-medium">
-                    Actions
-                  </TableHead>
+                  <TableHead className="text-foreground font-medium">Reservation #</TableHead>
+                  <TableHead className="text-foreground font-medium">CAR Name</TableHead>
+                  <TableHead className="text-foreground font-medium">Plate #</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Start</TableHead>
+                  <TableHead className="text-foreground font-medium">Pick Up Location</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Ends</TableHead>
+                  <TableHead className="text-foreground font-medium">Days Rented</TableHead>
+                  <TableHead className="text-foreground font-medium">Drop Off Location</TableHead>
+                  <TableHead className="text-foreground font-medium">Extras</TableHead>
+                  <TableHead className="text-foreground font-medium">Miles Included</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Start Odometer</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Ends Odometer</TableHead>
+                  <TableHead className="text-foreground font-medium">Total Miles</TableHead>
+                  <TableHead className="text-foreground font-medium">Earnings</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Status</TableHead>
+                  <TableHead className="text-foreground font-medium">Description</TableHead>
+                  <TableHead className="text-foreground font-medium">Assigned To</TableHead>
+                  <TableHead className="text-foreground font-medium">Scheduled Date</TableHead>
+                  <TableHead className="text-foreground font-medium">Due Date</TableHead>
+                  <TableHead className="text-foreground font-medium">Maint. Status</TableHead>
+                  <TableHead className="text-foreground font-medium">Repair Shop</TableHead>
+                  <TableHead className="text-foreground font-medium">Notes</TableHead>
+                  <TableHead className="text-foreground font-medium">Photos</TableHead>
+                  <TableHead className="text-center text-foreground font-medium">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={13}
+                      colSpan={24}
                       className="text-center py-12 text-muted-foreground"
                     >
                       Loading maintenance records...
@@ -381,7 +416,7 @@ export function MaintenanceTab({
                 ) : records.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={13}
+                      colSpan={24}
                       className="text-center py-12 text-muted-foreground"
                     >
                       No maintenance records found
@@ -389,46 +424,87 @@ export function MaintenanceTab({
                   </TableRow>
                 ) : (
                   pagedRecords.map((rec) => {
-                    // Prefer the joined car fields (populated for rows created via the new
-                    // car-id-aware flow). For legacy rows where only car_name exists,
-                    // best-effort split on whitespace so the table still shows something.
-                    const fallbackParts = (rec.car_name || "")
-                      .trim()
-                      .split(/\s+/);
+                    const insp = rec.inspection_id != null ? inspectionsById.get(rec.inspection_id) : undefined;
+                    const trip = insp?.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+                    const pickupLocation = trip?.pickupLocation || trip?.deliveryLocation || "--";
+                    const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? "--";
+                    const daysRented = trip ? calculateDaysRented(trip.tripStart, trip.tripEnd) : null;
+                    const tripEarnings = trip
+                      ? (trip.status?.toLowerCase() === "cancelled"
+                          ? trip.cancelledEarnings
+                          : trip.earnings)
+                      : null;
+                    const reservationId = insp?.reservation_id || trip?.reservationId || "--";
+                    const plateNumber = rec.car_plate || trip?.plateNumber || "--";
+                    // Prefer joined car fields; fall back to car_name for legacy rows
+                    const fallbackParts = (rec.car_name || "").trim().split(/\s+/);
                     const make = rec.car_make || fallbackParts[0] || "--";
-                    const model =
-                      rec.car_model ||
-                      (fallbackParts.length > 1
-                        ? fallbackParts.slice(1).join(" ")
-                        : "--");
-                    // Fall back to looking up the year via the shared helper for
-                    // legacy rows whose car_year is null but whose car_name matches
-                    // a row in the Cars table.
-                    let year =
-                      rec.car_year != null ? String(rec.car_year) : "";
+                    const model = rec.car_model || (fallbackParts.length > 1 ? fallbackParts.slice(1).join(" ") : "--");
+                    let year = rec.car_year != null ? String(rec.car_year) : "";
                     if (!year && rec.car_name) {
                       const enriched = carNameWithYear(rec.car_name, rec.car_plate);
                       const match = enriched.match(/\b(19|20)\d{2}\b/);
                       if (match) year = match[0];
                     }
-                    if (!year) year = "--";
-                    const plate = rec.car_plate || "--";
+                    const carDisplayName = rec.car_name || (make !== "--" ? `${make} ${model}${year ? " " + year : ""}`.trim() : "--");
                     return (
                       <TableRow
                         key={rec.id}
                         className="border-border hover:bg-card/50 transition-colors"
                       >
-                        <TableCell className="text-foreground">
-                          {make}
+                        <TableCell className="text-foreground font-mono text-sm">
+                          {reservationId}
                         </TableCell>
                         <TableCell className="text-foreground">
-                          {model}
-                        </TableCell>
-                        <TableCell className="text-foreground">
-                          {year}
+                          {carDisplayName}
                         </TableCell>
                         <TableCell className="text-foreground font-mono text-sm">
-                          {plate}
+                          {plateNumber}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                          {trip ? formatDateTime(trip.tripStart) : "--"}
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-sm max-w-[150px] truncate"
+                          title={pickupLocation}
+                        >
+                          {pickupLocation}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                          {trip ? formatDateTime(trip.tripEnd) : "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm text-center">
+                          {daysRented ?? "--"}
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-sm max-w-[150px] truncate"
+                          title={dropOffLocation}
+                        >
+                          {dropOffLocation}
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-sm max-w-[120px] truncate"
+                          title={trip?.extras || undefined}
+                        >
+                          {trip?.extras || "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {trip?.milesIncluded || "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {trip?.tripStartOdometer ?? "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {trip?.tripEndOdometer ?? "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {trip?.totalDistance || "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {tripEarnings != null ? formatCurrency(tripEarnings) : "--"}
+                        </TableCell>
+                        <TableCell>
+                          {trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm">--</span>}
                         </TableCell>
                         <TableCell
                           className="text-foreground text-sm max-w-[200px] truncate"

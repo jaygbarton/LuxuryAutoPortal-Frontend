@@ -28,7 +28,6 @@ import {
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
-import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
 import { StatusBadge } from "./StatusBadge";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +52,27 @@ const formatDate = (dateStr: string | null): string => {
   }
 };
 
+const formatCurrency = (n: number | null | undefined): string => {
+  if (n == null || isNaN(n)) return "--";
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+};
+
+const calculateDaysRented = (
+  tripStart: string | null,
+  tripEnd: string | null,
+): number | null => {
+  if (!tripStart || !tripEnd) return null;
+  try {
+    const start = new Date(tripStart).getTime();
+    const end = new Date(tripEnd).getTime();
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+    const hours = (end - start) / (1000 * 60 * 60);
+    return Math.max(1, Math.ceil(hours / 24));
+  } catch {
+    return null;
+  }
+};
+
 export function TripTasksTab() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -65,7 +85,6 @@ export function TripTasksTab() {
   const [pageSize, setPageSize] = usePersistentPageSize(
     "operations.tripTasks",
   );
-  const carNameWithYear = useCarNameWithYear();
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<OperationTask | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -111,11 +130,19 @@ export function TripTasksTab() {
       : null;
     return tasks.filter((task) => {
       if (q) {
+        const trip = task.turo_trip_id != null ? tripsById.get(task.turo_trip_id) : undefined;
         const hay = [
           task.reservation_id,
           task.car_name,
           task.guest_name,
           task.assigned_to,
+          trip?.plateNumber,
+          trip?.pickupLocation,
+          trip?.deliveryLocation,
+          trip?.returnLocation,
+          trip?.extras,
+          trip?.milesIncluded,
+          trip?.status,
         ]
           .filter(Boolean)
           .join(" ")
@@ -123,16 +150,19 @@ export function TripTasksTab() {
         if (!hay.includes(q)) return false;
       }
       if (from != null || to != null) {
-        const d = task.scheduled_date
-          ? new Date(task.scheduled_date).getTime()
-          : null;
+        const trip = task.turo_trip_id != null ? tripsById.get(task.turo_trip_id) : undefined;
+        const d = trip?.tripStart
+          ? new Date(trip.tripStart).getTime()
+          : task.scheduled_date
+            ? new Date(task.scheduled_date).getTime()
+            : null;
         if (d == null) return false;
         if (from != null && d < from) return false;
         if (to != null && d > to) return false;
       }
       return true;
     });
-  }, [tasks, search, dateFrom, dateTo]);
+  }, [tasks, tripsById, search, dateFrom, dateTo]);
 
   useEffect(() => {
     setPage(1);
@@ -230,7 +260,7 @@ export function TripTasksTab() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Reservation, car, guest..."
+                placeholder="Reservation, car, guest, location..."
                 className="bg-card border-border text-foreground h-9"
               />
             </div>
@@ -264,9 +294,7 @@ export function TripTasksTab() {
               </Select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">
-                Scheduled From
-              </label>
+              <label className="text-muted-foreground text-xs">Trip Start From</label>
               <Input
                 type="date"
                 value={dateFrom}
@@ -275,9 +303,7 @@ export function TripTasksTab() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">
-                Scheduled To
-              </label>
+              <label className="text-muted-foreground text-xs">Trip Start To</label>
               <Input
                 type="date"
                 value={dateTo}
@@ -303,55 +329,32 @@ export function TripTasksTab() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-foreground font-medium">
-                    Reservation #
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Car
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Plate #
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Guest
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Task Type
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Assigned To
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Scheduled
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Start Location
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Trip End
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Return Location
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Due Date
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Location
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium">
-                    Status
-                  </TableHead>
-                  <TableHead className="text-center text-foreground font-medium">
-                    Actions
-                  </TableHead>
+                  <TableHead className="text-foreground font-medium">Reservation #</TableHead>
+                  <TableHead className="text-foreground font-medium">CAR Name</TableHead>
+                  <TableHead className="text-foreground font-medium">Plate #</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Start</TableHead>
+                  <TableHead className="text-foreground font-medium">Pick Up Location</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Ends</TableHead>
+                  <TableHead className="text-foreground font-medium">Days Rented</TableHead>
+                  <TableHead className="text-foreground font-medium">Drop Off Location</TableHead>
+                  <TableHead className="text-foreground font-medium">Extras</TableHead>
+                  <TableHead className="text-foreground font-medium">Miles Included</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Start Odometer</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Ends Odometer</TableHead>
+                  <TableHead className="text-foreground font-medium">Total Miles</TableHead>
+                  <TableHead className="text-foreground font-medium">Earnings</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Status</TableHead>
+                  <TableHead className="text-foreground font-medium">Task Type</TableHead>
+                  <TableHead className="text-foreground font-medium">Assigned To</TableHead>
+                  <TableHead className="text-foreground font-medium">Task Status</TableHead>
+                  <TableHead className="text-center text-foreground font-medium">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={14}
+                      colSpan={19}
                       className="text-center py-12 text-muted-foreground"
                     >
                       Loading tasks...
@@ -360,7 +363,7 @@ export function TripTasksTab() {
                 ) : filteredTasks.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={14}
+                      colSpan={19}
                       className="text-center py-12 text-muted-foreground"
                     >
                       No tasks found
@@ -372,59 +375,78 @@ export function TripTasksTab() {
                       task.turo_trip_id != null
                         ? tripsById.get(task.turo_trip_id)
                         : undefined;
-                    const startLocation =
-                      trip?.pickupLocation || trip?.deliveryLocation || "";
-                    const returnLocation = trip?.returnLocation || "";
-                    const tripEnd = trip?.tripEnd || null;
+                    const pickupLocation = trip?.pickupLocation || trip?.deliveryLocation || "--";
+                    const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? "--";
+                    const daysRented = trip ? calculateDaysRented(trip.tripStart, trip.tripEnd) : null;
+                    const earnings = trip
+                      ? (trip.status?.toLowerCase() === "cancelled"
+                          ? trip.cancelledEarnings
+                          : trip.earnings)
+                      : null;
                     return (
                       <TableRow
                         key={task.id}
                         className="border-border hover:bg-card/50 transition-colors"
                       >
                         <TableCell className="text-foreground font-mono text-sm">
-                          {task.reservation_id || "N/A"}
+                          {task.reservation_id || trip?.reservationId || "N/A"}
                         </TableCell>
                         <TableCell className="text-foreground">
-                          {carNameWithYear(task.car_name, trip?.plateNumber)}
+                          {task.car_name || "--"}
                         </TableCell>
                         <TableCell className="text-foreground font-mono text-sm">
                           {trip?.plateNumber || "--"}
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {task.guest_name || "--"}
+                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                          {trip ? formatDate(trip.tripStart) : "--"}
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-sm max-w-[150px] truncate"
+                          title={pickupLocation}
+                        >
+                          {pickupLocation}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                          {trip ? formatDate(trip.tripEnd) : "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm text-center">
+                          {daysRented ?? "--"}
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-sm max-w-[150px] truncate"
+                          title={dropOffLocation}
+                        >
+                          {dropOffLocation}
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-sm max-w-[120px] truncate"
+                          title={trip?.extras || undefined}
+                        >
+                          {trip?.extras || "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {trip?.milesIncluded || "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {trip?.tripStartOdometer ?? "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {trip?.tripEndOdometer ?? "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {trip?.totalDistance || "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {earnings != null ? formatCurrency(earnings) : "--"}
+                        </TableCell>
+                        <TableCell>
+                          {trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm">--</span>}
                         </TableCell>
                         <TableCell className="text-foreground capitalize">
                           {task.task_type}
                         </TableCell>
                         <TableCell className="text-foreground">
                           {task.assigned_to}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {formatDate(task.scheduled_date)}
-                        </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[150px] truncate"
-                          title={startLocation || undefined}
-                        >
-                          {startLocation || "--"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {formatDate(tripEnd)}
-                        </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[150px] truncate"
-                          title={returnLocation || undefined}
-                        >
-                          {returnLocation || "--"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {formatDate(task.due_date)}
-                        </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[150px] truncate"
-                          title={task.scheduled_location || undefined}
-                        >
-                          {task.scheduled_location || "--"}
                         </TableCell>
                         <TableCell>
                           <Select

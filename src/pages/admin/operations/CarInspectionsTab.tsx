@@ -9,22 +9,45 @@ import { Badge } from "@/components/ui/badge";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
-import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
 import { StatusBadge } from "./StatusBadge";
 import { InspectionModal } from "./InspectionModal";
-import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit, Trash2, ArrowRight, Wrench, History, CheckCircle2 } from "lucide-react";
+import { Plus, Edit, Trash2, ArrowRight, Wrench, History, CheckCircle2, RotateCcw } from "lucide-react";
 import type { Inspection, MaintenanceRecord, TuroTrip } from "./types";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
   try {
     const d = new Date(dateStr);
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return (
+      d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
+      " " +
+      d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    );
   } catch {
     return dateStr;
+  }
+};
+
+const formatCurrency = (n: number | null | undefined): string => {
+  if (n == null || isNaN(n)) return "--";
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+};
+
+const calculateDaysRented = (
+  tripStart: string | null,
+  tripEnd: string | null,
+): number | null => {
+  if (!tripStart || !tripEnd) return null;
+  try {
+    const start = new Date(tripStart).getTime();
+    const end = new Date(tripEnd).getTime();
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+    const hours = (end - start) / (1000 * 60 * 60);
+    return Math.max(1, Math.ceil(hours / 24));
+  } catch {
+    return null;
   }
 };
 
@@ -46,7 +69,6 @@ export function CarInspectionsTab() {
   const [pageSize, setPageSize] = usePersistentPageSize(
     "operations.carIssues",
   );
-  const carNameWithYear = useCarNameWithYear();
 
   const { data, isLoading } = useQuery<{ data: Inspection[] }>({
     queryKey: ["/api/operations/inspections", "all_sources", filterStatus],
@@ -69,7 +91,6 @@ export function CarInspectionsTab() {
     },
   });
 
-  // Trips lookup so we can show plate # from the linked Turo trip.
   const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
     queryKey: ["/api/turo-trips", { limit: 500 }],
     queryFn: async () => {
@@ -93,11 +114,19 @@ export function CarInspectionsTab() {
       : null;
     return rawInspections.filter((insp) => {
       if (q) {
+        const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
         const hay = [
           insp.car_name,
           insp.reservation_id,
           insp.assigned_to,
           insp.source,
+          trip?.plateNumber,
+          trip?.pickupLocation,
+          trip?.deliveryLocation,
+          trip?.returnLocation,
+          trip?.extras,
+          trip?.milesIncluded,
+          trip?.status,
         ]
           .filter(Boolean)
           .join(" ")
@@ -106,16 +135,19 @@ export function CarInspectionsTab() {
       }
       if (filterSource !== "all" && insp.source !== filterSource) return false;
       if (from != null || to != null) {
-        const d = insp.inspection_date
-          ? new Date(insp.inspection_date).getTime()
-          : null;
+        const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+        const d = trip?.tripStart
+          ? new Date(trip.tripStart).getTime()
+          : insp.inspection_date
+            ? new Date(insp.inspection_date).getTime()
+            : null;
         if (d == null) return false;
         if (from != null && d < from) return false;
         if (to != null && d > to) return false;
       }
       return true;
     });
-  }, [rawInspections, search, filterSource, dateFrom, dateTo]);
+  }, [rawInspections, tripsById, search, filterSource, dateFrom, dateTo]);
 
   const hasActiveFilters =
     filterStatus !== "all" ||
@@ -157,6 +189,26 @@ export function CarInspectionsTab() {
     },
   });
 
+  const moveToTuroMessagesMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(buildApiUrl(`/api/operations/inspections/${id}`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ source: "turo_return" }),
+      });
+      if (!response.ok) throw new Error("Failed to move to Turo Messages");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });
+      toast({ title: "Success", description: "Moved back to Turo Messages" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const moveToMaintenanceMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await fetch(buildApiUrl(`/api/operations/inspections/${id}/move-to-maintenance`), {
@@ -169,7 +221,7 @@ export function CarInspectionsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });
       queryClient.invalidateQueries({ queryKey: ["/api/operations/maintenance"] });
-      toast({ title: "Success", description: "Moved to maintenance" });
+      toast({ title: "Success", description: "Moved to Maintenance" });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -214,7 +266,7 @@ export function CarInspectionsTab() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Car, reservation, assignee..."
+                placeholder="Car, reservation, location, assignee..."
                 className="bg-card border-border text-foreground h-9"
               />
             </div>
@@ -247,9 +299,7 @@ export function CarInspectionsTab() {
               </Select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">
-                Inspection From
-              </label>
+              <label className="text-muted-foreground text-xs">Trip Start From</label>
               <Input
                 type="date"
                 value={dateFrom}
@@ -258,9 +308,7 @@ export function CarInspectionsTab() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">
-                Inspection To
-              </label>
+              <label className="text-muted-foreground text-xs">Trip Start To</label>
               <Input
                 type="date"
                 value={dateTo}
@@ -292,39 +340,55 @@ export function CarInspectionsTab() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-foreground font-medium">Car</TableHead>
-                  <TableHead className="text-foreground font-medium">Plate #</TableHead>
                   <TableHead className="text-foreground font-medium">Reservation #</TableHead>
-                  <TableHead className="text-foreground font-medium">Source</TableHead>
+                  <TableHead className="text-foreground font-medium">CAR Name</TableHead>
+                  <TableHead className="text-foreground font-medium">Plate #</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Start</TableHead>
+                  <TableHead className="text-foreground font-medium">Pick Up Location</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Ends</TableHead>
+                  <TableHead className="text-foreground font-medium">Days Rented</TableHead>
+                  <TableHead className="text-foreground font-medium">Drop Off Location</TableHead>
+                  <TableHead className="text-foreground font-medium">Extras</TableHead>
+                  <TableHead className="text-foreground font-medium">Miles Included</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Start Odometer</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Ends Odometer</TableHead>
+                  <TableHead className="text-foreground font-medium">Total Miles</TableHead>
+                  <TableHead className="text-foreground font-medium">Earnings</TableHead>
+                  <TableHead className="text-foreground font-medium">Trip Status</TableHead>
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
-                  <TableHead className="text-foreground font-medium">Status</TableHead>
-                  <TableHead className="text-foreground font-medium">Scheduled Date</TableHead>
-                  <TableHead className="text-foreground font-medium">Due Date</TableHead>
-                  <TableHead className="text-foreground font-medium">Notes</TableHead>
-                  <TableHead className="text-foreground font-medium">Photos</TableHead>
+                  <TableHead className="text-foreground font-medium">Inspection Status</TableHead>
                   <TableHead className="text-center text-foreground font-medium">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading || isMaintLoading ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">Loading inspections...</TableCell>
+                    <TableCell colSpan={18} className="text-center py-12 text-muted-foreground">Loading inspections...</TableCell>
                   </TableRow>
                 ) : inspections.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">No inspections found</TableCell>
+                    <TableCell colSpan={18} className="text-center py-12 text-muted-foreground">No inspections found</TableCell>
                   </TableRow>
                 ) : (
                   pagedInspections.map((insp) => {
                     const movedToMaint = isMovedToMaintenance(insp.id);
                     const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+                    const pickupLocation = trip?.pickupLocation || trip?.deliveryLocation || "--";
+                    const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? "--";
+                    const daysRented = trip ? calculateDaysRented(trip.tripStart, trip.tripEnd) : null;
+                    const earnings = trip
+                      ? (trip.status?.toLowerCase() === "cancelled"
+                          ? trip.cancelledEarnings
+                          : trip.earnings)
+                      : null;
                     return (
                       <TableRow key={insp.id} className="border-border hover:bg-card/50 transition-colors">
+                        <TableCell className="text-foreground font-mono text-sm">
+                          {insp.reservation_id || trip?.reservationId || "--"}
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <span className="text-foreground">
-                              {carNameWithYear(insp.car_name, trip?.plateNumber)}
-                            </span>
+                            <span className="text-foreground">{insp.car_name || "--"}</span>
                             {movedToMaint && (
                               <Badge className="bg-blue-500/20 text-blue-400 border-0 text-[10px] px-1.5 py-0 gap-1">
                                 <Wrench className="w-2.5 h-2.5" />
@@ -334,8 +398,51 @@ export function CarInspectionsTab() {
                           </div>
                         </TableCell>
                         <TableCell className="text-foreground font-mono text-sm">{trip?.plateNumber || "--"}</TableCell>
-                        <TableCell className="text-foreground font-mono text-sm">{insp.reservation_id || "--"}</TableCell>
-                        <TableCell className="text-muted-foreground capitalize text-sm">{insp.source?.replace(/_/g, " ") || "--"}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                          {trip ? formatDate(trip.tripStart) : "--"}
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-sm max-w-[150px] truncate"
+                          title={pickupLocation}
+                        >
+                          {pickupLocation}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                          {trip ? formatDate(trip.tripEnd) : "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm text-center">
+                          {daysRented ?? "--"}
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-sm max-w-[150px] truncate"
+                          title={dropOffLocation}
+                        >
+                          {dropOffLocation}
+                        </TableCell>
+                        <TableCell
+                          className="text-muted-foreground text-sm max-w-[120px] truncate"
+                          title={trip?.extras || undefined}
+                        >
+                          {trip?.extras || "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {trip?.milesIncluded || "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {trip?.tripStartOdometer ?? "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {trip?.tripEndOdometer ?? "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {trip?.totalDistance || "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm">
+                          {earnings != null ? formatCurrency(earnings) : "--"}
+                        </TableCell>
+                        <TableCell>
+                          {trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm">--</span>}
+                        </TableCell>
                         <TableCell className="text-foreground">{insp.assigned_to}</TableCell>
                         <TableCell>
                           <Select
@@ -352,16 +459,6 @@ export function CarInspectionsTab() {
                               <SelectItem value="no_issues">No Car Issues</SelectItem>
                             </SelectContent>
                           </Select>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{formatDate(insp.inspection_date)}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{formatDate(insp.due_date)}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate" title={insp.notes || undefined}>{insp.notes || "--"}</TableCell>
-                        <TableCell>
-                          {insp.photos && insp.photos.length > 0 ? (
-                            <PhotoUpload photos={insp.photos} onPhotosChange={() => {}} entityType="inspection" entityId={insp.id} disabled />
-                          ) : (
-                            <span className="text-muted-foreground text-sm">--</span>
-                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-center gap-1">
@@ -380,6 +477,14 @@ export function CarInspectionsTab() {
                               title="View History"
                             >
                               <History className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost" size="sm"
+                              onClick={() => moveToTuroMessagesMutation.mutate(insp.id)}
+                              className="text-muted-foreground hover:text-yellow-500 h-8 px-2"
+                              title="Move back to Turo Messages"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
                             </Button>
                             {!movedToMaint && insp.status !== "no_issues" && (
                               <Button
