@@ -99,10 +99,7 @@ export default function CommissionsSection() {
 
   return (
     <div className="mb-8">
-      <SectionHeader
-        title="COMMISSIONS"
-        subtitle="Your monthly commissions by type."
-      />
+      <SectionHeader title="COMMISSIONS" />
 
       <div className="bg-white px-4 py-4">
         <div className="mb-4 flex flex-wrap items-center gap-3">

@@ -147,7 +147,7 @@ export default function EarningsHistorySection() {
 
   return (
     <div className="mb-8">
-      <SectionHeader title="TOTAL EARNINGS" subtitle="Monthly totals (left) and bi-weekly pay periods (right)." />
+      <SectionHeader title="TOTAL EARNINGS" />
 
       {/* Year filter */}
       <div className="mb-3 flex flex-wrap items-center gap-3">
@@ -176,7 +176,7 @@ export default function EarningsHistorySection() {
             {/* TOTAL EARNINGS — monthly totals (LEFT) */}
             <div>
               <h3 className="mb-3 text-sm font-bold uppercase text-gray-700">
-                Total Earnings — {year}
+                Total Earnings
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full border-y border-[#FFCC00] border-collapse text-sm">
@@ -211,7 +211,7 @@ export default function EarningsHistorySection() {
             {/* PAY PERIOD — bi-weekly payslips (RIGHT) */}
             <div>
               <h3 className="mb-3 text-sm font-bold uppercase text-gray-700">
-                Pay Period — {year}
+                Pay Period
               </h3>
               {periodRows.length === 0 ? (
                 <p className="py-4 text-center text-sm text-gray-500">

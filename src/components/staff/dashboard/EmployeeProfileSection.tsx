@@ -126,32 +126,22 @@ export default function EmployeeProfileSection() {
             )}
           </div>
 
-          {(e.employee_ssn_ein || address) && (
-            <div className="mt-3 space-y-0.5 text-sm text-gray-800">
-              {e.employee_ssn_ein && (
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="h-3.5 w-3.5 text-gray-400" />
-                  <span className="font-semibold">SSN or EIN:</span>
-                  <span className="font-mono text-xs">{e.employee_ssn_ein}</span>
-                </div>
-              )}
-              {e.employee_street && (
-                <div>
-                  <span className="font-semibold">Street:</span> {e.employee_street}
-                </div>
-              )}
-              {e.employee_city && (
-                <div>
-                  <span className="font-semibold">City:</span> {e.employee_city}
-                </div>
-              )}
-              {e.employee_state && (
-                <div>
-                  <span className="font-semibold">State:</span> {e.employee_state}
-                </div>
-              )}
+          <div className="mt-3 space-y-0.5 text-sm text-gray-800">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-gray-400" />
+              <span className="font-semibold">SSN or EIN:</span>
+              <span className="font-mono text-xs">{unspecified(e.employee_ssn_ein)}</span>
             </div>
-          )}
+            <div>
+              <span className="font-semibold">Street:</span> {unspecified(e.employee_street)}
+            </div>
+            <div>
+              <span className="font-semibold">City:</span> {unspecified(e.employee_city)}
+            </div>
+            <div>
+              <span className="font-semibold">State:</span> {unspecified(e.employee_state)}
+            </div>
+          </div>
 
           <div className="mt-3 flex items-center gap-1.5 text-sm">
             <DollarSign className="h-4 w-4 text-emerald-600" />
@@ -162,11 +152,11 @@ export default function EmployeeProfileSection() {
         </div>
 
         {/* Logo + avatar + role */}
-        <div className="flex flex-shrink-0 flex-col items-center gap-2">
+        <div className="flex flex-shrink-0 flex-col items-center gap-1">
           <img
             src="/logo.png"
             alt="Golden Luxury Auto"
-            className="h-20 w-auto object-contain sm:h-24"
+            className="h-16 w-auto object-contain sm:h-20"
           />
           {e.employee_photo ? (
             <EmployeeDocumentImage
