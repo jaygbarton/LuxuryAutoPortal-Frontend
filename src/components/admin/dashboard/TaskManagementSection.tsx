@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { buildApiUrl } from "@/lib/queryClient";
-import { SectionHeader, SummaryCard, DashboardTable } from "@/components/admin/dashboard";
+import { SectionHeader, DashboardTable } from "@/components/admin/dashboard";
 
 interface TaskTimer {
   task_timer_aid: number;
@@ -106,10 +106,6 @@ export default function TaskManagementSection() {
 
   const tasks = data?.data ?? [];
 
-  const totalCount = tasks.length;
-  const inProgressCount = tasks.filter((t) => t.task_timer_status === 1).length;
-  const completedCount = tasks.filter((t) => t.task_timer_status === 2).length;
-
   const sortedTasks = [...tasks]
     .sort(
       (a, b) =>
@@ -142,25 +138,6 @@ export default function TaskManagementSection() {
         <LoadingSkeleton />
       ) : (
         <>
-          {/* Summary Cards */}
-          <div className="mt-4 grid grid-cols-1 gap-4 px-4 sm:grid-cols-3">
-            <SummaryCard
-              label="Total Tasks"
-              value={String(totalCount)}
-              variant="gold"
-            />
-            <SummaryCard
-              label="In Progress"
-              value={String(inProgressCount)}
-              variant="dark"
-            />
-            <SummaryCard
-              label="Completed"
-              value={String(completedCount)}
-              variant="dark"
-            />
-          </div>
-
           {/* Task Table */}
           <div className="mt-4 px-4">
             {rows.length === 0 ? (

@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
-import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { formatCurrency } from "@/components/admin/dashboard/utils";
-import React from "react";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -27,21 +25,9 @@ interface CommissionsApiResponse {
   total: number;
 }
 
-interface Employee {
-  id: number;
-  fullname?: string;
-  first_name?: string;
-  last_name?: string;
-  emp_first_name?: string;
-  emp_last_name?: string;
-}
-
-interface EmployeesApiResponse {
-  success: boolean;
-  data: Employee[];
-}
-
 // ── Expense types from PDF ──────────────────────────────────────────────
+
+const EMPLOYEE_NAMES = ["Bynn", "Jen", "Armando", "Adam", "Olavo", "Matthew", "Cathy"];
 
 const EXPENSE_TYPES = [
   "Parking Airport",
@@ -84,13 +70,6 @@ function getMonthRange(offset: number): {
   const dateTo = `${year}-${pad(month + 1)}-${pad(lastDay.getDate())}`;
 
   return { label, dateFrom, dateTo };
-}
-
-function getEmployeeName(emp: Employee): string {
-  if (emp.fullname) return emp.fullname;
-  const first = emp.first_name || emp.emp_first_name || "";
-  const last = emp.last_name || emp.emp_last_name || "";
-  return `${first} ${last}`.trim() || `Employee ${emp.id}`;
 }
 
 function buildMatrix(
@@ -167,56 +146,35 @@ function MatrixTable({
   employeeNames: string[];
 }) {
   const rows = data ?? [];
-  const isEmpty = rows.length === 0;
-
-  if (isEmpty) {
-    return (
-      <div className="flex-1 min-w-[300px]">
-        <div className="rounded-t-lg bg-black px-4 py-2">
-          <p className="text-sm font-bold uppercase text-[#FFCC00]">
-            Commissions &mdash; {monthLabel}
-          </p>
-        </div>
-        <div className="rounded-b-lg border border-t-0 border-gray-200 bg-white px-6 py-8 text-center">
-          <p className="text-sm text-gray-400">
-            No commissions found for this period
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   const { matrix, totals } = buildMatrix(rows, employeeNames);
 
   return (
     <div className="flex-1 min-w-[300px]">
-      <div className="rounded-t-lg bg-black px-4 py-2">
-        <p className="text-sm font-bold uppercase text-[#FFCC00]">
-          Commissions &mdash; {monthLabel}
-        </p>
-      </div>
+      <h3 className="text-lg font-bold uppercase tracking-wide text-black mb-3">
+        COMMISSIONS {monthLabel}
+      </h3>
       <div className="overflow-x-auto">
-        <table className="w-full border border-gray-200">
+        <table className="w-full border-y border-[#FFCC00] border-collapse">
           <thead>
-            <tr className="bg-black">
-              <th className="px-3 py-2 text-left text-xs font-bold uppercase text-white">
+            <tr className="bg-black border-y border-[#FFCC00]">
+              <th className="px-3 py-2 text-center text-xs font-bold uppercase text-white">
                 Type
               </th>
               {employeeNames.map((name) => (
                 <th
                   key={name}
-                  className="px-3 py-2 text-right text-xs font-bold uppercase text-white"
+                  className="px-3 py-2 text-center text-xs font-bold uppercase text-white"
                 >
                   {name}
                 </th>
               ))}
-              <th className="px-3 py-2 text-right text-xs font-bold uppercase text-[#FFCC00]">
+              <th className="px-3 py-2 text-center text-xs font-bold uppercase text-[#FFCC00]">
                 TOTAL
               </th>
             </tr>
           </thead>
           <tbody>
-            {EXPENSE_TYPES.map((type, idx) => {
+            {EXPENSE_TYPES.map((type) => {
               const rowTotal = employeeNames.reduce(
                 (sum, name) => sum + (matrix[type]?.[name] ?? 0),
                 0,
@@ -224,38 +182,38 @@ function MatrixTable({
               return (
                 <tr
                   key={type}
-                  className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                  className="bg-white border-y border-[#FFCC00]"
                 >
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">
+                  <td className="whitespace-nowrap px-3 py-2 text-center text-sm text-gray-900">
                     {type}
                   </td>
                   {employeeNames.map((name) => (
                     <td
                       key={name}
-                      className="px-3 py-2 text-right text-sm text-gray-900"
+                      className="px-3 py-2 text-center text-sm text-gray-900"
                     >
                       {matrix[type]?.[name]
                         ? formatCurrency(matrix[type][name])
                         : "—"}
                     </td>
                   ))}
-                  <td className="px-3 py-2 text-right text-sm font-semibold text-gray-900">
+                  <td className="px-3 py-2 text-center text-sm font-semibold text-gray-900">
                     {rowTotal > 0 ? formatCurrency(rowTotal) : "—"}
                   </td>
                 </tr>
               );
             })}
-            <tr className="bg-gray-100 font-bold">
-              <td className="px-3 py-2 text-sm text-gray-900">TOTAL</td>
+            <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
+              <td className="px-3 py-2 text-center text-sm text-black">TOTAL</td>
               {employeeNames.map((name) => (
                 <td
                   key={name}
-                  className="px-3 py-2 text-right text-sm text-gray-900"
+                  className="px-3 py-2 text-center text-sm text-black"
                 >
                   {totals[name] > 0 ? formatCurrency(totals[name]) : "—"}
                 </td>
               ))}
-              <td className="px-3 py-2 text-right text-sm font-bold text-gray-900">
+              <td className="px-3 py-2 text-center text-sm font-bold text-black">
                 {formatCurrency(
                   employeeNames.reduce((sum, name) => sum + (totals[name] ?? 0), 0),
                 )}
@@ -273,17 +231,6 @@ function MatrixTable({
 export default function CommissionsSection() {
   const current = getMonthRange(0);
   const prev = getMonthRange(-1);
-
-  const employeesQuery = useQuery<EmployeesApiResponse>({
-    queryKey: ["/api/employees"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/employees"), {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error(`Failed to fetch employees: ${res.status}`);
-      return res.json();
-    },
-  });
 
   const currentQuery = useQuery<CommissionsApiResponse>({
     queryKey: ["/api/payroll/commissions", "current-month", current.dateFrom, current.dateTo],
@@ -313,30 +260,10 @@ export default function CommissionsSection() {
     },
   });
 
-  const isLoading = currentQuery.isLoading || prevQuery.isLoading || employeesQuery.isLoading;
-
-  // Derive employee names from employees API or fall back to commission data
-  const employeeNames: string[] = React.useMemo(() => {
-    const empData = employeesQuery.data?.data ?? [];
-    if (empData.length > 0) {
-      return empData.map(getEmployeeName).filter(Boolean);
-    }
-    // Fallback: extract unique names from commission data
-    const allCommissions = [
-      ...(currentQuery.data?.data ?? []),
-      ...(prevQuery.data?.data ?? []),
-    ];
-    const names = new Set<string>();
-    for (const row of allCommissions) {
-      const name = row.fullname || row.commissions_account_owner_name;
-      if (name) names.add(name);
-    }
-    return Array.from(names).sort();
-  }, [employeesQuery.data, currentQuery.data, prevQuery.data]);
+  const isLoading = currentQuery.isLoading || prevQuery.isLoading;
 
   return (
     <div className="mb-8">
-      <SectionHeader title="COMMISSIONS" />
       <div className="mt-2">
         {isLoading ? (
           <LoadingSkeleton />
@@ -345,12 +272,12 @@ export default function CommissionsSection() {
             <MatrixTable
               monthLabel={prev.label}
               data={prevQuery.data?.data}
-              employeeNames={employeeNames}
+              employeeNames={EMPLOYEE_NAMES}
             />
             <MatrixTable
               monthLabel={current.label}
               data={currentQuery.data?.data}
-              employeeNames={employeeNames}
+              employeeNames={EMPLOYEE_NAMES}
             />
           </div>
         )}

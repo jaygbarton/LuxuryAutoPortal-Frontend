@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { format, subDays } from "date-fns";
 import { buildApiUrl } from "@/lib/queryClient";
-import { SectionHeader, SummaryCard, DashboardTable } from "@/components/admin/dashboard";
+import { SectionHeader, DashboardTable } from "@/components/admin/dashboard";
 
 interface TuroTrip {
   id: number;
@@ -43,28 +43,15 @@ function truncate(text: string, max: number): string {
   return text.length > max ? text.slice(0, max) + "…" : text;
 }
 
-function formatTripDate(dateStr: string): string {
-  try {
-    return format(new Date(dateStr), "MMM d, yyyy h:mm a");
-  } catch {
-    return dateStr;
-  }
+function formatTripDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "—";
+  return format(d, "MMM d, yyyy h:mm a");
 }
 
-function StatusBadge({ status }: { status: TuroTrip["status"] }) {
-  const styles: Record<TuroTrip["status"], string> = {
-    booked: "bg-[#FFCC00] text-black",
-    completed: "bg-green-600 text-white",
-    cancelled: "bg-red-600 text-white",
-  };
-
-  return (
-    <span
-      className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${styles[status]}`}
-    >
-      {status}
-    </span>
-  );
+function statusLabel(status: TuroTrip["status"]): string {
+  return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 function LoadingSkeleton() {
@@ -101,19 +88,14 @@ export default function OperationsSection() {
     (t) => t.status === "booked" || new Date(t.tripStart) >= cutoff,
   );
 
-  // Counts
-  const activeCount = trips.filter((t) => t.status === "booked").length;
-  const completedCount = trips.filter((t) => t.status === "completed").length;
-  const cancelledCount = trips.filter((t) => t.status === "cancelled").length;
-
   // Sort by tripStart desc (most recent first), limit to 20
   const displayTrips = [...relevantTrips]
     .sort((a, b) => new Date(b.tripStart).getTime() - new Date(a.tripStart).getTime())
     .slice(0, 20);
 
   const rows = displayTrips.map((trip) => ({
-    reservationId: trip.reservationId,
-    car: trip.carName ?? "—",
+    reservationId: trip.reservationId || "—",
+    car: trip.carName || "—",
     plateNumber: "—",
     tripStart: formatTripDate(trip.tripStart),
     pickUpLocation: trip.pickupLocation ? truncate(trip.pickupLocation, 35) : "—",
@@ -124,7 +106,7 @@ export default function OperationsSection() {
         ? truncate(trip.deliveryLocation, 35)
         : "—",
     assignedTo: "—",
-    status: <StatusBadge status={trip.status} />,
+    status: statusLabel(trip.status),
   }));
 
   return (
@@ -135,25 +117,6 @@ export default function OperationsSection() {
         <LoadingSkeleton />
       ) : (
         <>
-          {/* Summary Cards */}
-          <div className="mt-4 grid grid-cols-1 gap-4 px-4 sm:grid-cols-3">
-            <SummaryCard
-              label="Active Trips"
-              value={String(activeCount)}
-              variant="gold"
-            />
-            <SummaryCard
-              label="Completed Trips"
-              value={String(completedCount)}
-              variant="dark"
-            />
-            <SummaryCard
-              label="Cancelled Trips"
-              value={String(cancelledCount)}
-              variant="dark"
-            />
-          </div>
-
           {/* Trips Table */}
           <div className="mt-4 px-4">
             {rows.length === 0 ? (

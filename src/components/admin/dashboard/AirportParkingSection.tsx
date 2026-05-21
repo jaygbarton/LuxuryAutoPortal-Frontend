@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
-import { SectionHeader, DashboardTable } from "@/components/admin/dashboard";
+import { DashboardTable } from "@/components/admin/dashboard";
 import { formatCurrency, MONTH_LABELS } from "./utils";
 import type {
   IncomeExpenseData,
@@ -83,8 +83,6 @@ export default function AirportParkingSection({ year }: AirportParkingSectionPro
 
   return (
     <div className="mb-8">
-      <SectionHeader title="AIRPORT PARKING & TRIPS" />
-
       {isLoading && (
         <div className="mt-2 space-y-3">
           {[1, 2].map((i) => (
@@ -124,34 +122,26 @@ export default function AirportParkingSection({ year }: AirportParkingSectionPro
           <div className="mt-2 flex flex-wrap gap-4">
             {/* System Data Table */}
             <div className="min-w-[300px] flex-1">
-              <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-                <div className="bg-black px-4 py-2">
-                  <p className="text-sm font-bold uppercase text-[#FFCC00]">
-                    System Parking Airport Expenses and Trips Taken
-                  </p>
-                </div>
-                <DashboardTable
-                  columns={TABLE_COLUMNS}
-                  rows={system.rows}
-                  totalsRow={system.totalsRow}
-                />
-              </div>
+              <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
+                System Parking
+              </h3>
+              <DashboardTable
+                columns={TABLE_COLUMNS}
+                rows={system.rows}
+                totalsRow={system.totalsRow}
+              />
             </div>
 
             {/* QuickBooks Data Table */}
             <div className="min-w-[300px] flex-1">
-              <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-                <div className="bg-black px-4 py-2">
-                  <p className="text-sm font-bold uppercase text-[#FFCC00]">
-                    QuickBooks Parking Airport Expenses and Trips Taken
-                  </p>
-                </div>
-                <DashboardTable
-                  columns={TABLE_COLUMNS}
-                  rows={qb.rows}
-                  totalsRow={qb.totalsRow}
-                />
-              </div>
+              <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
+                QuickBooks Parking
+              </h3>
+              <DashboardTable
+                columns={TABLE_COLUMNS}
+                rows={qb.rows}
+                totalsRow={qb.totalsRow}
+              />
             </div>
           </div>
         );

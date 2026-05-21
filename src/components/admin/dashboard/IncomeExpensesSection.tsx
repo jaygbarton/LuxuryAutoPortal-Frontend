@@ -624,15 +624,15 @@ export default function IncomeExpensesSection({
         <div className="mt-4 space-y-6 px-4">
 
           {/* ── Row 1: Summary Cards (left) + Monthly Table (right) ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-            {/* Left: Summary Cards — no outer box, stacked sections */}
-            <div className="xl:col-span-1 flex flex-col gap-5">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
+            {/* Left: Summary Cards — distribute evenly to match table height */}
+            <div className="xl:col-span-1 flex flex-col justify-between gap-5">
               {/* Total Management Income and Expenses */}
-              <div>
+              <div className="flex flex-1 flex-col">
                 <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Total Management Income and Expenses
                 </h3>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-3 gap-1.5 flex-1 [&>*]:h-full">
                   <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" />
                   <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" />
                   <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" />
@@ -640,16 +640,16 @@ export default function IncomeExpensesSection({
               </div>
 
               {/* Management Income and Expenses */}
-              <div>
+              <div className="flex flex-1 flex-col">
                 <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Management Income and Expenses
                 </h3>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-3 gap-1.5 flex-1 [&>*]:h-full">
                   <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" />
                   <SummaryCard label="Total Management Expenses" value={formatCurrency(totalMgmtExpenses)} variant="white" />
                   <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome - totalMgmtExpenses)} variant="gold" />
                 </div>
-                <div className="grid grid-cols-3 gap-1.5 mt-1.5">
+                <div className="grid grid-cols-3 gap-1.5 mt-1.5 flex-1 [&>*]:h-full">
                   <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" />
                   <SummaryCard label={`${prevMonthLabel} Mgmt Expenses`} value={formatCurrency(prevMonth?.mgmtExpenses ?? 0)} variant="white" />
                   <SummaryCard label={`${prevMonthLabel} Mgmt Profit`} value={formatCurrency((prevMonth?.mgmtIncome ?? 0) - (prevMonth?.mgmtExpenses ?? 0))} variant="gold" />
@@ -657,16 +657,16 @@ export default function IncomeExpensesSection({
               </div>
 
               {/* Car Owner Income and Expenses */}
-              <div>
+              <div className="flex flex-1 flex-col">
                 <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Car Owner Income and Expenses
                 </h3>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-3 gap-1.5 flex-1 [&>*]:h-full">
                   <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" />
                   <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" />
                   <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" />
                 </div>
-                <div className="grid grid-cols-3 gap-1.5 mt-1.5">
+                <div className="grid grid-cols-3 gap-1.5 mt-1.5 flex-1 [&>*]:h-full">
                   <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" />
                   <SummaryCard label={`${prevMonthLabel} Owner Expenses`} value={formatCurrency(prevMonth?.ownerExpenses ?? 0)} variant="white" />
                   <SummaryCard label={`${prevMonthLabel} Owner Profit`} value={formatCurrency((prevMonth?.ownerIncome ?? 0) - (prevMonth?.ownerExpenses ?? 0))} variant="gold" />
@@ -680,15 +680,13 @@ export default function IncomeExpensesSection({
                 Monthly Income and Expenses
               </h3>
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full border-y border-[#FFCC00] border-collapse">
                   <thead>
-                    <tr className="bg-black">
+                    <tr className="bg-black border-y border-[#FFCC00]">
                       {tableColumns.map((col) => (
                         <th
                           key={col.key}
-                          className={`px-3 py-2 text-xs font-bold uppercase text-white ${
-                            col.align === "right" ? "text-right" : "text-left"
-                          }`}
+                          className="px-3 py-2 text-center text-xs font-bold uppercase text-white"
                         >
                           {col.label}
                         </th>
@@ -697,26 +695,22 @@ export default function IncomeExpensesSection({
                   </thead>
                   <tbody>
                     {tableRows.map((row, idx) => (
-                      <tr key={idx} className={cn(idx % 2 === 0 ? "bg-white" : "bg-gray-50", "transition hover:bg-amber-50/40")}>
+                      <tr key={idx} className="bg-white border-y border-[#FFCC00]">
                         {tableColumns.map((col) => (
                           <td
                             key={col.key}
-                            className={`px-3 py-2 text-sm text-gray-900 ${
-                              col.align === "right" ? "text-right" : "text-left"
-                            }`}
+                            className="px-3 py-2 text-center text-sm text-gray-900"
                           >
                             {row[col.key as keyof typeof row]}
                           </td>
                         ))}
                       </tr>
                     ))}
-                    <tr className="bg-[#FFCC00] font-bold">
+                    <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
                       {tableColumns.map((col) => (
                         <td
                           key={col.key}
-                          className={`px-3 py-2 text-sm text-black ${
-                            col.align === "right" ? "text-right" : "text-left"
-                          }`}
+                          className="px-3 py-2 text-center text-sm text-black"
                         >
                           {tableTotals[col.key as keyof typeof tableTotals]}
                         </td>

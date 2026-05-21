@@ -23,12 +23,6 @@ interface DashboardTableProps {
   className?: string;
 }
 
-const alignClass = {
-  left: "text-left",
-  right: "text-right",
-  center: "text-center",
-} as const;
-
 export function DashboardTable({
   columns,
   rows,
@@ -37,16 +31,13 @@ export function DashboardTable({
 }: DashboardTableProps) {
   return (
     <div className={cn("w-full overflow-x-auto", className)}>
-      <table className="w-full border border-gray-200">
+      <table className="w-full border-y border-[#FFCC00] border-collapse">
         <thead>
-          <tr className="bg-black">
+          <tr className="bg-black border-y border-[#FFCC00]">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={cn(
-                  "px-3 py-2 text-xs font-bold uppercase text-white",
-                  alignClass[col.align ?? "left"],
-                )}
+                className="px-3 py-2 text-center text-xs font-bold uppercase text-white"
               >
                 {col.label}
               </th>
@@ -57,15 +48,12 @@ export function DashboardTable({
           {rows.map((row, idx) => (
             <tr
               key={idx}
-              className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+              className="bg-white border-y border-[#FFCC00]"
             >
               {columns.map((col) => (
                 <td
                   key={col.key}
-                  className={cn(
-                    "px-3 py-2 text-sm text-gray-900",
-                    alignClass[col.align ?? "left"],
-                  )}
+                  className="px-3 py-2 text-center text-sm text-gray-900"
                 >
                   {row[col.key]}
                 </td>
@@ -73,14 +61,11 @@ export function DashboardTable({
             </tr>
           ))}
           {totalsRow && (
-            <tr className="bg-[#FFCC00] font-bold">
+            <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
               {columns.map((col) => (
                 <td
                   key={col.key}
-                  className={cn(
-                    "px-3 py-2 text-sm text-black",
-                    alignClass[col.align ?? "left"],
-                  )}
+                  className="px-3 py-2 text-center text-sm text-black"
                 >
                   {totalsRow[col.key]}
                 </td>

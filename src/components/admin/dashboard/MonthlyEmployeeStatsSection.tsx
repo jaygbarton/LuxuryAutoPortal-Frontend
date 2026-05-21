@@ -1,14 +1,6 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -81,7 +73,7 @@ function LoadingSkeleton() {
 export default function MonthlyEmployeeStatsSection({
   year,
 }: MonthlyEmployeeStatsSectionProps) {
-  const [employeeId, setEmployeeId] = useState("all");
+  const employeeId = "all";
 
   const { data, isLoading, isError } = useQuery<MonthlyStatsResponse>({
     queryKey: ["/api/admin/employee-stats/monthly", year, employeeId],
@@ -98,7 +90,6 @@ export default function MonthlyEmployeeStatsSection({
   });
 
   const apiStats = data?.data?.stats ?? [];
-  const employees = data?.data?.employees ?? [];
 
   const displayData = TASK_CATEGORIES.map((category) => {
     const apiRow = apiStats.find(
@@ -126,27 +117,6 @@ export default function MonthlyEmployeeStatsSection({
       <SectionHeader title="MONTHLY EMPLOYEE STATS REPORT" />
 
       <div className="bg-white px-4 py-4">
-        {/* Filters */}
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium text-gray-700">Year: {year}</span>
-          <span className="text-xs text-gray-400">(synced with Income section)</span>
-
-          <span className="ml-4 text-sm font-medium text-gray-700">Employee:</span>
-          <Select value={employeeId} onValueChange={setEmployeeId}>
-            <SelectTrigger className="w-[180px] border-gray-300 bg-white text-black">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="border-gray-200 bg-white text-black">
-              <SelectItem value="all">All Employees</SelectItem>
-              {employees.map((emp) => (
-                <SelectItem key={emp.id} value={String(emp.id)}>
-                  {emp.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
         {isLoading && <LoadingSkeleton />}
 
         {isError && (

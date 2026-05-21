@@ -1,14 +1,6 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -62,27 +54,6 @@ const TASK_CATEGORIES = [
   "How Many Cleaning Extras Car? Seats/Coolers/Ski Racks?",
 ];
 
-const MONTH_OPTIONS = [
-  { value: "1", label: "January" },
-  { value: "2", label: "February" },
-  { value: "3", label: "March" },
-  { value: "4", label: "April" },
-  { value: "5", label: "May" },
-  { value: "6", label: "June" },
-  { value: "7", label: "July" },
-  { value: "8", label: "August" },
-  { value: "9", label: "September" },
-  { value: "10", label: "October" },
-  { value: "11", label: "November" },
-  { value: "12", label: "December" },
-];
-
-const currentYear = new Date().getFullYear();
-const YEAR_OPTIONS = Array.from(
-  { length: currentYear + 1 - 2023 + 1 },
-  (_, i) => String(2023 + i),
-);
-
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 function getDaysInMonth(month: number, year: number): number {
@@ -110,9 +81,9 @@ function LoadingSkeleton() {
 
 export default function EmployeeStatsSection() {
   const now = new Date();
-  const [month, setMonth] = useState(String(now.getMonth() + 1)); // 1-indexed
-  const [year, setYear] = useState(String(now.getFullYear()));
-  const [employeeId, setEmployeeId] = useState("all");
+  const month = String(now.getMonth() + 1); // 1-indexed
+  const year = String(now.getFullYear());
+  const employeeId = "all";
 
   const numMonth = Number(month);
   const numYear = Number(year);
@@ -135,7 +106,6 @@ export default function EmployeeStatsSection() {
 
   // Build display rows: use API data if available, otherwise show zeros
   const apiStats = data?.data?.stats ?? [];
-  const employees = data?.data?.employees ?? [];
 
   const displayData = TASK_CATEGORIES.map((category) => {
     const apiRow = apiStats.find(
@@ -164,52 +134,6 @@ export default function EmployeeStatsSection() {
       <SectionHeader title="EMPLOYEE STATS REPORT" />
 
       <div className="bg-white px-4 py-4">
-        {/* Filters */}
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium text-gray-700">Month:</span>
-          <Select value={month} onValueChange={setMonth}>
-            <SelectTrigger className="w-[150px] border-gray-300 bg-white text-black">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="border-gray-200 bg-white text-black">
-              {MONTH_OPTIONS.map((m) => (
-                <SelectItem key={m.value} value={m.value}>
-                  {m.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <span className="text-sm font-medium text-gray-700">Year:</span>
-          <Select value={year} onValueChange={setYear}>
-            <SelectTrigger className="w-[120px] border-gray-300 bg-white text-black">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="border-gray-200 bg-white text-black">
-              {YEAR_OPTIONS.map((y) => (
-                <SelectItem key={y} value={y}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <span className="text-sm font-medium text-gray-700">Employee:</span>
-          <Select value={employeeId} onValueChange={setEmployeeId}>
-            <SelectTrigger className="w-[180px] border-gray-300 bg-white text-black">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="border-gray-200 bg-white text-black">
-              <SelectItem value="all">All Employees</SelectItem>
-              {employees.map((emp) => (
-                <SelectItem key={emp.id} value={String(emp.id)}>
-                  {emp.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
         {isLoading && <LoadingSkeleton />}
 
         {isError && (
