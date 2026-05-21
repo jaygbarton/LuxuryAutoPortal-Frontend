@@ -120,20 +120,11 @@ export default function EmployeeStatsSection() {
     return { category, daily, total };
   });
 
-  // Grand total row
-  const grandTotalDaily = Array(daysInMonth).fill(0);
-  for (const row of displayData) {
-    for (let i = 0; i < daysInMonth; i++) {
-      grandTotalDaily[i] += row.daily[i];
-    }
-  }
-  const grandTotal = grandTotalDaily.reduce((s: number, v: number) => s + v, 0);
-
   return (
     <div className="mb-8">
       <SectionHeader title="EMPLOYEE STATS REPORT" />
 
-      <div className="bg-white px-4 py-4">
+      <div className="bg-white py-4">
         {isLoading && <LoadingSkeleton />}
 
         {isError && (
@@ -143,22 +134,22 @@ export default function EmployeeStatsSection() {
         )}
 
         {!isLoading && !isError && (
-          <div className="overflow-x-auto rounded border border-gray-200">
+          <div className="overflow-x-auto rounded border border-[#FFCC00]">
             <table className="w-full border-collapse text-xs">
               <thead>
                 <tr className="bg-black text-white">
-                  <th className="sticky left-0 z-10 min-w-[220px] bg-black px-3 py-2 text-left font-semibold">
+                  <th className="sticky left-0 z-10 min-w-[220px] border-r border-[#FFCC00] bg-black px-3 py-2 text-left font-semibold">
                     Employee Stats — {getMonthLabel(numMonth, numYear)}
                   </th>
                   {days.map((d) => (
                     <th
                       key={d}
-                      className="w-8 min-w-[32px] px-1 py-2 text-center font-semibold"
+                      className="w-8 min-w-[32px] border-r border-[#FFCC00] px-1 py-2 text-center font-semibold"
                     >
                       {d}
                     </th>
                   ))}
-                  <th className="min-w-[50px] bg-black px-2 py-2 text-center font-bold text-[#FFCC00]">
+                  <th className="min-w-[50px] bg-black px-2 py-2 text-center font-bold text-white">
                     Total
                   </th>
                 </tr>
@@ -167,10 +158,10 @@ export default function EmployeeStatsSection() {
                 {displayData.map((row, idx) => (
                   <tr
                     key={idx}
-                    className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                    className={`border-t border-[#FFCC00] ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
                   >
                     <td
-                      className="sticky left-0 z-10 min-w-[220px] border-r border-gray-200 px-3 py-1.5 text-left text-xs font-medium text-gray-800"
+                      className="sticky left-0 z-10 min-w-[220px] border-r border-[#FFCC00] px-3 py-1.5 text-left text-xs font-medium text-gray-800"
                       style={{
                         backgroundColor:
                           idx % 2 === 0 ? "white" : "rgb(249 250 251)",
@@ -181,7 +172,7 @@ export default function EmployeeStatsSection() {
                     {row.daily.map((val, dayIdx) => (
                       <td
                         key={dayIdx}
-                        className={`px-1 py-1.5 text-center ${
+                        className={`border-r border-[#FFCC00] px-1 py-1.5 text-center ${
                           val > 0
                             ? "font-semibold text-amber-700"
                             : "text-gray-300"
@@ -195,23 +186,6 @@ export default function EmployeeStatsSection() {
                     </td>
                   </tr>
                 ))}
-                {/* Grand Total Row */}
-                <tr className="bg-[#FFCC00] font-bold">
-                  <td className="sticky left-0 z-10 min-w-[220px] bg-[#FFCC00] px-3 py-2 text-left text-xs font-bold text-black">
-                    TOTAL
-                  </td>
-                  {grandTotalDaily.map((val, dayIdx) => (
-                    <td
-                      key={dayIdx}
-                      className="px-1 py-2 text-center text-xs font-bold text-black"
-                    >
-                      {val > 0 ? val : "—"}
-                    </td>
-                  ))}
-                  <td className="px-2 py-2 text-center text-sm font-bold text-black">
-                    {grandTotal > 0 ? grandTotal : "—"}
-                  </td>
-                </tr>
               </tbody>
             </table>
           </div>

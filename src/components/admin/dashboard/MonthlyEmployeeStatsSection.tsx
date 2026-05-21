@@ -103,20 +103,11 @@ export default function MonthlyEmployeeStatsSection({
     return { category, monthly, total };
   });
 
-  // Grand total row
-  const grandTotalMonthly = Array(12).fill(0);
-  for (const row of displayData) {
-    for (let i = 0; i < 12; i++) {
-      grandTotalMonthly[i] += row.monthly[i];
-    }
-  }
-  const grandTotal = grandTotalMonthly.reduce((s: number, v: number) => s + v, 0);
-
   return (
     <div className="mb-8">
       <SectionHeader title="MONTHLY EMPLOYEE STATS REPORT" />
 
-      <div className="bg-white px-4 py-4">
+      <div className="bg-white py-4">
         {isLoading && <LoadingSkeleton />}
 
         {isError && (
@@ -126,22 +117,22 @@ export default function MonthlyEmployeeStatsSection({
         )}
 
         {!isLoading && !isError && (
-          <div className="overflow-x-auto rounded border border-gray-200">
+          <div className="overflow-x-auto rounded border border-[#FFCC00]">
             <table className="w-full border-collapse text-xs">
               <thead>
                 <tr className="bg-black text-white">
-                  <th className="sticky left-0 z-10 min-w-[220px] bg-black px-3 py-2 text-left font-semibold">
+                  <th className="sticky left-0 z-10 min-w-[220px] border-r border-[#FFCC00] bg-black px-3 py-2 text-left font-semibold">
                     Total Monthly Employee Stats — {year}
                   </th>
                   {MONTHS.map((m) => (
                     <th
                       key={m}
-                      className="min-w-[70px] px-2 py-2 text-center font-semibold"
+                      className="min-w-[70px] border-r border-[#FFCC00] px-2 py-2 text-center font-semibold"
                     >
                       {m} {year}
                     </th>
                   ))}
-                  <th className="min-w-[60px] bg-black px-2 py-2 text-center font-bold text-[#FFCC00]">
+                  <th className="min-w-[60px] bg-black px-2 py-2 text-center font-bold text-white">
                     Total
                   </th>
                 </tr>
@@ -150,10 +141,10 @@ export default function MonthlyEmployeeStatsSection({
                 {displayData.map((row, idx) => (
                   <tr
                     key={idx}
-                    className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                    className={`border-t border-[#FFCC00] ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
                   >
                     <td
-                      className="sticky left-0 z-10 min-w-[220px] border-r border-gray-200 px-3 py-1.5 text-left text-xs font-medium text-gray-800"
+                      className="sticky left-0 z-10 min-w-[220px] border-r border-[#FFCC00] px-3 py-1.5 text-left text-xs font-medium text-gray-800"
                       style={{
                         backgroundColor:
                           idx % 2 === 0 ? "white" : "rgb(249 250 251)",
@@ -164,7 +155,7 @@ export default function MonthlyEmployeeStatsSection({
                     {row.monthly.map((val, mIdx) => (
                       <td
                         key={mIdx}
-                        className={`px-2 py-1.5 text-center ${
+                        className={`border-r border-[#FFCC00] px-2 py-1.5 text-center ${
                           val > 0
                             ? "font-semibold text-amber-700"
                             : "text-gray-300"
@@ -178,23 +169,6 @@ export default function MonthlyEmployeeStatsSection({
                     </td>
                   </tr>
                 ))}
-                {/* Grand Total Row */}
-                <tr className="bg-[#FFCC00] font-bold">
-                  <td className="sticky left-0 z-10 min-w-[220px] bg-[#FFCC00] px-3 py-2 text-left text-xs font-bold text-black">
-                    TOTAL
-                  </td>
-                  {grandTotalMonthly.map((val, mIdx) => (
-                    <td
-                      key={mIdx}
-                      className="px-2 py-2 text-center text-xs font-bold text-black"
-                    >
-                      {val > 0 ? val : "—"}
-                    </td>
-                  ))}
-                  <td className="px-2 py-2 text-center text-sm font-bold text-black">
-                    {grandTotal > 0 ? grandTotal : "—"}
-                  </td>
-                </tr>
               </tbody>
             </table>
           </div>
