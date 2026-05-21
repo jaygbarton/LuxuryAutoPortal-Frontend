@@ -3,7 +3,7 @@
  * Tries /api/me/work-schedule (returns a list of shifts for the chosen month);
  * falls back to an empty calendar grid if the endpoint isn't available yet.
  */
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
@@ -87,99 +87,100 @@ export default function MyWorkScheduleSection() {
         subtitle="Your assigned shifts for the selected month."
       />
 
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-base font-semibold text-gray-900">{monthLabel}</p>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="my-sched-month" className="text-sm font-medium shrink-0">
-              Month
-            </Label>
-            <Input
-              id="my-sched-month"
-              type="month"
-              value={month}
-              onChange={(e) => setMonth(e.target.value)}
-              className="w-44"
-            />
-          </div>
-        </div>
+      <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
+        <Label htmlFor="my-sched-month" className="text-sm font-medium shrink-0">
+          Month
+        </Label>
+        <Input
+          id="my-sched-month"
+          type="month"
+          value={month}
+          onChange={(e) => setMonth(e.target.value)}
+          className="w-44"
+        />
+      </div>
 
-        {isLoading ? (
-          <div className="space-y-2 p-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-16 animate-pulse rounded bg-gray-100" />
-            ))}
-          </div>
-        ) : (
-          <div className="overflow-auto rounded border border-gray-200">
-            <table className="w-full table-fixed border-collapse">
-              <thead>
-                <tr>
-                  {WEEK_DAYS.map((d) => (
-                    <th
-                      key={d}
-                      className="w-[14.2857%] border-b border-gray-200 bg-gray-100 px-2 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-600"
-                    >
-                      {d}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {weeks.map((weekNum) => {
-                  const weekRow = getWeekRow(dayCells, weekNum);
-                  return (
-                    <tr key={weekNum}>
+      {isLoading ? (
+        <div className="space-y-2 p-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-16 animate-pulse rounded bg-gray-100" />
+          ))}
+        </div>
+      ) : (
+        <div className="overflow-auto">
+          <table className="w-full table-fixed border-collapse">
+            <thead>
+              <tr>
+                <th
+                  colSpan={7}
+                  className="bg-black px-3 py-2 text-center text-sm font-bold uppercase text-[#FFCC00]"
+                >
+                  {monthLabel}
+                </th>
+              </tr>
+              <tr className="bg-black">
+                {WEEK_DAYS.map((d) => (
+                  <th
+                    key={d}
+                    className="w-[14.2857%] px-2 py-2 text-center text-xs font-bold uppercase tracking-wide text-white"
+                  >
+                    {d}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {weeks.map((weekNum) => {
+                const weekRow = getWeekRow(dayCells, weekNum);
+                return (
+                  <Fragment key={weekNum}>
+                    {/* Day-number row — solid yellow */}
+                    <tr className="bg-[#FFCC00]">
+                      {weekRow.map((cell, idx) => (
+                        <td
+                          key={`num-${weekNum}-${idx}`}
+                          className="w-[14.2857%] px-2 py-2 text-center text-sm font-bold text-black"
+                        >
+                          {cell.day === 0 ? "" : cell.day}
+                        </td>
+                      ))}
+                    </tr>
+                    {/* Shift row — white */}
+                    <tr className="bg-white">
                       {weekRow.map((cell, idx) => {
                         const myShifts = cell.originalDateCode
                           ? shiftsByCode[cell.originalDateCode] ?? []
                           : [];
-                        const isEmptyCell = cell.day === 0;
-
                         return (
                           <td
-                            key={cell.originalDateCode || `w${weekNum}-${idx}`}
-                            className={`w-[14.2857%] border-b border-r border-gray-200 p-2 align-top last:border-r-0 ${
-                              isEmptyCell ? "bg-gray-50" : ""
-                            }`}
+                            key={`shift-${weekNum}-${idx}`}
+                            className="w-[14.2857%] px-2 py-2 align-top text-center text-xs text-gray-800"
                           >
-                            {!isEmptyCell && (
-                              <div className="min-h-[5.5rem] space-y-1">
-                                <span className="inline-flex h-6 w-6 items-center justify-center text-xs font-bold text-gray-700">
-                                  {cell.day}
-                                </span>
-                                {myShifts.map((s) => (
-                                  <div
-                                    key={s.work_sched_aid}
-                                    className="rounded-md border border-[#d3bc8d]/40 bg-[#d3bc8d]/15 px-1.5 py-1"
-                                  >
-                                    <div className="truncate text-[11px] font-semibold text-gray-800">
-                                      {s.fullname ?? "Shift"}
-                                    </div>
-                                    <div className="truncate text-[10px] text-gray-600">
-                                      {fmtTime(s.work_sched_start_time)} - {fmtTime(s.work_sched_end_time)}
-                                    </div>
-                                  </div>
-                                ))}
+                            {myShifts.map((s) => (
+                              <div key={s.work_sched_aid}>
+                                <div className="font-semibold">{s.fullname ?? ""}</div>
+                                <div className="text-gray-600">
+                                  {fmtTime(s.work_sched_start_time)} - {fmtTime(s.work_sched_end_time)}
+                                </div>
                               </div>
-                            )}
+                            ))}
                           </td>
                         );
                       })}
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-        {!isLoading && shifts.length === 0 && (
-          <p className="mt-3 text-center text-xs italic text-gray-400">
-            No shifts assigned for this month.
-          </p>
-        )}
-      </div>
+      {!isLoading && shifts.length === 0 && (
+        <p className="mt-3 text-center text-xs italic text-gray-400">
+          No shifts assigned for this month.
+        </p>
+      )}
     </div>
   );
 }

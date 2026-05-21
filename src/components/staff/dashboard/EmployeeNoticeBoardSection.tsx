@@ -79,12 +79,12 @@ export default function EmployeeNoticeBoardSection() {
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#d3bc8d]" />
         </div>
       ) : notices.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-center">
+        <div className="mx-auto max-w-2xl border-y-4 border-[#FFCC00] bg-white p-6 text-center">
           <p className="text-sm text-gray-500">No active notices at the moment.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {notices.map((n) => {
+        <div className="mx-auto max-w-2xl border-y-4 border-[#FFCC00] bg-white p-6">
+          {notices.map((n, idx) => {
             const catColor =
               categoryColors[n.notice_board_category ?? ""] ?? "bg-gray-100 text-gray-600";
             const priColor =
@@ -92,9 +92,9 @@ export default function EmployeeNoticeBoardSection() {
             return (
               <div
                 key={n.notice_board_aid}
-                className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                className={`text-center ${idx > 0 ? "mt-4 pt-4 border-t border-[#FFCC00]/60" : ""}`}
               >
-                <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                <div className="mb-2 flex flex-wrap items-center justify-center gap-1.5">
                   {n.notice_board_category && (
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${catColor}`}>
                       {n.notice_board_category}

@@ -6,6 +6,15 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
 import {
@@ -47,25 +56,22 @@ function parseAmount(v: unknown): number {
 }
 
 function periodLabel(row: PayslipRow): string {
+  // Spec format: "Mon DD - Mon DD, YYYY"
   if (row.payrun_date_from && row.payrun_date_to) {
-    try {
-      const from = new Date(row.payrun_date_from);
-      const to = new Date(row.payrun_date_to);
-      if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
-        const fromStr = from.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
-        const toStr = to.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
-        return `${fromStr} - ${toStr}`;
-      }
-    } catch {
-      /* fall through */
+    const from = new Date(row.payrun_date_from);
+    const to = new Date(row.payrun_date_to);
+    if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
+      const fromStr = from.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
+      const toStr = to.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
+      const yearStr = to.getFullYear();
+      return `${fromStr} - ${toStr}, ${yearStr}`;
     }
   }
   if (row.payrun_list_created) {
-    try {
-      const d = new Date(row.payrun_list_created);
-      return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-    } catch {
-      /* ignore */
+    const d = new Date(row.payrun_list_created);
+    if (!isNaN(d.getTime())) {
+      const dStr = d.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
+      return `${dStr}, ${d.getFullYear()}`;
     }
   }
   return row.payrun_number ?? "—";
@@ -165,85 +171,109 @@ export default function EarningsHistorySection() {
           <Loader2 className="h-8 w-8 animate-spin text-[#d3bc8d]" />
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* TOTAL EARNINGS — monthly totals (LEFT, matches PDF) */}
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <h3 className="mb-3 text-sm font-bold uppercase text-gray-700">
-              Total Earnings — {year}
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-black text-white">
-                    <th className="px-3 py-2 text-left font-semibold">Month and Year</th>
-                    <th className="px-3 py-2 text-right font-semibold">Earnings</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {monthly.map((amt, i) => (
-                    <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                      <td className="px-3 py-2 text-gray-800">
-                        {MONTHS[i]} {year}
-                      </td>
-                      <td
-                        className={`px-3 py-2 text-right font-mono ${
-                          amt > 0 ? "text-gray-900" : "text-gray-300"
-                        }`}
-                      >
-                        {amt > 0 ? fmt$(amt) : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                  <tr className="bg-[#d3bc8d] font-bold">
-                    <td className="px-3 py-2 text-black">TOTAL</td>
-                    <td className="px-3 py-2 text-right font-mono text-black">
-                      {fmt$(monthlyTotal)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* PAY PERIOD — bi-weekly payslips (RIGHT, matches PDF) */}
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <h3 className="mb-3 text-sm font-bold uppercase text-gray-700">
-              Pay Period — {year}
-            </h3>
-            {periodRows.length === 0 ? (
-              <p className="py-4 text-center text-sm text-gray-500">
-                No payslips recorded for {year}.
-              </p>
-            ) : (
+        <>
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* TOTAL EARNINGS — monthly totals (LEFT) */}
+            <div>
+              <h3 className="mb-3 text-sm font-bold uppercase text-gray-700">
+                Total Earnings — {year}
+              </h3>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full border-y border-[#FFCC00] border-collapse text-sm">
                   <thead>
-                    <tr className="bg-black text-white">
-                      <th className="px-3 py-2 text-left font-semibold">Month and Year</th>
-                      <th className="px-3 py-2 text-right font-semibold">Earnings</th>
+                    <tr className="bg-black border-y border-[#FFCC00]">
+                      <th className="px-3 py-2 text-center text-xs font-bold uppercase text-white">Month and Year</th>
+                      <th className="px-3 py-2 text-center text-xs font-bold uppercase text-white">Earnings</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {periodRows.map((r, i) => (
-                      <tr key={r.payrun_list_aid} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                        <td className="px-3 py-2 text-gray-800">{periodLabel(r)}</td>
-                        <td className="px-3 py-2 text-right font-mono text-gray-900">
-                          {fmt$(parseAmount(r.payrun_list_net))}
+                    {monthly.map((amt, i) => (
+                      <tr key={i} className="bg-white border-y border-[#FFCC00]">
+                        <td className="px-3 py-2 text-center">
+                          <span className="inline-block rounded-full bg-gray-100 px-3 py-0.5 text-xs font-medium text-black">
+                            {MONTHS[i]} {year}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-center font-mono text-black">
+                          {amt > 0 ? fmt$(amt) : "—"}
                         </td>
                       </tr>
                     ))}
-                    <tr className="bg-[#d3bc8d] font-bold">
-                      <td className="px-3 py-2 text-black">TOTAL</td>
-                      <td className="px-3 py-2 text-right font-mono text-black">
-                        {fmt$(periodTotal)}
-                      </td>
+                    <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
+                      <td className="px-3 py-2 text-center text-black">TOTAL</td>
+                      <td className="px-3 py-2 text-center font-mono text-black">{fmt$(monthlyTotal)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-            )}
+            </div>
+
+            {/* PAY PERIOD — bi-weekly payslips (RIGHT) */}
+            <div>
+              <h3 className="mb-3 text-sm font-bold uppercase text-gray-700">
+                Pay Period — {year}
+              </h3>
+              {periodRows.length === 0 ? (
+                <p className="py-4 text-center text-sm text-gray-500">
+                  No payslips recorded for {year}.
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-y border-[#FFCC00] border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-black border-y border-[#FFCC00]">
+                        <th className="px-3 py-2 text-center text-xs font-bold uppercase text-white">Month and Year</th>
+                        <th className="px-3 py-2 text-center text-xs font-bold uppercase text-white">Earnings</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {periodRows.map((r) => (
+                        <tr key={r.payrun_list_aid} className="bg-white border-y border-[#FFCC00]">
+                          <td className="px-3 py-2 text-center text-black">{periodLabel(r)}</td>
+                          <td className="px-3 py-2 text-center font-mono text-black">
+                            {fmt$(parseAmount(r.payrun_list_net))}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
+                        <td className="px-3 py-2 text-center text-black">TOTAL</td>
+                        <td className="px-3 py-2 text-center font-mono text-black">{fmt$(periodTotal)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+
+          {/* Earnings trend line chart */}
+          <div className="mt-6 bg-white">
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart
+                data={monthly.map((amt, i) => ({ month: `${MONTHS[i]} ${year}`, Earnings: amt }))}
+                margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid stroke="#E8E8E8" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#000000" }} axisLine={false} tickLine={false} />
+                <YAxis
+                  tick={{ fontSize: 12, fill: "#6B6B6B" }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v: number) => `$${v.toLocaleString()}`}
+                />
+                <Tooltip formatter={(v: number) => fmt$(v)} />
+                <Line
+                  type="linear"
+                  dataKey="Earnings"
+                  stroke="#E8C547"
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: "#E8C547", stroke: "#E8C547" }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </>
       )}
     </div>
   );

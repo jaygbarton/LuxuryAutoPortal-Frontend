@@ -21,28 +21,27 @@
  * persisted in localStorage.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
-import { buildApiUrl } from "@/lib/queryClient";
 import {
   EmployeeProfileSection,
   CommissionsSection,
   EarningsHistorySection,
+  LoggedHoursSection,
   MyPickupDropoffSection,
   MyTuroInspectionsSection,
   MyCarIssuesSection,
   MyMaintenanceSection,
-  MyOperationsSection,
   MyTasksSection,
   MyWorkScheduleSection,
   MyEmployeeStatsSection,
   MyMonthlyStatsSection,
   EmployeeNoticeBoardSection,
 } from "@/components/staff/dashboard";
+import { SectionHeader } from "@/components/admin/dashboard";
 import { Filter, ChevronDown } from "lucide-react";
 
-const STORAGE_KEY = "gla-staff-dashboard-sections-v5";
+const STORAGE_KEY = "gla-staff-dashboard-sections-v6";
 
 interface SectionDef {
   id: string;
@@ -50,20 +49,19 @@ interface SectionDef {
 }
 
 const ALL_SECTIONS: SectionDef[] = [
-  // Primary sections — matches PDF order exactly
+  // Primary sections — matches spec order
   { id: "earnings", label: "Total Earnings / Pay Period" },
   { id: "commissions", label: "Commissions" },
-  { id: "operations", label: "Operations" },
-  { id: "pickup-dropoff", label: "Pick Up & Drop Off" },
+  { id: "my-work-schedule", label: "Work Schedule" },
+  { id: "logged-hours", label: "Logged Hours History" },
+  { id: "operations", label: "Operations / Pick Up & Drop Off" },
   { id: "turo-inspections", label: "Turo Messages / Inspections" },
   { id: "car-issues", label: "Car Issues / Inspections" },
   { id: "maintenance", label: "Maintenance" },
   { id: "my-tasks", label: "Task Management" },
   { id: "notice-board", label: "Notice Board" },
-  { id: "my-stats-daily", label: "Employee Stats (Daily)" },
-  { id: "my-stats-monthly", label: "Employee Stats (Monthly)" },
-  // Additional sections at end
-  { id: "my-work-schedule", label: "Work Schedule" },
+  { id: "my-stats-daily", label: "Employee Stats Report (Individual)" },
+  { id: "my-stats-monthly", label: "Monthly Employee Stats Report (Individual)" },
 ];
 
 const ALL_IDS = ALL_SECTIONS.map((s) => s.id);
@@ -109,36 +107,10 @@ export default function StaffDashboard() {
     [visible]
   );
 
-  const { data: userData } = useQuery<{
-    user?: { firstName?: string; lastName?: string };
-  }>({
-    queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const r = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-      if (!r.ok) return { user: undefined };
-      return r.json();
-    },
-    retry: false,
-    staleTime: 5 * 60 * 1000,
-  });
-  const greeting =
-    `${userData?.user?.firstName ?? ""}`.trim() ||
-    `${userData?.user?.lastName ?? ""}`.trim() ||
-    "there";
-
   return (
     <AdminLayout>
       <div className="min-h-screen bg-background">
-        {/* Header banner */}
-        <div className="mb-6 border-b border-gray-200 bg-white px-4 py-5 sm:px-6">
-          <h1 className="text-2xl font-semibold text-[#B8860B]">Dashboard</h1>
-          <p className="mt-0.5 text-sm text-gray-600">
-            Welcome back, <span className="font-medium text-gray-900">{greeting}</span>. Here&apos;s
-            your activity overview.
-          </p>
-        </div>
-
-        <div className="space-y-4 px-4 sm:px-6">
+        <div className="space-y-4 px-4 pt-6 sm:px-6">
           {/* Profile banner — always visible */}
           <EmployeeProfileSection />
 
@@ -197,12 +169,18 @@ export default function StaffDashboard() {
             )}
           </div>
 
-          {/* Sections — matches PDF order exactly */}
+          {/* Sections — matches spec order */}
           <div className="flex flex-col gap-2 pt-2">
             {show["earnings"] && <EarningsHistorySection />}
             {show["commissions"] && <CommissionsSection />}
-            {show["operations"] && <MyOperationsSection />}
-            {show["pickup-dropoff"] && <MyPickupDropoffSection />}
+            {show["my-work-schedule"] && <MyWorkScheduleSection />}
+            {show["logged-hours"] && <LoggedHoursSection />}
+            {show["operations"] && (
+              <div>
+                <SectionHeader title="OPERATIONS" />
+                <MyPickupDropoffSection />
+              </div>
+            )}
             {show["turo-inspections"] && <MyTuroInspectionsSection />}
             {show["car-issues"] && <MyCarIssuesSection />}
             {show["maintenance"] && <MyMaintenanceSection />}
@@ -210,7 +188,6 @@ export default function StaffDashboard() {
             {show["notice-board"] && <EmployeeNoticeBoardSection />}
             {show["my-stats-daily"] && <MyEmployeeStatsSection />}
             {show["my-stats-monthly"] && <MyMonthlyStatsSection />}
-            {show["my-work-schedule"] && <MyWorkScheduleSection />}
 
             {noneSelected && (
               <div className="py-20 text-center text-gray-400">

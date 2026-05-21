@@ -223,7 +223,7 @@ export default function LoggedHoursSection() {
         {/* Filters */}
         <div className="mb-4 flex flex-wrap items-end gap-3">
           <div>
-            <Label className="text-xs text-gray-500">From</Label>
+            <Label className="text-xs text-black">From</Label>
             <Input
               type="date"
               value={from}
@@ -232,7 +232,7 @@ export default function LoggedHoursSection() {
             />
           </div>
           <div>
-            <Label className="text-xs text-gray-500">To</Label>
+            <Label className="text-xs text-black">To</Label>
             <Input
               type="date"
               value={to}
@@ -258,82 +258,82 @@ export default function LoggedHoursSection() {
             <Loader2 className="h-8 w-8 animate-spin text-[#d3bc8d]" />
           </div>
         ) : rows.length === 0 ? (
-          <p className="py-8 text-center text-sm text-gray-500">
+          <p className="py-8 text-center text-sm text-black">
             No logged hours in this date range.
           </p>
         ) : (
-          <div className="overflow-x-auto rounded border border-gray-200">
-            <table className="w-full text-xs">
-              <thead className="bg-black text-white">
+          <div className="overflow-x-auto">
+            <table className="w-full border-y border-[#FFCC00] border-collapse text-xs">
+              <thead className="bg-black border-y border-[#FFCC00]">
                 <tr>
-                  <th className="px-3 py-2 text-left font-semibold">Time in</th>
-                  <th className="px-3 py-2 text-left font-semibold">Break Out</th>
-                  <th className="px-3 py-2 text-left font-semibold">Break In</th>
-                  <th className="px-3 py-2 text-center font-semibold">Total Break</th>
-                  <th className="px-3 py-2 text-left font-semibold">Time Out</th>
-                  <th className="px-3 py-2 text-right font-semibold">Rate</th>
-                  <th className="px-3 py-2 text-right font-semibold text-[#d3bc8d]">Amount</th>
+                  <th className="px-3 py-2 text-center font-bold uppercase text-white">Time in</th>
+                  <th className="px-3 py-2 text-center font-bold uppercase text-white">Break Out</th>
+                  <th className="px-3 py-2 text-center font-bold uppercase text-white">Break In</th>
+                  <th className="px-3 py-2 text-center font-bold uppercase text-white">Total Break</th>
+                  <th className="px-3 py-2 text-center font-bold uppercase text-white">Time Out</th>
+                  <th className="px-3 py-2 text-center font-bold uppercase text-white">Rate</th>
+                  <th className="px-3 py-2 text-center font-bold uppercase text-[#FFCC00]">Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r, i) => {
                   const amt = r.workedHours * rate;
                   return (
-                    <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                      <td className="px-3 py-2">
-                        <div className="font-medium text-gray-900">{utahDate(r.timeIn)}</div>
-                        <div className="text-gray-500">{utahTime(r.timeIn)}</div>
+                    <tr key={i} className="bg-white border-y border-[#FFCC00]">
+                      <td className="px-3 py-2 text-center">
+                        <div className="font-medium text-black">{utahDate(r.timeIn)}</div>
+                        <div className="text-black">{utahTime(r.timeIn)}</div>
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 text-center">
                         {r.breakOut ? (
                           <>
-                            <div className="text-gray-700">{utahDate(r.breakOut)}</div>
-                            <div className="text-gray-500">{utahTime(r.breakOut)}</div>
+                            <div className="text-black">{utahDate(r.breakOut)}</div>
+                            <div className="text-black">{utahTime(r.breakOut)}</div>
                           </>
                         ) : (
-                          <span className="text-gray-300">—</span>
+                          <span className="text-black">—</span>
                         )}
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 text-center">
                         {r.breakIn ? (
                           <>
-                            <div className="text-gray-700">{utahDate(r.breakIn)}</div>
-                            <div className="text-gray-500">{utahTime(r.breakIn)}</div>
+                            <div className="text-black">{utahDate(r.breakIn)}</div>
+                            <div className="text-black">{utahTime(r.breakIn)}</div>
                           </>
                         ) : (
-                          <span className="text-gray-300">—</span>
+                          <span className="text-black">—</span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-center font-mono text-gray-700">
+                      <td className="px-3 py-2 text-center font-mono text-black">
                         {formatHM(r.totalBreakHours)}
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 text-center">
                         {r.timeOut ? (
                           <>
-                            <div className="text-gray-700">{utahDate(r.timeOut)}</div>
-                            <div className="text-gray-500">{utahTime(r.timeOut)}</div>
+                            <div className="text-black">{utahDate(r.timeOut)}</div>
+                            <div className="text-black">{utahTime(r.timeOut)}</div>
                           </>
                         ) : (
                           <span className="font-medium text-emerald-600">In progress</span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-right font-mono text-gray-700">
+                      <td className="px-3 py-2 text-center font-mono text-black">
                         ${rate.toFixed(2)}
                       </td>
-                      <td className="px-3 py-2 text-right font-bold text-gray-900">
+                      <td className="px-3 py-2 text-center font-bold text-black">
                         ${amt.toFixed(2)}
                       </td>
                     </tr>
                   );
                 })}
-                <tr className="bg-[#d3bc8d] font-bold">
-                  <td className="px-3 py-2" colSpan={3}>
+                <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
+                  <td className="px-3 py-2 text-center text-black" colSpan={3}>
                     TOTAL
                   </td>
                   <td className="px-3 py-2 text-center font-mono text-black">—</td>
-                  <td className="px-3 py-2 text-black">{formatHM(totalWorked)} worked</td>
-                  <td className="px-3 py-2 text-right text-black">—</td>
-                  <td className="px-3 py-2 text-right text-black">${totalAmount.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-center text-black">{formatHM(totalWorked)} worked</td>
+                  <td className="px-3 py-2 text-center text-black">—</td>
+                  <td className="px-3 py-2 text-center text-black">${totalAmount.toFixed(2)}</td>
                 </tr>
               </tbody>
             </table>

@@ -5,7 +5,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { EmployeeDocumentImage } from "@/components/admin/EmployeeDocumentImage";
-import { Image, Mail, MapPin, Phone, ShieldCheck, DollarSign } from "lucide-react";
+import { Image, Mail, Phone, ShieldCheck, DollarSign } from "lucide-react";
+import { NewsMediaSlot } from "@/pages/client/_components/NewsMediaSlot";
 
 interface MeEmployeeResponse {
   success: boolean;
@@ -49,6 +50,19 @@ export default function EmployeeProfileSection() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Admin-uploaded media (same source as /admin/dashboard)
+  const { data: newsDashboardData } = useQuery<{ success: boolean; slot1: any[]; slot2: any[] }>({
+    queryKey: ["/api/news-media/dashboard"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/news-media/dashboard"), { credentials: "include" });
+      if (!res.ok) return { success: false, slot1: [], slot2: [] };
+      return res.json();
+    },
+    retry: false,
+  });
+  const newsSlot1Items = newsDashboardData?.slot1 ?? [];
+  const newsSlot2Items = newsDashboardData?.slot2 ?? [];
+
   if (isLoading) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
@@ -79,9 +93,10 @@ export default function EmployeeProfileSection() {
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-center">
-        {/* Personal info */}
-        <div className="min-w-0 lg:col-span-4">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
+        {/* Column 1 — Info + Photo */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1">
           <div className="space-y-0.5 text-sm text-gray-800">
             <div>
               <span className="font-semibold">First Name:</span>{" "}
@@ -147,7 +162,7 @@ export default function EmployeeProfileSection() {
         </div>
 
         {/* Logo + avatar + role */}
-        <div className="flex flex-col items-center gap-2 lg:col-span-2">
+        <div className="flex flex-shrink-0 flex-col items-center gap-2">
           <img
             src="/logo.png"
             alt="Golden Luxury Auto"
@@ -173,33 +188,28 @@ export default function EmployeeProfileSection() {
             </span>
           )}
         </div>
-
-        {/* Company photo */}
-        <div className="lg:col-span-3">
-          <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
-            <img
-              src="/company-photo.png"
-              alt="Golden Luxury Auto dealership"
-              className="aspect-video w-full object-cover"
-            />
-          </div>
         </div>
 
-        {/* Monthly update YouTube video */}
-        <div className="lg:col-span-3">
-          <div className="overflow-hidden rounded-lg border border-gray-200 bg-black shadow-sm">
-            <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
-              <iframe
-                className="absolute inset-0 h-full w-full"
-                src="https://www.youtube.com/embed/jsdo0yDeFCs?si=Le_SJZ8P7cqyx2Bn"
-                title="Golden Luxury Auto Monthly Update"
-                frameBorder={0}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerPolicy="strict-origin-when-cross-origin"
-                allowFullScreen
-              />
+        {/* News & Media Slot 1 — admin-uploaded media (synced with /admin/dashboard) */}
+        <div>
+          {newsSlot1Items.length > 0 ? (
+            <NewsMediaSlot slot={1} items={newsSlot1Items} />
+          ) : (
+            <div className="flex h-full min-h-[200px] w-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 text-center text-xs text-gray-500">
+              No media uploaded for Slot 1.
             </div>
-          </div>
+          )}
+        </div>
+
+        {/* News & Media Slot 2 — admin-uploaded media (synced with /admin/dashboard) */}
+        <div>
+          {newsSlot2Items.length > 0 ? (
+            <NewsMediaSlot slot={2} items={newsSlot2Items} />
+          ) : (
+            <div className="flex h-full min-h-[200px] w-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 text-center text-xs text-gray-500">
+              No media uploaded for Slot 2.
+            </div>
+          )}
         </div>
       </div>
 

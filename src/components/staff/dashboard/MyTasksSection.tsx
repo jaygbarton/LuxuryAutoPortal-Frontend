@@ -25,27 +25,22 @@ function fmtDate(s: string | undefined): string {
   return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
 }
 
-function statusBadge(status: number | undefined) {
+function statusLabel(status: number | undefined): string {
   const s = Number(status);
-  if (s === 1) {
-    return (
-      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-        Completed
-      </span>
-    );
+  if (s === 1) return "Completed";
+  if (s === 2) return "In-Progress";
+  return "Not Started";
+}
+
+function parseAssignees(empList: string | undefined): string {
+  if (!empList) return "—";
+  try {
+    const parsed: unknown = JSON.parse(empList);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed.join(", ");
+  } catch {
+    /* not JSON */
   }
-  if (s === 2) {
-    return (
-      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
-        In-Progress
-      </span>
-    );
-  }
-  return (
-    <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
-      Not Started
-    </span>
-  );
+  return "—";
 }
 
 export default function MyTasksSection() {
@@ -65,58 +60,56 @@ export default function MyTasksSection() {
 
   return (
     <div className="mb-8">
-      <SectionHeader title="MY TASKS" subtitle="Tasks assigned to you." />
+      <SectionHeader title="TASK MANAGEMENT" subtitle="Tasks assigned to you." />
 
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-[#d3bc8d]" />
-          </div>
-        ) : tasks.length === 0 ? (
-          <p className="py-8 text-center text-sm text-gray-500">No tasks assigned.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-black text-white">
-                  <th className="px-3 py-2 text-left font-semibold">Date</th>
-                  <th className="px-3 py-2 text-left font-semibold">Task Description</th>
-                  <th className="px-3 py-2 text-left font-semibold">Due Date</th>
-                  <th className="px-3 py-2 text-center font-semibold">Status</th>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-[#d3bc8d]" />
+        </div>
+      ) : tasks.length === 0 ? (
+        <p className="py-8 text-center text-sm text-gray-500">No tasks assigned.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-y border-[#FFCC00] border-collapse text-sm">
+            <thead>
+              <tr className="bg-black border-y border-[#FFCC00]">
+                <th className="px-3 py-2 text-center font-bold uppercase text-white">Assigned To:</th>
+                <th className="px-3 py-2 text-center font-bold uppercase text-white">Date</th>
+                <th className="px-3 py-2 text-center font-bold uppercase text-white">Task Description</th>
+                <th className="px-3 py-2 text-center font-bold uppercase text-white">Due Date</th>
+                <th className="px-3 py-2 text-center font-bold uppercase text-white">Repeat</th>
+                <th className="px-3 py-2 text-center font-bold uppercase text-white">Assignee</th>
+                <th className="px-3 py-2 text-center font-bold uppercase text-white">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.map((t, i) => (
+                <tr key={String(t.task_timer_aid ?? i)} className="bg-white border-y border-[#FFCC00]">
+                  <td className="px-3 py-2 text-center text-black">{parseAssignees(t.task_timer_emp_list)}</td>
+                  <td className="px-3 py-2 text-center text-black">{fmtDate(t.task_timer_date_start)}</td>
+                  <td className="px-3 py-2 text-center text-black">
+                    {t.task_timer_name ?? "—"}
+                  </td>
+                  <td className="px-3 py-2 text-center text-black">{fmtDate(t.task_timer_date_end)}</td>
+                  <td className="px-3 py-2 text-center text-black">None</td>
+                  <td className="px-3 py-2 text-center text-black">—</td>
+                  <td className="px-3 py-2 text-center text-black">{statusLabel(t.task_timer_status)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {tasks.map((t, i) => (
-                  <tr
-                    key={String(t.task_timer_aid ?? i)}
-                    className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                  >
-                    <td className="px-3 py-2 text-gray-700">{fmtDate(t.task_timer_date_start)}</td>
-                    <td className="px-3 py-2 text-gray-900">
-                      <div className="font-medium">{t.task_timer_name ?? "Untitled task"}</div>
-                      {t.task_timer_car_name && (
-                        <div className="text-xs text-gray-500">{t.task_timer_car_name}</div>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-gray-700">{fmtDate(t.task_timer_date_end)}</td>
-                    <td className="px-3 py-2 text-center">{statusBadge(t.task_timer_status)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {all.length > tasks.length && (
-              <div className="mt-3 text-center">
-                <Link
-                  href="/staff/task-management"
-                  className="text-sm font-medium text-[#B8860B] hover:underline"
-                >
-                  View all {all.length} tasks →
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+              ))}
+            </tbody>
+          </table>
+          {all.length > tasks.length && (
+            <div className="mt-3 text-center">
+              <Link
+                href="/staff/task-management"
+                className="text-sm font-medium text-[#B8860B] hover:underline"
+              >
+                View all {all.length} tasks →
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

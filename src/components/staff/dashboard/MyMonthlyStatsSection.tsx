@@ -2,17 +2,9 @@
  * My Monthly Stats — annual breakdown by month for the current employee.
  * Tries /api/me/employee-stats/monthly first; falls back to empty grid.
  */
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface MonthlyCategoryStat {
   category: string;
@@ -49,13 +41,9 @@ const TASK_CATEGORIES = [
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const currentYear = new Date().getFullYear();
-const YEAR_OPTIONS = Array.from(
-  { length: currentYear + 1 - 2023 + 1 },
-  (_, i) => String(2023 + i)
-);
 
 export default function MyMonthlyStatsSection() {
-  const [year, setYear] = useState(String(currentYear));
+  const year = String(currentYear);
 
   const { data, isLoading } = useQuery<MonthlyStatsResponse>({
     queryKey: ["/api/me/employee-stats/monthly", year],
@@ -95,89 +83,63 @@ export default function MyMonthlyStatsSection() {
         subtitle="Your activity totals by month for the selected year."
       />
 
-      <div className="bg-white px-4 py-4">
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium text-gray-700">Year:</span>
-          <Select value={year} onValueChange={setYear}>
-            <SelectTrigger className="w-[120px] border-gray-300 bg-white text-black">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="border-gray-200 bg-white text-black">
-              {YEAR_OPTIONS.map((y) => (
-                <SelectItem key={y} value={y}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {isLoading ? (
+        <div className="space-y-2 p-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-6 animate-pulse rounded bg-gray-200" />
+          ))}
         </div>
-
-        {isLoading ? (
-          <div className="space-y-2 p-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-6 animate-pulse rounded bg-gray-200" />
-            ))}
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded border border-gray-200">
-            <table className="w-full border-collapse text-xs">
-              <thead>
-                <tr className="bg-black text-white">
-                  <th className="sticky left-0 z-10 min-w-[220px] bg-black px-3 py-2 text-left font-semibold">
-                    Total Monthly Stats — {year}
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-y border-[#FFCC00] border-collapse text-xs">
+            <thead>
+              <tr className="bg-black border-y border-[#FFCC00]">
+                <th className="sticky left-0 z-10 min-w-[220px] bg-black px-3 py-2 text-left font-bold uppercase text-white">
+                  Employee Stats - {year}
+                </th>
+                {MONTHS.map((m) => (
+                  <th key={m} className="min-w-[70px] px-2 py-2 text-center font-bold text-white">
+                    {m} {year}
                   </th>
-                  {MONTHS.map((m) => (
-                    <th key={m} className="min-w-[70px] px-2 py-2 text-center font-semibold">
-                      {m} {year}
-                    </th>
-                  ))}
-                  <th className="min-w-[60px] bg-black px-2 py-2 text-center font-bold text-[#d3bc8d]">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayData.map((row, idx) => (
-                  <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                    <td
-                      className="sticky left-0 z-10 min-w-[220px] border-r border-gray-200 px-3 py-1.5 text-left text-xs font-medium text-gray-800"
-                      style={{ backgroundColor: idx % 2 === 0 ? "white" : "rgb(249 250 251)" }}
-                    >
-                      {row.category}
-                    </td>
-                    {row.monthly.map((val, mIdx) => (
-                      <td
-                        key={mIdx}
-                        className={`px-2 py-1.5 text-center ${
-                          val > 0 ? "font-semibold text-amber-700" : "text-gray-300"
-                        }`}
-                      >
-                        {val > 0 ? val : "—"}
-                      </td>
-                    ))}
-                    <td className="px-2 py-1.5 text-center font-bold text-black">
-                      {row.total > 0 ? row.total : "—"}
-                    </td>
-                  </tr>
                 ))}
-                <tr className="bg-[#d3bc8d] font-bold">
-                  <td className="sticky left-0 z-10 min-w-[220px] bg-[#d3bc8d] px-3 py-2 text-left text-xs font-bold text-black">
-                    TOTAL
+                <th className="min-w-[60px] bg-black px-2 py-2 text-center font-bold text-[#FFCC00]">
+                  Total
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayData.map((row, idx) => (
+                <tr key={idx} className="bg-white border-y border-[#FFCC00]">
+                  <td className="sticky left-0 z-10 min-w-[220px] bg-white px-3 py-1.5 text-left text-xs font-medium text-black">
+                    {row.category}
                   </td>
-                  {grandMonthly.map((val, mIdx) => (
-                    <td key={mIdx} className="px-2 py-2 text-center text-xs font-bold text-black">
+                  {row.monthly.map((val, mIdx) => (
+                    <td key={mIdx} className="px-2 py-1.5 text-center text-black">
                       {val > 0 ? val : "—"}
                     </td>
                   ))}
-                  <td className="px-2 py-2 text-center text-sm font-bold text-black">
-                    {grandTotal > 0 ? grandTotal : "—"}
+                  <td className="px-2 py-1.5 text-center font-bold text-black">
+                    {row.total > 0 ? row.total : "—"}
                   </td>
                 </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              ))}
+              <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
+                <td className="sticky left-0 z-10 min-w-[220px] bg-[#FFCC00] px-3 py-2 text-left text-xs font-bold text-black">
+                  TOTAL
+                </td>
+                {grandMonthly.map((val, mIdx) => (
+                  <td key={mIdx} className="px-2 py-2 text-center text-xs font-bold text-black">
+                    {val > 0 ? val : "—"}
+                  </td>
+                ))}
+                <td className="px-2 py-2 text-center text-sm font-bold text-black">
+                  {grandTotal > 0 ? grandTotal : "—"}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

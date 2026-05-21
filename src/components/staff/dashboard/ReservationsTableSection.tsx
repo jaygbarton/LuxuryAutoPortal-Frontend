@@ -67,58 +67,41 @@ export default function ReservationsTableSection({
     <div className="mb-8">
       <SectionHeader title={title} subtitle={subtitle} />
 
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-[#d3bc8d]" />
-          </div>
-        ) : rows.length === 0 ? (
-          <p className="py-8 text-center text-sm text-gray-500">{emptyMessage}</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-black text-white">
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-[#d3bc8d]" />
+        </div>
+      ) : rows.length === 0 ? (
+        <p className="py-8 text-center text-sm text-gray-500">{emptyMessage}</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-y border-[#FFCC00] border-collapse text-xs">
+            <thead>
+              <tr className="bg-black border-y border-[#FFCC00]">
+                {columns.map((c) => (
+                  <th
+                    key={c.key}
+                    className="px-3 py-2 text-center font-bold uppercase text-white whitespace-nowrap"
+                  >
+                    {c.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={i} className="bg-white border-y border-[#FFCC00]">
                   {columns.map((c) => (
-                    <th
-                      key={c.key}
-                      className={`px-3 py-2 font-semibold whitespace-nowrap ${
-                        c.align === "right"
-                          ? "text-right"
-                          : c.align === "center"
-                            ? "text-center"
-                            : "text-left"
-                      } ${c.className ?? ""}`}
-                    >
-                      {c.label}
-                    </th>
+                    <td key={c.key} className="px-3 py-2 text-center text-black">
+                      {c.render ? c.render(row) : asString(row[c.key])}
+                    </td>
                   ))}
                 </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, i) => (
-                  <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                    {columns.map((c) => (
-                      <td
-                        key={c.key}
-                        className={`px-3 py-2 text-gray-800 ${
-                          c.align === "right"
-                            ? "text-right"
-                            : c.align === "center"
-                              ? "text-center"
-                              : "text-left"
-                        } ${c.className ?? ""}`}
-                      >
-                        {c.render ? c.render(row) : asString(row[c.key])}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

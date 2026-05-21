@@ -5,6 +5,15 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
 import {
@@ -117,63 +126,85 @@ export default function CommissionsSection() {
             <Loader2 className="h-8 w-8 animate-spin text-[#d3bc8d]" />
           </div>
         ) : (
-          <div className="overflow-x-auto rounded border border-gray-200">
-            <table className="w-full border-collapse text-xs">
-              <thead>
-                <tr className="bg-black text-white">
-                  <th className="sticky left-0 z-10 min-w-[220px] bg-black px-3 py-2 text-left font-semibold">
-                    Type
-                  </th>
-                  {MONTHS.map((m) => (
-                    <th key={m} className="min-w-[90px] px-2 py-2 text-center font-semibold">
-                      {m} {year}
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full border-y border-[#FFCC00] border-collapse text-xs">
+                <thead>
+                  <tr className="bg-black border-y border-[#FFCC00]">
+                    <th className="sticky left-0 z-10 min-w-[220px] bg-black px-3 py-2 text-center font-semibold text-white">
+                      Type
                     </th>
+                    {MONTHS.map((m) => (
+                      <th key={m} className="min-w-[90px] px-2 py-2 text-center font-semibold text-white">
+                        {m} {year}
+                      </th>
+                    ))}
+                    <th className="min-w-[90px] bg-black px-2 py-2 text-center font-bold text-white">
+                      Total
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayRows.map((row, idx) => (
+                    <tr key={idx} className="bg-white border-y border-[#FFCC00]">
+                      <td className="sticky left-0 z-10 min-w-[220px] bg-white px-3 py-1.5 text-center text-xs font-medium text-black">
+                        {row.type}
+                      </td>
+                      {row.monthly.map((val, mIdx) => (
+                        <td key={mIdx} className="px-2 py-1.5 text-center font-mono text-black">
+                          {fmt$(val)}
+                        </td>
+                      ))}
+                      <td className="px-2 py-1.5 text-center font-mono font-bold text-black">
+                        {fmt$(row.total)}
+                      </td>
+                    </tr>
                   ))}
-                  <th className="min-w-[90px] bg-black px-2 py-2 text-center font-bold text-[#d3bc8d]">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayRows.map((row, idx) => (
-                  <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                    <td
-                      className="sticky left-0 z-10 min-w-[220px] border-r border-gray-200 px-3 py-1.5 text-left text-xs font-medium text-gray-800"
-                      style={{ backgroundColor: idx % 2 === 0 ? "white" : "rgb(249 250 251)" }}
-                    >
-                      {row.type}
+                  <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
+                    <td className="sticky left-0 z-10 min-w-[220px] bg-[#FFCC00] px-3 py-2 text-center font-bold text-black">
+                      TOTAL
                     </td>
-                    {row.monthly.map((val, mIdx) => (
-                      <td
-                        key={mIdx}
-                        className={`px-2 py-1.5 text-right font-mono ${
-                          val > 0 ? "text-gray-900" : "text-gray-300"
-                        }`}
-                      >
+                    {grandMonthly.map((val, mIdx) => (
+                      <td key={mIdx} className="px-2 py-2 text-center font-mono font-bold text-black">
                         {fmt$(val)}
                       </td>
                     ))}
-                    <td className="px-2 py-1.5 text-right font-mono font-bold text-black">
-                      {fmt$(row.total)}
+                    <td className="px-2 py-2 text-center font-mono font-bold text-black">
+                      {fmt$(grandTotal)}
                     </td>
                   </tr>
-                ))}
-                <tr className="bg-[#d3bc8d] font-bold">
-                  <td className="sticky left-0 z-10 min-w-[220px] bg-[#d3bc8d] px-3 py-2 text-left font-bold text-black">
-                    TOTAL
-                  </td>
-                  {grandMonthly.map((val, mIdx) => (
-                    <td key={mIdx} className="px-2 py-2 text-right font-mono font-bold text-black">
-                      {fmt$(val)}
-                    </td>
-                  ))}
-                  <td className="px-2 py-2 text-right font-mono font-bold text-black">
-                    {fmt$(grandTotal)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Commissions trend line chart */}
+            <div className="mt-6 bg-white">
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart
+                  data={grandMonthly.map((val: number, i: number) => ({ month: `${MONTHS[i]} ${year}`, Commissions: val }))}
+                  margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid stroke="#E8E8E8" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#000000" }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tick={{ fontSize: 12, fill: "#6B6B6B" }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v: number) => `$${v.toLocaleString()}`}
+                  />
+                  <Tooltip formatter={(v: number) => fmt$(v)} />
+                  <Line
+                    type="linear"
+                    dataKey="Commissions"
+                    stroke="#E8C547"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: "#E8C547", stroke: "#E8C547" }}
+                    activeDot={{ r: 5 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </>
         )}
       </div>
     </div>
