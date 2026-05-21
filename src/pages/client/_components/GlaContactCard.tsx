@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export function GlaContactCard() {
   return (
-    <Card className="border-0 bg-card h-full">
+    <Card className="border-0 shadow-none bg-card h-full">
       <CardContent className="p-5 h-full">
 
         {/* Header: company name + social icons */}

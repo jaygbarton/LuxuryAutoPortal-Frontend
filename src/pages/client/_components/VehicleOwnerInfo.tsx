@@ -20,15 +20,12 @@ export function VehicleOwnerInfo({
   turoViewLink,
 }: VehicleOwnerInfoProps) {
   return (
-    <Card className="border-0 bg-card h-full">
+    <Card className="border-0 shadow-none bg-card h-full">
       <CardContent className="p-5 h-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
           {/* Vehicle Details */}
           <div>
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 pb-1 border-b border-border">
-              Vehicle Information
-            </h3>
             {activeCar ? (
               <div className="text-sm space-y-3">
                 <div className="space-y-1">
@@ -54,9 +51,6 @@ export function VehicleOwnerInfo({
 
           {/* Owner Details */}
           <div>
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 pb-1 border-b border-border">
-              Owner Information
-            </h3>
             <div className="space-y-1.5 text-sm">
               {ownerName && <p><span className="font-bold text-foreground">Name</span> :{ownerName}</p>}
               {ownerPhone && <p><span className="font-bold text-foreground">Contact #</span> :{ownerPhone}</p>}
