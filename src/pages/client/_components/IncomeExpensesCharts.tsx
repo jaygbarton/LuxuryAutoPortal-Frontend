@@ -36,7 +36,7 @@ export function IncomeExpensesCharts({
       <Card className="border-0 shadow-none bg-white">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold text-foreground">
-            Monthly Car Owner Rental Income, Car Owner Profit and Expenses — {selectedYear}
+            Monthly Car Owner Rental Income, Car Owner Profit and Expenses
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -65,7 +65,7 @@ export function IncomeExpensesCharts({
       <Card className="border-0 shadow-none bg-white">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold text-foreground">
-            Monthly Days Rented and Trips Taken — {selectedYearTrips}
+            Monthly Days Rented and Trips Taken
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">

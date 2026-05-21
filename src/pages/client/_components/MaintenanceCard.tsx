@@ -31,7 +31,11 @@ export function MaintenanceCard({ maintenanceRecords, activeCar }: MaintenanceCa
               {maintenanceRecords.map((record, i) => (
                 <TableRow key={i} className="border-border hover:bg-muted/30">
                   <TableCell className="text-sm py-2">{record.maintenanceType ?? record.type ?? "—"}</TableCell>
-                  <TableCell className="text-sm py-2 text-muted-foreground">{record.dateCompleted ?? record.date_completed ?? "—"}</TableCell>
+                  <TableCell className="text-sm py-2">
+                    {(record.dateCompleted ?? record.date_completed) ? (
+                      <span className="inline-block bg-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">{record.dateCompleted ?? record.date_completed}</span>
+                    ) : "—"}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -20,7 +20,7 @@ export function VehicleOwnerInfo({
   turoViewLink,
 }: VehicleOwnerInfoProps) {
   return (
-    <Card className="border-border bg-card h-full">
+    <Card className="border-0 bg-card h-full">
       <CardContent className="p-5 h-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 

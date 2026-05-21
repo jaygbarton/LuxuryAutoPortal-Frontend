@@ -120,17 +120,19 @@ export function IncomeExpensesSection({
                 <>
                   {monthlyTripData.map((row) => (
                     <tr key={row.month} className="bg-white border-y border-[#FFCC00]">
-                      <td className="text-sm py-2 px-3 text-center font-medium text-black">{row.month}</td>
+                      <td className="text-sm py-2 px-3 text-center font-medium text-black">
+                        <span className="inline-block bg-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">{row.month}</span>
+                      </td>
                       <td className="text-sm py-2 px-3 text-center text-black">{fmt(row.income)}</td>
                       <td className="text-sm py-2 px-3 text-center text-black">{fmt(row.expenses)}</td>
                       <td className={`text-sm py-2 px-3 text-center font-medium ${row.profit > 0 ? "text-[#C9A227]" : row.profit < 0 ? "text-[#ef4444]" : "text-black"}`}>{fmt(row.profit)}</td>
                     </tr>
                   ))}
-                  <tr style={{ backgroundColor: "#1a1a1a" }} className="border-y border-[#FFCC00]">
-                    <td className="text-sm font-extrabold text-white py-2.5 px-3 text-center">Total</td>
-                    <td className="text-sm font-bold text-white py-2.5 px-3 text-center">{fmt(yearTotals.income)}</td>
-                    <td className="text-sm font-bold text-white py-2.5 px-3 text-center">{fmt(yearTotals.expenses)}</td>
-                    <td className={`text-sm font-bold py-2.5 px-3 text-center ${yearTotals.profit >= 0 ? "text-[#d3bc8d]" : "text-[#f87171]"}`}>{fmt(yearTotals.profit)}</td>
+                  <tr style={{ backgroundColor: "#FFCC00" }} className="border-y border-[#FFCC00]">
+                    <td className="text-sm font-extrabold text-black py-2.5 px-3 text-center">Total</td>
+                    <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{fmt(yearTotals.income)}</td>
+                    <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{fmt(yearTotals.expenses)}</td>
+                    <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{fmt(yearTotals.profit)}</td>
                   </tr>
                 </>
               )}
@@ -160,17 +162,19 @@ export function IncomeExpensesSection({
                 <>
                   {monthlyDaysTripsData.map((row) => (
                     <tr key={row.month} className="bg-white border-y border-[#FFCC00]">
-                      <td className="text-sm py-2 px-3 text-center font-medium text-black">{row.month}</td>
+                      <td className="text-sm py-2 px-3 text-center font-medium text-black">
+                        <span className="inline-block bg-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">{row.month}</span>
+                      </td>
                       <td className="text-sm py-2 px-3 text-center text-black">{row.days}</td>
                       <td className="text-sm py-2 px-3 text-center text-black">{row.trips}</td>
                       <td className="text-sm py-2 px-3 text-center text-black">{row.trips > 0 ? fmt(row.avgPerTrip) : "—"}</td>
                     </tr>
                   ))}
-                  <tr style={{ backgroundColor: "#1a1a1a" }} className="border-y border-[#FFCC00]">
-                    <td className="text-sm font-extrabold text-white py-2.5 px-3 text-center">Total</td>
-                    <td className="text-sm font-bold text-white py-2.5 px-3 text-center">{yearTotalsTrips.days}</td>
-                    <td className="text-sm font-bold text-white py-2.5 px-3 text-center">{yearTotalsTrips.trips}</td>
-                    <td className="text-sm font-bold text-[#d3bc8d] py-2.5 px-3 text-center">{yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "—"}</td>
+                  <tr style={{ backgroundColor: "#FFCC00" }} className="border-y border-[#FFCC00]">
+                    <td className="text-sm font-extrabold text-black py-2.5 px-3 text-center">Total</td>
+                    <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{yearTotalsTrips.days}</td>
+                    <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{yearTotalsTrips.trips}</td>
+                    <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "—"}</td>
                   </tr>
                 </>
               )}
