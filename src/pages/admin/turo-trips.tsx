@@ -317,6 +317,42 @@ export default function TuroTripsPage() {
     },
   });
 
+  // Refresh-calendar mutation — pushes updated title/description into existing Google Calendar events.
+  // Useful after a format change (e.g. adding plate # or year/model to titles).
+  const refreshCalendarMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(
+        buildApiUrl("/api/turo-trips/refresh-calendar"),
+        { method: "POST", credentials: "include" },
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        const reason =
+          data?.error || data?.message || `HTTP ${response.status}`;
+        throw new Error(reason);
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      const d = data.data ?? {};
+      const seconds =
+        typeof d.durationMs === "number"
+          ? `${(d.durationMs / 1000).toFixed(1)}s`
+          : "—";
+      toast({
+        title: "Calendar refresh complete",
+        description: `${d.updated ?? 0} updated, ${d.skipped ?? 0} skipped, ${d.errors ?? 0} errors in ${seconds}.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Calendar refresh failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Save odometer readings for a trip
   const saveOdometers = async (trip: TuroTrip) => {
     const edit = odometerEdits[trip.id];
@@ -657,6 +693,24 @@ export default function TuroTripsPage() {
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <Upload className="w-4 h-4 mr-2" />
               Import from Turo
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => refreshCalendarMutation.mutate()}
+              disabled={refreshCalendarMutation.isPending}
+              title="Push updated title format (plate, year) into all existing Google Calendar events"
+            >
+              {refreshCalendarMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Refresh Calendar
+                </>
+              )}
             </Button>
             <Button
               onClick={() => syncMutation.mutate()}
