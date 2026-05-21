@@ -15,13 +15,6 @@ import {
   Cell,
 } from "recharts";
 import { buildApiUrl } from "@/lib/queryClient";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { SectionHeader, SummaryCard } from "@/components/admin/dashboard";
 import {
   formatCurrency,
@@ -39,7 +32,6 @@ import type {
 
 interface IncomeExpensesSectionProps {
   year: string;
-  onYearChange: (year: string) => void;
 }
 
 interface ApiResponse {
@@ -82,14 +74,6 @@ interface IncomeExpenseMonthWithSplits extends IncomeExpenseMonth {
   mgmtIncome?: number;
   ownerIncome?: number;
 }
-
-// ── Year range ─────────────────────────────────────────────────────────
-
-const currentYear = new Date().getFullYear();
-const YEAR_OPTIONS = Array.from(
-  { length: currentYear + 1 - 2019 + 1 },
-  (_, i) => String(2019 + i),
-);
 
 // ── Shimmer loading state ──────────────────────────────────────────────
 
@@ -235,11 +219,11 @@ interface BarChartCardProps {
 
 function BarChartCard({ title, data, bars, yAxisPrefix = "$" }: BarChartCardProps) {
   return (
-    <div className="bg-white">
-      <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-black" style={{ letterSpacing: "0.3px" }}>
+    <div className="flex h-full flex-col bg-white">
+      <h4 className="mb-2 text-sm font-bold uppercase tracking-wide text-black" style={{ letterSpacing: "0.3px" }}>
         {title}
       </h4>
-      <ResponsiveContainer width="100%" height={280}>
+      <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid stroke="#E8E8E8" vertical={false} />
           <XAxis
@@ -267,7 +251,7 @@ function BarChartCard({ title, data, bars, yAxisPrefix = "$" }: BarChartCardProp
             }}
           />
           {bars.map((b) => (
-            <Bar key={b.dataKey} dataKey={b.dataKey} fill={b.fill} barSize={22} />
+            <Bar key={b.dataKey} dataKey={b.dataKey} fill={b.fill} barSize={22} radius={[4, 4, 0, 0]} />
           ))}
         </BarChart>
       </ResponsiveContainer>
@@ -286,11 +270,11 @@ interface LineChartCardProps {
 
 function LineChartCard({ title, data, lines, yAxisPrefix = "$" }: LineChartCardProps) {
   return (
-    <div className="bg-white">
-      <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-black" style={{ letterSpacing: "0.3px" }}>
+    <div className="flex h-full flex-col bg-white">
+      <h4 className="mb-2 text-sm font-bold uppercase tracking-wide text-black" style={{ letterSpacing: "0.3px" }}>
         {title}
       </h4>
-      <ResponsiveContainer width="100%" height={280}>
+      <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid stroke="#E8E8E8" vertical={false} />
           <XAxis
@@ -360,7 +344,7 @@ function HorizontalBarChart({ items }: HorizontalBarChartProps) {
   return (
     <div className="flex h-full w-full flex-col">
       {/* Bars area fills available height — each bar splits the area evenly */}
-      <div className="flex flex-1 flex-col justify-around gap-4 pt-2">
+      <div className="flex flex-1 flex-col justify-around gap-1 pt-2">
         {items.map((item) => (
           <div key={item.label} className="flex items-center gap-3">
             <div
@@ -369,9 +353,9 @@ function HorizontalBarChart({ items }: HorizontalBarChartProps) {
             >
               {item.label}
             </div>
-            <div className="relative h-12 flex-1 bg-transparent">
+            <div className="relative h-20 flex-1 bg-transparent">
               <div
-                className="h-full bg-[#E8C547]"
+                className="h-full bg-[#E8C547] rounded-r-md"
                 style={{
                   width: `${niceMax > 0 ? (item.value / niceMax) * 100 : 0}%`,
                 }}
@@ -403,10 +387,7 @@ function HorizontalBarChart({ items }: HorizontalBarChartProps) {
 
 // ── Main component ─────────────────────────────────────────────────────
 
-export default function IncomeExpensesSection({
-  year,
-  onYearChange,
-}: IncomeExpensesSectionProps) {
+export default function IncomeExpensesSection({ year }: IncomeExpensesSectionProps) {
   const { data, isLoading, isError } = useQuery<ApiResponse>({
     queryKey: ["/api/income-expense/all-cars", year],
     queryFn: async () => {
@@ -591,24 +572,6 @@ export default function IncomeExpensesSection({
     <div className="mb-8">
       <SectionHeader title="INCOME AND EXPENSES" />
 
-      {/* Year Selector */}
-      <div className="mt-4 flex items-center gap-3 px-4">
-        <span className="text-sm font-semibold uppercase tracking-wide text-gray-800">
-          Year
-        </span>
-        <Select value={year} onValueChange={onYearChange}>
-          <SelectTrigger className="w-[120px] border-gray-300 bg-white text-black">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="border-gray-200 bg-white text-black">
-            {YEAR_OPTIONS.map((y) => (
-              <SelectItem key={y} value={y}>
-                {y}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
 
       {isLoading && <LoadingSkeleton />}
 
@@ -626,50 +589,50 @@ export default function IncomeExpensesSection({
           {/* ── Row 1: Summary Cards (left) + Monthly Table (right) ── */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
             {/* Left: Summary Cards — distribute evenly to match table height */}
-            <div className="xl:col-span-1 flex flex-col justify-between gap-5">
+            <div className="xl:col-span-1 flex flex-col justify-between h-full">
               {/* Total Management Income and Expenses */}
-              <div className="flex flex-1 flex-col">
+              <div className="flex flex-col">
                 <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Total Management Income and Expenses
                 </h3>
-                <div className="grid grid-cols-3 gap-1.5 flex-1 [&>*]:h-full">
-                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" />
-                  <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" />
-                  <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" />
+                <div className="grid grid-cols-3 gap-1.5">
+                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" className="h-20" />
+                  <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" className="h-20" />
+                  <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" className="h-20" />
                 </div>
               </div>
 
               {/* Management Income and Expenses */}
-              <div className="flex flex-1 flex-col">
+              <div className="flex flex-col">
                 <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Management Income and Expenses
                 </h3>
-                <div className="grid grid-cols-3 gap-1.5 flex-1 [&>*]:h-full">
-                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" />
-                  <SummaryCard label="Total Management Expenses" value={formatCurrency(totalMgmtExpenses)} variant="white" />
-                  <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome - totalMgmtExpenses)} variant="gold" />
+                <div className="grid grid-cols-3 gap-1.5">
+                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" className="h-20" />
+                  <SummaryCard label="Total Management Expenses" value={formatCurrency(totalMgmtExpenses)} variant="white" className="h-20" />
+                  <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome - totalMgmtExpenses)} variant="gold" className="h-20" />
                 </div>
-                <div className="grid grid-cols-3 gap-1.5 mt-1.5 flex-1 [&>*]:h-full">
-                  <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" />
-                  <SummaryCard label={`${prevMonthLabel} Mgmt Expenses`} value={formatCurrency(prevMonth?.mgmtExpenses ?? 0)} variant="white" />
-                  <SummaryCard label={`${prevMonthLabel} Mgmt Profit`} value={formatCurrency((prevMonth?.mgmtIncome ?? 0) - (prevMonth?.mgmtExpenses ?? 0))} variant="gold" />
+                <div className="grid grid-cols-3 gap-1.5 mt-1.5">
+                  <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" className="h-20" />
+                  <SummaryCard label={`${prevMonthLabel} Mgmt Expenses`} value={formatCurrency(prevMonth?.mgmtExpenses ?? 0)} variant="white" className="h-20" />
+                  <SummaryCard label={`${prevMonthLabel} Mgmt Profit`} value={formatCurrency((prevMonth?.mgmtIncome ?? 0) - (prevMonth?.mgmtExpenses ?? 0))} variant="gold" className="h-20" />
                 </div>
               </div>
 
               {/* Car Owner Income and Expenses */}
-              <div className="flex flex-1 flex-col">
+              <div className="flex flex-col">
                 <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Car Owner Income and Expenses
                 </h3>
-                <div className="grid grid-cols-3 gap-1.5 flex-1 [&>*]:h-full">
-                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" />
-                  <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" />
-                  <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" />
+                <div className="grid grid-cols-3 gap-1.5">
+                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" className="h-20" />
+                  <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" className="h-20" />
+                  <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" className="h-20" />
                 </div>
-                <div className="grid grid-cols-3 gap-1.5 mt-1.5 flex-1 [&>*]:h-full">
-                  <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" />
-                  <SummaryCard label={`${prevMonthLabel} Owner Expenses`} value={formatCurrency(prevMonth?.ownerExpenses ?? 0)} variant="white" />
-                  <SummaryCard label={`${prevMonthLabel} Owner Profit`} value={formatCurrency((prevMonth?.ownerIncome ?? 0) - (prevMonth?.ownerExpenses ?? 0))} variant="gold" />
+                <div className="grid grid-cols-3 gap-1.5 mt-1.5">
+                  <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" className="h-20" />
+                  <SummaryCard label={`${prevMonthLabel} Owner Expenses`} value={formatCurrency(prevMonth?.ownerExpenses ?? 0)} variant="white" className="h-20" />
+                  <SummaryCard label={`${prevMonthLabel} Owner Profit`} value={formatCurrency((prevMonth?.ownerIncome ?? 0) - (prevMonth?.ownerExpenses ?? 0))} variant="gold" className="h-20" />
                 </div>
               </div>
             </div>
@@ -722,55 +685,27 @@ export default function IncomeExpensesSection({
             </div>
           </div>
 
-          {/* ── Row 2: Donuts + Horizontal bars (1/3) + Line/Bar charts (2/3) ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            {/* Left column — 1/3. Each row is height-matched to its sibling on the right. */}
-            <div className="xl:col-span-1 space-y-8">
-              {/* Row 1 — Mgmt donuts (aligns with Management line chart on the right) */}
-              <div className="grid grid-cols-2 gap-2 h-[310px]">
-                <DonutChart
-                  data={[
-                    { name: "Total Car Mngmt Expenses", value: totalMgmtExpenses },
-                    { name: "Total Car Mngmt Profit", value: Math.max(0, totalMgmtIncome - totalMgmtExpenses) },
-                  ]}
-                />
-                <DonutChart
-                  data={[
-                    { name: "Total Car Mngmt Profit", value: Math.max(0, displayMgmtIncome - displayMgmtExpenses) },
-                    { name: "Total Car Mngmt Expenses", value: displayMgmtExpenses },
-                  ]}
-                />
-              </div>
+          {/* ── Row 2: Donuts (1/3) + Line/Bar charts (2/3) — 3 locked rows ── */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-x-8 gap-y-8" style={{ gridTemplateRows: "repeat(3, 280px)" }}>
 
-              {/* Row 2 — Car Owner donuts (aligns with Car Owner line chart on the right) */}
-              <div className="grid grid-cols-2 gap-2 h-[310px]">
-                <DonutChart
-                  data={[
-                    { name: "Total Car Owner Expenses", value: totalOwnerExpenses },
-                    { name: "Total Car Owner Profit", value: Math.max(0, totalOwnerIncome - totalOwnerExpenses) },
-                  ]}
-                />
-                <DonutChart
-                  data={[
-                    { name: "Total Car Owner Profit", value: Math.max(0, displayOwnerIncome - displayOwnerExpenses) },
-                    { name: "Total Car Owner Expenses", value: displayOwnerExpenses },
-                  ]}
-                />
-              </div>
-
-              {/* Row 3 — Horizontal bar chart (aligns with the vertical bar chart on the right) */}
-              <div className="h-[310px]">
-                <HorizontalBarChart
-                  items={[
-                    { label: "Total Trips Taken", value: totalTripsTaken },
-                    { label: "Total Days Rented", value: totalDaysRented },
-                  ]}
-                />
-              </div>
+            {/* Row 1 left — Mgmt donuts */}
+            <div className="xl:col-span-1 grid grid-cols-2 gap-2">
+              <DonutChart
+                data={[
+                  { name: "Total Car Mngmt Expenses", value: totalMgmtExpenses },
+                  { name: "Total Car Mngmt Profit", value: Math.max(0, totalMgmtIncome - totalMgmtExpenses) },
+                ]}
+              />
+              <DonutChart
+                data={[
+                  { name: "Total Car Mngmt Profit", value: Math.max(0, displayMgmtIncome - displayMgmtExpenses) },
+                  { name: "Total Car Mngmt Expenses", value: displayMgmtExpenses },
+                ]}
+              />
             </div>
 
-            {/* Right column — 2/3 — stacked charts */}
-            <div className="xl:col-span-2 space-y-8">
+            {/* Row 1 right — Management line chart */}
+            <div className="xl:col-span-2 flex flex-col">
               <LineChartCard
                 title="Management Income and Expenses"
                 data={mgmtBarData}
@@ -779,6 +714,26 @@ export default function IncomeExpensesSection({
                   { dataKey: "Expenses", stroke: "#F5E6A8" },
                 ]}
               />
+            </div>
+
+            {/* Row 2 left — Car Owner donuts */}
+            <div className="xl:col-span-1 grid grid-cols-2 gap-2">
+              <DonutChart
+                data={[
+                  { name: "Total Car Owner Expenses", value: totalOwnerExpenses },
+                  { name: "Total Car Owner Profit", value: Math.max(0, totalOwnerIncome - totalOwnerExpenses) },
+                ]}
+              />
+              <DonutChart
+                data={[
+                  { name: "Total Car Owner Profit", value: Math.max(0, displayOwnerIncome - displayOwnerExpenses) },
+                  { name: "Total Car Owner Expenses", value: displayOwnerExpenses },
+                ]}
+              />
+            </div>
+
+            {/* Row 2 right — Car Owner line chart */}
+            <div className="xl:col-span-2 flex flex-col">
               <LineChartCard
                 title="Car Owner Income and Expenses"
                 data={ownerBarData}
@@ -787,6 +742,20 @@ export default function IncomeExpensesSection({
                   { dataKey: "Expenses", stroke: "#B8860B" },
                 ]}
               />
+            </div>
+
+            {/* Row 3 left — Horizontal bar chart */}
+            <div className="xl:col-span-1">
+              <HorizontalBarChart
+                items={[
+                  { label: "Total Trips Taken", value: totalTripsTaken },
+                  { label: "Total Days Rented", value: totalDaysRented },
+                ]}
+              />
+            </div>
+
+            {/* Row 3 right — Days Rented bar chart */}
+            <div className="xl:col-span-2 flex flex-col">
               <BarChartCard
                 title="Days Rented and Trips Taken"
                 data={activityBarData}

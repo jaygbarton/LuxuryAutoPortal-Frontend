@@ -56,7 +56,7 @@ function statusLabel(status: TuroTrip["status"]): string {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-3 px-4 py-6">
+    <div className="space-y-3 py-6">
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
@@ -118,7 +118,7 @@ export default function OperationsSection() {
       ) : (
         <>
           {/* Trips Table */}
-          <div className="mt-4 px-4">
+          <div className="mt-4">
             {rows.length === 0 ? (
               <div className="rounded-md bg-[#111111] px-6 py-8 text-center">
                 <p className="text-sm text-white/60">No trips found</p>

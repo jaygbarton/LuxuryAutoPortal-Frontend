@@ -54,7 +54,7 @@ function statusLabel(status: TuroTrip["status"]): string {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-3 px-4 py-6">
+    <div className="space-y-3 py-6">
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="h-8 animate-pulse rounded bg-gray-200" />
       ))}
@@ -110,7 +110,7 @@ export default function CarIssuesSection() {
       {isLoading ? (
         <LoadingSkeleton />
       ) : (
-        <div className="mt-4 px-4">
+        <div className="mt-4">
           <DashboardTable columns={TABLE_COLUMNS} rows={rows} />
         </div>
       )}

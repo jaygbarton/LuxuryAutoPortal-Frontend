@@ -36,6 +36,7 @@ const TABLE_COLUMNS = [
 function buildRows(
   expensesByMonth: (month: number) => number,
   history: HistoryMonth[],
+  year: string,
 ) {
   let totalExpenses = 0;
   let totalTrips = 0;
@@ -50,7 +51,11 @@ function buildRows(
     const avePerTrip = trips > 0 ? expense / trips : 0;
 
     return {
-      month: label,
+      month: (
+        <span className="inline-block rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-700">
+          {label} {year}
+        </span>
+      ),
       parkingExpenses: formatCurrency(expense),
       tripsTaken: trips.toLocaleString(),
       avePerTrip: formatCurrency(avePerTrip),
@@ -112,10 +117,12 @@ export default function AirportParkingSection({ year }: AirportParkingSectionPro
             return (pfl?.glaParkingFee ?? 0) + (pfl?.laborCleaning ?? 0) + (dd?.parkingAirport ?? 0);
           },
           history,
+          year,
         );
         const qb = buildRows(
           (m) => getMonthEntry(parkingAirportQB, m)?.totalParkingAirport ?? 0,
           history,
+          year,
         );
 
         return (
@@ -123,7 +130,7 @@ export default function AirportParkingSection({ year }: AirportParkingSectionPro
             {/* System Data Table */}
             <div className="min-w-[300px] flex-1">
               <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
-                System Parking
+                SYSTEM PARKING AIPORT EXPENSES AND TRIPS TAKEN
               </h3>
               <DashboardTable
                 columns={TABLE_COLUMNS}
@@ -135,7 +142,7 @@ export default function AirportParkingSection({ year }: AirportParkingSectionPro
             {/* QuickBooks Data Table */}
             <div className="min-w-[300px] flex-1">
               <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
-                QuickBooks Parking
+                QUICKBOOKS PARKING AIPORT EXPENSES AND TRIPS TAKEN
               </h3>
               <DashboardTable
                 columns={TABLE_COLUMNS}

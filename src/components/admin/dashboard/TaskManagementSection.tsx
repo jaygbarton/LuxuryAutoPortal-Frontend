@@ -58,29 +58,17 @@ function formatDate(dateStr: string): string {
 }
 
 function StatusBadge({ status }: { status: number }) {
-  const config: Record<number, { label: string; className: string }> = {
-    0: { label: "Not Started", className: "bg-red-600 text-white" },
-    1: { label: "In Progress", className: "bg-[#FFCC00] text-black" },
-    2: { label: "Completed", className: "bg-green-600 text-white" },
+  const labels: Record<number, string> = {
+    0: "Not Started",
+    1: "In Progress",
+    2: "Completed",
   };
-
-  const { label, className } = config[status] ?? {
-    label: "Pending",
-    className: "bg-gray-400 text-white",
-  };
-
-  return (
-    <span
-      className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${className}`}
-    >
-      {label}
-    </span>
-  );
+  return <span className="text-sm text-gray-900">{labels[status] ?? "Pending"}</span>;
 }
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-3 px-4 py-6">
+    <div className="space-y-3 py-6">
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
@@ -139,7 +127,7 @@ export default function TaskManagementSection() {
       ) : (
         <>
           {/* Task Table */}
-          <div className="mt-4 px-4">
+          <div className="mt-4">
             {rows.length === 0 ? (
               <div className="rounded-md bg-[#111111] px-6 py-8 text-center">
                 <p className="text-sm text-white/60">No tasks found</p>

@@ -24,7 +24,7 @@ export function SummaryCard({
   return (
     <div
       className={cn(
-        "rounded-md px-3 py-3 flex flex-col items-center justify-center text-center transition-shadow",
+        "rounded-xl px-3 py-3 flex flex-col items-center justify-center text-center transition-shadow",
         variant === "gold"
           ? "bg-[#FFCC00]"
           : variant === "white"
@@ -35,7 +35,7 @@ export function SummaryCard({
     >
       <p
         className={cn(
-          "text-xl font-bold leading-tight",
+          "text-xs font-bold leading-tight",
           variant === "dark" ? "text-[#FFCC00]" : "text-black",
         )}
       >
@@ -43,7 +43,7 @@ export function SummaryCard({
       </p>
       <p
         className={cn(
-          "mt-1 text-[10px] font-semibold uppercase tracking-wide leading-tight",
+          "mt-1 text-xs font-semibold uppercase tracking-wide leading-tight",
           variant === "dark" ? "text-white" : "text-black/70",
         )}
       >

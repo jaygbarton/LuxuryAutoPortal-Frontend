@@ -168,17 +168,10 @@ function MatrixTable({
                   {name}
                 </th>
               ))}
-              <th className="px-3 py-2 text-center text-xs font-bold uppercase text-[#FFCC00]">
-                TOTAL
-              </th>
             </tr>
           </thead>
           <tbody>
             {EXPENSE_TYPES.map((type) => {
-              const rowTotal = employeeNames.reduce(
-                (sum, name) => sum + (matrix[type]?.[name] ?? 0),
-                0,
-              );
               return (
                 <tr
                   key={type}
@@ -197,9 +190,6 @@ function MatrixTable({
                         : "—"}
                     </td>
                   ))}
-                  <td className="px-3 py-2 text-center text-sm font-semibold text-gray-900">
-                    {rowTotal > 0 ? formatCurrency(rowTotal) : "—"}
-                  </td>
                 </tr>
               );
             })}
@@ -213,11 +203,6 @@ function MatrixTable({
                   {totals[name] > 0 ? formatCurrency(totals[name]) : "—"}
                 </td>
               ))}
-              <td className="px-3 py-2 text-center text-sm font-bold text-black">
-                {formatCurrency(
-                  employeeNames.reduce((sum, name) => sum + (totals[name] ?? 0), 0),
-                )}
-              </td>
             </tr>
           </tbody>
         </table>
