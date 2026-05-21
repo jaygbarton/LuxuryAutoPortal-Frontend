@@ -33,8 +33,8 @@ export function DonutCharts({ yearTotals, currentMonthData, selectedYear, curren
   const sharedPieProps = {
     cx: "50%" as const,
     cy: "50%" as const,
-    innerRadius: 58,
-    outerRadius: 82,
+    innerRadius: "45%" as const,
+    outerRadius: "90%" as const,
     dataKey: "value",
     label: false as const,
     labelLine: false,
@@ -45,8 +45,8 @@ export function DonutCharts({ yearTotals, currentMonthData, selectedYear, curren
 
   function DonutRing({ data, centerLabel }: { data: { name: string; value: number }[]; centerLabel: string }) {
     return (
-      <div className="relative">
-        <ResponsiveContainer width="100%" height={220}>
+      <div className="relative flex-1 min-h-[260px]">
+        <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie {...sharedPieProps} data={data.length > 0 ? data : [{ name: "No data", value: 1 }]}>
               {data.length > 0
@@ -96,12 +96,12 @@ export function DonutCharts({ yearTotals, currentMonthData, selectedYear, curren
   }
 
   return (
-    <div className="grid grid-cols-2 gap-6">
-      <div>
+    <div className="grid grid-cols-2 gap-6 h-full">
+      <div className="flex flex-col">
         <h3 className="text-sm font-bold text-foreground mb-1">Total Car Owner Profit and Expenses</h3>
         <DonutRing data={donutYearData} centerLabel={fmt(yearTotals.profit)} />
       </div>
-      <div>
+      <div className="flex flex-col">
         <h3 className="text-sm font-bold text-foreground mb-1">
           {MONTHS_SHORT[currentMonth - 1]} {selectedYear} Car Owner Profit and Expenses
         </h3>

@@ -52,7 +52,6 @@ import type {
   YearTotalsTrips,
 } from "./_components/types";
 
-import { CarGallery } from "./_components/CarGallery";
 import { VehicleOwnerInfo } from "./_components/VehicleOwnerInfo";
 import { GlaContactCard } from "./_components/GlaContactCard";
 import { NewsMediaSlot } from "./_components/NewsMediaSlot";
@@ -211,22 +210,6 @@ export default function ClientDashboard() {
       if (!res.ok) return { success: false, slot1: [], slot2: [] };
       return res.json();
     },
-    retry: false,
-  });
-
-  const { data: carPhotosData } = useQuery<{
-    success: boolean;
-    photos: string[];
-  }>({
-    queryKey: ["/api/client/cars", carId, "photos"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl(`/api/client/cars/${carId}/photos`), {
-        credentials: "include",
-      });
-      if (!res.ok) return { success: false, photos: [] };
-      return res.json();
-    },
-    enabled: !!carId,
     retry: false,
   });
 
@@ -456,12 +439,18 @@ export default function ClientDashboard() {
           </div>
         )}
 
-        {/* ROW 1: Car Gallery (full width — the Monthly Update Video tile was
-            removed per client request; the gallery now spans the row alone). */}
-        <CarGallery
-          apiPhotos={carPhotosData?.photos ?? []}
-          activeCar={activeCar}
-        />
+        {/* ROW 1 (top): News & Media slots — moved from previous third position */}
+        {((newsDashboardData?.slot1?.length ?? 0) > 0 ||
+          (newsDashboardData?.slot2?.length ?? 0) > 0) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {(newsDashboardData?.slot1?.length ?? 0) > 0 && (
+              <NewsMediaSlot slot={1} items={newsDashboardData!.slot1} />
+            )}
+            {(newsDashboardData?.slot2?.length ?? 0) > 0 && (
+              <NewsMediaSlot slot={2} items={newsDashboardData!.slot2} />
+            )}
+          </div>
+        )}
 
         {/* ROW 2: Vehicle/Owner Info + GLA Contact */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
@@ -475,19 +464,6 @@ export default function ClientDashboard() {
           />
           <GlaContactCard />
         </div>
-
-        {/* News & Media slots */}
-        {((newsDashboardData?.slot1?.length ?? 0) > 0 ||
-          (newsDashboardData?.slot2?.length ?? 0) > 0) && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {(newsDashboardData?.slot1?.length ?? 0) > 0 && (
-              <NewsMediaSlot slot={1} items={newsDashboardData!.slot1} />
-            )}
-            {(newsDashboardData?.slot2?.length ?? 0) > 0 && (
-              <NewsMediaSlot slot={2} items={newsDashboardData!.slot2} />
-            )}
-          </div>
-        )}
 
         {/* Sections 3 & 4: Income/Expenses + Days/Trips (headers, summaries, tables) */}
         <IncomeExpensesSection
@@ -518,7 +494,7 @@ export default function ClientDashboard() {
         />
 
         {/* Sections 6-9: Donuts + NADA (left) | Payments + Maintenance (right) */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
           <div className="flex flex-col gap-6">
             <DonutCharts
               yearTotals={yearTotals}

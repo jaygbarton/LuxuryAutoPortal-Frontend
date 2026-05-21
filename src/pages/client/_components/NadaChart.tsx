@@ -23,7 +23,7 @@ export function NadaChart({ nadaRecords, yearNum, isLoading }: NadaChartProps) {
   }, [nadaRecords, yearNum]);
 
   return (
-    <Card className="border-border bg-card">
+    <Card className="border-0 shadow-none bg-white">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold uppercase tracking-wide" style={{ color: "#d3bc8d" }}>
           NADA Change %

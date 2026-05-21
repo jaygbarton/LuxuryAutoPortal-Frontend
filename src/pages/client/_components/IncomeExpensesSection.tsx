@@ -63,54 +63,34 @@ export function IncomeExpensesSection({
         </div>
       </div>
 
-      {/* Summary card rows */}
+      {/* Summary card rows — labels on the cards themselves (value top, label bottom) */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-2">
 
         {/* Income/Expenses summary */}
         <div>
-          <div className="grid mb-1" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px" }}>
-            <div />
-            <div className="text-center text-sm font-semibold text-foreground">Car Owner Rental income</div>
-            <div className="text-center text-sm font-semibold text-foreground">Car Owner Expenses</div>
-            <div className="text-center text-sm font-semibold">Car Owner Profit</div>
+          <div className="grid grid-cols-3 gap-2 mb-2">
+            <SummaryCard variant="black" label="Total Car Owner Rental Income" value={fmt(yearTotals.income)} />
+            <SummaryCard variant="light" label="Total Car Owner Expenses"      value={fmt(yearTotals.expenses)} />
+            <SummaryCard variant="gold"  label="Total Car Owner Profit"        value={fmt(yearTotals.profit)} />
           </div>
-          <div className="grid" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px", marginBottom: "2px" }}>
-            <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">Total</div>
-            <SummaryCard variant="black" label="" value={fmt(yearTotals.income)} />
-            <SummaryCard variant="light" label="" value={fmt(yearTotals.expenses)} />
-            <SummaryCard variant="gold"  label="" value={fmt(yearTotals.profit)} />
-          </div>
-          <div className="grid" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px" }}>
-            <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">
-              {MONTHS_SHORT[currentMonth - 1]} {selectedYear}
-            </div>
-            <SummaryCard variant="black" label="" value={fmt(currentMonthData?.income ?? 0)} />
-            <SummaryCard variant="light" label="" value={fmt(currentMonthData?.expenses ?? 0)} />
-            <SummaryCard variant="gold"  label="" value={fmt(currentMonthData?.profit ?? 0)} valueColor={(currentMonthData?.profit ?? 0) < 0 ? "#ef4444" : "#1a1a1a"} />
+          <div className="grid grid-cols-3 gap-2">
+            <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Car Owner Rental Income`} value={fmt(currentMonthData?.income ?? 0)} />
+            <SummaryCard variant="light" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Expenses`}           value={fmt(currentMonthData?.expenses ?? 0)} />
+            <SummaryCard variant="gold"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Profit`}             value={fmt(currentMonthData?.profit ?? 0)} valueColor={(currentMonthData?.profit ?? 0) < 0 ? "#ef4444" : "#1a1a1a"} />
           </div>
         </div>
 
         {/* Days/Trips summary */}
         <div>
-          <div className="grid mb-1" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px" }}>
-            <div />
-            <div className="text-center text-sm font-semibold text-foreground">Days Rented</div>
-            <div className="text-center text-sm font-semibold text-foreground">Trips Taken</div>
-            <div className="text-center text-sm font-semibold" style={{ color: "#C9A227" }}>Ave / Trip</div>
+          <div className="grid grid-cols-3 gap-2 mb-2">
+            <SummaryCard variant="black" label="Total Days Rented"   value={String(yearTotalsTrips.days)} />
+            <SummaryCard variant="light" label="Total Trips Taken"   value={String(yearTotalsTrips.trips)} />
+            <SummaryCard variant="gold"  label="Ave / Trips Taken"   value={yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "$0.00"} />
           </div>
-          <div className="grid" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px", marginBottom: "2px" }}>
-            <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">Total</div>
-            <SummaryCard variant="black" label="" value={String(yearTotalsTrips.days)} />
-            <SummaryCard variant="light" label="" value={String(yearTotalsTrips.trips)} />
-            <SummaryCard variant="gold"  label="" value={yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "$0.00"} />
-          </div>
-          <div className="grid" style={{ gridTemplateColumns: "128px 1fr 1fr 1fr", gap: "2px" }}>
-            <div className="flex items-center justify-center text-sm font-semibold text-foreground bg-[#f0ece0] border border-[#d8d0b8] rounded-lg px-2">
-              {MONTHS_SHORT[currentMonth - 1]} {selectedYearTrips}
-            </div>
-            <SummaryCard variant="black" label="" value={String(currentMonthDaysTripsData?.days ?? 0)} />
-            <SummaryCard variant="light" label="" value={String(currentMonthDaysTripsData?.trips ?? 0)} />
-            <SummaryCard variant="gold"  label="" value={(currentMonthDaysTripsData?.trips ?? 0) > 0 ? fmt((currentMonthDaysTripsData?.income ?? 0) / (currentMonthDaysTripsData?.trips ?? 1)) : "$0.00"} />
+          <div className="grid grid-cols-3 gap-2">
+            <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYearTrips} Days Rented`}    value={String(currentMonthDaysTripsData?.days ?? 0)} />
+            <SummaryCard variant="light" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYearTrips} Trips Taken`}    value={String(currentMonthDaysTripsData?.trips ?? 0)} />
+            <SummaryCard variant="gold"  label="Ave / Trips Taken"                                                       value={(currentMonthDaysTripsData?.trips ?? 0) > 0 ? fmt((currentMonthDaysTripsData?.income ?? 0) / (currentMonthDaysTripsData?.trips ?? 1)) : "$0.00"} />
           </div>
         </div>
       </div>
@@ -119,18 +99,18 @@ export function IncomeExpensesSection({
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
 
         {/* Income and Expenses table */}
-        <div className="overflow-hidden rounded-lg border border-border">
-          <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+        <div className="overflow-hidden">
+          <table className="w-full border-y border-[#FFCC00] border-collapse" style={{ tableLayout: "fixed" }}>
             <colgroup>
               <col style={{ width: "128px" }} />
               <col /><col /><col />
             </colgroup>
             <thead>
-              <tr style={{ backgroundColor: "#1a1a1a" }}>
-                <th className="text-white font-bold text-xs py-3 px-3 text-left">Month and Year</th>
-                <th className="text-white font-bold text-xs py-3 px-3 text-right">Car owner rental income</th>
-                <th className="text-white font-bold text-xs py-3 px-3 text-right">Car owner expenses</th>
-                <th className="text-white font-bold text-xs py-3 px-3 text-right">Car owner split</th>
+              <tr style={{ backgroundColor: "#1a1a1a" }} className="border-y border-[#FFCC00]">
+                <th className="text-white font-bold text-xs py-3 px-3 text-center">Month and Year</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-center">Car owner rental income</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-center">Car owner expenses</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-center">Car owner split</th>
               </tr>
             </thead>
             <tbody>
@@ -138,19 +118,19 @@ export function IncomeExpensesSection({
                 <tr><td colSpan={4} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin text-[#d3bc8d] mx-auto" /></td></tr>
               ) : (
                 <>
-                  {monthlyTripData.map((row, idx) => (
-                    <tr key={row.month} style={{ backgroundColor: idx % 2 === 0 ? "#ffffff" : "#f5f0e8" }}>
-                      <td className="text-sm py-2 px-3 font-medium text-gray-900">{row.month}</td>
-                      <td className="text-sm py-2 px-3 text-right text-gray-800">{fmt(row.income)}</td>
-                      <td className="text-sm py-2 px-3 text-right text-gray-800">{fmt(row.expenses)}</td>
-                      <td className={`text-sm py-2 px-3 text-right font-medium ${row.profit > 0 ? "text-[#C9A227]" : row.profit < 0 ? "text-[#ef4444]" : "text-gray-800"}`}>{fmt(row.profit)}</td>
+                  {monthlyTripData.map((row) => (
+                    <tr key={row.month} className="bg-white border-y border-[#FFCC00]">
+                      <td className="text-sm py-2 px-3 text-center font-medium text-black">{row.month}</td>
+                      <td className="text-sm py-2 px-3 text-center text-black">{fmt(row.income)}</td>
+                      <td className="text-sm py-2 px-3 text-center text-black">{fmt(row.expenses)}</td>
+                      <td className={`text-sm py-2 px-3 text-center font-medium ${row.profit > 0 ? "text-[#C9A227]" : row.profit < 0 ? "text-[#ef4444]" : "text-black"}`}>{fmt(row.profit)}</td>
                     </tr>
                   ))}
-                  <tr style={{ backgroundColor: "#1a1a1a" }}>
-                    <td className="text-sm font-extrabold text-white py-2.5 px-3">Total</td>
-                    <td className="text-sm font-bold text-white py-2.5 px-3 text-right">{fmt(yearTotals.income)}</td>
-                    <td className="text-sm font-bold text-white py-2.5 px-3 text-right">{fmt(yearTotals.expenses)}</td>
-                    <td className={`text-sm font-bold py-2.5 px-3 text-right ${yearTotals.profit >= 0 ? "text-[#d3bc8d]" : "text-[#f87171]"}`}>{fmt(yearTotals.profit)}</td>
+                  <tr style={{ backgroundColor: "#1a1a1a" }} className="border-y border-[#FFCC00]">
+                    <td className="text-sm font-extrabold text-white py-2.5 px-3 text-center">Total</td>
+                    <td className="text-sm font-bold text-white py-2.5 px-3 text-center">{fmt(yearTotals.income)}</td>
+                    <td className="text-sm font-bold text-white py-2.5 px-3 text-center">{fmt(yearTotals.expenses)}</td>
+                    <td className={`text-sm font-bold py-2.5 px-3 text-center ${yearTotals.profit >= 0 ? "text-[#d3bc8d]" : "text-[#f87171]"}`}>{fmt(yearTotals.profit)}</td>
                   </tr>
                 </>
               )}
@@ -159,18 +139,18 @@ export function IncomeExpensesSection({
         </div>
 
         {/* Days Rented and Trips Taken table */}
-        <div className="overflow-hidden rounded-lg border border-border">
-          <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+        <div className="overflow-hidden">
+          <table className="w-full border-y border-[#FFCC00] border-collapse" style={{ tableLayout: "fixed" }}>
             <colgroup>
               <col style={{ width: "128px" }} />
               <col /><col /><col />
             </colgroup>
             <thead>
-              <tr style={{ backgroundColor: "#1a1a1a" }}>
-                <th className="text-white font-bold text-xs py-3 px-3 text-left">Month and Year</th>
-                <th className="text-white font-bold text-xs py-3 px-3 text-right">Days Rented</th>
-                <th className="text-white font-bold text-xs py-3 px-3 text-right">Trips Taken</th>
-                <th className="text-white font-bold text-xs py-3 px-3 text-right">Ave / Trips Taken</th>
+              <tr style={{ backgroundColor: "#1a1a1a" }} className="border-y border-[#FFCC00]">
+                <th className="text-white font-bold text-xs py-3 px-3 text-center">Month and Year</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-center">Days Rented</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-center">Trips Taken</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-center">Ave / Trips Taken</th>
               </tr>
             </thead>
             <tbody>
@@ -178,19 +158,19 @@ export function IncomeExpensesSection({
                 <tr><td colSpan={4} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin text-[#d3bc8d] mx-auto" /></td></tr>
               ) : (
                 <>
-                  {monthlyDaysTripsData.map((row, idx) => (
-                    <tr key={row.month} style={{ backgroundColor: idx % 2 === 0 ? "#ffffff" : "#f5f0e8" }}>
-                      <td className="text-sm py-2 px-3 font-medium text-gray-900">{row.month}</td>
-                      <td className="text-sm py-2 px-3 text-right text-gray-800">{row.days}</td>
-                      <td className="text-sm py-2 px-3 text-right text-gray-800">{row.trips}</td>
-                      <td className="text-sm py-2 px-3 text-right text-gray-800">{row.trips > 0 ? fmt(row.avgPerTrip) : "—"}</td>
+                  {monthlyDaysTripsData.map((row) => (
+                    <tr key={row.month} className="bg-white border-y border-[#FFCC00]">
+                      <td className="text-sm py-2 px-3 text-center font-medium text-black">{row.month}</td>
+                      <td className="text-sm py-2 px-3 text-center text-black">{row.days}</td>
+                      <td className="text-sm py-2 px-3 text-center text-black">{row.trips}</td>
+                      <td className="text-sm py-2 px-3 text-center text-black">{row.trips > 0 ? fmt(row.avgPerTrip) : "—"}</td>
                     </tr>
                   ))}
-                  <tr style={{ backgroundColor: "#1a1a1a" }}>
-                    <td className="text-sm font-extrabold text-white py-2.5 px-3">Total</td>
-                    <td className="text-sm font-bold text-white py-2.5 px-3 text-right">{yearTotalsTrips.days}</td>
-                    <td className="text-sm font-bold text-white py-2.5 px-3 text-right">{yearTotalsTrips.trips}</td>
-                    <td className="text-sm font-bold text-[#d3bc8d] py-2.5 px-3 text-right">{yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "—"}</td>
+                  <tr style={{ backgroundColor: "#1a1a1a" }} className="border-y border-[#FFCC00]">
+                    <td className="text-sm font-extrabold text-white py-2.5 px-3 text-center">Total</td>
+                    <td className="text-sm font-bold text-white py-2.5 px-3 text-center">{yearTotalsTrips.days}</td>
+                    <td className="text-sm font-bold text-white py-2.5 px-3 text-center">{yearTotalsTrips.trips}</td>
+                    <td className="text-sm font-bold text-[#d3bc8d] py-2.5 px-3 text-center">{yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "—"}</td>
                   </tr>
                 </>
               )}

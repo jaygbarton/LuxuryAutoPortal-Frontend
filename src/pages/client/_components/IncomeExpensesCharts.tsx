@@ -33,7 +33,7 @@ export function IncomeExpensesCharts({
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
       {/* Line Chart: Income, Profit, Expenses */}
-      <Card className="border-border bg-card">
+      <Card className="border-0 shadow-none bg-white">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold text-foreground">
             Monthly Car Owner Rental Income, Car Owner Profit and Expenses — {selectedYear}
@@ -47,14 +47,14 @@ export function IncomeExpensesCharts({
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={monthlyTripData} margin={{ top: 8, right: 16, left: 0, bottom: 48 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_COLOR} vertical={false} />
+                <CartesianGrid stroke="#FFCC00" vertical={false} />
                 <XAxis dataKey="month" tick={CHART_AXIS_TICK} angle={-45} textAnchor="end" interval={0} height={60} axisLine={{ stroke: "#444" }} tickLine={false} />
                 <YAxis tick={CHART_AXIS_TICK} tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`} axisLine={false} tickLine={false} width={48} />
                 <Tooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={{ color: "#eee", fontWeight: 600 }} formatter={(val: number, name: string) => [fmt(val), name]} />
                 <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="line" />
-                <Line type="monotone" dataKey="income"   name="Car Owner Rental Income" stroke={CHART_GOLD}  strokeWidth={2} dot={{ r: 3, fill: CHART_GOLD }}  activeDot={{ r: 5 }} />
-                <Line type="monotone" dataKey="profit"   name="Car Owner Profit"        stroke={CHART_GOLD2} strokeWidth={2} dot={{ r: 3, fill: CHART_GOLD2 }} activeDot={{ r: 5 }} />
-                <Line type="monotone" dataKey="expenses" name="Car Owner Expenses"      stroke={CHART_RED}   strokeWidth={2} dot={{ r: 3, fill: CHART_RED }}   activeDot={{ r: 5 }} />
+                <Line type="linear" dataKey="income"   name="Car Owner Rental Income" stroke={CHART_GOLD}  strokeWidth={2} dot={{ r: 3, fill: CHART_GOLD }}  activeDot={{ r: 5 }} />
+                <Line type="linear" dataKey="profit"   name="Car Owner Profit"        stroke={CHART_GOLD2} strokeWidth={2} dot={{ r: 3, fill: CHART_GOLD2 }} activeDot={{ r: 5 }} />
+                <Line type="linear" dataKey="expenses" name="Car Owner Expenses"      stroke={CHART_RED}   strokeWidth={2} dot={{ r: 3, fill: CHART_RED }}   activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -62,7 +62,7 @@ export function IncomeExpensesCharts({
       </Card>
 
       {/* Bar Chart: Days Rented + Trips Taken */}
-      <Card className="border-border bg-card">
+      <Card className="border-0 shadow-none bg-white">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold text-foreground">
             Monthly Days Rented and Trips Taken — {selectedYearTrips}
@@ -76,7 +76,7 @@ export function IncomeExpensesCharts({
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={monthlyDaysTripsData} margin={{ top: 8, right: 16, left: -20, bottom: 48 }} barCategoryGap="25%" barGap={2}>
-                <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_COLOR} vertical={false} />
+                <CartesianGrid stroke="#FFCC00" vertical={false} />
                 <XAxis dataKey="month" tick={CHART_AXIS_TICK} angle={-45} textAnchor="end" interval={0} height={60} axisLine={{ stroke: "#444" }} tickLine={false} />
                 <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={{ color: "#eee", fontWeight: 600 }} />

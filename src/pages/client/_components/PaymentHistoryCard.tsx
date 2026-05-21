@@ -16,7 +16,7 @@ export function PaymentHistoryCard({ payments, isLoading }: PaymentHistoryCardPr
   const [receiptPayment, setReceiptPayment] = useState<Payment | null>(null);
 
   return (
-    <Card className="border-border bg-card overflow-hidden">
+    <Card className="border-0 shadow-none bg-white overflow-hidden">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-bold uppercase text-foreground tracking-wide">
           Payment History

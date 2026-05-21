@@ -12,7 +12,7 @@ interface MaintenanceCardProps {
 
 export function MaintenanceCard({ maintenanceRecords, activeCar }: MaintenanceCardProps) {
   return (
-    <Card className="border-border bg-card overflow-hidden">
+    <Card className="border-0 shadow-none bg-white overflow-hidden">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-bold uppercase text-foreground tracking-wide">
           Maintenance History
