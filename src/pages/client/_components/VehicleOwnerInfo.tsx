@@ -52,14 +52,14 @@ export function VehicleOwnerInfo({
           {/* Owner Details */}
           <div>
             <div className="space-y-1.5 text-sm">
-              {ownerName && <p><span className="font-bold text-foreground">Name</span> :{ownerName}</p>}
-              {ownerPhone && <p><span className="font-bold text-foreground">Contact #</span> :{ownerPhone}</p>}
-              {ownerEmail && <p><span className="font-bold text-foreground">Email</span> :{ownerEmail}</p>}
+              <p><span className="font-bold text-foreground">Name</span> :{ownerName || "—"}</p>
+              <p><span className="font-bold text-foreground">Contact #</span> :{ownerPhone || "—"}</p>
+              <p><span className="font-bold text-foreground">Email</span> :{ownerEmail || "—"}</p>
 
-              {(manufacturerUrl || activeCar?.manufacturerWebsite) && (
-                <div className="pt-1">
-                  <span className="font-bold text-foreground">Manufacturer URL</span>
-                  {": "}
+              <div className="pt-1">
+                <span className="font-bold text-foreground">Manufacturer URL</span>
+                {": "}
+                {(manufacturerUrl || activeCar?.manufacturerWebsite) ? (
                   <a
                     href={manufacturerUrl || activeCar?.manufacturerWebsite || "#"}
                     target="_blank"
@@ -68,26 +68,26 @@ export function VehicleOwnerInfo({
                   >
                     {(manufacturerUrl || activeCar?.manufacturerWebsite || "").replace(/^https?:\/\//, "")}
                   </a>
-                </div>
-              )}
+                ) : (
+                  <span>—</span>
+                )}
+              </div>
 
-              {activeCar?.manufacturerUsername && (
-                <p><span className="font-bold text-foreground">Username</span>: {activeCar.manufacturerUsername}</p>
-              )}
-              {activeCar?.turoPassword && (
-                <p><span className="font-bold text-foreground">Password</span>: {activeCar.turoPassword}</p>
-              )}
+              <p><span className="font-bold text-foreground">Username</span>: {activeCar?.manufacturerUsername || "—"}</p>
+              <p><span className="font-bold text-foreground">Password</span>: {activeCar?.turoPassword || "—"}</p>
 
-              {turoViewLink && (
-                <div className="pt-1">
-                  <span className="font-bold text-foreground">Turo Link</span>
-                  {" :"}
+              <div className="pt-1">
+                <span className="font-bold text-foreground">Turo Link</span>
+                {" :"}
+                {turoViewLink ? (
                   <a href={turoViewLink} target="_blank" rel="noopener noreferrer"
                     className="text-foreground underline hover:text-[#d3bc8d] ml-1">
                     View Car
                   </a>
-                </div>
-              )}
+                ) : (
+                  <span className="ml-1">—</span>
+                )}
+              </div>
 
               <div className="flex items-center gap-1 pt-0.5">
                 <span className="font-bold text-foreground">Book Your Car</span>

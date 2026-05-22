@@ -213,6 +213,28 @@ export default function ClientDashboard() {
     retry: false,
   });
 
+  const { data: maintenanceTasksData } = useQuery<{
+    success: boolean;
+    data: Array<{
+      id: number;
+      car_id: number | null;
+      task_description: string | null;
+      scheduled_date: string | null;
+      due_date: string | null;
+      status: string | null;
+    }>;
+  }>({
+    queryKey: ["/api/operations/maintenance", carId],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/operations/maintenance?limit=100"), {
+        credentials: "include",
+      });
+      if (!res.ok) return { success: false, data: [] };
+      return res.json();
+    },
+    retry: false,
+  });
+
   // ── Derived Data ──────────────────────────────────────────────────────────────
 
   const payments = useMemo<Payment[]>(() => {
@@ -255,8 +277,17 @@ export default function ClientDashboard() {
         maintenanceType: "License Registration",
         dateCompleted: activeCar.registrationExpiration,
       });
+    const tasks = maintenanceTasksData?.data ?? [];
+    for (const t of tasks) {
+      if (carId != null && t.car_id !== carId) continue;
+      records.push({
+        maintenanceType: t.task_description ?? "Maintenance Task",
+        dateCompleted: t.scheduled_date ?? t.due_date ?? undefined,
+        status: t.status ?? undefined,
+      });
+    }
     return records;
-  }, [activeCar]);
+  }, [activeCar, maintenanceTasksData, carId]);
 
   const yearNum = parseInt(selectedYear, 10);
   const yearNumTrips = parseInt(selectedYearTrips, 10);

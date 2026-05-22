@@ -121,11 +121,11 @@ export function IncomeExpensesSection({
                   {monthlyTripData.map((row) => (
                     <tr key={row.month} className="bg-white border-y border-[#FFCC00]">
                       <td className="text-sm py-2 px-3 text-center font-medium text-black">
-                        <span className="inline-block bg-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">{row.month}</span>
+                        {row.month}
                       </td>
                       <td className="text-sm py-2 px-3 text-center text-black">{fmt(row.income)}</td>
                       <td className="text-sm py-2 px-3 text-center text-black">{fmt(row.expenses)}</td>
-                      <td className={`text-sm py-2 px-3 text-center font-medium ${row.profit > 0 ? "text-[#C9A227]" : row.profit < 0 ? "text-[#ef4444]" : "text-black"}`}>{fmt(row.profit)}</td>
+                      <td className="text-sm py-2 px-3 text-center font-medium text-black">{fmt(row.profit)}</td>
                     </tr>
                   ))}
                   <tr style={{ backgroundColor: "#FFCC00" }} className="border-y border-[#FFCC00]">
@@ -163,7 +163,7 @@ export function IncomeExpensesSection({
                   {monthlyDaysTripsData.map((row) => (
                     <tr key={row.month} className="bg-white border-y border-[#FFCC00]">
                       <td className="text-sm py-2 px-3 text-center font-medium text-black">
-                        <span className="inline-block bg-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">{row.month}</span>
+                        {row.month}
                       </td>
                       <td className="text-sm py-2 px-3 text-center text-black">{row.days}</td>
                       <td className="text-sm py-2 px-3 text-center text-black">{row.trips}</td>

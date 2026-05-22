@@ -42,20 +42,16 @@ export function PaymentHistoryCard({ payments, isLoading }: PaymentHistoryCardPr
             <TableBody>
               {payments.map((p) => (
                 <TableRow key={p.payments_aid} className="border-border hover:bg-muted/30">
-                  <TableCell className="text-sm py-2 font-medium">
-                    <span className="inline-block bg-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">{getMonthLabel(p.payments_year_month)}</span>
+                  <TableCell className="text-sm py-2 font-medium text-black">
+                    {getMonthLabel(p.payments_year_month)}
                   </TableCell>
-                  <TableCell className="text-sm py-2 text-right text-[#d3bc8d]">{fmt(p.payments_amount_payout)}</TableCell>
-                  <TableCell className="text-sm py-2 text-right">{fmt(p.payments_amount)}</TableCell>
-                  <TableCell className="text-sm py-2 text-right">
-                    <span className={p.payments_amount_balance >= 0 ? "text-green-400" : "text-red-400"}>
-                      {fmt(p.payments_amount_balance)}
-                    </span>
+                  <TableCell className="text-sm py-2 text-right text-black">{fmt(p.payments_amount_payout)}</TableCell>
+                  <TableCell className="text-sm py-2 text-right text-black">{fmt(p.payments_amount)}</TableCell>
+                  <TableCell className="text-sm py-2 text-right text-black">
+                    {fmt(p.payments_amount_balance)}
                   </TableCell>
-                  <TableCell className="text-sm py-2">
-                    {p.payments_invoice_date ? (
-                      <span className="inline-block bg-gray-200 text-gray-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">{p.payments_invoice_date}</span>
-                    ) : "—"}
+                  <TableCell className="text-sm py-2 text-black">
+                    {p.payments_invoice_date || "—"}
                   </TableCell>
                   <TableCell className="text-center py-2">
                     {p.payments_attachment ? (

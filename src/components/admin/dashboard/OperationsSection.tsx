@@ -9,6 +9,7 @@ interface TuroTrip {
   dateBooked: string;
   guestName: string | null;
   carName: string | null;
+  plateNumber: string | null;
   tripStart: string;
   tripEnd: string;
   earnings: number;
@@ -96,7 +97,7 @@ export default function OperationsSection() {
   const rows = displayTrips.map((trip) => ({
     reservationId: trip.reservationId || "—",
     car: trip.carName || "—",
-    plateNumber: "—",
+    plateNumber: trip.plateNumber || "—",
     tripStart: formatTripDate(trip.tripStart),
     pickUpLocation: trip.pickupLocation ? truncate(trip.pickupLocation, 35) : "—",
     tripEnds: formatTripDate(trip.tripEnd),

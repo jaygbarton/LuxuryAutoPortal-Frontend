@@ -8,6 +8,7 @@ interface TuroTrip {
   reservationId: string;
   guestName: string | null;
   carName: string | null;
+  plateNumber: string | null;
   tripStart: string | null;
   tripEnd: string | null;
   pickupLocation: string | null;
@@ -87,7 +88,7 @@ export default function CarIssuesSection() {
   const rows = displayTrips.map((trip) => ({
     reservationId: trip.reservationId || "—",
     car: trip.carName || "—",
-    plateNumber: "—",
+    plateNumber: trip.plateNumber || "—",
     tripStart: formatTripDate(trip.tripStart),
     pickUpLocation: trip.pickupLocation ? truncate(trip.pickupLocation, 35) : "—",
     tripEnds: formatTripDate(trip.tripEnd),
