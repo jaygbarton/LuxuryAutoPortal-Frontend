@@ -30,14 +30,14 @@ export function DashboardTable({
   className,
 }: DashboardTableProps) {
   return (
-    <div className={cn("w-full overflow-x-auto", className)}>
-      <table className="w-full border-y border-[#FFCC00] border-collapse">
+    <div className={cn("w-full overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0", className)}>
+      <table className="w-full border-y border-[#FFCC00] border-collapse" style={{ minWidth: `${Math.max(480, columns.length * 110)}px` }}>
         <thead>
           <tr className="bg-black border-y border-[#FFCC00]">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className="px-3 py-2 text-center text-xs font-bold uppercase text-white"
+                className="px-3 py-2 text-center text-xs font-bold uppercase text-white whitespace-nowrap"
               >
                 {col.label}
               </th>
@@ -53,7 +53,7 @@ export function DashboardTable({
               {columns.map((col) => (
                 <td
                   key={col.key}
-                  className="px-3 py-2 text-center text-sm text-gray-900"
+                  className="px-3 py-2 text-center text-sm text-gray-900 whitespace-nowrap"
                 >
                   {row[col.key]}
                 </td>

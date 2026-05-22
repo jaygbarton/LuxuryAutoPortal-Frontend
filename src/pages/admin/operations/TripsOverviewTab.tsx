@@ -375,7 +375,7 @@ export function TripsOverviewTab() {
     <div className="space-y-6">
       <SectionHeader title="Trips Overview" variant="plain" />
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <SummaryCard
           label="Active Trips"
           value={String(activeTrips.length)}

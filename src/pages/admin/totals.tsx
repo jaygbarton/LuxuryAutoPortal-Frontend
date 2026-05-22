@@ -161,7 +161,7 @@ function MonthPicker({ month, year, onChange }: {
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
           {MONTH_LABELS.map((label, i) => {
             const m = i + 1;
             const isSelected = m === month && viewYear === year;

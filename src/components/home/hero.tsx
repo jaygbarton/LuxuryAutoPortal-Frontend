@@ -48,7 +48,7 @@ export function Hero() {
         </div>
 
         {/* Headline */}
-        <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight text-white mb-6">
+        <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl font-bold leading-tight text-white mb-6">
           Experience
           <span
             className="block mt-2"

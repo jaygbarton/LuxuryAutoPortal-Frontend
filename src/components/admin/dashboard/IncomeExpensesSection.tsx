@@ -595,7 +595,7 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
                 <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Total Management Income and Expenses
                 </h3>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                   <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" className="h-20" />
                   <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" className="h-20" />
                   <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" className="h-20" />
@@ -607,12 +607,12 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
                 <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Management Income and Expenses
                 </h3>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                   <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" className="h-20" />
                   <SummaryCard label="Total Management Expenses" value={formatCurrency(totalMgmtExpenses)} variant="white" className="h-20" />
                   <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome - totalMgmtExpenses)} variant="gold" className="h-20" />
                 </div>
-                <div className="grid grid-cols-3 gap-1.5 mt-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
                   <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Mgmt Expenses`} value={formatCurrency(prevMonth?.mgmtExpenses ?? 0)} variant="white" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Mgmt Profit`} value={formatCurrency((prevMonth?.mgmtIncome ?? 0) - (prevMonth?.mgmtExpenses ?? 0))} variant="gold" className="h-20" />
@@ -624,12 +624,12 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
                 <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Car Owner Income and Expenses
                 </h3>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                   <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" className="h-20" />
                   <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" className="h-20" />
                   <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" className="h-20" />
                 </div>
-                <div className="grid grid-cols-3 gap-1.5 mt-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
                   <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Owner Expenses`} value={formatCurrency(prevMonth?.ownerExpenses ?? 0)} variant="white" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Owner Profit`} value={formatCurrency((prevMonth?.ownerIncome ?? 0) - (prevMonth?.ownerExpenses ?? 0))} variant="gold" className="h-20" />
@@ -642,14 +642,14 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
               <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                 Monthly Income and Expenses
               </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full border-y border-[#FFCC00] border-collapse">
+              <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+                <table className="w-full min-w-[880px] border-y border-[#FFCC00] border-collapse">
                   <thead>
                     <tr className="bg-black border-y border-[#FFCC00]">
                       {tableColumns.map((col) => (
                         <th
                           key={col.key}
-                          className="px-3 py-2 text-center text-xs font-bold uppercase text-white"
+                          className="px-3 py-2 text-center text-xs font-bold uppercase text-white whitespace-nowrap"
                         >
                           {col.label}
                         </th>
@@ -686,7 +686,7 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
           </div>
 
           {/* ── Row 2: Donuts (1/3) + Line/Bar charts (2/3) — 3 locked rows ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-x-8 gap-y-8" style={{ gridTemplateRows: "repeat(3, 280px)" }}>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-x-4 sm:gap-x-8 gap-y-6 sm:gap-y-8 xl:[grid-template-rows:repeat(3,280px)] [grid-auto-rows:280px]">
 
             {/* Row 1 left — Mgmt donuts */}
             <div className="xl:col-span-1 grid grid-cols-2 gap-2">

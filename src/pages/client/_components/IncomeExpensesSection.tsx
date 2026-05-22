@@ -64,16 +64,16 @@ export function IncomeExpensesSection({
       </div>
 
       {/* Summary card rows — labels on the cards themselves (value top, label bottom) */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-2">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 mb-2">
 
         {/* Income/Expenses summary */}
         <div>
-          <div className="grid grid-cols-3 gap-2 mb-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
             <SummaryCard variant="black" label="Total Car Owner Rental Income" value={fmt(yearTotals.income)} />
             <SummaryCard variant="light" label="Total Car Owner Expenses"      value={fmt(yearTotals.expenses)} />
             <SummaryCard variant="gold"  label="Total Car Owner Profit"        value={fmt(yearTotals.profit)} />
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Car Owner Rental Income`} value={fmt(currentMonthData?.income ?? 0)} />
             <SummaryCard variant="light" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Expenses`}           value={fmt(currentMonthData?.expenses ?? 0)} />
             <SummaryCard variant="gold"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Profit`}             value={fmt(currentMonthData?.profit ?? 0)} valueColor={(currentMonthData?.profit ?? 0) < 0 ? "#ef4444" : "#1a1a1a"} />
@@ -82,12 +82,12 @@ export function IncomeExpensesSection({
 
         {/* Days/Trips summary */}
         <div>
-          <div className="grid grid-cols-3 gap-2 mb-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
             <SummaryCard variant="black" label="Total Days Rented"   value={String(yearTotalsTrips.days)} />
             <SummaryCard variant="light" label="Total Trips Taken"   value={String(yearTotalsTrips.trips)} />
             <SummaryCard variant="gold"  label="Ave / Trips Taken"   value={yearTotalsTrips.trips > 0 ? fmt(yearTotalsTrips.income / yearTotalsTrips.trips) : "$0.00"} />
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYearTrips} Days Rented`}    value={String(currentMonthDaysTripsData?.days ?? 0)} />
             <SummaryCard variant="light" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYearTrips} Trips Taken`}    value={String(currentMonthDaysTripsData?.trips ?? 0)} />
             <SummaryCard variant="gold"  label="Ave / Trips Taken"                                                       value={(currentMonthDaysTripsData?.trips ?? 0) > 0 ? fmt((currentMonthDaysTripsData?.income ?? 0) / (currentMonthDaysTripsData?.trips ?? 1)) : "$0.00"} />
@@ -96,11 +96,11 @@ export function IncomeExpensesSection({
       </div>
 
       {/* Tables */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 items-start">
 
         {/* Income and Expenses table */}
-        <div className="overflow-hidden">
-          <table className="w-full border-y border-[#FFCC00] border-collapse" style={{ tableLayout: "fixed" }}>
+        <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+          <table className="w-full min-w-[480px] border-y border-[#FFCC00] border-collapse" style={{ tableLayout: "fixed" }}>
             <colgroup>
               <col style={{ width: "128px" }} />
               <col /><col /><col />
@@ -141,8 +141,8 @@ export function IncomeExpensesSection({
         </div>
 
         {/* Days Rented and Trips Taken table */}
-        <div className="overflow-hidden">
-          <table className="w-full border-y border-[#FFCC00] border-collapse" style={{ tableLayout: "fixed" }}>
+        <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+          <table className="w-full min-w-[480px] border-y border-[#FFCC00] border-collapse" style={{ tableLayout: "fixed" }}>
             <colgroup>
               <col style={{ width: "128px" }} />
               <col /><col /><col />

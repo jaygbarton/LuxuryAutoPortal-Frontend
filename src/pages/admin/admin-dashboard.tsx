@@ -44,14 +44,14 @@ export default function AdminDashboardPage() {
     <AdminLayout>
       <div className="min-h-screen bg-background">
         {/* Brand Header */}
-        <div className="mb-8 border-b border-gray-200 bg-white px-6 py-6">
-          <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-6 md:grid-cols-3">
+        <div className="mb-6 sm:mb-8 border-b border-gray-200 bg-white px-3 sm:px-6 py-4 sm:py-6">
+          <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-4 sm:gap-6 md:grid-cols-3">
             {/* Left — Logo */}
             <div className="flex justify-center md:justify-start">
               <img
                 src="/logo.png"
                 alt="Golden Luxury Auto"
-                className="h-32 w-auto object-contain"
+                className="h-20 sm:h-28 md:h-32 w-auto object-contain"
               />
             </div>
 
