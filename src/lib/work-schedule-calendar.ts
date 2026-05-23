@@ -3,7 +3,7 @@
  * dateVal = "YYYY-MM". Returns flat array of day cells (7 per week, Sun–Sat).
  */
 
-export const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+export const WEEK_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
 
 export interface DayCell {
   day: number;

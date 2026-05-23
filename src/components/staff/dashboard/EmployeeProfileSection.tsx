@@ -5,7 +5,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { EmployeeDocumentImage } from "@/components/admin/EmployeeDocumentImage";
-import { Image, Mail, Phone, ShieldCheck, DollarSign } from "lucide-react";
+import { Image, Phone } from "lucide-react";
 import { NewsMediaSlot } from "@/pages/client/_components/NewsMediaSlot";
 
 interface MeEmployeeResponse {
@@ -65,7 +65,7 @@ export default function EmployeeProfileSection() {
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="bg-white p-6">
         <div className="flex animate-pulse items-center gap-4">
           <div className="h-20 w-20 rounded-full bg-gray-200" />
           <div className="flex-1 space-y-2">
@@ -92,7 +92,7 @@ export default function EmployeeProfileSection() {
   const email = e.employee_job_pay_work_email?.trim() || e.employee_email || "";
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="bg-white p-6">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
         {/* Column 1 — Info + Photo */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -118,18 +118,16 @@ export default function EmployeeProfileSection() {
               </div>
             )}
             {email && (
-              <div className="flex items-center gap-1.5 truncate">
-                <Mail className="h-3.5 w-3.5 text-gray-400" />
-                <span className="font-semibold">Email:</span>
+              <div className="truncate">
+                <span className="font-semibold">Email:</span>{" "}
                 <span className="truncate">{email}</span>
               </div>
             )}
           </div>
 
           <div className="mt-3 space-y-0.5 text-sm text-gray-800">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-gray-400" />
-              <span className="font-semibold">SSN or EIN:</span>
+            <div>
+              <span className="font-semibold">SSN or EIN:</span>{" "}
               <span className="font-mono text-xs">{unspecified(e.employee_ssn_ein)}</span>
             </div>
             <div>
@@ -143,8 +141,7 @@ export default function EmployeeProfileSection() {
             </div>
           </div>
 
-          <div className="mt-3 flex items-center gap-1.5 text-sm">
-            <DollarSign className="h-4 w-4 text-emerald-600" />
+          <div className="mt-3 text-sm">
             <span className="font-semibold text-emerald-700">
               Rate: {formatRate(e.employee_job_pay_salary_rate)}
             </span>
@@ -185,7 +182,7 @@ export default function EmployeeProfileSection() {
           {newsSlot1Items.length > 0 ? (
             <NewsMediaSlot slot={1} items={newsSlot1Items} />
           ) : (
-            <div className="flex h-full min-h-[200px] w-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 text-center text-xs text-gray-500">
+            <div className="flex h-full min-h-[200px] w-full items-center justify-center bg-gray-50 px-4 text-center text-xs text-gray-500">
               No media uploaded for Slot 1.
             </div>
           )}
@@ -196,7 +193,7 @@ export default function EmployeeProfileSection() {
           {newsSlot2Items.length > 0 ? (
             <NewsMediaSlot slot={2} items={newsSlot2Items} />
           ) : (
-            <div className="flex h-full min-h-[200px] w-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 text-center text-xs text-gray-500">
+            <div className="flex h-full min-h-[200px] w-full items-center justify-center bg-gray-50 px-4 text-center text-xs text-gray-500">
               No media uploaded for Slot 2.
             </div>
           )}
@@ -204,7 +201,7 @@ export default function EmployeeProfileSection() {
       </div>
 
       {(e.employee_job_pay_department_name || e.employee_job_pay_job_title_name) && (
-        <div className="mt-4 border-t border-gray-100 pt-3 text-xs text-gray-500">
+        <div className="mt-4 pt-3 text-xs text-gray-500">
           <span className="font-semibold text-gray-700">
             {unspecified(e.employee_job_pay_job_title_name)}
           </span>

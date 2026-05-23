@@ -71,11 +71,6 @@ export default function MyMonthlyStatsSection() {
     return { category, monthly, total };
   });
 
-  const grandMonthly = Array(12).fill(0);
-  for (const row of displayData)
-    for (let i = 0; i < 12; i++) grandMonthly[i] += row.monthly[i];
-  const grandTotal = grandMonthly.reduce((s: number, v: number) => s + v, 0);
-
   return (
     <div className="mb-8">
       <SectionHeader
@@ -91,7 +86,7 @@ export default function MyMonthlyStatsSection() {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-y border-[#FFCC00] border-collapse text-xs">
+          <table className="w-full border-y border-[#FFCC00] border-collapse text-xs [&_td]:border-x [&_td]:border-[#FFCC00] [&_th]:border-x [&_th]:border-[#FFCC00]">
             <thead>
               <tr className="bg-black border-y border-[#FFCC00]">
                 <th className="sticky left-0 z-10 min-w-[220px] bg-black px-3 py-2 text-left font-bold uppercase text-white">
@@ -102,7 +97,7 @@ export default function MyMonthlyStatsSection() {
                     {m} {year}
                   </th>
                 ))}
-                <th className="min-w-[60px] bg-black px-2 py-2 text-center font-bold text-[#FFCC00]">
+                <th className="min-w-[60px] bg-black px-2 py-2 text-center font-bold text-white">
                   Total
                 </th>
               </tr>
@@ -123,19 +118,6 @@ export default function MyMonthlyStatsSection() {
                   </td>
                 </tr>
               ))}
-              <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
-                <td className="sticky left-0 z-10 min-w-[220px] bg-[#FFCC00] px-3 py-2 text-left text-xs font-bold text-black">
-                  TOTAL
-                </td>
-                {grandMonthly.map((val, mIdx) => (
-                  <td key={mIdx} className="px-2 py-2 text-center text-xs font-bold text-black">
-                    {val > 0 ? val : "—"}
-                  </td>
-                ))}
-                <td className="px-2 py-2 text-center text-sm font-bold text-black">
-                  {grandTotal > 0 ? grandTotal : "—"}
-                </td>
-              </tr>
             </tbody>
           </table>
         </div>

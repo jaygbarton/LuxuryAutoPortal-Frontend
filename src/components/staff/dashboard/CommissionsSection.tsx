@@ -98,10 +98,10 @@ export default function CommissionsSection() {
   const grandTotal = grandMonthly.reduce((s: number, v: number) => s + v, 0);
 
   return (
-    <div className="mb-8">
+    <div className="mb-8 px-4">
       <SectionHeader title="COMMISSIONS" />
 
-      <div className="bg-white px-4 py-4">
+      <div className="bg-white py-4">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <span className="text-sm font-medium text-gray-700">Year:</span>
           <Select value={year} onValueChange={setYear}>

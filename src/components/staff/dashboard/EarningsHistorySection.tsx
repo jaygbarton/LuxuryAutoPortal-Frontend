@@ -229,7 +229,11 @@ export default function EarningsHistorySection() {
                     <tbody>
                       {periodRows.map((r) => (
                         <tr key={r.payrun_list_aid} className="bg-white border-y border-[#FFCC00]">
-                          <td className="px-3 py-2 text-center text-black">{periodLabel(r)}</td>
+                          <td className="px-3 py-2 text-center">
+                            <span className="inline-block rounded-full bg-gray-100 px-3 py-0.5 text-xs font-medium text-black">
+                              {periodLabel(r)}
+                            </span>
+                          </td>
                           <td className="px-3 py-2 text-center font-mono text-black">
                             {fmt$(parseAmount(r.payrun_list_net))}
                           </td>

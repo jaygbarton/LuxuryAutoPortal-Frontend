@@ -192,9 +192,6 @@ export default function LoggedHoursSection() {
   const sessions = data?.data?.sessions ?? [];
   const rows = useMemo(() => buildDailyRows(sessions), [sessions]);
 
-  const totalWorked = rows.reduce((s, r) => s + r.workedHours, 0);
-  const totalAmount = rows.reduce((s, r) => s + r.workedHours * rate, 0);
-
   const setQuickRange = (kind: "today" | "week" | "month") => {
     if (kind === "today") {
       setFrom(today);
@@ -272,7 +269,7 @@ export default function LoggedHoursSection() {
                   <th className="px-3 py-2 text-center font-bold uppercase text-white">Total Break</th>
                   <th className="px-3 py-2 text-center font-bold uppercase text-white">Time Out</th>
                   <th className="px-3 py-2 text-center font-bold uppercase text-white">Rate</th>
-                  <th className="px-3 py-2 text-center font-bold uppercase text-[#FFCC00]">Amount</th>
+                  <th className="px-3 py-2 text-center font-bold uppercase text-white">Amount</th>
                 </tr>
               </thead>
               <tbody>
@@ -326,15 +323,6 @@ export default function LoggedHoursSection() {
                     </tr>
                   );
                 })}
-                <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
-                  <td className="px-3 py-2 text-center text-black" colSpan={3}>
-                    TOTAL
-                  </td>
-                  <td className="px-3 py-2 text-center font-mono text-black">—</td>
-                  <td className="px-3 py-2 text-center text-black">{formatHM(totalWorked)} worked</td>
-                  <td className="px-3 py-2 text-center text-black">—</td>
-                  <td className="px-3 py-2 text-center text-black">${totalAmount.toFixed(2)}</td>
-                </tr>
               </tbody>
             </table>
           </div>

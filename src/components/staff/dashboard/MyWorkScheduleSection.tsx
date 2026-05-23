@@ -108,7 +108,7 @@ export default function MyWorkScheduleSection() {
         </div>
       ) : (
         <div className="overflow-auto">
-          <table className="w-full table-fixed border-collapse">
+          <table className="w-full table-fixed border-collapse border border-gray-400 [&_td]:border [&_td]:border-gray-400 [&_th]:border [&_th]:border-gray-400">
             <thead>
               <tr>
                 <th
@@ -122,7 +122,7 @@ export default function MyWorkScheduleSection() {
                 {WEEK_DAYS.map((d) => (
                   <th
                     key={d}
-                    className="w-[14.2857%] px-2 py-2 text-center text-xs font-bold uppercase tracking-wide text-white"
+                    className="w-[14.2857%] border border-gray-600 px-2 py-2 text-center text-xs font-bold uppercase tracking-wide text-white"
                   >
                     {d}
                   </th>
@@ -139,7 +139,7 @@ export default function MyWorkScheduleSection() {
                       {weekRow.map((cell, idx) => (
                         <td
                           key={`num-${weekNum}-${idx}`}
-                          className="w-[14.2857%] px-2 py-2 text-center text-sm font-bold text-black"
+                          className="w-[14.2857%] border border-gray-400 px-2 py-2 text-center text-sm font-bold text-black"
                         >
                           {cell.day === 0 ? "" : cell.day}
                         </td>
@@ -154,7 +154,7 @@ export default function MyWorkScheduleSection() {
                         return (
                           <td
                             key={`shift-${weekNum}-${idx}`}
-                            className="w-[14.2857%] px-2 py-2 align-top text-center text-xs text-gray-800"
+                            className="w-[14.2857%] border border-gray-400 px-2 py-2 align-top text-center text-xs text-gray-800"
                           >
                             {myShifts.map((s) => (
                               <div key={s.work_sched_aid}>
