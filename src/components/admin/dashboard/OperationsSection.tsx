@@ -1,42 +1,41 @@
 import { useQuery } from "@tanstack/react-query";
-import { format, subDays } from "date-fns";
+import { format } from "date-fns";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader, DashboardTable } from "@/components/admin/dashboard";
 
-interface TuroTrip {
+interface OperationTask {
   id: number;
-  reservationId: string;
-  dateBooked: string;
-  guestName: string | null;
-  carName: string | null;
-  plateNumber: string | null;
-  tripStart: string;
-  tripEnd: string;
-  earnings: number;
-  cancelledEarnings: number;
-  status: "booked" | "cancelled" | "completed";
-  pickupLocation: string | null;
-  returnLocation: string | null;
-  deliveryLocation: string | null;
-  totalDistance: string | null;
-  phoneNumber: string | null;
+  turo_trip_id: number | null;
+  reservation_id: string | null;
+  car_name: string | null;
+  guest_name: string | null;
+  task_type: "cleaning" | "delivery" | "pickup";
+  assigned_to: string | null;
+  scheduled_date: string | null;
+  scheduled_location: string | null;
+  due_date: string | null;
+  status: "new" | "in_progress" | "completed" | "delivered";
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
-interface TuroTripsResponse {
+interface OperationTasksResponse {
   success: boolean;
-  data: TuroTrip[];
+  data: OperationTask[];
   total: number;
 }
 
 const TABLE_COLUMNS = [
   { key: "reservationId", label: "Reservation #", align: "left" as const },
-  { key: "car", label: "CAR", align: "left" as const },
-  { key: "plateNumber", label: "Plate #", align: "left" as const },
-  { key: "tripStart", label: "Trip Start", align: "left" as const },
-  { key: "pickUpLocation", label: "Pick Up Location", align: "left" as const },
-  { key: "assignedTo", label: "Assigned to", align: "left" as const },
-  { key: "tripEnds", label: "Trip Ends", align: "left" as const },
-  { key: "dropOffLocation", label: "Drop Off Location", align: "left" as const },
+  { key: "car", label: "Car", align: "left" as const },
+  { key: "guestName", label: "Guest Name", align: "left" as const },
+  { key: "taskType", label: "Task Type", align: "left" as const },
+  { key: "scheduledDate", label: "Scheduled Date", align: "left" as const },
+  { key: "location", label: "Location", align: "left" as const },
+  { key: "dueDate", label: "Due Date", align: "left" as const },
+  { key: "assignedTo", label: "Assigned To", align: "left" as const },
+  { key: "notes", label: "Notes", align: "left" as const },
   { key: "status", label: "Status", align: "left" as const },
 ];
 
@@ -44,15 +43,30 @@ function truncate(text: string, max: number): string {
   return text.length > max ? text.slice(0, max) + "…" : text;
 }
 
-function formatTripDate(dateStr: string | null | undefined): string {
+function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return "—";
-  return format(d, "MMM d, yyyy h:mm a");
+  return format(d, "MMM d, yyyy");
 }
 
-function statusLabel(status: TuroTrip["status"]): string {
-  return status.charAt(0).toUpperCase() + status.slice(1);
+function statusLabel(status: OperationTask["status"]): string {
+  const labels: Record<string, string> = {
+    new: "New",
+    in_progress: "In Progress",
+    completed: "Completed",
+    delivered: "Delivered",
+  };
+  return labels[status] ?? status;
+}
+
+function taskTypeLabel(type: OperationTask["task_type"]): string {
+  const labels: Record<string, string> = {
+    cleaning: "Cleaning",
+    delivery: "Delivery",
+    pickup: "Pickup",
+  };
+  return labels[type] ?? type;
 }
 
 function LoadingSkeleton() {
@@ -69,45 +83,39 @@ function LoadingSkeleton() {
 }
 
 export default function OperationsSection() {
-  const { data, isLoading } = useQuery<TuroTripsResponse>({
-    queryKey: ["/api/turo-trips", "limit=50"],
+  const { data, isLoading } = useQuery<OperationTasksResponse>({
+    queryKey: ["/api/operations/tasks"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/turo-trips?limit=50"), {
+      const res = await fetch(buildApiUrl("/api/operations/tasks?limit=50"), {
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to fetch trips");
+      if (!res.ok) throw new Error("Failed to fetch tasks");
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
   });
 
-  const trips = data?.data ?? [];
+  const tasks = data?.data ?? [];
 
-  // Filter: booked OR tripStart within last 7 days or in the future
-  const cutoff = subDays(new Date(), 7);
-  const relevantTrips = trips.filter(
-    (t) => t.status === "booked" || new Date(t.tripStart) >= cutoff,
-  );
-
-  // Sort by tripStart desc (most recent first), limit to 20
-  const displayTrips = [...relevantTrips]
-    .sort((a, b) => new Date(b.tripStart).getTime() - new Date(a.tripStart).getTime())
+  const displayTasks = [...tasks]
+    .sort((a, b) => {
+      const aTime = a.scheduled_date ? new Date(a.scheduled_date).getTime() : 0;
+      const bTime = b.scheduled_date ? new Date(b.scheduled_date).getTime() : 0;
+      return bTime - aTime;
+    })
     .slice(0, 20);
 
-  const rows = displayTrips.map((trip) => ({
-    reservationId: trip.reservationId || "—",
-    car: trip.carName || "—",
-    plateNumber: trip.plateNumber || "—",
-    tripStart: formatTripDate(trip.tripStart),
-    pickUpLocation: trip.pickupLocation ? truncate(trip.pickupLocation, 35) : "—",
-    tripEnds: formatTripDate(trip.tripEnd),
-    dropOffLocation: trip.returnLocation
-      ? truncate(trip.returnLocation, 35)
-      : trip.deliveryLocation
-        ? truncate(trip.deliveryLocation, 35)
-        : "—",
-    assignedTo: "—",
-    status: statusLabel(trip.status),
+  const rows = displayTasks.map((task) => ({
+    reservationId: task.reservation_id || "—",
+    car: task.car_name || "—",
+    guestName: task.guest_name || "—",
+    taskType: taskTypeLabel(task.task_type),
+    scheduledDate: formatDate(task.scheduled_date),
+    location: task.scheduled_location ? truncate(task.scheduled_location, 35) : "—",
+    dueDate: formatDate(task.due_date),
+    assignedTo: task.assigned_to || "—",
+    notes: task.notes ? truncate(task.notes, 50) : "—",
+    status: statusLabel(task.status),
   }));
 
   return (
@@ -118,11 +126,10 @@ export default function OperationsSection() {
         <LoadingSkeleton />
       ) : (
         <>
-          {/* Trips Table */}
           <div className="mt-4">
             {rows.length === 0 ? (
               <div className="rounded-md bg-[#111111] px-6 py-8 text-center">
-                <p className="text-sm text-white/60">No trips found</p>
+                <p className="text-sm text-white/60">No tasks found</p>
               </div>
             ) : (
               <DashboardTable columns={TABLE_COLUMNS} rows={rows} />

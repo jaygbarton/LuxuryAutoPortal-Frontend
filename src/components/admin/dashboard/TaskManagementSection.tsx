@@ -6,11 +6,13 @@ import { SectionHeader, DashboardTable } from "@/components/admin/dashboard";
 interface TaskTimer {
   task_timer_aid: number;
   task_timer_name: string;
+  task_timer_emp_id: string;
   task_timer_emp_list: string;
   task_timer_date_start: string;
   task_timer_date_end: string;
   task_timer_status: number;
   task_timer_description: string;
+  task_timer_goal: string;
   task_timer_car_name: string;
   task_timer_created: string;
 }
@@ -113,7 +115,7 @@ export default function TaskManagementSection() {
       taskDescription: combined,
       dueDate: formatDate(task.task_timer_date_end),
       repeat: "None",
-      assignedBy: "—",
+      assignedBy: task.task_timer_goal || "—",
       status: <StatusBadge status={task.task_timer_status} />,
     };
   });
