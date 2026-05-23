@@ -28,7 +28,7 @@ function fmtDate(s: string | undefined): string {
 function statusLabel(status: number | undefined): string {
   const s = Number(status);
   if (s === 1) return "Completed";
-  if (s === 2) return "In-Progress";
+  if (s === 2) return "In Progress";
   return "Not Started";
 }
 

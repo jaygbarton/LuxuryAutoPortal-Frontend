@@ -83,7 +83,7 @@ function Shimmer({ className }: { className?: string }) {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-4 px-4">
+    <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <Shimmer key={i} className="h-20" />
@@ -569,7 +569,7 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
   // ── Render ─────────────────────────────────────────────────────────
 
   return (
-    <div className="mb-8">
+    <div className="mb-8 px-4">
       <SectionHeader title="INCOME AND EXPENSES" />
 
 
@@ -584,7 +584,7 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
       )}
 
       {!isLoading && !isError && ieData && (
-        <div className="mt-4 space-y-6 px-4">
+        <div className="mt-4 space-y-6">
 
           {/* ── Row 1: Summary Cards (left) + Monthly Table (right) ── */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
@@ -771,7 +771,7 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
       )}
 
       {!isLoading && !isError && !ieData && (
-        <div className="mt-4 rounded-md bg-gray-50 border border-gray-200 px-6 py-8 text-center">
+        <div className="mt-4 rounded-md bg-gray-50 border border-gray-200 py-8 text-center">
           <p className="text-sm text-gray-500">No data available for {year}.</p>
         </div>
       )}
