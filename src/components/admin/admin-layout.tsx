@@ -644,7 +644,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       <aside
         className={cn(
           // Base: flex column chrome for the sidebar.
-          "z-50 flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300",
+          "z-[3000] flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300",
           // Mobile (< lg): fixed overlay that slides in from the left.
           "fixed inset-y-0 left-0",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
@@ -806,7 +806,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         width declaration is needed. `flex-1 min-w-0` is the whole formula.
       */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden transition-all duration-300">
-        <header className="h-14 bg-background border-b border-border flex items-center justify-between px-3 sm:px-4 lg:px-6">
+        <header className="relative z-[1500] h-14 bg-background border-b border-border flex items-center justify-between px-3 sm:px-4 lg:px-6">
           <button
             onClick={() => setMobileMenuOpen(true)}
             className="lg:hidden text-muted-foreground hover:text-foreground"
@@ -888,7 +888,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-foreground/20 z-40 lg:hidden"
+          className="fixed inset-0 bg-foreground/20 z-[2999] lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}

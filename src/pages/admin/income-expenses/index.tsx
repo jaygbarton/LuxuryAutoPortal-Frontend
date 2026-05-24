@@ -367,10 +367,12 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
             </div>
 
             {/* Page Title and Actions */}
-            <div className="flex items-center justify-between mb-2 flex-shrink-0">
-              <h1 className="text-2xl font-bold text-primary">INCOME AND EXPENSES - ALL CARS</h1>
-              <div className="flex items-center gap-2">
-                <div className="w-[300px]">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between mb-2 flex-shrink-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-primary leading-tight">
+                INCOME AND EXPENSES - ALL CARS
+              </h1>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
+                <div className="w-full sm:w-[260px] lg:w-[300px]">
                   <Popover open={carComboboxOpenPerCar} onOpenChange={setCarComboboxOpenPerCar}>
                     <PopoverTrigger asChild>
                       <Button
@@ -383,7 +385,7 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 flex-shrink-0" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0 bg-muted border-border">
+                    <PopoverContent className="w-[90vw] sm:w-[300px] p-0 bg-muted border-border">
                       <Command className="bg-muted">
                         <CommandInput 
                           placeholder="Search car by make, model, plate, or VIN..." 

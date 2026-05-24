@@ -21,26 +21,28 @@ export default function OperationsPage() {
         </div>
 
         <Tabs defaultValue="trips" className="flex-1">
-          <TabsList className="bg-muted border border-border mb-6 flex-wrap h-auto gap-1 p-1">
-            <TabsTrigger value="trips" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">
-              Trips Overview
-            </TabsTrigger>
-            <TabsTrigger value="tasks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">
-              Trip Tasks
-            </TabsTrigger>
-            <TabsTrigger value="turo-inspection" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">
-              Turo Messages
-            </TabsTrigger>
-            <TabsTrigger value="inspections" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">
-              Car Issues
-            </TabsTrigger>
-            <TabsTrigger value="maintenance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">
-              Maintenance
-            </TabsTrigger>
-            <TabsTrigger value="completed" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm">
-              No Car Issues
-            </TabsTrigger>
-          </TabsList>
+          <div className="-mx-2 sm:mx-0 mb-6 overflow-x-auto">
+            <TabsList className="bg-muted border border-border h-auto gap-1 p-1 inline-flex w-max min-w-full sm:w-auto sm:min-w-0 sm:flex-wrap">
+              <TabsTrigger value="trips" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
+                Trips Overview
+              </TabsTrigger>
+              <TabsTrigger value="tasks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
+                Trip Tasks
+              </TabsTrigger>
+              <TabsTrigger value="turo-inspection" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
+                Turo Messages
+              </TabsTrigger>
+              <TabsTrigger value="inspections" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
+                Car Issues
+              </TabsTrigger>
+              <TabsTrigger value="maintenance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
+                Maintenance
+              </TabsTrigger>
+              <TabsTrigger value="completed" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
+                No Car Issues
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="trips">
             <TripsOverviewTab />

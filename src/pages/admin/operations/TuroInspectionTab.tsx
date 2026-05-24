@@ -359,20 +359,20 @@ export function TuroInspectionTab() {
 
       <div className="bg-card border border-border rounded-lg overflow-auto">
         <div className="p-4">
-          <div className="flex flex-col lg:flex-row lg:items-end gap-3 mb-4">
-            <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-row lg:items-end gap-3 mb-4">
+            <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1 lg:flex-1 lg:min-w-[200px]">
               <label className="text-muted-foreground text-xs">Search</label>
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Car, reservation, location, assignee..."
-                className="bg-card border-border text-foreground h-9"
+                className="bg-card border-border text-foreground h-9 w-full"
               />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-muted-foreground text-xs">Status</label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="bg-card border-border text-foreground w-[160px] h-9">
+                <SelectTrigger className="bg-card border-border text-foreground w-full lg:w-[160px] h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground">
@@ -390,7 +390,7 @@ export function TuroInspectionTab() {
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="bg-card border-border text-foreground h-9 w-[150px]"
+                className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -399,7 +399,7 @@ export function TuroInspectionTab() {
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="bg-card border-border text-foreground h-9 w-[150px]"
+                className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
             {hasActiveFilters && (
@@ -411,7 +411,7 @@ export function TuroInspectionTab() {
                   setDateFrom("");
                   setDateTo("");
                 }}
-                className="text-red-700 hover:text-red-700 hover:bg-red-900/20 h-9"
+                className="text-red-700 hover:text-red-700 hover:bg-red-900/20 h-9 sm:col-span-2 lg:col-span-1 w-full lg:w-auto"
               >
                 Clear Filters
               </Button>

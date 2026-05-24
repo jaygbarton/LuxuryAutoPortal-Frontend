@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Loader2, PlayCircle, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { parseVideoSource } from "@/lib/video-utils";
@@ -41,9 +41,13 @@ export function VideoPlayer({
     setLoading(source?.type === "direct");
   }, [url, source?.type]);
 
+  const onStatusChangeRef = useRef(onStatusChange);
   useEffect(() => {
-    onStatusChange?.({ loading, error });
-  }, [loading, error, onStatusChange]);
+    onStatusChangeRef.current = onStatusChange;
+  });
+  useEffect(() => {
+    onStatusChangeRef.current?.({ loading, error });
+  }, [loading, error]);
 
   if (!url || !source || source.type === "unknown") {
     return (

@@ -53,7 +53,8 @@ function MediaInline({
         src={url}
         alt={title || "News media"}
         className="h-full w-full object-cover"
-        loading="lazy"
+        loading="eager"
+        fetchPriority="high"
       />
     );
   }
@@ -91,7 +92,8 @@ function MediaInline({
         src={url}
         alt={title || "News media"}
         className="h-full w-full object-cover"
-        loading="lazy"
+        loading="eager"
+        fetchPriority="high"
       />
     );
   }

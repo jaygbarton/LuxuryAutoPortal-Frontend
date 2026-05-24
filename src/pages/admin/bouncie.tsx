@@ -26,6 +26,7 @@ import {
   Activity,
   Layers,
   Map as MapIcon,
+  Menu,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -273,7 +274,7 @@ function VehicleDetailPanel({
 
   return (
     <div
-      className="absolute bottom-4 right-4 z-[1000] w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 text-gray-900 overflow-hidden"
+      className="absolute bottom-2 right-2 left-2 sm:left-auto sm:bottom-4 sm:right-4 z-[1000] sm:w-80 max-h-[70vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-gray-200 text-gray-900"
       style={{ animation: "slideUp .25s ease-out" }}
     >
       <style>{`@keyframes slideUp { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }`}</style>
@@ -731,6 +732,7 @@ export default function BouncieFleetPage() {
   const sseRef = useRef<EventSource | null>(null);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const tokenExpiredNotifiedRef = useRef(false);
   const connectGraceRef = useRef(0);
 
@@ -964,9 +966,18 @@ export default function BouncieFleetPage() {
 
   return (
     <AdminLayout>
-      <div className="flex overflow-hidden h-full -mr-3 -mt-3 -mb-3 sm:-mr-4 sm:-mt-4 sm:-mb-4 md:-mr-6 md:-mt-6 md:-mb-6">
+      <div className="relative flex overflow-hidden h-full -ml-3 -mr-3 -mt-3 -mb-3 sm:-ml-4 sm:-mr-4 sm:-mt-4 sm:-mb-4 md:-ml-6 md:-mr-6 md:-mt-6 md:-mb-6">
+        {/* Mobile backdrop */}
+        {sidebarOpen && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-[1900]"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
         {/* ── Sidebar ──────────────────────────────────────────────── */}
-        <div className="flex flex-col w-72 lg:w-80 flex-shrink-0 bg-[#1e1e1e] text-white overflow-hidden border-r border-[#2a2a2a]">
+        <div className={`flex flex-col w-72 lg:w-80 flex-shrink-0 bg-[#1e1e1e] text-white overflow-hidden border-r border-[#2a2a2a]
+          fixed inset-y-0 left-0 z-[2000] transform transition-transform duration-200 md:static md:translate-x-0 md:z-auto
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
           {/* Search — always visible when there are vehicles */}
           {allVehicles.length > 0 && (
             <div className="px-3 pt-3 pb-2">
@@ -1058,9 +1069,10 @@ export default function BouncieFleetPage() {
                   return (
                     <button
                       key={v.device_id}
-                      onClick={() =>
-                        setSelectedId(isSelected ? null : v.device_id)
-                      }
+                      onClick={() => {
+                        setSelectedId(isSelected ? null : v.device_id);
+                        setSidebarOpen(false);
+                      }}
                       className={`w-full text-left px-3 py-2.5 flex items-center gap-3 border-b border-[#2a2a2a] transition-colors
                         hover:bg-[#272727] ${isSelected ? "bg-[#272727] border-l-2 border-l-blue-500 pl-[10px]" : ""}`}
                     >
@@ -1184,6 +1196,20 @@ export default function BouncieFleetPage() {
 
         {/* ── Map area ─────────────────────────────────────────────── */}
         <div className="flex-1 overflow-hidden relative">
+          {/* Mobile sidebar toggle */}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="md:hidden absolute top-3 left-3 z-[1000] flex items-center gap-2 bg-[#1e1e1e]/95 text-white text-xs font-medium px-3 py-2 rounded-lg border border-[#3a3a3a] shadow-lg backdrop-blur"
+            aria-label="Open vehicle list"
+          >
+            <Menu className="w-4 h-4" />
+            Vehicles
+            {allVehicles.length > 0 && (
+              <span className="bg-blue-600 text-white text-[10px] font-bold rounded-full px-1.5 min-w-[18px] text-center">
+                {allVehicles.length}
+              </span>
+            )}
+          </button>
           <FleetMap
             vehicles={allVehicles}
             selectedId={selectedId}

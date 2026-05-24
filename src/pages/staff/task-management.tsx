@@ -152,14 +152,14 @@ export default function StaffTaskManagement() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                 <label className="text-sm text-muted-foreground">Status</label>
                 <Select
                   value={statusFilter || "all"}
                   onValueChange={(v) => setStatusFilter(v === "all" ? "" : v)}
                 >
-                  <SelectTrigger className="w-[120px]">
+                  <SelectTrigger className="w-full sm:w-[120px]">
                     <SelectValue placeholder="All" />
                   </SelectTrigger>
                   <SelectContent>
@@ -171,41 +171,45 @@ export default function StaffTaskManagement() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                 <label className="text-sm text-muted-foreground">From</label>
                 <Input
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="w-[140px]"
+                  className="w-full sm:w-[140px]"
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                 <label className="text-sm text-muted-foreground">To</label>
                 <Input
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="w-[140px]"
+                  className="w-full sm:w-[140px]"
                 />
               </div>
-              <div className="relative flex-1 min-w-[180px] max-w-xs">
+              <div className="relative col-span-full sm:col-span-2 lg:col-span-1 lg:flex-1 lg:min-w-[180px] lg:max-w-xs">
                 <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search..."
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
-                  className="pl-8"
+                  className="pl-8 w-full"
                 />
               </div>
-              {hasFilters && (
-                <Button variant="ghost" size="sm" onClick={clearFilters}>
-                  Clear filters
-                </Button>
-              )}
-              <span className="text-sm text-muted-foreground">
-                {isLoading ? "..." : total} task{total !== 1 ? "s" : ""}
-              </span>
+              <div className="col-span-full flex items-center justify-between gap-2 lg:col-span-1 lg:w-auto">
+                {hasFilters ? (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    Clear filters
+                  </Button>
+                ) : (
+                  <span />
+                )}
+                <span className="text-sm text-muted-foreground">
+                  {isLoading ? "..." : total} task{total !== 1 ? "s" : ""}
+                </span>
+              </div>
             </div>
 
             <div className="rounded-md border border-border overflow-auto max-h-[60vh]">

@@ -142,7 +142,7 @@ export function NotificationBell() {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-[calc(100vw-2rem)] max-w-80 max-h-96 overflow-hidden bg-card border border-border rounded-lg shadow-xl z-50">
+        <div className="fixed left-2 right-2 top-14 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-1 sm:w-80 max-h-[80vh] sm:max-h-96 overflow-hidden bg-card border border-border rounded-lg shadow-xl z-[60]">
           <div className="flex items-center justify-between px-4 py-2 border-b border-border">
             <span className="text-sm font-medium text-foreground">Notifications</span>
             {unreadCount > 0 && (
@@ -156,7 +156,7 @@ export function NotificationBell() {
               </button>
             )}
           </div>
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-[calc(80vh-3rem)] sm:max-h-80 overflow-y-auto">
             {isLoading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-[#D3BC8D]" />

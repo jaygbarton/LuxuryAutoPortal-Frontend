@@ -163,8 +163,20 @@ export function VideoPreview({
               className="h-full w-full object-cover"
               loading="lazy"
               onError={(e) => {
-                // Hide broken thumbnail image; the play-button overlay below stays visible
-                (e.currentTarget as HTMLImageElement).style.display = "none";
+                const img = e.currentTarget as HTMLImageElement;
+                // YouTube hqdefault → mqdefault → default fallback chain.
+                // Some IDs only have lower-res variants; this avoids visible 404s.
+                if (info.kind === "youtube") {
+                  if (img.src.includes("/hqdefault.jpg")) {
+                    img.src = img.src.replace("/hqdefault.jpg", "/mqdefault.jpg");
+                    return;
+                  }
+                  if (img.src.includes("/mqdefault.jpg")) {
+                    img.src = img.src.replace("/mqdefault.jpg", "/default.jpg");
+                    return;
+                  }
+                }
+                img.style.display = "none";
               }}
             />
             {/* Play button — always visible so there's always something to see */}

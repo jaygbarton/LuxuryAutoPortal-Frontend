@@ -309,10 +309,10 @@ Trips Taken,0,0,0,0,0,0,0,0,0,0,0,0`;
 
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
         {/* Year Selector */}
         <Select value={selectedYear} onValueChange={setSelectedYear}>
-          <SelectTrigger className="w-[120px] bg-card border-border text-foreground text-sm">
+          <SelectTrigger className="w-full sm:w-[120px] bg-card border-border text-foreground text-sm">
             <SelectValue placeholder="Year" />
           </SelectTrigger>
           <SelectContent className="bg-card border-border text-foreground">

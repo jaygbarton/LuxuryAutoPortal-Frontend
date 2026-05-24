@@ -633,10 +633,10 @@ export default function AdminsPage() {
           </Button>
         </div>
 
-        <Card className="bg-card border-border">
+        <Card className="bg-card border-border overflow-hidden">
           <CardContent className="p-0">
-            <div className="overflow-x-auto -mx-3 sm:mx-0">
-              <table className="w-full min-w-[800px]">
+            <div className="w-full max-w-full overflow-x-auto">
+              <table className="w-full min-w-[640px]">
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left text-[10px] sm:text-xs font-medium text-foreground uppercase tracking-wider px-3 sm:px-6 py-3 sm:py-4">

@@ -832,10 +832,10 @@ export default function ClientsPage() {
         </Card>
 
         {/* Clients Table */}
-        <Card className="bg-card border-border">
+        <Card className="bg-card border-border overflow-hidden">
           <CardContent className="p-0">
-            <div className="overflow-x-auto -mx-3 sm:mx-0">
-              <Table className="min-w-[1000px]">
+            <div className="w-full max-w-full overflow-x-auto">
+              <Table className="min-w-[640px]">
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
                     <TableHead className="text-center text-foreground font-semibold px-2 sm:px-4 md:px-6 py-3 sm:py-4 w-12 sm:w-16 text-[10px] sm:text-xs">No</TableHead>

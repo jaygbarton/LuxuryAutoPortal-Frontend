@@ -197,7 +197,7 @@ export default function ClientDashboard() {
     retry: false,
   });
 
-  const { data: newsDashboardData } = useQuery<{
+  const { data: newsDashboardData, isLoading: newsLoading } = useQuery<{
     success: boolean;
     slot1: any[];
     slot2: any[];
@@ -211,6 +211,9 @@ export default function ClientDashboard() {
       return res.json();
     },
     retry: false,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: maintenanceTasksData } = useQuery<{
@@ -471,16 +474,29 @@ export default function ClientDashboard() {
         )}
 
         {/* ROW 1 (top): News & Media slots — moved from previous third position */}
-        {((newsDashboardData?.slot1?.length ?? 0) > 0 ||
-          (newsDashboardData?.slot2?.length ?? 0) > 0) && (
+        {newsLoading ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {(newsDashboardData?.slot1?.length ?? 0) > 0 && (
-              <NewsMediaSlot slot={1} items={newsDashboardData!.slot1} />
-            )}
-            {(newsDashboardData?.slot2?.length ?? 0) > 0 && (
-              <NewsMediaSlot slot={2} items={newsDashboardData!.slot2} />
-            )}
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="h-10 border-b border-border bg-muted/40 animate-pulse" />
+              <div className="aspect-video w-full bg-muted/40 animate-pulse" />
+            </div>
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="h-10 border-b border-border bg-muted/40 animate-pulse" />
+              <div className="aspect-video w-full bg-muted/40 animate-pulse" />
+            </div>
           </div>
+        ) : (
+          ((newsDashboardData?.slot1?.length ?? 0) > 0 ||
+            (newsDashboardData?.slot2?.length ?? 0) > 0) && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {(newsDashboardData?.slot1?.length ?? 0) > 0 && (
+                <NewsMediaSlot slot={1} items={newsDashboardData!.slot1} />
+              )}
+              {(newsDashboardData?.slot2?.length ?? 0) > 0 && (
+                <NewsMediaSlot slot={2} items={newsDashboardData!.slot2} />
+              )}
+            </div>
+          )
         )}
 
         {/* ROW 2: Vehicle/Owner Info + GLA Contact */}
