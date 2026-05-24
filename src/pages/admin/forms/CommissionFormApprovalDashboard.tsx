@@ -273,12 +273,12 @@ export default function CommissionFormApprovalDashboard() {
     <div className="space-y-4">
       {/* Header + Filter Bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-2 flex-1">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-wrap gap-2 flex-1 w-full">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search employee, car, type..."
-              className="pl-9"
+              className="pl-9 w-full"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -298,7 +298,7 @@ export default function CommissionFormApprovalDashboard() {
           )}
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-full sm:w-[140px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

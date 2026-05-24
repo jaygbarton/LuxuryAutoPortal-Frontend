@@ -691,7 +691,7 @@ export default function NADADepreciationPage() {
             <span>Back to View Car</span>
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-primary">NADA Depreciation Schedule</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-primary leading-tight">NADA Depreciation Schedule</h1>
             {car && (
               <p className="text-sm text-muted-foreground mt-1">
                 Car: {car.makeModel || "Unknown Car"}
@@ -702,7 +702,7 @@ export default function NADADepreciationPage() {
 
         {/* Header Section */}
         <div className="bg-card border border-border rounded-lg p-6 mb-6">
-          <div className="flex justify-between items-start mb-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 flex-1">
               {/* Car Information */}
               <div>
@@ -819,9 +819,9 @@ export default function NADADepreciationPage() {
               </div>
             </div>
             {/* Action Buttons */}
-            <div className="flex gap-2 ml-4">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:ml-4">
               <Button
-                className="bg-primary text-primary-foreground hover:bg-primary/80"
+                className="bg-primary text-primary-foreground hover:bg-primary/80 w-full sm:w-auto"
                 onClick={handleExport}
                 disabled={
                   !car ||
@@ -834,7 +834,7 @@ export default function NADADepreciationPage() {
               </Button>
               {!isClient && (
                 <Button
-                  className="bg-card text-foreground hover:bg-muted border border-border"
+                  className="bg-card text-foreground hover:bg-muted border border-border w-full sm:w-auto"
                   onClick={() => setIsImportModalOpen(true)}
                   disabled={!car}
                 >
@@ -844,7 +844,7 @@ export default function NADADepreciationPage() {
               )}
               {!isClient && (
                 <Button
-                  className="bg-card text-foreground hover:bg-muted border border-border"
+                  className="bg-card text-foreground hover:bg-muted border border-border w-full sm:w-auto"
                   onClick={() => setIsLogModalOpen(true)}
                 >
                   <FileText className="w-4 h-4 mr-2" />
@@ -856,13 +856,13 @@ export default function NADADepreciationPage() {
         </div>
 
         {/* NADA Depreciation Schedule Header with Year Filter */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-serif text-primary italic">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+          <h1 className="text-xl sm:text-3xl font-serif text-primary italic leading-tight">
             NADA Depreciation Schedule
           </h1>
-          <div className="w-[150px]">
+          <div className="w-full sm:w-[150px]">
             <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="bg-card border-border text-foreground focus:border-primary">
+              <SelectTrigger className="bg-card border-border text-foreground focus:border-primary w-full">
                 <SelectValue placeholder="Select year" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border text-foreground">

@@ -271,7 +271,7 @@ export default function SettingsPage() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Settings</h1>
+          <h1 className="text-xl sm:text-3xl font-bold text-foreground mb-2 leading-tight">Settings</h1>
           <p className="text-muted-foreground">Manage your account settings and preferences</p>
         </div>
 
@@ -402,11 +402,11 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              <div className="flex items-center justify-between pt-2">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-2">
                 <Button
                   type="submit"
                   disabled={!canSubmitPassword}
-                  className="bg-primary text-primary-foreground hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-primary text-primary-foreground hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
                 >
                   {passwordUpdateMutation.isPending ? (
                     <>
@@ -480,14 +480,14 @@ export default function SettingsPage() {
                     Bot Token
                   </Label>
                   {editingBotToken ? (
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex flex-col sm:flex-row gap-2 mt-2">
                       <Input
                         id="slack-bot-token"
                         type="password"
                         value={slackBotToken}
                         onChange={(e) => setSlackBotToken(e.target.value)}
                         placeholder="e.g. xoxb-..."
-                        className="max-w-md bg-background border-border text-foreground focus:border-primary font-mono text-sm"
+                        className="w-full sm:max-w-md bg-background border-border text-foreground focus:border-primary font-mono text-sm"
                         autoComplete="off"
                       />
                       <Button
@@ -523,14 +523,14 @@ export default function SettingsPage() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
                       <Input
                         id="slack-bot-token"
                         type="text"
                         value={slackBotTokenValue}
                         readOnly
                         placeholder="Not set"
-                        className="max-w-md bg-background border-border text-foreground font-mono text-sm"
+                        className="w-full sm:max-w-md bg-background border-border text-foreground font-mono text-sm"
                         title="Slack bot token (exact value)"
                       />
                       <Button
@@ -580,7 +580,7 @@ export default function SettingsPage() {
                         Slack Channel ID
                       </Label>
                       {isEditing ? (
-                        <div className="flex gap-2 mt-2">
+                        <div className="flex flex-col sm:flex-row gap-2 mt-2">
                           <Input
                             id={`channel-${config.formType}`}
                             value={editingValue}
@@ -615,11 +615,11 @@ export default function SettingsPage() {
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2 mt-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
                           <Input
                             value={config.channelId}
                             readOnly
-                            className="bg-background border-border text-muted-foreground"
+                            className="w-full bg-background border-border text-muted-foreground"
                           />
                           <Button
                             onClick={() => handleEdit(config.formType, config.channelId)}

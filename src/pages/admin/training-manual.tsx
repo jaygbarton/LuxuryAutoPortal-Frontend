@@ -767,7 +767,7 @@ export default function TrainingManualPage() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-serif text-primary italic mb-2">System Tutorial</h1>
+          <h1 className="text-2xl sm:text-3xl font-serif text-primary italic mb-2 leading-tight">System Tutorial</h1>
           <p className="text-muted-foreground text-sm">Learn how to use the GLA portal with our guided tutorial</p>
         </div>
 
@@ -777,7 +777,7 @@ export default function TrainingManualPage() {
             <CardTitle className="text-primary text-xl">Help & Tutorials</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-foreground font-medium">System Tutorial</p>
                 <p className="text-muted-foreground text-sm">
@@ -786,7 +786,7 @@ export default function TrainingManualPage() {
               </div>
               <Button
                 onClick={handleStartTutorial}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
               >
                 <PlayCircle className="w-4 h-4 mr-2" />
                 Start Tutorial
@@ -799,15 +799,15 @@ export default function TrainingManualPage() {
         {isAdmin && (
           <Card className="bg-background border-border">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-primary text-xl">Tutorial Configuration</CardTitle>
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <CardTitle className="text-primary text-xl leading-tight">Tutorial Configuration</CardTitle>
+                <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 w-full lg:w-auto">
                   <span className="text-sm text-muted-foreground">Manage tutorial (modules, steps, videos) by role:</span>
                   <Select value={selectedRole} onValueChange={(value: 'admin' | 'client' | 'employee') => {
                     setSelectedRole(value);
                     setExpandedModules(new Set()); // Reset expanded modules when role changes
                   }}>
-                    <SelectTrigger className="w-[150px] bg-card border-border text-foreground">
+                    <SelectTrigger className="w-full sm:w-[150px] bg-card border-border text-foreground">
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border text-foreground">
@@ -818,7 +818,7 @@ export default function TrainingManualPage() {
                   </Select>
                   <Button
                     onClick={handleAddModuleClick}
-                    className="bg-primary text-primary-foreground hover:bg-primary/80 font-medium"
+                    className="bg-primary text-primary-foreground hover:bg-primary/80 font-medium w-full sm:w-auto"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Module
@@ -869,26 +869,28 @@ export default function TrainingManualPage() {
                     const moduleSteps = module.steps || [];
                     return (
                       <Card key={module.id} className="bg-card border-border">
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3 flex-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => toggleModule(module.id)}
-                                className="text-primary hover:bg-primary/10"
-                              >
+                        <CardHeader className="p-3 sm:p-6 pb-3">
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                            {/* Title block */}
+                            <button
+                              type="button"
+                              onClick={() => toggleModule(module.id)}
+                              className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+                            >
+                              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary flex-shrink-0 mt-0.5">
                                 {isExpanded ? (
                                   <X className="w-4 h-4" />
                                 ) : (
                                   <Plus className="w-4 h-4" />
                                 )}
-                              </Button>
-                              <Badge variant="outline" className="bg-[#D3BC8D]/20 text-primary border-primary/30">
-                                Module {module.moduleOrder}
-                              </Badge>
-                              <div className="flex-1">
-                                <h3 className="text-lg font-semibold text-foreground">{module.title}</h3>
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Badge variant="outline" className="bg-[#D3BC8D]/20 text-primary border-primary/30 flex-shrink-0 text-xs">
+                                    Module {module.moduleOrder}
+                                  </Badge>
+                                  <h3 className="text-base sm:text-lg font-semibold text-foreground leading-tight">{module.title}</h3>
+                                </div>
                                 {module.description && (
                                   <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">{module.description}</p>
                                 )}
@@ -896,39 +898,44 @@ export default function TrainingManualPage() {
                                   {moduleSteps.length} {moduleSteps.length !== 1 ? 'steps' : 'step'}
                                 </p>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-2">
+                            </button>
+                            {/* Action buttons */}
+                            <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
                               <Button
                                 size="sm"
                                 onClick={() => handleStartModuleTutorial(module.id)}
                                 disabled={moduleSteps.length === 0}
-                                className="bg-primary text-primary-foreground hover:bg-primary/80 font-medium"
+                                className="bg-primary text-primary-foreground hover:bg-primary/80 font-medium flex-1 sm:flex-none lg:flex-none"
                                 title={moduleSteps.length === 0 ? "Add a step before starting this module" : `Start tutorial from Module ${module.moduleOrder}`}
                               >
                                 <PlayCircle className="w-4 h-4 mr-2" />
-                                Start Tutorial
+                                <span className="sm:inline">Start Tutorial</span>
                               </Button>
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
                                 onClick={() => handleEditModuleClick(module)}
-                                className="text-primary hover:bg-primary/10"
+                                className="text-primary hover:bg-primary/10 border-primary/20"
+                                title="Edit module"
                               >
-                                <Edit className="w-4 h-4" />
+                                <Edit className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Edit</span>
                               </Button>
                               <ConfirmDialog
                                 trigger={
                                   <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
-                                    className="text-red-700 hover:bg-red-500/10"
+                                    className="text-red-700 hover:bg-red-500/10 border-red-500/20"
                                     disabled={deleteModuleMutation.isPending && deletingModuleId === module.id}
+                                    title="Delete module"
                                   >
                                     {deleteModuleMutation.isPending && deletingModuleId === module.id ? (
-                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                      <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
                                     ) : (
-                                      <Trash2 className="w-4 h-4" />
+                                      <Trash2 className="w-4 h-4 sm:mr-2" />
                                     )}
+                                    <span className="hidden sm:inline">Delete</span>
                                   </Button>
                                 }
                                 title="Delete Module"
@@ -942,13 +949,14 @@ export default function TrainingManualPage() {
                                 }}
                               />
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
                                 onClick={() => handleAddStepClick(module.id)}
-                                className="text-primary hover:bg-primary/10"
+                                className="text-primary hover:bg-primary/10 border-primary/20"
                                 title="Add step to this module"
                               >
-                                <Plus className="w-4 h-4" />
+                                <Plus className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Add Step</span>
                               </Button>
                             </div>
                           </div>
@@ -1273,11 +1281,11 @@ export default function TrainingManualPage() {
                       className="bg-card border-border opacity-90"
                     >
                       <CardContent className="p-4">
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <Badge
                               variant="outline"
-                              className="bg-muted text-muted-foreground border-muted-foreground/30"
+                              className="bg-muted text-muted-foreground border-muted-foreground/30 flex-shrink-0"
                             >
                               Module {module.moduleOrder}
                             </Badge>
@@ -1302,7 +1310,7 @@ export default function TrainingManualPage() {
                               </p>
                             </div>
                           </div>
-                          <div className="flex gap-2 flex-shrink-0">
+                          <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:flex-shrink-0">
                             <Button
                               variant="ghost"
                               size="sm"

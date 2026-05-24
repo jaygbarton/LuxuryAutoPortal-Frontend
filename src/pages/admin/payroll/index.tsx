@@ -253,14 +253,14 @@ export default function PayrollPage() {
   return (
     <AdminLayout>
       <div className="space-y-6 p-4 md:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Pay runs</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold leading-tight">Pay runs</h1>
             <p className="text-muted-foreground text-sm">
               Create and manage pay runs. Click a row to view payroll and payslips.
             </p>
           </div>
-          <Button onClick={() => setIsCreateOpen(true)} data-testid="button-add-payrun">
+          <Button onClick={() => setIsCreateOpen(true)} data-testid="button-add-payrun" className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Add
           </Button>
@@ -274,7 +274,7 @@ export default function PayrollPage() {
                   Filter
                 </Label>
                 <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-                  <SelectTrigger id="payrun-filter" className="w-[140px]">
+                  <SelectTrigger id="payrun-filter" className="w-full lg:w-[140px]">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>

@@ -127,13 +127,13 @@ export default function ExpenseFormMySubmissions() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-foreground flex items-center gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-lg font-medium text-foreground flex items-center gap-2 leading-tight">
           <FileText className="h-5 w-5 text-primary" />
           My Expense Submissions
         </h3>
         <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-[140px] bg-card border-border text-foreground">
+          <SelectTrigger className="w-full sm:w-[140px] bg-card border-border text-foreground">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent className="bg-card border-border text-foreground">

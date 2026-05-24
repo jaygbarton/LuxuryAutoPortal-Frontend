@@ -750,9 +750,9 @@ export default function WorkSchedulePage() {
     <AdminLayout>
       <div className="space-y-4">
         {/* Header row */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">Work Schedule</h1>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-semibold text-foreground leading-tight">Work Schedule</h1>
             <div className="flex flex-wrap items-center gap-2 mt-0.5">
               <p className="text-sm text-muted-foreground">Manage employee work schedule by month and day.</p>
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
@@ -765,14 +765,14 @@ export default function WorkSchedulePage() {
             </div>
           </div>
           {/* Inline month filter */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <Label htmlFor="month" className="text-sm font-medium shrink-0">Month</Label>
             <Input
               id="month"
               type="month"
               value={month}
               onChange={(e) => setMonth(e.target.value)}
-              className="w-44"
+              className="flex-1 sm:flex-none sm:w-44"
             />
           </div>
         </div>
@@ -780,7 +780,7 @@ export default function WorkSchedulePage() {
         {/* Calendar */}
         <div className="rounded-lg border bg-card overflow-hidden">
           <div className="overflow-auto max-h-[calc(100vh-200px)]">
-            <table className="w-full border-collapse table-fixed">
+            <table className="w-full min-w-[700px] border-collapse table-fixed">
               <thead className="sticky top-0 z-10">
                 <tr>
                   {WEEK_DAYS.map((d) => (

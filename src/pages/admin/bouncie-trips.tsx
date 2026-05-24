@@ -214,23 +214,23 @@ export default function BouncieTripsPage() {
         <BouncieConnectionBanner />
 
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">
             <Link href="/admin/bouncie">
-              <Button size="sm" variant="ghost" className="text-muted-foreground">
+              <Button size="sm" variant="ghost" className="text-muted-foreground w-fit">
                 <ArrowLeft className="w-4 h-4 mr-1" />
                 Fleet
               </Button>
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                <Route className="w-6 h-6 text-primary" />
-                Trip History
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2 leading-tight">
+                <Route className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
+                <span className="truncate">Trip History</span>
               </h1>
               <p className="text-muted-foreground text-sm mt-0.5">View all recorded trips and route playback</p>
             </div>
           </div>
-          <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+          <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching} className="w-full sm:w-auto">
             <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
             Refresh
           </Button>
@@ -239,20 +239,20 @@ export default function BouncieTripsPage() {
         {/* Filters */}
         <Card>
           <CardContent className="pt-4 pb-4">
-            <div className="flex flex-wrap gap-4 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-3 lg:gap-4 items-end">
               <div>
                 <Label className="text-xs mb-1 block">Start Date</Label>
-                <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40" />
+                <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full lg:w-40" />
               </div>
               <div>
                 <Label className="text-xs mb-1 block">End Date</Label>
-                <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40" />
+                <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full lg:w-40" />
               </div>
-              <div className="flex-1 min-w-48">
+              <div className="col-span-full sm:col-span-2 lg:col-auto lg:flex-1 lg:min-w-48">
                 <Label className="text-xs mb-1 block">Device ID (optional)</Label>
-                <Input placeholder="Filter by device ID…" value={deviceFilter} onChange={e => setDeviceFilter(e.target.value)} />
+                <Input placeholder="Filter by device ID…" value={deviceFilter} onChange={e => setDeviceFilter(e.target.value)} className="w-full" />
               </div>
-              <Button size="sm" onClick={() => refetch()}>Apply</Button>
+              <Button size="sm" onClick={() => refetch()} className="col-span-full sm:col-auto w-full lg:w-auto">Apply</Button>
             </div>
           </CardContent>
         </Card>

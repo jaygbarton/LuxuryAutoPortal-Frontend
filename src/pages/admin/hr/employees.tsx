@@ -887,9 +887,9 @@ export default function EmployeesPage() {
         </Card>
 
         {/* Employees Table */}
-        <Card className="bg-card border-border">
+        <Card className="bg-card border-border overflow-hidden">
           <CardContent className="p-0">
-            <div className="overflow-x-auto -mx-3 sm:mx-0">
+            <div className="w-full max-w-full overflow-x-auto">
               <Table className="min-w-[1000px]">
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">

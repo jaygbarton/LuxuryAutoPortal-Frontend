@@ -2453,15 +2453,15 @@ export default function CarDetailPage() {
 
         {/* Photos Grid - 8 columns per row (up to 20 images) - Hidden for client accounts */}
         {isAdmin && (
-        <Card className="bg-card border-border">
+        <Card className="bg-card border-border overflow-hidden">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-primary text-lg flex items-center gap-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="text-primary text-lg flex items-center gap-2 leading-tight">
                 <Upload className="w-5 h-5" />
                 Photos ({car.photos?.length || 0} / 20)
               </CardTitle>
               {isAdmin && (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   {selectedPhotos.size > 0 && (
                     <>
                       <ConfirmDialog

@@ -106,7 +106,7 @@ export default function IncomeExpenseLogPage() {
             <span>Back to Income & Expense</span>
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Edit History & Log</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-tight">Edit History & Log</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Track all changes made to income and expense data
             </p>

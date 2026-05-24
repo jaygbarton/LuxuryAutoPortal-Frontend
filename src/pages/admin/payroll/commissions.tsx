@@ -229,9 +229,9 @@ export default function PayrollCommissionsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6 p-4 md:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Commissions</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold leading-tight">Commissions</h1>
             <p className="text-muted-foreground text-sm">Manage employee commissions. Mark as paid when processed.</p>
           </div>
           <Button
@@ -240,7 +240,7 @@ export default function PayrollCommissionsPage() {
               resetForm();
               setModalOpen(true);
             }}
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto"
           >
             <Plus className="h-4 w-4" /> Add Commission
           </Button>
@@ -248,28 +248,40 @@ export default function PayrollCommissionsPage() {
 
         <Card>
           <CardHeader className="pb-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative flex-1 min-w-[180px]">
-                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search by type or employee..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-8"
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end gap-3">
+              <div className="space-y-1 col-span-full lg:col-auto lg:min-w-[260px] lg:flex-1">
+                <label className="text-xs text-muted-foreground">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by type or employee..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-8 w-full"
+                  />
+                </div>
               </div>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-40" placeholder="From" />
-              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-40" placeholder="To" />
-              <Select value={paidFilter} onValueChange={setPaidFilter}>
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="Paid status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="0">Unpaid</SelectItem>
-                  <SelectItem value="1">Paid</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">From</label>
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-full lg:w-40" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">To</label>
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-full lg:w-40" />
+              </div>
+              <div className="space-y-1 col-span-full lg:col-auto">
+                <label className="text-xs text-muted-foreground">Paid status</label>
+                <Select value={paidFilter} onValueChange={setPaidFilter}>
+                  <SelectTrigger className="w-full lg:w-36">
+                    <SelectValue placeholder="Paid status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="0">Unpaid</SelectItem>
+                    <SelectItem value="1">Paid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -280,7 +292,8 @@ export default function PayrollCommissionsPage() {
             ) : rows.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">No commissions found.</p>
             ) : (
-              <Table>
+              <div className="w-full max-w-full overflow-x-auto">
+              <Table className="min-w-[800px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Employee</TableHead>
@@ -373,6 +386,7 @@ export default function PayrollCommissionsPage() {
                   </TableRow>
                 </TableBody>
               </Table>
+              </div>
             )}
             {data?.total != null && data.total > rows.length && (
               <p className="text-muted-foreground text-sm mt-2">Showing {rows.length} of {data.total}.</p>

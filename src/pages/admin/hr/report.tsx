@@ -233,7 +233,7 @@ export default function AdminHrReport() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-primary">Employee Stats Report</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-primary leading-tight">Employee Stats Report</h1>
           <p className="text-muted-foreground text-sm">
             Counts of activities from submitted end-of-day forms, aggregated per day, week,
             month, or year and filtered per employee.
@@ -242,11 +242,11 @@ export default function AdminHrReport() {
 
         <Card>
           <CardHeader className="pb-3">
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end gap-3">
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">Period</label>
                 <Select value={period} onValueChange={(v) => handlePeriodChange(v as Period)}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-full lg:w-32">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -263,7 +263,7 @@ export default function AdminHrReport() {
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="w-40"
+                  className="w-full lg:w-40"
                 />
               </div>
               <div className="space-y-1">
@@ -272,13 +272,13 @@ export default function AdminHrReport() {
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="w-40"
+                  className="w-full lg:w-40"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 col-span-full lg:col-auto">
                 <label className="text-xs text-muted-foreground">Employee</label>
                 <Select value={employeeId} onValueChange={setEmployeeId}>
-                  <SelectTrigger className="w-56">
+                  <SelectTrigger className="w-full lg:w-56">
                     <SelectValue placeholder="All employees" />
                   </SelectTrigger>
                   <SelectContent>
@@ -292,7 +292,7 @@ export default function AdminHrReport() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button variant="outline" onClick={exportCsv} disabled={!stats}>
+              <Button variant="outline" onClick={exportCsv} disabled={!stats} className="col-span-full lg:col-auto w-full lg:w-auto">
                 Export CSV
               </Button>
             </div>
@@ -338,7 +338,7 @@ export default function AdminHrReport() {
                   </p>
                 ) : (
                   <div className="overflow-auto max-h-[60vh]">
-                    <Table>
+                    <Table className="min-w-[720px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead>Employee</TableHead>

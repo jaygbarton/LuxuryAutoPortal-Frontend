@@ -544,18 +544,18 @@ export default function BouncieGeofencePage() {
         <BouncieConnectionBanner />
 
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">
             <Link href="/admin/bouncie">
-              <Button size="sm" variant="ghost" className="text-muted-foreground">
+              <Button size="sm" variant="ghost" className="text-muted-foreground w-fit">
                 <ArrowLeft className="w-4 h-4 mr-1" />
                 Fleet
               </Button>
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                <MapPin className="w-6 h-6 text-primary" />
-                Geofence
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2 leading-tight">
+                <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
+                <span className="truncate">Geofence</span>
               </h1>
               <p className="text-muted-foreground text-sm mt-0.5">Manage zones and review entry/exit activity</p>
             </div>
@@ -563,12 +563,12 @@ export default function BouncieGeofencePage() {
         </div>
 
         {/* Tab switcher */}
-        <div className="flex gap-1 border-b">
+        <div className="flex gap-1 border-b overflow-x-auto">
           {(["zones", "events"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
                 tab === t
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -701,11 +701,10 @@ export default function BouncieGeofencePage() {
         {/* ── TAB: Event Log ── */}
         {tab === "events" && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div />
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                 <Select value={hours} onValueChange={setHours}>
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger className="w-full sm:w-44">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -714,7 +713,7 @@ export default function BouncieGeofencePage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button size="sm" variant="outline" onClick={() => refetchEvents()} disabled={isFetching}>
+                <Button size="sm" variant="outline" onClick={() => refetchEvents()} disabled={isFetching} className="w-full sm:w-auto">
                   <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
                   Refresh
                 </Button>
@@ -722,22 +721,22 @@ export default function BouncieGeofencePage() {
             </div>
 
             {/* Summary cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
               <Card><CardContent className="pt-5 pb-4">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Events</p>
-                <p className="text-3xl font-bold mt-1">{allEvents.length}</p>
+                <p className="text-2xl sm:text-3xl font-bold mt-1">{allEvents.length}</p>
               </CardContent></Card>
               <Card><CardContent className="pt-5 pb-4">
                 <p className="text-xs text-green-600 uppercase tracking-wide font-medium">Entries</p>
-                <p className="text-3xl font-bold mt-1 text-green-600">{entryCount}</p>
+                <p className="text-2xl sm:text-3xl font-bold mt-1 text-green-600">{entryCount}</p>
               </CardContent></Card>
               <Card><CardContent className="pt-5 pb-4">
                 <p className="text-xs text-orange-600 uppercase tracking-wide font-medium">Exits</p>
-                <p className="text-3xl font-bold mt-1 text-orange-600">{exitCount}</p>
+                <p className="text-2xl sm:text-3xl font-bold mt-1 text-orange-600">{exitCount}</p>
               </CardContent></Card>
               <Card><CardContent className="pt-5 pb-4">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Unique Zones</p>
-                <p className="text-3xl font-bold mt-1">{zoneNames.length}</p>
+                <p className="text-2xl sm:text-3xl font-bold mt-1">{zoneNames.length}</p>
               </CardContent></Card>
             </div>
 

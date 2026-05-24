@@ -392,18 +392,18 @@ export default function DocumentUpdateApprovalDashboard() {
   return (
     <div className="space-y-4">
       {/* Filters bar */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[220px] max-w-sm">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:items-center gap-2">
+        <div className="relative col-span-full sm:col-span-2 lg:col-auto lg:flex-1 lg:min-w-[220px] lg:max-w-sm">
           <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, email, plate…"
-            className="pl-8"
+            className="pl-8 w-full"
           />
         </div>
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
-          <SelectTrigger className="w-[170px]">
+          <SelectTrigger className="w-full lg:w-[170px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -415,7 +415,7 @@ export default function DocumentUpdateApprovalDashboard() {
           </SelectContent>
         </Select>
         <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-full lg:w-[150px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -426,26 +426,27 @@ export default function DocumentUpdateApprovalDashboard() {
             ))}
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" onClick={() => setShowFilters((p) => !p)}>
+        <Button variant="outline" size="sm" onClick={() => setShowFilters((p) => !p)} className="col-span-full lg:col-auto w-full lg:w-auto">
           <Filter className="h-4 w-4 mr-1" />
           {showFilters ? "Hide dates" : "Dates"}
         </Button>
       </div>
 
       {showFilters && (
-        <div className="flex flex-wrap gap-2 items-end p-3 rounded-md border border-border">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap gap-2 lg:items-end p-3 rounded-md border border-border">
           <div className="space-y-1">
             <Label className="text-xs">From</Label>
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-full" />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">To</Label>
-            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-full" />
           </div>
           {(dateFrom || dateTo) && (
             <Button
               variant="ghost"
               size="sm"
+              className="col-span-full lg:col-auto w-full lg:w-auto"
               onClick={() => {
                 setDateFrom("");
                 setDateTo("");

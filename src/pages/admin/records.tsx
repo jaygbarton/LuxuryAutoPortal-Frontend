@@ -425,9 +425,9 @@ export default function RecordsPage() {
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Cars</span>
             </button>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-primary">Records and Files</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-primary leading-tight">Records and Files</h1>
               {car && (
                 <p className="text-sm text-muted-foreground mt-1">
                   Car: {car.makeModel || "Unknown Car"}
@@ -435,13 +435,13 @@ export default function RecordsPage() {
               )}
           </div>
           {!isClient && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <Button
                 variant="outline"
                 onClick={() => {
                   setIsAddModalOpen(true);
                 }}
-                className="bg-card border-border text-foreground hover:bg-muted flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4"
+                className="bg-card border-border text-foreground hover:bg-muted flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4 w-full sm:w-auto"
               >
                 <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Add</span>
@@ -449,7 +449,7 @@ export default function RecordsPage() {
               <Button
                 variant="outline"
                 onClick={() => setIsLogModalOpen(true)}
-                className="bg-card border-border text-foreground hover:bg-muted flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4"
+                className="bg-card border-border text-foreground hover:bg-muted flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4 w-full sm:w-auto"
               >
                 <List className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Log</span>

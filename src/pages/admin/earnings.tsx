@@ -1184,7 +1184,7 @@ export default function EarningsPage() {
             <span>Back to View Car</span>
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-primary">Earnings</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-primary leading-tight">Earnings</h1>
             {car && (
               <p className="text-sm text-muted-foreground mt-1">
                 Car: {car.makeModel || "Unknown Car"}
@@ -1301,11 +1301,11 @@ export default function EarningsPage() {
         </div>
 
         {/* Earnings Header with Year Filter */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-serif text-primary italic">Earnings</h1>
-          <div className="w-[150px]">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+          <h1 className="text-xl sm:text-3xl font-serif text-primary italic leading-tight">Earnings</h1>
+          <div className="w-full sm:w-[150px]">
             <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="bg-card border-border text-foreground focus:border-primary">
+              <SelectTrigger className="bg-card border-border text-foreground focus:border-primary w-full">
                 <SelectValue placeholder="Select year" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border text-foreground">

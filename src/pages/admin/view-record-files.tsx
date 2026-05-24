@@ -513,9 +513,9 @@ export default function ViewRecordFilesPage() {
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Records</span>
           </button>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-primary">View Record Files</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-primary leading-tight">View Record Files</h1>
               {record && (
                 <p className="text-sm text-muted-foreground mt-1">
                   Record: {record.recordFilesDocName}
@@ -523,11 +523,11 @@ export default function ViewRecordFilesPage() {
               )}
             </div>
             {user?.isClient !== true && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   onClick={() => setIsLogModalOpen(true)}
-                  className="bg-card border-border text-foreground hover:bg-muted flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4"
+                  className="bg-card border-border text-foreground hover:bg-muted flex items-center gap-2 text-xs sm:text-sm px-2 sm:px-4 w-full sm:w-auto"
                 >
                   <List className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">Log</span>
@@ -539,7 +539,7 @@ export default function ViewRecordFilesPage() {
                     setItemEdit(null);
                     setIsAddModalOpen(true);
                   }}
-                  className="bg-primary text-primary-foreground hover:bg-primary/80"
+                  className="bg-primary text-primary-foreground hover:bg-primary/80 w-full sm:w-auto"
                   type="button"
                 >
                   <Plus className="w-4 h-4 mr-2" />

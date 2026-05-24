@@ -142,11 +142,11 @@ export function EmployeeOnboardingFormContent() {
             <p className="text-xs text-muted-foreground truncate max-w-[200px]">{EMPLOYEE_FORM_LINK}</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleCopyLink} className="gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" size="sm" onClick={handleCopyLink} className="gap-2 w-full sm:w-auto">
             <Copy className="w-4 h-4" /> Copy link
           </Button>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
             <a href={EMPLOYEE_FORM_LINK} target="_blank" rel="noopener noreferrer" className="gap-2">
               <ExternalLink className="w-4 h-4" /> Open form
             </a>

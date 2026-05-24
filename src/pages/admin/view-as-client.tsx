@@ -127,7 +127,7 @@ export default function ViewAsClientPage() {
       <div className="space-y-6 p-4 md:p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-primary flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-semibold text-primary flex items-center gap-2 leading-tight">
               <UserCog className="w-6 h-6" />
               View as client
             </h1>
@@ -166,17 +166,17 @@ export default function ViewAsClientPage() {
                   </>
                 )}
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
-                  className="border-amber-500/50"
+                  className="border-amber-500/50 w-full sm:w-auto"
                   onClick={() => setLocation("/dashboard")}
                 >
                   Open client dashboard
                 </Button>
                 <Button
                   variant="outline"
-                  className="border-red-500/50 text-red-700 hover:bg-red-500/10"
+                  className="border-red-500/50 text-red-700 hover:bg-red-500/10 w-full sm:w-auto"
                   disabled={stopMutation.isPending}
                   onClick={() => stopMutation.mutate()}
                 >

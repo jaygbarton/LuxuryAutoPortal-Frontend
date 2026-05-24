@@ -478,54 +478,66 @@ export default function AdminHrTime() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 flex-wrap">
           <div>
-            <h1 className="text-2xl font-semibold text-primary">Time Sheet Review</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold text-primary leading-tight">Time Sheet Review</h1>
             <p className="text-muted-foreground text-sm">
               View, add, edit, and delete employee time logs. Every change is logged.
             </p>
           </div>
-          <Button onClick={openAdd} className="gap-2">
+          <Button onClick={openAdd} className="gap-2 w-full sm:w-auto">
             <Plus className="h-4 w-4" />
             Add time log
           </Button>
         </div>
 
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader className="pb-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <Input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="w-40"
-              />
-              <Input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="w-40"
-              />
-              <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
-                <SelectTrigger className="w-56">
-                  <SelectValue placeholder="All employees" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All employees</SelectItem>
-                  {employees.map((e) => (
-                    <SelectItem key={e.employee_aid} value={String(e.employee_aid)}>
-                      {`${e.employee_first_name ?? ""} ${e.employee_last_name ?? ""}`.trim() ||
-                        `Employee ${e.employee_aid}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search employee name"
-                className="w-56"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">From</label>
+                <Input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="w-full lg:w-40"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">To</label>
+                <Input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="w-full lg:w-40"
+                />
+              </div>
+              <div className="space-y-1 col-span-full lg:col-auto">
+                <label className="text-xs text-muted-foreground">Employee</label>
+                <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+                  <SelectTrigger className="w-full lg:w-56">
+                    <SelectValue placeholder="All employees" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All employees</SelectItem>
+                    {employees.map((e) => (
+                      <SelectItem key={e.employee_aid} value={String(e.employee_aid)}>
+                        {`${e.employee_first_name ?? ""} ${e.employee_last_name ?? ""}`.trim() ||
+                          `Employee ${e.employee_aid}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1 col-span-full lg:col-auto">
+                <label className="text-xs text-muted-foreground">Search</label>
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search employee name"
+                  className="w-full lg:w-56"
+                />
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -537,7 +549,7 @@ export default function AdminHrTime() {
               <p className="text-muted-foreground text-center py-8">No time records found.</p>
             ) : (
               <div className="overflow-auto max-h-[65vh]">
-                <table className="w-full caption-bottom text-sm">
+                <table className="w-full min-w-[800px] caption-bottom text-sm">
                   <TableHeader>
                     <TableRow className="sticky top-0 z-10 bg-black text-white hover:bg-black border-b border-black">
                       <TableHead className="text-white">Employee</TableHead>

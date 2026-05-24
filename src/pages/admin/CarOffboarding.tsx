@@ -245,7 +245,7 @@ export default function CarOffboarding() {
       </div>
 
       {/* Table Card */}
-      <Card className="bg-card border-primary/20">
+      <Card className="bg-card border-primary/20 overflow-hidden">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -253,7 +253,7 @@ export default function CarOffboarding() {
             </div>
           ) : cars.length > 0 ? (
             <>
-              <div className="w-full overflow-hidden">
+              <div className="w-full max-w-full overflow-x-auto">
               <div className="overflow-x-auto">
                 <Table className="w-full table-auto">
                   <TableHeader>

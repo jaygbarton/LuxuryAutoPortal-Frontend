@@ -168,25 +168,25 @@ export default function BouncieAnalyticsPage() {
         <BouncieConnectionBanner />
 
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">
             <Link href="/admin/bouncie">
-              <Button size="sm" variant="ghost" className="text-muted-foreground">
+              <Button size="sm" variant="ghost" className="text-muted-foreground w-fit">
                 <ArrowLeft className="w-4 h-4 mr-1" />
                 Fleet
               </Button>
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                <BarChart3 className="w-6 h-6 text-primary" />
-                Fleet Analytics
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2 leading-tight">
+                <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
+                <span className="truncate">Fleet Analytics</span>
               </h1>
               <p className="text-muted-foreground text-sm mt-0.5">Business intelligence and fleet performance insights</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
             <Select value={days} onValueChange={setDays}>
-              <SelectTrigger className="w-44">
+              <SelectTrigger className="w-full sm:w-44">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -195,7 +195,7 @@ export default function BouncieAnalyticsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+            <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching} className="w-full sm:w-auto">
               <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
               Refresh
             </Button>
@@ -203,36 +203,36 @@ export default function BouncieAnalyticsPage() {
         </div>
 
         {/* Fleet KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
           <Card>
             <CardContent className="pt-5 pb-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide">Active Vehicles</p>
-              <p className="text-3xl font-bold mt-1">{isLoading ? "—" : totals?.active_vehicles ?? 0}</p>
+              <p className="text-2xl sm:text-3xl font-bold mt-1">{isLoading ? "—" : totals?.active_vehicles ?? 0}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-5 pb-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Trips</p>
-              <p className="text-3xl font-bold mt-1">{isLoading ? "—" : totals?.total_trips ?? 0}</p>
+              <p className="text-2xl sm:text-3xl font-bold mt-1">{isLoading ? "—" : totals?.total_trips ?? 0}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-5 pb-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Miles</p>
-              <p className="text-3xl font-bold mt-1">{isLoading ? "—" : formatMiles(totals?.total_miles ?? 0)}</p>
+              <p className="text-2xl sm:text-3xl font-bold mt-1">{isLoading ? "—" : formatMiles(totals?.total_miles ?? 0)}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-5 pb-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide">Fuel Used</p>
-              <p className="text-3xl font-bold mt-1">{isLoading ? "—" : `${n(totals?.total_fuel).toFixed(1)}`}</p>
+              <p className="text-2xl sm:text-3xl font-bold mt-1">{isLoading ? "—" : `${n(totals?.total_fuel).toFixed(1)}`}</p>
               <p className="text-xs text-muted-foreground">gallons</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-5 pb-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide">Fleet Avg Speed</p>
-              <p className="text-3xl font-bold mt-1">{isLoading ? "—" : `${n(totals?.fleet_avg_speed).toFixed(0)}`}</p>
+              <p className="text-2xl sm:text-3xl font-bold mt-1">{isLoading ? "—" : `${n(totals?.fleet_avg_speed).toFixed(0)}`}</p>
               <p className="text-xs text-muted-foreground">mph</p>
             </CardContent>
           </Card>

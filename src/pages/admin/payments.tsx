@@ -345,9 +345,9 @@ export default function PaymentsPage() {
             <ArrowLeft className="w-4 h-4" />
             <span>Back to View Car</span>
           </button>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-primary">Payment History</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-primary leading-tight">Payment History</h1>
               {(vehicleInfo || ownerName !== "N/A") && (
                 <p className="text-sm text-muted-foreground mt-1">
                   {vehicleInfo && ownerName !== "N/A" ? (
@@ -383,7 +383,7 @@ export default function PaymentsPage() {
                   }
                   setIsAddModalOpen(true);
                 }}
-                className="bg-primary text-primary-foreground hover:bg-primary/80"
+                className="bg-primary text-primary-foreground hover:bg-primary/80 w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Payment

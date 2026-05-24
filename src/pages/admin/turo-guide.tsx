@@ -274,9 +274,9 @@ export default function AdminTuroGuidePage() {
   return (
     <AdminLayout>
       <div className="space-y-6 p-4 md:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Turo Guide</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold leading-tight">Turo Guide</h1>
             <p className="text-muted-foreground text-sm">
               {isClient
                 ? "Turo hosting and operations guide videos and resources."
@@ -285,6 +285,7 @@ export default function AdminTuroGuidePage() {
           </div>
           {!isClient && (
             <Button
+              className="w-full sm:w-auto"
               onClick={() => {
                 setFormTitle("");
                 setFormDescription("");

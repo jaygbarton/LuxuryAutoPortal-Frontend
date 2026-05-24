@@ -145,25 +145,25 @@ export default function BouncieBehaviorPage() {
         <BouncieConnectionBanner />
 
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">
             <Link href="/admin/bouncie">
-              <Button size="sm" variant="ghost" className="text-muted-foreground">
+              <Button size="sm" variant="ghost" className="text-muted-foreground w-fit">
                 <ArrowLeft className="w-4 h-4 mr-1" />
                 Fleet
               </Button>
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                <ShieldAlert className="w-6 h-6 text-primary" />
-                Driving Behavior Analysis
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2 leading-tight">
+                <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
+                <span className="truncate">Driving Behavior Analysis</span>
               </h1>
               <p className="text-muted-foreground text-sm mt-0.5">Hard braking, speeding, and harsh turn events</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
             <Select value={hours} onValueChange={setHours}>
-              <SelectTrigger className="w-44">
+              <SelectTrigger className="w-full sm:w-44">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -172,7 +172,7 @@ export default function BouncieBehaviorPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+            <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching} className="w-full sm:w-auto">
               <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
               Refresh
             </Button>
@@ -184,25 +184,25 @@ export default function BouncieBehaviorPage() {
           <Card>
             <CardContent className="pt-5 pb-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Events</p>
-              <p className="text-3xl font-bold mt-1">{allEvents.length}</p>
+              <p className="text-2xl sm:text-3xl font-bold mt-1">{allEvents.length}</p>
             </CardContent>
           </Card>
           <Card className="border-red-200">
             <CardContent className="pt-5 pb-4">
               <p className="text-xs text-red-600 uppercase tracking-wide font-medium">High Severity</p>
-              <p className="text-3xl font-bold mt-1 text-red-600">{highCount}</p>
+              <p className="text-2xl sm:text-3xl font-bold mt-1 text-red-600">{highCount}</p>
             </CardContent>
           </Card>
           <Card className="border-yellow-200">
             <CardContent className="pt-5 pb-4">
               <p className="text-xs text-yellow-600 uppercase tracking-wide font-medium">Medium</p>
-              <p className="text-3xl font-bold mt-1 text-yellow-600">{medCount}</p>
+              <p className="text-2xl sm:text-3xl font-bold mt-1 text-yellow-600">{medCount}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-5 pb-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide">Low</p>
-              <p className="text-3xl font-bold mt-1 text-gray-400">{lowCount}</p>
+              <p className="text-2xl sm:text-3xl font-bold mt-1 text-gray-400">{lowCount}</p>
             </CardContent>
           </Card>
         </div>

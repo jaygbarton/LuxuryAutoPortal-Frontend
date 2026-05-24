@@ -665,8 +665,8 @@ export default function PaymentsMainPage() {
 
         {/* Filter bar */}
         <div className="bg-card border border-border rounded-lg shadow-sm p-4 mb-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex items-center gap-2 text-primary text-xs font-semibold uppercase tracking-wider mr-1 pb-2 self-end">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:items-end gap-3">
+            <div className="col-span-full lg:col-auto flex items-center gap-2 text-primary text-xs font-semibold uppercase tracking-wider lg:mr-1 lg:pb-2 lg:self-end">
               <Filter className="w-3.5 h-3.5" />
               Filters
             </div>
@@ -679,7 +679,7 @@ export default function PaymentsMainPage() {
                   setIsFilter(true);
                 }}
               >
-                <SelectTrigger className="bg-background border-border text-foreground w-[140px] h-9 focus:ring-1 focus:ring-primary">
+                <SelectTrigger className="bg-background border-border text-foreground w-full lg:w-[140px] h-9 focus:ring-1 focus:ring-primary">
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground">
@@ -701,7 +701,7 @@ export default function PaymentsMainPage() {
                   setStartMonth(e.target.value);
                   setIsFilter(true);
                 }}
-                className="bg-background border-border text-foreground w-[160px] h-9 focus-visible:ring-1 focus-visible:ring-primary"
+                className="bg-background border-border text-foreground w-full lg:w-[160px] h-9 focus-visible:ring-1 focus-visible:ring-primary"
               />
             </div>
             <div className="flex flex-col">
@@ -713,7 +713,7 @@ export default function PaymentsMainPage() {
                   setEndMonth(e.target.value);
                   setIsFilter(true);
                 }}
-                className="bg-background border-border text-foreground w-[160px] h-9 focus-visible:ring-1 focus-visible:ring-primary"
+                className="bg-background border-border text-foreground w-full lg:w-[160px] h-9 focus-visible:ring-1 focus-visible:ring-primary"
               />
             </div>
             <div className="flex flex-col">
@@ -725,7 +725,7 @@ export default function PaymentsMainPage() {
                   setIsFilter(true);
                 }}
               >
-                <SelectTrigger className="bg-background border-border text-foreground w-[104px] h-9 focus:ring-1 focus:ring-primary">
+                <SelectTrigger className="bg-background border-border text-foreground w-full lg:w-[104px] h-9 focus:ring-1 focus:ring-primary">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground min-w-[104px]">
@@ -735,7 +735,7 @@ export default function PaymentsMainPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex flex-col flex-1 min-w-[260px]" ref={carDropdownRef}>
+            <div className="col-span-full sm:col-span-2 lg:col-auto flex flex-col lg:flex-1 lg:min-w-[260px]" ref={carDropdownRef}>
               <label className="text-muted-foreground text-xs font-medium mb-1.5">Car</label>
               {/* Custom searchable car combobox */}
               <div className="relative">
@@ -766,7 +766,7 @@ export default function PaymentsMainPage() {
 
                 {carDropdownOpen && (
                   <div
-                    className="absolute z-50 top-full mt-1 w-full min-w-[320px] bg-card border border-border rounded-md shadow-lg overflow-hidden"
+                    className="absolute z-50 top-full mt-1 w-full lg:min-w-[320px] bg-card border border-border rounded-md shadow-lg overflow-hidden"
                     onMouseDown={(e) => e.stopPropagation()}
                   >
                     {/* Search input */}
@@ -856,7 +856,7 @@ export default function PaymentsMainPage() {
               <Button
                 variant="ghost"
                 onClick={handleClearFilters}
-                className="text-red-600 hover:text-red-700 hover:bg-red-500/10 h-9 font-medium"
+                className="col-span-full lg:col-auto text-red-600 hover:text-red-700 hover:bg-red-500/10 h-9 font-medium w-full lg:w-auto"
               >
                 Clear
               </Button>
@@ -868,7 +868,7 @@ export default function PaymentsMainPage() {
         <div className="bg-card border border-border rounded-lg shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
           {/* Scrollable table region */}
           <div className="flex-1 min-h-0 overflow-auto">
-            <table className="table-fixed w-full caption-bottom text-sm border-collapse">
+            <table className="table-fixed w-full min-w-[1200px] caption-bottom text-sm border-collapse">
               <thead className="sticky top-0 z-20 bg-muted shadow-[0_1px_0_0_hsl(var(--border))]">
                 <tr>
                   <th className="h-11 px-3 text-left font-semibold text-foreground w-12 text-[11px] uppercase tracking-wider">#</th>

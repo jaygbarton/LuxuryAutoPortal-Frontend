@@ -520,13 +520,15 @@ export default function BouncieDevicesPage() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-3 sm:p-4 md:p-6">
         <BouncieConnectionBanner />
 
-        <div className="flex justify-between items-center mb-6 mt-4">
-          <div>
-            <h1 className="text-3xl font-bold">Bouncie Device Management</h1>
-            <p className="text-muted-foreground mt-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start mb-6 mt-4">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight">
+              Bouncie Device Management
+            </h1>
+            <p className="text-muted-foreground mt-2 text-sm sm:text-base">
               Devices are automatically synced from your Bouncie account. Use
               the edit icon to assign a device to a specific GLA car.
             </p>
@@ -535,6 +537,7 @@ export default function BouncieDevicesPage() {
             variant="outline"
             onClick={() => autoSyncMutation.mutate()}
             disabled={autoSyncMutation.isPending}
+            className="w-full sm:w-auto flex-shrink-0"
           >
             {autoSyncMutation.isPending ? (
               <RefreshCw className="w-4 h-4 mr-2 animate-spin" />

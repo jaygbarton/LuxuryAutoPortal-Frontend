@@ -282,9 +282,9 @@ export default function AdminTestimonialsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6 p-4 md:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">Client Testimonials</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold leading-tight">Client Testimonials</h1>
             <p className="text-muted-foreground text-sm">
               {isClient
                 ? "Watch and explore client testimonials."
@@ -293,6 +293,7 @@ export default function AdminTestimonialsPage() {
           </div>
           {!isClient && (
             <Button
+              className="w-full sm:w-auto"
               onClick={() => {
                 setFormTitle("");
                 setFormDescription("");

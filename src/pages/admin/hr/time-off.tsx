@@ -267,25 +267,25 @@ export default function AdminHrTimeOff() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Page header */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/10">
               <TreePalm className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-primary">Time Off</h1>
+              <h1 className="text-xl sm:text-2xl font-semibold text-primary leading-tight">Time Off</h1>
               <p className="text-muted-foreground text-sm mt-0.5">
                 Review and manage employee leave requests.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             {pendingCount > 0 && !isLoading && (
               <Badge className="bg-amber-100 text-amber-700 border border-amber-300 px-3 py-1 text-sm dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700">
                 {pendingCount} pending on this page
               </Badge>
             )}
-            <Button onClick={openAdd} className="gap-2">
+            <Button onClick={openAdd} className="gap-2 w-full sm:w-auto">
               <Plus className="w-4 h-4" />
               Add time off
             </Button>
@@ -294,8 +294,8 @@ export default function AdminHrTimeOff() {
 
         <Card>
           <CardHeader className="pb-4 border-b border-border">
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="flex-1 min-w-[180px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end gap-3">
+              <div className="col-span-full lg:col-auto lg:flex-1 lg:min-w-[180px]">
                 <Label className="text-xs text-muted-foreground mb-1.5 block">
                   Search employee
                 </Label>
@@ -306,7 +306,7 @@ export default function AdminHrTimeOff() {
                     setSearch(e.target.value);
                     setPage(1);
                   }}
-                  className="h-9"
+                  className="h-9 w-full"
                 />
               </div>
               <div>
@@ -320,7 +320,7 @@ export default function AdminHrTimeOff() {
                     setFromDate(e.target.value);
                     setPage(1);
                   }}
-                  className="w-40 h-9"
+                  className="w-full lg:w-40 h-9"
                 />
               </div>
               <div>
@@ -334,7 +334,7 @@ export default function AdminHrTimeOff() {
                     setToDate(e.target.value);
                     setPage(1);
                   }}
-                  className="w-40 h-9"
+                  className="w-full lg:w-40 h-9"
                 />
               </div>
               <div>
@@ -348,7 +348,7 @@ export default function AdminHrTimeOff() {
                     setPage(1);
                   }}
                 >
-                  <SelectTrigger className="w-[130px] h-9">
+                  <SelectTrigger className="w-full lg:w-[130px] h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -364,7 +364,7 @@ export default function AdminHrTimeOff() {
                   variant="ghost"
                   size="sm"
                   onClick={resetFilters}
-                  className="h-9 text-muted-foreground hover:text-foreground"
+                  className="h-9 text-muted-foreground hover:text-foreground col-span-full lg:col-auto w-full lg:w-auto"
                 >
                   Clear
                 </Button>
@@ -394,7 +394,8 @@ export default function AdminHrTimeOff() {
               </div>
             ) : (
               <>
-                <Table>
+                <div className="w-full max-w-full overflow-x-auto">
+                <Table className="min-w-[800px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Employee</TableHead>
@@ -489,6 +490,7 @@ export default function AdminHrTimeOff() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
 
                 {/* Pagination footer */}
                 <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-border">

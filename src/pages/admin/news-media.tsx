@@ -304,9 +304,9 @@ export default function NewsMediaPage() {
   return (
     <AdminLayout>
       <div className="space-y-6 p-4 md:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-semibold flex items-center gap-2 leading-tight">
               <Newspaper className="w-6 h-6 text-primary" />
               News & Media
             </h1>
@@ -318,6 +318,7 @@ export default function NewsMediaPage() {
           </div>
           {!isClient && (
             <Button
+              className="w-full sm:w-auto"
               onClick={() => { resetForm(); setAddOpen(true); }}
             >
               <Plus className="mr-2 h-4 w-4" />

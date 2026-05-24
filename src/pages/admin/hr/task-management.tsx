@@ -468,16 +468,16 @@ export default function AdminHrTaskManagement() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-primary">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-semibold text-primary leading-tight">
               Task Management
             </h1>
             <p className="text-muted-foreground text-sm">
               Create and manage tasks assigned to employees.
             </p>
           </div>
-          <Button onClick={openAdd} className="gap-2">
+          <Button onClick={openAdd} className="gap-2 w-full sm:w-auto">
             <Plus className="w-4 h-4" />
             Add Task
           </Button>
@@ -485,14 +485,14 @@ export default function AdminHrTaskManagement() {
 
         <Card>
           <CardHeader className="pb-3">
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center gap-3">
               <div className="flex items-center gap-2">
                 <Label className="text-sm text-muted-foreground">From:</Label>
                 <Input
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="w-40 h-8"
+                  className="flex-1 lg:w-40 lg:flex-none h-8"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -501,7 +501,7 @@ export default function AdminHrTaskManagement() {
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="w-40 h-8"
+                  className="flex-1 lg:w-40 lg:flex-none h-8"
                 />
               </div>
               {(fromDate || toDate) && (
@@ -512,7 +512,7 @@ export default function AdminHrTaskManagement() {
                     setFromDate("");
                     setToDate("");
                   }}
-                  className="text-red-700 hover:text-red-700"
+                  className="text-red-700 hover:text-red-700 col-span-full sm:col-auto w-full lg:w-auto"
                 >
                   Clear
                 </Button>

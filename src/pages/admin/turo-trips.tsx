@@ -680,22 +680,23 @@ export default function TuroTripsPage() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">
+            <h1 className="text-xl sm:text-2xl font-semibold text-foreground leading-tight">
               Turo Trips
             </h1>
             <p className="text-muted-foreground mt-1">
               Automated trip tracking from Turo emails
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setImportOpen(true)}>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setImportOpen(true)}>
               <Upload className="w-4 h-4 mr-2" />
               Import from Turo
             </Button>
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => refreshCalendarMutation.mutate()}
               disabled={refreshCalendarMutation.isPending}
               title="Push updated title format (plate, year) into all existing Google Calendar events"
@@ -713,6 +714,7 @@ export default function TuroTripsPage() {
               )}
             </Button>
             <Button
+              className="w-full sm:w-auto"
               onClick={() => syncMutation.mutate()}
               disabled={syncMutation.isPending}
             >
@@ -733,83 +735,83 @@ export default function TuroTripsPage() {
 
         {/* Summary Cards */}
         {summary && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                   Total Trips
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{summary.totalTrips}</div>
+              <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                <div className="text-lg sm:text-2xl font-bold">{summary.totalTrips}</div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  Booked Trips
+              <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
+                  <span className="truncate">Booked Trips</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+              <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                <div className="text-lg sm:text-2xl font-bold text-green-600">
                   {summary.bookedTrips}
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-blue-500" />
-                  Completed Trips
+              <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
+                  <span className="truncate">Completed Trips</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
+              <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                <div className="text-lg sm:text-2xl font-bold text-blue-600">
                   {summary.completedTrips}
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <XCircle className="w-4 h-4 text-red-500" />
-                  Cancelled Trips
+              <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                  <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 flex-shrink-0" />
+                  <span className="truncate">Cancelled Trips</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">
+              <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                <div className="text-lg sm:text-2xl font-bold text-red-600">
                   {summary.cancelledTrips}
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-green-500" />
-                  Total Earnings
+              <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                  <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
+                  <span className="truncate">Total Earnings</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+              <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                <div className="text-lg sm:text-2xl font-bold text-green-600 truncate">
                   {formatCurrency(summary.totalEarnings)}
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <TrendingDown className="w-4 h-4 text-red-500" />
-                  Lost Earnings
+              <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                  <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 flex-shrink-0" />
+                  <span className="truncate">Lost Earnings</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">
+              <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                <div className="text-lg sm:text-2xl font-bold text-red-600 truncate">
                   {formatCurrency(summary.cancelledEarnings)}
                 </div>
               </CardContent>
@@ -824,13 +826,13 @@ export default function TuroTripsPage() {
             <CardDescription>View and manage all Turo trips</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <div className="flex-1 relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-row gap-3 mb-6">
+              <div className="relative col-span-full lg:flex-1">
                 <Input
-                  placeholder="Search any column — guest, car, plate, location, extras, miles, odometer, earnings, status... (Ctrl+K)"
+                  placeholder="Search any column — guest, car, plate, location... (Ctrl+K)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10"
+                  className="pr-10 w-full"
                 />
                 {searchQuery && (
                   <button
@@ -851,7 +853,7 @@ export default function TuroTripsPage() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-[160px]"
+                  className="flex-1 lg:w-[160px] lg:flex-none"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -862,14 +864,14 @@ export default function TuroTripsPage() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-[160px]"
+                  className="flex-1 lg:w-[160px] lg:flex-none"
                 />
               </div>
               <Select
                 value={statusFilter}
                 onValueChange={(value: any) => setStatusFilter(value)}
               >
-                <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectTrigger className="w-full lg:w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -892,7 +894,7 @@ export default function TuroTripsPage() {
                     setStartDate("");
                     setEndDate("");
                   }}
-                  className="whitespace-nowrap"
+                  className="whitespace-nowrap col-span-full lg:col-auto w-full lg:w-auto"
                 >
                   Clear All
                 </Button>

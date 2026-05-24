@@ -144,7 +144,7 @@ function MonthPicker({ month, year, onChange }: {
       <PopoverTrigger asChild>
         <button className={cn(
           "flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-card text-foreground text-sm",
-          "hover:bg-muted/50 transition-colors min-w-[160px] justify-between"
+          "hover:bg-muted/50 transition-colors w-full lg:min-w-[160px] lg:w-auto justify-between"
         )}>
           <CalendarIcon className="w-4 h-4 text-muted-foreground shrink-0" />
           <span>{MONTH_FULL[month - 1]} {year}</span>
@@ -223,7 +223,7 @@ function QuarterPicker({ quarter, year, onChange }: {
       <PopoverTrigger asChild>
         <button className={cn(
           "flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-card text-foreground text-sm",
-          "hover:bg-muted/50 transition-colors min-w-[160px] justify-between"
+          "hover:bg-muted/50 transition-colors w-full lg:min-w-[160px] lg:w-auto justify-between"
         )}>
           <CalendarIcon className="w-4 h-4 text-muted-foreground shrink-0" />
           <span>{QUARTER_SHORT[quarter - 1]} {year}</span>
@@ -469,9 +469,9 @@ export default function TotalsPage() {
               <span>Back to View Car</span>
             </button>
           )}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-primary">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-primary leading-tight">
                 {isStandalonePage ? "Totals" : isAllCarsReport ? "All Cars Report - Totals" : "Individual Car Report - Totals"}
               </h1>
               {isStandalonePage && (
@@ -485,7 +485,7 @@ export default function TotalsPage() {
                 <p className="text-sm text-muted-foreground mt-0.5">Car: {car.makeModel}</p>
               )}
             </div>
-            <Button variant="outline" className="bg-card border-border text-foreground hover:bg-muted flex items-center gap-2">
+            <Button variant="outline" className="bg-card border-border text-foreground hover:bg-muted flex items-center gap-2 w-full sm:w-auto">
               <Download className="w-4 h-4" />
               Export
             </Button>
@@ -574,11 +574,11 @@ export default function TotalsPage() {
 
         {/* Filters */}
         <div className="bg-card border border-border rounded-lg p-4 mb-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:items-end gap-3">
+            <div className="col-span-full sm:col-auto">
               <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">Filter</label>
               <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="bg-card border-border text-foreground w-[130px]">
+                <SelectTrigger className="bg-card border-border text-foreground w-full lg:w-[130px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground">
@@ -595,7 +595,7 @@ export default function TotalsPage() {
                 <div>
                   <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">From Year</label>
                   <Select value={fromYear} onValueChange={setFromYear}>
-                    <SelectTrigger className="bg-card border-border text-foreground w-[100px]">
+                    <SelectTrigger className="bg-card border-border text-foreground w-full lg:w-[100px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border text-foreground">
@@ -608,7 +608,7 @@ export default function TotalsPage() {
                 <div>
                   <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">To Year</label>
                   <Select value={toYear} onValueChange={setToYear}>
-                    <SelectTrigger className="bg-card border-border text-foreground w-[100px]">
+                    <SelectTrigger className="bg-card border-border text-foreground w-full lg:w-[100px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border text-foreground">
@@ -632,12 +632,12 @@ export default function TotalsPage() {
                     onChange={(m, y) => { setPickedMonth(m); setPickedMonthYear(y); }}
                   />
                 </div>
-                <div className="flex items-end h-9">
+                <div className="hidden lg:flex items-end h-9">
                   <span className="text-sm text-muted-foreground px-2">→</span>
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">To</label>
-                  <div className="h-9 px-3 flex items-center rounded-md border border-border bg-muted/50 text-sm text-muted-foreground min-w-[140px]">
+                  <div className="h-9 px-3 flex items-center rounded-md border border-border bg-muted/50 text-sm text-muted-foreground w-full lg:min-w-[140px]">
                     {MONTH_FULL[nowMonth - 1]} {nowYear}
                   </div>
                 </div>
@@ -655,12 +655,12 @@ export default function TotalsPage() {
                     onChange={(q, y) => { setPickedQuarter(q); setPickedQuarterYear(y); }}
                   />
                 </div>
-                <div className="flex items-end h-9">
+                <div className="hidden lg:flex items-end h-9">
                   <span className="text-sm text-muted-foreground px-2">→</span>
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">To</label>
-                  <div className="h-9 px-3 flex items-center rounded-md border border-border bg-muted/50 text-sm text-muted-foreground min-w-[100px]">
+                  <div className="h-9 px-3 flex items-center rounded-md border border-border bg-muted/50 text-sm text-muted-foreground w-full lg:min-w-[100px]">
                     {QUARTER_SHORT[nowQuarter - 1]} {nowYear}
                   </div>
                 </div>
