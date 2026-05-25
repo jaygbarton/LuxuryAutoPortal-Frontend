@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,8 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, Loader2, Wand2, X, ArrowLeft } from "lucide-react";
-import ReCAPTCHA from "react-google-recaptcha";
+import { CheckCircle2, Loader2, X, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 
 const schema = z.object({
@@ -43,32 +42,6 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-const sampleFormData: FormData = {
-  firstName: "Jane",
-  lastName: "Smith",
-  middleName: "Marie",
-  email: "jane.smith@example.com",
-  birthday: "1995-03-15",
-  maritalStatus: "single",
-  street: "100 Sample Lane",
-  city: "Denver",
-  state: "CO",
-  country: "USA",
-  zipCode: "80202",
-  telephone: "555-0102",
-  mobileNumber: "555-0101",
-  motherName: "Mary Smith",
-  fatherName: "Robert Smith",
-  homeContact: "555-0103",
-  homeAddress: "100 Sample Lane, Denver, CO 80202",
-  emergencyContactPerson: "Robert Smith",
-  emergencyRelationship: "Father",
-  emergencyAddress: "100 Sample Lane, Denver, CO 80202",
-  emergencyNumber: "555-0103",
-  ssnEin: "XXX-XX-1234",
-  shirtSize: "Medium",
-};
-
 const ACCEPTED_DOC_TYPES = "image/jpeg,image/jpg,image/png,image/gif,image/webp,application/pdf";
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -78,10 +51,6 @@ export default function EmployeeFormPage() {
   const [submitted, setSubmitted] = useState(false);
   const [driverLicenseFile, setDriverLicenseFile] = useState<File | null>(null);
   const [carInsuranceFile, setCarInsuranceFile] = useState<File | null>(null);
-  const recaptchaRef = useRef<ReCAPTCHA | null>(null);
-
-  const siteKey = (import.meta.env.VITE_RECAPTCHA_SITE_KEY ?? "").toString().trim();
-  const shouldShowRecaptcha = siteKey.length > 0;
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -114,10 +83,8 @@ export default function EmployeeFormPage() {
 
   const mutation = useMutation({
     mutationFn: async (values: FormData) => {
-      const captchaValue = shouldShowRecaptcha ? recaptchaRef.current?.getValue() || "" : "";
       const payload = {
         ...values,
-        captchaValue: captchaValue || undefined,
         link: window.location.origin,
       };
 
@@ -146,13 +113,11 @@ export default function EmployeeFormPage() {
       return json;
     },
     onSuccess: () => {
-      recaptchaRef.current?.reset();
       setDriverLicenseFile(null);
       setCarInsuranceFile(null);
       setSubmitted(true);
     },
     onError: (e: any) => {
-      recaptchaRef.current?.reset();
       toast({
         title: "Submission Failed",
         description: e.message || "Please check the form and try again.",
@@ -204,17 +169,6 @@ export default function EmployeeFormPage() {
           <CardContent className="p-6 space-y-8">
             <form
               onSubmit={handleSubmit((values) => {
-                if (shouldShowRecaptcha) {
-                  const token = recaptchaRef.current?.getValue()?.trim();
-                  if (!token) {
-                    toast({
-                      title: "Verification required",
-                      description: "Please complete the reCAPTCHA before submitting.",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                }
                 mutation.mutate(values);
               })}
               className="space-y-8"
@@ -455,30 +409,7 @@ export default function EmployeeFormPage() {
                 </div>
               </section>
 
-              {shouldShowRecaptcha && (
-                <div className="pt-2 space-y-1 flex flex-col items-center justify-center">
-                  <ReCAPTCHA ref={recaptchaRef} sitekey={siteKey} />
-                  <p className="text-muted-foreground text-xs">
-                    Please complete the verification above before submitting.
-                  </p>
-                </div>
-              )}
-              {!shouldShowRecaptcha && (
-                <p className="text-muted-foreground text-xs italic">
-                  reCAPTCHA is not configured. For production, set VITE_RECAPTCHA_SITE_KEY (frontend) and RECAPTCHA_SECRET_KEY (backend).
-                </p>
-              )}
-
-              <div className="flex flex-row justify-between gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-border text-primary hover:bg-card hover:text-primary"
-                  onClick={() => form.reset(sampleFormData)}
-                >
-                  <Wand2 className="w-4 h-4 mr-2" />
-                  Auto-fill
-                </Button>
+              <div className="flex justify-end">
                 <Button
                   type="submit"
                   className="bg-primary text-primary-foreground hover:bg-primary/80 font-medium"
