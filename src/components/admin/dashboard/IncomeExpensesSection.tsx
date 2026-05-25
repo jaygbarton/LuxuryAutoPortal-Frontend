@@ -144,14 +144,16 @@ function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
       );
     }
 
-    // Small slice — external leader line
+    // Small slice — external leader line. The donut itself is now sized at
+    // outerRadius=70% (down from 88%) so we have real room to push the leader
+    // line further out without colliding with the ring or the chart card.
     const sin = Math.sin(-midAngle * RADIAN);
     const cos = Math.cos(-midAngle * RADIAN);
     const sx = cx + outerRadius * cos;
     const sy = cy + outerRadius * sin;
-    const mx = cx + (outerRadius + 10) * cos;
-    const my = cy + (outerRadius + 10) * sin;
-    const ex = mx + (cos >= 0 ? 1 : -1) * 14;
+    const mx = cx + (outerRadius + 18) * cos;
+    const my = cy + (outerRadius + 18) * sin;
+    const ex = mx + (cos >= 0 ? 1 : -1) * 24;
     const ey = my;
     const textAnchor = cos >= 0 ? "start" : "end";
     return (
@@ -181,14 +183,14 @@ function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
   return (
     <div className="h-full w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <PieChart margin={{ top: 8, right: 24, bottom: 8, left: 24 }}>
+        <PieChart margin={{ top: 8, right: 56, bottom: 8, left: 56 }}>
           <Pie
             data={data}
             dataKey="value"
             cx="50%"
             cy="50%"
-            innerRadius="48%"
-            outerRadius="88%"
+            innerRadius="40%"
+            outerRadius="70%"
             paddingAngle={0}
             label={renderLabel}
             labelLine={false}
@@ -446,6 +448,15 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
   const totalOwnerExpenses = monthlyComputed.reduce((s, m) => s + m.ownerExpenses, 0);
   const totalDaysRented = monthlyComputed.reduce((s, m) => s + m.daysRented, 0);
   const totalCarsAvailable = monthlyComputed.reduce((s, m) => s + m.carsAvailable, 0);
+  const totalGross = monthlyComputed.reduce((s, m) => s + m.gross, 0);
+  const totalTripsTakenAll = monthlyComputed.reduce((s, m) => s + m.tripsTaken, 0);
+
+  // ── Days-in-month helper for the "Available Days" column ─────────────
+  // Available Days = cars_available_for_rent * days_in_that_month. This is
+  // the fleet's theoretical capacity in car-days; Fleet Utilization (%) is
+  // then daysRented / availableDays.
+  const yearNum = parseInt(year, 10) || new Date().getFullYear();
+  const daysInMonth = (m: number) => new Date(yearNum, m, 0).getDate();
 
   // ── Table data ─────────────────────────────────────────────────────
 
@@ -458,32 +469,95 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
     { key: "ownerSplit", label: "Car Owner Split", align: "right" as const },
     { key: "daysRented", label: "Days Rented", align: "right" as const },
     { key: "tripsTaken", label: "Trips Taken", align: "right" as const },
+    { key: "availableDays", label: "Available Days", align: "right" as const },
+    { key: "totalMiles", label: "Total Miles", align: "right" as const },
+    { key: "fleetUtilization", label: "Fleet Utilization (%)", align: "right" as const },
+    { key: "avgEarningsPerTrip", label: "Avg Earnings / Trips Taken", align: "right" as const },
+    { key: "avgLeadTime", label: "Avg lead time", align: "right" as const },
+    { key: "avgEarningsPerMile", label: "Avg Earnings/Mile", align: "right" as const },
   ];
 
-  const tableRows = monthlyComputed.map((mc) => ({
-    month: (
-      <span className="inline-block rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-        {formatShortMonth(mc.month)} {year}
-      </span>
-    ),
-    rentalIncome: formatCurrency(mc.gross),
-    mgmtExpenses: formatCurrency(mc.mgmtExpenses),
-    mgmtSplit: formatCurrency(mc.mgmtIncome),
-    ownerExpenses: formatCurrency(mc.ownerExpenses),
-    ownerSplit: formatCurrency(mc.ownerIncome),
-    daysRented: mc.daysRented.toLocaleString(),
-    tripsTaken: mc.tripsTaken.toLocaleString(),
-  }));
+  // Per-row computed metrics. The three columns sourced from data we don't
+  // yet capture (Total Miles, Avg lead time, Avg Earnings/Mile) render as
+  // "—" with a tooltip so users see them in the layout but understand the
+  // value is pending. Wire them up once the backend exposes the data.
+  const PLACEHOLDER = "—";
+
+  const tableRows = monthlyComputed.map((mc) => {
+    const availableDays = mc.carsAvailable * daysInMonth(mc.month);
+    const utilizationPct =
+      availableDays > 0 ? (mc.daysRented / availableDays) * 100 : 0;
+    const avgPerTrip = mc.tripsTaken > 0 ? mc.gross / mc.tripsTaken : 0;
+    return {
+      month: (
+        <span className="inline-block rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+          {formatShortMonth(mc.month)} {year}
+        </span>
+      ),
+      rentalIncome: formatCurrency(mc.gross),
+      mgmtExpenses: formatCurrency(mc.mgmtExpenses),
+      mgmtSplit: formatCurrency(mc.mgmtIncome),
+      ownerExpenses: formatCurrency(mc.ownerExpenses),
+      ownerSplit: formatCurrency(mc.ownerIncome),
+      daysRented: mc.daysRented.toLocaleString(),
+      tripsTaken: mc.tripsTaken.toLocaleString(),
+      availableDays: availableDays.toLocaleString(),
+      totalMiles: (
+        <span title="Pending — requires per-month total miles to be wired from turo_trips.total_distance">
+          {PLACEHOLDER}
+        </span>
+      ),
+      fleetUtilization:
+        availableDays > 0 ? `${utilizationPct.toFixed(2)}%` : PLACEHOLDER,
+      avgEarningsPerTrip:
+        mc.tripsTaken > 0 ? formatCurrency(avgPerTrip) : PLACEHOLDER,
+      avgLeadTime: (
+        <span title="Pending — requires booking-to-trip-start lead time to be captured">
+          {PLACEHOLDER}
+        </span>
+      ),
+      avgEarningsPerMile: (
+        <span title="Pending — requires Total Miles to be wired up">
+          {PLACEHOLDER}
+        </span>
+      ),
+    };
+  });
+
+  // Year-end totals row. For the three computed metrics we average over the
+  // year (rather than re-deriving from per-month rounded values) so totals
+  // reflect what the user would compute by hand. Use accurate per-month days
+  // rather than the older `* 30` approximation that lives further down.
+  const totalAvailableDaysAccurate = monthlyComputed.reduce(
+    (s, m) => s + m.carsAvailable * daysInMonth(m.month),
+    0,
+  );
+  const yearUtilization =
+    totalAvailableDaysAccurate > 0
+      ? (totalDaysRented / totalAvailableDaysAccurate) * 100
+      : 0;
+  const yearAvgPerTrip =
+    totalTripsTakenAll > 0 ? totalGross / totalTripsTakenAll : 0;
 
   const tableTotals = {
     month: "TOTAL",
-    rentalIncome: formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0)),
+    rentalIncome: formatCurrency(totalGross),
     mgmtExpenses: formatCurrency(totalMgmtExpenses),
     mgmtSplit: formatCurrency(totalMgmtIncome),
     ownerExpenses: formatCurrency(totalOwnerExpenses),
     ownerSplit: formatCurrency(totalOwnerIncome),
     daysRented: totalDaysRented.toLocaleString(),
-    tripsTaken: monthlyComputed.reduce((s, m) => s + m.tripsTaken, 0).toLocaleString(),
+    tripsTaken: totalTripsTakenAll.toLocaleString(),
+    availableDays: totalAvailableDaysAccurate.toLocaleString(),
+    totalMiles: PLACEHOLDER,
+    fleetUtilization:
+      totalAvailableDaysAccurate > 0
+        ? `${yearUtilization.toFixed(2)}%`
+        : PLACEHOLDER,
+    avgEarningsPerTrip:
+      totalTripsTakenAll > 0 ? formatCurrency(yearAvgPerTrip) : PLACEHOLDER,
+    avgLeadTime: PLACEHOLDER,
+    avgEarningsPerMile: PLACEHOLDER,
   };
 
   // ── Chart data ─────────────────────────────────────────────────────
