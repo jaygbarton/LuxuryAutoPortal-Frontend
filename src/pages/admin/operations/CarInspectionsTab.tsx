@@ -115,18 +115,30 @@ export function CarInspectionsTab() {
     return rawInspections.filter((insp) => {
       if (q) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+        // Mirror every visible column so the search box matches anything the
+        // user can see in the table.
         const hay = [
           insp.car_name,
           insp.reservation_id,
           insp.assigned_to,
           insp.source,
+          insp.status,
+          insp.notes,
+          insp.inspection_date,
+          insp.due_date,
           trip?.plateNumber,
           trip?.pickupLocation,
           trip?.deliveryLocation,
           trip?.returnLocation,
           trip?.extras,
           trip?.milesIncluded,
+          trip?.totalDistance,
           trip?.status,
+          trip?.tripStart,
+          trip?.tripEnd,
+          trip?.earnings != null ? String(trip.earnings) : null,
+          trip?.tripStartOdometer != null ? String(trip.tripStartOdometer) : null,
+          trip?.tripEndOdometer != null ? String(trip.tripEndOdometer) : null,
         ]
           .filter(Boolean)
           .join(" ")

@@ -173,7 +173,10 @@ export function MaintenanceTab({
       if (q) {
         const insp = rec.inspection_id != null ? inspectionsById.get(rec.inspection_id) : undefined;
         const trip = insp?.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+        // Mirror every visible column so the search box matches anything the
+        // user can see in the table.
         const hay = [
+          // Maintenance record fields
           rec.car_name,
           rec.car_make,
           rec.car_model,
@@ -181,14 +184,26 @@ export function MaintenanceTab({
           rec.task_description,
           rec.assigned_to,
           rec.repair_shop,
+          rec.status,
+          rec.notes,
+          rec.scheduled_date,
+          rec.due_date,
+          // Joined inspection / trip fields
           insp?.reservation_id,
+          insp?.notes,
           trip?.plateNumber,
           trip?.pickupLocation,
           trip?.deliveryLocation,
           trip?.returnLocation,
           trip?.extras,
           trip?.milesIncluded,
+          trip?.totalDistance,
           trip?.status,
+          trip?.tripStart,
+          trip?.tripEnd,
+          trip?.earnings != null ? String(trip.earnings) : null,
+          trip?.tripStartOdometer != null ? String(trip.tripStartOdometer) : null,
+          trip?.tripEndOdometer != null ? String(trip.tripEndOdometer) : null,
         ]
           .filter(Boolean)
           .join(" ")

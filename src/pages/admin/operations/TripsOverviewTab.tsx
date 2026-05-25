@@ -177,14 +177,27 @@ export function TripsOverviewTab() {
     delivery_location?: string;
   }>({});
   const [search, setSearch] = useState("");
+  // Debounced copy of `search` so we don't refetch on every keystroke. The
+  // server-side endpoint is fine handling our load but a 300ms gate keeps it
+  // friendly and avoids flashing the loading state mid-typing.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterAssigned, setFilterAssigned] = useState<string>("all");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  // Two independent date filters (per design): "Trip Start" lower-bounds the
+  // trip_start column, "Trip Ends" upper-bounds the trip_end column. Both can
+  // be set independently — leave either blank to skip that side of the range.
+  const [tripStartFrom, setTripStartFrom] = useState<string>("");
+  const [tripEndOn, setTripEndOn] = useState<string>("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = usePersistentPageSize(
     "operations.tripsOverview",
   );
+
+  // Debounce the search box.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
   const carNameWithYear = useCarNameWithYear();
 
   // Edit existing task modal state
@@ -213,13 +226,53 @@ export function TripsOverviewTab() {
     },
   });
 
-  const { data, isLoading } = useQuery<{ data: TuroTrip[] }>({
-    queryKey: ["/api/turo-trips", { limit: 100 }],
+  // Server-side filtered + paginated trip fetch. Previously this tab pulled
+  // the first 100 trips and filtered client-side, which made every trip past
+  // row 100 invisible AND silently excluded plate-# searches from the
+  // haystack. We now mirror the /admin/turo-trips page: pass q / status /
+  // date bounds / offset / limit to the backend so all rows are reachable.
+  const { data, isLoading } = useQuery<{ data: TuroTrip[]; total: number }>({
+    queryKey: [
+      "/api/turo-trips",
+      "operations-tab",
+      debouncedSearch,
+      filterStatus,
+      tripStartFrom,
+      tripEndOn,
+      page,
+      pageSize,
+    ],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl("/api/turo-trips?limit=100"), {
-        credentials: "include",
-      });
+      const offset = (page - 1) * pageSize;
+      const params = new URLSearchParams();
+      params.set("limit", String(pageSize));
+      params.set("offset", String(offset));
+      if (debouncedSearch.trim()) params.set("q", debouncedSearch.trim());
+      if (filterStatus !== "all") params.set("status", filterStatus);
+      if (tripStartFrom) params.set("startDate", tripStartFrom);
+      if (tripEndOn) params.set("tripEndOn", tripEndOn);
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips?${params.toString()}`),
+        { credentials: "include" },
+      );
       if (!response.ok) throw new Error("Failed to fetch trips");
+      return response.json();
+    },
+  });
+
+  // Unfiltered summary counts (Active / Completed / Cancelled cards). Kept
+  // independent of the search/date filters so the cards always show fleet-wide
+  // totals — matching what users expect from a "summary" row.
+  const { data: summaryData } = useQuery<{
+    data: { totalTrips: number; bookedTrips: number; cancelledTrips: number };
+  }>({
+    queryKey: ["/api/turo-trips/summary", "operations-tab-cards"],
+    queryFn: async () => {
+      const response = await fetch(
+        buildApiUrl("/api/turo-trips/summary"),
+        { credentials: "include" },
+      );
+      if (!response.ok) throw new Error("Failed to fetch summary");
       return response.json();
     },
   });
@@ -236,19 +289,20 @@ export function TripsOverviewTab() {
     },
   });
 
-  const allTrips = data?.data || [];
+  // `pageTrips` is the current page from the server. `total` is the count of
+  // rows that match the active server-side filters (excluding the client-side
+  // "Assigned" filter). Summary cards use the unfiltered counts from the
+  // /summary endpoint so they always show fleet totals.
+  const pageTrips = data?.data || [];
+  const totalServerMatches = data?.total ?? pageTrips.length;
   const allTasks = tasksData?.data || [];
-  const activeTrips = allTrips.filter(
-    (t) =>
-      t.status?.toLowerCase() === "booked" ||
-      t.status?.toLowerCase() === "active",
-  );
-  const completedTrips = allTrips.filter(
-    (t) => t.status?.toLowerCase() === "completed",
-  );
-  const cancelledTrips = allTrips.filter(
-    (t) => t.status?.toLowerCase() === "cancelled",
-  );
+  const summary = summaryData?.data;
+  // The DB schema uses statuses 'booked' and 'cancelled' only — there's no
+  // 'completed'. We expose Completed = 0 to preserve the existing UI layout
+  // (and match the value the old client-side count was returning).
+  const activeTripCount = summary?.bookedTrips ?? 0;
+  const completedTripCount = 0;
+  const cancelledTripCount = summary?.cancelledTrips ?? 0;
 
   const getTasksForTrip = (tripId: number) => {
     return allTasks.filter((t) => t.turo_trip_id === tripId);
@@ -268,92 +322,49 @@ export function TripsOverviewTab() {
     return Array.from(names).sort();
   }, [allTasks]);
 
-  const trips = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const from = dateFrom ? new Date(dateFrom).getTime() : null;
-    // include the full "to" day by adding 24h - 1ms
-    const to = dateTo
-      ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1
-      : null;
-
-    return allTrips.filter((trip) => {
-      if (q) {
-        const hay = [
-          trip.reservationId,
-          trip.carName,
-          trip.guestName,
-          trip.status,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!hay.includes(q)) return false;
+  // The search box, status, and date filters are all handled server-side now.
+  // The Assigned-To filter still runs client-side because it joins against a
+  // separate /api/operations/tasks query — applied to the current page only.
+  const pagedTrips = useMemo(() => {
+    if (filterAssigned === "all") return pageTrips;
+    return pageTrips.filter((trip) => {
+      const tripTasks = getTasksForTrip(trip.id);
+      if (filterAssigned === "__unassigned__") {
+        return tripTasks.length === 0;
       }
-      if (
-        filterStatus !== "all" &&
-        (trip.status || "").toLowerCase() !== filterStatus
-      )
-        return false;
-      if (filterAssigned !== "all") {
-        const tripTasks = getTasksForTrip(trip.id);
-        if (filterAssigned === "__unassigned__") {
-          if (tripTasks.length > 0) return false;
-        } else if (!tripTasks.some((t) => t.assigned_to === filterAssigned)) {
-          return false;
-        }
-      }
-      if (from != null || to != null) {
-        const start = trip.tripStart
-          ? new Date(trip.tripStart).getTime()
-          : null;
-        if (start == null) return false;
-        if (from != null && start < from) return false;
-        if (to != null && start > to) return false;
-      }
-      return true;
+      return tripTasks.some((t) => t.assigned_to === filterAssigned);
     });
-  }, [
-    allTrips,
-    allTasks,
-    search,
-    filterStatus,
-    filterAssigned,
-    dateFrom,
-    dateTo,
-  ]);
+  }, [pageTrips, allTasks, filterAssigned]);
 
-  // Reset to page 1 whenever filters change so we don't end up on an
-  // out-of-range page after the result set shrinks.
+  // Reset to page 1 whenever any server-side filter changes so we don't end
+  // up on an out-of-range page after the matched set shrinks.
   useEffect(() => {
     setPage(1);
-  }, [search, filterStatus, filterAssigned, dateFrom, dateTo, pageSize]);
+  }, [
+    debouncedSearch,
+    filterStatus,
+    tripStartFrom,
+    tripEndOn,
+    pageSize,
+  ]);
 
-  const pagedTrips = useMemo(
-    () => trips.slice((page - 1) * pageSize, page * pageSize),
-    [trips, page, pageSize],
-  );
-
-  const statusOptions = useMemo(() => {
-    const set = new Set<string>();
-    allTrips.forEach((t) => {
-      if (t.status) set.add(t.status.toLowerCase());
-    });
-    return Array.from(set).sort();
-  }, [allTrips]);
+  // Status dropdown options. The DB only has 'booked' and 'cancelled'; expose
+  // both unconditionally so the filter is usable even on an empty page.
+  const statusOptions = ["booked", "cancelled"];
 
   const hasActiveFilters =
     search !== "" ||
     filterStatus !== "all" ||
     filterAssigned !== "all" ||
-    dateFrom !== "" ||
-    dateTo !== "";
+    tripStartFrom !== "" ||
+    tripEndOn !== "";
 
   const clearFilters = () => {
     setSearch("");
     setFilterStatus("all");
     setFilterAssigned("all");
-    setDateFrom("");
-    setDateTo("");
+    setTripStartFrom("");
+    setTripEndOn("");
   };
 
   const openTaskModal = (trip: TuroTrip, taskType: TaskType) => {
@@ -378,17 +389,17 @@ export function TripsOverviewTab() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <SummaryCard
           label="Active Trips"
-          value={String(activeTrips.length)}
+          value={String(activeTripCount)}
           variant="gold"
         />
         <SummaryCard
           label="Completed"
-          value={String(completedTrips.length)}
+          value={String(completedTripCount)}
           variant="dark"
         />
         <SummaryCard
           label="Cancelled"
-          value={String(cancelledTrips.length)}
+          value={String(cancelledTripCount)}
           variant="white"
         />
       </div>
@@ -401,7 +412,7 @@ export function TripsOverviewTab() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Reservation #, car, guest..."
+                placeholder="Reservation #, car, plate, guest, location..."
                 className="bg-card border-border text-foreground h-9 w-full"
               />
             </div>
@@ -442,23 +453,25 @@ export function TripsOverviewTab() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-muted-foreground text-xs">
-                Trip Start From
+                Trip Start
               </label>
               <Input
                 type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
+                value={tripStartFrom}
+                onChange={(e) => setTripStartFrom(e.target.value)}
+                title="Show trips whose trip_start is on or after this date"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-muted-foreground text-xs">
-                Trip Start To
+                Trip Ends
               </label>
               <Input
                 type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
+                value={tripEndOn}
+                onChange={(e) => setTripEndOn(e.target.value)}
+                title="Show trips whose trip_end is on or before this date"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
@@ -473,10 +486,9 @@ export function TripsOverviewTab() {
             )}
           </div>
           <div className="text-sm text-muted-foreground mb-3">
-            Total: {trips.length}{" "}
-            {trips.length === allTrips.length
-              ? "trips"
-              : `of ${allTrips.length} trips`}
+            {filterAssigned !== "all"
+              ? `Showing ${pagedTrips.length} of ${totalServerMatches} matched trip${totalServerMatches === 1 ? "" : "s"} (Assigned filter applied to current page)`
+              : `Total: ${totalServerMatches} trip${totalServerMatches === 1 ? "" : "s"}`}
           </div>
           <div className="overflow-x-auto">
             <Table>
@@ -545,7 +557,7 @@ export function TripsOverviewTab() {
                       Loading trips...
                     </TableCell>
                   </TableRow>
-                ) : trips.length === 0 ? (
+                ) : pagedTrips.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={17}
@@ -764,7 +776,7 @@ export function TripsOverviewTab() {
           </div>
         </div>
         <TablePagination
-          totalItems={trips.length}
+          totalItems={totalServerMatches}
           itemsPerPage={pageSize}
           currentPage={page}
           onPageChange={setPage}

@@ -131,18 +131,35 @@ export function TripTasksTab() {
     return tasks.filter((task) => {
       if (q) {
         const trip = task.turo_trip_id != null ? tripsById.get(task.turo_trip_id) : undefined;
+        // Mirror every column the user can see in the table so any visible
+        // text is reachable from the search box. Numeric columns are cast to
+        // string so partial typing ("12345", "$120") works.
         const hay = [
+          // Task fields
           task.reservation_id,
           task.car_name,
           task.guest_name,
           task.assigned_to,
+          task.task_type,
+          task.status,
+          task.notes,
+          task.scheduled_location,
+          task.scheduled_date,
+          task.due_date,
+          // Joined trip fields
           trip?.plateNumber,
           trip?.pickupLocation,
           trip?.deliveryLocation,
           trip?.returnLocation,
           trip?.extras,
           trip?.milesIncluded,
+          trip?.totalDistance,
           trip?.status,
+          trip?.tripStart,
+          trip?.tripEnd,
+          trip?.earnings != null ? String(trip.earnings) : null,
+          trip?.tripStartOdometer != null ? String(trip.tripStartOdometer) : null,
+          trip?.tripEndOdometer != null ? String(trip.tripEndOdometer) : null,
         ]
           .filter(Boolean)
           .join(" ")
