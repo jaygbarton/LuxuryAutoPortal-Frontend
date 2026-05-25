@@ -359,6 +359,47 @@ export default function TuroTripsPage() {
     },
   });
 
+  // Repair Dates — re-parses Turo booking + change-request emails and rewrites
+  // trip_start / trip_end on rows where the historical TZ-naive parsing got
+  // them wrong. Safe to run any time; rows that already match a fresh parse
+  // are no-ops at the SQL level (changedRows = 0).
+  const repairDatesMutation = useMutation({
+    mutationFn: async () => {
+      const params = new URLSearchParams();
+      if (startDate) params.set("startDate", startDate);
+      if (endDate) params.set("endDate", endDate);
+      const qs = params.toString();
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/repair-dates${qs ? `?${qs}` : ""}`),
+        { method: "POST", credentials: "include" },
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        const reason =
+          data?.error || data?.message || `HTTP ${response.status}`;
+        throw new Error(reason);
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      const d = data.data ?? {};
+      toast({
+        title: "Repair complete",
+        description:
+          data.message ||
+          `Rewrote dates on ${d.updated ?? 0} of ${d.candidates ?? 0} trip(s).`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Repair failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Refresh-calendar mutation — pushes updated title/description into existing Google Calendar events.
   // Useful after a format change (e.g. adding plate # or year/model to titles).
   const refreshCalendarMutation = useMutation({
@@ -771,6 +812,25 @@ export default function TuroTripsPage() {
                 <>
                   <MapPin className="w-4 h-4 mr-2" />
                   Backfill Locations
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => repairDatesMutation.mutate()}
+              disabled={repairDatesMutation.isPending}
+              title="Re-parse the original Turo emails and rewrite Trip Start / Trip Ends as Mountain Time. Fixes rows that were imported before the timezone fix."
+            >
+              {repairDatesMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Repairing...
+                </>
+              ) : (
+                <>
+                  <Clock className="w-4 h-4 mr-2" />
+                  Repair Dates
                 </>
               )}
             </Button>
