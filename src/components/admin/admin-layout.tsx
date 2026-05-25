@@ -41,6 +41,7 @@ import {
   Eye,
   TreePalm,
   Newspaper,
+  ExternalLink,
 } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { ViewAsClientBanner } from "./ViewAsClientBanner";
@@ -66,6 +67,11 @@ interface SidebarItem {
   icon: any;
   roles?: ("admin" | "client" | "employee")[];
   children?: SidebarItem[];
+  /** When true, render as a plain <a target="_blank"> instead of an in-app
+   *  router link. Used for sidebar entries that link out to third-party
+   *  services (Turo host page, etc.). The active-route highlight is skipped
+   *  for external links since they never match the current URL. */
+  external?: boolean;
 }
 
 const allSidebarItems: SidebarItem[] = [
@@ -176,10 +182,15 @@ const allSidebarItems: SidebarItem[] = [
     roles: ["admin", "client"],
   },
   {
-    href: "/admin/car-rental",
+    // External link to the GLA Turo host page. Turo blocks iframe embedding
+    // (X-Frame-Options: SAMEORIGIN), so the only useful action is to open it
+    // in a new tab. The previous /admin/car-rental route was an
+    // Under Development placeholder serving no purpose.
+    href: "https://turo.com/us/en/host/4325673",
     label: "Car Rental",
     icon: Key,
     roles: ["admin"],
+    external: true,
   },
   {
     href: "/admin/hr",
@@ -751,6 +762,35 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                     </div>
                   )}
                 </div>
+              );
+            }
+
+            // External links (e.g. the Turo host page under Car Rental) open
+            // in a new tab via a plain <a>. They can't be the active route, so
+            // we skip the isActive check and always render with inactive
+            // styling plus a small "open in new tab" icon for affordance.
+            if (item.external) {
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "flex items-center gap-3 mx-2 px-3 py-2 rounded-md transition-colors relative border-l-2",
+                    inactiveClasses,
+                  )}
+                  onClick={() => setMobileMenuOpen(false)}
+                  data-testid={`link-admin-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {sidebarOpen && (
+                    <>
+                      <span className="text-sm flex-1">{item.label}</span>
+                      <ExternalLink className="w-3 h-3 shrink-0 opacity-60" />
+                    </>
+                  )}
+                </a>
               );
             }
 
