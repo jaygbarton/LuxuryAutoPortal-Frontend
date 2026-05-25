@@ -401,7 +401,6 @@ export default function AdminHrTimeOff() {
                       <TableHead>Employee</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Duration</TableHead>
                       <TableHead>Remarks</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="w-40 text-center">
@@ -420,11 +419,6 @@ export default function AdminHrTimeOff() {
                         </TableCell>
                         <TableCell className="text-sm">
                           {toTitleCase(r.leave_type)}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap text-sm">
-                          {r.leave_hour || r.leave_minute
-                            ? `${r.leave_hour}h ${r.leave_minute}m`
-                            : "—"}
                         </TableCell>
                         <TableCell className="max-w-[220px]">
                           <span className="line-clamp-2 text-sm text-muted-foreground">

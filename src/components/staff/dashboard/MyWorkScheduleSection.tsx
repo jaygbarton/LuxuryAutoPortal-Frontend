@@ -59,6 +59,37 @@ export default function MyWorkScheduleSection() {
     retry: false,
   });
 
+  // Approved time-off for the current employee in the selected month. Renders
+  // as a rose "Day Off" chip in the same calendar cells as shifts, mirroring
+  // the admin Work Schedule page so what the admin assigns is what the
+  // employee sees. Endpoint /api/staff/leave honors viewAsEmployee.
+  const [yearStr, monthStr] = month.split("-");
+  const monthYearNum = Number(yearStr);
+  const monthNumNum = Number(monthStr);
+  const fromDate = `${month}-01`;
+  const toDate = `${month}-${String(
+    new Date(monthYearNum, monthNumNum, 0).getDate(),
+  ).padStart(2, "0")}`;
+  const { data: leavesData } = useQuery<{
+    data?: Array<{ leave_aid: number; leave_date: string; leave_is_status: number }>;
+  }>({
+    queryKey: ["/api/staff/leave", month, "approved"],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        status: "1",
+        fromDate,
+        toDate,
+        limit: "200",
+      });
+      const r = await fetch(buildApiUrl(`/api/staff/leave?${params}`), {
+        credentials: "include",
+      });
+      if (!r.ok) return { data: [] };
+      return r.json();
+    },
+    retry: false,
+  });
+
   const shifts = data?.data ?? [];
 
   const shiftsByCode = shifts.reduce<Record<string, MyShift[]>>((acc, s) => {
@@ -67,6 +98,14 @@ export default function MyWorkScheduleSection() {
     (acc[code] ??= []).push(s);
     return acc;
   }, {});
+
+  // YYYY-MM-DD → true if the employee has an approved leave that day.
+  const leavesByDate: Record<string, boolean> = {};
+  for (const l of leavesData?.data ?? []) {
+    if (l.leave_is_status !== 1) continue;
+    const date = l.leave_date?.slice(0, 10);
+    if (date) leavesByDate[date] = true;
+  }
 
   const dayCells = getArrayTotalDaysInMonthAndYear(month);
   const weeksCount = getWeeksCount(dayCells);
@@ -151,11 +190,19 @@ export default function MyWorkScheduleSection() {
                         const myShifts = cell.originalDateCode
                           ? shiftsByCode[cell.originalDateCode] ?? []
                           : [];
+                        const isDayOff = cell.originalDate
+                          ? !!leavesByDate[cell.originalDate]
+                          : false;
                         return (
                           <td
                             key={`shift-${weekNum}-${idx}`}
                             className="w-[14.2857%] border border-gray-400 px-2 py-2 align-top text-center text-xs text-gray-800"
                           >
+                            {isDayOff && (
+                              <div className="mb-1 inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700">
+                                Day Off
+                              </div>
+                            )}
                             {myShifts.map((s) => (
                               <div key={s.work_sched_aid}>
                                 <div className="font-semibold">{s.fullname ?? ""}</div>
@@ -176,11 +223,13 @@ export default function MyWorkScheduleSection() {
         </div>
       )}
 
-      {!isLoading && shifts.length === 0 && (
-        <p className="mt-3 text-center text-xs italic text-gray-400">
-          No shifts assigned for this month.
-        </p>
-      )}
+      {!isLoading &&
+        shifts.length === 0 &&
+        Object.keys(leavesByDate).length === 0 && (
+          <p className="mt-3 text-center text-xs italic text-gray-400">
+            No shifts or time off scheduled this month.
+          </p>
+        )}
     </div>
   );
 }
