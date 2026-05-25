@@ -100,18 +100,18 @@ export function Hero() {
             </Button>
           </Link>
         </div>
+      </div>
 
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2">
-          <button
-            onClick={scrollToFleet}
-            className="flex flex-col items-center gap-2 transition-colors group"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-            data-testid="button-scroll-down"
-          >
-            <span className="text-xs tracking-widest uppercase">Scroll to explore</span>
-            <ChevronDown className="w-5 h-5 animate-bounce" />
-          </button>
-        </div>
+      <div className="hidden sm:block absolute bottom-10 left-1/2 -translate-x-1/2 z-10">
+        <button
+          onClick={scrollToFleet}
+          className="flex flex-col items-center gap-2 transition-colors group"
+          style={{ color: "rgba(255,255,255,0.4)" }}
+          data-testid="button-scroll-down"
+        >
+          <span className="text-xs tracking-widest uppercase">Scroll to explore</span>
+          <ChevronDown className="w-5 h-5 animate-bounce" />
+        </button>
       </div>
     </section>
   );

@@ -289,6 +289,23 @@ export default function StaffTime() {
     return () => clearInterval(id);
   }, []);
 
+  // Resolve the current user so we only hit the employee-only timesheet API
+  // once we know they actually have an employee role. Without this gate,
+  // a client (or a logged-in user mid-session-handshake) sees an alarming
+  // "Unauthorized - Authentication required" 401 banner from the API.
+  const meQuery = useQuery<{ user?: { isAdmin?: boolean; isClient?: boolean; isEmployee?: boolean } }>({
+    queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      const r = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
+      if (!r.ok) return { user: undefined };
+      return r.json();
+    },
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+  const me = meQuery.data?.user;
+  const canViewTimesheet = !!(me?.isEmployee || me?.isAdmin);
+
   const lastQuery = useQuery<LastResponse>({
     queryKey: ["/api/me/time-sheet/last"],
     queryFn: async () => {
@@ -302,6 +319,7 @@ export default function StaffTime() {
       return r.json();
     },
     retry: false,
+    enabled: canViewTimesheet,
     // Pick up admin-side edits/deletes from /admin/hr/time without manual refresh.
     refetchOnWindowFocus: true,
     refetchInterval: 30_000,
@@ -326,6 +344,7 @@ export default function StaffTime() {
       if (!r.ok) throw new Error("Failed to load sessions");
       return r.json();
     },
+    enabled: canViewTimesheet,
     refetchOnWindowFocus: true,
     refetchInterval: 30_000,
   });
@@ -492,6 +511,37 @@ export default function StaffTime() {
       setToDate(utahNowStr);
     }
   };
+
+  if (meQuery.isLoading || !meQuery.data) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (!canViewTimesheet) {
+    return (
+      <AdminLayout>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-primary">Time Sheet</h1>
+            <p className="text-muted-foreground">
+              Clock in and out throughout the day. Times shown in Utah (Mountain) time.
+            </p>
+          </div>
+          <Card className="bg-card border-border">
+            <CardContent className="p-6 text-sm text-muted-foreground">
+              The Time Sheet is only available to employees. If you believe you should
+              have access, please contact HR.
+            </CardContent>
+          </Card>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

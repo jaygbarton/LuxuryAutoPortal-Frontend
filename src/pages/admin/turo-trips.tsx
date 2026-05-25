@@ -317,6 +317,48 @@ export default function TuroTripsPage() {
     },
   });
 
+  // Backfill Locations — re-fetches Turo booking emails from Gmail and fills
+  // pickup/return/delivery columns ONLY where they are currently empty. The
+  // cron-driven ingestion at /api/turo-trips/sync never updates an existing
+  // row, so trips that landed in the DB before the parser could recognize a
+  // given email format stay blank forever without this.
+  const backfillLocationsMutation = useMutation({
+    mutationFn: async () => {
+      const params = new URLSearchParams();
+      if (startDate) params.set("startDate", startDate);
+      if (endDate) params.set("endDate", endDate);
+      const qs = params.toString();
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/backfill-locations${qs ? `?${qs}` : ""}`),
+        { method: "POST", credentials: "include" },
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        const reason =
+          data?.error || data?.message || `HTTP ${response.status}`;
+        throw new Error(reason);
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      const d = data.data ?? {};
+      toast({
+        title: "Backfill complete",
+        description:
+          data.message ||
+          `Updated ${d.updated ?? 0} of ${d.candidates ?? 0} trip(s) missing locations.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Backfill failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Refresh-calendar mutation — pushes updated title/description into existing Google Calendar events.
   // Useful after a format change (e.g. adding plate # or year/model to titles).
   const refreshCalendarMutation = useMutation({
@@ -710,6 +752,25 @@ export default function TuroTripsPage() {
                 <>
                   <Calendar className="w-4 h-4 mr-2" />
                   Refresh Calendar
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => backfillLocationsMutation.mutate()}
+              disabled={backfillLocationsMutation.isPending}
+              title="Re-scan Turo booking emails and fill in Pick Up / Drop Off for trips where these columns are still empty. Never overwrites a value you've already entered."
+            >
+              {backfillLocationsMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Backfilling...
+                </>
+              ) : (
+                <>
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Backfill Locations
                 </>
               )}
             </Button>

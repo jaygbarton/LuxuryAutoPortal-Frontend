@@ -30,6 +30,7 @@ export function Navbar() {
   const isLoggedIn = !!authData?.user;
 
   return (
+    <>
     <nav
       className="fixed top-0 left-0 right-0 z-50"
       style={{
@@ -145,12 +146,20 @@ export function Navbar() {
           </button>
         </div>
       </div>
+    </nav>
 
-      {/* Mobile menu */}
+      {/* Mobile menu — must be a sibling of <nav>, not a child, because the
+          parent <nav> uses `backdrop-filter`, which on iOS Safari creates a
+          new containing block for `position: fixed` descendants and would
+          trap the menu at 68px tall. */}
       {isOpen && (
         <div
-          className="lg:hidden fixed inset-0 top-[68px] z-40 flex flex-col p-6 gap-2"
-          style={{ background: "#fff", borderBottom: "2px solid #D4A017" }}
+          className="lg:hidden fixed left-0 right-0 bottom-0 z-[60] flex flex-col p-6 gap-2 overflow-y-auto"
+          style={{
+            top: "68px",
+            backgroundColor: "#ffffff",
+            borderBottom: "2px solid #D4A017",
+          }}
         >
           {navLinks.map((link) => {
             const Icon = link.icon;
@@ -202,6 +211,6 @@ export function Navbar() {
           </div>
         </div>
       )}
-    </nav>
+    </>
   );
 }

@@ -10,18 +10,21 @@ import { buildApiUrl, buildUploadApiUrl } from "@/lib/queryClient";
 import { EmployeeDocumentImage } from "@/components/admin/EmployeeDocumentImage";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, Image, List, Loader2, RefreshCw, Upload } from "lucide-react";
+import CommissionFormMySubmissions from "@/pages/admin/forms/CommissionFormMySubmissions";
 
 type ProfileSection =
   | "personal-information"
   | "job-and-pay"
   | "rate-history"
-  | "payslip";
+  | "payslip"
+  | "commissions";
 
 const PROFILE_SECTIONS: { id: ProfileSection; label: string }[] = [
   { id: "personal-information", label: "Personal Information" },
   { id: "job-and-pay", label: "Job and Pay" },
   { id: "rate-history", label: "Rate History" },
   { id: "payslip", label: "Payslip" },
+  { id: "commissions", label: "Commissions" },
 ];
 
 interface Employee {
@@ -548,6 +551,17 @@ export default function StaffMyInfoSection() {
             ) : (
               <p className="text-sm text-foreground">No payslips available yet.</p>
             )}
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (section === "commissions") {
+      return (
+        <Card className="bg-card border-border">
+          <CardContent className="p-6">
+            <h3 className="text-primary font-semibold mb-3 border-b border-border pb-2">Commissions</h3>
+            <CommissionFormMySubmissions />
           </CardContent>
         </Card>
       );

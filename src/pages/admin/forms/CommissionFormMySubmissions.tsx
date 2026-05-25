@@ -105,6 +105,7 @@ export default function CommissionFormMySubmissions() {
           <TableHeader>
             <TableRow className="bg-muted/40">
               <TableHead className="w-[120px]">Date Submitted</TableHead>
+              <TableHead>Employee</TableHead>
               <TableHead className="w-[110px]">Commission Date</TableHead>
               <TableHead>Commission Type</TableHead>
               <TableHead>Car Name</TableHead>
@@ -118,6 +119,7 @@ export default function CommissionFormMySubmissions() {
             {rows.map((row) => (
               <TableRow key={row.cf_aid} className="hover:bg-muted/20">
                 <TableCell className="text-sm">{formatDate(row.cf_date_submitted)}</TableCell>
+                <TableCell className="text-sm font-medium">{row.employee_name || "—"}</TableCell>
                 <TableCell className="text-sm">{formatDate(row.cf_commission_date)}</TableCell>
                 <TableCell className="text-sm font-medium">{row.cf_commission_type}</TableCell>
                 <TableCell className="text-sm max-w-[200px] truncate" title={row.cf_car_name}>
