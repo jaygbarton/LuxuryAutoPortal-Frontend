@@ -4,9 +4,8 @@ import { DashboardTable } from "@/components/admin/dashboard";
 import { formatCurrency, MONTH_LABELS } from "./utils";
 import type {
   IncomeExpenseData,
-  DirectDeliveryMonth,
   ParkingAirportQBMonth,
-  ParkingFeeLaborMonth,
+  ReimbursedBillsMonth,
   HistoryMonth,
 } from "@/pages/admin/income-expenses/types";
 
@@ -104,18 +103,20 @@ export default function AirportParkingSection({ year }: AirportParkingSectionPro
 
       {data && (() => {
         const d = data.data;
-        const directDelivery: DirectDeliveryMonth[] = d.directDelivery ?? [];
-        const parkingFeeLabor: ParkingFeeLaborMonth[] = d.parkingFeeLabor ?? [];
+        // Reconciled with /admin/income-expenses: the GLA table on this
+        // dashboard now mirrors the I&E page's
+        //   "PARKING AIRPORT AVERAGE PER TRIP - GLA"
+        // section, which reads reimbursedBills.parkingAirport. Previously
+        // this dashboard summed parkingFeeLabor.glaParkingFee +
+        // parkingFeeLabor.laborCleaning + directDelivery.parkingAirport,
+        // producing a number that didn't match the I&E page (~$5,320 vs
+        // ~$2,274) and confused operators.
+        const reimbursedBills: ReimbursedBillsMonth[] = d.reimbursedBills ?? [];
         const parkingAirportQB: ParkingAirportQBMonth[] = d.parkingAirportQB ?? [];
         const history: HistoryMonth[] = d.history ?? [];
 
-        // System parking = parkingFeeLabor (glaParkingFee + laborCleaning) + directDelivery.parkingAirport
-        const system = buildRows(
-          (m) => {
-            const pfl = getMonthEntry(parkingFeeLabor, m);
-            const dd = getMonthEntry(directDelivery, m);
-            return (pfl?.glaParkingFee ?? 0) + (pfl?.laborCleaning ?? 0) + (dd?.parkingAirport ?? 0);
-          },
+        const gla = buildRows(
+          (m) => getMonthEntry(reimbursedBills, m)?.parkingAirport ?? 0,
           history,
           year,
         );
@@ -127,22 +128,24 @@ export default function AirportParkingSection({ year }: AirportParkingSectionPro
 
         return (
           <div className="mt-2 flex flex-wrap gap-4">
-            {/* System Data Table */}
+            {/* GLA — sourced from the same column as the I&E page's
+                "PARKING AIRPORT AVERAGE PER TRIP - GLA" section. */}
             <div className="min-w-[300px] flex-1">
               <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
-                SYSTEM PARKING AIPORT EXPENSES AND TRIPS TAKEN
+                PARKING AIRPORT AVERAGE PER TRIP - GLA
               </h3>
               <DashboardTable
                 columns={TABLE_COLUMNS}
-                rows={system.rows}
-                totalsRow={system.totalsRow}
+                rows={gla.rows}
+                totalsRow={gla.totalsRow}
               />
             </div>
 
-            {/* QuickBooks Data Table */}
+            {/* QB — sourced from the same column as the I&E page's
+                "PARKING AIRPORT AVERAGE PER TRIP - QB" section. */}
             <div className="min-w-[300px] flex-1">
               <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
-                QUICKBOOKS PARKING AIPORT EXPENSES AND TRIPS TAKEN
+                PARKING AIRPORT AVERAGE PER TRIP - QB
               </h3>
               <DashboardTable
                 columns={TABLE_COLUMNS}

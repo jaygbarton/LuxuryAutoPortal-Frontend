@@ -143,6 +143,13 @@ export interface HistoryMonth {
   daysRented: number;
   carsAvailableForRent: number;
   tripsTaken: number;
+  /** Sum of trips' driven distance (miles) for trips that STARTED in this
+   *  month. Sourced from turo_trips.miles_driven with total_distance as
+   *  fallback. May be 0 when no Turo data is available. */
+  totalMiles?: number;
+  /** Average days between date_booked and trip_start across booked trips
+   *  that started in this month. Standard booking-lead-time KPI. */
+  avgLeadTimeDays?: number;
 }
 
 export interface ParkingAirportQBMonth {

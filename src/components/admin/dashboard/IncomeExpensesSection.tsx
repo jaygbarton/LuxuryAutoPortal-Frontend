@@ -439,6 +439,11 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
       tripsTaken: hist?.tripsTaken ?? 0,
       carsAvailable: hist?.carsAvailableForRent ?? 0,
       parkingAirport: dd?.parkingAirport ?? 0,
+      // Turo-derived metrics (back-end fills these in via enrichWithTuro-
+      // MonthlyMetrics on /api/income-expense/all-cars). Default to 0 so the
+      // page degrades gracefully when the enrich step fails.
+      totalMiles: hist?.totalMiles ?? 0,
+      avgLeadTimeDays: hist?.avgLeadTimeDays ?? 0,
     };
   });
 
@@ -477,10 +482,9 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
     { key: "avgEarningsPerMile", label: "Avg Earnings/Mile", align: "right" as const },
   ];
 
-  // Per-row computed metrics. The three columns sourced from data we don't
-  // yet capture (Total Miles, Avg lead time, Avg Earnings/Mile) render as
-  // "—" with a tooltip so users see them in the layout but understand the
-  // value is pending. Wire them up once the backend exposes the data.
+  // All six new columns now have real data via enrichWithTuroMonthlyMetrics
+  // on the backend (totalMiles + avgLeadTimeDays come back on history[]).
+  // Months with no Turo activity will simply render 0 / "—".
   const PLACEHOLDER = "—";
 
   const tableRows = monthlyComputed.map((mc) => {
@@ -488,6 +492,7 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
     const utilizationPct =
       availableDays > 0 ? (mc.daysRented / availableDays) * 100 : 0;
     const avgPerTrip = mc.tripsTaken > 0 ? mc.gross / mc.tripsTaken : 0;
+    const avgPerMile = mc.totalMiles > 0 ? mc.gross / mc.totalMiles : 0;
     return {
       month: (
         <span className="inline-block rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
@@ -502,25 +507,18 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
       daysRented: mc.daysRented.toLocaleString(),
       tripsTaken: mc.tripsTaken.toLocaleString(),
       availableDays: availableDays.toLocaleString(),
-      totalMiles: (
-        <span title="Pending — requires per-month total miles to be wired from turo_trips.total_distance">
-          {PLACEHOLDER}
-        </span>
-      ),
+      totalMiles:
+        mc.totalMiles > 0 ? mc.totalMiles.toLocaleString() : PLACEHOLDER,
       fleetUtilization:
         availableDays > 0 ? `${utilizationPct.toFixed(2)}%` : PLACEHOLDER,
       avgEarningsPerTrip:
         mc.tripsTaken > 0 ? formatCurrency(avgPerTrip) : PLACEHOLDER,
-      avgLeadTime: (
-        <span title="Pending — requires booking-to-trip-start lead time to be captured">
-          {PLACEHOLDER}
-        </span>
-      ),
-      avgEarningsPerMile: (
-        <span title="Pending — requires Total Miles to be wired up">
-          {PLACEHOLDER}
-        </span>
-      ),
+      avgLeadTime:
+        mc.avgLeadTimeDays > 0
+          ? mc.avgLeadTimeDays.toFixed(2)
+          : PLACEHOLDER,
+      avgEarningsPerMile:
+        mc.totalMiles > 0 ? formatCurrency(avgPerMile) : PLACEHOLDER,
     };
   });
 
@@ -539,6 +537,17 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
   const yearAvgPerTrip =
     totalTripsTakenAll > 0 ? totalGross / totalTripsTakenAll : 0;
 
+  const totalMilesAll = monthlyComputed.reduce((s, m) => s + m.totalMiles, 0);
+  // Average lead time across months that actually had bookings — averaging
+  // months with 0 lead time would pull the result toward 0 incorrectly.
+  const leadTimeMonths = monthlyComputed.filter((m) => m.avgLeadTimeDays > 0);
+  const yearAvgLeadTime =
+    leadTimeMonths.length > 0
+      ? leadTimeMonths.reduce((s, m) => s + m.avgLeadTimeDays, 0) /
+        leadTimeMonths.length
+      : 0;
+  const yearAvgPerMile = totalMilesAll > 0 ? totalGross / totalMilesAll : 0;
+
   const tableTotals = {
     month: "TOTAL",
     rentalIncome: formatCurrency(totalGross),
@@ -549,15 +558,17 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
     daysRented: totalDaysRented.toLocaleString(),
     tripsTaken: totalTripsTakenAll.toLocaleString(),
     availableDays: totalAvailableDaysAccurate.toLocaleString(),
-    totalMiles: PLACEHOLDER,
+    totalMiles:
+      totalMilesAll > 0 ? totalMilesAll.toLocaleString() : PLACEHOLDER,
     fleetUtilization:
       totalAvailableDaysAccurate > 0
         ? `${yearUtilization.toFixed(2)}%`
         : PLACEHOLDER,
     avgEarningsPerTrip:
       totalTripsTakenAll > 0 ? formatCurrency(yearAvgPerTrip) : PLACEHOLDER,
-    avgLeadTime: PLACEHOLDER,
-    avgEarningsPerMile: PLACEHOLDER,
+    avgLeadTime: yearAvgLeadTime > 0 ? yearAvgLeadTime.toFixed(2) : PLACEHOLDER,
+    avgEarningsPerMile:
+      totalMilesAll > 0 ? formatCurrency(yearAvgPerMile) : PLACEHOLDER,
   };
 
   // ── Chart data ─────────────────────────────────────────────────────
