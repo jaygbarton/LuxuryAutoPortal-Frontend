@@ -10,7 +10,7 @@ import { buildApiUrl, buildUploadApiUrl } from "@/lib/queryClient";
 import { EmployeeDocumentImage } from "@/components/admin/EmployeeDocumentImage";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, Image, List, Loader2, RefreshCw, Upload } from "lucide-react";
-import CommissionFormMySubmissions from "@/pages/admin/forms/CommissionFormMySubmissions";
+import StaffCommissionsSection from "@/components/staff/dashboard/CommissionsSection";
 
 type ProfileSection =
   | "personal-information"
@@ -557,14 +557,14 @@ export default function StaffMyInfoSection() {
     }
 
     if (section === "commissions") {
-      return (
-        <Card className="bg-card border-border">
-          <CardContent className="p-6">
-            <h3 className="text-primary font-semibold mb-3 border-b border-border pb-2">Commissions</h3>
-            <CommissionFormMySubmissions />
-          </CardContent>
-        </Card>
-      );
+      // 12-month grid by commission type (Parking Airport, Uber & Lyft, etc.).
+      // Same data the staff dashboard shows; backend honors viewAsEmployee
+      // impersonation via resolveActiveEmployeeId, so admins previewing an
+      // employee see that employee's commissions. Previously this tab
+      // rendered CommissionFormMySubmissions (commission_forms table), which
+      // is a different domain — that's the "forms employees submitted"
+      // pipeline, not the ledger of earned commissions.
+      return <StaffCommissionsSection />;
     }
 
     return null;
