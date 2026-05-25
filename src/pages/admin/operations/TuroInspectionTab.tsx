@@ -86,8 +86,12 @@ export function TuroInspectionTab() {
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  // Two independent date filters (mirrors the Trips Overview tab):
+  //   Trip Start ⟶ trip.tripStart ≥ X
+  //   Trip Ends  ⟶ trip.tripEnd   ≤ Y
+  // Either can be set alone. Leave both blank to disable.
+  const [tripStartFrom, setTripStartFrom] = useState<string>("");
+  const [tripEndOn, setTripEndOn] = useState<string>("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = usePersistentPageSize(
     "operations.turoMessages",
@@ -247,9 +251,13 @@ export function TuroInspectionTab() {
 
   const filteredInspections = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const from = dateFrom ? new Date(dateFrom).getTime() : null;
-    const to = dateTo
-      ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1
+    // "Trip Start" bound: keep inspections whose trip.tripStart ≥ X.
+    // "Trip Ends" bound:  keep inspections whose trip.tripEnd   ≤ Y end-of-day.
+    const tripStartLowerMs = tripStartFrom
+      ? new Date(tripStartFrom).getTime()
+      : null;
+    const tripEndUpperMs = tripEndOn
+      ? new Date(tripEndOn).getTime() + 24 * 60 * 60 * 1000 - 1
       : null;
     return inspections.filter((insp) => {
       if (q) {
@@ -286,24 +294,38 @@ export function TuroInspectionTab() {
           .toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      if (from != null || to != null) {
+      if (tripStartLowerMs != null || tripEndUpperMs != null) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
-        const d = trip?.tripStart
-          ? new Date(trip.tripStart).getTime()
-          : insp.inspection_date
-            ? new Date(insp.inspection_date).getTime()
-            : null;
-        if (d == null) return false;
-        if (from != null && d < from) return false;
-        if (to != null && d > to) return false;
+        // Trip Start bound — compares against trip.tripStart, with
+        // inspection_date as a fallback when the inspection isn't tied to a
+        // Turo trip.
+        if (tripStartLowerMs != null) {
+          const start = trip?.tripStart
+            ? new Date(trip.tripStart).getTime()
+            : insp.inspection_date
+              ? new Date(insp.inspection_date).getTime()
+              : null;
+          if (start == null || start < tripStartLowerMs) return false;
+        }
+        // Trip Ends bound — compares against trip.tripEnd, with
+        // inspection_date as a fallback. Independent of the start bound, so
+        // an admin can filter by either side alone.
+        if (tripEndUpperMs != null) {
+          const end = trip?.tripEnd
+            ? new Date(trip.tripEnd).getTime()
+            : insp.inspection_date
+              ? new Date(insp.inspection_date).getTime()
+              : null;
+          if (end == null || end > tripEndUpperMs) return false;
+        }
       }
       return true;
     });
-  }, [inspections, tripsById, search, dateFrom, dateTo]);
+  }, [inspections, tripsById, search, tripStartFrom, tripEndOn]);
 
   useEffect(() => {
     setPage(1);
-  }, [search, dateFrom, dateTo, filterStatus, pageSize]);
+  }, [search, tripStartFrom, tripEndOn, filterStatus, pageSize]);
 
   const pagedInspections = useMemo(
     () => filteredInspections.slice((page - 1) * pageSize, page * pageSize),
@@ -311,7 +333,10 @@ export function TuroInspectionTab() {
   );
 
   const hasActiveFilters =
-    filterStatus !== "all" || search !== "" || dateFrom !== "" || dateTo !== "";
+    filterStatus !== "all" ||
+    search !== "" ||
+    tripStartFrom !== "" ||
+    tripEndOn !== "";
 
   const statusUpdateMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -495,20 +520,22 @@ export function TuroInspectionTab() {
               </Select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">Trip Start From</label>
+              <label className="text-muted-foreground text-xs">Trip Start</label>
               <Input
                 type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
+                value={tripStartFrom}
+                onChange={(e) => setTripStartFrom(e.target.value)}
+                title="Show inspections whose trip_start is on or after this date"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">Trip Start To</label>
+              <label className="text-muted-foreground text-xs">Trip Ends</label>
               <Input
                 type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
+                value={tripEndOn}
+                onChange={(e) => setTripEndOn(e.target.value)}
+                title="Show inspections whose trip_end is on or before this date"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
@@ -518,8 +545,8 @@ export function TuroInspectionTab() {
                 onClick={() => {
                   setFilterStatus("all");
                   setSearch("");
-                  setDateFrom("");
-                  setDateTo("");
+                  setTripStartFrom("");
+                  setTripEndOn("");
                 }}
                 className="text-red-700 hover:text-red-700 hover:bg-red-900/20 h-9 sm:col-span-2 lg:col-span-1 w-full lg:w-auto"
               >
