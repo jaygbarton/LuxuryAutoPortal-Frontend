@@ -998,10 +998,10 @@ export default function TuroTripsPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="sticky top-0 left-0 z-30 bg-muted whitespace-nowrap font-semibold w-[140px] min-w-[140px]">
+                    <TableHead className="sticky top-0 md:left-0 z-30 bg-muted whitespace-nowrap font-semibold w-[140px] min-w-[140px]">
                       Reservation #
                     </TableHead>
-                    <TableHead className="sticky top-0 left-[140px] z-30 bg-muted whitespace-nowrap font-semibold w-[200px] min-w-[200px] border-r">
+                    <TableHead className="sticky top-0 md:left-[140px] z-30 bg-muted whitespace-nowrap font-semibold w-[200px] min-w-[200px] border-r">
                       CAR Name
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
@@ -1125,11 +1125,14 @@ export default function TuroTripsPage() {
 
                       return (
                         <TableRow key={trip.id} className="group hover:bg-muted/50">
-                          {/* Reservation # — pinned to the left so it stays
-                              visible while scrolling horizontally. Needs an
-                              opaque background or other cells bleed through. */}
+                          {/* Reservation # — pinned to the left on md+ so it
+                              stays visible while scrolling horizontally. On
+                              mobile the pin is dropped because two pinned
+                              columns (140px + 200px = 340px) leave almost no
+                              room on a ~375px phone viewport. Needs an opaque
+                              background or other cells bleed through. */}
                           <TableCell
-                            className="sticky left-0 z-10 bg-background group-hover:bg-muted/50 font-mono text-sm cursor-pointer w-[140px] min-w-[140px]"
+                            className="md:sticky md:left-0 md:z-10 bg-background group-hover:bg-muted/50 font-mono text-sm cursor-pointer w-[140px] min-w-[140px]"
                             onClick={() => setSelectedTrip(trip)}
                           >
                             #
@@ -1141,11 +1144,12 @@ export default function TuroTripsPage() {
                               : trip.reservationId}
                           </TableCell>
 
-                          {/* CAR — also pinned to the left so admins keep the
-                              car identity in view while scrolling horizontally
-                              across location / odometer / earnings columns. */}
+                          {/* CAR — also pinned to the left on md+ so admins
+                              keep the car identity in view while scrolling
+                              horizontally. Unpinned on mobile (see Reservation
+                              # comment above). */}
                           <TableCell
-                            className="sticky left-[140px] z-10 bg-background group-hover:bg-muted/50 cursor-pointer w-[200px] min-w-[200px] border-r"
+                            className="md:sticky md:left-[140px] md:z-10 bg-background group-hover:bg-muted/50 cursor-pointer w-[200px] min-w-[200px] border-r"
                             onClick={() => setSelectedTrip(trip)}
                           >
                             <div className="text-sm whitespace-nowrap">
