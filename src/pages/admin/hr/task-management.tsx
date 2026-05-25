@@ -43,9 +43,11 @@ import {
   Image as ImageIcon,
   X,
   History as HistoryIcon,
+  MessageCircle,
 } from "lucide-react";
 import { Fragment, useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import TaskCommentsDialog from "@/components/tasks/TaskCommentsDialog";
 
 // ─── Status helpers ───────────────────────────────────────────────────────────
 
@@ -217,8 +219,13 @@ export default function AdminHrTaskManagement() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [historyTask, setHistoryTask] = useState<any | null>(null);
+  const [commentTask, setCommentTask] = useState<any | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [photos, setPhotos] = useState<File[]>([]);
+  // Photos already saved on the task being edited. Tracked separately from
+  // `photos` (new uploads not yet sent) so the Edit modal can show what's on
+  // file AND offer a per-photo delete that hits the backend immediately.
+  const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
@@ -356,12 +363,14 @@ export default function AdminHrTaskManagement() {
     setEditingTask(null);
     setForm({ ...EMPTY_FORM });
     setPhotos([]);
+    setExistingPhotos([]);
     setModalOpen(true);
   }
 
   function openEdit(task: any) {
     setEditingTask(task);
     setPhotos([]);
+    setExistingPhotos(getTaskPhotos(task));
     // Parse assigned employee id AND name from task_timer_emp_list
     let empId = task.task_timer_emp_id || "";
     let empName = "";
@@ -392,6 +401,7 @@ export default function AdminHrTaskManagement() {
     setEditingTask(null);
     setForm({ ...EMPTY_FORM });
     setPhotos([]);
+    setExistingPhotos([]);
   }
 
   function handleSubmit() {
@@ -465,6 +475,41 @@ export default function AdminHrTaskManagement() {
     setLightboxIndex(startIndex);
   }
 
+  // Delete a single existing photo from the currently-edited task. Optimistic:
+  // remove from local state first, then call the API. Reverts on error so the
+  // admin doesn't see a phantom delete.
+  async function deleteExistingPhoto(path: string) {
+    if (!editingTask) return;
+    const taskId = editingTask.task_timer_aid;
+    const before = existingPhotos;
+    setExistingPhotos((prev) => prev.filter((p) => p !== path));
+    try {
+      const res = await fetch(
+        buildApiUrl(`/api/admin/hr/task-timers/${taskId}/photos`),
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ path }),
+        },
+      );
+      if (!res.ok) {
+        throw new Error("Delete failed");
+      }
+      queryClient.invalidateQueries({
+        queryKey: ["/api/admin/hr/task-timers"],
+      });
+      toast({ title: "Photo removed" });
+    } catch (e: any) {
+      setExistingPhotos(before);
+      toast({
+        title: "Could not remove photo",
+        description: e?.message ?? "",
+        variant: "destructive",
+      });
+    }
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -533,6 +578,7 @@ export default function AdminHrTaskManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border hover:bg-transparent">
+                      <TableHead className="font-medium whitespace-nowrap">Task Created</TableHead>
                       <TableHead className="font-medium">Task Name</TableHead>
                       <TableHead className="font-medium">Assigned By</TableHead>
                       <TableHead className="font-medium">Assigned To</TableHead>
@@ -551,6 +597,14 @@ export default function AdminHrTaskManagement() {
                         key={r.task_timer_aid}
                         className="border-border"
                       >
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {r.task_timer_created
+                            ? new Date(r.task_timer_created).toLocaleDateString(
+                                "en-US",
+                                { year: "numeric", month: "short", day: "2-digit" },
+                              )
+                            : "—"}
+                        </TableCell>
                         <TableCell className="font-medium">
                           {r.task_timer_name || "—"}
                         </TableCell>
@@ -618,6 +672,15 @@ export default function AdminHrTaskManagement() {
                               title="Edit"
                             >
                               <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
+                              onClick={() => setCommentTask(r)}
+                              title="Comments"
+                            >
+                              <MessageCircle className="w-4 h-4" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -762,7 +825,45 @@ export default function AdminHrTaskManagement() {
             {/* Photos */}
             <div>
               <Label>Photos (optional)</Label>
-              <div className="mt-1">
+              <div className="mt-1 space-y-2">
+                {/* Existing photos already saved on the task — click thumbnail
+                    to view full-size, click X to soft-delete. */}
+                {editingTask && existingPhotos.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {existingPhotos.map((src, i) => (
+                      <div key={src} className="relative group">
+                        <button
+                          type="button"
+                          onClick={() => openLightbox(existingPhotos, i)}
+                          className="focus:outline-none"
+                          title="View photo"
+                        >
+                          <img
+                            src={buildApiUrl(src)}
+                            alt={`Existing photo ${i + 1}`}
+                            className="w-16 h-16 object-cover rounded border border-border hover:opacity-80 transition-opacity"
+                          />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (
+                              confirm(
+                                "Remove this photo from the task? The file stays on the server.",
+                              )
+                            ) {
+                              deleteExistingPhoto(src);
+                            }
+                          }}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center"
+                          title="Remove photo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <PhotoRow
                   files={photos}
                   onAdd={(f) => setPhotos((prev) => [...prev, f])}
@@ -794,6 +895,13 @@ export default function AdminHrTaskManagement() {
       <TaskHistoryDialog
         task={historyTask}
         onClose={() => setHistoryTask(null)}
+      />
+
+      {/* Comments thread */}
+      <TaskCommentsDialog
+        taskId={commentTask ? Number(commentTask.task_timer_aid) : null}
+        taskName={commentTask?.task_timer_name}
+        onClose={() => setCommentTask(null)}
       />
 
       {/* Photo lightbox */}
