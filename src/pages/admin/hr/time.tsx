@@ -277,14 +277,15 @@ function rowToForm(r: TimeRow): TimeFormState {
 }
 
 function formToPayload(f: TimeFormState) {
+  // Schedule label, hours-per-day, and the lunch-out/lunch-in columns are
+  // deliberately omitted: this admin edit form no longer surfaces them, so we
+  // also don't send them in the PATCH payload. The backend leaves columns it
+  // didn't receive unchanged, which is exactly what we want — clock-in/out
+  // still writes lunch_out/lunch_in for break tracking elsewhere.
   return {
     employeeId: f.employeeId ? Number(f.employeeId) : undefined,
     date: f.date,
-    workingHours: f.workingHours,
-    hoursPerDay: f.hoursPerDay ? Number(f.hoursPerDay) : null,
     timeIn: fromLocalInput(f.timeIn),
-    lunchOut: fromLocalInput(f.lunchOut),
-    lunchIn: fromLocalInput(f.lunchIn),
     timeOut: fromLocalInput(f.timeOut),
     notes: f.notes || undefined,
   };
@@ -822,34 +823,8 @@ function TimeEntryForm(props: {
           <Input type="date" value={form.date} onChange={set("date")} required />
         </div>
         <div className="space-y-1">
-          <Label>Schedule label</Label>
-          <Input
-            value={form.workingHours}
-            onChange={set("workingHours")}
-            placeholder="e.g. 09:00 to 17:00"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label>Hours per day</Label>
-          <Input
-            type="number"
-            step="0.01"
-            value={form.hoursPerDay}
-            onChange={set("hoursPerDay")}
-            placeholder="8"
-          />
-        </div>
-        <div className="space-y-1">
           <Label>Time in</Label>
           <Input type="datetime-local" value={form.timeIn} onChange={set("timeIn")} />
-        </div>
-        <div className="space-y-1">
-          <Label>Lunch out</Label>
-          <Input type="datetime-local" value={form.lunchOut} onChange={set("lunchOut")} />
-        </div>
-        <div className="space-y-1">
-          <Label>Lunch in</Label>
-          <Input type="datetime-local" value={form.lunchIn} onChange={set("lunchIn")} />
         </div>
         <div className="space-y-1">
           <Label>Time out</Label>
