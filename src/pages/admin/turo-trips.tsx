@@ -400,6 +400,57 @@ export default function TuroTripsPage() {
     },
   });
 
+  // Per-trip re-parse — re-fetches the original Turo email for ONE trip by
+  // reservation ID and rewrites its trip_start/trip_end. Used as the fallback
+  // when the bulk Repair Dates pass left a single row wrong (its email used a
+  // format the parser regex didn't match at the time of bulk repair).
+  const reparseSingleMutation = useMutation({
+    mutationFn: async (tripId: number) => {
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/${tripId}/reparse`),
+        { method: "POST", credentials: "include" },
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        const reason =
+          data?.error || data?.message || `HTTP ${response.status}`;
+        throw new Error(reason);
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      const d = data.data ?? {};
+      const reservationId = d.reservationId ?? "—";
+      const beforeStart = d.before?.tripStart ?? "—";
+      const beforeEnd = d.before?.tripEnd ?? "—";
+      const parsedStart = d.parsed?.tripStart ?? "(none)";
+      const parsedEnd = d.parsed?.tripEnd ?? "(none)";
+      const afterStart = d.after?.tripStart ?? "—";
+      const afterEnd = d.after?.tripEnd ?? "—";
+      const snippet = d.bodySnippet ? `\n\nEmail snippet:\n${d.bodySnippet.slice(0, 240)}…` : "";
+
+      toast({
+        title: `Re-parsed #${reservationId} (${d.updated ? "updated" : "no change"})`,
+        description:
+          `${data.message}\n` +
+          `\nBefore  start=${beforeStart}, end=${beforeEnd}` +
+          `\nParsed  start=${parsedStart}, end=${parsedEnd}` +
+          `\nAfter   start=${afterStart}, end=${afterEnd}` +
+          snippet,
+        // Keep the toast up longer than usual — there's a lot to read.
+        duration: 20000,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Re-parse failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Refresh-calendar mutation — pushes updated title/description into existing Google Calendar events.
   // Useful after a format change (e.g. adding plate # or year/model to titles).
   const refreshCalendarMutation = useMutation({
@@ -1893,6 +1944,40 @@ export default function TuroTripsPage() {
                   </p>
                 </div>
               )}
+
+              {/* Per-trip "Re-parse from Turo email" action. Use this when a
+                  row's Trip Start / Trip Ends are clearly wrong: it re-fetches
+                  the original booking email by reservation ID, re-runs the
+                  parser, rewrites the dates if it can extract them, and shows
+                  the before/parsed/after values + a body snippet in the toast
+                  so you can see what the parser saw. */}
+              <div className="border-t pt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+                <p className="text-muted-foreground text-xs leading-snug max-w-md">
+                  Trip Start / Trip Ends look wrong? Re-parse the original
+                  Turo email for this reservation. Times will be interpreted
+                  as Mountain Time.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    reparseSingleMutation.mutate(selectedTrip.id)
+                  }
+                  disabled={reparseSingleMutation.isPending}
+                >
+                  {reparseSingleMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Re-parsing…
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Re-parse from Turo email
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
