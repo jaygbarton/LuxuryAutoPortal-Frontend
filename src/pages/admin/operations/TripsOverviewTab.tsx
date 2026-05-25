@@ -208,6 +208,101 @@ export function TripsOverviewTab() {
   const [confirmDeleteTask, setConfirmDeleteTask] =
     useState<OperationTask | null>(null);
 
+  // ── Inline edit state for Miles Included / Trip Start Odometer / Trip Ends
+  // Odometer. Mirrors the same affordance on /admin/turo-trips so admins can
+  // edit these in either place. tripId → string ('' for cleared, undefined
+  // for "no pending edit yet"). Save buttons appear only when at least one
+  // pending edit exists for the row.
+  const [odoEdits, setOdoEdits] = useState<
+    Record<number, { start?: string; end?: string }>
+  >({});
+  const [milesEdits, setMilesEdits] = useState<Record<number, string>>({});
+  const [savingOdoRow, setSavingOdoRow] = useState<number | null>(null);
+  const [savingMilesRow, setSavingMilesRow] = useState<number | null>(null);
+
+  const saveRowOdometers = async (trip: TuroTrip) => {
+    const edit = odoEdits[trip.id];
+    if (!edit) return;
+    const startVal =
+      edit.start !== undefined
+        ? edit.start
+        : String(trip.tripStartOdometer ?? "");
+    const endVal =
+      edit.end !== undefined ? edit.end : String(trip.tripEndOdometer ?? "");
+    setSavingOdoRow(trip.id);
+    try {
+      const res = await fetch(
+        buildApiUrl(`/api/turo-trips/${trip.id}/odometers`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tripStartOdometer: startVal !== "" ? parseInt(startVal, 10) : null,
+            tripEndOdometer: endVal !== "" ? parseInt(endVal, 10) : null,
+          }),
+        },
+      );
+      if (!res.ok) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      setOdoEdits((prev) => {
+        const next = { ...prev };
+        delete next[trip.id];
+        return next;
+      });
+      toast({
+        title: "Odometer saved",
+        description: `Reservation #${trip.reservationId}`,
+      });
+    } catch {
+      toast({ title: "Failed to save odometer", variant: "destructive" });
+    } finally {
+      setSavingOdoRow(null);
+    }
+  };
+
+  const saveRowMiles = async (trip: TuroTrip) => {
+    const edited = milesEdits[trip.id];
+    if (edited === undefined) return;
+    setSavingMilesRow(trip.id);
+    try {
+      // /locations endpoint also writes milesIncluded — reuse it rather than
+      // building a new endpoint just for one field. Send the row's existing
+      // pickup/return values so they aren't wiped.
+      const res = await fetch(
+        buildApiUrl(`/api/turo-trips/${trip.id}/locations`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pickupLocation: trip.pickupLocation ?? "",
+            returnLocation: trip.returnLocation ?? "",
+            milesIncluded: edited.trim(),
+          }),
+        },
+      );
+      if (!res.ok) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      setMilesEdits((prev) => {
+        const next = { ...prev };
+        delete next[trip.id];
+        return next;
+      });
+      toast({
+        title: "Miles included saved",
+        description: `Reservation #${trip.reservationId}`,
+      });
+    } catch {
+      toast({
+        title: "Failed to save miles included",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingMilesRow(null);
+    }
+  };
+
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: number) => {
       const res = await fetch(buildApiUrl(`/api/operations/tasks/${taskId}`), {
@@ -633,17 +728,115 @@ export function TripsOverviewTab() {
                           {trip.extras || "--"}
                         </TableCell>
                         <TableCell className="text-foreground text-sm whitespace-nowrap">
-                          {trip.milesIncluded || trip.totalDistance || "--"}
+                          {(() => {
+                            const pending = milesEdits[trip.id];
+                            const value =
+                              pending !== undefined
+                                ? pending
+                                : trip.milesIncluded ?? trip.totalDistance ?? "";
+                            const dirty = pending !== undefined;
+                            return (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  value={value}
+                                  onChange={(e) =>
+                                    setMilesEdits((prev) => ({
+                                      ...prev,
+                                      [trip.id]: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="--"
+                                  className="h-7 w-[110px] text-sm"
+                                />
+                                {dirty && (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    className="h-7 px-2"
+                                    onClick={() => saveRowMiles(trip)}
+                                    disabled={savingMilesRow === trip.id}
+                                  >
+                                    {savingMilesRow === trip.id
+                                      ? "…"
+                                      : "Save"}
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
-                          {trip.tripStartOdometer != null
-                            ? trip.tripStartOdometer.toLocaleString()
-                            : "--"}
+                          {(() => {
+                            const edit = odoEdits[trip.id];
+                            const startStr =
+                              edit?.start !== undefined
+                                ? edit.start
+                                : trip.tripStartOdometer != null
+                                  ? String(trip.tripStartOdometer)
+                                  : "";
+                            return (
+                              <Input
+                                type="number"
+                                value={startStr}
+                                onChange={(e) =>
+                                  setOdoEdits((prev) => ({
+                                    ...prev,
+                                    [trip.id]: {
+                                      ...prev[trip.id],
+                                      start: e.target.value,
+                                    },
+                                  }))
+                                }
+                                placeholder="--"
+                                className="h-7 w-[100px] text-sm"
+                              />
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
-                          {trip.tripEndOdometer != null
-                            ? trip.tripEndOdometer.toLocaleString()
-                            : "--"}
+                          {(() => {
+                            const edit = odoEdits[trip.id];
+                            const endStr =
+                              edit?.end !== undefined
+                                ? edit.end
+                                : trip.tripEndOdometer != null
+                                  ? String(trip.tripEndOdometer)
+                                  : "";
+                            const dirty = edit !== undefined;
+                            return (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  value={endStr}
+                                  onChange={(e) =>
+                                    setOdoEdits((prev) => ({
+                                      ...prev,
+                                      [trip.id]: {
+                                        ...prev[trip.id],
+                                        end: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                  placeholder="--"
+                                  className="h-7 w-[100px] text-sm"
+                                />
+                                {/* Save button on the end cell saves BOTH
+                                    odometer fields in one PATCH — same UX as
+                                    /admin/turo-trips. */}
+                                {dirty && (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    className="h-7 px-2"
+                                    onClick={() => saveRowOdometers(trip)}
+                                    disabled={savingOdoRow === trip.id}
+                                  >
+                                    {savingOdoRow === trip.id ? "…" : "Save"}
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
                           {totalMiles != null
