@@ -235,10 +235,17 @@ export function TuroInspectionTab() {
     },
   });
 
+  // Fetch trips that overlap the active date filter window so the client-side
+  // join is accurate. When no date filter is set, fetch a large page to cover
+  // the full fleet. Keyed on the date filters so a filter change refreshes it.
   const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
-    queryKey: ["/api/turo-trips", { limit: 500 }],
+    queryKey: ["/api/turo-trips", "turo-messages-join", tripStartFrom, tripEndOn],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/turo-trips?limit=500"), {
+      const params = new URLSearchParams({ limit: "2000" });
+      // Use trip-overlap logic: trips that are active during the filter window.
+      if (tripStartFrom) params.set("startDate", tripStartFrom);
+      if (tripEndOn) params.set("endDate", tripEndOn);
+      const res = await fetch(buildApiUrl(`/api/turo-trips?${params}`), {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch trips");
@@ -249,76 +256,45 @@ export function TuroInspectionTab() {
 
   const inspections = data?.data || [];
 
+  // Convert a UTC ISO string to a YYYY-MM-DD date in Mountain Time so date
+  // comparisons match what the admin sees in the Trip Start / Trip Ends columns.
+  const toMtDate = (iso: string | null | undefined): string | null => {
+    if (!iso) return null;
+    try {
+      return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso));
+    } catch { return null; }
+  };
+
   const filteredInspections = useMemo(() => {
     const q = search.trim().toLowerCase();
-    // "Trip Start" bound: keep inspections whose trip.tripStart ≥ X.
-    // "Trip Ends" bound:  keep inspections whose trip.tripEnd   ≤ Y end-of-day.
-    const tripStartLowerMs = tripStartFrom
-      ? new Date(tripStartFrom).getTime()
-      : null;
-    const tripEndUpperMs = tripEndOn
-      ? new Date(tripEndOn).getTime() + 24 * 60 * 60 * 1000 - 1
-      : null;
     return inspections.filter((insp) => {
+      const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+
       if (q) {
-        const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
-        // Mirror every visible column so the search box matches anything the
-        // user can see in the table.
         const hay = [
-          // Inspection fields
-          insp.car_name,
-          insp.reservation_id,
-          insp.assigned_to,
-          insp.status,
-          insp.source,
-          insp.notes,
-          insp.inspection_date,
-          insp.due_date,
-          // Joined trip fields
-          trip?.plateNumber,
-          trip?.pickupLocation,
-          trip?.deliveryLocation,
-          trip?.returnLocation,
-          trip?.extras,
-          trip?.milesIncluded,
-          trip?.totalDistance,
-          trip?.status,
-          trip?.tripStart,
-          trip?.tripEnd,
+          insp.car_name, insp.reservation_id, insp.assigned_to, insp.status,
+          insp.source, insp.notes, insp.inspection_date, insp.due_date,
+          trip?.plateNumber, trip?.pickupLocation, trip?.deliveryLocation,
+          trip?.returnLocation, trip?.extras, trip?.milesIncluded,
+          trip?.totalDistance, trip?.status, trip?.tripStart, trip?.tripEnd,
           trip?.earnings != null ? String(trip.earnings) : null,
           trip?.tripStartOdometer != null ? String(trip.tripStartOdometer) : null,
           trip?.tripEndOdometer != null ? String(trip.tripEndOdometer) : null,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
+        ].filter(Boolean).join(" ").toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      if (tripStartLowerMs != null || tripEndUpperMs != null) {
-        const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
-        // Trip Start bound — compares against trip.tripStart, with
-        // inspection_date as a fallback when the inspection isn't tied to a
-        // Turo trip.
-        if (tripStartLowerMs != null) {
-          const start = trip?.tripStart
-            ? new Date(trip.tripStart).getTime()
-            : insp.inspection_date
-              ? new Date(insp.inspection_date).getTime()
-              : null;
-          if (start == null || start < tripStartLowerMs) return false;
-        }
-        // Trip Ends bound — compares against trip.tripEnd, with
-        // inspection_date as a fallback. Independent of the start bound, so
-        // an admin can filter by either side alone.
-        if (tripEndUpperMs != null) {
-          const end = trip?.tripEnd
-            ? new Date(trip.tripEnd).getTime()
-            : insp.inspection_date
-              ? new Date(insp.inspection_date).getTime()
-              : null;
-          if (end == null || end > tripEndUpperMs) return false;
-        }
+
+      // Date filters compare YYYY-MM-DD strings in Mountain Time so they match
+      // the displayed Trip Start / Trip Ends values exactly.
+      if (!q && tripStartFrom) {
+        const startDate = toMtDate(trip?.tripStart ?? insp.inspection_date);
+        if (!startDate || startDate < tripStartFrom) return false;
       }
+      if (!q && tripEndOn) {
+        const endDate = toMtDate(trip?.tripEnd ?? insp.inspection_date);
+        if (!endDate || endDate > tripEndOn) return false;
+      }
+
       return true;
     });
   }, [inspections, tripsById, search, tripStartFrom, tripEndOn]);
