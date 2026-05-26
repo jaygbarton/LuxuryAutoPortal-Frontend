@@ -72,7 +72,8 @@ function CarSelect({
   );
 }
 
-/** Employee picker populated from /api/employees */
+/** Employee picker — uses /api/employees/picker which is accessible to all
+ *  authenticated users (not admin-only like /api/employees). */
 function EmployeeSelect({
   value,
   onChange,
@@ -82,21 +83,11 @@ function EmployeeSelect({
 }) {
   const { data } = useQuery<{
     success: boolean;
-    data: {
-      id?: number;
-      employee_aid?: number;
-      fullname?: string;
-      first_name?: string;
-      last_name?: string;
-      emp_first_name?: string;
-      emp_last_name?: string;
-      employee_first_name?: string;
-      employee_last_name?: string;
-    }[];
+    data: { employee_aid: number; fullname: string }[];
   }>({
-    queryKey: ["/api/employees", "car-issue-picker"],
+    queryKey: ["/api/employees/picker"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/employees?limit=500"), {
+      const res = await fetch(buildApiUrl("/api/employees/picker"), {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch employees");
@@ -107,16 +98,6 @@ function EmployeeSelect({
 
   const employees = data?.data ?? [];
 
-  function getEmployeeName(emp: (typeof employees)[0]): string {
-    if (emp.fullname) return emp.fullname;
-    const first =
-      emp.first_name || emp.emp_first_name || emp.employee_first_name || "";
-    const last =
-      emp.last_name || emp.emp_last_name || emp.employee_last_name || "";
-    const id = emp.id ?? emp.employee_aid;
-    return `${first} ${last}`.trim() || (id ? `Employee ${id}` : "");
-  }
-
   return (
     <select
       value={value}
@@ -124,15 +105,11 @@ function EmployeeSelect({
       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
     >
       <option value="">Select employee…</option>
-      {employees.map((emp) => {
-        const name = getEmployeeName(emp);
-        const id = emp.id ?? emp.employee_aid;
-        return (
-          <option key={id} value={name}>
-            {name}
-          </option>
-        );
-      })}
+      {employees.map((emp) => (
+        <option key={emp.employee_aid} value={emp.fullname}>
+          {emp.fullname}
+        </option>
+      ))}
     </select>
   );
 }
