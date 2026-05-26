@@ -1470,7 +1470,16 @@ export default function FormsPage() {
                             {/* Expanded content for Car Issue Form */}
                             {isItemExpanded &&
                               item.id === "car-issue-submit" && (
-                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full">
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 max-w-full space-y-3">
+                                  <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                    <span>Submissions appear in</span>
+                                    <a
+                                      href="/admin/operations?tab=car-issues"
+                                      className="font-semibold underline hover:text-amber-900"
+                                    >
+                                      Operations → Car Issues
+                                    </a>
+                                  </div>
                                   <CarIssueFormSubmission />
                                 </div>
                               )}

@@ -13,9 +13,10 @@ import ExpenseFormSubmission from "@/pages/admin/forms/ExpenseFormSubmission";
 import ExpenseFormMySubmissions from "@/pages/admin/forms/ExpenseFormMySubmissions";
 import CommissionFormSubmission from "@/pages/admin/forms/CommissionFormSubmission";
 import CommissionFormMySubmissions from "@/pages/admin/forms/CommissionFormMySubmissions";
-import { ChevronDown, ChevronRight, DollarSign, FileText } from "lucide-react";
+import CarIssueFormSubmission from "@/pages/admin/forms/CarIssueFormSubmission";
+import { ChevronDown, ChevronRight, Car, DollarSign, FileText } from "lucide-react";
 
-type SectionId = "expense" | "expense-my" | "commission" | "commission-my";
+type SectionId = "expense" | "expense-my" | "commission" | "commission-my" | "car-issue";
 
 export default function StaffForms() {
   const [expanded, setExpanded] = useState<SectionId[]>(["expense"]);
@@ -51,6 +52,12 @@ export default function StaffForms() {
       label: "My Commission Submissions",
       icon: FileText,
       content: <CommissionFormMySubmissions />,
+    },
+    {
+      id: "car-issue",
+      label: "Car Issue Report",
+      icon: Car,
+      content: <CarIssueFormSubmission />,
     },
   ];
 
