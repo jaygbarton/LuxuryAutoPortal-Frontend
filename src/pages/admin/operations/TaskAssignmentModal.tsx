@@ -39,23 +39,53 @@ interface TaskAssignmentModalProps {
   };
 }
 
-function computeDefaultDueDate(
+/** Convert a UTC ISO string to the local datetime-local input format (YYYY-MM-DDTHH:mm)
+ *  in Mountain Time so the displayed value matches the Trip Start / Trip Ends columns. */
+function toMtLocalInput(iso: string | undefined): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    // Format each component in Mountain Time
+    const fmt = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Denver",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const parts = fmt.formatToParts(d).reduce<Record<string, string>>((a, p) => {
+      if (p.type !== "literal") a[p.type] = p.value;
+      return a;
+    }, {});
+    const h = parts.hour === "24" ? "00" : parts.hour;
+    return `${parts.year}-${parts.month}-${parts.day}T${h}:${parts.minute}`;
+  } catch {
+    return "";
+  }
+}
+
+function computeDefaults(
   taskType: TaskType,
   tripStart?: string,
   tripEnd?: string,
-): string {
-  if (taskType === "cleaning" && tripStart) {
-    const d = new Date(tripStart);
-    d.setMinutes(d.getMinutes() - 45);
-    return d.toISOString().slice(0, 16);
+): { scheduledDate: string; dueDate: string } {
+  if (taskType === "delivery") {
+    // Delivery: both default to trip start
+    const d = toMtLocalInput(tripStart);
+    return { scheduledDate: d, dueDate: d };
   }
-  if (taskType === "delivery" && tripStart) {
-    return new Date(tripStart).toISOString().slice(0, 16);
+  if (taskType === "pickup") {
+    // Pick Up: both default to trip end
+    const d = toMtLocalInput(tripEnd);
+    return { scheduledDate: d, dueDate: d };
   }
-  if (taskType === "pickup" && tripEnd) {
-    return new Date(tripEnd).toISOString().slice(0, 16);
-  }
-  return "";
+  // Cleaning: scheduled = trip start, due = trip end
+  return {
+    scheduledDate: toMtLocalInput(tripStart),
+    dueDate: toMtLocalInput(tripEnd),
+  };
 }
 
 export function TaskAssignmentModal({
@@ -102,34 +132,18 @@ export function TaskAssignmentModal({
       });
     } else if (prefill) {
       const taskType = prefill.task_type || "cleaning";
-
-      let defaultScheduledDate = "";
-      if (taskType === "pickup" && prefill.trip_end) {
-        defaultScheduledDate = new Date(prefill.trip_end)
-          .toISOString()
-          .slice(0, 16);
-      } else if (taskType === "delivery" && prefill.trip_start) {
-        defaultScheduledDate = new Date(prefill.trip_start)
-          .toISOString()
-          .slice(0, 16);
-      }
-
-      let defaultLocation = "";
-      if (taskType === "pickup" && prefill.return_location) {
-        defaultLocation = prefill.return_location;
-      } else if (
-        taskType === "delivery" &&
-        (prefill.delivery_location || prefill.return_location)
-      ) {
-        defaultLocation =
-          prefill.delivery_location || prefill.return_location || "";
-      }
-
-      const defaultDueDate = computeDefaultDueDate(
+      const { scheduledDate, dueDate } = computeDefaults(
         taskType,
         prefill.trip_start,
         prefill.trip_end,
       );
+
+      let defaultLocation = "";
+      if (taskType === "pickup" && prefill.return_location) {
+        defaultLocation = prefill.return_location;
+      } else if (taskType === "delivery") {
+        defaultLocation = prefill.delivery_location || prefill.return_location || "";
+      }
 
       setFormData((prev) => ({
         ...prev,
@@ -138,41 +152,32 @@ export function TaskAssignmentModal({
         car_name: prefill.car_name || "",
         guest_name: prefill.guest_name || "",
         task_type: taskType,
-        scheduled_date: defaultScheduledDate,
+        scheduled_date: scheduledDate,
         scheduled_location: defaultLocation,
-        due_date: defaultDueDate,
+        due_date: dueDate,
       }));
     }
   }, [task, prefill]);
 
+  // Re-apply defaults when the user changes the task type dropdown.
   useEffect(() => {
     if (!task && prefill) {
-      const defaultDueDate = computeDefaultDueDate(
+      const { scheduledDate, dueDate } = computeDefaults(
         formData.task_type,
         prefill.trip_start,
         prefill.trip_end,
       );
-      let defaultScheduledDate = formData.scheduled_date;
       let defaultLocation = formData.scheduled_location;
-
-      if (formData.task_type === "pickup" && prefill.trip_end) {
-        defaultScheduledDate = new Date(prefill.trip_end)
-          .toISOString()
-          .slice(0, 16);
+      if (formData.task_type === "pickup") {
         defaultLocation = prefill.return_location || "";
-      } else if (formData.task_type === "delivery" && prefill.trip_start) {
-        defaultScheduledDate = new Date(prefill.trip_start)
-          .toISOString()
-          .slice(0, 16);
-        defaultLocation =
-          prefill.delivery_location || prefill.return_location || "";
+      } else if (formData.task_type === "delivery") {
+        defaultLocation = prefill.delivery_location || prefill.return_location || "";
       }
-
       setFormData((prev) => ({
         ...prev,
-        scheduled_date: defaultScheduledDate,
+        scheduled_date: scheduledDate,
         scheduled_location: defaultLocation,
-        due_date: defaultDueDate,
+        due_date: dueDate,
       }));
     }
   }, [formData.task_type]);
