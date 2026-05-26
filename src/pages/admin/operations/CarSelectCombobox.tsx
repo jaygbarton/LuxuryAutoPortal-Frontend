@@ -30,14 +30,23 @@ interface CarSelectComboboxProps {
 export function CarSelectCombobox({ value, onChange, onSelectCar, disabled }: CarSelectComboboxProps) {
   const [open, setOpen] = useState(false);
 
-  const { data: carsData } = useQuery<{ data: CarOption[] }>({
+  const { data: carsData, isLoading, isError, error } = useQuery<{ data: CarOption[] }>({
     queryKey: ["/api/cars", "active-only"],
     queryFn: async () => {
       const response = await fetch(buildApiUrl("/api/cars?status=ACTIVE&limit=500"), { credentials: "include" });
-      if (!response.ok) throw new Error("Failed to fetch cars");
+      if (!response.ok) {
+        // Surface the HTTP status so admins can see "403 Forbidden" or "401
+        // Unauthorized" in the empty state instead of a silent "No cars found".
+        // The most common cause of an empty list was the endpoint being
+        // gated by requireAdmin while the user had switched to an Employee
+        // role — fixed on the backend, but if the error returns, this makes
+        // diagnosis a single glance instead of a network-tab dive.
+        throw new Error(`Failed to fetch cars (${response.status})`);
+      }
       return response.json();
     },
     staleTime: 1000 * 60 * 5,
+    retry: false,
   });
 
   const activeCars = (carsData?.data || []).filter(
@@ -81,8 +90,12 @@ export function CarSelectCombobox({ value, onChange, onSelectCar, disabled }: Ca
             className="text-foreground placeholder:text-muted-foreground border-b border-border"
           />
           <CommandList className="max-h-[220px]">
-            <CommandEmpty className="text-muted-foreground py-4 text-sm text-center">
-              No cars found.
+            <CommandEmpty className="text-muted-foreground py-4 text-sm text-center px-2">
+              {isLoading
+                ? "Loading cars…"
+                : isError
+                  ? `Couldn't load cars — ${error instanceof Error ? error.message : "unknown error"}. Try refreshing or check your account permissions.`
+                  : "No cars found."}
             </CommandEmpty>
             <CommandGroup>
               {activeCars.map((car) => (
