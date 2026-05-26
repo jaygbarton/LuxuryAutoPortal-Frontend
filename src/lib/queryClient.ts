@@ -3,31 +3,51 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 /**
  * Compute the API base URL for the frontend.
  *
- * - Dev:  default to relative URLs so the Vite proxy can forward `/api/*` to the backend.
- * - Prod: ALWAYS default to relative URLs so the Vercel rewrites in vercel.json
- *         proxy `/api/*` to the Render backend on the SAME origin as the page.
- *         This keeps the session cookie first-party and avoids Chrome's
- *         third-party-cookie blocking. Only fall back to a direct cross-origin
- *         URL when `VITE_API_URL` is explicitly set (e.g. for staging/preview
- *         deploys that aren't behind the same rewrites).
+ * Rules:
+ * - On a production custom domain (anything not localhost / vercel.app / replit /
+ *   onrender), ALWAYS use relative URLs so the Vercel rewrites in vercel.json
+ *   proxy /api/* to the backend on the same origin. This keeps the session
+ *   cookie first-party — the only configuration that doesn't break logins in
+ *   modern browsers. We deliberately ignore VITE_API_URL on these domains to
+ *   prevent a stale or misconfigured Vercel env var from re-introducing the
+ *   cross-origin cookie problem.
  *
- * Previously this only used relative URLs when the page origin contained
- * "vercel.app". After a custom domain (app.goldenluxuryauto.com) was added,
- * that check failed and the code fell through to a hard-coded cross-origin
- * backend URL — which made every API call cross-site, turned the session
- * cookie into a third-party cookie, and broke login in Chrome.
+ * - On preview / staging / localhost (or any non-customer host), honor
+ *   VITE_API_URL if set so devs and preview deploys can point at a
+ *   different backend.
+ *
+ * Background: when this project moved to the custom app.goldenluxuryauto.com
+ * domain, an old VITE_API_URL=https://luxuryautoportal-replit-1.onrender.com
+ * setting on Vercel started routing every API call cross-origin. The session
+ * cookie scope became luxuryautoportal-replit-1.onrender.com and the browser
+ * refused to send it back on subsequent same-origin requests via the proxy.
+ * Result: login appeared to succeed but /api/auth/me always returned null.
  */
 const computeApiBaseUrl = () => {
-  // Explicit override wins everywhere (staging, ad-hoc testing, etc).
+  // Determine whether we're being served from the production customer
+  // domain. If so, force relative URLs regardless of any env override.
+  if (typeof window !== "undefined" && import.meta.env.PROD) {
+    const host = window.location.host;
+    const isPlatformDefaultHost =
+      host.includes("localhost") ||
+      host.includes("127.0.0.1") ||
+      host.includes("vercel.app") ||
+      host.includes("replit") ||
+      host.includes("onrender.com");
+    if (!isPlatformDefaultHost) {
+      // Custom production domain — Vercel rewrites will handle /api proxy.
+      return "";
+    }
+  }
+
+  // Non-customer host (dev / preview / platform default): honor explicit override.
   if (import.meta.env.VITE_API_URL) {
     const url = import.meta.env.VITE_API_URL.replace(/\/$/, "");
     console.log(`[API] Using VITE_API_URL: ${url}`);
     return url;
   }
 
-  // Default: relative URLs. In prod, vercel.json rewrites `/api/*` to the
-  // Render backend so the call appears same-origin to the browser. In dev,
-  // vite.config.ts proxy does the same thing locally.
+  // Default: relative URLs (Vite dev proxy or Vercel rewrites handle it).
   return "";
 };
 
