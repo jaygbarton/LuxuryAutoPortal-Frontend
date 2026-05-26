@@ -33,7 +33,7 @@ interface IncomeExpenseContextType {
   refreshDynamicSubcategories: () => Promise<void>;
   addDynamicSubcategory: (categoryType: string, name: string) => Promise<void>;
   updateDynamicSubcategoryName: (categoryType: string, metadataId: number, newName: string) => Promise<void>;
-  deleteDynamicSubcategory: (categoryType: string, metadataId: number) => Promise<void>;
+  deleteDynamicSubcategory: (categoryType: string, metadataId: number, force?: boolean) => Promise<void>;
   updateDynamicSubcategoryValue: (categoryType: string, metadataId: number, month: number, value: number, subcategoryName: string) => Promise<void>;
   // Form amount support: approved form submissions auto-contribute a
   // "Form Amount" to each I&E cell. The cell's displayed total is
@@ -374,11 +374,11 @@ export function IncomeExpenseProvider({
     }
   };
 
-  const deleteDynamicSubcategory = async (categoryType: string, metadataId: number) => {
+  const deleteDynamicSubcategory = async (categoryType: string, metadataId: number, force = false) => {
     try {
-      // Delete subcategory globally (removes from all cars)
+      const forceParam = force ? '&force=true' : '';
       const response = await fetch(
-        buildApiUrl(`/api/income-expense/dynamic-subcategories/${metadataId}?carId=${carId}&year=${year}&categoryType=${categoryType}`),
+        buildApiUrl(`/api/income-expense/dynamic-subcategories/${metadataId}?carId=${carId}&year=${year}&categoryType=${categoryType}${forceParam}`),
         {
           method: "DELETE",
           credentials: "include",
@@ -386,15 +386,16 @@ export function IncomeExpenseProvider({
       );
 
       if (!response.ok) {
-        // Surface the backend's explanation (e.g. the 409 "total is not zero" guard).
-        let serverMessage = "Failed to delete subcategory";
-        try {
-          const body = await response.json();
-          if (body?.error) serverMessage = body.error;
-        } catch {
-          /* fall through to generic message */
+        const body = await response.json().catch(() => ({}));
+        // 409 means the subcategory has non-zero values — surface total and let the
+        // caller decide whether to retry with force=true.
+        if (response.status === 409) {
+          const err: any = new Error(body?.error || "Cannot delete subcategory with non-zero values");
+          err.status = 409;
+          err.totalValue = body?.totalValue;
+          throw err;
         }
-        throw new Error(serverMessage);
+        throw new Error(body?.error || "Failed to delete subcategory");
       }
 
       await fetchDynamicSubcategories();
@@ -403,11 +404,13 @@ export function IncomeExpenseProvider({
         description: "Subcategory deleted globally (removed from all cars)",
       });
     } catch (error: any) {
-      toast({
-        title: "Cannot delete subcategory",
-        description: error.message || "Failed to delete subcategory",
-        variant: "destructive",
-      });
+      if (!force) {
+        toast({
+          title: "Cannot delete subcategory",
+          description: error.message || "Failed to delete subcategory",
+          variant: "destructive",
+        });
+      }
       throw error;
     }
   };

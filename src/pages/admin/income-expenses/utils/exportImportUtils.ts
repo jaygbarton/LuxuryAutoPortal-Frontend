@@ -1844,7 +1844,14 @@ export function parseImportedCSV(
         firstCell === 'TOTAL EXPENSES' ||
         firstCell === 'CATEGORY' ||                 // column header row
         firstCell === '0' ||                        // history filler rows
-        firstCell.includes('SECTION');              // stray SECTION markers
+        firstCell.includes('SECTION') ||            // stray SECTION markers
+        // Section header names that may appear as data rows when they carry non-zero values
+        firstCell === 'HISTORY' ||
+        firstCell.includes('REIMBURSE AND NON-REIMBURSE') ||
+        firstCell.includes('PARKING FEE & LABOR') ||
+        (firstCell.includes('OPERATING EXPENSE') && (firstCell.includes('COGS') || firstCell.includes('DIRECT DELIVERY'))) ||
+        firstCell.includes('INCOME & EXPENSES') ||
+        firstCell.includes('INCOME AND EXPENSES');
 
       if (currentSection && currentSection !== 'SKIP' && currentSection !== 'CAR MANAGEMENT OWNER SPLIT' && cells.length > 1 && cells[0] && !isSummaryRow) {
         const rowData: any = { category: cells[0] };

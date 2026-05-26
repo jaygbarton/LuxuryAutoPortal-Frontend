@@ -372,6 +372,31 @@ export default function IncomeExpenseTable({
     }
   };
 
+  // Delete a dynamic subcategory with a force-delete fallback.
+  // If the backend returns 409 (non-zero total), prompt the admin to force-delete.
+  const handleDeleteSubcategory = async (categoryType: string, subcatId: number, subcatName: string) => {
+    if (!confirm(`Are you sure you want to delete "${subcatName}"?`)) return;
+    try {
+      await deleteDynamicSubcategory(categoryType, subcatId);
+    } catch (err: any) {
+      if (err?.status === 409) {
+        const formatted = err.totalValue != null
+          ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(err.totalValue)
+          : "non-zero";
+        const ok = confirm(
+          `"${subcatName}" has a total of ${formatted} across all cars.\n\nThis may be from a bad import. Force-delete anyway? This will permanently remove it and all its values from every car.`
+        );
+        if (ok) {
+          try {
+            await deleteDynamicSubcategory(categoryType, subcatId, true);
+          } catch (e: any) {
+            toast({ title: "Delete failed", description: e.message || "Failed to force-delete subcategory", variant: "destructive" });
+          }
+        }
+      }
+    }
+  };
+
   // Helper to get value by month - checks if data exists and returns actual value or 0
   const getMonthValue = (arr: any[], month: number, field: string): number => {
     if (!arr || !Array.isArray(arr)) return 0;
@@ -2271,15 +2296,7 @@ export default function IncomeExpenseTable({
                       newName: subcat.name,
                     })
                   }
-                  onDelete={() => {
-                    if (
-                      confirm(
-                        `Are you sure you want to delete "${subcat.name}"?`,
-                      )
-                    ) {
-                      deleteDynamicSubcategory("directDelivery", subcat.id);
-                    }
-                  }}
+                  onDelete={() => handleDeleteSubcategory("directDelivery", subcat.id, subcat.name)}
                   onUpdateValue={updateDynamicSubcategoryValue}
                   isReadOnly={isReadOnly}
                 />
@@ -2622,15 +2639,7 @@ export default function IncomeExpenseTable({
                       newName: subcat.name,
                     })
                   }
-                  onDelete={() => {
-                    if (
-                      confirm(
-                        `Are you sure you want to delete "${subcat.name}"?`,
-                      )
-                    ) {
-                      deleteDynamicSubcategory("cogs", subcat.id);
-                    }
-                  }}
+                  onDelete={() => handleDeleteSubcategory("cogs", subcat.id, subcat.name)}
                   onUpdateValue={updateDynamicSubcategoryValue}
                   isReadOnly={isReadOnly}
                 />
@@ -2767,15 +2776,7 @@ export default function IncomeExpenseTable({
                       newName: subcat.name,
                     })
                   }
-                  onDelete={() => {
-                    if (
-                      confirm(
-                        `Are you sure you want to delete "${subcat.name}"?`,
-                      )
-                    ) {
-                      deleteDynamicSubcategory("parkingFeeLabor", subcat.id);
-                    }
-                  }}
+                  onDelete={() => handleDeleteSubcategory("parkingFeeLabor", subcat.id, subcat.name)}
                   onUpdateValue={updateDynamicSubcategoryValue}
                   isReadOnly={isReadOnly}
                 />
@@ -3000,15 +3001,7 @@ export default function IncomeExpenseTable({
                       newName: subcat.name,
                     })
                   }
-                  onDelete={() => {
-                    if (
-                      confirm(
-                        `Are you sure you want to delete "${subcat.name}"?`,
-                      )
-                    ) {
-                      deleteDynamicSubcategory("reimbursedBills", subcat.id);
-                    }
-                  }}
+                  onDelete={() => handleDeleteSubcategory("reimbursedBills", subcat.id, subcat.name)}
                   onUpdateValue={updateDynamicSubcategoryValue}
                   isReadOnly={isReadOnly}
                 />
