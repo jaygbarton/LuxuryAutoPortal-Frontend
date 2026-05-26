@@ -548,7 +548,7 @@ export function TripsOverviewTab() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-muted-foreground text-xs">
-                Trip Start
+                Trip Start From
               </label>
               <Input
                 type="date"
@@ -560,7 +560,7 @@ export function TripsOverviewTab() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-muted-foreground text-xs">
-                Trip Ends
+                Trip Ends To
               </label>
               <Input
                 type="date"

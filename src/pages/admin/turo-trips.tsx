@@ -197,19 +197,16 @@ export default function TuroTripsPage() {
     },
   });
 
-  // Fetch summary (responds to date filters)
+  // Fetch summary — always all-time totals, never date-filtered,
+  // so the stat cards show accurate fleet-wide numbers regardless of
+  // which date range the trips table is currently filtered to.
   const { data: summaryData } = useQuery<{
     success: boolean;
     data: TripsSummary;
   }>({
-    queryKey: ["/api/turo-trips/summary", startDate, endDate],
+    queryKey: ["/api/turo-trips/summary"],
     queryFn: async () => {
-      let url = buildApiUrl("/api/turo-trips/summary");
-      const params = new URLSearchParams();
-      if (startDate) params.append("startDate", startDate);
-      if (endDate) params.append("endDate", endDate);
-      if (params.toString()) url += `?${params.toString()}`;
-      const response = await fetch(url, {
+      const response = await fetch(buildApiUrl("/api/turo-trips/summary"), {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch summary");
