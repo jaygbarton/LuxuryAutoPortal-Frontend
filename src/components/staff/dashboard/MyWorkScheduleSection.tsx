@@ -213,7 +213,7 @@ export default function MyWorkScheduleSection() {
                         return (
                           <td
                             key={`shift-${weekNum}-${idx}`}
-                            className="w-[14.2857%] border border-gray-400 px-2 py-2 align-top text-center text-xs text-gray-800"
+                            className="w-[14.2857%] border border-gray-400 px-2 py-2 align-top text-center text-xs text-gray-800 h-16 min-h-[4rem]"
                           >
                             {isDayOff && (
                               <div className="mb-1 inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700">
