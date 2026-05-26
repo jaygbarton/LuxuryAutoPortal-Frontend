@@ -33,10 +33,20 @@ export function AuthGuard({ children }: AuthGuardProps) {
       }
     },
     retry: false,
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
-    // Use cached data if available, don't refetch immediately
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
+    // Keep the "fresh" window short so a server-side session invalidation
+    // (redeploy, expiry, manual logout in another tab) actually surfaces as
+    // a redirect-to-login instead of the cached "you're logged in" answer
+    // hanging around for 5 minutes. We've hit this in practice — the UI
+    // showed "Cathy (Admin)" while every API call returned 401 because
+    // /api/auth/me's cached result was still trusted.
+    staleTime: 1000 * 30,
+    // Always re-verify on mount and when the user tabs back in — cheap call
+    // and lets a stale session redirect us out quickly.
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    // Background polling so a session that dies while the page is open also
+    // gets caught within a minute, not when the user happens to navigate.
+    refetchInterval: 1000 * 60,
   });
 
   useEffect(() => {
