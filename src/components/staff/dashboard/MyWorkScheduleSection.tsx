@@ -30,6 +30,13 @@ interface MyShift {
 interface MyShiftsResponse {
   success: boolean;
   data: MyShift[];
+  /** Backend may return this when the user couldn't be resolved to an HR
+   *  employee record — that's the most common cause of a blank calendar
+   *  despite the admin having assigned shifts. */
+  diagnostic?: {
+    reason: "no_employee_record";
+    message: string;
+  };
 }
 
 function fmtTime(t: string | undefined): string {
@@ -223,7 +230,19 @@ export default function MyWorkScheduleSection() {
         </div>
       )}
 
+      {/* Diagnostic message takes priority over the generic empty state —
+          if the backend told us the user isn't linked to an employee record,
+          the calendar will ALWAYS be blank regardless of month, and a
+          generic "no shifts" line would mislead. */}
+      {!isLoading && data?.diagnostic?.reason === "no_employee_record" && (
+        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <strong className="font-semibold">Calendar can&apos;t find your shifts.</strong>{" "}
+          {data.diagnostic.message}
+        </div>
+      )}
+
       {!isLoading &&
+        !data?.diagnostic &&
         shifts.length === 0 &&
         Object.keys(leavesByDate).length === 0 && (
           <p className="mt-3 text-center text-xs italic text-gray-400">
