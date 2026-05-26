@@ -404,7 +404,9 @@ export function IncomeExpenseProvider({
         description: "Subcategory deleted globally (removed from all cars)",
       });
     } catch (error: any) {
-      if (!force) {
+      // Suppress the toast on 409 — the caller will prompt the user to force-delete.
+      // Also suppress when force=true (caller handles its own error toast).
+      if (!force && error?.status !== 409) {
         toast({
           title: "Cannot delete subcategory",
           description: error.message || "Failed to delete subcategory",
