@@ -54,7 +54,7 @@ import {
   Loader2,
   Upload,
 } from "lucide-react";
-import { format, differenceInHours } from "date-fns";
+import { differenceInHours } from "date-fns";
 
 interface TuroTrip {
   id: number;
@@ -750,29 +750,41 @@ export default function TuroTripsPage() {
     }).format(amount);
   };
 
-  const formatDate = (dateStr: string) => {
+  // Turo emails express all trip times in Mountain Time (Salt Lake City).
+  // The backend stores the resulting UTC instant; render it back in MT so the
+  // table matches what the Turo email and the Turo app show, regardless of
+  // the admin's browser timezone.
+  const MT_DATETIME_FMT = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Denver",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  const MT_DATE_FMT = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Denver",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const formatInMt = (dateStr: string, fmt: Intl.DateTimeFormat) => {
     try {
-      return format(new Date(dateStr), "MMM d, yyyy h:mm a");
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      // Intl outputs e.g. "Jun 5, 2026, 10:00 AM"; drop the comma before time to
+      // match the previous "MMM d, yyyy h:mm a" layout.
+      return fmt.format(d).replace(/,\s(\d{1,2}:\d{2})/, " $1");
     } catch {
       return dateStr;
     }
   };
 
-  const formatDateShort = (dateStr: string) => {
-    try {
-      return format(new Date(dateStr), "MMM d, yyyy");
-    } catch {
-      return dateStr;
-    }
-  };
-
-  const formatDateTime = (dateStr: string) => {
-    try {
-      return format(new Date(dateStr), "MMM d, yyyy h:mm a");
-    } catch {
-      return dateStr;
-    }
-  };
+  const formatDate = (dateStr: string) => formatInMt(dateStr, MT_DATETIME_FMT);
+  const formatDateShort = (dateStr: string) => formatInMt(dateStr, MT_DATE_FMT);
+  const formatDateTime = (dateStr: string) => formatInMt(dateStr, MT_DATETIME_FMT);
 
   // Highlight search terms in text
   const highlightText = (text: string | null, searchTerm: string) => {
