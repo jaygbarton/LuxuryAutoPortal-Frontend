@@ -21,7 +21,19 @@ import { useToast } from "@/hooks/use-toast";
 import { PhotoUpload } from "./PhotoUpload";
 import { CarSelectCombobox } from "./CarSelectCombobox";
 import { Plus, Trash2 } from "lucide-react";
-import type { Inspection } from "./types";
+import type { FuelLevelReturned, Inspection } from "./types";
+
+/** Dropdown options for the post-trip fuel reading. The label order matches
+ *  the order most fuel gauges read top-to-bottom on a dashboard. Anything
+ *  except 'full' fires an admin notification when saved. */
+const FUEL_LEVEL_OPTIONS: { value: FuelLevelReturned; label: string }[] = [
+  { value: "unknown", label: "Not checked yet" },
+  { value: "full", label: "Full" },
+  { value: "three_quarters", label: "3/4" },
+  { value: "half", label: "1/2" },
+  { value: "quarter", label: "1/4" },
+  { value: "empty", label: "Empty" },
+];
 
 interface InspectionEntry {
   date: string;
@@ -79,6 +91,8 @@ export function InspectionModal({
       : "",
     notes: inspection?.notes || "",
     photos: inspection?.photos || [],
+    fuel_level_returned: (inspection?.fuel_level_returned ??
+      "unknown") as FuelLevelReturned,
   });
 
   // Additional inspection entries (multiple date/time + inspector)
@@ -109,6 +123,8 @@ export function InspectionModal({
           : "",
         notes: inspection.notes || "",
         photos: inspection.photos || [],
+        fuel_level_returned: (inspection.fuel_level_returned ??
+          "unknown") as FuelLevelReturned,
       });
       setExtraEntries((inspection as any)?.inspection_entries ?? []);
     } else if (prefill) {
@@ -296,6 +312,44 @@ export function InspectionModal({
             <Plus className="w-4 h-4" />
             Add Another Inspection Date / Inspector
           </Button>
+
+          {/* Fuel level on return.
+              Anything other than "Full" fires an admin notification so the
+              team can request an incidentals charge on Turo before the
+              claim window closes (per client request — they missed
+              charging for a not-full return and lost $60). */}
+          <div>
+            <label className="text-sm text-muted-foreground">
+              Fuel level on return
+            </label>
+            <Select
+              value={formData.fuel_level_returned}
+              onValueChange={(v) =>
+                setFormData({
+                  ...formData,
+                  fuel_level_returned: v as FuelLevelReturned,
+                })
+              }
+            >
+              <SelectTrigger className="bg-card border-border text-foreground mt-1">
+                <SelectValue placeholder="Select fuel level" />
+              </SelectTrigger>
+              <SelectContent>
+                {FUEL_LEVEL_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {formData.fuel_level_returned !== "unknown" &&
+              formData.fuel_level_returned !== "full" && (
+                <p className="mt-1 text-xs text-amber-700">
+                  Saving as not-full will notify admins to file an
+                  incidentals charge on Turo.
+                </p>
+              )}
+          </div>
 
           <div>
             <label className="text-sm text-muted-foreground">Notes</label>

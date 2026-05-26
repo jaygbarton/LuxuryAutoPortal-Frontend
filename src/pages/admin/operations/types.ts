@@ -45,6 +45,14 @@ export interface OperationTask {
   updated_at: string;
 }
 
+export type FuelLevelReturned =
+  | "unknown"
+  | "empty"
+  | "quarter"
+  | "half"
+  | "three_quarters"
+  | "full";
+
 export interface Inspection {
   id: number;
   turo_trip_id: number | null;
@@ -58,6 +66,10 @@ export interface Inspection {
   moved_to_maintenance: boolean;
   notes: string | null;
   photos: string[];
+  /** Inspector's reading of the fuel gauge when the car came back. Anything
+   *  other than 'full' fires an admin notification so the team can charge
+   *  for an incidentals reimbursement on Turo. */
+  fuel_level_returned?: FuelLevelReturned;
   created_at: string;
   updated_at: string;
 }
