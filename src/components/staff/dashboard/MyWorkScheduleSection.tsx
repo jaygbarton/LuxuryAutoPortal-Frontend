@@ -106,12 +106,22 @@ export default function MyWorkScheduleSection() {
     return acc;
   }, {});
 
-  // YYYY-MM-DD → true if the employee has an approved leave that day.
+  // YYYY-MM-DD → true when the employee has an approved day off.
+  // Two sources: the employee_leave table (via /api/staff/leave) and the
+  // work_sched sentinel rows with work_sched_time = 'Day Off' (already in
+  // the shifts array from /api/me/work-schedule). We merge both so the
+  // calendar matches what the admin Work Schedule page shows.
   const leavesByDate: Record<string, boolean> = {};
   for (const l of leavesData?.data ?? []) {
     if (l.leave_is_status !== 1) continue;
     const date = l.leave_date?.slice(0, 10);
     if (date) leavesByDate[date] = true;
+  }
+  for (const s of shifts) {
+    if (String(s.work_sched_time).trim().toLowerCase() === "day off") {
+      const date = s.work_sched_date?.slice(0, 10);
+      if (date) leavesByDate[date] = true;
+    }
   }
 
   const dayCells = getArrayTotalDaysInMonthAndYear(month);
@@ -210,7 +220,9 @@ export default function MyWorkScheduleSection() {
                                 Day Off
                               </div>
                             )}
-                            {myShifts.map((s) => (
+                            {myShifts
+                              .filter((s) => String(s.work_sched_time).trim().toLowerCase() !== "day off")
+                              .map((s) => (
                               <div key={s.work_sched_aid}>
                                 <div className="font-semibold">{s.fullname ?? ""}</div>
                                 <div className="text-gray-600">
