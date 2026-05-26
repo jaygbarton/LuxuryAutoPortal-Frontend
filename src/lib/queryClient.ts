@@ -3,32 +3,32 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 /**
  * Compute the API base URL for the frontend.
  *
- * - Dev: default to relative URLs so the Vite proxy can forward `/api/*` to the backend
- * - Prod: prefer `VITE_API_URL`; if missing, fall back to known backend URL (Vercel) or same-origin
+ * - Dev:  default to relative URLs so the Vite proxy can forward `/api/*` to the backend.
+ * - Prod: ALWAYS default to relative URLs so the Vercel rewrites in vercel.json
+ *         proxy `/api/*` to the Render backend on the SAME origin as the page.
+ *         This keeps the session cookie first-party and avoids Chrome's
+ *         third-party-cookie blocking. Only fall back to a direct cross-origin
+ *         URL when `VITE_API_URL` is explicitly set (e.g. for staging/preview
+ *         deploys that aren't behind the same rewrites).
+ *
+ * Previously this only used relative URLs when the page origin contained
+ * "vercel.app". After a custom domain (app.goldenluxuryauto.com) was added,
+ * that check failed and the code fell through to a hard-coded cross-origin
+ * backend URL — which made every API call cross-site, turned the session
+ * cookie into a third-party cookie, and broke login in Chrome.
  */
 const computeApiBaseUrl = () => {
-  // In production on Vercel, use relative URLs so vercel.json rewrites proxy /api to backend (same-origin, credentials work)
-  if (import.meta.env.PROD && typeof window !== 'undefined' && window.location.origin.includes('vercel.app')) {
-    return "";
-  }
-
+  // Explicit override wins everywhere (staging, ad-hoc testing, etc).
   if (import.meta.env.VITE_API_URL) {
     const url = import.meta.env.VITE_API_URL.replace(/\/$/, "");
     console.log(`[API] Using VITE_API_URL: ${url}`);
     return url;
   }
 
-  // In production on other domains, use fallback backend URL
-  if (import.meta.env.PROD && typeof window !== 'undefined') {
-    const currentOrigin = window.location.origin;
-    if (!currentOrigin.includes('localhost') && !currentOrigin.includes('127.0.0.1')) {
-      const fallbackUrl = 'https://luxuryautoportal-replit-1.onrender.com';
-      console.warn(`⚠️ [API] VITE_API_URL not set! Using fallback backend URL: ${fallbackUrl}`);
-      return fallbackUrl;
-    }
-  }
-
-  return ""; // Empty string = relative URLs (use Vite proxy in dev)
+  // Default: relative URLs. In prod, vercel.json rewrites `/api/*` to the
+  // Render backend so the call appears same-origin to the browser. In dev,
+  // vite.config.ts proxy does the same thing locally.
+  return "";
 };
 
 const API_BASE_URL = computeApiBaseUrl();
