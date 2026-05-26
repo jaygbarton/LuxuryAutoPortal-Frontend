@@ -272,12 +272,24 @@ export default function AdminsPage() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({
-        title: "Success",
-        description: "User created successfully",
-      });
+      // When the email already existed, the backend adds the role to the
+      // user's switch-account access instead of creating a new row. Show the
+      // server's explanation so the admin knows what happened.
+      if (result?.promoted) {
+        toast({
+          title: "Existing user promoted",
+          description:
+            result.message ||
+            "This email already has an account. The selected role was added to their switch-account access.",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "User created successfully",
+        });
+      }
       setIsModalOpen(false);
       form.reset();
     },

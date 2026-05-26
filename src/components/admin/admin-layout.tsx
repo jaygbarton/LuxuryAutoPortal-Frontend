@@ -56,6 +56,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -408,6 +409,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
   const [switching, setSwitching] = useState(false);
+  const { toast } = useToast();
 
   const [expandedParents, setExpandedParents] = useState<
     Record<string, boolean>
@@ -635,8 +637,19 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       // paint.
       const target = role.isEmployee ? "/staff/dashboard" : "/dashboard";
       window.location.assign(target);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Switch role failed:", e);
+      // Surface the error so the user understands why nothing happened
+      // (e.g. backend returned 403 "You do not have access to this role"
+      // because the admin who granted access hasn't actually saved it yet,
+      // or the session's allowed-roles list is stale).
+      toast({
+        title: "Couldn't switch account",
+        description:
+          e?.message ||
+          "Switching to that role failed. Ask an admin to confirm the role is granted under Switch account access.",
+        variant: "destructive",
+      });
     } finally {
       setSwitching(false);
     }
