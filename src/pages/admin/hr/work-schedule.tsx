@@ -249,6 +249,7 @@ function AddEditModal({
   );
   const [startTime, setStartTime] = useState(editEntry?.work_sched_start_time?.slice(0, 5) ?? "09:00");
   const [endTime, setEndTime] = useState(editEntry?.work_sched_end_time?.slice(0, 5) ?? "17:00");
+  const [isDayOff, setIsDayOff] = useState(false);
   const [focusSearch, setFocusSearch] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -261,13 +262,14 @@ function AddEditModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
+        // Empty string returns all employees so the list is populated on open.
         body: JSON.stringify({ searchValue: employeeSearch }),
       });
       if (!res.ok) throw new Error("Search failed");
       const json = await res.json();
       return (json.data ?? []) as EmployeeOption[];
     },
-    enabled: open,
+    enabled: open && focusSearch,
   });
 
   const createMutation = useMutation({
@@ -315,6 +317,7 @@ function AddEditModal({
     setSelectedEmployee(editEntry ? { employee_aid: editEntry.employee_aid, fullname: editEntry.fullname } : null);
     setStartTime(editEntry?.work_sched_start_time?.slice(0, 5) ?? "09:00");
     setEndTime(editEntry?.work_sched_end_time?.slice(0, 5) ?? "17:00");
+    setIsDayOff(false);
     setEmployeeSearch(editEntry?.fullname ?? "");
   }, [open, editEntry]);
 
@@ -339,13 +342,22 @@ function AddEditModal({
         work_sched_end_time: endTime,
       });
     } else {
-      createMutation.mutate({
-        work_sched_date: cell.originalDate,
-        work_sched_code: cell.originalDateCode,
-        work_sched_emp_id: selectedEmployee.employee_aid,
-        work_sched_start_time: startTime,
-        work_sched_end_time: endTime,
-      });
+      if (isDayOff) {
+        createMutation.mutate({
+          work_sched_date: cell.originalDate,
+          work_sched_code: cell.originalDateCode,
+          work_sched_emp_id: selectedEmployee.employee_aid,
+          is_day_off: true,
+        });
+      } else {
+        createMutation.mutate({
+          work_sched_date: cell.originalDate,
+          work_sched_code: cell.originalDateCode,
+          work_sched_emp_id: selectedEmployee.employee_aid,
+          work_sched_start_time: startTime,
+          work_sched_end_time: endTime,
+        });
+      }
     }
   };
 
@@ -468,17 +480,33 @@ function AddEditModal({
               <strong>{selectedEmployee?.fullname}</strong> has an approved day off on this date. A work schedule cannot be added.
             </div>
           )}
-          <div className="grid grid-cols-[1fr,auto,1fr] gap-2 items-end">
-            <div>
-              <Label>Start</Label>
-              <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="mt-1" required />
+          {!isEdit && (
+            <div className="flex items-center gap-2">
+              <input
+                id="is-day-off"
+                type="checkbox"
+                checked={isDayOff}
+                onChange={(e) => setIsDayOff(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 accent-rose-600"
+              />
+              <Label htmlFor="is-day-off" className="cursor-pointer text-sm font-medium">
+                Mark as Day Off
+              </Label>
             </div>
-            <span className="pb-2">to</span>
-            <div>
-              <Label>End</Label>
-              <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="mt-1" required />
+          )}
+          {!isDayOff && (
+            <div className="grid grid-cols-[1fr,auto,1fr] gap-2 items-end">
+              <div>
+                <Label>Start</Label>
+                <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="mt-1" required />
+              </div>
+              <span className="pb-2">to</span>
+              <div>
+                <Label>End</Label>
+                <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="mt-1" required />
+              </div>
             </div>
-          </div>
+          )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
               Cancel
