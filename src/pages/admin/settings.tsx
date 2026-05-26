@@ -570,6 +570,26 @@ export default function SettingsPage() {
                       >
                         Edit
                       </Button>
+                      <Button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(buildApiUrl("/api/settings/slack-bot-token/debug"), { credentials: "include" });
+                            const data = await res.json();
+                            toast({
+                              title: `Active source: ${data.activeSource}`,
+                              description: `Using: ${data.willUse}${data.dbToken !== data.willUse ? ` | DB: ${data.dbToken} | Env: ${data.envToken}` : ""}`,
+                            });
+                          } catch {
+                            toast({ title: "Debug failed", variant: "destructive" });
+                          }
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="border-border text-muted-foreground hover:bg-muted"
+                        title="Show which bot token is active (DB vs env)"
+                      >
+                        Which token?
+                      </Button>
                     </div>
                   )}
                 </div>
