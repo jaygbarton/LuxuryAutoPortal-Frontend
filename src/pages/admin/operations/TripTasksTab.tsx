@@ -166,7 +166,9 @@ export function TripTasksTab() {
           .toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      if (from != null || to != null) {
+      // Skip date filter when the user is actively searching — a reservation
+      // ID or guest name search should find the row regardless of date range.
+      if (!q && (from != null || to != null)) {
         const trip = task.turo_trip_id != null ? tripsById.get(task.turo_trip_id) : undefined;
         const d = trip?.tripStart
           ? new Date(trip.tripStart).getTime()

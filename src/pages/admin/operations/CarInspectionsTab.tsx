@@ -146,7 +146,9 @@ export function CarInspectionsTab() {
         if (!hay.includes(q)) return false;
       }
       if (filterSource !== "all" && insp.source !== filterSource) return false;
-      if (from != null || to != null) {
+      // Skip date filter when searching — a reservation ID or car name search
+      // should find the record regardless of date range.
+      if (!q && (from != null || to != null)) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
         const d = trip?.tripStart
           ? new Date(trip.tripStart).getTime()

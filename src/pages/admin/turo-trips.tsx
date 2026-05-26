@@ -185,11 +185,15 @@ export default function TuroTripsPage() {
       if (debouncedSearchQuery) {
         url += `&q=${encodeURIComponent(debouncedSearchQuery)}`;
       }
-      if (startDate) {
-        url += `&startDate=${encodeURIComponent(startDate)}`;
-      }
-      if (endDate) {
-        url += `&endDate=${encodeURIComponent(endDate)}`;
+      // Skip date filters when a search term is active so a reservation ID
+      // or guest name search always finds the trip regardless of date range.
+      if (!debouncedSearchQuery) {
+        if (startDate) {
+          url += `&startDate=${encodeURIComponent(startDate)}`;
+        }
+        if (endDate) {
+          url += `&endDate=${encodeURIComponent(endDate)}`;
+        }
       }
       const response = await fetch(url, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch trips");

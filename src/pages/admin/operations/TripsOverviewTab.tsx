@@ -344,8 +344,13 @@ export function TripsOverviewTab() {
       params.set("offset", String(offset));
       if (debouncedSearch.trim()) params.set("q", debouncedSearch.trim());
       if (filterStatus !== "all") params.set("status", filterStatus);
-      if (tripStartFrom) params.set("startDate", tripStartFrom);
-      if (tripEndOn) params.set("tripEndOn", tripEndOn);
+      // When the user types a search term, skip date filters so a reservation
+      // ID / guest name / plate search always finds the trip regardless of
+      // which date range the filters happen to be set to.
+      if (!debouncedSearch.trim()) {
+        if (tripStartFrom) params.set("startDate", tripStartFrom);
+        if (tripEndOn) params.set("tripEndOn", tripEndOn);
+      }
       const response = await fetch(
         buildApiUrl(`/api/turo-trips?${params.toString()}`),
         { credentials: "include" },
