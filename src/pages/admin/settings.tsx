@@ -156,6 +156,35 @@ export default function SettingsPage() {
     },
   });
 
+  const testMutation = useMutation({
+    mutationFn: async (formType: string) => {
+      const response = await fetch(buildApiUrl("/api/settings/slack-channels/test"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ formType }),
+      });
+      const json = await response.json();
+      if (!response.ok || !json.success) {
+        throw new Error(json.error || json.message || "Test failed");
+      }
+      return json;
+    },
+    onSuccess: (_data, formType) => {
+      toast({
+        title: "Test sent",
+        description: `Check the Slack channel for "${formTypeLabels[formType] || formType}" — a test message was just posted.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Test failed",
+        description: error.message || "Could not send test message. Make sure the bot is invited to the channel.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEdit = (formType: string, currentChannelId: string) => {
     setEditingChannels((prev) => ({
       ...prev,
@@ -628,6 +657,21 @@ export default function SettingsPage() {
                             className="border-border text-muted-foreground hover:bg-muted"
                           >
                             Edit
+                          </Button>
+                          <Button
+                            onClick={() => testMutation.mutate(config.formType)}
+                            disabled={testMutation.isPending || !config.channelId}
+                            variant="outline"
+                            size="sm"
+                            className="border-border text-muted-foreground hover:bg-muted"
+                            title="Send a test message to this Slack channel"
+                          >
+                            {testMutation.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Slack className="w-4 h-4" />
+                            )}
+                            <span className="ml-1">Test</span>
                           </Button>
                         </div>
                       )}
