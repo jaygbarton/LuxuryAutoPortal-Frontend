@@ -400,13 +400,9 @@ export default function ClientDashboard() {
   const carHref = (segment: string) =>
     activeCar ? `/admin/cars/${activeCar.id}/${segment}` : "#";
 
-  const historyHref = activeCar?.makeModel
-    ? `/admin/turo-trips?car=${encodeURIComponent(activeCar.makeModel)}`
-    : "/admin/turo-trips";
-
   const reportLinks = [
     { href: carHref("earnings"),       icon: DollarSign,   label: "Earnings" },
-    { href: historyHref,               icon: History,      label: "History" },
+    { href: "/client/trip-history",    icon: History,      label: "History" },
     { href: carHref("totals"),         icon: BarChart3,    label: "Totals" },
     { href: carHref("records"),        icon: Folder,       label: "Records and Files" },
 

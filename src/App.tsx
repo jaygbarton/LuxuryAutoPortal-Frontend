@@ -69,6 +69,7 @@ import ClientProfilePage from "@/pages/admin/profile";
 import TrainingManualPage from "@/pages/admin/training-manual";
 import ClientTrainingManualPage from "@/pages/client/training-manual";
 import ClientDashboardPage from "@/pages/client/dashboard";
+import ClientTripHistoryPage from "@/pages/client/trip-history";
 import DashboardRouter from "@/pages/dashboard-router";
 import SignContract from "@/pages/sign-contract";
 import Signup from "@/pages/signup";
@@ -188,6 +189,9 @@ function Router() {
             <Route path="/client/my-car-tracking">
               <RequireRole roles={["isClient"]}><ClientCarTrackingPage /></RequireRole>
             </Route>
+            <Route path="/client/trip-history">
+              <RequireRole roles={["isClient"]}><ClientTripHistoryPage /></RequireRole>
+            </Route>
 
             {/* Admin-only routes */}
             <Route path="/admin/admins">
@@ -206,7 +210,7 @@ function Router() {
               <RequireRole roles={["isAdmin"]}><ViewAsEmployeePage /></RequireRole>
             </Route>
             <Route path="/admin/forms">
-              <RequireRole roles={["isAdmin", "isClient"]}><FormsPage /></RequireRole>
+              <RequireRole roles={["isAdmin"]}><FormsPage /></RequireRole>
             </Route>
             <Route path="/cars">
               <RequireRole roles={["isAdmin"]}><CarsPage /></RequireRole>
@@ -341,7 +345,7 @@ function Router() {
               <RequireRole roles={["isAdmin"]}><TrainingManualPage /></RequireRole>
             </Route>
             <Route path="/admin/turo-trips">
-              <RequireRole roles={["isAdmin", "isClient"]}><TuroTripsPage /></RequireRole>
+              <RequireRole roles={["isAdmin"]}><TuroTripsPage /></RequireRole>
             </Route>
             <Route path="/admin/testimonials">
               <RequireRole roles={["isAdmin"]}><AdminTestimonialsPage /></RequireRole>

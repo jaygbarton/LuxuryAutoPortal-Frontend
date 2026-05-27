@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
@@ -120,15 +120,14 @@ function calculateDaysRented(
 
 export default function TuroTripsPage() {
   const [selectedTrip, setSelectedTrip] = useState<TuroTrip | null>(null);
-  const initialCar = new URLSearchParams(window.location.search).get("car") ?? "";
-  const [searchQuery, setSearchQuery] = useState(initialCar);
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "booked" | "cancelled" | "completed"
   >("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(initialCar);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   // Inline odometer editing: tripId → { start, end }
   const [odometerEdits, setOdometerEdits] = useState<
     Record<number, { start: string; end: string }>
@@ -152,17 +151,6 @@ export default function TuroTripsPage() {
   const itemsPerPage = 20;
   const queryClient = useQueryClient();
   const { toast } = useToast();
-
-  const { data: meData } = useQuery<{ user?: { isAdmin?: boolean } }>({
-    queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-      if (!res.ok) return { user: undefined };
-      return res.json();
-    },
-    staleTime: 1000 * 60,
-  });
-  const isAdmin = meData?.user?.isAdmin === true;
 
   // Debounced search
   React.useEffect(() => {
@@ -851,7 +839,6 @@ export default function TuroTripsPage() {
               Automated trip tracking from Turo emails
             </p>
           </div>
-          {isAdmin && (
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => setImportOpen(true)}>
               <Upload className="w-4 h-4 mr-2" />
@@ -932,7 +919,6 @@ export default function TuroTripsPage() {
               )}
             </Button>
           </div>
-          )}
         </div>
 
         {/* Summary Cards */}
@@ -2041,8 +2027,8 @@ export default function TuroTripsPage() {
                 </div>
               )}
 
-              {/* Per-trip "Re-parse from Turo email" action — admin only */}
-              {isAdmin && <div className="border-t pt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+              {/* Per-trip "Re-parse from Turo email" action */}
+              <div className="border-t pt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
                 <p className="text-muted-foreground text-xs leading-snug max-w-md">
                   Trip Start / Trip Ends look wrong? Re-parse the original
                   Turo email for this reservation. Times will be interpreted
@@ -2068,7 +2054,7 @@ export default function TuroTripsPage() {
                     </>
                   )}
                 </Button>
-              </div>}
+              </div>
             </div>
           )}
         </DialogContent>
