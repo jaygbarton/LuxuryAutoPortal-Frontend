@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
-import { buildUploadApiUrl } from "@/lib/queryClient";
+import { buildUploadApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 
 interface PhotoUploadProps {
   photos: string[];
@@ -123,7 +123,7 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
             className="relative w-16 h-16 rounded border border-border overflow-hidden group cursor-pointer"
             onClick={() => { setSelectedPhoto(url); setGalleryOpen(true); }}
           >
-            <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
+            <img src={getProxiedImageUrl(url)} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
             {!disabled && (
               <button
                 onClick={(e) => { e.stopPropagation(); removePhoto(index); }}
@@ -192,13 +192,13 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
                 className={`relative rounded border overflow-hidden cursor-pointer ${selectedPhoto === url ? "border-primary border-2" : "border-border"}`}
                 onClick={() => setSelectedPhoto(url)}
               >
-                <img src={url} alt={`Photo ${index + 1}`} className="w-full aspect-square object-cover" />
+                <img src={getProxiedImageUrl(url)} alt={`Photo ${index + 1}`} className="w-full aspect-square object-cover" />
               </div>
             ))}
           </div>
           {selectedPhoto && (
             <div className="mt-3 flex justify-center">
-              <img src={selectedPhoto} alt="Selected" className="max-h-[40vh] rounded object-contain" />
+              <img src={getProxiedImageUrl(selectedPhoto)} alt="Selected" className="max-h-[40vh] rounded object-contain" />
             </div>
           )}
         </DialogContent>
