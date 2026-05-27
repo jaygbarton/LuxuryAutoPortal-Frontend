@@ -448,6 +448,22 @@ export default function AdminHrTaskManagement() {
         }
       } catch {}
     }
+    // Parse existing recurrence settings so the edit modal reflects them
+    let rec = { ...EMPTY_RECURRENCE };
+    if (task.task_timer_recurrence) {
+      try {
+        const parsed = JSON.parse(task.task_timer_recurrence);
+        if (parsed && parsed.type && parsed.type !== "none") {
+          rec = {
+            type: parsed.type,
+            days: Array.isArray(parsed.days) ? parsed.days : [],
+            dayOfMonth: parsed.dayOfMonth ?? 1,
+            endDate: parsed.endDate ?? "",
+          };
+        }
+      } catch {}
+    }
+    setRecurrence(rec);
     setForm({
       task_timer_name: task.task_timer_name || "",
       task_timer_date_end: task.task_timer_date_end || "",
@@ -474,7 +490,7 @@ export default function AdminHrTaskManagement() {
       toast({ title: "Task name is required", variant: "destructive" });
       return;
     }
-    if (!editingTask && recurrence.type !== "none") {
+    if (recurrence.type !== "none") {
       if (!recurrence.endDate) {
         toast({ title: "End repeat date is required for recurring tasks", variant: "destructive" });
         return;
@@ -502,7 +518,7 @@ export default function AdminHrTaskManagement() {
         : "[]",
       task_timer_goal: form.assigneeName,
     };
-    if (!editingTask && recurrence.type !== "none") {
+    if (recurrence.type !== "none") {
       payload.recurrence = {
         type: recurrence.type,
         ...(recurrence.type === "weekly" ? { days: recurrence.days } : {}),
@@ -866,95 +882,93 @@ export default function AdminHrTaskManagement() {
               />
             </div>
 
-            {/* Repeat (new tasks only) */}
-            {!editingTask && (
-              <div className="space-y-3">
-                <div>
-                  <Label>Repeat</Label>
-                  <Select
-                    value={recurrence.type}
-                    onValueChange={(v: any) =>
-                      setRecurrence((r) => ({ ...r, type: v, days: [], dayOfMonth: 1 }))
-                    }
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Does not repeat</SelectItem>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly (pick days)</SelectItem>
-                      <SelectItem value="monthly">Monthly (pick day)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {recurrence.type === "weekly" && (
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Days of the week</Label>
-                    <div className="flex flex-wrap gap-2 mt-1.5">
-                      {WEEKDAYS.map((d) => (
-                        <button
-                          key={d.value}
-                          type="button"
-                          onClick={() =>
-                            setRecurrence((r) => ({
-                              ...r,
-                              days: r.days.includes(d.value)
-                                ? r.days.filter((x) => x !== d.value)
-                                : [...r.days, d.value],
-                            }))
-                          }
-                          className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                            recurrence.days.includes(d.value)
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "border-border text-muted-foreground hover:border-primary/50"
-                          }`}
-                        >
-                          {d.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {recurrence.type === "monthly" && (
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Day of the month</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={31}
-                      className="mt-1 w-24"
-                      value={recurrence.dayOfMonth}
-                      onChange={(e) =>
-                        setRecurrence((r) => ({
-                          ...r,
-                          dayOfMonth: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)),
-                        }))
-                      }
-                    />
-                  </div>
-                )}
-
-                {recurrence.type !== "none" && (
-                  <div>
-                    <Label className="text-sm text-muted-foreground">End repeat date <span className="text-destructive">*</span></Label>
-                    <Input
-                      type="date"
-                      className="mt-1"
-                      value={recurrence.endDate}
-                      onChange={(e) =>
-                        setRecurrence((r) => ({ ...r, endDate: e.target.value }))
-                      }
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Occurrences will be created up to this date (max 1 year).
-                    </p>
-                  </div>
-                )}
+            {/* Repeat */}
+            <div className="space-y-3">
+              <div>
+                <Label>Repeat</Label>
+                <Select
+                  value={recurrence.type}
+                  onValueChange={(v: any) =>
+                    setRecurrence((r) => ({ ...r, type: v, days: [], dayOfMonth: 1 }))
+                  }
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Does not repeat</SelectItem>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly (pick days)</SelectItem>
+                    <SelectItem value="monthly">Monthly (pick day)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+
+              {recurrence.type === "weekly" && (
+                <div>
+                  <Label className="text-sm text-muted-foreground">Days of the week</Label>
+                  <div className="flex flex-wrap gap-2 mt-1.5">
+                    {WEEKDAYS.map((d) => (
+                      <button
+                        key={d.value}
+                        type="button"
+                        onClick={() =>
+                          setRecurrence((r) => ({
+                            ...r,
+                            days: r.days.includes(d.value)
+                              ? r.days.filter((x) => x !== d.value)
+                              : [...r.days, d.value],
+                          }))
+                        }
+                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                          recurrence.days.includes(d.value)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "border-border text-muted-foreground hover:border-primary/50"
+                        }`}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {recurrence.type === "monthly" && (
+                <div>
+                  <Label className="text-sm text-muted-foreground">Day of the month</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={31}
+                    className="mt-1 w-24"
+                    value={recurrence.dayOfMonth}
+                    onChange={(e) =>
+                      setRecurrence((r) => ({
+                        ...r,
+                        dayOfMonth: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)),
+                      }))
+                    }
+                  />
+                </div>
+              )}
+
+              {recurrence.type !== "none" && (
+                <div>
+                  <Label className="text-sm text-muted-foreground">End repeat date <span className="text-destructive">*</span></Label>
+                  <Input
+                    type="date"
+                    className="mt-1"
+                    value={recurrence.endDate}
+                    onChange={(e) =>
+                      setRecurrence((r) => ({ ...r, endDate: e.target.value }))
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Occurrences will be created up to this date (max 1 year).
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Status */}
             <div>
