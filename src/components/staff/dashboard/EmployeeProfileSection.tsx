@@ -112,7 +112,6 @@ export default function EmployeeProfileSection() {
             </div>
             {e.employee_mobile_number && (
               <div className="flex items-center gap-1.5">
-                <Phone className="h-3.5 w-3.5 text-gray-400" />
                 <span className="font-semibold">Mobile Number:</span>
                 <span>{e.employee_mobile_number}</span>
               </div>
