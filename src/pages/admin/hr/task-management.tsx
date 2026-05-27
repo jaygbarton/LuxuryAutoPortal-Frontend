@@ -377,9 +377,33 @@ export default function AdminHrTaskManagement() {
 
   const rows = data?.data ?? [];
 
+  // Current admin (from the already-cached /api/auth/me query). Used to
+  // pre-fill the "Assignee" / "Assigned By" input so newly created tasks
+  // never end up with that column blank, which was the recurring bug.
+  const { data: meData } = useQuery<{
+    user?: { firstName?: string; lastName?: string; email?: string };
+  }>({
+    queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/auth/me"), {
+        credentials: "include",
+      });
+      if (!res.ok) return { user: undefined };
+      return res.json();
+    },
+    retry: false,
+    staleTime: 1000 * 60 * 5,
+  });
+  const currentUserName = (() => {
+    const u = meData?.user;
+    if (!u) return "";
+    const full = `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim();
+    return full || u.email || "";
+  })();
+
   function openAdd() {
     setEditingTask(null);
-    setForm({ ...EMPTY_FORM });
+    setForm({ ...EMPTY_FORM, assigneeName: currentUserName });
     setPhotos([]);
     setExistingPhotos([]);
     setModalOpen(true);
