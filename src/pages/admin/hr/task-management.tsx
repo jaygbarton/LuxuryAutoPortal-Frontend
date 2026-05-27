@@ -211,6 +211,23 @@ const EMPTY_FORM = {
   assigneeName: "", // user who created / assigned (free text)
 };
 
+const EMPTY_RECURRENCE = {
+  type: "none" as "none" | "daily" | "weekly" | "monthly",
+  days: [] as number[], // 0=Sun…6=Sat
+  dayOfMonth: 1,
+  endDate: "",
+};
+
+const WEEKDAYS = [
+  { label: "Sun", value: 0 },
+  { label: "Mon", value: 1 },
+  { label: "Tue", value: 2 },
+  { label: "Wed", value: 3 },
+  { label: "Thu", value: 4 },
+  { label: "Fri", value: 5 },
+  { label: "Sat", value: 6 },
+];
+
 export default function AdminHrTaskManagement() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -221,6 +238,7 @@ export default function AdminHrTaskManagement() {
   const [historyTask, setHistoryTask] = useState<any | null>(null);
   const [commentTask, setCommentTask] = useState<any | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [recurrence, setRecurrence] = useState({ ...EMPTY_RECURRENCE });
   const [photos, setPhotos] = useState<File[]>([]);
   // Photos already saved on the task being edited. Tracked separately from
   // `photos` (new uploads not yet sent) so the Edit modal can show what's on
@@ -400,6 +418,7 @@ export default function AdminHrTaskManagement() {
     setModalOpen(false);
     setEditingTask(null);
     setForm({ ...EMPTY_FORM });
+    setRecurrence({ ...EMPTY_RECURRENCE });
     setPhotos([]);
     setExistingPhotos([]);
   }
@@ -409,7 +428,21 @@ export default function AdminHrTaskManagement() {
       toast({ title: "Task name is required", variant: "destructive" });
       return;
     }
-    const payload = {
+    if (!editingTask && recurrence.type !== "none") {
+      if (!recurrence.endDate) {
+        toast({ title: "End repeat date is required for recurring tasks", variant: "destructive" });
+        return;
+      }
+      if (recurrence.type === "weekly" && recurrence.days.length === 0) {
+        toast({ title: "Select at least one day of the week", variant: "destructive" });
+        return;
+      }
+      if (!form.task_timer_date_end) {
+        toast({ title: "Due date is required for recurring tasks", variant: "destructive" });
+        return;
+      }
+    }
+    const payload: any = {
       task_timer_name: form.task_timer_name.trim(),
       task_timer_date_end: form.task_timer_date_end,
       task_timer_date_start: form.task_timer_date_end, // same for compat
@@ -421,8 +454,16 @@ export default function AdminHrTaskManagement() {
             { id: form.task_timer_emp_id, name: form.assignedToName },
           ])
         : "[]",
-      task_timer_goal: form.assigneeName, // assignee (who created the task)
+      task_timer_goal: form.assigneeName,
     };
+    if (!editingTask && recurrence.type !== "none") {
+      payload.recurrence = {
+        type: recurrence.type,
+        ...(recurrence.type === "weekly" ? { days: recurrence.days } : {}),
+        ...(recurrence.type === "monthly" ? { dayOfMonth: recurrence.dayOfMonth } : {}),
+        endDate: recurrence.endDate,
+      };
+    }
     if (editingTask) {
       updateMutation.mutate({ id: editingTask.task_timer_aid, body: payload });
     } else {
@@ -783,6 +824,96 @@ export default function AdminHrTaskManagement() {
                 }
               />
             </div>
+
+            {/* Repeat (new tasks only) */}
+            {!editingTask && (
+              <div className="space-y-3">
+                <div>
+                  <Label>Repeat</Label>
+                  <Select
+                    value={recurrence.type}
+                    onValueChange={(v: any) =>
+                      setRecurrence((r) => ({ ...r, type: v, days: [], dayOfMonth: 1 }))
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Does not repeat</SelectItem>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly (pick days)</SelectItem>
+                      <SelectItem value="monthly">Monthly (pick day)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {recurrence.type === "weekly" && (
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Days of the week</Label>
+                    <div className="flex flex-wrap gap-2 mt-1.5">
+                      {WEEKDAYS.map((d) => (
+                        <button
+                          key={d.value}
+                          type="button"
+                          onClick={() =>
+                            setRecurrence((r) => ({
+                              ...r,
+                              days: r.days.includes(d.value)
+                                ? r.days.filter((x) => x !== d.value)
+                                : [...r.days, d.value],
+                            }))
+                          }
+                          className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                            recurrence.days.includes(d.value)
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "border-border text-muted-foreground hover:border-primary/50"
+                          }`}
+                        >
+                          {d.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {recurrence.type === "monthly" && (
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Day of the month</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={31}
+                      className="mt-1 w-24"
+                      value={recurrence.dayOfMonth}
+                      onChange={(e) =>
+                        setRecurrence((r) => ({
+                          ...r,
+                          dayOfMonth: Math.min(31, Math.max(1, parseInt(e.target.value) || 1)),
+                        }))
+                      }
+                    />
+                  </div>
+                )}
+
+                {recurrence.type !== "none" && (
+                  <div>
+                    <Label className="text-sm text-muted-foreground">End repeat date <span className="text-destructive">*</span></Label>
+                    <Input
+                      type="date"
+                      className="mt-1"
+                      value={recurrence.endDate}
+                      onChange={(e) =>
+                        setRecurrence((r) => ({ ...r, endDate: e.target.value }))
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Occurrences will be created up to this date (max 1 year).
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Status */}
             <div>
