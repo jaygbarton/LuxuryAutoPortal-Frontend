@@ -153,6 +153,17 @@ export default function TuroTripsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const { data: meData } = useQuery<{ user?: { isAdmin?: boolean } }>({
+    queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
+      if (!res.ok) return { user: undefined };
+      return res.json();
+    },
+    staleTime: 1000 * 60,
+  });
+  const isAdmin = meData?.user?.isAdmin === true;
+
   // Debounced search
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -840,6 +851,7 @@ export default function TuroTripsPage() {
               Automated trip tracking from Turo emails
             </p>
           </div>
+          {isAdmin && (
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => setImportOpen(true)}>
               <Upload className="w-4 h-4 mr-2" />
@@ -920,6 +932,7 @@ export default function TuroTripsPage() {
               )}
             </Button>
           </div>
+          )}
         </div>
 
         {/* Summary Cards */}
@@ -2028,13 +2041,8 @@ export default function TuroTripsPage() {
                 </div>
               )}
 
-              {/* Per-trip "Re-parse from Turo email" action. Use this when a
-                  row's Trip Start / Trip Ends are clearly wrong: it re-fetches
-                  the original booking email by reservation ID, re-runs the
-                  parser, rewrites the dates if it can extract them, and shows
-                  the before/parsed/after values + a body snippet in the toast
-                  so you can see what the parser saw. */}
-              <div className="border-t pt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+              {/* Per-trip "Re-parse from Turo email" action — admin only */}
+              {isAdmin && <div className="border-t pt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
                 <p className="text-muted-foreground text-xs leading-snug max-w-md">
                   Trip Start / Trip Ends look wrong? Re-parse the original
                   Turo email for this reservation. Times will be interpreted
@@ -2060,7 +2068,7 @@ export default function TuroTripsPage() {
                     </>
                   )}
                 </Button>
-              </div>
+              </div>}
             </div>
           )}
         </DialogContent>
