@@ -5,6 +5,7 @@ export interface TuroTrip {
   carName: string | null;
   carLink: string | null;
   plateNumber: string | null;
+  vinNumber: string | null;
   guestName: string | null;
   guestLink: string | null;
   phoneNumber: string | null;

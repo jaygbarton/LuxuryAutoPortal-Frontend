@@ -351,6 +351,7 @@ export function TripTasksTab() {
                   <TableHead className="text-foreground font-medium">Reservation #</TableHead>
                   <TableHead className="text-foreground font-medium">CAR Name</TableHead>
                   <TableHead className="text-foreground font-medium">Plate #</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">VIN #</TableHead>
                   <TableHead className="text-foreground font-medium">Trip Start</TableHead>
                   <TableHead className="text-foreground font-medium">Pick Up Location</TableHead>
                   <TableHead className="text-foreground font-medium">Trip Ends</TableHead>
@@ -374,7 +375,7 @@ export function TripTasksTab() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={20}
+                      colSpan={21}
                       className="text-center py-12 text-muted-foreground"
                     >
                       Loading tasks...
@@ -383,7 +384,7 @@ export function TripTasksTab() {
                 ) : filteredTasks.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={20}
+                      colSpan={21}
                       className="text-center py-12 text-muted-foreground"
                     >
                       No tasks found
@@ -416,6 +417,9 @@ export function TripTasksTab() {
                         </TableCell>
                         <TableCell className="text-foreground font-mono text-sm">
                           {trip?.plateNumber || "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground font-mono text-sm whitespace-nowrap">
+                          {trip?.vinNumber || "--"}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                           {trip ? formatDate(trip.tripStart) : "--"}

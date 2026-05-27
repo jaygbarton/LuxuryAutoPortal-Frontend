@@ -66,6 +66,7 @@ interface TuroTrip {
   carName: string | null;
   carLink: string | null;
   plateNumber: string | null;
+  vinNumber: string | null;
   tripStart: string;
   tripEnd: string;
   earnings: number;
@@ -639,7 +640,7 @@ export default function TuroTripsPage() {
 
   // Parse the user's paste (tab or multi-space separated rows from Excel) and
   // POST it to the bulk-import endpoint. We accept either a header row or none
-  // — column order is fixed: Reservation ID, Plate#, Trip Start Odometer,
+  // — column order is fixed: Reservation ID, Plate#, VIN#, Trip Start Odometer,
   // Trip Ends Odometer.
   const runImport = async () => {
     const raw = importText.trim();
@@ -667,12 +668,14 @@ export default function TuroTripsPage() {
       // Plate may carry a leading '#' from the export — strip it.
       const plateRaw = (cols[1] ?? "").trim();
       const plateNumber = plateRaw === "" ? null : plateRaw.replace(/^#/, "");
-      const startRaw = (cols[2] ?? "").trim();
-      const endRaw = (cols[3] ?? "").trim();
+      const vinRaw = (cols[2] ?? "").trim();
+      const startRaw = (cols[3] ?? "").trim();
+      const endRaw = (cols[4] ?? "").trim();
       const row: any = { reservationId };
       // Only include fields the user actually filled in so we don't clobber
       // existing values with blanks.
       if (cols.length >= 2) row.plateNumber = plateNumber;
+      if (vinRaw !== "") row.vinNumber = vinRaw;
       if (startRaw !== "") row.tripStartOdometer = startRaw;
       if (endRaw !== "") row.tripEndOdometer = endRaw;
       rows.push(row);
@@ -1132,6 +1135,9 @@ export default function TuroTripsPage() {
                       Plate #
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
+                      VIN #
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Trip Start
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
@@ -1366,6 +1372,11 @@ export default function TuroTripsPage() {
                                 </div>
                               );
                             })()}
+                          </TableCell>
+
+                          {/* VIN # */}
+                          <TableCell className="text-sm whitespace-nowrap font-mono" onClick={() => setSelectedTrip(trip)}>
+                            {trip.vinNumber || "-"}
                           </TableCell>
 
                           {/* Trip Start */}
@@ -1859,6 +1870,11 @@ export default function TuroTripsPage() {
                         selectedTrip.plateNumber,
                       )}
                     </div>
+                    {selectedTrip.vinNumber && (
+                      <div className="text-xs text-muted-foreground font-mono">
+                        VIN: {selectedTrip.vinNumber}
+                      </div>
+                    )}
                     {selectedTrip.carLink && (
                       <a
                         href={selectedTrip.carLink}
@@ -2012,9 +2028,9 @@ export default function TuroTripsPage() {
               Paste rows directly from your Turo Excel export. Column order:
               <span className="font-mono">
                 {" "}
-                Reservation ID, Plate#, Trip Start Odometer, Trip Ends Odometer
+                Reservation ID, Plate#, VIN#, Trip Start Odometer, Trip Ends Odometer
               </span>
-              . Plate # is required to fill the column; odometer values are
+              . Plate # is required to fill the column; VIN# and odometer values are
               optional and can be left blank. Unknown reservation IDs are
               reported, not created.
             </DialogDescription>
@@ -2023,7 +2039,7 @@ export default function TuroTripsPage() {
             value={importText}
             onChange={(e) => setImportText(e.target.value)}
             placeholder={
-              "41899967\t#G022VR\t\t\n43472991\t#H868CW\t\t\n49053682\t#H516HL\t23044\t23144"
+              "41899967\t#G022VR\t1HGCM82633A004352\t\t\n43472991\t#H868CW\t\t\t\n49053682\t#H516HL\t\t23044\t23144"
             }
             className="font-mono text-xs h-64"
             disabled={importing}

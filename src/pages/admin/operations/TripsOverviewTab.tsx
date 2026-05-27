@@ -604,6 +604,9 @@ export function TripsOverviewTab() {
                     Plate #
                   </TableHead>
                   <TableHead className="text-foreground font-medium whitespace-nowrap">
+                    VIN #
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">
                     Trip Start
                   </TableHead>
                   <TableHead className="text-foreground font-medium whitespace-nowrap">
@@ -702,6 +705,9 @@ export function TripsOverviewTab() {
                         </TableCell>
                         <TableCell className="text-foreground font-mono text-sm whitespace-nowrap">
                           {trip.plateNumber || "--"}
+                        </TableCell>
+                        <TableCell className="text-foreground font-mono text-sm whitespace-nowrap">
+                          {trip.vinNumber || "--"}
                         </TableCell>
                         <TableCell className="text-foreground text-sm whitespace-nowrap">
                           {formatDateTime(trip.tripStart)}
