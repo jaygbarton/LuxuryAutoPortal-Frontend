@@ -70,6 +70,7 @@ import TrainingManualPage from "@/pages/admin/training-manual";
 import ClientTrainingManualPage from "@/pages/client/training-manual";
 import ClientDashboardPage from "@/pages/client/dashboard";
 import ClientTripHistoryPage from "@/pages/client/trip-history";
+import ClientOffboardingFormPage from "@/pages/client/offboarding-form";
 import DashboardRouter from "@/pages/dashboard-router";
 import SignContract from "@/pages/sign-contract";
 import Signup from "@/pages/signup";
@@ -191,6 +192,9 @@ function Router() {
             </Route>
             <Route path="/client/trip-history">
               <RequireRole roles={["isClient"]}><ClientTripHistoryPage /></RequireRole>
+            </Route>
+            <Route path="/client/offboarding-form">
+              <RequireRole roles={["isClient"]}><ClientOffboardingFormPage /></RequireRole>
             </Route>
 
             {/* Admin-only routes */}
