@@ -1,11 +1,13 @@
 import { useRoute, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
-import { ArrowLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { ArrowLeft, ChevronRight, ExternalLink, Pencil, X, Check } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface CarDetail {
   id: number;
@@ -22,6 +24,9 @@ interface CarDetail {
     email: string | null;
     phone?: string | null;
   } | null;
+  ownerNameOverride?: string | null;
+  ownerContactOverride?: string | null;
+  ownerEmailOverride?: string | null;
   turoLink?: string | null;
   adminTuroLink?: string | null;
   turoVehicleIds?: string[] | null;
@@ -40,6 +45,11 @@ export default function ViewCarPage() {
   const [, params] = useRoute("/admin/view-car/:id");
   const [, setLocation] = useLocation();
   const carId = params?.id ? parseInt(params.id, 10) : null;
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const [editingOwner, setEditingOwner] = useState(false);
+  const [ownerForm, setOwnerForm] = useState({ name: "", contact: "", email: "" });
 
   // Get user data to check role
   const { data: userData } = useQuery<{ user?: any }>({
@@ -160,14 +170,43 @@ export default function ViewCarPage() {
   }
 
   const carName = car.makeModel || `${car.year || ""} ${car.vin}`.trim();
-  const ownerName = car.owner
-    ? `${car.owner.firstName} ${car.owner.lastName}`
-    : "N/A";
-  const ownerContact = car.owner?.phone || "N/A";
-  const ownerEmail = car.owner?.email || "N/A";
+  const hasLinkedOwner = !!car.owner && !!(car.owner.firstName || car.owner.lastName);
+  const ownerName = hasLinkedOwner
+    ? `${car.owner!.firstName} ${car.owner!.lastName}`.trim()
+    : (car.ownerNameOverride || "N/A");
+  const ownerContact = hasLinkedOwner
+    ? (car.owner!.phone || "N/A")
+    : (car.ownerContactOverride || "N/A");
+  const ownerEmail = hasLinkedOwner
+    ? (car.owner!.email || "N/A")
+    : (car.ownerEmailOverride || "N/A");
   const fuelType = onboarding?.fuelType || car.fuelType || "N/A";
   const tireSize = onboarding?.tireSize || car.tireSize || "N/A";
   const oilType = onboarding?.oilType || car.oilType || "N/A";
+
+  const updateOwnerMutation = useMutation({
+    mutationFn: async (values: { name: string; contact: string; email: string }) => {
+      const formData = new FormData();
+      formData.append("ownerNameOverride", values.name);
+      formData.append("ownerContactOverride", values.contact);
+      formData.append("ownerEmailOverride", values.email);
+      const res = await fetch(buildApiUrl(`/api/cars/${carId}`), {
+        method: "PATCH",
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Failed to save owner info");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cars", carId] });
+      setEditingOwner(false);
+      toast({ title: "Owner info saved" });
+    },
+    onError: () => {
+      toast({ title: "Failed to save", variant: "destructive" });
+    },
+  });
 
   return (
     <AdminLayout>
@@ -215,30 +254,100 @@ export default function ViewCarPage() {
 
             {/* Owner Information */}
             <div>
-              <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3">Owner Information</h3>
-              <div className="space-y-1.5 sm:space-y-2">
-                <div>
-                  <span className="text-muted-foreground text-xs sm:text-sm">Name: </span>
-                  {car?.clientId ? (
-                    <button
-                      onClick={() => setLocation(`/admin/clients/${car.clientId}`)}
-                      className="text-[#B8860B] hover:text-[#9A7209] hover:underline transition-colors text-xs sm:text-sm break-words cursor-pointer font-semibold"
-                    >
-                      {ownerName}
-                    </button>
-                  ) : (
-                    <span className="text-[#B8860B] text-xs sm:text-sm break-words font-semibold">{ownerName}</span>
-                  )}
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs sm:text-sm">Contact #: </span>
-                  <span className="text-foreground text-xs sm:text-sm">{ownerContact}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs sm:text-sm">Email: </span>
-                  <span className="text-foreground text-xs sm:text-sm break-all">{ownerEmail}</span>
-                </div>
+              <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">Owner Information</h3>
+                {!hasLinkedOwner && !isClient && !editingOwner && (
+                  <button
+                    onClick={() => {
+                      setOwnerForm({
+                        name: car.ownerNameOverride || "",
+                        contact: car.ownerContactOverride || "",
+                        email: car.ownerEmailOverride || "",
+                      });
+                      setEditingOwner(true);
+                    }}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    title="Edit owner info"
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                )}
               </div>
+              {editingOwner && !hasLinkedOwner ? (
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-muted-foreground text-xs">Name</label>
+                    <input
+                      type="text"
+                      value={ownerForm.name}
+                      onChange={e => setOwnerForm(f => ({ ...f, name: e.target.value }))}
+                      className="w-full mt-0.5 px-2 py-1 text-xs border border-border rounded bg-background text-foreground"
+                      placeholder="Owner name"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-muted-foreground text-xs">Contact #</label>
+                    <input
+                      type="text"
+                      value={ownerForm.contact}
+                      onChange={e => setOwnerForm(f => ({ ...f, contact: e.target.value }))}
+                      className="w-full mt-0.5 px-2 py-1 text-xs border border-border rounded bg-background text-foreground"
+                      placeholder="Phone number"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-muted-foreground text-xs">Email</label>
+                    <input
+                      type="email"
+                      value={ownerForm.email}
+                      onChange={e => setOwnerForm(f => ({ ...f, email: e.target.value }))}
+                      className="w-full mt-0.5 px-2 py-1 text-xs border border-border rounded bg-background text-foreground"
+                      placeholder="Email address"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => updateOwnerMutation.mutate(ownerForm)}
+                      disabled={updateOwnerMutation.isPending}
+                      className="flex items-center gap-1 px-2 py-1 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-50"
+                    >
+                      <Check className="w-3 h-3" />
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingOwner(false)}
+                      className="flex items-center gap-1 px-2 py-1 text-xs border border-border rounded hover:bg-accent"
+                    >
+                      <X className="w-3 h-3" />
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5 sm:space-y-2">
+                  <div>
+                    <span className="text-muted-foreground text-xs sm:text-sm">Name: </span>
+                    {car?.clientId ? (
+                      <button
+                        onClick={() => setLocation(`/admin/clients/${car.clientId}`)}
+                        className="text-[#B8860B] hover:text-[#9A7209] hover:underline transition-colors text-xs sm:text-sm break-words cursor-pointer font-semibold"
+                      >
+                        {ownerName}
+                      </button>
+                    ) : (
+                      <span className="text-[#B8860B] text-xs sm:text-sm break-words font-semibold">{ownerName}</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs sm:text-sm">Contact #: </span>
+                    <span className="text-foreground text-xs sm:text-sm">{ownerContact}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs sm:text-sm">Email: </span>
+                    <span className="text-foreground text-xs sm:text-sm break-all">{ownerEmail}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Car Specifications */}
