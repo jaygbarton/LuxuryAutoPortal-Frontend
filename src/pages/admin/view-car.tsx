@@ -2,11 +2,11 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
-import { ArrowLeft, ChevronRight, ExternalLink, Pencil, X, Check } from "lucide-react";
+import { ArrowLeft, ChevronRight, ExternalLink, Pencil, X, Check, ChevronDown } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 interface CarDetail {
@@ -50,6 +50,18 @@ export default function ViewCarPage() {
 
   const [editingOwner, setEditingOwner] = useState(false);
   const [ownerForm, setOwnerForm] = useState({ name: "", contact: "", email: "" });
+  const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
+  const clientDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (clientDropdownRef.current && !clientDropdownRef.current.contains(e.target as Node)) {
+        setClientDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   // Get user data to check role
   const { data: userData } = useQuery<{ user?: any }>({
@@ -114,6 +126,23 @@ export default function ViewCarPage() {
   });
 
   const onboarding = onboardingData?.success ? onboardingData?.data : null;
+
+  const { data: clientsData } = useQuery<{ data: any[] }>({
+    queryKey: ["/api/clients", "picker"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/clients?limit=200"), { credentials: "include" });
+      if (!res.ok) return { data: [] };
+      return res.json();
+    },
+    enabled: !isClient,
+  });
+  const allClients = clientsData?.data ?? [];
+  const filteredClients = ownerForm.name.trim()
+    ? allClients.filter(c => {
+        const full = `${c.client_fname ?? ""} ${c.client_lname ?? ""}`.toLowerCase();
+        return full.includes(ownerForm.name.trim().toLowerCase());
+      })
+    : allClients;
 
   // Filter menu items based on user role
   const allMenuItems: MenuItem[] = [
@@ -275,15 +304,50 @@ export default function ViewCarPage() {
               </div>
               {editingOwner && !hasLinkedOwner ? (
                 <div className="space-y-2">
-                  <div>
+                  <div ref={clientDropdownRef} className="relative">
                     <label className="text-muted-foreground text-xs">Name</label>
-                    <input
-                      type="text"
-                      value={ownerForm.name}
-                      onChange={e => setOwnerForm(f => ({ ...f, name: e.target.value }))}
-                      className="w-full mt-0.5 px-2 py-1 text-xs border border-border rounded bg-background text-foreground"
-                      placeholder="Owner name"
-                    />
+                    <div className="relative mt-0.5">
+                      <input
+                        type="text"
+                        value={ownerForm.name}
+                        onChange={e => {
+                          setOwnerForm(f => ({ ...f, name: e.target.value }));
+                          setClientDropdownOpen(true);
+                        }}
+                        onFocus={() => setClientDropdownOpen(true)}
+                        className="w-full px-2 py-1 pr-6 text-xs border border-border rounded bg-background text-foreground"
+                        placeholder="Search or type owner name"
+                      />
+                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+                    </div>
+                    {clientDropdownOpen && filteredClients.length > 0 && (
+                      <div className="absolute z-50 top-full left-0 right-0 mt-0.5 bg-card border border-border rounded shadow-lg max-h-40 overflow-y-auto">
+                        {filteredClients.slice(0, 20).map(c => {
+                          const name = `${c.client_fname ?? ""} ${c.client_lname ?? ""}`.trim();
+                          return (
+                            <button
+                              key={c.client_aid}
+                              type="button"
+                              className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent text-foreground"
+                              onMouseDown={e => {
+                                e.preventDefault();
+                                setOwnerForm({
+                                  name,
+                                  contact: c.client_contact ?? "",
+                                  email: c.client_email ?? "",
+                                });
+                                setClientDropdownOpen(false);
+                              }}
+                            >
+                              <span className="font-medium">{name}</span>
+                              {c.client_email && (
+                                <span className="text-muted-foreground ml-1">— {c.client_email}</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="text-muted-foreground text-xs">Contact #</label>
@@ -315,7 +379,7 @@ export default function ViewCarPage() {
                       Save
                     </button>
                     <button
-                      onClick={() => setEditingOwner(false)}
+                      onClick={() => { setEditingOwner(false); setClientDropdownOpen(false); }}
                       className="flex items-center gap-1 px-2 py-1 text-xs border border-border rounded hover:bg-accent"
                     >
                       <X className="w-3 h-3" />

@@ -86,7 +86,12 @@ export function CarInspectionsTab() {
     queryKey: ["/api/operations/inspections", "car_issues", filterStatus, filterSource],
     queryFn: async () => {
       const params = new URLSearchParams({ limit: "2000" });
-      if (filterStatus !== "all") params.append("status", filterStatus);
+      if (filterStatus !== "all") {
+        params.append("status", filterStatus);
+      } else {
+        // no_issues records are permanently resolved — never show them here
+        params.append("excludeStatus", "no_issues");
+      }
       // Exclude turo_return records — those belong to the Turo Messages tab.
       // When filterSource is "all" we still exclude turo_return so this tab
       // never duplicates Turo Messages content.
@@ -136,8 +141,9 @@ export function CarInspectionsTab() {
       ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1
       : null;
     return rawInspections.filter((insp) => {
-      // Hide inspections that have been moved to maintenance
+      // Hide inspections moved to maintenance or marked no issues
       if (isMovedToMaintenance(insp.id)) return false;
+      if (insp.status === "no_issues") return false;
       if (q) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
         // Mirror every visible column so the search box matches anything the
@@ -344,7 +350,6 @@ export function CarInspectionsTab() {
                   <SelectItem value="new">New</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="no_issues">No Car Issues</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -521,7 +526,6 @@ export function CarInspectionsTab() {
                               <SelectItem value="new">New</SelectItem>
                               <SelectItem value="in_progress">In Progress</SelectItem>
                               <SelectItem value="completed">Completed</SelectItem>
-                              <SelectItem value="no_issues">No Car Issues</SelectItem>
                             </SelectContent>
                           </Select>
                         </TableCell>
