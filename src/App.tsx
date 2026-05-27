@@ -94,6 +94,7 @@ import AdminTestimonialsPage from "@/pages/admin/testimonials";
 import AdminTuroGuidePage from "@/pages/admin/turo-guide";
 import NewsMediaPage from "@/pages/admin/news-media";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { RequireRole } from "@/components/admin/require-role";
 
 function Router() {
   return (
@@ -122,183 +123,235 @@ function Router() {
       <Route>
         <AdminLayout>
           <Switch>
-            <Route path="/staff/dashboard" component={StaffDashboard} />
-            <Route
-              path="/staff/my-info/:section"
-              component={StaffMyInfoSection}
-            />
+            {/* Staff-only routes */}
+            <Route path="/staff/dashboard">
+              <RequireRole roles={["isEmployee"]}><StaffDashboard /></RequireRole>
+            </Route>
+            <Route path="/staff/my-info/:section">
+              <RequireRole roles={["isEmployee"]}><StaffMyInfoSection /></RequireRole>
+            </Route>
             <Route path="/staff/my-info">
               <Redirect to="/staff/my-info/personal-information" />
             </Route>
-            <Route path="/staff/forms/submit" component={StaffFormsSubmit} />
-            <Route
-              path="/staff/forms/my-submissions"
-              component={StaffFormsMySubmissions}
-            />
-            <Route path="/staff/forms" component={StaffForms} />
-            <Route
-              path="/staff/commission-form/my-submissions"
-              component={StaffCommissionFormMySubmissions}
-            />
-            <Route
-              path="/staff/commission-form"
-              component={StaffCommissionForm}
-            />
-            <Route
-              path="/staff/task-management"
-              component={StaffTaskManagement}
-            />
-            <Route path="/staff/time" component={StaffTime} />
-            <Route path="/staff/time-off" component={StaffTimeOff} />
-            <Route path="/staff/turo-guide" component={StaffTuroGuide} />
-            <Route
-              path="/staff/training-manual"
-              component={StaffTrainingManual}
-            />
-            <Route
-              path="/staff/client-testimonials"
-              component={StaffClientTestimonials}
-            />
-            <Route
-              path="/staff/car-rental/trips"
-              component={StaffCarRentalTrips}
-            />
-            <Route
-              path="/staff/car-rental/forms/submit"
-              component={StaffCarRentalFormSubmit}
-            />
-            <Route
-              path="/staff/car-rental/forms"
-              component={StaffCarRentalForms}
-            />
+            <Route path="/staff/forms/submit">
+              <RequireRole roles={["isEmployee"]}><StaffFormsSubmit /></RequireRole>
+            </Route>
+            <Route path="/staff/forms/my-submissions">
+              <RequireRole roles={["isEmployee"]}><StaffFormsMySubmissions /></RequireRole>
+            </Route>
+            <Route path="/staff/forms">
+              <RequireRole roles={["isEmployee"]}><StaffForms /></RequireRole>
+            </Route>
+            <Route path="/staff/commission-form/my-submissions">
+              <RequireRole roles={["isEmployee"]}><StaffCommissionFormMySubmissions /></RequireRole>
+            </Route>
+            <Route path="/staff/commission-form">
+              <RequireRole roles={["isEmployee"]}><StaffCommissionForm /></RequireRole>
+            </Route>
+            <Route path="/staff/task-management">
+              <RequireRole roles={["isEmployee"]}><StaffTaskManagement /></RequireRole>
+            </Route>
+            <Route path="/staff/time">
+              <RequireRole roles={["isEmployee"]}><StaffTime /></RequireRole>
+            </Route>
+            <Route path="/staff/time-off">
+              <RequireRole roles={["isEmployee"]}><StaffTimeOff /></RequireRole>
+            </Route>
+            <Route path="/staff/turo-guide">
+              <RequireRole roles={["isEmployee"]}><StaffTuroGuide /></RequireRole>
+            </Route>
+            <Route path="/staff/training-manual">
+              <RequireRole roles={["isEmployee"]}><StaffTrainingManual /></RequireRole>
+            </Route>
+            <Route path="/staff/client-testimonials">
+              <RequireRole roles={["isEmployee"]}><StaffClientTestimonials /></RequireRole>
+            </Route>
+            <Route path="/staff/car-rental/trips">
+              <RequireRole roles={["isEmployee"]}><StaffCarRentalTrips /></RequireRole>
+            </Route>
+            <Route path="/staff/car-rental/forms/submit">
+              <RequireRole roles={["isEmployee"]}><StaffCarRentalFormSubmit /></RequireRole>
+            </Route>
+            <Route path="/staff/car-rental/forms">
+              <RequireRole roles={["isEmployee"]}><StaffCarRentalForms /></RequireRole>
+            </Route>
+
+            {/* Shared: any authenticated user */}
             <Route path="/dashboard" component={DashboardRouter} />
-            <Route path="/admin/admins" component={AdminsPage} />
-            <Route path="/admin/clients" component={ClientsPage} />
-            <Route path="/admin/clients/:id" component={ClientDetailPage} />
-            <Route path="/admin/view-as-client" component={ViewAsClientPage} />
-            <Route
-              path="/admin/view-as-employee"
-              component={ViewAsEmployeePage}
-            />
-            <Route path="/admin/forms" component={FormsPage} />
-            <Route path="/cars" component={CarsPage} />
-            <Route path="/admin/view-car/:id" component={ViewCarPage} />
-            <Route path="/admin/cars/:id/earnings" component={EarningsPage} />
-            <Route
-              path="/admin/cars/:id/expenses"
-              component={TotalExpensesPage}
-            />
-            <Route
-              path="/admin/cars/:id/depreciation"
-              component={NADADepreciationPage}
-            />
-            <Route
-              path="/admin/cars/:id/purchase"
-              component={PurchaseDetailsPage}
-            />
-            <Route path="/admin/cars/:id/graphs" component={GraphsChartsPage} />
-            <Route
-              path="/admin/cars/:id/calculator"
-              component={PaymentCalculatorPage}
-            />
-            <Route
-              path="/admin/cars/:id/maintenance"
-              component={MaintenancePage}
-            />
-            <Route path="/admin/cars/:id/totals" component={TotalsPage} />
-            <Route path="/admin/totals/all" component={TotalsPage} />
-            <Route path="/admin/totals" component={TotalsPage} />
-            <Route path="/admin/cars/:id/records" component={RecordsPage} />
-            <Route
-              path="/admin/cars/:carId/records/:recordId/files"
-              component={ViewRecordFilesPage}
-            />
-            <Route path="/admin/payments" component={PaymentsMainPage} />
-            <Route path="/admin/payment-status" component={PaymentStatusPage} />
-            <Route path="/admin/cars/:id/payments" component={PaymentsPage} />
-            <Route
-              path="/admin/cars/:id/income-expense/log"
-              component={IncomeExpenseLogPage}
-            />
-            <Route
-              path="/admin/cars/:id/income-expense"
-              component={CarIncomeExpensePage}
-            />
-            <Route path="/admin/cars/:id" component={CarDetailPage} />
-            <Route
-              path="/admin/income-expenses"
-              component={IncomeExpensesPageWrapper}
-            />
-            <Route path="/admin/settings" component={SettingsPage} />
-            <Route path="/admin/operations" component={OperationsPage} />
-            <Route path="/admin/bouncie" component={BouncieFleetPage} />
-            <Route
-              path="/admin/bouncie-devices"
-              component={BouncieDevicesPage}
-            />
-            <Route path="/admin/bouncie-trips" component={BouncieTripsPage} />
-            <Route
-              path="/admin/bouncie-behavior"
-              component={BouncieBehaviorPage}
-            />
-            <Route
-              path="/admin/bouncie-geofence"
-              component={BouncieGeofencePage}
-            />
-            <Route
-              path="/admin/bouncie-analytics"
-              component={BouncieAnalyticsPage}
-            />
-            <Route path="/admin/hr" component={HumanResourcesPage} />
-            <Route path="/admin/work-schedule" component={WorkSchedulePage} />
-            <Route
-              path="/admin/hr/work-schedule"
-              component={WorkSchedulePage}
-            />
-            <Route
-              path="/admin/hr/employees/view"
-              component={EmployeeViewPage}
-            />
-            <Route path="/admin/hr/employees" component={EmployeesPage} />
-            <Route
-              path="/admin/hr/task-management"
-              component={AdminHrTaskManagement}
-            />
-            <Route path="/admin/hr/time" component={AdminHrTime} />
-            <Route path="/admin/hr/time-off" component={AdminHrTimeOff} />
-            <Route path="/admin/hr/overtime" component={AdminHrOvertime} />
-            <Route path="/admin/hr/report" component={AdminHrReport} />
-            <Route path="/admin/payroll" component={PayrollPage} />
-            <Route
-              path="/admin/payroll/commissions"
-              component={PayrollCommissionsPage}
-            />
-            <Route
-              path="/admin/payroll/:payrunId/payslip/:employeeId"
-              component={PayslipPage}
-            />
-            <Route
-              path="/admin/payroll/:payrunId"
-              component={PayrollByRunPage}
-            />
-            <Route path="/client/dashboard" component={ClientDashboardPage} />
-            <Route
-              path="/client/my-car-tracking"
-              component={ClientCarTrackingPage}
-            />
             <Route path="/profile" component={ClientProfilePage} />
             <Route path="/tutorial" component={ClientTrainingManualPage} />
-            <Route
-              path="/admin/training-manual"
-              component={TrainingManualPage}
-            />
-            <Route path="/admin/turo-trips" component={TuroTripsPage} />
-            <Route
-              path="/admin/testimonials"
-              component={AdminTestimonialsPage}
-            />
-            <Route path="/admin/turo-guide" component={AdminTuroGuidePage} />
-            <Route path="/admin/news-media" component={NewsMediaPage} />
+
+            {/* Client-only routes */}
+            <Route path="/client/dashboard">
+              <RequireRole roles={["isClient"]}><ClientDashboardPage /></RequireRole>
+            </Route>
+            <Route path="/client/my-car-tracking">
+              <RequireRole roles={["isClient"]}><ClientCarTrackingPage /></RequireRole>
+            </Route>
+
+            {/* Admin-only routes */}
+            <Route path="/admin/admins">
+              <RequireRole roles={["isAdmin"]}><AdminsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/clients/:id">
+              <RequireRole roles={["isAdmin"]}><ClientDetailPage /></RequireRole>
+            </Route>
+            <Route path="/admin/clients">
+              <RequireRole roles={["isAdmin"]}><ClientsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/view-as-client">
+              <RequireRole roles={["isAdmin"]}><ViewAsClientPage /></RequireRole>
+            </Route>
+            <Route path="/admin/view-as-employee">
+              <RequireRole roles={["isAdmin"]}><ViewAsEmployeePage /></RequireRole>
+            </Route>
+            <Route path="/admin/forms">
+              <RequireRole roles={["isAdmin"]}><FormsPage /></RequireRole>
+            </Route>
+            <Route path="/cars">
+              <RequireRole roles={["isAdmin"]}><CarsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/view-car/:id">
+              <RequireRole roles={["isAdmin"]}><ViewCarPage /></RequireRole>
+            </Route>
+            <Route path="/admin/cars/:id/earnings">
+              <RequireRole roles={["isAdmin"]}><EarningsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/cars/:id/expenses">
+              <RequireRole roles={["isAdmin"]}><TotalExpensesPage /></RequireRole>
+            </Route>
+            <Route path="/admin/cars/:id/depreciation">
+              <RequireRole roles={["isAdmin"]}><NADADepreciationPage /></RequireRole>
+            </Route>
+            <Route path="/admin/cars/:id/purchase">
+              <RequireRole roles={["isAdmin"]}><PurchaseDetailsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/cars/:id/graphs">
+              <RequireRole roles={["isAdmin"]}><GraphsChartsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/cars/:id/calculator">
+              <RequireRole roles={["isAdmin"]}><PaymentCalculatorPage /></RequireRole>
+            </Route>
+            <Route path="/admin/cars/:id/maintenance">
+              <RequireRole roles={["isAdmin"]}><MaintenancePage /></RequireRole>
+            </Route>
+            <Route path="/admin/cars/:id/totals">
+              <RequireRole roles={["isAdmin"]}><TotalsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/totals/all">
+              <RequireRole roles={["isAdmin"]}><TotalsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/totals">
+              <RequireRole roles={["isAdmin"]}><TotalsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/cars/:id/records">
+              <RequireRole roles={["isAdmin"]}><RecordsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/cars/:carId/records/:recordId/files">
+              <RequireRole roles={["isAdmin"]}><ViewRecordFilesPage /></RequireRole>
+            </Route>
+            <Route path="/admin/payments">
+              <RequireRole roles={["isAdmin"]}><PaymentsMainPage /></RequireRole>
+            </Route>
+            <Route path="/admin/payment-status">
+              <RequireRole roles={["isAdmin"]}><PaymentStatusPage /></RequireRole>
+            </Route>
+            <Route path="/admin/cars/:id/payments">
+              <RequireRole roles={["isAdmin"]}><PaymentsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/cars/:id/income-expense/log">
+              <RequireRole roles={["isAdmin"]}><IncomeExpenseLogPage /></RequireRole>
+            </Route>
+            <Route path="/admin/cars/:id/income-expense">
+              <RequireRole roles={["isAdmin"]}><CarIncomeExpensePage /></RequireRole>
+            </Route>
+            <Route path="/admin/cars/:id">
+              <RequireRole roles={["isAdmin"]}><CarDetailPage /></RequireRole>
+            </Route>
+            <Route path="/admin/income-expenses">
+              <RequireRole roles={["isAdmin"]}><IncomeExpensesPageWrapper /></RequireRole>
+            </Route>
+            <Route path="/admin/settings">
+              <RequireRole roles={["isAdmin"]}><SettingsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/operations">
+              <RequireRole roles={["isAdmin"]}><OperationsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/bouncie">
+              <RequireRole roles={["isAdmin"]}><BouncieFleetPage /></RequireRole>
+            </Route>
+            <Route path="/admin/bouncie-devices">
+              <RequireRole roles={["isAdmin"]}><BouncieDevicesPage /></RequireRole>
+            </Route>
+            <Route path="/admin/bouncie-trips">
+              <RequireRole roles={["isAdmin"]}><BouncieTripsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/bouncie-behavior">
+              <RequireRole roles={["isAdmin"]}><BouncieBehaviorPage /></RequireRole>
+            </Route>
+            <Route path="/admin/bouncie-geofence">
+              <RequireRole roles={["isAdmin"]}><BouncieGeofencePage /></RequireRole>
+            </Route>
+            <Route path="/admin/bouncie-analytics">
+              <RequireRole roles={["isAdmin"]}><BouncieAnalyticsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/hr">
+              <RequireRole roles={["isAdmin"]}><HumanResourcesPage /></RequireRole>
+            </Route>
+            <Route path="/admin/work-schedule">
+              <RequireRole roles={["isAdmin"]}><WorkSchedulePage /></RequireRole>
+            </Route>
+            <Route path="/admin/hr/work-schedule">
+              <RequireRole roles={["isAdmin"]}><WorkSchedulePage /></RequireRole>
+            </Route>
+            <Route path="/admin/hr/employees/view">
+              <RequireRole roles={["isAdmin"]}><EmployeeViewPage /></RequireRole>
+            </Route>
+            <Route path="/admin/hr/employees">
+              <RequireRole roles={["isAdmin"]}><EmployeesPage /></RequireRole>
+            </Route>
+            <Route path="/admin/hr/task-management">
+              <RequireRole roles={["isAdmin"]}><AdminHrTaskManagement /></RequireRole>
+            </Route>
+            <Route path="/admin/hr/time">
+              <RequireRole roles={["isAdmin"]}><AdminHrTime /></RequireRole>
+            </Route>
+            <Route path="/admin/hr/time-off">
+              <RequireRole roles={["isAdmin"]}><AdminHrTimeOff /></RequireRole>
+            </Route>
+            <Route path="/admin/hr/overtime">
+              <RequireRole roles={["isAdmin"]}><AdminHrOvertime /></RequireRole>
+            </Route>
+            <Route path="/admin/hr/report">
+              <RequireRole roles={["isAdmin"]}><AdminHrReport /></RequireRole>
+            </Route>
+            <Route path="/admin/payroll/commissions">
+              <RequireRole roles={["isAdmin"]}><PayrollCommissionsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/payroll/:payrunId/payslip/:employeeId">
+              <RequireRole roles={["isAdmin"]}><PayslipPage /></RequireRole>
+            </Route>
+            <Route path="/admin/payroll/:payrunId">
+              <RequireRole roles={["isAdmin"]}><PayrollByRunPage /></RequireRole>
+            </Route>
+            <Route path="/admin/payroll">
+              <RequireRole roles={["isAdmin"]}><PayrollPage /></RequireRole>
+            </Route>
+            <Route path="/admin/training-manual">
+              <RequireRole roles={["isAdmin"]}><TrainingManualPage /></RequireRole>
+            </Route>
+            <Route path="/admin/turo-trips">
+              <RequireRole roles={["isAdmin"]}><TuroTripsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/testimonials">
+              <RequireRole roles={["isAdmin"]}><AdminTestimonialsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/turo-guide">
+              <RequireRole roles={["isAdmin"]}><AdminTuroGuidePage /></RequireRole>
+            </Route>
+            <Route path="/admin/news-media">
+              <RequireRole roles={["isAdmin"]}><NewsMediaPage /></RequireRole>
+            </Route>
             <Route component={NotFound} />
           </Switch>
         </AdminLayout>
