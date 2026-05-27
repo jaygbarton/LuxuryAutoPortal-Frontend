@@ -125,6 +125,10 @@ export function CarInspectionsTab() {
   const rawInspections = data?.data || [];
   const maintenanceRecords = maintenanceData?.data || [];
 
+  const isMovedToMaintenance = (inspectionId: number): boolean => {
+    return maintenanceRecords.some(m => m.inspection_id === inspectionId);
+  };
+
   const inspections = useMemo(() => {
     const q = search.trim().toLowerCase();
     const from = dateFrom ? new Date(dateFrom).getTime() : null;
@@ -132,6 +136,8 @@ export function CarInspectionsTab() {
       ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1
       : null;
     return rawInspections.filter((insp) => {
+      // Hide inspections that have been moved to maintenance
+      if (isMovedToMaintenance(insp.id)) return false;
       if (q) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
         // Mirror every visible column so the search box matches anything the
@@ -180,7 +186,7 @@ export function CarInspectionsTab() {
       }
       return true;
     });
-  }, [rawInspections, tripsById, search, filterSource, dateFrom, dateTo]);
+  }, [rawInspections, maintenanceRecords, tripsById, search, filterSource, dateFrom, dateTo]);
 
   const hasActiveFilters =
     filterStatus !== "all" ||
@@ -197,10 +203,6 @@ export function CarInspectionsTab() {
     () => inspections.slice((page - 1) * pageSize, page * pageSize),
     [inspections, page, pageSize],
   );
-
-  const isMovedToMaintenance = (inspectionId: number): boolean => {
-    return maintenanceRecords.some(m => m.inspection_id === inspectionId);
-  };
 
   const statusUpdateMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {

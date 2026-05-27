@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Car, Upload, X, Edit, Trash2, ChevronLeft, ChevronRight, CheckSquare, Square, FileText, Star, Plus, Minus } from "lucide-react";
+import { ArrowLeft, Car, Upload, X, Edit, Trash2, ChevronLeft, ChevronRight, CheckSquare, Square, FileText, Star, Plus, Minus, Loader2 } from "lucide-react";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { buildApiUrl, buildUploadApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -390,6 +390,26 @@ export default function CarDetailPage() {
   });
 
   const onboarding = onboardingData?.success ? onboardingData?.data : null;
+
+  // Fetch rental history (turo trips) for this car by plate number
+  const carPlate = car?.licensePlate || null;
+  const { data: rentalHistoryData, isLoading: isLoadingRentalHistory } = useQuery<{
+    success: boolean;
+    data: any[];
+    total: number;
+  }>({
+    queryKey: ["/api/turo-trips", "plate", carPlate],
+    queryFn: async () => {
+      if (!carPlate) throw new Error("No plate");
+      const url = buildApiUrl(`/api/turo-trips?plate=${encodeURIComponent(carPlate)}&limit=200&offset=0`);
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) return { success: false, data: [], total: 0 };
+      return res.json();
+    },
+    enabled: !!carPlate,
+    retry: false,
+  });
+  const rentalTrips: any[] = rentalHistoryData?.data ?? [];
 
   // Fetch all clients for the owner picker in the edit modal
   const { data: allClientsData } = useQuery<{ success: boolean; data: any[] }>({
@@ -2753,15 +2773,89 @@ export default function CarDetailPage() {
         </Card>
         )}
 
-        {/* Rental History - Placeholder */}
+        {/* Rental History — trips matched by plate number (V #) */}
         <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-primary text-lg">Rental History</CardTitle>
+            <CardTitle className="text-primary text-lg flex items-center gap-2">
+              Rental History
+              {carPlate && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  V # / Plate: {carPlate}
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-center py-8">
-              Rental history tracking coming soon
-            </p>
+          <CardContent className="p-0">
+            {!carPlate ? (
+              <p className="text-muted-foreground text-center py-8 px-6">
+                No plate number on file — add a license plate to see rental history.
+              </p>
+            ) : isLoadingRentalHistory ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : rentalTrips.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8 px-6">
+                No trips found for plate {carPlate}.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40">
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Reservation #</th>
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">V #</th>
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Guest</th>
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Trip Start</th>
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Trip Start Odometer</th>
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Trip Ends</th>
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Trip Ends Odometer</th>
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Days</th>
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Earnings</th>
+                      <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rentalTrips.map((trip: any) => {
+                      const start = trip.tripStart ? new Date(trip.tripStart) : null;
+                      const end = trip.tripEnd ? new Date(trip.tripEnd) : null;
+                      const days = start && end
+                        ? Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+                        : null;
+                      const fmtDate = (d: Date | null) =>
+                        d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "-";
+                      return (
+                        <tr key={trip.id} className="border-b border-border hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-2 font-mono text-xs">{trip.reservationId || "-"}</td>
+                          <td className="px-4 py-2 font-mono font-semibold">{trip.plateNumber || carPlate || "-"}</td>
+                          <td className="px-4 py-2 whitespace-nowrap">{trip.guestName || "-"}</td>
+                          <td className="px-4 py-2 whitespace-nowrap">{fmtDate(start)}</td>
+                          <td className="px-4 py-2 text-center">{trip.tripStartOdometer ?? "-"}</td>
+                          <td className="px-4 py-2 whitespace-nowrap">{fmtDate(end)}</td>
+                          <td className="px-4 py-2 text-center">{trip.tripEndOdometer ?? "-"}</td>
+                          <td className="px-4 py-2 text-center">{days ?? "-"}</td>
+                          <td className="px-4 py-2 whitespace-nowrap">
+                            {trip.status === "cancelled"
+                              ? `$${Number(trip.cancelledEarnings || 0).toFixed(2)}`
+                              : `$${Number(trip.earnings || 0).toFixed(2)}`}
+                          </td>
+                          <td className="px-4 py-2">
+                            <span className={cn(
+                              "px-2 py-0.5 rounded text-xs font-medium",
+                              trip.status === "booked"
+                                ? "bg-green-500/20 text-green-700"
+                                : "bg-red-500/20 text-red-700"
+                            )}>
+                              {trip.status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
 

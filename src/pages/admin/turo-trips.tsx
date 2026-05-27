@@ -1132,6 +1132,9 @@ export default function TuroTripsPage() {
                       CAR Name
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
+                      V #
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Plate #
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
@@ -1184,13 +1187,13 @@ export default function TuroTripsPage() {
                 <TableBody>
                   {isLoadingTrips ? (
                     <TableRow>
-                      <TableCell colSpan={17} className="text-center py-8">
+                      <TableCell colSpan={18} className="text-center py-8">
                         <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                       </TableCell>
                     </TableRow>
                   ) : trips.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={17} className="text-center py-12">
+                      <TableCell colSpan={18} className="text-center py-12">
                         <div className="flex flex-col items-center gap-3 text-muted-foreground">
                           {debouncedSearchQuery || statusFilter !== "all" ? (
                             <>
@@ -1299,6 +1302,11 @@ export default function TuroTripsPage() {
                                   : display;
                               })()}
                             </div>
+                          </TableCell>
+
+                          {/* V # — same as plate number, shown as vehicle identifier */}
+                          <TableCell className="text-sm font-mono whitespace-nowrap" onClick={() => setSelectedTrip(trip)}>
+                            {trip.plateNumber || "-"}
                           </TableCell>
 
                           {/* Plate # — inline editable. Turo doesn't expose

@@ -23,15 +23,21 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
   const processFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files).filter(f => f.type.startsWith("image/"));
     if (fileArray.length === 0) return;
+    if (!entityId) {
+      console.error("PhotoUpload: entityId is required for uploads");
+      return;
+    }
 
     setUploading(true);
     try {
       const formData = new FormData();
       fileArray.forEach((file) => formData.append("photos", file));
-      formData.append("entityType", entityType);
-      if (entityId) formData.append("entityId", String(entityId));
 
-      const response = await fetch(buildUploadApiUrl("/api/operations/upload-photos"), {
+      const endpoint = entityType === "inspection"
+        ? `/api/operations/inspections/${entityId}/photos`
+        : `/api/operations/maintenance/${entityId}/photos`;
+
+      const response = await fetch(buildUploadApiUrl(endpoint), {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -39,8 +45,8 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
 
       if (!response.ok) throw new Error("Upload failed");
       const data = await response.json();
-      if (data.urls) {
-        onPhotosChange([...photos, ...data.urls]);
+      if (data.data?.photos) {
+        onPhotosChange(data.data.photos);
       }
     } catch (err) {
       console.error("Photo upload failed:", err);
