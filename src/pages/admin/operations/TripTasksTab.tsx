@@ -365,6 +365,7 @@ export function TripTasksTab() {
                   <TableHead className="text-foreground font-medium">Trip Status</TableHead>
                   <TableHead className="text-foreground font-medium">Task Type</TableHead>
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Scheduled Date/Time</TableHead>
                   <TableHead className="text-foreground font-medium">Task Status</TableHead>
                   <TableHead className="text-center text-foreground font-medium">Actions</TableHead>
                 </TableRow>
@@ -373,7 +374,7 @@ export function TripTasksTab() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={19}
+                      colSpan={20}
                       className="text-center py-12 text-muted-foreground"
                     >
                       Loading tasks...
@@ -382,7 +383,7 @@ export function TripTasksTab() {
                 ) : filteredTasks.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={19}
+                      colSpan={20}
                       className="text-center py-12 text-muted-foreground"
                     >
                       No tasks found
@@ -466,6 +467,19 @@ export function TripTasksTab() {
                         </TableCell>
                         <TableCell className="text-foreground">
                           {task.assigned_to}
+                        </TableCell>
+                        <TableCell className="text-foreground text-sm whitespace-nowrap">
+                          {task.scheduled_date
+                            ? (() => {
+                                try {
+                                  return new Intl.DateTimeFormat("en-US", {
+                                    timeZone: "America/Denver",
+                                    month: "numeric", day: "numeric", year: "numeric",
+                                    hour: "numeric", minute: "2-digit", hour12: true,
+                                  }).format(new Date(task.scheduled_date));
+                                } catch { return task.scheduled_date; }
+                              })()
+                            : "--"}
                         </TableCell>
                         <TableCell>
                           <Select

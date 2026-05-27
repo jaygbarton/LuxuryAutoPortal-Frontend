@@ -364,18 +364,6 @@ export function TaskAssignmentModal({
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground">Location</label>
-            <Input
-              value={formData.scheduled_location}
-              onChange={(e) =>
-                setFormData({ ...formData, scheduled_location: e.target.value })
-              }
-              className="bg-card border-border text-foreground mt-1"
-              placeholder="Pickup/delivery location"
-            />
-          </div>
-
-          <div>
             <label className="text-sm text-muted-foreground">Notes</label>
             <Textarea
               value={formData.notes}

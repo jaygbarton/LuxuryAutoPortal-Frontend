@@ -65,6 +65,7 @@ export function CarInspectionsTab() {
   const [editingInspection, setEditingInspection] = useState<Inspection | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deletingInspection, setDeletingInspection] = useState<Inspection | null>(null);
+  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [historyInspection, setHistoryInspection] = useState<Inspection | null>(null);
   const [page, setPage] = useState(1);
@@ -75,10 +76,9 @@ export function CarInspectionsTab() {
   const { data, isLoading } = useQuery<{ data: Inspection[] }>({
     queryKey: ["/api/operations/inspections", "all_sources", filterStatus],
     queryFn: async () => {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({ limit: "2000" });
       if (filterStatus !== "all") params.append("status", filterStatus);
-      const qs = params.toString();
-      const response = await fetch(buildApiUrl(`/api/operations/inspections${qs ? `?${qs}` : ""}`), { credentials: "include" });
+      const response = await fetch(buildApiUrl(`/api/operations/inspections?${params}`), { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch inspections");
       return response.json();
     },
@@ -264,11 +264,33 @@ export function CarInspectionsTab() {
     },
   });
 
+  const deleteAllMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(buildApiUrl("/api/operations/inspections"), {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to delete all");
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });
+      toast({ title: "All deleted", description: `${data.deleted} inspection(s) deleted.` });
+      setDeleteAllConfirm(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <SectionHeader title="Car Inspections" variant="plain" className="mb-0" />
         <div className="flex gap-2">
+          <Button onClick={() => setDeleteAllConfirm(true)} variant="outline" className="border-destructive text-destructive hover:bg-destructive/10">
+            Delete All
+          </Button>
           <Button onClick={() => { setTaskModalOpen(true); }} variant="outline" className="border-primary text-primary hover:bg-primary/10">
             <Plus className="w-4 h-4 mr-2" />
             Add Task
@@ -621,6 +643,29 @@ export function CarInspectionsTab() {
         open={taskModalOpen}
         onOpenChange={setTaskModalOpen}
       />
+
+      {deleteAllConfirm && (
+        <Dialog open onOpenChange={() => setDeleteAllConfirm(false)}>
+          <DialogContent className="bg-card border-border text-foreground max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-destructive">Delete All Car Issues</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                This will permanently delete <strong>all</strong> car inspection records. This cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setDeleteAllConfirm(false)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                disabled={deleteAllMutation.isPending}
+                onClick={() => deleteAllMutation.mutate()}
+              >
+                {deleteAllMutation.isPending ? "Deleting..." : "Delete All"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

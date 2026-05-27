@@ -228,7 +228,7 @@ export function TuroInspectionTab() {
   const { data, isLoading } = useQuery<{ data: Inspection[] }>({
     queryKey: ["/api/operations/inspections", "turo_return", filterStatus],
     queryFn: async () => {
-      const params = new URLSearchParams({ source: "turo_return" });
+      const params = new URLSearchParams({ source: "turo_return", limit: "2000" });
       if (filterStatus !== "all") params.append("status", filterStatus);
       const response = await fetch(
         buildApiUrl(`/api/operations/inspections?${params}`),

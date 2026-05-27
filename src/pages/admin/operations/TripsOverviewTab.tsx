@@ -878,19 +878,20 @@ export function TripsOverviewTab() {
                                   <div
                                     key={t.id}
                                     className="flex items-center gap-1.5"
-                                    title={`${t.task_type}: ${t.assigned_to}`}
+                                    title={`${t.task_type}: ${t.assigned_to}${t.scheduled_date ? ` — ${new Date(t.scheduled_date).toLocaleString("en-US", { timeZone: "America/Denver", month: "numeric", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true })}` : ""}`}
                                   >
-                                    <Icon
-                                      className={`w-3 h-3 ${color} shrink-0`}
-                                    />
-                                    <span
-                                      className={`${color} capitalize text-[10px] font-medium shrink-0`}
-                                    >
+                                    <Icon className={`w-3 h-3 ${color} shrink-0`} />
+                                    <span className={`${color} capitalize text-[10px] font-medium shrink-0`}>
                                       {t.task_type}:
                                     </span>
                                     <span className="text-foreground truncate max-w-[120px]">
                                       {t.assigned_to || "--"}
                                     </span>
+                                    {t.scheduled_date && (
+                                      <span className="text-muted-foreground text-[10px] whitespace-nowrap shrink-0">
+                                        {(() => { try { return new Intl.DateTimeFormat("en-US", { timeZone: "America/Denver", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date(t.scheduled_date)); } catch { return ""; } })()}
+                                      </span>
+                                    )}
                                   </div>
                                 );
                               })}
