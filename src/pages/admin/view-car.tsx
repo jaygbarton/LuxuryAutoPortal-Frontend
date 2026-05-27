@@ -140,6 +140,30 @@ export default function ViewCarPage() {
     }
   };
 
+  const updateOwnerMutation = useMutation({
+    mutationFn: async (values: { name: string; contact: string; email: string }) => {
+      const formData = new FormData();
+      formData.append("ownerNameOverride", values.name);
+      formData.append("ownerContactOverride", values.contact);
+      formData.append("ownerEmailOverride", values.email);
+      const res = await fetch(buildApiUrl(`/api/cars/${carId}`), {
+        method: "PATCH",
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Failed to save owner info");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cars", carId] });
+      setEditingOwner(false);
+      toast({ title: "Owner info saved" });
+    },
+    onError: () => {
+      toast({ title: "Failed to save", variant: "destructive" });
+    },
+  });
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -183,30 +207,6 @@ export default function ViewCarPage() {
   const fuelType = onboarding?.fuelType || car.fuelType || "N/A";
   const tireSize = onboarding?.tireSize || car.tireSize || "N/A";
   const oilType = onboarding?.oilType || car.oilType || "N/A";
-
-  const updateOwnerMutation = useMutation({
-    mutationFn: async (values: { name: string; contact: string; email: string }) => {
-      const formData = new FormData();
-      formData.append("ownerNameOverride", values.name);
-      formData.append("ownerContactOverride", values.contact);
-      formData.append("ownerEmailOverride", values.email);
-      const res = await fetch(buildApiUrl(`/api/cars/${carId}`), {
-        method: "PATCH",
-        credentials: "include",
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Failed to save owner info");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cars", carId] });
-      setEditingOwner(false);
-      toast({ title: "Owner info saved" });
-    },
-    onError: () => {
-      toast({ title: "Failed to save", variant: "destructive" });
-    },
-  });
 
   return (
     <AdminLayout>
