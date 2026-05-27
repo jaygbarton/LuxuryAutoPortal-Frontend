@@ -509,7 +509,7 @@ export function TripsOverviewTab() {
         />
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-auto">
+      <div className="bg-card border border-border rounded-lg">
         <div className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-row lg:items-end gap-3 mb-4">
             <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1 lg:flex-1 lg:min-w-[200px]">
@@ -595,7 +595,7 @@ export function TripsOverviewTab() {
               ? `Showing ${pagedTrips.length} of ${totalServerMatches} matched trip${totalServerMatches === 1 ? "" : "s"} (Assigned filter applied to current page)`
               : `Total: ${totalServerMatches} trip${totalServerMatches === 1 ? "" : "s"}`}
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[60vh]">
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
