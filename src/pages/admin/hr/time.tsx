@@ -658,15 +658,13 @@ export default function AdminHrTime() {
                   </TableBody>
                   <TableFooter>
                     <TableRow>
-                      <TableCell colSpan={2} className="font-semibold">Totals</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
+                      <TableCell colSpan={4} className="font-semibold">Totals</TableCell>
                       <TableCell className="text-right tabular-nums font-semibold">
                         {totalHrs.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">—</TableCell>
                       <TableCell className="text-right tabular-nums font-semibold">
-                        {totalAmount > 0 ? formatUsd(totalAmount) : "—"}
+                        {formatUsd(totalAmount)}
                       </TableCell>
                       <TableCell />
                       <TableCell />
