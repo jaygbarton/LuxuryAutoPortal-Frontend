@@ -266,6 +266,8 @@ const carSchema = z.object({
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
   // Management Status (admin-only)
   managementStatus: z.enum(["management", "own", "off_ride"]).optional(),
+  // Owner assignment (admin-only)
+  clientId: z.string().optional(),
   // Offboarding Information
   offboardAt: z.string().optional(),
   offboardReason: z.enum(["sold", "damaged", "end_lease", "other"]).optional(),
@@ -388,6 +390,18 @@ export default function CarDetailPage() {
   });
 
   const onboarding = onboardingData?.success ? onboardingData?.data : null;
+
+  // Fetch all clients for the owner picker in the edit modal
+  const { data: allClientsData } = useQuery<{ success: boolean; data: any[] }>({
+    queryKey: ["/api/clients", "picker"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/clients?limit=200"), { credentials: "include" });
+      if (!res.ok) return { success: false, data: [] };
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+  const allClients: any[] = allClientsData?.data ?? [];
 
   // Fetch the corresponding client so Last Login (and online status) match the Client profile page (same API, same polling).
   const { data: clientData } = useQuery<{ success: boolean; data?: { lastLoginAt?: string | null; lastLogoutAt?: string | null } }>({
@@ -684,6 +698,7 @@ export default function CarDetailPage() {
       turoVehicleIds: [],
       status: "ACTIVE",
       managementStatus: "own",
+      clientId: "",
       offboardAt: "",
       offboardReason: undefined,
       offboardNote: "",
@@ -767,6 +782,10 @@ export default function CarDetailPage() {
       // Management Status (admin-only) - Only send if admin and value is provided
       if (isAdmin && data.managementStatus) {
         formData.append("managementStatus", data.managementStatus);
+      }
+      // Owner assignment (admin-only)
+      if (isAdmin) {
+        formData.append("clientId", data.clientId || "");
       }
       // Offboarding Information - Always send all fields
       formData.append("offboardAt", data.offboardAt || "");
@@ -1239,6 +1258,8 @@ export default function CarDetailPage() {
       status: (car.status || "ACTIVE") as "ACTIVE" | "INACTIVE",
       // Management Status
       managementStatus: (car.managementStatus || "own") as "management" | "own" | "off_ride",
+      // Owner assignment
+      clientId: car.clientId ? String(car.clientId) : "",
       // Offboarding Information
       offboardAt: formatDateForInput(car.offboardAt),
       offboardReason: (car.offboardReason || undefined) as "sold" | "damaged" | "end_lease" | "other" | undefined,
@@ -3279,6 +3300,46 @@ export default function CarDetailPage() {
                   />
                   </div>
                 </div>
+
+                {/* Owner Assignment Section */}
+                {isAdmin && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-primary border-b border-border pb-2">
+                      Owner Assignment
+                    </h3>
+                    <FormField
+                      control={form.control}
+                      name="clientId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-muted-foreground">Assigned Client (Owner)</FormLabel>
+                          <FormControl>
+                            <Select
+                              value={field.value || "__none__"}
+                              onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
+                            >
+                              <SelectTrigger className="bg-card border-border text-foreground">
+                                <SelectValue placeholder="— Unassigned —" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">— Unassigned —</SelectItem>
+                                {allClients.map((c: any) => {
+                                  const name = `${c.firstName || ""} ${c.lastName || ""}`.trim() || c.email || `Client #${c.id}`;
+                                  return (
+                                    <SelectItem key={c.id} value={String(c.id)}>
+                                      {name}
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
 
                 {/* Financial Information Section */}
                 <div className="space-y-4">
