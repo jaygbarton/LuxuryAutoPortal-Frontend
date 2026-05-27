@@ -23,8 +23,6 @@ import {
   CreditCard,
   Globe,
   BookOpen,
-  Calculator,
-  ShoppingBag,
   Video,
   Star,
   ClipboardList,
@@ -402,36 +400,38 @@ export default function ClientDashboard() {
   const carHref = (segment: string) =>
     activeCar ? `/admin/cars/${activeCar.id}/${segment}` : "#";
 
+  const historyHref = activeCar?.makeModel
+    ? `/admin/turo-trips?car=${encodeURIComponent(activeCar.makeModel)}`
+    : "/admin/turo-trips";
+
   const reportLinks = [
     { href: carHref("earnings"),       icon: DollarSign,   label: "Earnings" },
-    { href: carHref("records"),        icon: Folder,       label: "Records and Files" },
-    { href: carHref("income-expense"), icon: Calendar,     label: "Car Rental Value Per Month" },
-    { href: carHref("calculator"),     icon: Calculator,   label: "Payment Calculator" },
-
-    { href: "/admin/turo-trips",       icon: History,      label: "History" },
-    { href: carHref("graphs"),         icon: TrendingUp,   label: "Graphs and Charts Report" },
-    { href: carHref("depreciation"),   icon: TrendingDown, label: "NADA Depreciation Schedule" },
-    { href: carHref("payments"),       icon: CreditCard,   label: "Payment History" },
-
+    { href: historyHref,               icon: History,      label: "History" },
     { href: carHref("totals"),         icon: BarChart3,    label: "Totals" },
+    { href: carHref("records"),        icon: Folder,       label: "Records and Files" },
+
+    { href: carHref("graphs"),         icon: TrendingUp,   label: "Graphs and Charts Report" },
     { href: carHref("maintenance"),    icon: Wrench,       label: "Maintenance" },
-    { href: carHref("purchase"),       icon: ShoppingBag,  label: "Purchase Details" },
+    { href: carHref("income-expense"), icon: Calendar,     label: "Car Rental Value Per Month" },
+    { href: carHref("depreciation"),   icon: TrendingDown, label: "NADA Depreciation Schedule" },
+
+    { href: carHref("payments"),       icon: CreditCard,   label: "Payment History" },
   ];
 
   const supportLinks = [
-    { href: "#",                   icon: ClipboardList, label: "Off-boarding Form" },
-    { href: turoViewLink ?? "#",   icon: Car,           label: "Book Your Car", external: !!turoViewLink },
-    { href: "/tutorial",           icon: BookOpen,      label: "Training Manual" },
-    { href: "#",                   icon: Globe,         label: "News & Media" },
+    { href: "/admin/forms",          icon: ClipboardList, label: "Off-boarding Form" },
+    { href: "https://rent.goldenluxuryauto.com/start-block", icon: Car, label: "Book Your Car", external: true },
+    { href: "/tutorial",             icon: BookOpen,      label: "Training Manual" },
+    { href: "#",                     icon: Globe,         label: "News & Media" },
 
-    { href: "#",                   icon: Video,         label: "Schedule a Zoom Call" },
-    { href: "/profile",            icon: FileText,      label: "License Registration or Insurance Updates" },
-    { href: "/admin/turo-guide",   icon: Map,           label: "Turo Guide" },
-    { href: "",                    icon: Map,           label: "",                placeholder: true },
+    { href: "https://rent.goldenluxuryauto.com/lyc-client-check-in", icon: Video, label: "Schedule a Zoom Call", external: true },
+    { href: "/profile",              icon: FileText,      label: "License Registration or Insurance Updates" },
+    { href: "/admin/turo-guide",     icon: Map,           label: "Turo Guide" },
+    { href: "",                      icon: Map,           label: "",                placeholder: true },
 
-    { href: "/onboarding",         icon: PlusCircle,    label: "List Another Car" },
-    { href: "/admin/forms",        icon: UserPlus,      label: "Refer Somebody" },
-    { href: "/admin/testimonials", icon: Star,          label: "Client Testimonials" },
+    { href: "/onboarding",           icon: PlusCircle,    label: "List Another Car" },
+    { href: "/admin/forms",          icon: UserPlus,      label: "Refer Somebody" },
+    { href: "/admin/testimonials",   icon: Star,          label: "Client Testimonials" },
   ];
 
   // ── Loading ───────────────────────────────────────────────────────────────────

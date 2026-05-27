@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
@@ -120,14 +120,15 @@ function calculateDaysRented(
 
 export default function TuroTripsPage() {
   const [selectedTrip, setSelectedTrip] = useState<TuroTrip | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const initialCar = new URLSearchParams(window.location.search).get("car") ?? "";
+  const [searchQuery, setSearchQuery] = useState(initialCar);
   const [statusFilter, setStatusFilter] = useState<
     "all" | "booked" | "cancelled" | "completed"
   >("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(initialCar);
   // Inline odometer editing: tripId → { start, end }
   const [odometerEdits, setOdometerEdits] = useState<
     Record<number, { start: string; end: string }>
