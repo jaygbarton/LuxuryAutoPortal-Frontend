@@ -1138,6 +1138,9 @@ export default function TuroTripsPage() {
                       VIN #
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
+                      Booking Date
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Trip Start
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
@@ -1148,6 +1151,9 @@ export default function TuroTripsPage() {
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Days Rented
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
+                      Lead Time
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Drop Off Location
@@ -1178,13 +1184,13 @@ export default function TuroTripsPage() {
                 <TableBody>
                   {isLoadingTrips ? (
                     <TableRow>
-                      <TableCell colSpan={15} className="text-center py-8">
+                      <TableCell colSpan={17} className="text-center py-8">
                         <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                       </TableCell>
                     </TableRow>
                   ) : trips.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={15} className="text-center py-12">
+                      <TableCell colSpan={17} className="text-center py-12">
                         <div className="flex flex-col items-center gap-3 text-muted-foreground">
                           {debouncedSearchQuery || statusFilter !== "all" ? (
                             <>
@@ -1379,6 +1385,20 @@ export default function TuroTripsPage() {
                             {trip.vinNumber || "-"}
                           </TableCell>
 
+                          {/* Booking Date — when the guest reserved the trip
+                              on Turo. Parsed from the booking confirmation
+                              email and stored in turo_trips.date_booked. */}
+                          <TableCell
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
+                            <div className="text-sm whitespace-nowrap text-muted-foreground">
+                              {trip.dateBooked
+                                ? formatDateTime(trip.dateBooked)
+                                : "-"}
+                            </div>
+                          </TableCell>
+
                           {/* Trip Start */}
                           <TableCell
                             className="cursor-pointer"
@@ -1461,6 +1481,39 @@ export default function TuroTripsPage() {
                                   className={`text-sm tabular-nums ${days != null ? "font-medium text-foreground" : "text-muted-foreground"}`}
                                 >
                                   {days != null ? days : "-"}
+                                </span>
+                              );
+                            })()}
+                          </TableCell>
+
+                          {/* Lead Time — days between booking date and trip
+                              start. Mirrors the backend KPI used by the
+                              dashboard's "Avg lead time" column. Same
+                              ceil(hours/24) rule as Days Rented so a 23h
+                              same-day booking shows as 1 day, not 0. */}
+                          <TableCell
+                            className="cursor-pointer"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
+                            {(() => {
+                              if (!trip.dateBooked || !trip.tripStart) {
+                                return (
+                                  <span className="text-sm text-muted-foreground">-</span>
+                                );
+                              }
+                              const hours = differenceInHours(
+                                new Date(trip.tripStart),
+                                new Date(trip.dateBooked),
+                              );
+                              if (!Number.isFinite(hours) || hours < 0) {
+                                return (
+                                  <span className="text-sm text-muted-foreground">-</span>
+                                );
+                              }
+                              const days = Math.max(1, Math.ceil(hours / 24));
+                              return (
+                                <span className="text-sm tabular-nums font-medium text-foreground">
+                                  {days}
                                 </span>
                               );
                             })()}
