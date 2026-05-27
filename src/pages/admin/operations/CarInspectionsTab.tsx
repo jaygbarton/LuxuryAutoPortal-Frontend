@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Plus, Edit, Trash2, ArrowRight, Wrench, History, CheckCircle2, RotateCcw } from "lucide-react";
 import type { Inspection, MaintenanceRecord, TuroTrip } from "./types";
+import { TaskAssignmentModal } from "./TaskAssignmentModal";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -57,6 +58,7 @@ export function CarInspectionsTab() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -266,10 +268,16 @@ export function CarInspectionsTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <SectionHeader title="Car Inspections" variant="plain" className="mb-0" />
-        <Button onClick={() => { setEditingInspection(null); setModalOpen(true); }} className="bg-primary text-primary-foreground hover:bg-primary/80">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Manual Inspection
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => { setTaskModalOpen(true); }} variant="outline" className="border-primary text-primary hover:bg-primary/10">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Task
+          </Button>
+          <Button onClick={() => { setEditingInspection(null); setModalOpen(true); }} className="bg-primary text-primary-foreground hover:bg-primary/80">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Manual Inspection
+          </Button>
+        </div>
       </div>
 
       <div className="bg-card border border-border rounded-lg overflow-auto">
@@ -608,6 +616,11 @@ export function CarInspectionsTab() {
           </DialogContent>
         </Dialog>
       )}
+
+      <TaskAssignmentModal
+        open={taskModalOpen}
+        onOpenChange={setTaskModalOpen}
+      />
     </div>
   );
 }

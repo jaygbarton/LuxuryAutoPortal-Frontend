@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Plus, Edit, Trash2, History } from "lucide-react";
 import type { Inspection, MaintenanceRecord, TuroTrip } from "./types";
+import { TaskAssignmentModal } from "./TaskAssignmentModal";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -101,6 +102,7 @@ export function MaintenanceTab({
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>(defaultStatus);
   const [search, setSearch] = useState<string>("");
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -299,16 +301,19 @@ export function MaintenanceTab({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <SectionHeader title="Maintenance" variant="plain" className="mb-0" />
-        <Button
-          onClick={() => {
-            setEditingRecord(null);
-            setModalOpen(true);
-          }}
-          className="bg-primary text-primary-foreground hover:bg-primary/80"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Maintenance
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setTaskModalOpen(true)} variant="outline" className="border-primary text-primary hover:bg-primary/10">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Task
+          </Button>
+          <Button
+            onClick={() => { setEditingRecord(null); setModalOpen(true); }}
+            className="bg-primary text-primary-foreground hover:bg-primary/80"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Maintenance
+          </Button>
+        </div>
       </div>
 
       <div className="bg-card border border-border rounded-lg overflow-auto">
@@ -741,6 +746,11 @@ export function MaintenanceTab({
           </DialogContent>
         </Dialog>
       )}
+
+      <TaskAssignmentModal
+        open={taskModalOpen}
+        onOpenChange={setTaskModalOpen}
+      />
     </div>
   );
 }

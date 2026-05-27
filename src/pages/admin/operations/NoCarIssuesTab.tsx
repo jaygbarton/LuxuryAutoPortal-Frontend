@@ -10,8 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { StatusBadge } from "./StatusBadge";
 import { useToast } from "@/hooks/use-toast";
-import { RotateCcw, ArrowRight } from "lucide-react";
+import { RotateCcw, ArrowRight, Plus } from "lucide-react";
 import type { Inspection, TuroTrip } from "./types";
+import { TaskAssignmentModal } from "./TaskAssignmentModal";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -56,6 +57,7 @@ export function NoCarIssuesTab() {
     "operations.noCarIssues",
   );
   const [search, setSearch] = useState<string>("");
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [filterSource, setFilterSource] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
@@ -210,7 +212,13 @@ export function NoCarIssuesTab() {
 
   return (
     <div className="space-y-6">
-      <SectionHeader title="No Car Issues" subtitle="Inspections resolved without requiring maintenance." variant="plain" />
+      <div className="flex items-start justify-between">
+        <SectionHeader title="No Car Issues" subtitle="Inspections resolved without requiring maintenance." variant="plain" className="mb-0" />
+        <Button onClick={() => setTaskModalOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/80 shrink-0">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Task
+        </Button>
+      </div>
 
       <div className="bg-card border border-border rounded-lg overflow-auto">
         <div className="p-4">
@@ -409,6 +417,11 @@ export function NoCarIssuesTab() {
           isLoading={isLoading}
         />
       </div>
+
+      <TaskAssignmentModal
+        open={taskModalOpen}
+        onOpenChange={setTaskModalOpen}
+      />
     </div>
   );
 }

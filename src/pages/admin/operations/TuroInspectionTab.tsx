@@ -39,8 +39,10 @@ import {
   CheckCircle2,
   ClipboardList,
   History,
+  Plus,
 } from "lucide-react";
 import type { Inspection, TuroTrip } from "./types";
+import { TaskAssignmentModal } from "./TaskAssignmentModal";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -86,6 +88,8 @@ export function TuroInspectionTab() {
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [taskPrefill, setTaskPrefill] = useState<Record<string, any>>({});
   // Two independent date filters (mirrors the Trips Overview tab):
   //   Trip Start ⟶ trip.tripStart ≥ X
   //   Trip Ends  ⟶ trip.tripEnd   ≤ Y
@@ -462,11 +466,21 @@ export function TuroInspectionTab() {
 
   return (
     <div className="space-y-6">
-      <SectionHeader
-        title="Turo Messages"
-        subtitle="Completed trips auto-appear here for post-return inspection"
-        variant="plain"
-      />
+      <div className="flex items-start justify-between">
+        <SectionHeader
+          title="Turo Messages"
+          subtitle="Completed trips auto-appear here for post-return inspection"
+          variant="plain"
+          className="mb-0"
+        />
+        <Button
+          onClick={() => { setTaskPrefill({}); setTaskModalOpen(true); }}
+          className="bg-primary text-primary-foreground hover:bg-primary/80 shrink-0"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Task
+        </Button>
+      </div>
 
       <div className="bg-card border border-border rounded-lg overflow-auto">
         <div className="p-4">
@@ -1011,6 +1025,12 @@ export function TuroInspectionTab() {
           </DialogContent>
         </Dialog>
       )}
+
+      <TaskAssignmentModal
+        open={taskModalOpen}
+        onOpenChange={setTaskModalOpen}
+        prefill={taskPrefill}
+      />
     </div>
   );
 }
