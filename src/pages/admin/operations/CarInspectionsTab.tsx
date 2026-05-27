@@ -65,7 +65,7 @@ export function CarInspectionsTab() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterSource, setFilterSource] = useState<string>("all");
+  const [filterSource, setFilterSource] = useState<string>("manual");
   const [search, setSearch] = useState<string>("");
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState<string>("");
@@ -83,10 +83,18 @@ export function CarInspectionsTab() {
   );
 
   const { data, isLoading } = useQuery<{ data: Inspection[] }>({
-    queryKey: ["/api/operations/inspections", "all_sources", filterStatus],
+    queryKey: ["/api/operations/inspections", "car_issues", filterStatus, filterSource],
     queryFn: async () => {
       const params = new URLSearchParams({ limit: "2000" });
       if (filterStatus !== "all") params.append("status", filterStatus);
+      // Exclude turo_return records — those belong to the Turo Messages tab.
+      // When filterSource is "all" we still exclude turo_return so this tab
+      // never duplicates Turo Messages content.
+      if (filterSource !== "all") {
+        params.append("source", filterSource);
+      } else {
+        params.append("excludeSource", "turo_return");
+      }
       const response = await fetch(buildApiUrl(`/api/operations/inspections?${params}`), { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch inspections");
       return response.json();
