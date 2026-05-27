@@ -555,19 +555,18 @@ export function AddEditPaymentModal({
     setBalance(balanceNum.toFixed(2));
   }, [payout, payable]);
 
-  // Update payable when income/expense data is fetched and year/month changes
-  // Always calculate from income/expense data (both add and edit modes)
+  // Auto-fill Car Owner Split from I&E only when adding a new payment.
+  // In edit mode the stored value is authoritative — do not overwrite it.
   useEffect(() => {
+    if (isEdit) return;
     if (year && month && incomeExpenseData?.success && incomeExpenseData?.data) {
-      // Calculate car owner split for the selected month
       const ownerSplit = calculateCarOwnerSplit(month);
       setPayable(ownerSplit.toFixed(2));
     } else if (year && month && incomeExpenseData && !incomeExpenseData.success) {
-      // If income/expense data not found, set to 0
       setPayable("0.00");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incomeExpenseData?.success, incomeExpenseData?.data, year, month, dynamicSubcategories, previousYearData, monthModes, skiRacksOwner]);
+  }, [isEdit, incomeExpenseData?.success, incomeExpenseData?.data, year, month, dynamicSubcategories, previousYearData, monthModes, skiRacksOwner]);
 
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
