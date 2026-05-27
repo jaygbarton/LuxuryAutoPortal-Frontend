@@ -50,12 +50,17 @@ const formatDate = (dateStr: string | null): string => {
     const d = new Date(dateStr);
     return (
       d.toLocaleDateString("en-US", {
+        timeZone: "America/Denver",
         month: "short",
         day: "numeric",
         year: "numeric",
       }) +
       " " +
-      d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+      d.toLocaleTimeString("en-US", {
+        timeZone: "America/Denver",
+        hour: "numeric",
+        minute: "2-digit",
+      })
     );
   } catch {
     return dateStr;

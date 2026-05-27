@@ -33,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { buildApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
@@ -48,6 +48,28 @@ import {
 import { Fragment, useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import TaskCommentsDialog from "@/components/tasks/TaskCommentsDialog";
+
+// Format "task_timer_created" (DB DATETIME, stored UTC) as Mountain Time
+// date + time. Returns "—" if missing/unparseable.
+function formatCreatedAt(s: string | null | undefined): string {
+  if (!s) return "—";
+  const raw = String(s).trim();
+  if (!raw) return "—";
+  // MySQL DATETIME comes back as "YYYY-MM-DD HH:mm:ss" (no Z). Parse as UTC.
+  const iso = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(raw)
+    ? raw.replace(" ", "T") + "Z"
+    : raw;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-US", {
+    timeZone: "America/Denver",
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
 // ─── Status helpers ───────────────────────────────────────────────────────────
 
@@ -663,12 +685,7 @@ export default function AdminHrTaskManagement() {
                         className="border-border"
                       >
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {r.task_timer_created
-                            ? new Date(r.task_timer_created).toLocaleDateString(
-                                "en-US",
-                                { year: "numeric", month: "short", day: "2-digit" },
-                              )
-                            : "—"}
+                          {formatCreatedAt(r.task_timer_created)}
                         </TableCell>
                         <TableCell className="font-medium">
                           {r.task_timer_name || "—"}
@@ -708,7 +725,7 @@ export default function AdminHrTaskManagement() {
                                     title="View photo"
                                   >
                                     <img
-                                      src={buildApiUrl(src)}
+                                      src={getProxiedImageUrl(src)}
                                       alt={`Photo ${i + 1}`}
                                       className="w-10 h-10 object-cover rounded border border-border hover:opacity-80 transition-opacity"
                                     />
@@ -994,7 +1011,7 @@ export default function AdminHrTaskManagement() {
                           title="View photo"
                         >
                           <img
-                            src={buildApiUrl(src)}
+                            src={getProxiedImageUrl(src)}
                             alt={`Existing photo ${i + 1}`}
                             className="w-16 h-16 object-cover rounded border border-border hover:opacity-80 transition-opacity"
                           />
@@ -1068,7 +1085,7 @@ export default function AdminHrTaskManagement() {
             </DialogHeader>
             <div className="relative flex items-center justify-center min-h-[400px]">
               <img
-                src={buildApiUrl(lightboxPhotos[lightboxIndex])}
+                src={getProxiedImageUrl(lightboxPhotos[lightboxIndex])}
                 alt={`Photo ${lightboxIndex + 1} of ${lightboxPhotos.length}`}
                 className="max-h-[70vh] max-w-full object-contain rounded"
               />
@@ -1098,7 +1115,7 @@ export default function AdminHrTaskManagement() {
                     onClick={() => setLightboxIndex(i)}
                     className={`w-12 h-12 rounded border-2 overflow-hidden transition-all ${i === lightboxIndex ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"}`}
                   >
-                    <img src={buildApiUrl(src)} alt="" className="w-full h-full object-cover" />
+                    <img src={getProxiedImageUrl(src)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

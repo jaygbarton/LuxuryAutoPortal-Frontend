@@ -42,6 +42,7 @@ const formatDate = (dateStr: string | null): string => {
   try {
     const d = new Date(dateStr);
     return d.toLocaleDateString("en-US", {
+      timeZone: "America/Denver",
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -56,6 +57,7 @@ const formatDateTime = (dateStr: string | null): string => {
   try {
     const d = new Date(dateStr);
     return d.toLocaleString("en-US", {
+      timeZone: "America/Denver",
       month: "short",
       day: "numeric",
       year: "numeric",

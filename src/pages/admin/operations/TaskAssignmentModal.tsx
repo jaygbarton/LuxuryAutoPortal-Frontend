@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
+import { toMtLocalInput, mtLocalInputToUtcDbString } from "@/lib/mt-datetime";
 import { useToast } from "@/hooks/use-toast";
 import { CarSelectCombobox } from "./CarSelectCombobox";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
@@ -37,33 +38,6 @@ interface TaskAssignmentModalProps {
     return_location?: string;
     delivery_location?: string;
   };
-}
-
-/** Convert a UTC ISO string to the local datetime-local input format (YYYY-MM-DDTHH:mm)
- *  in Mountain Time so the displayed value matches the Trip Start / Trip Ends columns. */
-function toMtLocalInput(iso: string | undefined): string {
-  if (!iso) return "";
-  try {
-    const d = new Date(iso);
-    // Format each component in Mountain Time
-    const fmt = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Denver",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-    const parts = fmt.formatToParts(d).reduce<Record<string, string>>((a, p) => {
-      if (p.type !== "literal") a[p.type] = p.value;
-      return a;
-    }, {});
-    const h = parts.hour === "24" ? "00" : parts.hour;
-    return `${parts.year}-${parts.month}-${parts.day}T${h}:${parts.minute}`;
-  } catch {
-    return "";
-  }
 }
 
 function computeDefaults(
@@ -106,11 +80,9 @@ export function TaskAssignmentModal({
     task_type:
       task?.task_type || prefill?.task_type || ("cleaning" as TaskType),
     assigned_to: task?.assigned_to || "",
-    scheduled_date: task?.scheduled_date
-      ? task.scheduled_date.slice(0, 16)
-      : "",
+    scheduled_date: toMtLocalInput(task?.scheduled_date),
     scheduled_location: task?.scheduled_location || "",
-    due_date: task?.due_date ? task.due_date.slice(0, 16) : "",
+    due_date: toMtLocalInput(task?.due_date),
     notes: task?.notes || "",
   });
 
@@ -123,11 +95,9 @@ export function TaskAssignmentModal({
         guest_name: task.guest_name || "",
         task_type: task.task_type,
         assigned_to: task.assigned_to,
-        scheduled_date: task.scheduled_date
-          ? task.scheduled_date.slice(0, 16)
-          : "",
+        scheduled_date: toMtLocalInput(task.scheduled_date),
         scheduled_location: task.scheduled_location || "",
-        due_date: task.due_date ? task.due_date.slice(0, 16) : "",
+        due_date: toMtLocalInput(task.due_date),
         notes: task.notes || "",
       });
     } else if (prefill) {
@@ -210,6 +180,8 @@ export function TaskAssignmentModal({
         body: JSON.stringify({
           ...data,
           reservation_id: data.reservation_id || "N/A",
+          scheduled_date: mtLocalInputToUtcDbString(data.scheduled_date),
+          due_date: mtLocalInputToUtcDbString(data.due_date),
         }),
       });
       if (!response.ok) throw new Error("Failed to save task");

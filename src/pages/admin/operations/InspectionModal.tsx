@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
+import { toMtLocalInput, mtLocalInputToUtcDbString } from "@/lib/mt-datetime";
 import { useToast } from "@/hooks/use-toast";
 import { PhotoUpload } from "./PhotoUpload";
 import { CarSelectCombobox } from "./CarSelectCombobox";
@@ -86,9 +87,7 @@ export function InspectionModal({
     reservation_id: inspection?.reservation_id || prefill?.reservation_id || "",
     car_name: inspection?.car_name || prefill?.car_name || "",
     assigned_to: inspection?.assigned_to || "Cathy",
-    inspection_date: inspection?.inspection_date
-      ? inspection.inspection_date.slice(0, 16)
-      : "",
+    inspection_date: toMtLocalInput(inspection?.inspection_date),
     notes: inspection?.notes || "",
     photos: inspection?.photos || [],
     fuel_level_returned: (inspection?.fuel_level_returned ??
@@ -118,9 +117,7 @@ export function InspectionModal({
         reservation_id: inspection.reservation_id || "",
         car_name: inspection.car_name,
         assigned_to: inspection.assigned_to,
-        inspection_date: inspection.inspection_date
-          ? inspection.inspection_date.slice(0, 16)
-          : "",
+        inspection_date: toMtLocalInput(inspection.inspection_date),
         notes: inspection.notes || "",
         photos: inspection.photos || [],
         fuel_level_returned: (inspection.fuel_level_returned ??
@@ -147,7 +144,10 @@ export function InspectionModal({
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          inspection_date: mtLocalInputToUtcDbString(data.inspection_date),
+        }),
       });
       if (!response.ok) throw new Error("Failed to save inspection");
       return response.json();

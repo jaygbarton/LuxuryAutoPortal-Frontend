@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { buildApiUrl } from "@/lib/queryClient";
+import { toMtLocalInput, mtLocalInputToUtcDbString } from "@/lib/mt-datetime";
 import { useToast } from "@/hooks/use-toast";
 import { PhotoUpload } from "./PhotoUpload";
 import { CarSelectCombobox } from "./CarSelectCombobox";
@@ -45,8 +46,8 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
     task_description: record?.task_description || prefill?.task_description || "",
     assigned_to: record?.assigned_to || "",
     assigned_to_id: record?.assigned_to_id ?? null,
-    scheduled_date: record?.scheduled_date ? record.scheduled_date.slice(0, 16) : "",
-    due_date: record?.due_date ? record.due_date.slice(0, 16) : "",
+    scheduled_date: toMtLocalInput(record?.scheduled_date),
+    due_date: toMtLocalInput(record?.due_date),
     notes: record?.notes || prefill?.notes || "",
     photos: record?.photos || prefill?.photos || [],
     repair_shop: record?.repair_shop || "",
@@ -62,8 +63,8 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
         task_description: record.task_description,
         assigned_to: record.assigned_to,
         assigned_to_id: record.assigned_to_id ?? null,
-        scheduled_date: record.scheduled_date ? record.scheduled_date.slice(0, 16) : "",
-        due_date: record.due_date ? record.due_date.slice(0, 16) : "",
+        scheduled_date: toMtLocalInput(record.scheduled_date),
+        due_date: toMtLocalInput(record.due_date),
         notes: record.notes || "",
         photos: record.photos || [],
         repair_shop: record.repair_shop || "",
@@ -89,7 +90,11 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          scheduled_date: mtLocalInputToUtcDbString(data.scheduled_date),
+          due_date: mtLocalInputToUtcDbString(data.due_date),
+        }),
       });
       if (!response.ok) throw new Error("Failed to save maintenance record");
       return response.json();
