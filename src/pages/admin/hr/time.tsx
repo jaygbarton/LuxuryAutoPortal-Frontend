@@ -58,6 +58,7 @@ interface TimeRow {
   time_out: string | null;
   time_total_hours: string | null;
   time_form_details: string | null;
+  time_notes: string | null;
   time_created: string;
   time_updated: string;
   fullname: string | null;
@@ -96,6 +97,7 @@ interface TimeFormState {
   lunchOut: string;
   lunchIn: string;
   timeOut: string;
+  timeNotes: string;
   notes: string;
 }
 
@@ -258,6 +260,7 @@ function emptyForm(): TimeFormState {
     lunchOut: "",
     lunchIn: "",
     timeOut: "",
+    timeNotes: "",
     notes: "",
   };
 }
@@ -272,6 +275,7 @@ function rowToForm(r: TimeRow): TimeFormState {
     lunchOut: toLocalInput(r.time_lunch_out),
     lunchIn: toLocalInput(r.time_lunch_in),
     timeOut: toLocalInput(r.time_out),
+    timeNotes: r.time_notes ?? "",
     notes: "",
   };
 }
@@ -287,6 +291,7 @@ function formToPayload(f: TimeFormState) {
     date: f.date,
     timeIn: fromLocalInput(f.timeIn),
     timeOut: fromLocalInput(f.timeOut),
+    timeNotes: f.timeNotes || null,
     notes: f.notes || undefined,
   };
 }
@@ -560,6 +565,7 @@ export default function AdminHrTime() {
                       <TableHead className="text-right text-white">Total hrs</TableHead>
                       <TableHead className="text-right text-white">Rate</TableHead>
                       <TableHead className="text-right text-white">Amount</TableHead>
+                      <TableHead className="text-white">Note</TableHead>
                       <TableHead className="w-32 text-right text-white">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -608,6 +614,9 @@ export default function AdminHrTime() {
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
                             {amount != null ? formatUsd(amount) : "—"}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground max-w-[200px]">
+                            {r.time_notes || "—"}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
@@ -659,6 +668,7 @@ export default function AdminHrTime() {
                       <TableCell className="text-right tabular-nums font-semibold">
                         {totalAmount > 0 ? formatUsd(totalAmount) : "—"}
                       </TableCell>
+                      <TableCell />
                       <TableCell />
                     </TableRow>
                   </TableFooter>
@@ -832,8 +842,12 @@ function TimeEntryForm(props: {
         </div>
       </div>
       <div className="space-y-1">
-        <Label>Notes (saved to audit trail)</Label>
-        <Textarea rows={2} value={form.notes} onChange={set("notes")} />
+        <Label>Note</Label>
+        <Textarea rows={2} value={form.timeNotes} onChange={set("timeNotes")} placeholder="Visible note on this time entry" />
+      </div>
+      <div className="space-y-1">
+        <Label>Audit notes (internal)</Label>
+        <Textarea rows={2} value={form.notes} onChange={set("notes")} placeholder="Reason for this change (saved to audit trail only)" />
       </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onCancel}>
