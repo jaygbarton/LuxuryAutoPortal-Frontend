@@ -230,7 +230,7 @@ export function TuroInspectionTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { data, isLoading } = useQuery<{ data: Inspection[] }>({
+  const { data, isLoading } = useQuery<{ data: Inspection[]; total: number }>({
     queryKey: ["/api/operations/inspections", "turo_return", filterStatus],
     queryFn: async () => {
       const params = new URLSearchParams({ source: "turo_return", limit: "2000" });
@@ -550,7 +550,9 @@ export function TuroInspectionTab() {
             )}
           </div>
           <div className="text-sm text-muted-foreground mb-3">
-            Total: {filteredInspections.length}
+            {filteredInspections.length !== (data?.total ?? filteredInspections.length)
+              ? `Showing ${filteredInspections.length} of ${data?.total ?? inspections.length}`
+              : `Total: ${data?.total ?? filteredInspections.length}`}
           </div>
 
           <div className="overflow-x-auto">

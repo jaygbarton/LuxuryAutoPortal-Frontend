@@ -97,7 +97,7 @@ export function TripTasksTab() {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [historyTask, setHistoryTask] = useState<OperationTask | null>(null);
 
-  const { data, isLoading } = useQuery<{ data: OperationTask[] }>({
+  const { data, isLoading } = useQuery<{ data: OperationTask[]; total: number }>({
     queryKey: ["/api/operations/tasks", filterType, filterStatus],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -346,7 +346,9 @@ export function TripTasksTab() {
             )}
           </div>
           <div className="text-sm text-muted-foreground mb-3">
-            Total: {filteredTasks.length}
+            {filteredTasks.length !== (data?.total ?? filteredTasks.length)
+              ? `Showing ${filteredTasks.length} of ${data?.total ?? tasks.length}`
+              : `Total: ${data?.total ?? filteredTasks.length}`}
           </div>
 
           <div className="overflow-x-auto">

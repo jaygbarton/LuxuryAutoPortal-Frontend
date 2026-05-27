@@ -82,7 +82,7 @@ export function CarInspectionsTab() {
     "operations.carIssues",
   );
 
-  const { data, isLoading } = useQuery<{ data: Inspection[] }>({
+  const { data, isLoading } = useQuery<{ data: Inspection[]; total: number }>({
     queryKey: ["/api/operations/inspections", "car_issues", filterStatus, filterSource],
     queryFn: async () => {
       const params = new URLSearchParams({ limit: "2000" });
@@ -394,7 +394,9 @@ export function CarInspectionsTab() {
             )}
           </div>
           <div className="text-sm text-muted-foreground mb-3">
-            Total: {inspections.length}
+            {inspections.length !== (data?.total ?? inspections.length)
+              ? `Showing ${inspections.length} of ${data?.total ?? rawInspections.length}`
+              : `Total: ${data?.total ?? inspections.length}`}
           </div>
 
           <div className="overflow-x-auto">

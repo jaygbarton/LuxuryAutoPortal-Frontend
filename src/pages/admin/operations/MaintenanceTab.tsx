@@ -124,7 +124,7 @@ export function MaintenanceTab({
   );
   const carNameWithYear = useCarNameWithYear();
 
-  const { data, isLoading } = useQuery<{ data: MaintenanceRecord[] }>({
+  const { data, isLoading } = useQuery<{ data: MaintenanceRecord[]; total: number }>({
     queryKey: ["/api/operations/maintenance", filterStatus],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -392,7 +392,9 @@ export function MaintenanceTab({
             )}
           </div>
           <div className="text-sm text-muted-foreground mb-3">
-            Total: {records.length}
+            {records.length !== (data?.total ?? records.length)
+              ? `Showing ${records.length} of ${data?.total ?? rawRecords.length}`
+              : `Total: ${data?.total ?? records.length}`}
           </div>
 
           <div className="overflow-x-auto">

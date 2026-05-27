@@ -71,7 +71,7 @@ export function NoCarIssuesTab() {
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
 
-  const { data, isLoading } = useQuery<{ data: Inspection[] }>({
+  const { data, isLoading } = useQuery<{ data: Inspection[]; total: number }>({
     queryKey: ["/api/operations/inspections", "no_issues"],
     queryFn: async () => {
       const response = await fetch(buildApiUrl(`/api/operations/inspections?status=no_issues`), { credentials: "include" });
@@ -288,7 +288,9 @@ export function NoCarIssuesTab() {
             )}
           </div>
           <div className="text-sm text-muted-foreground mb-3">
-            Total: {inspections.length}
+            {inspections.length !== (data?.total ?? inspections.length)
+              ? `Showing ${inspections.length} of ${data?.total ?? rawInspections.length}`
+              : `Total: ${data?.total ?? inspections.length}`}
           </div>
 
           <div className="overflow-x-auto">
