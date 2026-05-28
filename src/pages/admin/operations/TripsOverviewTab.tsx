@@ -595,7 +595,7 @@ export function TripsOverviewTab() {
               ? `Showing ${pagedTrips.length} of ${totalServerMatches} matched trip${totalServerMatches === 1 ? "" : "s"} (Assigned filter applied to current page)`
               : `Total: ${totalServerMatches} trip${totalServerMatches === 1 ? "" : "s"}`}
           </div>
-          <div className="overflow-auto max-h-[60vh]">
+          <div className="overflow-auto max-h-[60vh] ">
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">

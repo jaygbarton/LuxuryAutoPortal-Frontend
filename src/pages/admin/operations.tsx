@@ -12,7 +12,7 @@ import { NoCarIssuesTab } from "./operations/NoCarIssuesTab";
 export default function OperationsPage() {
   return (
     <AdminLayout>
-      <div className="flex flex-col h-full overflow-x-hidden">
+      <div className="flex flex-col">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-primary">Operations</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -20,7 +20,7 @@ export default function OperationsPage() {
           </p>
         </div>
 
-        <Tabs defaultValue="trips" className="flex-1">
+        <Tabs defaultValue="trips">
           <div className="-mx-2 sm:mx-0 mb-6 overflow-x-auto">
             <TabsList className="bg-muted border border-border h-auto gap-1 p-1 inline-flex w-max min-w-full sm:w-auto sm:min-w-0 sm:flex-wrap">
               <TabsTrigger value="trips" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">

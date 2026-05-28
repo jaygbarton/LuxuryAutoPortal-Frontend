@@ -62,9 +62,10 @@ function makeCSV(overrides: { [section: string]: string[] } = {}): string {
     `ADMIN TURO LINK,N/A`,
     ``,
     `SECTION,CAR MANAGEMENT OWNER SPLIT`,
+    `Mode Settings,Jan 2024: 50,Feb 2024: 70,Mar 2024: 50,Apr 2024: 50,May 2024: 50,Jun 2024: 50,Jul 2024: 50,Aug 2024: 50,Sep 2024: 50,Oct 2024: 50,Nov 2024: 50,Dec 2024: 50`,
     `Category,${months},YER,YER SPLIT,TOTAL`,
-    `Car Management Split,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00`,
-    `Car Owner Split,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00`,
+    `Car Management Split,$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00,$0.00,$0.00`,
+    `Car Owner Split,$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00,$0.00,$0.00`,
     ``,
     `SECTION,INCOME & EXPENSES`,
     `Category,${months},YER,YER SPLIT,TOTAL`,
@@ -92,8 +93,8 @@ function makeCSV(overrides: { [section: string]: string[] } = {}): string {
     `SECTION,Parking Fee & Labor Cleaning`,
     `Category,${months},YER,YER SPLIT,TOTAL`,
     `GLA Parking Fee,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00`,
-    `Labor - Cleaning (Parking),$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00`,
-    `Total Parking Fee & Labor Cleaning,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00`,
+    `Labor - Cleaning,$8.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$8.00`,
+    `Total Parking Fee & Labor Cleaning,$8.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$8.00`,
     ``,
     `SECTION,REIMBURSE AND NON-REIMBURSE BILLS`,
     `Category,${months},YER,YER SPLIT,TOTAL`,
@@ -351,6 +352,68 @@ describe("parseImportedCSV", () => {
         (r: any) => r.category === "Labor - Detailing"
       );
       expect(row).toBeDefined();
+    });
+  });
+
+  describe("Mode Settings parsing", () => {
+    it("reads monthModes from Mode Settings row", () => {
+      const result = parseImportedCSV(makeCSV());
+      expect(result.sections!.monthModes![1]).toBe(50);
+      expect(result.sections!.monthModes![2]).toBe(70); // Feb set to 70 in makeCSV
+      expect(result.sections!.monthModes![3]).toBe(50);
+    });
+
+    it("defaults to empty monthModes when Mode Settings row is absent", () => {
+      const csv = makeCSV().replace(/Mode Settings,[^\n]+\n/, "");
+      const result = parseImportedCSV(csv);
+      expect(result.sections!.monthModes).toEqual({});
+    });
+  });
+
+  describe("Car Management / Car Owner Split percentage parsing", () => {
+    it("extracts management split percentage from each month cell", () => {
+      const result = parseImportedCSV(makeCSV());
+      const mgmt = result.sections!.managementSplit?.find(
+        (r: any) => r.category === "carManagementSplit"
+      );
+      expect(mgmt).toBeDefined();
+      expect(mgmt!.month1).toBe(30);
+      expect(mgmt!.month6).toBe(30);
+    });
+
+    it("extracts owner split percentage from each month cell", () => {
+      const result = parseImportedCSV(makeCSV());
+      const owner = result.sections!.managementSplit?.find(
+        (r: any) => r.category === "carOwnerSplit"
+      );
+      expect(owner).toBeDefined();
+      expect(owner!.month1).toBe(70);
+    });
+
+    it("sets null for months where percentage is missing from the cell", () => {
+      const result = parseImportedCSV(makeCSV());
+      // YER / YER SPLIT / TOTAL columns (indices 13,14,15) have no percentage
+      const mgmt = result.sections!.managementSplit?.find(
+        (r: any) => r.category === "carManagementSplit"
+      );
+      // month13 doesn't exist in the 12-month loop; all 12 months should be set
+      expect(mgmt!.month12).toBe(30);
+    });
+  });
+
+  describe("Labor - Cleaning in Parking Fee section", () => {
+    it("includes Labor - Cleaning in parkingFeeLabor (not as dynamic subcategory)", () => {
+      const result = parseImportedCSV(makeCSV());
+      const row = result.sections!.parkingFeeLabor!.find(
+        (r: any) => r.category === "Labor - Cleaning"
+      );
+      expect(row).toBeDefined();
+      expect(row!.month1).toBe(8);
+    });
+
+    it("parking fee section has exactly 2 rows (GLA Parking Fee + Labor - Cleaning)", () => {
+      const result = parseImportedCSV(makeCSV());
+      expect(result.sections!.parkingFeeLabor!.length).toBe(2);
     });
   });
 
