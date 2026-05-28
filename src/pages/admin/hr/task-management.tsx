@@ -255,6 +255,8 @@ export default function AdminHrTaskManagement() {
   const { toast } = useToast();
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterAssignedTo, setFilterAssignedTo] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [historyTask, setHistoryTask] = useState<any | null>(null);
@@ -397,7 +399,18 @@ export default function AdminHrTaskManagement() {
       toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const rows = data?.data ?? [];
+  const allRows = data?.data ?? [];
+
+  // Build unique assigned-to names for the filter dropdown from loaded data
+  const assignedToOptions = Array.from(
+    new Set(allRows.map((r) => getAssignedName(r)).filter((n) => n && n !== "—"))
+  ).sort();
+
+  const rows = allRows.filter((r) => {
+    if (filterStatus !== "all" && String(r.task_timer_status ?? 0) !== filterStatus) return false;
+    if (filterAssignedTo !== "all" && getAssignedName(r) !== filterAssignedTo) return false;
+    return true;
+  });
 
   // Current admin (from the already-cached /api/auth/me query). Used to
   // pre-fill the "Assignee" / "Assigned By" input so newly created tasks
@@ -652,13 +665,41 @@ export default function AdminHrTaskManagement() {
                   className="flex-1 lg:w-40 lg:flex-none h-8"
                 />
               </div>
-              {(fromDate || toDate) && (
+              {/* Status filter */}
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="h-8 w-full lg:w-36">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {STATUS_OPTIONS.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Assigned To filter */}
+              <Select value={filterAssignedTo} onValueChange={setFilterAssignedTo}>
+                <SelectTrigger className="h-8 w-full lg:w-44">
+                  <SelectValue placeholder="All Assignees" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Assignees</SelectItem>
+                  {assignedToOptions.map((name) => (
+                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {(fromDate || toDate || filterStatus !== "all" || filterAssignedTo !== "all") && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setFromDate("");
                     setToDate("");
+                    setFilterStatus("all");
+                    setFilterAssignedTo("all");
                   }}
                   className="text-red-700 hover:text-red-700 col-span-full sm:col-auto w-full lg:w-auto"
                 >
@@ -774,11 +815,16 @@ export default function AdminHrTaskManagement() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-primary"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary relative"
                               onClick={() => setCommentTask(r)}
                               title="Comments"
                             >
                               <MessageCircle className="w-4 h-4" />
+                              {(r.comment_count ?? 0) > 0 && (
+                                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-0.5 leading-none">
+                                  {r.comment_count}
+                                </span>
+                              )}
                             </Button>
                             <Button
                               variant="ghost"
