@@ -127,14 +127,19 @@ export default function ViewCarPage() {
 
   const onboarding = onboardingData?.success ? onboardingData?.data : null;
 
-  const { data: clientsData } = useQuery<{ data: any[] }>({
+  const { data: clientsData } = useQuery<{ data: any[]; success?: boolean }>({
     queryKey: ["/api/clients", "picker"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/clients?limit=200"), { credentials: "include" });
+      const res = await fetch(buildApiUrl("/api/clients?limit=500&page=1"), { credentials: "include" });
       if (!res.ok) return { data: [] };
-      return res.json();
+      const json = await res.json();
+      // Handle both { data: [...] } and plain array responses
+      if (Array.isArray(json)) return { data: json };
+      if (Array.isArray(json.data)) return json;
+      return { data: [] };
     },
     enabled: !isClient,
+    staleTime: 1000 * 60 * 5,
   });
   const allClients = clientsData?.data ?? [];
   const filteredClients = ownerForm.name.trim()
