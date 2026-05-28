@@ -49,7 +49,7 @@ export default function ViewCarPage() {
   const { toast } = useToast();
 
   const [editingOwner, setEditingOwner] = useState(false);
-  const [ownerForm, setOwnerForm] = useState({ name: "", contact: "", email: "" });
+  const [ownerForm, setOwnerForm] = useState<{ name: string; contact: string; email: string; clientId: number | null }>({ name: "", contact: "", email: "", clientId: null });
   const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
   const clientDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -144,8 +144,10 @@ export default function ViewCarPage() {
   const allClients = clientsData?.data ?? [];
   const filteredClients = ownerForm.name.trim()
     ? allClients.filter(c => {
-        const full = `${c.client_fname ?? ""} ${c.client_lname ?? ""}`.toLowerCase();
-        return full.includes(ownerForm.name.trim().toLowerCase());
+        const full = `${c.firstName ?? ""} ${c.lastName ?? ""}`.toLowerCase();
+        const email = (c.email ?? "").toLowerCase();
+        const q = ownerForm.name.trim().toLowerCase();
+        return full.includes(q) || email.includes(q);
       })
     : allClients;
 
@@ -175,11 +177,20 @@ export default function ViewCarPage() {
   };
 
   const updateOwnerMutation = useMutation({
-    mutationFn: async (values: { name: string; contact: string; email: string }) => {
+    mutationFn: async (values: { name: string; contact: string; email: string; clientId: number | null }) => {
       const formData = new FormData();
-      formData.append("ownerNameOverride", values.name);
-      formData.append("ownerContactOverride", values.contact);
-      formData.append("ownerEmailOverride", values.email);
+      if (values.clientId != null) {
+        // Linked client: write clientId so the car is owned by that client; clear text overrides.
+        formData.append("clientId", String(values.clientId));
+        formData.append("ownerNameOverride", "");
+        formData.append("ownerContactOverride", "");
+        formData.append("ownerEmailOverride", "");
+      } else {
+        // Free-typed owner: store overrides only.
+        formData.append("ownerNameOverride", values.name);
+        formData.append("ownerContactOverride", values.contact);
+        formData.append("ownerEmailOverride", values.email);
+      }
       const res = await fetch(buildApiUrl(`/api/cars/${carId}`), {
         method: "PATCH",
         credentials: "include",
@@ -300,6 +311,7 @@ export default function ViewCarPage() {
                         name: car.ownerNameOverride || "",
                         contact: car.ownerContactOverride || "",
                         email: car.ownerEmailOverride || "",
+                        clientId: null,
                       });
                       setEditingOwner(true);
                     }}
@@ -319,7 +331,7 @@ export default function ViewCarPage() {
                         type="text"
                         value={ownerForm.name}
                         onChange={e => {
-                          setOwnerForm(f => ({ ...f, name: e.target.value }));
+                          setOwnerForm(f => ({ ...f, name: e.target.value, clientId: null }));
                           setClientDropdownOpen(true);
                         }}
                         onFocus={() => setClientDropdownOpen(true)}
@@ -328,32 +340,37 @@ export default function ViewCarPage() {
                       />
                       <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
                     </div>
-                    {clientDropdownOpen && filteredClients.length > 0 && (
+                    {clientDropdownOpen && (
                       <div className="absolute z-50 top-full left-0 right-0 mt-0.5 bg-card border border-border rounded shadow-lg max-h-40 overflow-y-auto">
-                        {filteredClients.slice(0, 20).map((c, idx) => {
-                          const name = `${c.client_fname ?? ""} ${c.client_lname ?? ""}`.trim();
-                          return (
-                            <button
-                              key={c.client_aid ?? `client-${idx}-${c.client_email ?? name}`}
-                              type="button"
-                              className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent text-foreground"
-                              onMouseDown={e => {
-                                e.preventDefault();
-                                setOwnerForm({
-                                  name,
-                                  contact: c.client_contact ?? "",
-                                  email: c.client_email ?? "",
-                                });
-                                setClientDropdownOpen(false);
-                              }}
-                            >
-                              <span className="font-medium">{name}</span>
-                              {c.client_email && (
-                                <span className="text-muted-foreground ml-1">— {c.client_email}</span>
-                              )}
-                            </button>
-                          );
-                        })}
+                        {filteredClients.length === 0 ? (
+                          <div className="px-2 py-1.5 text-xs text-muted-foreground">No clients found</div>
+                        ) : (
+                          filteredClients.slice(0, 20).map((c, idx) => {
+                            const name = `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() || (c.email ?? "Unnamed");
+                            return (
+                              <button
+                                key={c.id ?? `client-${idx}-${c.email ?? name}`}
+                                type="button"
+                                className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent text-foreground"
+                                onMouseDown={e => {
+                                  e.preventDefault();
+                                  setOwnerForm({
+                                    name,
+                                    contact: c.phone ?? "",
+                                    email: c.email ?? "",
+                                    clientId: typeof c.id === "number" ? c.id : null,
+                                  });
+                                  setClientDropdownOpen(false);
+                                }}
+                              >
+                                <span className="font-medium">{name}</span>
+                                {c.email && (
+                                  <span className="text-muted-foreground ml-1">— {c.email}</span>
+                                )}
+                              </button>
+                            );
+                          })
+                        )}
                       </div>
                     )}
                   </div>
