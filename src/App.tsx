@@ -223,28 +223,28 @@ function Router() {
               <RequireRole roles={["isAdmin"]}><ViewCarPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/earnings">
-              <RequireRole roles={["isAdmin"]}><EarningsPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><EarningsPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/expenses">
               <RequireRole roles={["isAdmin"]}><TotalExpensesPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/depreciation">
-              <RequireRole roles={["isAdmin"]}><NADADepreciationPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><NADADepreciationPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/purchase">
               <RequireRole roles={["isAdmin"]}><PurchaseDetailsPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/graphs">
-              <RequireRole roles={["isAdmin"]}><GraphsChartsPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><GraphsChartsPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/calculator">
               <RequireRole roles={["isAdmin"]}><PaymentCalculatorPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/maintenance">
-              <RequireRole roles={["isAdmin"]}><MaintenancePage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><MaintenancePage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/totals">
-              <RequireRole roles={["isAdmin"]}><TotalsPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><TotalsPage /></RequireRole>
             </Route>
             <Route path="/admin/totals/all">
               <RequireRole roles={["isAdmin"]}><TotalsPage /></RequireRole>
@@ -253,10 +253,10 @@ function Router() {
               <RequireRole roles={["isAdmin"]}><TotalsPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/records">
-              <RequireRole roles={["isAdmin"]}><RecordsPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><RecordsPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:carId/records/:recordId/files">
-              <RequireRole roles={["isAdmin"]}><ViewRecordFilesPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><ViewRecordFilesPage /></RequireRole>
             </Route>
             <Route path="/admin/payments">
               <RequireRole roles={["isAdmin"]}><PaymentsMainPage /></RequireRole>
@@ -265,16 +265,16 @@ function Router() {
               <RequireRole roles={["isAdmin"]}><PaymentStatusPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/payments">
-              <RequireRole roles={["isAdmin"]}><PaymentsPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><PaymentsPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/income-expense/log">
               <RequireRole roles={["isAdmin"]}><IncomeExpenseLogPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/income-expense">
-              <RequireRole roles={["isAdmin"]}><CarIncomeExpensePage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><CarIncomeExpensePage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id">
-              <RequireRole roles={["isAdmin"]}><CarDetailPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><CarDetailPage /></RequireRole>
             </Route>
             <Route path="/admin/income-expenses">
               <RequireRole roles={["isAdmin"]}><IncomeExpensesPageWrapper /></RequireRole>

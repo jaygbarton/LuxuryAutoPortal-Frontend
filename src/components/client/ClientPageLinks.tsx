@@ -106,12 +106,12 @@ export function ClientPageLinks() {
   //   Row 2: Schedule a Zoom Call | License Registration or Insurance Updates | Turo Guide | (blank)
   //   Row 3: List Another Car  | Refer Somebody | Client Testimonials
   const supportLinks = [
-    { href: "/admin/forms",        icon: ClipboardList, label: "Off-boarding Form" },
+    { href: "/client/offboarding-form", icon: ClipboardList, label: "Off-boarding Form" },
     { href: turoViewLink ?? "#",   icon: Car,           label: "Book Your Car", external: !!turoViewLink },
     { href: "/tutorial",           icon: BookOpen,      label: "Training Manual" },
     { href: "/admin/news-media",   icon: Globe,         label: "News & Media" },
 
-    { href: "#",                   icon: Video,         label: "Schedule a Zoom Call" },
+    { href: "https://rent.goldenluxuryauto.com/lyc-client-check-in", icon: Video, label: "Schedule a Zoom Call", external: true },
     { href: "/profile",            icon: FileText,      label: "License Registration or Insurance Updates" },
     { href: "/admin/turo-guide",   icon: Map,           label: "Turo Guide" },
     { href: "",                    icon: Map,           label: "",            placeholder: true },

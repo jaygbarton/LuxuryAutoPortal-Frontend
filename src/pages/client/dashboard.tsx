@@ -418,7 +418,7 @@ export default function ClientDashboard() {
     { href: "/client/offboarding-form", icon: ClipboardList, label: "Off-boarding Form" },
     { href: "https://rent.goldenluxuryauto.com/start-block", icon: Car, label: "Book Your Car", external: true },
     { href: "/tutorial",             icon: BookOpen,      label: "Training Manual" },
-    { href: "#",                     icon: Globe,         label: "News & Media" },
+    { href: "/admin/news-media",     icon: Globe,         label: "News & Media" },
 
     { href: "https://rent.goldenluxuryauto.com/lyc-client-check-in", icon: Video, label: "Schedule a Zoom Call", external: true },
     { href: "/profile",              icon: FileText,      label: "License Registration or Insurance Updates" },
