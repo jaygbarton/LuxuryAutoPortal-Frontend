@@ -444,6 +444,8 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
       // page degrades gracefully when the enrich step fails.
       totalMiles: hist?.totalMiles ?? 0,
       avgLeadTimeDays: hist?.avgLeadTimeDays ?? 0,
+      totalLeadTimeDays: hist?.totalLeadTimeDays ?? 0,
+      tripsWithLeadTime: hist?.tripsWithLeadTime ?? 0,
     };
   });
 
@@ -538,14 +540,12 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
     totalTripsTakenAll > 0 ? totalGross / totalTripsTakenAll : 0;
 
   const totalMilesAll = monthlyComputed.reduce((s, m) => s + m.totalMiles, 0);
-  // Average lead time across months that actually had bookings — averaging
-  // months with 0 lead time would pull the result toward 0 incorrectly.
-  const leadTimeMonths = monthlyComputed.filter((m) => m.avgLeadTimeDays > 0);
-  const yearAvgLeadTime =
-    leadTimeMonths.length > 0
-      ? leadTimeMonths.reduce((s, m) => s + m.avgLeadTimeDays, 0) /
-        leadTimeMonths.length
-      : 0;
+  // Weighted year total: sum all individual lead-time days / sum all trips that
+  // had a lead-time value. This is "total lead time / trips taken" as requested,
+  // and avoids the bias of averaging monthly averages.
+  const yearTotalLeadTime = monthlyComputed.reduce((s, m) => s + (m.totalLeadTimeDays ?? 0), 0);
+  const yearTripsWithLeadTime = monthlyComputed.reduce((s, m) => s + (m.tripsWithLeadTime ?? 0), 0);
+  const yearAvgLeadTime = yearTripsWithLeadTime > 0 ? yearTotalLeadTime / yearTripsWithLeadTime : 0;
   const yearAvgPerMile = totalMilesAll > 0 ? totalGross / totalMilesAll : 0;
 
   const tableTotals = {

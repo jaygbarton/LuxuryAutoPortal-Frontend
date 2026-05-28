@@ -150,6 +150,10 @@ export interface HistoryMonth {
   /** Average days between date_booked and trip_start across booked trips
    *  that started in this month. Standard booking-lead-time KPI. */
   avgLeadTimeDays?: number;
+  /** Sum of all individual lead-time values for this month (for weighted year totals). */
+  totalLeadTimeDays?: number;
+  /** Number of trips that contributed a lead-time value this month. */
+  tripsWithLeadTime?: number;
 }
 
 export interface ParkingAirportQBMonth {
