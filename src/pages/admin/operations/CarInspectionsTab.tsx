@@ -401,9 +401,7 @@ export function CarInspectionsTab() {
             )}
           </div>
           <div className="text-sm text-muted-foreground mb-3">
-            {inspections.length !== (data?.total ?? inspections.length)
-              ? `Showing ${inspections.length} of ${data?.total ?? rawInspections.length}`
-              : `Total: ${data?.total ?? inspections.length}`}
+            Total: {inspections.length}
           </div>
 
           <div className="overflow-x-auto">
@@ -443,6 +441,7 @@ export function CarInspectionsTab() {
                   pagedInspections.map((insp) => {
                     const movedToMaint = isMovedToMaintenance(insp.id);
                     const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+                    const isManual = !trip;
                     const pickupLocation = trip?.pickupLocation || trip?.deliveryLocation || "--";
                     const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? "--";
                     const daysRented = trip ? calculateDaysRented(trip.tripStart, trip.tripEnd) : null;
@@ -469,13 +468,10 @@ export function CarInspectionsTab() {
                         </TableCell>
                         <TableCell className="text-foreground font-mono text-sm">{trip?.plateNumber || "--"}</TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {trip ? formatDate(trip.tripStart) : "--"}
+                          {trip ? formatDate(trip.tripStart) : formatDate(insp.inspection_date)}
                         </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[150px] truncate"
-                          title={pickupLocation}
-                        >
-                          {pickupLocation}
+                        <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={pickupLocation}>
+                          {isManual ? "--" : pickupLocation}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                           {trip ? formatDate(trip.tripEnd) : "--"}
@@ -483,16 +479,10 @@ export function CarInspectionsTab() {
                         <TableCell className="text-foreground text-sm text-center">
                           {daysRented ?? "--"}
                         </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[150px] truncate"
-                          title={dropOffLocation}
-                        >
-                          {dropOffLocation}
+                        <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={dropOffLocation}>
+                          {isManual ? "--" : dropOffLocation}
                         </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[120px] truncate"
-                          title={trip?.extras || undefined}
-                        >
+                        <TableCell className="text-muted-foreground text-sm max-w-[120px] truncate" title={trip?.extras || undefined}>
                           {trip?.extras || "--"}
                         </TableCell>
                         <TableCell className="text-foreground text-sm">
@@ -511,7 +501,7 @@ export function CarInspectionsTab() {
                           {earnings != null ? formatCurrency(earnings) : "--"}
                         </TableCell>
                         <TableCell>
-                          {trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm">--</span>}
+                          {trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm italic text-xs">Manual</span>}
                         </TableCell>
                         <TableCell className="text-foreground">{insp.assigned_to}</TableCell>
                         <TableCell>

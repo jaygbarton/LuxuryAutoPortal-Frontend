@@ -392,9 +392,7 @@ export function MaintenanceTab({
             )}
           </div>
           <div className="text-sm text-muted-foreground mb-3">
-            {records.length !== (data?.total ?? records.length)
-              ? `Showing ${records.length} of ${data?.total ?? rawRecords.length}`
-              : `Total: ${data?.total ?? records.length}`}
+            Total: {records.length}
           </div>
 
           <div className="overflow-x-auto">
@@ -486,13 +484,13 @@ export function MaintenanceTab({
                           {plateNumber}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {trip ? formatDateTime(trip.tripStart) : "--"}
+                          {trip ? formatDateTime(trip.tripStart) : formatDateTime(insp?.inspection_date ?? null)}
                         </TableCell>
                         <TableCell
                           className="text-muted-foreground text-sm max-w-[150px] truncate"
                           title={pickupLocation}
                         >
-                          {pickupLocation}
+                          {trip ? pickupLocation : "--"}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                           {trip ? formatDateTime(trip.tripEnd) : "--"}
@@ -528,7 +526,7 @@ export function MaintenanceTab({
                           {tripEarnings != null ? formatCurrency(tripEarnings) : "--"}
                         </TableCell>
                         <TableCell>
-                          {trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm">--</span>}
+                          {trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm italic text-xs">Manual</span>}
                         </TableCell>
                         <TableCell
                           className="text-foreground text-sm max-w-[200px] truncate"

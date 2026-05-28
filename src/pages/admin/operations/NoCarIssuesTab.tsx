@@ -288,9 +288,7 @@ export function NoCarIssuesTab() {
             )}
           </div>
           <div className="text-sm text-muted-foreground mb-3">
-            {inspections.length !== (data?.total ?? inspections.length)
-              ? `Showing ${inspections.length} of ${data?.total ?? rawInspections.length}`
-              : `Total: ${data?.total ?? inspections.length}`}
+            Total: {inspections.length}
           </div>
 
           <div className="overflow-x-auto">
