@@ -234,7 +234,12 @@ export function TuroInspectionTab() {
     queryKey: ["/api/operations/inspections", "turo_return", filterStatus],
     queryFn: async () => {
       const params = new URLSearchParams({ source: "turo_return", limit: "2000" });
-      if (filterStatus !== "all") params.append("status", filterStatus);
+      if (filterStatus !== "all") {
+        params.append("status", filterStatus);
+      } else {
+        // no_issues rows have been resolved — they live in No Car Issues tab
+        params.append("excludeStatus", "no_issues");
+      }
       const response = await fetch(
         buildApiUrl(`/api/operations/inspections?${params}`),
         { credentials: "include" },
@@ -243,6 +248,18 @@ export function TuroInspectionTab() {
       return response.json();
     },
   });
+
+  const { data: maintenanceData } = useQuery<{ data: { inspection_id: number | null }[] }>({
+    queryKey: ["/api/operations/maintenance", "all"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/operations/maintenance?limit=500"), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch maintenance");
+      return res.json();
+    },
+  });
+  const maintenanceInspectionIds = new Set(
+    (maintenanceData?.data ?? []).map(m => m.inspection_id).filter((id): id is number => id != null)
+  );
 
   // Fetch trips that overlap the active date filter window so the client-side
   // join is accurate. When no date filter is set, fetch a large page to cover
@@ -277,6 +294,10 @@ export function TuroInspectionTab() {
   const filteredInspections = useMemo(() => {
     const q = search.trim().toLowerCase();
     return inspections.filter((insp) => {
+      // Rows moved to Maintenance or No Car Issues belong in those tabs
+      if (maintenanceInspectionIds.has(insp.id)) return false;
+      if (insp.status === "no_issues") return false;
+
       const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
 
       if (q) {
@@ -306,7 +327,7 @@ export function TuroInspectionTab() {
 
       return true;
     });
-  }, [inspections, tripsById, search, tripStartFrom, tripEndOn]);
+  }, [inspections, maintenanceInspectionIds, tripsById, search, tripStartFrom, tripEndOn]);
 
   useEffect(() => {
     setPage(1);
@@ -510,7 +531,6 @@ export function TuroInspectionTab() {
                   <SelectItem value="new">New</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="no_issues">No Car Issues</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -847,13 +867,8 @@ export function TuroInspectionTab() {
                             </SelectTrigger>
                             <SelectContent className="bg-card border-border text-foreground">
                               <SelectItem value="new">New</SelectItem>
-                              <SelectItem value="in_progress">
-                                In Progress
-                              </SelectItem>
+                              <SelectItem value="in_progress">In Progress</SelectItem>
                               <SelectItem value="completed">Completed</SelectItem>
-                              <SelectItem value="no_issues">
-                                No Car Issues
-                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </TableCell>

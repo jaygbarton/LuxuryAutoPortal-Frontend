@@ -224,15 +224,18 @@ export default function ViewCarPage() {
 
   const carName = car.makeModel || `${car.year || ""} ${car.vin}`.trim();
   const hasLinkedOwner = !!car.owner && !!(car.owner.firstName || car.owner.lastName);
-  const ownerName = hasLinkedOwner
+  const linkedOwnerName = hasLinkedOwner
     ? `${car.owner!.firstName} ${car.owner!.lastName}`.trim()
-    : (car.ownerNameOverride || "N/A");
+    : null;
+  const ownerName = linkedOwnerName || car.ownerNameOverride || "N/A";
   const ownerContact = hasLinkedOwner
     ? (car.owner!.phone || "N/A")
     : (car.ownerContactOverride || "N/A");
   const ownerEmail = hasLinkedOwner
     ? (car.owner!.email || "N/A")
     : (car.ownerEmailOverride || "N/A");
+  // Show pencil whenever the resolved name is missing/invalid, even if a client is linked
+  const ownerNameInvalid = !linkedOwnerName && !car.ownerNameOverride;
   const fuelType = onboarding?.fuelType || car.fuelType || "N/A";
   const tireSize = onboarding?.tireSize || car.tireSize || "N/A";
   const oilType = onboarding?.oilType || car.oilType || "N/A";
@@ -285,7 +288,7 @@ export default function ViewCarPage() {
             <div>
               <div className="flex items-center gap-2 mb-2 sm:mb-3">
                 <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">Owner Information</h3>
-                {!hasLinkedOwner && !isClient && !editingOwner && (
+                {ownerNameInvalid && !isClient && !editingOwner && (
                   <button
                     onClick={() => {
                       setOwnerForm({
@@ -302,7 +305,7 @@ export default function ViewCarPage() {
                   </button>
                 )}
               </div>
-              {editingOwner && !hasLinkedOwner ? (
+              {editingOwner && ownerNameInvalid ? (
                 <div className="space-y-2">
                   <div ref={clientDropdownRef} className="relative">
                     <label className="text-muted-foreground text-xs">Name</label>
