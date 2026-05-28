@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import {
@@ -65,6 +65,8 @@ export default function ClientTripHistory() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [tripFrom, setTripFrom] = useState("");
+  const [tripTo, setTripTo] = useState("");
 
   // Debounce search input
   const handleSearchChange = (val: string) => {
@@ -74,14 +76,16 @@ export default function ClientTripHistory() {
     (handleSearchChange as any)._timer = setTimeout(() => setDebouncedSearch(val), 300);
   };
 
-  const hasFilters = debouncedSearch || statusFilter !== "all";
+  const hasFilters = debouncedSearch || statusFilter !== "all" || tripFrom || tripTo;
 
   const params = new URLSearchParams({ page: String(page), limit: String(LIMIT) });
   if (debouncedSearch) params.set("q", debouncedSearch);
   if (statusFilter !== "all") params.set("status", statusFilter);
+  if (tripFrom) params.set("tripFrom", tripFrom);
+  if (tripTo) params.set("tripTo", tripTo);
 
   const { data, isLoading } = useQuery<{ success: boolean; data: ClientTrip[]; total: number }>({
-    queryKey: ["/api/client/trips", page, debouncedSearch, statusFilter],
+    queryKey: ["/api/client/trips", page, debouncedSearch, statusFilter, tripFrom, tripTo],
     queryFn: async () => {
       const res = await fetch(
         buildApiUrl(`/api/client/trips?${params}`),
@@ -100,6 +104,8 @@ export default function ClientTripHistory() {
     setSearch("");
     setDebouncedSearch("");
     setStatusFilter("all");
+    setTripFrom("");
+    setTripTo("");
     setPage(1);
   }
 
@@ -153,6 +159,26 @@ export default function ClientTripHistory() {
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Date range */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground shrink-0">From:</span>
+                <Input
+                  type="date"
+                  value={tripFrom}
+                  onChange={(e) => { setTripFrom(e.target.value); setPage(1); }}
+                  className="h-8 w-36 text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground shrink-0">To:</span>
+                <Input
+                  type="date"
+                  value={tripTo}
+                  onChange={(e) => { setTripTo(e.target.value); setPage(1); }}
+                  className="h-8 w-36 text-sm"
+                />
+              </div>
 
               {hasFilters && (
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="text-red-600 hover:text-red-700 h-8 px-2 text-xs">

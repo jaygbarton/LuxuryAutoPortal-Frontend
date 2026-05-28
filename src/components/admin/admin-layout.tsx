@@ -85,6 +85,12 @@ const allSidebarItems: SidebarItem[] = [
     icon: Navigation,
     roles: ["client"],
   },
+  {
+    href: "/client/trip-history",
+    label: "Trip History",
+    icon: Route,
+    roles: ["client"],
+  },
   { href: "/admin/admins", label: "Admins", icon: Users, roles: ["admin"] },
   { href: "/admin/clients", label: "Clients", icon: Users, roles: ["admin"] },
   { href: "/cars", label: "Cars", icon: Car, roles: ["admin", "client"] },

@@ -214,10 +214,10 @@ function Router() {
               <RequireRole roles={["isAdmin"]}><ViewAsEmployeePage /></RequireRole>
             </Route>
             <Route path="/admin/forms">
-              <RequireRole roles={["isAdmin"]}><FormsPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><FormsPage /></RequireRole>
             </Route>
             <Route path="/cars">
-              <RequireRole roles={["isAdmin"]}><CarsPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><CarsPage /></RequireRole>
             </Route>
             <Route path="/admin/view-car/:id">
               <RequireRole roles={["isAdmin"]}><ViewCarPage /></RequireRole>
@@ -280,7 +280,7 @@ function Router() {
               <RequireRole roles={["isAdmin"]}><IncomeExpensesPageWrapper /></RequireRole>
             </Route>
             <Route path="/admin/settings">
-              <RequireRole roles={["isAdmin"]}><SettingsPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><SettingsPage /></RequireRole>
             </Route>
             <Route path="/admin/operations">
               <RequireRole roles={["isAdmin"]}><OperationsPage /></RequireRole>
@@ -352,13 +352,13 @@ function Router() {
               <RequireRole roles={["isAdmin"]}><TuroTripsPage /></RequireRole>
             </Route>
             <Route path="/admin/testimonials">
-              <RequireRole roles={["isAdmin"]}><AdminTestimonialsPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><AdminTestimonialsPage /></RequireRole>
             </Route>
             <Route path="/admin/turo-guide">
-              <RequireRole roles={["isAdmin"]}><AdminTuroGuidePage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><AdminTuroGuidePage /></RequireRole>
             </Route>
             <Route path="/admin/news-media">
-              <RequireRole roles={["isAdmin"]}><NewsMediaPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><NewsMediaPage /></RequireRole>
             </Route>
             <Route component={NotFound} />
           </Switch>
