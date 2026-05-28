@@ -599,10 +599,10 @@ export function TripsOverviewTab() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="sticky left-0 z-20 bg-muted/40 text-foreground font-medium whitespace-nowrap">
+                  <TableHead className="md:sticky md:left-0 md:z-20 md:bg-muted/40 text-foreground font-medium whitespace-nowrap">
                     Reservation #
                   </TableHead>
-                  <TableHead className="sticky left-[130px] z-20 bg-muted/40 text-foreground font-medium whitespace-nowrap">
+                  <TableHead className="md:sticky md:left-[130px] md:z-20 md:bg-muted/40 text-foreground font-medium whitespace-nowrap">
                     CAR Name
                   </TableHead>
                   <TableHead className="text-foreground font-medium whitespace-nowrap">
@@ -702,10 +702,10 @@ export function TripsOverviewTab() {
                         key={trip.id}
                         className="border-border hover:bg-card/50 transition-colors"
                       >
-                        <TableCell className="sticky left-0 z-10 bg-card text-foreground font-mono text-sm whitespace-nowrap">
+                        <TableCell className="md:sticky md:left-0 md:z-10 md:bg-card text-foreground font-mono text-sm whitespace-nowrap">
                           {trip.reservationId || "--"}
                         </TableCell>
-                        <TableCell className="sticky left-[130px] z-10 bg-card text-foreground whitespace-nowrap">
+                        <TableCell className="md:sticky md:left-[130px] md:z-10 md:bg-card text-foreground whitespace-nowrap">
                           {carNameWithYear(trip.carName, trip.plateNumber)}
                         </TableCell>
                         <TableCell className="text-foreground font-mono text-sm whitespace-nowrap">

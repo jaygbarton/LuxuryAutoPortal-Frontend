@@ -1772,13 +1772,26 @@ export function parseImportedCSV(
       // section name is in cell[1].
       // Legacy format: section name IS the first cell (no values after it, or just blank cells).
       const isNewSectionRow = firstCell === 'SECTION' && !!cells[1]?.trim();
-      // Legacy: treat as section header only if col-0 looks like a section keyword AND
-      // the row has no numeric values (all remaining cells are empty).
-      const looksLikeLegacySectionHeader =
-        !isNewSectionRow &&
-        cells.slice(1).every(c => !c || c === '$0.00') &&
-        (firstCell.includes('INCOME') || firstCell.includes('OPERATING') ||
-         firstCell === 'HISTORY' || firstCell.includes('PARKING FEE'));
+      // Legacy: detect specific known section header names exactly (after
+      // normalising case + whitespace). This covers the template CSV format
+      // where the section header line is `INCOME & EXPENSES,Jan-23,...` —
+      // the trailing cells contain month labels rather than dollar values.
+      const normalized = firstCell.replace(/\s+/g, ' ').trim();
+      const KNOWN_LEGACY_SECTION_NAMES = [
+        'INCOME & EXPENSES',
+        'INCOME AND EXPENSES',
+        'OPERATING EXPENSE (DIRECT DELIVERY)',
+        'OPERATING EXPENSE (COGS - PER VEHICLE)',
+        'OPERATING EXPENSE (COGS)',
+        'PARKING FEE & LABOR CLEANING',
+        'PARKING FEE AND LABOR CLEANING',
+        'REIMBURSE AND NON-REIMBURSE BILLS',
+        'REIMBURSE & NON-REIMBURSE BILLS',
+        'HISTORY',
+        'CAR MANAGEMENT OWNER SPLIT',
+      ];
+      const isKnownLegacyName = KNOWN_LEGACY_SECTION_NAMES.includes(normalized);
+      const looksLikeLegacySectionHeader = !isNewSectionRow && isKnownLegacyName;
 
       if (isNewSectionRow || looksLikeLegacySectionHeader) {
         const sectionLabel = isNewSectionRow ? cells[1].toUpperCase() : firstCell;

@@ -330,11 +330,11 @@ export default function ViewCarPage() {
                     </div>
                     {clientDropdownOpen && filteredClients.length > 0 && (
                       <div className="absolute z-50 top-full left-0 right-0 mt-0.5 bg-card border border-border rounded shadow-lg max-h-40 overflow-y-auto">
-                        {filteredClients.slice(0, 20).map(c => {
+                        {filteredClients.slice(0, 20).map((c, idx) => {
                           const name = `${c.client_fname ?? ""} ${c.client_lname ?? ""}`.trim();
                           return (
                             <button
-                              key={c.client_aid}
+                              key={c.client_aid ?? `client-${idx}-${c.client_email ?? name}`}
                               type="button"
                               className="w-full text-left px-2 py-1.5 text-xs hover:bg-accent text-foreground"
                               onMouseDown={e => {

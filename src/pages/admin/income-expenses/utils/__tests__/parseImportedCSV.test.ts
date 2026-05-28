@@ -353,4 +353,76 @@ describe("parseImportedCSV", () => {
       expect(row).toBeDefined();
     });
   });
+
+  describe("template-style CSV (legacy format with trailing month labels)", () => {
+    // Reproduces the format produced by handleDownloadTemplate in TableActions.tsx
+    // where section headers appear as `INCOME & EXPENSES,Jan-23,Feb-23,...` instead
+    // of `SECTION,INCOME & EXPENSES`. This format was previously not parsed at all
+    // because the section header detector required all trailing cells to be empty.
+    const templateCSV = `INCOME & EXPENSES,Jan-23,Feb-23,Mar-23,Apr-23,May-23,Jun-23,Jul-23,Aug-23,Sep-23,Oct-23,Nov-23,Dec-23
+Rental Income,$100.00,$200.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00
+Delivery Income,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00
+,,,,,,,,,,,,
+OPERATING EXPENSE (Direct Delivery),,,,,,,,,,,,
+Category,Jan-23,Feb-23,Mar-23,Apr-23,May-23,Jun-23,Jul-23,Aug-23,Sep-23,Oct-23,Nov-23,Dec-23
+Labor - Cleaning,$5.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00
+,,,,,,,,,,,,
+OPERATING EXPENSE (COGS - Per Vehicle),Jan-23,Feb-23,Mar-23,Apr-23,May-23,Jun-23,Jul-23,Aug-23,Sep-23,Oct-23,Nov-23,Dec-23
+Auto Body Shop / Wreck,$50.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00
+,,,,,,,,,,,,
+PARKING FEE & LABOR CLEANING,Jan-23,Feb-23,Mar-23,Apr-23,May-23,Jun-23,Jul-23,Aug-23,Sep-23,Oct-23,Nov-23,Dec-23
+GLA Parking Fee,$10.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00
+,,,,,,,,,,,,
+REIMBURSE AND NON-REIMBURSE BILLS,Jan-23,Feb-23,Mar-23,Apr-23,May-23,Jun-23,Jul-23,Aug-23,Sep-23,Oct-23,Nov-23,Dec-23
+Electric - Reimbursed,$25.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00
+,,,,,,,,,,,,
+HISTORY,Jan-23,Feb-23,Mar-23,Apr-23,May-23,Jun-23,Jul-23,Aug-23,Sep-23,Oct-23,Nov-23,Dec-23
+Days Rented,15,0,0,0,0,0,0,0,0,0,0,0`;
+
+    it("parses Rental Income from template-format income section", () => {
+      const result = parseImportedCSV(templateCSV);
+      const row = result.sections!.incomeExpenses!.find(
+        (r: any) => r.category === "Rental Income"
+      );
+      expect(row).toBeDefined();
+      expect(row!.month1).toBe(100);
+      expect(row!.month2).toBe(200);
+    });
+
+    it("parses Auto Body Shop from template-format COGS section", () => {
+      const result = parseImportedCSV(templateCSV);
+      const row = result.sections!.cogs!.find(
+        (r: any) => r.category === "Auto Body Shop / Wreck"
+      );
+      expect(row).toBeDefined();
+      expect(row!.month1).toBe(50);
+    });
+
+    it("parses GLA Parking Fee from template-format parking section", () => {
+      const result = parseImportedCSV(templateCSV);
+      const row = result.sections!.parkingFeeLabor!.find(
+        (r: any) => r.category === "GLA Parking Fee"
+      );
+      expect(row).toBeDefined();
+      expect(row!.month1).toBe(10);
+    });
+
+    it("parses Electric - Reimbursed from template-format reimburse section", () => {
+      const result = parseImportedCSV(templateCSV);
+      const row = result.sections!.reimbursedBills!.find(
+        (r: any) => r.category === "Electric - Reimbursed"
+      );
+      expect(row).toBeDefined();
+      expect(row!.month1).toBe(25);
+    });
+
+    it("parses Days Rented from template-format history section", () => {
+      const result = parseImportedCSV(templateCSV);
+      const row = result.sections!.history!.find(
+        (r: any) => r.category === "Days Rented"
+      );
+      expect(row).toBeDefined();
+      expect(row!.month1).toBe(15);
+    });
+  });
 });
