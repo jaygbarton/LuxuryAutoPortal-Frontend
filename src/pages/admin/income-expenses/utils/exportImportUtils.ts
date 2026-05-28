@@ -1793,6 +1793,42 @@ export function parseImportedCSV(
       const isKnownLegacyName = KNOWN_LEGACY_SECTION_NAMES.includes(normalized);
       const looksLikeLegacySectionHeader = !isNewSectionRow && isKnownLegacyName;
 
+      // Parse Mode Settings row inside CAR MANAGEMENT OWNER SPLIT section.
+      // Format: "Mode Settings,Jan 2026: 50,Feb 2026: 70,..."
+      if (currentSection === 'CAR MANAGEMENT OWNER SPLIT' && firstCell === 'MODE SETTINGS') {
+        for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
+          const cell = cells[monthIdx + 1] || '';
+          // Extract the number after the colon (e.g. "Jan 2026: 70" → 70)
+          const match = cell.match(/:\s*(\d+)/);
+          if (match) {
+            const modeVal = parseInt(match[1], 10);
+            if (modeVal === 50 || modeVal === 70) {
+              sections.monthModes[monthIdx + 1] = modeVal as 50 | 70;
+            }
+          }
+        }
+        continue;
+      }
+
+      // Parse Car Management Split / Car Owner Split percentage rows.
+      // Format: "Car Management Split,$1234.56 (30%),...". We only care about
+      // the percentage embedded in each cell — not the calculated dollar amount.
+      if (
+        currentSection === 'CAR MANAGEMENT OWNER SPLIT' &&
+        (firstCell === 'CAR MANAGEMENT SPLIT' || firstCell === 'CAR OWNER SPLIT')
+      ) {
+        const field = firstCell === 'CAR MANAGEMENT SPLIT' ? 'carManagementSplit' : 'carOwnerSplit';
+        const splitRow: any = { category: field };
+        for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
+          const cell = cells[monthIdx + 1] || '';
+          const match = cell.match(/\((\d+(?:\.\d+)?)%\)/);
+          splitRow[`month${monthIdx + 1}`] = match ? parseFloat(match[1]) : null;
+        }
+        sections.managementSplit = sections.managementSplit || [];
+        sections.managementSplit.push(splitRow);
+        continue;
+      }
+
       if (isNewSectionRow || looksLikeLegacySectionHeader) {
         const sectionLabel = isNewSectionRow ? cells[1].toUpperCase() : firstCell;
 

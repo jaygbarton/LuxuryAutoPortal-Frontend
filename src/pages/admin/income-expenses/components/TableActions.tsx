@@ -185,8 +185,9 @@ export default function TableActions({
         parseInt(selectedYear),
       );
 
-      // Refresh I&E data and submission receipts
+      // Refresh I&E data, dynamic subcategories, and submission receipts
       queryClient.invalidateQueries({ queryKey: ["/api/income-expense", carId, selectedYear] });
+      queryClient.invalidateQueries({ queryKey: ["/api/income-expense/dynamic-subcategories", carId, selectedYear] });
       queryClient.invalidateQueries({ queryKey: ["/api/expense-form-submissions"] });
 
       const receiptMsg = result.receiptCount > 0

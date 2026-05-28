@@ -1132,6 +1132,9 @@ export default function TuroTripsPage() {
                       CAR Name
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
+                      V #
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Plate #
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
@@ -1299,6 +1302,14 @@ export default function TuroTripsPage() {
                                   : display;
                               })()}
                             </div>
+                          </TableCell>
+
+                          {/* V # — vehicle identifier (mirrors plate number) */}
+                          <TableCell
+                            className="text-sm font-mono font-semibold whitespace-nowrap"
+                            onClick={() => setSelectedTrip(trip)}
+                          >
+                            {trip.plateNumber || "-"}
                           </TableCell>
 
                           {/* Plate # — inline editable. Turo doesn't expose
