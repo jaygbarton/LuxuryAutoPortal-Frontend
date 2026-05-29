@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Edit, Trash2, ArrowRight, Wrench, History, CheckCircle2, RotateCcw } from "lucide-react";
 import type { Inspection, MaintenanceRecord, TuroTrip } from "./types";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
+import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -109,16 +110,16 @@ export function CarInspectionsTab() {
   const { data: maintenanceData, isLoading: isMaintLoading } = useQuery<{ data: MaintenanceRecord[] }>({
     queryKey: ["/api/operations/maintenance", "all"],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl("/api/operations/maintenance?limit=500"), { credentials: "include" });
+      const response = await fetch(buildApiUrl("/api/operations/maintenance?limit=5000"), { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch maintenance");
       return response.json();
     },
   });
 
   const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
-    queryKey: ["/api/turo-trips", { limit: 500 }],
+    queryKey: ["/api/turo-trips", { limit: 5000 }],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl("/api/turo-trips?limit=500"), {
+      const response = await fetch(buildApiUrl("/api/turo-trips?limit=5000"), {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch trips");
@@ -224,6 +225,37 @@ export function CarInspectionsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });
       toast({ title: "Success", description: "Inspection updated" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Inline assignee edit for the Car Issues stage. Each operations stage
+  // (Turo Messages / Car Issues / Maintenance) owns its own assignment so a
+  // different employee can handle each step.
+  const assigneeUpdateMutation = useMutation({
+    mutationFn: async ({
+      id,
+      assigned_to,
+      assigned_to_id,
+    }: {
+      id: number;
+      assigned_to: string | null;
+      assigned_to_id: number | null;
+    }) => {
+      const response = await fetch(buildApiUrl(`/api/operations/inspections/${id}`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ assigned_to, assigned_to_id }),
+      });
+      if (!response.ok) throw new Error("Failed to update assignee");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });
+      toast({ title: "Assigned employee updated" });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -503,7 +535,37 @@ export function CarInspectionsTab() {
                         <TableCell>
                           {trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm italic text-xs">Manual</span>}
                         </TableCell>
-                        <TableCell className="text-foreground">{insp.assigned_to}</TableCell>
+                        <TableCell className="min-w-[200px]">
+                          <EmployeeSelectCombobox
+                            value={insp.assigned_to || ""}
+                            onChange={(v) => {
+                              if (!v) {
+                                assigneeUpdateMutation.mutate({
+                                  id: insp.id,
+                                  assigned_to: null,
+                                  assigned_to_id: null,
+                                });
+                              }
+                            }}
+                            onSelectEmployee={(emp) => {
+                              if (emp) {
+                                const fullName =
+                                  [emp.employee_first_name, emp.employee_last_name]
+                                    .filter(Boolean)
+                                    .join(" ")
+                                    .trim() ||
+                                  emp.employee_email ||
+                                  `Employee #${emp.employee_aid}`;
+                                assigneeUpdateMutation.mutate({
+                                  id: insp.id,
+                                  assigned_to: fullName,
+                                  assigned_to_id: emp.employee_aid,
+                                });
+                              }
+                            }}
+                            placeholder="Assign..."
+                          />
+                        </TableCell>
                         <TableCell>
                           <Select
                             value={insp.status}

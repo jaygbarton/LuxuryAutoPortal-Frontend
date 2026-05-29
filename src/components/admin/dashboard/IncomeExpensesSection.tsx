@@ -116,65 +116,35 @@ function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
   const total = data.reduce((s, d) => s + d.value, 0);
   const maxValue = Math.max(...data.map((d) => d.value), 0);
 
-  // Render the dominant slice's value INSIDE the ring; small slices get an
-  // external leader-line label so text doesn't overlap.
+  // Amount on each slice, description+% outside with no lines.
   const renderLabel = (props: any) => {
     const { cx, cy, midAngle, innerRadius, outerRadius, value, name } = props;
     const RADIAN = Math.PI / 180;
     const pct = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
-    const isDominant = value === maxValue && total > 0 && value / total >= 0.5;
 
-    if (isDominant) {
-      // Place text on the slice (between inner and outer radius).
-      const r = (innerRadius + outerRadius) / 2;
-      const x = cx + r * Math.cos(-midAngle * RADIAN);
-      const y = cy + r * Math.sin(-midAngle * RADIAN);
-      return (
-        <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fill="#000000">
-          <tspan x={x} dy="-0.4em" style={{ fontWeight: 700, fontSize: 12 }}>
-            {formatValue(value)}
-          </tspan>
-          <tspan x={x} dy="1.2em" style={{ fontSize: 9 }}>
-            {name}
-          </tspan>
-          <tspan x={x} dy="1.2em" style={{ fontSize: 9 }}>
-            {pct}%
-          </tspan>
-        </text>
-      );
-    }
+    // Amount — centred on the slice band
+    const r = (innerRadius + outerRadius) / 2;
+    const ax = cx + r * Math.cos(-midAngle * RADIAN);
+    const ay = cy + r * Math.sin(-midAngle * RADIAN);
 
-    // Small slice — external leader line. The donut itself is now sized at
-    // outerRadius=70% (down from 88%) so we have real room to push the leader
-    // line further out without colliding with the ring or the chart card.
-    const sin = Math.sin(-midAngle * RADIAN);
-    const cos = Math.cos(-midAngle * RADIAN);
-    const sx = cx + outerRadius * cos;
-    const sy = cy + outerRadius * sin;
-    const mx = cx + (outerRadius + 18) * cos;
-    const my = cy + (outerRadius + 18) * sin;
-    const ex = mx + (cos >= 0 ? 1 : -1) * 24;
-    const ey = my;
-    const textAnchor = cos >= 0 ? "start" : "end";
+    // Description — placed beyond the outer edge, no line
+    const labelR = outerRadius + 28;
+    const lx = cx + labelR * Math.cos(-midAngle * RADIAN);
+    const ly = cy + labelR * Math.sin(-midAngle * RADIAN);
+    const anchor = lx > cx ? "start" : lx < cx ? "end" : "middle";
+
     return (
       <g>
-        <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke="#999999" strokeWidth={1} fill="none" />
-        <text
-          x={ex + (cos >= 0 ? 3 : -3)}
-          y={ey}
-          textAnchor={textAnchor}
-          dominantBaseline="central"
-          fill="#000000"
-        >
-          <tspan x={ex + (cos >= 0 ? 3 : -3)} dy="-0.6em" style={{ fontWeight: 700, fontSize: 11 }}>
-            {formatValue(value)}
-          </tspan>
-          <tspan x={ex + (cos >= 0 ? 3 : -3)} dy="1.2em" style={{ fontSize: 9 }}>
-            {name}
-          </tspan>
-          <tspan x={ex + (cos >= 0 ? 3 : -3)} dy="1.2em" style={{ fontSize: 9 }}>
-            {pct}%
-          </tspan>
+        {/* Money amount on the slice */}
+        <text x={ax} y={ay} textAnchor="middle" dominantBaseline="central"
+          style={{ fontWeight: 700, fontSize: 11, fill: "#000000" }}>
+          {formatValue(value)}
+        </text>
+        {/* Description + % outside the ring, no line */}
+        <text x={lx} y={ly} textAnchor={anchor} dominantBaseline="central"
+          style={{ fontSize: 9, fill: "#000000" }}>
+          <tspan x={lx} dy="-0.6em">{name}</tspan>
+          <tspan x={lx} dy="1.2em">{pct}%</tspan>
         </text>
       </g>
     );
@@ -183,14 +153,14 @@ function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
   return (
     <div className="h-full w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <PieChart margin={{ top: 8, right: 56, bottom: 8, left: 56 }}>
+        <PieChart margin={{ top: 30, right: 60, bottom: 30, left: 60 }}>
           <Pie
             data={data}
             dataKey="value"
             cx="50%"
             cy="50%"
-            innerRadius="40%"
-            outerRadius="70%"
+            innerRadius="48%"
+            outerRadius="78%"
             paddingAngle={0}
             label={renderLabel}
             labelLine={false}

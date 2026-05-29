@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import type { Inspection, TuroTrip } from "./types";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
+import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -363,6 +364,45 @@ export function TuroInspectionTab() {
         queryKey: ["/api/operations/inspections"],
       });
       toast({ title: "Success", description: "Inspection status updated" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Inline assignee edit for the Turo Messages stage. Independent from the
+  // Car Issues and Maintenance stage assignments.
+  const assigneeUpdateMutation = useMutation({
+    mutationFn: async ({
+      id,
+      assigned_to,
+      assigned_to_id,
+    }: {
+      id: number;
+      assigned_to: string | null;
+      assigned_to_id: number | null;
+    }) => {
+      const response = await fetch(
+        buildApiUrl(`/api/operations/inspections/${id}`),
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ assigned_to, assigned_to_id }),
+        },
+      );
+      if (!response.ok) throw new Error("Failed to update assignee");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/operations/inspections"],
+      });
+      toast({ title: "Assigned employee updated" });
     },
     onError: (error: Error) => {
       toast({
@@ -809,8 +849,36 @@ export function TuroInspectionTab() {
                         <TableCell>
                           {trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm">--</span>}
                         </TableCell>
-                        <TableCell className="text-foreground">
-                          {insp.assigned_to}
+                        <TableCell className="min-w-[200px]">
+                          <EmployeeSelectCombobox
+                            value={insp.assigned_to || ""}
+                            onChange={(v) => {
+                              if (!v) {
+                                assigneeUpdateMutation.mutate({
+                                  id: insp.id,
+                                  assigned_to: null,
+                                  assigned_to_id: null,
+                                });
+                              }
+                            }}
+                            onSelectEmployee={(emp) => {
+                              if (emp) {
+                                const fullName =
+                                  [emp.employee_first_name, emp.employee_last_name]
+                                    .filter(Boolean)
+                                    .join(" ")
+                                    .trim() ||
+                                  emp.employee_email ||
+                                  `Employee #${emp.employee_aid}`;
+                                assigneeUpdateMutation.mutate({
+                                  id: insp.id,
+                                  assigned_to: fullName,
+                                  assigned_to_id: emp.employee_aid,
+                                });
+                              }
+                            }}
+                            placeholder="Assign..."
+                          />
                         </TableCell>
                         <TableCell>
                           {/* Fuel-returned chip. Red = empty/quarter (high

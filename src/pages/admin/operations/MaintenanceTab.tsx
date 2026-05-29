@@ -36,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Edit, Trash2, History } from "lucide-react";
 import type { Inspection, MaintenanceRecord, TuroTrip } from "./types";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
+import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -152,9 +153,9 @@ export function MaintenanceTab({
   });
 
   const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
-    queryKey: ["/api/turo-trips", { limit: 500 }],
+    queryKey: ["/api/turo-trips", { limit: 5000 }],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl("/api/turo-trips?limit=500"), {
+      const response = await fetch(buildApiUrl("/api/turo-trips?limit=5000"), {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch trips");
@@ -260,6 +261,46 @@ export function MaintenanceTab({
         queryKey: ["/api/operations/maintenance"],
       });
       toast({ title: "Success", description: "Maintenance status updated" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Inline assignee edit for the Maintenance stage. Each stage owns its own
+  // assignment so a different employee can handle Maintenance vs. the earlier
+  // Car Issues / Turo Messages stages.
+  const assigneeUpdateMutation = useMutation({
+    mutationFn: async ({
+      id,
+      assigned_to,
+      assigned_to_id,
+    }: {
+      id: number;
+      assigned_to: string | null;
+      assigned_to_id: number | null;
+    }) => {
+      const response = await fetch(
+        buildApiUrl(`/api/operations/maintenance/${id}`),
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ assigned_to, assigned_to_id }),
+        },
+      );
+      if (!response.ok) throw new Error("Failed to update assignee");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/operations/maintenance"],
+      });
+      toast({ title: "Assigned employee updated" });
     },
     onError: (error: Error) => {
       toast({
@@ -534,8 +575,36 @@ export function MaintenanceTab({
                         >
                           {rec.task_description}
                         </TableCell>
-                        <TableCell className="text-foreground">
-                          {rec.assigned_to}
+                        <TableCell className="min-w-[200px]">
+                          <EmployeeSelectCombobox
+                            value={rec.assigned_to || ""}
+                            onChange={(v) => {
+                              if (!v) {
+                                assigneeUpdateMutation.mutate({
+                                  id: rec.id,
+                                  assigned_to: null,
+                                  assigned_to_id: null,
+                                });
+                              }
+                            }}
+                            onSelectEmployee={(emp) => {
+                              if (emp) {
+                                const fullName =
+                                  [emp.employee_first_name, emp.employee_last_name]
+                                    .filter(Boolean)
+                                    .join(" ")
+                                    .trim() ||
+                                  emp.employee_email ||
+                                  `Employee #${emp.employee_aid}`;
+                                assigneeUpdateMutation.mutate({
+                                  id: rec.id,
+                                  assigned_to: fullName,
+                                  assigned_to_id: emp.employee_aid,
+                                });
+                              }
+                            }}
+                            placeholder="Assign..."
+                          />
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                           {formatDateTime(rec.scheduled_date)}

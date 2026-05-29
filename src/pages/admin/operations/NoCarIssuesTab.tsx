@@ -81,9 +81,9 @@ export function NoCarIssuesTab() {
   });
 
   const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
-    queryKey: ["/api/turo-trips", { limit: 500 }],
+    queryKey: ["/api/turo-trips", { limit: 5000 }],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl("/api/turo-trips?limit=500"), { credentials: "include" });
+      const response = await fetch(buildApiUrl("/api/turo-trips?limit=5000"), { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch trips");
       return response.json();
     },
