@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
+import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 
 interface ClientTrip {
   id: number;
@@ -274,6 +275,7 @@ export default function ClientTripHistory() {
           </CardContent>
         </Card>
       </div>
+      <ClientPageLinks />
     </AdminLayout>
   );
 }

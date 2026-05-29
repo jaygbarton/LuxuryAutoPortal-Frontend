@@ -1,5 +1,6 @@
 import { AdminLayout } from "@/components/admin/admin-layout";
 import CarOffboardingForm from "@/components/forms/CarOffboardingForm";
+import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 
 export default function ClientOffboardingForm() {
   return (
@@ -15,6 +16,7 @@ export default function ClientOffboardingForm() {
         </div>
         <CarOffboardingForm />
       </div>
+      <ClientPageLinks />
     </AdminLayout>
   );
 }

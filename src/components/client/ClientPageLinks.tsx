@@ -16,7 +16,6 @@ import { buildApiUrl } from "@/lib/queryClient";
 import {
   BarChart3,
   BookOpen,
-  Calculator,
   Calendar,
   Car,
   ClipboardList,
@@ -28,7 +27,6 @@ import {
   History,
   Map,
   PlusCircle,
-  ShoppingBag,
   Star,
   TrendingDown,
   TrendingUp,
@@ -73,33 +71,28 @@ export function ClientPageLinks() {
   if (!isClient) return null;
 
   const firstCarId = profileData?.data?.cars?.[0]?.id ?? null;
-  // GLA's Turo host page — shows all cars available to book.
-  const turoViewLink = "https://turo.com/us/en/host/4325673";
 
   const carPath = firstCarId
     ? (p: string) => `/admin/cars/${firstCarId}/${p}`
     : (_: string) => "#";
 
-  // Order is row-major across the 4-column grid: each row is a left-to-right
-  // sweep, and we wrap to the next row after every 4 items.
+  // Kept in sync with src/pages/client/dashboard.tsx — same order, same URLs.
   //
-  //   Row 1: Earnings | Records and Files | Car Rental Value Per Month | Payment Calculator
-  //   Row 2: History  | Graphs and Charts Report | NADA Depreciation Schedule | Payment History
-  //   Row 3: Totals   | Maintenance              | Purchase Details
+  //   Row 1: Earnings | History | Totals | Records and Files
+  //   Row 2: Graphs and Charts Report | Maintenance | Car Rental Value Per Month | NADA Depreciation Schedule
+  //   Row 3: Payment History
   const reportLinks = [
-    { href: carPath("earnings"),      icon: DollarSign,   label: "Earnings" },
-    { href: carPath("records"),       icon: Folder,       label: "Records and Files" },
-    { href: carPath("income-expense"),icon: Calendar,     label: "Car Rental Value Per Month" },
-    { href: carPath("calculator"),    icon: Calculator,   label: "Payment Calculator" },
+    { href: carPath("earnings"),       icon: DollarSign,   label: "Earnings" },
+    { href: "/client/trip-history",    icon: History,      label: "History" },
+    { href: carPath("totals"),         icon: BarChart3,    label: "Totals" },
+    { href: carPath("records"),        icon: Folder,       label: "Records and Files" },
 
-    { href: carPath("earnings"),      icon: History,      label: "History" },
-    { href: carPath("graphs"),        icon: TrendingUp,   label: "Graphs and Charts Report" },
-    { href: carPath("depreciation"),  icon: TrendingDown, label: "NADA Depreciation Schedule" },
-    { href: carPath("payments"),      icon: CreditCard,   label: "Payment History" },
+    { href: carPath("graphs"),         icon: TrendingUp,   label: "Graphs and Charts Report" },
+    { href: carPath("maintenance"),    icon: Wrench,       label: "Maintenance" },
+    { href: carPath("income-expense"), icon: Calendar,     label: "Car Rental Value Per Month" },
+    { href: carPath("depreciation"),   icon: TrendingDown, label: "NADA Depreciation Schedule" },
 
-    { href: carPath("totals"),        icon: BarChart3,    label: "Totals" },
-    { href: carPath("maintenance"),   icon: Wrench,       label: "Maintenance" },
-    { href: carPath("purchase"),      icon: ShoppingBag,  label: "Purchase Details" },
+    { href: carPath("payments"),       icon: CreditCard,   label: "Payment History" },
   ];
 
   //   Row 1: Off-boarding Form | Book Your Car | Training Manual | News & Media
@@ -107,18 +100,18 @@ export function ClientPageLinks() {
   //   Row 3: List Another Car  | Refer Somebody | Client Testimonials
   const supportLinks = [
     { href: "/client/offboarding-form", icon: ClipboardList, label: "Off-boarding Form" },
-    { href: turoViewLink ?? "#",   icon: Car,           label: "Book Your Car", external: !!turoViewLink },
-    { href: "/tutorial",           icon: BookOpen,      label: "Training Manual" },
-    { href: "/admin/news-media",   icon: Globe,         label: "News & Media" },
+    { href: "https://rent.goldenluxuryauto.com/start-block", icon: Car, label: "Book Your Car", external: true },
+    { href: "/tutorial",             icon: BookOpen,      label: "Training Manual" },
+    { href: "/admin/news-media",     icon: Globe,         label: "News & Media" },
 
     { href: "https://rent.goldenluxuryauto.com/lyc-client-check-in", icon: Video, label: "Schedule a Zoom Call", external: true },
-    { href: "/profile",            icon: FileText,      label: "License Registration or Insurance Updates" },
-    { href: "/admin/turo-guide",   icon: Map,           label: "Turo Guide" },
-    { href: "",                    icon: Map,           label: "",            placeholder: true },
+    { href: "/profile",              icon: FileText,      label: "License Registration or Insurance Updates" },
+    { href: "/admin/turo-guide",     icon: Map,           label: "Turo Guide" },
+    { href: "",                      icon: Map,           label: "",                placeholder: true },
 
-    { href: "/onboarding",         icon: PlusCircle,    label: "List Another Car" },
-    { href: "/admin/forms",        icon: UserPlus,      label: "Refer Somebody" },
-    { href: "/admin/testimonials", icon: Star,          label: "Client Testimonials" },
+    { href: "/onboarding",           icon: PlusCircle,    label: "List Another Car" },
+    { href: "/admin/forms",          icon: UserPlus,      label: "Refer Somebody" },
+    { href: "/admin/testimonials",   icon: Star,          label: "Client Testimonials" },
   ];
 
   return (
