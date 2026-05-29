@@ -283,10 +283,10 @@ function Router() {
               <RequireRole roles={["isAdmin", "isClient"]}><SettingsPage /></RequireRole>
             </Route>
             <Route path="/admin/operations">
-              <RequireRole roles={["isAdmin"]}><OperationsPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isEmployee"]}><OperationsPage /></RequireRole>
             </Route>
             <Route path="/admin/bouncie">
-              <RequireRole roles={["isAdmin"]}><BouncieFleetPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isEmployee"]}><BouncieFleetPage /></RequireRole>
             </Route>
             <Route path="/admin/bouncie-devices">
               <RequireRole roles={["isAdmin"]}><BouncieDevicesPage /></RequireRole>
