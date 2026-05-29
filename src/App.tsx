@@ -220,7 +220,7 @@ function Router() {
               <RequireRole roles={["isAdmin", "isClient"]}><CarsPage /></RequireRole>
             </Route>
             <Route path="/admin/view-car/:id">
-              <RequireRole roles={["isAdmin"]}><ViewCarPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><ViewCarPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/earnings">
               <RequireRole roles={["isAdmin", "isClient"]}><EarningsPage /></RequireRole>
@@ -232,13 +232,13 @@ function Router() {
               <RequireRole roles={["isAdmin", "isClient"]}><NADADepreciationPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/purchase">
-              <RequireRole roles={["isAdmin"]}><PurchaseDetailsPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><PurchaseDetailsPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/graphs">
               <RequireRole roles={["isAdmin", "isClient"]}><GraphsChartsPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/calculator">
-              <RequireRole roles={["isAdmin"]}><PaymentCalculatorPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient"]}><PaymentCalculatorPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/maintenance">
               <RequireRole roles={["isAdmin", "isClient"]}><MaintenancePage /></RequireRole>
