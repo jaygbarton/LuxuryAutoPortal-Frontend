@@ -383,6 +383,25 @@ export default function FormsPage() {
     retry: false,
   });
 
+  // If the URL has ?section=<id>, auto-expand that section and scroll to it.
+  // Used so links like /admin/forms?section=document-updates land directly
+  // on the right accordion panel (e.g. "License & Registration or Insurance Updates").
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const targetSection = params.get("section");
+    if (!targetSection) return;
+    setExpandedSections((prev) =>
+      prev.includes(targetSection) ? prev : [...prev, targetSection],
+    );
+    // Give the DOM a tick to render the expanded section before scrolling.
+    setTimeout(() => {
+      const el = document.querySelector(
+        `[data-testid="button-section-${targetSection}"]`,
+      );
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+  }, []);
+
   // Auto-expand Approval Dashboard for admins so data is visible immediately
   useEffect(() => {
     if (formVisibilityData?.isAdmin) {

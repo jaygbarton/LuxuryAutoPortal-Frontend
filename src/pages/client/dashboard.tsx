@@ -421,7 +421,7 @@ export default function ClientDashboard() {
     { href: "/admin/news-media",     icon: Globe,         label: "News & Media" },
 
     { href: "https://rent.goldenluxuryauto.com/lyc-client-check-in", icon: Video, label: "Schedule a Zoom Call", external: true },
-    { href: "/profile",              icon: FileText,      label: "License Registration or Insurance Updates" },
+    { href: "/admin/forms?section=document-updates", icon: FileText, label: "License Registration or Insurance Updates" },
     { href: "/admin/turo-guide",     icon: Map,           label: "Turo Guide" },
     { href: "",                      icon: Map,           label: "",                placeholder: true },
 
