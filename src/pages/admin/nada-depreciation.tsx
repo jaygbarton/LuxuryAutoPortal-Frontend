@@ -1306,9 +1306,9 @@ export default function NADADepreciationPage() {
                 <Line
                   type="monotone"
                   dataKey="NADA - Clean"
-                  stroke="#64748b"
+                  stroke="#38bdf8"
                   strokeWidth={2}
-                  dot={{ fill: "#64748b", r: 4 }}
+                  dot={{ fill: "#38bdf8", r: 4 }}
                   name="NADA - Clean"
                 />
                 <Line
@@ -1452,9 +1452,9 @@ export default function NADADepreciationPage() {
                 <Line
                   type="monotone"
                   dataKey="NADA - Clean"
-                  stroke="#64748b"
+                  stroke="#38bdf8"
                   strokeWidth={2}
-                  dot={{ fill: "#64748b", r: 4 }}
+                  dot={{ fill: "#38bdf8", r: 4 }}
                   name="NADA - Clean"
                 />
                 <Line
