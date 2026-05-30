@@ -260,8 +260,8 @@ export default function LoggedHoursSection() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-y border-[#FFCC00] border-collapse text-xs">
-              <thead className="bg-black border-y border-[#FFCC00]">
+            <table className="w-full border-y border-[#D3BC8D] border-collapse text-xs">
+              <thead className="bg-black border-y border-[#D3BC8D]">
                 <tr>
                   <th className="px-3 py-2 text-center font-bold uppercase text-white">Time in</th>
                   <th className="px-3 py-2 text-center font-bold uppercase text-white">Break Out</th>
@@ -276,7 +276,7 @@ export default function LoggedHoursSection() {
                 {rows.map((r, i) => {
                   const amt = r.workedHours * rate;
                   return (
-                    <tr key={i} className="bg-white border-y border-[#FFCC00]">
+                    <tr key={i} className="bg-white border-y border-[#D3BC8D]">
                       <td className="px-3 py-2 text-center">
                         <div className="font-medium text-black">{utahDate(r.timeIn)}</div>
                         <div className="text-black">{utahTime(r.timeIn)}</div>

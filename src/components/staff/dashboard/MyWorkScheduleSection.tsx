@@ -169,7 +169,7 @@ export default function MyWorkScheduleSection() {
               <tr>
                 <th
                   colSpan={7}
-                  className="bg-black px-3 py-2 text-center text-sm font-bold uppercase text-[#FFCC00]"
+                  className="bg-black px-3 py-2 text-center text-sm font-bold uppercase text-[#D3BC8D]"
                 >
                   {monthLabel}
                 </th>
@@ -191,7 +191,7 @@ export default function MyWorkScheduleSection() {
                 return (
                   <Fragment key={weekNum}>
                     {/* Day-number row — solid yellow */}
-                    <tr className="bg-[#FFCC00]">
+                    <tr className="bg-[#D3BC8D]">
                       {weekRow.map((cell, idx) => (
                         <td
                           key={`num-${weekNum}-${idx}`}

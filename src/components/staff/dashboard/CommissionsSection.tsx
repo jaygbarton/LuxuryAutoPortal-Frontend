@@ -125,9 +125,9 @@ export default function CommissionsSection() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full border-y border-[#FFCC00] border-collapse text-xs">
+              <table className="w-full border-y border-[#D3BC8D] border-collapse text-xs">
                 <thead>
-                  <tr className="bg-black border-y border-[#FFCC00]">
+                  <tr className="bg-black border-y border-[#D3BC8D]">
                     <th className="sticky left-0 z-10 min-w-[220px] bg-black px-3 py-2 text-center font-semibold text-white">
                       Type
                     </th>
@@ -143,7 +143,7 @@ export default function CommissionsSection() {
                 </thead>
                 <tbody>
                   {displayRows.map((row, idx) => (
-                    <tr key={idx} className="bg-white border-y border-[#FFCC00]">
+                    <tr key={idx} className="bg-white border-y border-[#D3BC8D]">
                       <td className="sticky left-0 z-10 min-w-[220px] bg-white px-3 py-1.5 text-center text-xs font-medium text-black">
                         {row.type}
                       </td>
@@ -157,8 +157,8 @@ export default function CommissionsSection() {
                       </td>
                     </tr>
                   ))}
-                  <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
-                    <td className="sticky left-0 z-10 min-w-[220px] bg-[#FFCC00] px-3 py-2 text-center font-bold text-black">
+                  <tr className="bg-[#D3BC8D] font-bold border-y border-[#D3BC8D]">
+                    <td className="sticky left-0 z-10 min-w-[220px] bg-[#D3BC8D] px-3 py-2 text-center font-bold text-black">
                       TOTAL
                     </td>
                     {grandMonthly.map((val, mIdx) => (

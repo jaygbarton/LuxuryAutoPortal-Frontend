@@ -80,8 +80,8 @@ export function mtLocalInputToUtcDbString(local: string): string | null {
     );
     return asUtcOfWall - t;
   };
-  let utc = naiveUtc + offset(naiveUtc);
-  utc = naiveUtc + offset(utc);
+  let utc = naiveUtc - offset(naiveUtc);
+  utc = naiveUtc - offset(utc);
   const dt = new Date(utc);
   const pad = (n: number) => String(n).padStart(2, "0");
   return (

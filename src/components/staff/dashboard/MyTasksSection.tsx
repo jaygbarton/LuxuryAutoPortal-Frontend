@@ -146,9 +146,9 @@ export default function MyTasksSection() {
         <p className="py-8 text-center text-sm text-gray-500">No tasks assigned.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-y border-[#FFCC00] border-collapse text-sm">
+          <table className="w-full border-y border-[#D3BC8D] border-collapse text-sm">
             <thead>
-              <tr className="bg-black border-y border-[#FFCC00]">
+              <tr className="bg-black border-y border-[#D3BC8D]">
                 <th className="px-3 py-2 text-center font-bold uppercase text-white">Assigned To:</th>
                 <th className="px-3 py-2 text-center font-bold uppercase text-white">Date</th>
                 <th className="px-3 py-2 text-center font-bold uppercase text-white">Task Description</th>
@@ -160,7 +160,7 @@ export default function MyTasksSection() {
             </thead>
             <tbody>
               {tasks.map((t, i) => (
-                <tr key={String(t.task_timer_aid ?? i)} className="bg-white border-y border-[#FFCC00]">
+                <tr key={String(t.task_timer_aid ?? i)} className="bg-white border-y border-[#D3BC8D]">
                   <td className="px-3 py-2 text-center text-black">{parseAssignees(t.task_timer_emp_list)}</td>
                   <td className="px-3 py-2 text-center text-black">{fmtDate(t.task_timer_date_start)}</td>
                   <td className="px-3 py-2 text-center text-black">

@@ -569,19 +569,19 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
   // ── Donut data ─────────────────────────────────────────────────────
 
   const incomeDonut = [
-    { name: "Management Income", value: totalMgmtIncome, color: "#FFCC00" },
+    { name: "Management Income", value: totalMgmtIncome, color: "#D3BC8D" },
     { name: "Car Owner Income", value: totalOwnerIncome, color: "#111111" },
   ];
 
   const expenseDonut = [
-    { name: "Management Expenses", value: totalMgmtExpenses, color: "#FFCC00" },
+    { name: "Management Expenses", value: totalMgmtExpenses, color: "#D3BC8D" },
     { name: "Car Owner Expenses", value: totalOwnerExpenses, color: "#111111" },
   ];
 
   const totalAvailableDays = totalCarsAvailable * 30;
   const unusedDays = Math.max(0, totalAvailableDays - totalDaysRented);
   const activityDonut = [
-    { name: "Days Rented", value: totalDaysRented, color: "#FFCC00" },
+    { name: "Days Rented", value: totalDaysRented, color: "#D3BC8D" },
     { name: "Days Unused", value: unusedDays, color: "#666666" },
   ];
   const totalGrossIncome = monthlyComputed.reduce((s, m) => s + m.gross, 0);
@@ -698,9 +698,9 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
                 Monthly Income and Expenses
               </h3>
               <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
-                <table className="w-full min-w-[880px] border-y border-[#FFCC00] border-collapse">
+                <table className="w-full min-w-[880px] border-y border-[#D3BC8D] border-collapse">
                   <thead>
-                    <tr className="bg-black border-y border-[#FFCC00]">
+                    <tr className="bg-black border-y border-[#D3BC8D]">
                       {tableColumns.map((col) => (
                         <th
                           key={col.key}
@@ -713,7 +713,7 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
                   </thead>
                   <tbody>
                     {tableRows.map((row, idx) => (
-                      <tr key={idx} className="bg-white border-y border-[#FFCC00]">
+                      <tr key={idx} className="bg-white border-y border-[#D3BC8D]">
                         {tableColumns.map((col) => (
                           <td
                             key={col.key}
@@ -724,7 +724,7 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
                         ))}
                       </tr>
                     ))}
-                    <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
+                    <tr className="bg-[#D3BC8D] font-bold border-y border-[#D3BC8D]">
                       {tableColumns.map((col) => (
                         <td
                           key={col.key}

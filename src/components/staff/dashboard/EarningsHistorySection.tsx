@@ -179,16 +179,16 @@ export default function EarningsHistorySection() {
                 Total Earnings
               </h3>
               <div className="overflow-x-auto">
-                <table className="w-full border-y border-[#FFCC00] border-collapse text-sm">
+                <table className="w-full border-y border-[#D3BC8D] border-collapse text-sm">
                   <thead>
-                    <tr className="bg-black border-y border-[#FFCC00]">
+                    <tr className="bg-black border-y border-[#D3BC8D]">
                       <th className="px-3 py-2 text-center text-xs font-bold uppercase text-white">Month and Year</th>
                       <th className="px-3 py-2 text-center text-xs font-bold uppercase text-white">Earnings</th>
                     </tr>
                   </thead>
                   <tbody>
                     {monthly.map((amt, i) => (
-                      <tr key={i} className="bg-white border-y border-[#FFCC00]">
+                      <tr key={i} className="bg-white border-y border-[#D3BC8D]">
                         <td className="px-3 py-2 text-center">
                           <span className="inline-block rounded-full bg-gray-100 px-3 py-0.5 text-xs font-medium text-black">
                             {MONTHS[i]} {year}
@@ -199,7 +199,7 @@ export default function EarningsHistorySection() {
                         </td>
                       </tr>
                     ))}
-                    <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
+                    <tr className="bg-[#D3BC8D] font-bold border-y border-[#D3BC8D]">
                       <td className="px-3 py-2 text-center text-black">TOTAL</td>
                       <td className="px-3 py-2 text-center font-mono text-black">{fmt$(monthlyTotal)}</td>
                     </tr>
@@ -219,16 +219,16 @@ export default function EarningsHistorySection() {
                 </p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full border-y border-[#FFCC00] border-collapse text-sm">
+                  <table className="w-full border-y border-[#D3BC8D] border-collapse text-sm">
                     <thead>
-                      <tr className="bg-black border-y border-[#FFCC00]">
+                      <tr className="bg-black border-y border-[#D3BC8D]">
                         <th className="px-3 py-2 text-center text-xs font-bold uppercase text-white">Month and Year</th>
                         <th className="px-3 py-2 text-center text-xs font-bold uppercase text-white">Earnings</th>
                       </tr>
                     </thead>
                     <tbody>
                       {periodRows.map((r) => (
-                        <tr key={r.payrun_list_aid} className="bg-white border-y border-[#FFCC00]">
+                        <tr key={r.payrun_list_aid} className="bg-white border-y border-[#D3BC8D]">
                           <td className="px-3 py-2 text-center">
                             <span className="inline-block rounded-full bg-gray-100 px-3 py-0.5 text-xs font-medium text-black">
                               {periodLabel(r)}
@@ -239,7 +239,7 @@ export default function EarningsHistorySection() {
                           </td>
                         </tr>
                       ))}
-                      <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
+                      <tr className="bg-[#D3BC8D] font-bold border-y border-[#D3BC8D]">
                         <td className="px-3 py-2 text-center text-black">TOTAL</td>
                         <td className="px-3 py-2 text-center font-mono text-black">{fmt$(periodTotal)}</td>
                       </tr>

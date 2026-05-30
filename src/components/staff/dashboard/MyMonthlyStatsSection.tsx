@@ -86,9 +86,9 @@ export default function MyMonthlyStatsSection() {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-y border-[#FFCC00] border-collapse text-xs [&_td]:border-x [&_td]:border-[#FFCC00] [&_th]:border-x [&_th]:border-[#FFCC00]">
+          <table className="w-full border-y border-[#D3BC8D] border-collapse text-xs [&_td]:border-x [&_td]:border-[#D3BC8D] [&_th]:border-x [&_th]:border-[#D3BC8D]">
             <thead>
-              <tr className="bg-black border-y border-[#FFCC00]">
+              <tr className="bg-black border-y border-[#D3BC8D]">
                 <th className="sticky left-0 z-10 min-w-[220px] bg-black px-3 py-2 text-left font-bold uppercase text-white">
                   Employee Stats - {year}
                 </th>
@@ -104,7 +104,7 @@ export default function MyMonthlyStatsSection() {
             </thead>
             <tbody>
               {displayData.map((row, idx) => (
-                <tr key={idx} className="bg-white border-y border-[#FFCC00]">
+                <tr key={idx} className="bg-white border-y border-[#D3BC8D]">
                   <td className="sticky left-0 z-10 min-w-[220px] bg-white px-3 py-1.5 text-left text-xs font-medium text-black">
                     {row.category}
                   </td>

@@ -41,7 +41,7 @@ const categoryColors: Record<string, string> = {
 const priorityColors: Record<string, string> = {
   Urgent: "bg-red-100 text-red-800",
   Required: "bg-red-100 text-red-800",
-  Important: "bg-[#FFCC00]/20 text-[#111111]",
+  Important: "bg-[#D3BC8D]/20 text-[#111111]",
   Info: "bg-gray-100 text-gray-600",
 };
 

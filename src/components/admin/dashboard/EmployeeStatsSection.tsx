@@ -134,17 +134,17 @@ export default function EmployeeStatsSection() {
         )}
 
         {!isLoading && !isError && (
-          <div className="overflow-x-auto rounded border border-[#FFCC00]">
+          <div className="overflow-x-auto rounded border border-[#D3BC8D]">
             <table className="w-full border-collapse text-xs">
               <thead>
                 <tr className="bg-black text-white">
-                  <th className="sticky left-0 z-10 min-w-[220px] border-r border-[#FFCC00] bg-black px-3 py-2 text-left font-semibold">
+                  <th className="sticky left-0 z-10 min-w-[220px] border-r border-[#D3BC8D] bg-black px-3 py-2 text-left font-semibold">
                     Employee Stats — {getMonthLabel(numMonth, numYear)}
                   </th>
                   {days.map((d) => (
                     <th
                       key={d}
-                      className="w-8 min-w-[32px] border-r border-[#FFCC00] px-1 py-2 text-center font-semibold"
+                      className="w-8 min-w-[32px] border-r border-[#D3BC8D] px-1 py-2 text-center font-semibold"
                     >
                       {d}
                     </th>
@@ -158,10 +158,10 @@ export default function EmployeeStatsSection() {
                 {displayData.map((row, idx) => (
                   <tr
                     key={idx}
-                    className={`border-t border-[#FFCC00] ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
+                    className={`border-t border-[#D3BC8D] ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
                   >
                     <td
-                      className="sticky left-0 z-10 min-w-[220px] border-r border-[#FFCC00] px-3 py-1.5 text-left text-xs font-medium text-gray-800"
+                      className="sticky left-0 z-10 min-w-[220px] border-r border-[#D3BC8D] px-3 py-1.5 text-left text-xs font-medium text-gray-800"
                       style={{
                         backgroundColor:
                           idx % 2 === 0 ? "white" : "rgb(249 250 251)",
@@ -172,7 +172,7 @@ export default function EmployeeStatsSection() {
                     {row.daily.map((val, dayIdx) => (
                       <td
                         key={dayIdx}
-                        className={`border-r border-[#FFCC00] px-1 py-1.5 text-center ${
+                        className={`border-r border-[#D3BC8D] px-1 py-1.5 text-center ${
                           val > 0
                             ? "font-semibold text-amber-700"
                             : "text-gray-300"

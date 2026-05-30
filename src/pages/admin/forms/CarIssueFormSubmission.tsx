@@ -21,9 +21,8 @@ function CarSelect({
   onChange,
 }: {
   value: string;
-  onChange: (carName: string) => void;
+  onChange: (carName: string, vin: string) => void;
 }) {
-  // The /api/cars endpoint returns aliased fields: id, make, model, year, licensePlate
   const { data } = useQuery<{
     data: {
       id: number;
@@ -32,6 +31,7 @@ function CarSelect({
       year: number | null;
       licensePlate: string | null;
       makeModel?: string | null;
+      vin?: string | null;
     }[];
   }>({
     queryKey: ["/api/cars", "car-issue-picker"],
@@ -50,12 +50,18 @@ function CarSelect({
   return (
     <select
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => {
+        const selected = cars.find((c) => {
+          const nameParts = c.makeModel ?? [c.make, c.model, c.year].filter(Boolean).join(" ");
+          const label = [nameParts, c.licensePlate ? `(${c.licensePlate})` : ""].filter(Boolean).join(" ");
+          return (label || String(c.id)) === e.target.value;
+        });
+        onChange(e.target.value, selected?.vin ?? "");
+      }}
       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
     >
       <option value="">Select a car…</option>
       {cars.map((c) => {
-        // Use makeModel if available (pre-concatenated), otherwise build from parts
         const nameParts = c.makeModel
           ? c.makeModel
           : [c.make, c.model, c.year].filter(Boolean).join(" ");
@@ -217,6 +223,7 @@ export default function CarIssueFormSubmission() {
 
   const [form, setForm] = useState({
     car_name: "",
+    vin: "",
     assigned_to: "",
     notes: "",
     inspection_date: "",
@@ -233,6 +240,7 @@ export default function CarIssueFormSubmission() {
         credentials: "include",
         body: JSON.stringify({
           car_name: form.car_name,
+          vin_number: form.vin || null,
           source: "manual",
           assigned_to: form.assigned_to || null,
           inspection_date: form.inspection_date || null,
@@ -296,7 +304,7 @@ export default function CarIssueFormSubmission() {
   };
 
   const handleReset = () => {
-    setForm({ car_name: "", assigned_to: "", notes: "", inspection_date: "" });
+    setForm({ car_name: "", vin: "", assigned_to: "", notes: "", inspection_date: "" });
     setPhotos([]);
     setSubmitted(false);
   };
@@ -342,7 +350,19 @@ export default function CarIssueFormSubmission() {
             </Label>
             <CarSelect
               value={form.car_name}
-              onChange={(v) => setForm((p) => ({ ...p, car_name: v }))}
+              onChange={(carName, vin) => setForm((p) => ({ ...p, car_name: carName, vin }))}
+            />
+          </div>
+
+          {/* VIN — auto-filled from car selection, read-only */}
+          <div className="space-y-1.5">
+            <Label htmlFor="vin-number">VIN #</Label>
+            <Input
+              id="vin-number"
+              value={form.vin}
+              readOnly
+              placeholder="Auto-filled when car is selected"
+              className="bg-muted/40 font-mono text-sm"
             />
           </div>
 

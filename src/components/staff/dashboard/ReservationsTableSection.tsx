@@ -75,9 +75,9 @@ export default function ReservationsTableSection({
         <p className="py-8 text-center text-sm text-gray-500">{emptyMessage}</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-y border-[#FFCC00] border-collapse text-xs">
+          <table className="w-full border-y border-[#D3BC8D] border-collapse text-xs">
             <thead>
-              <tr className="bg-black border-y border-[#FFCC00]">
+              <tr className="bg-black border-y border-[#D3BC8D]">
                 {columns.map((c) => (
                   <th
                     key={c.key}
@@ -90,7 +90,7 @@ export default function ReservationsTableSection({
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr key={i} className="bg-white border-y border-[#FFCC00]">
+                <tr key={i} className="bg-white border-y border-[#D3BC8D]">
                   {columns.map((c) => (
                     <td key={c.key} className="px-3 py-2 text-center text-black">
                       {c.render ? c.render(row) : asString(row[c.key])}

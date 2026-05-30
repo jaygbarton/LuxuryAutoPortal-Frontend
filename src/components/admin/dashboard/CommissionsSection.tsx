@@ -154,9 +154,9 @@ function MatrixTable({
         COMMISSIONS {monthLabel}
       </h3>
       <div className="overflow-x-auto">
-        <table className="w-full border-y border-[#FFCC00] border-collapse">
+        <table className="w-full border-y border-[#D3BC8D] border-collapse">
           <thead>
-            <tr className="bg-black border-y border-[#FFCC00]">
+            <tr className="bg-black border-y border-[#D3BC8D]">
               <th className="px-3 py-2 text-center text-xs font-bold uppercase text-white">
                 Type
               </th>
@@ -175,7 +175,7 @@ function MatrixTable({
               return (
                 <tr
                   key={type}
-                  className="bg-white border-y border-[#FFCC00]"
+                  className="bg-white border-y border-[#D3BC8D]"
                 >
                   <td className="whitespace-nowrap px-3 py-2 text-center text-sm text-gray-900">
                     {type}
@@ -193,7 +193,7 @@ function MatrixTable({
                 </tr>
               );
             })}
-            <tr className="bg-[#FFCC00] font-bold border-y border-[#FFCC00]">
+            <tr className="bg-[#D3BC8D] font-bold border-y border-[#D3BC8D]">
               <td className="px-3 py-2 text-center text-sm text-black">TOTAL</td>
               {employeeNames.map((name) => (
                 <td
