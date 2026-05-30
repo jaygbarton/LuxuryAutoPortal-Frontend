@@ -132,8 +132,7 @@ export default function MyTasksSection() {
     },
   });
 
-  const all = data?.data ?? [];
-  const tasks = all.slice(0, 8);
+  const tasks = data?.data ?? [];
 
   return (
     <div className="mb-8">
@@ -208,16 +207,14 @@ export default function MyTasksSection() {
               ))}
             </tbody>
           </table>
-          {all.length > tasks.length && (
-            <div className="mt-3 text-center">
-              <Link
-                href="/staff/task-management"
-                className="text-sm font-medium text-[#B8860B] hover:underline"
-              >
-                View all {all.length} tasks →
-              </Link>
-            </div>
-          )}
+          <div className="mt-3 text-center">
+            <Link
+              href="/staff/task-management"
+              className="text-sm font-medium text-[#B8860B] hover:underline"
+            >
+              Go to Task Management →
+            </Link>
+          </div>
         </div>
       )}
     </div>
