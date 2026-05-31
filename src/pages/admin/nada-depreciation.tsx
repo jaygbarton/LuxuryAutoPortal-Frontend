@@ -896,7 +896,7 @@ export default function NADADepreciationPage() {
             <table className="border-collapse w-full table-auto">
               <thead className="bg-card">
                 <tr className="bg-card border-b border-border">
-                  <th className="text-left px-3 py-3 text-sm font-medium text-foreground sticky top-0 left-0 bg-card z-index-[auto] border-r border-border whitespace-nowrap">
+                  <th className="text-left px-3 py-3 text-sm font-medium text-foreground sticky top-0 md:left-0 bg-card z-index-[auto] border-r border-border whitespace-nowrap">
                     Current Cost of Vehicle
                   </th>
                   {monthsPreviousYear.map((month) => (
@@ -951,7 +951,7 @@ export default function NADADepreciationPage() {
                     key={rowIndex}
                     className="border-b border-border transition-colors"
                   >
-                    <td className="px-3 py-2 text-sm text-muted-foreground sticky left-0 bg-card z-[50] border-r border-border">
+                    <td className="px-3 py-2 text-sm text-muted-foreground md:sticky md:left-0 bg-card z-[50] border-r border-border">
                       <span className="whitespace-nowrap">{row.label}</span>
                     </td>
                         {row.values.map((value, monthIndex) => {
@@ -1019,7 +1019,7 @@ export default function NADADepreciationPage() {
             <table className="border-collapse w-full table-auto">
               <thead className="bg-card">
                 <tr className="bg-card border-b border-border">
-                  <th className="text-left px-3 py-3 text-sm font-medium text-foreground sticky top-0 left-0 bg-card z-index-[auto] border-r border-border whitespace-nowrap">
+                  <th className="text-left px-3 py-3 text-sm font-medium text-foreground sticky top-0 md:left-0 bg-card z-index-[auto] border-r border-border whitespace-nowrap">
                     Category
                   </th>
                   {months.map((month) => (
@@ -1044,7 +1044,7 @@ export default function NADADepreciationPage() {
                     key={rowIndex}
                     className="border-b border-border transition-colors"
                   >
-                    <td className="px-3 py-2 text-sm text-muted-foreground sticky left-0 bg-card z-[50] border-r border-border">
+                    <td className="px-3 py-2 text-sm text-muted-foreground md:sticky md:left-0 bg-card z-[50] border-r border-border">
                       <span className="whitespace-nowrap">{row.label}</span>
                     </td>
                     {row.values.map((value, monthIndex) => (
@@ -1109,7 +1109,7 @@ export default function NADADepreciationPage() {
             <table className="border-collapse w-full table-auto">
               <thead className="bg-card">
                 <tr className="bg-card border-b border-border">
-                  <th className="text-left px-3 py-3 text-sm font-medium text-foreground sticky top-0 left-0 bg-card z-index-[auto] border-r border-border whitespace-nowrap">
+                  <th className="text-left px-3 py-3 text-sm font-medium text-foreground sticky top-0 md:left-0 bg-card z-index-[auto] border-r border-border whitespace-nowrap">
                     Current Cost of Vehicle
                   </th>
                   {months.map((month) => (
@@ -1165,7 +1165,7 @@ export default function NADADepreciationPage() {
                       key={rowIndex}
                       className="border-b border-border transition-colors"
                     >
-                      <td className="px-3 py-2 text-sm text-muted-foreground sticky left-0 bg-card z-[50] border-r border-border">
+                      <td className="px-3 py-2 text-sm text-muted-foreground md:sticky md:left-0 bg-card z-[50] border-r border-border">
                             <span className="whitespace-nowrap">
                               {row.label}
                             </span>
@@ -1219,7 +1219,7 @@ export default function NADADepreciationPage() {
                 })}
                     {/* Total Equity Row */}
                     <tr className="border-b border-border font-semibold">
-                      <td className="px-3 py-2 text-sm text-primary sticky left-0 bg-muted/30 z-[50] border-r border-border">
+                      <td className="px-3 py-2 text-sm text-primary md:sticky md:left-0 bg-muted/30 z-[50] border-r border-border">
                         <span className="whitespace-nowrap">
                           Total Equity in Car
                         </span>

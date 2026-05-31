@@ -422,7 +422,7 @@ function StatsTable(props: { stats: StatsReport }) {
       <table className="w-full border-collapse text-xs">
         <thead>
           <tr className="bg-black text-white">
-            <th className="sticky left-0 z-10 min-w-[240px] bg-black px-3 py-2 text-left font-semibold">
+            <th className="md:sticky md:left-0 z-10 min-w-[240px] bg-black px-3 py-2 text-left font-semibold">
               Category
             </th>
             {stats.buckets.map((b) => (
@@ -443,7 +443,7 @@ function StatsTable(props: { stats: StatsReport }) {
           {stats.rows.map((row, idx) => (
             <tr key={row.key} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
               <td
-                className="sticky left-0 z-10 min-w-[240px] border-r border-border px-3 py-1.5 text-left font-medium text-gray-800"
+                className="md:sticky md:left-0 z-10 min-w-[240px] border-r border-border px-3 py-1.5 text-left font-medium text-gray-800"
                 style={{
                   backgroundColor: idx % 2 === 0 ? "white" : "rgb(249 250 251)",
                 }}

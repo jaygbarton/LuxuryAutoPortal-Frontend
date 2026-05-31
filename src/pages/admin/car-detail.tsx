@@ -1858,7 +1858,7 @@ export default function CarDetailPage() {
                 {car.photos && car.photos.length > 0 ? (
                   <div className="space-y-2 flex-1 flex flex-col">
                       {/* Main Carousel Display - Flexible height to match Vehicle Information card */}
-                      <div className="relative w-full flex-1 bg-background rounded-lg overflow-hidden border border-border">
+                      <div className="relative w-full bg-background rounded-lg overflow-hidden border border-border" style={{ minHeight: "280px" }}>
                       {car.photos.map((photo, index) => {
                         // Use getProxiedImageUrl to handle both GCS URLs and local paths
                         // This ensures CORS issues are avoided by proxying GCS URLs through the backend

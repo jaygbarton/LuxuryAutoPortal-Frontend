@@ -301,7 +301,7 @@ export default function TotalExpensesPage() {
               </colgroup>
               <thead className="bg-card">
                 <tr className="bg-card border-b border-border">
-                  <th className="text-left px-3 py-3 text-sm font-medium text-foreground sticky top-0 left-0 bg-card z-[60] border-r border-border">
+                  <th className="text-left px-3 py-3 text-sm font-medium text-foreground sticky top-0 md:left-0 bg-card z-[60] border-r border-border">
                     Expenses
                   </th>
                   {months.map((month) => (
@@ -328,7 +328,7 @@ export default function TotalExpensesPage() {
                     key={rowIndex}
                     className="border-b border-border transition-colors"
                   >
-                    <td className="px-3 py-2 text-sm text-muted-foreground sticky left-0 bg-card z-[50] border-r border-border">
+                    <td className="px-3 py-2 text-sm text-muted-foreground md:sticky md:left-0 bg-card z-[50] border-r border-border">
                       <span className="whitespace-nowrap">{row.label}</span>
                     </td>
                     {row.values.map((value, monthIndex) => (
@@ -375,7 +375,7 @@ export default function TotalExpensesPage() {
                 ))}
                 {/* Total Expenses Row */}
                 <tr className="border-b border-border hover:bg-muted/50 transition-colors bg-muted/30">
-                  <td className="px-3 py-2 text-sm font-semibold text-primary sticky left-0 bg-muted/30 z-[50] border-r border-border">
+                  <td className="px-3 py-2 text-sm font-semibold text-primary md:sticky md:left-0 bg-muted/30 z-[50] border-r border-border">
                     <span className="whitespace-nowrap">Total Expenses</span>
                   </td>
                   {totalExpenses.map((value, monthIndex) => (

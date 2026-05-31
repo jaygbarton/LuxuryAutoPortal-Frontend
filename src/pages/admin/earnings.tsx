@@ -1331,7 +1331,7 @@ export default function EarningsPage() {
               </colgroup>
               <thead className="bg-card">
                 <tr className="bg-card border-b border-border">
-                  <th className="text-left px-3 py-2 text-sm font-medium text-foreground sticky top-0 left-0 bg-card z-[5] border-r border-border align-middle">
+                  <th className="text-left px-3 py-2 text-sm font-medium text-foreground sticky top-0 md:left-0 bg-card z-[5] border-r border-border align-middle">
                     Category / Expense
                   </th>
                   {months.map((month, index) => {
@@ -2020,7 +2020,7 @@ function CategorySection({ title, isExpanded, onToggle, children }: CategorySect
   return (
     <>
       <tr className="bg-primary">
-        <td colSpan={14} className="sticky left-0 z-[3] bg-primary px-3 py-2 border-b border-primary">
+        <td colSpan={14} className="md:sticky md:left-0 z-[3] bg-primary px-3 py-2 border-b border-primary">
           <div className="flex items-center gap-2 cursor-pointer" onClick={onToggle}>
             {isExpanded ? <ChevronDown className="w-4 h-4 text-white" /> : <ChevronRight className="w-4 h-4 text-white" />}
             <span className="text-sm font-semibold text-white">{title}</span>
@@ -2050,7 +2050,7 @@ function TableRow({ label, values, isInteger = false, isTotal = false }: TableRo
       isTotal && "bg-background font-semibold"
     )}>
       <td className={cn(
-        "px-3 py-2 text-sm sticky left-0 z-[3] border-r border-border",
+        "px-3 py-2 text-sm md:sticky md:left-0 z-[3] border-r border-border",
         isTotal ? "text-primary bg-background" : "text-muted-foreground bg-card"
       )}>
         <span className="whitespace-nowrap">{label}</span>
