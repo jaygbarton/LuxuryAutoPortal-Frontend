@@ -19,6 +19,7 @@ import EmployeeStatsSection from "@/components/admin/dashboard/EmployeeStatsSect
 import MonthlyEmployeeStatsSection from "@/components/admin/dashboard/MonthlyEmployeeStatsSection";
 import TuroInspectionsSection from "@/components/admin/dashboard/TuroInspectionsSection";
 import CarIssuesSection from "@/components/admin/dashboard/CarIssuesSection";
+import CarPerformanceSection from "@/components/admin/dashboard/CarPerformanceSection";
 
 /* ── Section filter configuration ──
  * Admins can show/hide individual dashboard sections via a checkbox panel at
@@ -45,6 +46,7 @@ const ALL_SECTIONS: SectionDef[] = [
   { id: "notice-board", label: "Notice Board" },
   { id: "employee-stats", label: "Employee Stats" },
   { id: "monthly-employee-stats", label: "Monthly Employee Stats" },
+  { id: "car-performance", label: "Car Performance Ranking" },
 ];
 
 const ALL_IDS = ALL_SECTIONS.map((s) => s.id);
@@ -396,6 +398,10 @@ export default function AdminDashboard() {
 
           {show["monthly-employee-stats"] && (
             <MonthlyEmployeeStatsSection year={selectedYear} />
+          )}
+
+          {show["car-performance"] && (
+            <CarPerformanceSection year={selectedYear} />
           )}
 
           {noneSelected && (
