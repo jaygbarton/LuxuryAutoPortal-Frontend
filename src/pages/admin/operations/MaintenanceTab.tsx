@@ -488,7 +488,32 @@ export function MaintenanceTab({
                 ) : (
                   pagedRecords.map((rec) => {
                     const insp = rec.inspection_id != null ? inspectionsById.get(rec.inspection_id) : undefined;
-                    const trip = insp?.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+                    const clientTrip = insp?.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+                    // Prefer trip context joined on the backend (rec.trip_*) — it's
+                    // attached to every row regardless of the client's fetch window.
+                    // Fall back to the client-side inspection→trip lookup for any
+                    // field the backend join didn't supply.
+                    const num = (v: string | number | null | undefined): number | null =>
+                      v == null || v === "" ? null : Number(v);
+                    const trip = (rec.trip_id != null || rec.trip_reservation_id || rec.trip_start)
+                      ? {
+                          reservationId: rec.trip_reservation_id ?? clientTrip?.reservationId ?? null,
+                          tripStart: rec.trip_start ?? clientTrip?.tripStart ?? null,
+                          tripEnd: rec.trip_end ?? clientTrip?.tripEnd ?? null,
+                          pickupLocation: rec.trip_pickup_location ?? clientTrip?.pickupLocation ?? null,
+                          deliveryLocation: rec.trip_delivery_location ?? clientTrip?.deliveryLocation ?? null,
+                          returnLocation: rec.trip_return_location ?? clientTrip?.returnLocation ?? null,
+                          extras: rec.trip_extras ?? clientTrip?.extras ?? null,
+                          milesIncluded: rec.trip_miles_included ?? clientTrip?.milesIncluded ?? null,
+                          totalDistance: num(rec.trip_total_distance ?? clientTrip?.totalDistance),
+                          tripStartOdometer: num(rec.trip_start_odometer ?? clientTrip?.tripStartOdometer),
+                          tripEndOdometer: num(rec.trip_end_odometer ?? clientTrip?.tripEndOdometer),
+                          earnings: num(rec.trip_earnings ?? clientTrip?.earnings),
+                          cancelledEarnings: num(rec.trip_cancelled_earnings ?? clientTrip?.cancelledEarnings),
+                          status: rec.trip_status ?? clientTrip?.status ?? null,
+                          plateNumber: rec.trip_plate_number ?? clientTrip?.plateNumber ?? null,
+                        }
+                      : clientTrip;
                     const pickupLocation = trip?.pickupLocation || trip?.deliveryLocation || "--";
                     const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? "--";
                     const daysRented = trip ? calculateDaysRented(trip.tripStart, trip.tripEnd) : null;
@@ -497,7 +522,7 @@ export function MaintenanceTab({
                           ? trip.cancelledEarnings
                           : trip.earnings)
                       : null;
-                    const reservationId = insp?.reservation_id || trip?.reservationId || "--";
+                    const reservationId = rec.trip_reservation_id || insp?.reservation_id || trip?.reservationId || "--";
                     const plateNumber = rec.car_plate || trip?.plateNumber || "--";
                     // Prefer joined car fields; fall back to car_name for legacy rows
                     const fallbackParts = (rec.car_name || "").trim().split(/\s+/);
@@ -567,7 +592,7 @@ export function MaintenanceTab({
                           {tripEarnings != null ? formatCurrency(tripEarnings) : "--"}
                         </TableCell>
                         <TableCell>
-                          {trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm italic text-xs">Manual</span>}
+                          {trip?.status ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm italic text-xs">Manual</span>}
                         </TableCell>
                         <TableCell
                           className="text-foreground text-sm max-w-[200px] truncate"

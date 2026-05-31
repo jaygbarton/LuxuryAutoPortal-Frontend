@@ -99,6 +99,24 @@ export interface MaintenanceRecord {
   car_model: string | null;
   car_year: number | null;
   car_plate: string | null;
+  // Trip context joined on the backend via inspection_id → inspections →
+  // turo_trips. Null when there's no linked inspection/trip (manual rows).
+  trip_id?: number | null;
+  trip_reservation_id?: string | null;
+  trip_start?: string | null;
+  trip_end?: string | null;
+  trip_pickup_location?: string | null;
+  trip_delivery_location?: string | null;
+  trip_return_location?: string | null;
+  trip_extras?: string | null;
+  trip_miles_included?: number | null;
+  trip_total_distance?: number | null;
+  trip_start_odometer?: number | null;
+  trip_end_odometer?: number | null;
+  trip_earnings?: string | number | null;
+  trip_cancelled_earnings?: string | number | null;
+  trip_status?: string | null;
+  trip_plate_number?: string | null;
 }
 
 export type TaskType = "cleaning" | "delivery" | "pickup";
