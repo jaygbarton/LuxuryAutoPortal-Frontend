@@ -71,6 +71,26 @@ export default function GraphsChartsPage() {
 
   const onboarding = onboardingData?.data;
 
+  // === Income/Expense data for charts (per-car) ===
+  const selectedYear = new Date().getFullYear().toString();
+
+  const { data: incomeExpenseResp } = useQuery<{ success: boolean; data: any }>(
+    {
+      queryKey: ["/api/income-expense", carId, selectedYear],
+      queryFn: async () => {
+        if (!carId) throw new Error("Invalid car ID");
+        const url = buildApiUrl(`/api/income-expense/${carId}/${selectedYear}`);
+        const resp = await fetch(url, { credentials: "include" });
+        if (!resp.ok) return { success: true, data: null };
+        return resp.json();
+      },
+      enabled: !!carId,
+      retry: false,
+    }
+  );
+
+  const incomeExpenseData = incomeExpenseResp?.data || null;
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -104,26 +124,6 @@ export default function GraphsChartsPage() {
   const fuelType = onboarding?.fuelType || car.fuelType || "N/A";
   const tireSize = onboarding?.tireSize || car.tireSize || "N/A";
   const oilType = onboarding?.oilType || car.oilType || "N/A";
-
-  // === Income/Expense data for charts (per-car) ===
-  const selectedYear = new Date().getFullYear().toString();
-
-  const { data: incomeExpenseResp } = useQuery<{ success: boolean; data: any }>(
-    {
-      queryKey: ["/api/income-expense", carId, selectedYear],
-      queryFn: async () => {
-        if (!carId) throw new Error("Invalid car ID");
-        const url = buildApiUrl(`/api/income-expense/${carId}/${selectedYear}`);
-        const resp = await fetch(url, { credentials: "include" });
-        if (!resp.ok) return { success: true, data: null };
-        return resp.json();
-      },
-      enabled: !!carId,
-      retry: false,
-    }
-  );
-
-  const incomeExpenseData = incomeExpenseResp?.data || null;
 
   const getMonthValue = (arr: any[] = [], month: number, field: string) => {
     if (!arr || arr.length === 0) return 0;
