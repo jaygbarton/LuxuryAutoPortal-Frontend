@@ -109,8 +109,8 @@ interface DonutChartProps {
 
 // Light = larger share, Dark = smaller share. Per-slice color is decided
 // from the value's rank, not the array order, to match the design.
-const DONUT_COLOR_LIGHT = "#F5E6A8";
-const DONUT_COLOR_DARK = "#E8C547";
+const DONUT_COLOR_LIGHT = "#D3BC8D";
+const DONUT_COLOR_DARK = "#D9D9D9";
 
 function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
   const total = data.reduce((s, d) => s + d.value, 0);
@@ -327,7 +327,7 @@ function HorizontalBarChart({ items }: HorizontalBarChartProps) {
             </div>
             <div className="relative h-20 flex-1 bg-transparent">
               <div
-                className="h-full bg-[#E8C547] rounded-r-md"
+                className="h-full bg-[#D3BC8D] rounded-r-md"
                 style={{
                   width: `${niceMax > 0 ? (item.value / niceMax) * 100 : 0}%`,
                 }}
@@ -765,8 +765,8 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
                 title="Management Income and Expenses"
                 data={mgmtBarData}
                 lines={[
-                  { dataKey: "Income", stroke: "#E8C547" },
-                  { dataKey: "Expenses", stroke: "#F5E6A8" },
+                  { dataKey: "Income", stroke: "#D3BC8D" },
+                  { dataKey: "Expenses", stroke: "#D9D9D9" },
                 ]}
               />
             </div>
@@ -793,8 +793,8 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
                 title="Car Owner Income and Expenses"
                 data={ownerBarData}
                 lines={[
-                  { dataKey: "Income", stroke: "#E8C547" },
-                  { dataKey: "Expenses", stroke: "#B8860B" },
+                  { dataKey: "Income", stroke: "#D3BC8D" },
+                  { dataKey: "Expenses", stroke: "#D9D9D9" },
                 ]}
               />
             </div>
@@ -815,8 +815,8 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
                 title="Days Rented and Trips Taken"
                 data={activityBarData}
                 bars={[
-                  { dataKey: "Days Rented", fill: "#E8C547" },
-                  { dataKey: "Trips Taken", fill: "#C9A227" },
+                  { dataKey: "Days Rented", fill: "#D3BC8D" },
+                  { dataKey: "Trips Taken", fill: "#D9D9D9" },
                 ]}
                 yAxisPrefix=""
               />
