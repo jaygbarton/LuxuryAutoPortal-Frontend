@@ -220,7 +220,6 @@ export default function ViewCarPage() {
   }
 
   if (error || !car) {
-    // If client, redirect to their dashboard instead of showing error
     if (isClient) {
       setLocation("/dashboard");
       return null;
@@ -229,10 +228,7 @@ export default function ViewCarPage() {
       <AdminLayout>
         <div className="flex flex-col items-center justify-center h-full">
           <p className="text-red-700">Failed to load car details</p>
-          <button
-            onClick={() => setLocation("/cars")}
-            className="mt-4 text-blue-700 hover:underline"
-          >
+          <button onClick={() => setLocation("/cars")} className="mt-4 text-blue-700 hover:underline">
             ← Back to Cars
           </button>
         </div>
