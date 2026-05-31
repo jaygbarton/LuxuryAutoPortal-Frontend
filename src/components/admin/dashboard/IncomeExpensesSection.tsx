@@ -153,7 +153,7 @@ function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
   return (
     <div className="h-full w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <PieChart margin={{ top: 30, right: 60, bottom: 30, left: 60 }}>
+        <PieChart margin={{ top: 40, right: 70, bottom: 40, left: 70 }}>
           <Pie
             data={data}
             dataKey="value"
@@ -741,7 +741,7 @@ export default function IncomeExpensesSection({ year }: IncomeExpensesSectionPro
           </div>
 
           {/* ── Row 2: Donuts (1/3) + Line/Bar charts (2/3) — 3 locked rows ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-x-4 sm:gap-x-8 gap-y-6 sm:gap-y-8 xl:[grid-template-rows:repeat(3,280px)] [grid-auto-rows:280px]">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-x-4 sm:gap-x-8 gap-y-6 sm:gap-y-8 xl:[grid-template-rows:repeat(3,400px)] [grid-auto-rows:400px]">
 
             {/* Row 1 left — Mgmt donuts */}
             <div className="xl:col-span-1 grid grid-cols-2 gap-2">

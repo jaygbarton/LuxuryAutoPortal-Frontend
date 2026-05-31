@@ -272,6 +272,23 @@ export default function AdminDashboard() {
         </div>
 
 
+        {/* ── Year selector + Section Filter Panel ── */}
+        <div className="mb-6 px-6 flex flex-wrap items-center gap-3">
+          {/* Year dropdown */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-600">Year:</label>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              {Array.from({ length: 8 }, (_, i) => String(new Date().getFullYear() - i)).map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         {/* ── Section Filter Panel ──
             Lets admins pick which dashboard sections they want to see. The
             choice persists per-browser via localStorage. */}

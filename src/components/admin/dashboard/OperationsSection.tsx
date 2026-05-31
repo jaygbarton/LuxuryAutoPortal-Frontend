@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader, DashboardTable } from "@/components/admin/dashboard";
 
@@ -47,7 +46,15 @@ function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return "—";
-  return format(d, "MMM d, yyyy");
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Denver",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(d);
 }
 
 function statusLabel(status: OperationTask["status"]): string {
