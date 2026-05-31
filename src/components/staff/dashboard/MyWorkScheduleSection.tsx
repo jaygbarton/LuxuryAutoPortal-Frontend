@@ -97,6 +97,56 @@ export default function MyWorkScheduleSection() {
     retry: false,
   });
 
+  // Operation tasks (pickup/cleaning/delivery) assigned to me in this month.
+  // Overlaid on the calendar so trip assignments made in Admin → Operations
+  // show on the day they're scheduled, alongside work_sched shifts.
+  const { data: tasksData } = useQuery<{
+    data?: Array<{
+      id: number;
+      task_type: "pickup" | "cleaning" | "delivery";
+      car_name: string | null;
+      reservation_id: string | null;
+      scheduled_date: string | null;
+      status: string | null;
+    }>;
+  }>({
+    queryKey: ["/api/me/work-schedule-tasks", month],
+    queryFn: async () => {
+      const r = await fetch(
+        buildApiUrl(`/api/me/work-schedule-tasks?month=${month}`),
+        { credentials: "include" },
+      );
+      if (!r.ok) return { data: [] };
+      return r.json();
+    },
+    retry: false,
+  });
+
+  // Group tasks by their Mountain-Time calendar date (YYYY-MM-DD) so they land
+  // in the same cell the calendar grid uses (which is keyed by local date).
+  const tasksByDate: Record<
+    string,
+    Array<{ task_type: string; car_name: string | null; time: string }>
+  > = {};
+  for (const t of tasksData?.data ?? []) {
+    if (!t.scheduled_date) continue;
+    const d = new Date(t.scheduled_date);
+    if (isNaN(d.getTime())) continue;
+    // en-CA gives YYYY-MM-DD; force Mountain Time to match the rest of the app.
+    const dateKey = d.toLocaleDateString("en-CA", { timeZone: "America/Denver" });
+    const time = d.toLocaleTimeString("en-US", {
+      timeZone: "America/Denver",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+    (tasksByDate[dateKey] ??= []).push({
+      task_type: t.task_type,
+      car_name: t.car_name,
+      time,
+    });
+  }
+
   const shifts = data?.data ?? [];
 
   const shiftsByCode = shifts.reduce<Record<string, MyShift[]>>((acc, s) => {
@@ -210,6 +260,9 @@ export default function MyWorkScheduleSection() {
                         const isDayOff = cell.originalDate
                           ? !!leavesByDate[cell.originalDate]
                           : false;
+                        const myTasks = cell.originalDate
+                          ? tasksByDate[cell.originalDate] ?? []
+                          : [];
                         return (
                           <td
                             key={`shift-${weekNum}-${idx}`}
@@ -228,6 +281,25 @@ export default function MyWorkScheduleSection() {
                                 <div className="text-gray-600">
                                   {fmtTime(s.work_sched_start_time)} - {fmtTime(s.work_sched_end_time)}
                                 </div>
+                              </div>
+                            ))}
+                            {myTasks.map((t, ti) => (
+                              <div
+                                key={`task-${ti}`}
+                                className={`mt-1 rounded-md border px-1.5 py-0.5 text-left text-[10px] leading-tight ${
+                                  t.task_type === "cleaning"
+                                    ? "border-amber-200 bg-amber-50 text-amber-800"
+                                    : t.task_type === "delivery"
+                                      ? "border-blue-200 bg-blue-50 text-blue-800"
+                                      : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                }`}
+                              >
+                                <div className="font-semibold capitalize">
+                                  {t.task_type} · {t.time}
+                                </div>
+                                {t.car_name && (
+                                  <div className="truncate text-gray-600">{t.car_name}</div>
+                                )}
                               </div>
                             ))}
                           </td>
