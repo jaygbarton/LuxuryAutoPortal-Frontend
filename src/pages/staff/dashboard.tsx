@@ -39,10 +39,7 @@ import {
   EmployeeNoticeBoardSection,
 } from "@/components/staff/dashboard";
 import { SectionHeader } from "@/components/admin/dashboard";
-import { SlidersHorizontal, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { SlidersHorizontal, ChevronDown } from "lucide-react";
 
 const STORAGE_KEY = "staff-dashboard-visible-sections";
 
@@ -97,77 +94,71 @@ export default function StaffDashboard() {
           {/* Profile banner — always visible */}
           <EmployeeProfileSection />
 
-          {/* Filter Sections button */}
-          <div className="flex justify-end">
-            <Button
-              variant="outline"
-              size="sm"
+          {/* Filter Sections button + panel — mirrors the admin dashboard:
+              count badge, chevron, Select All / Deselect All, checkbox grid. */}
+          <div className="flex flex-col items-end">
+            <button
+              type="button"
               onClick={() => setPanelOpen((o) => !o)}
-              className="gap-2 text-muted-foreground border-border hover:text-foreground"
+              className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-accent"
             >
-              <SlidersHorizontal className="w-4 h-4" />
+              <SlidersHorizontal className="h-4 w-4" />
               Filter Sections
-            </Button>
-          </div>
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                {visible.size}/{ALL_SECTIONS.length}
+              </span>
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${panelOpen ? "rotate-180" : ""}`}
+              />
+            </button>
 
-          {/* Section visibility panel */}
-          {panelOpen && (
-            <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-foreground">
-                  Show / Hide Sections
-                </span>
-                <button
-                  onClick={() => setPanelOpen(false)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2">
-                {ALL_SECTIONS.map((s) => (
-                  <div key={s.id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`vis-${s.id}`}
-                      checked={visible.has(s.id)}
-                      onCheckedChange={() => toggle(s.id)}
-                    />
-                    <Label
-                      htmlFor={`vis-${s.id}`}
-                      className="text-sm cursor-pointer leading-tight"
+            {panelOpen && (
+              <div className="mt-2 w-full rounded-lg border border-border bg-card p-4 shadow-sm">
+                <div className="mb-3 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const all = new Set(ALL_SECTIONS.map((s) => s.id));
+                      setVisible(all);
+                      localStorage.setItem(STORAGE_KEY, JSON.stringify([...all]));
+                    }}
+                    disabled={visible.size === ALL_SECTIONS.length}
+                    className="text-xs font-medium text-amber-600 hover:text-amber-800 disabled:text-muted-foreground"
+                  >
+                    Select All
+                  </button>
+                  <span className="text-border">|</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVisible(new Set());
+                      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+                    }}
+                    disabled={visible.size === 0}
+                    className="text-xs font-medium text-amber-600 hover:text-amber-800 disabled:text-muted-foreground"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                  {ALL_SECTIONS.map((s) => (
+                    <label
+                      key={s.id}
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground transition hover:bg-accent"
                     >
+                      <input
+                        type="checkbox"
+                        checked={visible.has(s.id)}
+                        onChange={() => toggle(s.id)}
+                        className="h-4 w-4 rounded border-border text-amber-600 focus:ring-amber-500"
+                      />
                       {s.label}
-                    </Label>
-                  </div>
-                ))}
+                    </label>
+                  ))}
+                </div>
               </div>
-              <div className="mt-3 flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-muted-foreground"
-                  onClick={() => {
-                    const all = new Set(ALL_SECTIONS.map((s) => s.id));
-                    setVisible(all);
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify([...all]));
-                  }}
-                >
-                  Show all
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-muted-foreground"
-                  onClick={() => {
-                    setVisible(new Set());
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
-                  }}
-                >
-                  Hide all
-                </Button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Sections */}
           <div className="flex flex-col gap-2 pt-2">
@@ -188,6 +179,16 @@ export default function StaffDashboard() {
             {show("noticeboard") && <EmployeeNoticeBoardSection />}
             {show("stats-daily") && <MyEmployeeStatsSection />}
             {show("stats-monthly") && <MyMonthlyStatsSection />}
+
+            {visible.size === 0 && (
+              <div className="py-20 text-center text-muted-foreground">
+                <p className="text-lg font-medium">No sections selected</p>
+                <p className="mt-1 text-sm">
+                  Use the <strong>Filter Sections</strong> button above to choose
+                  which sections to display.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
