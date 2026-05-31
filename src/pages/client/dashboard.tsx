@@ -544,32 +544,32 @@ export default function ClientDashboard() {
           isLoadingTrips={tripsLoading}
         />
 
-        {/* Sections 6-9: Donuts + NADA (left) | Payments + Maintenance (right) */}
+        {/* Row A: Donuts (left) | Payment History (right) — same top edge */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
-          <div className="flex flex-col gap-6">
-            <DonutCharts
-              yearTotals={yearTotals}
-              currentMonthData={monthlyTripData[currentMonth - 1]}
-              selectedYear={selectedYear}
-              currentMonth={currentMonth}
-              isLoading={totalsLoading || tripsLoading}
-            />
-            <NadaChart
-              nadaRecords={nadaRecords}
-              yearNum={yearNum}
-              isLoading={nadaLoading}
-            />
-          </div>
-          <div className="flex flex-col gap-6">
-            <PaymentHistoryCard
-              payments={payments}
-              isLoading={paymentsLoading}
-            />
-            <MaintenanceCard
-              maintenanceRecords={maintenanceRecords}
-              activeCar={activeCar}
-            />
-          </div>
+          <DonutCharts
+            yearTotals={yearTotals}
+            currentMonthData={monthlyTripData[currentMonth - 1]}
+            selectedYear={selectedYear}
+            currentMonth={currentMonth}
+            isLoading={totalsLoading || tripsLoading}
+          />
+          <PaymentHistoryCard
+            payments={payments}
+            isLoading={paymentsLoading}
+          />
+        </div>
+
+        {/* Row B: NADA chart (left) | Maintenance (right) — same top edge */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+          <NadaChart
+            nadaRecords={nadaRecords}
+            yearNum={yearNum}
+            isLoading={nadaLoading}
+          />
+          <MaintenanceCard
+            maintenanceRecords={maintenanceRecords}
+            activeCar={activeCar}
+          />
         </div>
 
         {/* Sections 10 & 11: Report Center + Support Center */}
