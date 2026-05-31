@@ -455,15 +455,23 @@ export default function ClientDashboard() {
               value={String(activeCar?.id ?? "")}
               onValueChange={(v) => setSelectedCarId(parseInt(v, 10))}
             >
-              <SelectTrigger className="w-52 h-9 text-sm">
+              <SelectTrigger className="w-auto max-w-sm h-9 text-sm">
                 <SelectValue placeholder="Select car" />
               </SelectTrigger>
               <SelectContent>
-                {cars.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    {c.makeModel || `Car #${c.id}`}
-                  </SelectItem>
-                ))}
+                {cars.map((c) => {
+                  const parts = [
+                    c.year ? String(c.year) : null,
+                    c.makeModel || null,
+                    c.licensePlate ? `(${c.licensePlate})` : null,
+                    c.vin ? `• ${c.vin}` : null,
+                  ].filter(Boolean).join(" ");
+                  return (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {parts || `Car #${c.id}`}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -537,7 +545,7 @@ export default function ClientDashboard() {
         />
 
         {/* Sections 6-9: Donuts + NADA (left) | Payments + Maintenance (right) */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
           <div className="flex flex-col gap-6">
             <DonutCharts
               yearTotals={yearTotals}

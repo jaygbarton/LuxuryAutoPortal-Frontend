@@ -96,7 +96,7 @@ export function DonutCharts({ yearTotals, currentMonthData, selectedYear, curren
   }
 
   return (
-    <div className="grid grid-cols-2 gap-6 h-full">
+    <div className="grid grid-cols-2 gap-6">
       <div className="flex flex-col">
         <h3 className="text-sm font-bold text-foreground mb-1">Total Car Owner Profit and Expenses</h3>
         <DonutRing data={donutYearData} centerLabel={fmt(yearTotals.profit)} />
