@@ -256,7 +256,7 @@ export default function ViewCarPage() {
 
   return (
     <AdminLayout>
-      <div className="flex flex-col h-full overflow-x-hidden">
+      <div className="flex flex-col min-h-full overflow-x-hidden">
         {/* Header */}
         <div className="mb-6">
           <button
@@ -562,7 +562,7 @@ export default function ViewCarPage() {
         )}
 
         {/* Menu Items List */}
-        <div className="bg-card border border-border rounded-lg overflow-auto">
+        <div className="bg-card border border-border rounded-lg overflow-auto flex-shrink-0">
           <div className="divide-y divide-border">
             {menuItems.map((item, index) => (
               <button
