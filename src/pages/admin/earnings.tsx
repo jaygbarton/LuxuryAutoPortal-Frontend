@@ -2053,7 +2053,7 @@ function TableRow({ label, values, isInteger = false, isTotal = false }: TableRo
         "px-3 py-2 text-sm md:sticky md:left-0 z-[3] border-r border-border",
         isTotal ? "text-primary bg-background" : "text-muted-foreground bg-card"
       )}>
-        <span className="whitespace-nowrap">{label}</span>
+        <span className="whitespace-normal break-words md:whitespace-nowrap">{label}</span>
       </td>
       {values.map((value, i) => {
         const cellValue = typeof value === 'number' && !isNaN(value) ? value : 0;
@@ -2082,7 +2082,7 @@ function TableRow({ label, values, isInteger = false, isTotal = false }: TableRo
         );
       })}
       <td className={cn(
-        "text-right px-2 py-2 text-sm font-semibold border-l border-border bg-card sticky right-0 z-[3]",
+        "text-right px-2 py-2 text-sm font-semibold border-l border-border bg-card md:sticky md:right-0 z-[3]",
         isTotal ? "text-primary" : total !== 0 ? "text-[#B8860B]" : "text-muted-foreground"
       )}>
         {isNegativeBalance && total < 0 
