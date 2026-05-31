@@ -723,39 +723,14 @@ export function TuroInspectionTab() {
                             "--"
                           ) : (
                             (() => {
-                              const pending = milesEdits[trip.id];
-                              const value =
-                                pending !== undefined
-                                  ? pending
-                                  : trip.milesIncluded ?? "";
-                              const dirty = pending !== undefined;
+                              const totalMiles =
+                                trip.tripStartOdometer != null &&
+                                trip.tripEndOdometer != null &&
+                                trip.tripEndOdometer >= trip.tripStartOdometer
+                                  ? (trip.tripEndOdometer - trip.tripStartOdometer).toLocaleString()
+                                  : "--";
                               return (
-                                <div className="flex items-center gap-1">
-                                  <Input
-                                    value={value}
-                                    onChange={(e) =>
-                                      setMilesEdits((prev) => ({
-                                        ...prev,
-                                        [trip.id]: e.target.value,
-                                      }))
-                                    }
-                                    placeholder="--"
-                                    className="h-7 w-[110px] text-sm"
-                                  />
-                                  {dirty && (
-                                    <Button
-                                      variant="default"
-                                      size="sm"
-                                      className="h-7 px-2"
-                                      onClick={() => saveRowMiles(trip)}
-                                      disabled={savingMilesRow === trip.id}
-                                    >
-                                      {savingMilesRow === trip.id
-                                        ? "…"
-                                        : "Save"}
-                                    </Button>
-                                  )}
-                                </div>
+                                <span>{totalMiles}</span>
                               );
                             })()
                           )}

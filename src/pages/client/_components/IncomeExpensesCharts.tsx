@@ -47,7 +47,7 @@ export function IncomeExpensesCharts({
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={monthlyTripData} margin={{ top: 8, right: 16, left: 0, bottom: 48 }}>
-                <CartesianGrid stroke="#FFCC00" vertical={false} />
+                <CartesianGrid stroke="#D3BC8D" vertical={false} />
                 <XAxis dataKey="month" tick={CHART_AXIS_TICK} angle={-45} textAnchor="end" interval={0} height={60} axisLine={{ stroke: "#444" }} tickLine={false} />
                 <YAxis tick={CHART_AXIS_TICK} tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`} axisLine={false} tickLine={false} width={48} />
                 <Tooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={{ color: "#eee", fontWeight: 600 }} formatter={(val: number, name: string) => [fmt(val), name]} />
@@ -76,7 +76,7 @@ export function IncomeExpensesCharts({
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={monthlyDaysTripsData} margin={{ top: 8, right: 16, left: -20, bottom: 48 }} barCategoryGap="25%" barGap={2}>
-                <CartesianGrid stroke="#FFCC00" vertical={false} />
+                <CartesianGrid stroke="#D3BC8D" vertical={false} />
                 <XAxis dataKey="month" tick={CHART_AXIS_TICK} angle={-45} textAnchor="end" interval={0} height={60} axisLine={{ stroke: "#444" }} tickLine={false} />
                 <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={{ color: "#eee", fontWeight: 600 }} />

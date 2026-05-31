@@ -144,7 +144,7 @@ export function MaintenanceTab({
   const { data: inspectionsData } = useQuery<{ data: Inspection[] }>({
     queryKey: ["/api/operations/inspections", "all_sources", "all"],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl("/api/operations/inspections"), {
+      const response = await fetch(buildApiUrl("/api/operations/inspections?limit=5000"), {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch inspections");

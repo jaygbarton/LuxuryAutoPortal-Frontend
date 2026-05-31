@@ -269,9 +269,9 @@ export default function EarningsHistorySection() {
                 <Line
                   type="linear"
                   dataKey="Earnings"
-                  stroke="#E8C547"
+                  stroke="#D3BC8D"
                   strokeWidth={2}
-                  dot={{ r: 3, fill: "#E8C547", stroke: "#E8C547" }}
+                  dot={{ r: 3, fill: "#D3BC8D", stroke: "#D3BC8D" }}
                   activeDot={{ r: 5 }}
                 />
               </LineChart>

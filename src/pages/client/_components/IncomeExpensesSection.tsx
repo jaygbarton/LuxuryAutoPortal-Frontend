@@ -100,13 +100,13 @@ export function IncomeExpensesSection({
 
         {/* Income and Expenses table */}
         <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
-          <table className="w-full min-w-[480px] border-y border-[#FFCC00] border-collapse" style={{ tableLayout: "fixed" }}>
+          <table className="w-full min-w-[480px] border-y border-[#D3BC8D] border-collapse" style={{ tableLayout: "fixed" }}>
             <colgroup>
               <col style={{ width: "128px" }} />
               <col /><col /><col />
             </colgroup>
             <thead>
-              <tr style={{ backgroundColor: "#1a1a1a" }} className="border-y border-[#FFCC00]">
+              <tr style={{ backgroundColor: "#1a1a1a" }} className="border-y border-[#D3BC8D]">
                 <th className="text-white font-bold text-xs py-3 px-3 text-center">Month and Year</th>
                 <th className="text-white font-bold text-xs py-3 px-3 text-center">Car owner rental income</th>
                 <th className="text-white font-bold text-xs py-3 px-3 text-center">Car owner expenses</th>
@@ -119,7 +119,7 @@ export function IncomeExpensesSection({
               ) : (
                 <>
                   {monthlyTripData.map((row) => (
-                    <tr key={row.month} className="bg-white border-y border-[#FFCC00]">
+                    <tr key={row.month} className="bg-white border-y border-[#D3BC8D]">
                       <td className="text-sm py-2 px-3 text-center font-medium text-black">
                         {row.month}
                       </td>
@@ -128,7 +128,7 @@ export function IncomeExpensesSection({
                       <td className="text-sm py-2 px-3 text-center font-medium text-black">{fmt(row.profit)}</td>
                     </tr>
                   ))}
-                  <tr style={{ backgroundColor: "#FFCC00" }} className="border-y border-[#FFCC00]">
+                  <tr style={{ backgroundColor: "#D3BC8D" }} className="border-y border-[#D3BC8D]">
                     <td className="text-sm font-extrabold text-black py-2.5 px-3 text-center">Total</td>
                     <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{fmt(yearTotals.income)}</td>
                     <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{fmt(yearTotals.expenses)}</td>
@@ -142,13 +142,13 @@ export function IncomeExpensesSection({
 
         {/* Days Rented and Trips Taken table */}
         <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
-          <table className="w-full min-w-[480px] border-y border-[#FFCC00] border-collapse" style={{ tableLayout: "fixed" }}>
+          <table className="w-full min-w-[480px] border-y border-[#D3BC8D] border-collapse" style={{ tableLayout: "fixed" }}>
             <colgroup>
               <col style={{ width: "128px" }} />
               <col /><col /><col />
             </colgroup>
             <thead>
-              <tr style={{ backgroundColor: "#1a1a1a" }} className="border-y border-[#FFCC00]">
+              <tr style={{ backgroundColor: "#1a1a1a" }} className="border-y border-[#D3BC8D]">
                 <th className="text-white font-bold text-xs py-3 px-3 text-center">Month and Year</th>
                 <th className="text-white font-bold text-xs py-3 px-3 text-center">Days Rented</th>
                 <th className="text-white font-bold text-xs py-3 px-3 text-center">Trips Taken</th>
@@ -161,7 +161,7 @@ export function IncomeExpensesSection({
               ) : (
                 <>
                   {monthlyDaysTripsData.map((row) => (
-                    <tr key={row.month} className="bg-white border-y border-[#FFCC00]">
+                    <tr key={row.month} className="bg-white border-y border-[#D3BC8D]">
                       <td className="text-sm py-2 px-3 text-center font-medium text-black">
                         {row.month}
                       </td>
@@ -170,7 +170,7 @@ export function IncomeExpensesSection({
                       <td className="text-sm py-2 px-3 text-center text-black">{row.trips > 0 ? fmt(row.avgPerTrip) : "—"}</td>
                     </tr>
                   ))}
-                  <tr style={{ backgroundColor: "#FFCC00" }} className="border-y border-[#FFCC00]">
+                  <tr style={{ backgroundColor: "#D3BC8D" }} className="border-y border-[#D3BC8D]">
                     <td className="text-sm font-extrabold text-black py-2.5 px-3 text-center">Total</td>
                     <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{yearTotalsTrips.days}</td>
                     <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{yearTotalsTrips.trips}</td>

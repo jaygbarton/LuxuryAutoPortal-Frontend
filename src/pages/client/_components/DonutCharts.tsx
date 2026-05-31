@@ -51,7 +51,7 @@ export function DonutCharts({ yearTotals, currentMonthData, selectedYear, curren
             <Pie {...sharedPieProps} data={data.length > 0 ? data : [{ name: "No data", value: 1 }]}>
               {data.length > 0
                 ? data.map((_, i) => <Cell key={i} fill={PIE_DONUT_COLORS[i % PIE_DONUT_COLORS.length]} />)
-                : <Cell fill="#e5e7eb" stroke="#d1d5db" strokeWidth={1} />
+                : <Cell fill="#D9D9D9" stroke="#D9D9D9" strokeWidth={1} />
               }
             </Pie>
             {data.length > 0 && (
