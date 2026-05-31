@@ -1562,8 +1562,8 @@ export default function CarDetailPage() {
 
         {/* Row 1: Vehicle Information, Car Photos, and Car Links */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-stretch w-full min-w-0 max-w-full">
-          {/* Vehicle Information Card */}
-          <Card className="bg-card border-border lg:col-span-6 flex flex-col min-w-0 w-full max-w-full overflow-hidden">
+          {/* Vehicle Information Card — appears second on mobile, first on desktop */}
+          <Card className="bg-card border-border lg:col-span-6 flex flex-col min-w-0 w-full max-w-full overflow-hidden order-2 lg:order-1">
             <CardHeader className="pb-2 min-w-0">
               <CardTitle className="text-primary text-base sm:text-lg flex items-center gap-2 min-w-0">
                 <Car className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
@@ -1844,21 +1844,21 @@ export default function CarDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Column 2: Car Photos and Car Links stacked vertically */}
-          <div className="lg:col-span-6 flex flex-col gap-6 min-w-0 w-full">
+          {/* Column 2: Car Photos and Car Links — appears first on mobile, second on desktop */}
+          <div className="lg:col-span-6 flex flex-col gap-6 min-w-0 w-full order-1 lg:order-2">
             {/* Car Photos Carousel Card */}
-            <Card className="bg-card border-border flex flex-col flex-1 min-w-0 w-full max-w-full overflow-hidden">
+            <Card className="bg-card border-border flex flex-col min-w-0 w-full max-w-full overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-primary text-lg flex items-center gap-2">
                   <Car className="w-5 h-5" />
                   Car Photos
               </CardTitle>
             </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
+              <CardContent className="flex flex-col">
                 {car.photos && car.photos.length > 0 ? (
-                  <div className="space-y-2 flex-1 flex flex-col">
-                      {/* Main Carousel Display - Flexible height to match Vehicle Information card */}
-                      <div className="relative w-full bg-background rounded-lg overflow-hidden border border-border" style={{ minHeight: "280px" }}>
+                  <div className="space-y-2 flex flex-col">
+                      {/* Main Carousel Display — fixed height so absolute children have room */}
+                      <div className="relative w-full bg-background rounded-lg overflow-hidden border border-border" style={{ height: "300px" }}>
                       {car.photos.map((photo, index) => {
                         // Use getProxiedImageUrl to handle both GCS URLs and local paths
                         // This ensures CORS issues are avoided by proxying GCS URLs through the backend
@@ -1970,7 +1970,7 @@ export default function CarDetailPage() {
                     )}
                 </div>
               ) : (
-                    <div className="flex items-center justify-center flex-1 bg-background/20 rounded-lg border border-border">
+                    <div className="flex items-center justify-center bg-background/20 rounded-lg border border-border" style={{ height: "300px" }}>
                       <p className="text-muted-foreground text-center">
                         No photos available
                       </p>

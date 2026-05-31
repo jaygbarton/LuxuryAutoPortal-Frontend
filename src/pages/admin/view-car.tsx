@@ -2,8 +2,8 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
-import { ArrowLeft, ChevronRight, ExternalLink, Pencil, X, Check, ChevronDown } from "lucide-react";
-import { buildApiUrl } from "@/lib/queryClient";
+import { ArrowLeft, ChevronRight, ChevronLeft, ExternalLink, Pencil, X, Check, ChevronDown } from "lucide-react";
+import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { useState, useRef, useEffect } from "react";
@@ -33,6 +33,7 @@ interface CarDetail {
   fuelType?: string | null;
   tireSize?: string | null;
   oilType?: string | null;
+  photos?: string[];
 }
 
 interface MenuItem {
@@ -48,6 +49,7 @@ export default function ViewCarPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const [photoIndex, setPhotoIndex] = useState(0);
   const [editingOwner, setEditingOwner] = useState(false);
   const [ownerForm, setOwnerForm] = useState<{ name: string; contact: string; email: string; clientId: number | null }>({ name: "", contact: "", email: "", clientId: null });
   const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
@@ -501,6 +503,67 @@ export default function ViewCarPage() {
             </div>
           </div>
         </div>
+
+        {/* Car Photos Carousel */}
+        {car.photos && car.photos.length > 0 && (
+          <div className="bg-card border border-border rounded-lg overflow-hidden mb-4 sm:mb-6">
+            <div className="px-4 sm:px-6 py-3 border-b border-border">
+              <h3 className="text-sm font-medium text-primary">Car Photos</h3>
+            </div>
+            <div className="relative w-full" style={{ height: "280px" }}>
+              {car.photos.map((photo, idx) => (
+                <div
+                  key={idx}
+                  className={cn(
+                    "absolute inset-0 transition-opacity duration-500",
+                    idx === photoIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+                  )}
+                >
+                  <img
+                    src={getProxiedImageUrl(photo)}
+                    alt={`Car photo ${idx + 1}`}
+                    className="w-full h-full object-contain"
+                    onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.2"; }}
+                  />
+                </div>
+              ))}
+              {car.photos.length > 1 && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
+                  <button
+                    onClick={() => setPhotoIndex((i) => (i - 1 + car.photos!.length) % car.photos!.length)}
+                    className="h-8 w-8 flex items-center justify-center rounded-full bg-background/80 border border-border text-foreground hover:bg-background"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="bg-background/80 border border-border text-xs font-medium text-foreground px-3 py-1 rounded-full">
+                    {photoIndex + 1} / {car.photos.length}
+                  </span>
+                  <button
+                    onClick={() => setPhotoIndex((i) => (i + 1) % car.photos!.length)}
+                    className="h-8 w-8 flex items-center justify-center rounded-full bg-background/80 border border-border text-foreground hover:bg-background"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+            {car.photos.length > 1 && (
+              <div className="flex justify-center gap-1.5 py-2 px-2 flex-wrap">
+                {car.photos.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setPhotoIndex(i)}
+                    style={{
+                      width: 8, height: 8, borderRadius: "50%", border: "none", padding: 0, cursor: "pointer",
+                      backgroundColor: i === photoIndex ? "#d3bc8d" : "#444",
+                    }}
+                    aria-label={`Photo ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Menu Items List */}
         <div className="bg-card border border-border rounded-lg overflow-auto">

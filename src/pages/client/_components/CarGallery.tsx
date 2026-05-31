@@ -40,9 +40,9 @@ export function CarGallery({ apiPhotos, activeCar }: CarGalleryProps) {
   const activePhoto = photos[activeIndex] ?? null;
 
   return (
-    <Card className="border-border bg-card overflow-hidden h-full">
-      <div className="flex flex-col h-full">
-        <div className="relative flex-1 bg-muted/20 flex items-center justify-center" style={{ minHeight: "300px" }}>
+    <Card className="border-border bg-card overflow-hidden">
+      <div className="flex flex-col">
+        <div className="relative bg-muted/20 flex items-center justify-center" style={{ height: "300px" }}>
           {activePhoto ? (
             <img
               src={getProxiedImageUrl(activePhoto)}

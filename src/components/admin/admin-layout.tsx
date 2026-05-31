@@ -295,6 +295,12 @@ const allSidebarItems: SidebarItem[] = [
     roles: ["admin", "client"],
   },
   {
+    href: "/admin/notice-board",
+    label: "Notice Board",
+    icon: ClipboardList,
+    roles: ["admin"],
+  },
+  {
     href: "/admin/view-as-employee",
     label: "View as Employee",
     icon: Eye,

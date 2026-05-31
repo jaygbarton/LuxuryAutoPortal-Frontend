@@ -95,6 +95,7 @@ import TuroTripsPage from "@/pages/admin/turo-trips";
 import AdminTestimonialsPage from "@/pages/admin/testimonials";
 import AdminTuroGuidePage from "@/pages/admin/turo-guide";
 import NewsMediaPage from "@/pages/admin/news-media";
+import NoticeBoardManagementPage from "@/pages/admin/notice-board";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { RequireRole } from "@/components/admin/require-role";
 
@@ -359,6 +360,9 @@ function Router() {
             </Route>
             <Route path="/admin/news-media">
               <RequireRole roles={["isAdmin", "isClient"]}><NewsMediaPage /></RequireRole>
+            </Route>
+            <Route path="/admin/notice-board">
+              <RequireRole roles={["isAdmin"]}><NoticeBoardManagementPage /></RequireRole>
             </Route>
             <Route component={NotFound} />
           </Switch>
