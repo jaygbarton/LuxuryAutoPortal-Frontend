@@ -80,6 +80,7 @@ export function TaskAssignmentModal({
     task_type:
       task?.task_type || prefill?.task_type || ("cleaning" as TaskType),
     assigned_to: task?.assigned_to || "",
+    assigned_to_id: task?.assigned_to_id ?? null,
     scheduled_date: toMtLocalInput(task?.scheduled_date),
     scheduled_location: task?.scheduled_location || "",
     due_date: toMtLocalInput(task?.due_date),
@@ -95,6 +96,7 @@ export function TaskAssignmentModal({
         guest_name: task.guest_name || "",
         task_type: task.task_type,
         assigned_to: task.assigned_to,
+        assigned_to_id: task.assigned_to_id ?? null,
         scheduled_date: toMtLocalInput(task.scheduled_date),
         scheduled_location: task.scheduled_location || "",
         due_date: toMtLocalInput(task.due_date),
@@ -298,7 +300,13 @@ export function TaskAssignmentModal({
             <label className="text-sm text-muted-foreground">Assign To *</label>
             <EmployeeSelectCombobox
               value={formData.assigned_to}
-              onChange={(v) => setFormData({ ...formData, assigned_to: v })}
+              onChange={(v) => setFormData((prev) => ({ ...prev, assigned_to: v }))}
+              onSelectEmployee={(emp) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  assigned_to_id: emp?.employee_aid ?? null,
+                }))
+              }
               placeholder="Select an employee..."
             />
           </div>

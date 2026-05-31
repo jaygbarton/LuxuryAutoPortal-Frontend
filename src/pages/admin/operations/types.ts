@@ -37,6 +37,7 @@ export interface OperationTask {
   guest_name: string | null;
   task_type: "cleaning" | "delivery" | "pickup";
   assigned_to: string;
+  assigned_to_id: number | null;
   scheduled_date: string | null;
   scheduled_location: string | null;
   due_date: string | null;
