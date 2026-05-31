@@ -6,7 +6,7 @@ export const CHART_RED   = "#D9D9D9";
 export const PIE_DONUT_COLORS = ["#D3BC8D", "#D9D9D9"];
 
 export const CARD_BG_BLACK   = "#000000";
-export const CARD_BG_GOLD    = "#efd85d";
+export const CARD_BG_GOLD    = "#D3BC8D";
 export const CARD_BG_LIGHT   = "#d9d9d9";
 export const CARD_TEXT_LIGHT = "#ffffff";
 export const CARD_TEXT_DARK  = "#000000";
