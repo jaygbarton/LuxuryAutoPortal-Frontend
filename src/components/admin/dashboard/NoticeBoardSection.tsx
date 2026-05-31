@@ -45,7 +45,7 @@ export default function NoticeBoardSection() {
         <div
           className={`bg-white py-4 px-2 ${
             notices.length >= 3
-              ? "grid grid-cols-1 md:grid-cols-3 gap-x-6 divide-x divide-gray-200"
+              ? "grid grid-cols-1 md:grid-cols-3 gap-x-6"
               : "flex flex-col gap-6"
           }`}
         >

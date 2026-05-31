@@ -34,12 +34,10 @@ import { buildApiUrl } from "@/lib/queryClient";
 import { differenceInDays } from "date-fns";
 
 import { MONTHS_SHORT } from "./_components/constants";
-import { tripDays } from "./_components/utils";
 import type {
   ClientProfile,
   ClientCar,
   Payment,
-  TuroTrip,
   QuickLink,
   TotalsData,
   NadaDepreciation,
@@ -118,20 +116,51 @@ export default function ClientDashboard() {
     retry: false,
   });
 
-  const { data: tripsData, isLoading: tripsLoading } = useQuery<{
+  // Fetch per-car income/expense data for the selected year — same source as admin I&E page.
+  // This gives accurate rentalIncome per month from car_income_expenses
+  // and accurate daysRented/tripsTaken from car_history.
+  const { data: ieCarData, isLoading: ieCarLoading } = useQuery<{
     success: boolean;
-    data: { trips: TuroTrip[] };
+    data: {
+      incomeExpenses: { month: number; rentalIncome: number; carOwnerTotalExpenses: number }[];
+      history: { month: number; daysRented: number; tripsTaken: number }[];
+    };
   }>({
-    queryKey: ["/api/turo-trips", carId],
+    queryKey: ["/api/income-expense", carId, selectedYear],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/turo-trips"), {
+      if (!carId) return { success: false, data: { incomeExpenses: [], history: [] } };
+      const res = await fetch(buildApiUrl(`/api/income-expense/${carId}/${selectedYear}`), {
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to fetch trips");
+      if (!res.ok) return { success: false, data: { incomeExpenses: [], history: [] } };
       return res.json();
     },
+    enabled: !!carId,
     retry: false,
   });
+
+  // Separate query for trips year (may differ from income year)
+  const { data: ieCarDataTrips } = useQuery<{
+    success: boolean;
+    data: {
+      incomeExpenses: { month: number; rentalIncome: number }[];
+      history: { month: number; daysRented: number; tripsTaken: number }[];
+    };
+  }>({
+    queryKey: ["/api/income-expense", carId, selectedYearTrips],
+    queryFn: async () => {
+      if (!carId) return { success: false, data: { incomeExpenses: [], history: [] } };
+      const res = await fetch(buildApiUrl(`/api/income-expense/${carId}/${selectedYearTrips}`), {
+        credentials: "include",
+      });
+      if (!res.ok) return { success: false, data: { incomeExpenses: [], history: [] } };
+      return res.json();
+    },
+    enabled: !!carId,
+    retry: false,
+  });
+
+  const tripsLoading = ieCarLoading;
 
   const { data: totalsData, isLoading: totalsLoading } = useQuery<{
     success: boolean;
@@ -257,11 +286,10 @@ export default function ClientDashboard() {
       );
   }, [paymentsData, selectedYear, carId]);
 
-  const allTrips = useMemo<TuroTrip[]>(() => {
-    const raw =
-      (tripsData as any)?.data?.trips ?? (tripsData as any)?.trips ?? [];
-    return Array.isArray(raw) ? raw : [];
-  }, [tripsData]);
+  // Per-car income/expense rows from car_income_expenses + car_history (authoritative source)
+  const ieMonths = ieCarData?.data?.incomeExpenses ?? [];
+  const histMonths = ieCarData?.data?.history ?? [];
+  const histMonthsTrips = ieCarDataTrips?.data?.history ?? [];
 
   const nadaRecords: NadaDepreciation[] = nadaData?.data ?? [];
 
@@ -297,14 +325,14 @@ export default function ClientDashboard() {
     return MONTHS_SHORT.map((m, i) => {
       const monthNum = i + 1;
       const monthKey = `${yearNum}-${String(monthNum).padStart(2, "0")}`;
-      const monthTrips = allTrips.filter((t) => {
-        if (t.status === "cancelled") return false;
-        const d = new Date(t.tripStart);
-        return d.getFullYear() === yearNum && d.getMonth() + 1 === monthNum;
-      });
-      const days = monthTrips.reduce((s, t) => s + tripDays(t), 0);
-      const trips = monthTrips.length;
-      const income = monthTrips.reduce((s, t) => s + (t.earnings || 0), 0);
+      // Income from car_income_expenses table (authoritative)
+      const ieRow = ieMonths.find((r: any) => Number(r.month) === monthNum);
+      const income = Number(ieRow?.rentalIncome ?? 0);
+      // Days/trips from car_history table (authoritative)
+      const histRow = histMonths.find((r: any) => Number(r.month) === monthNum);
+      const days = Number(histRow?.daysRented ?? 0);
+      const trips = Number(histRow?.tripsTaken ?? 0);
+      // Expenses from client_payments filtered by this car + month
       const monthPayments = payments.filter(
         (p) => p.payments_year_month === monthKey,
       );
@@ -325,7 +353,7 @@ export default function ClientDashboard() {
         avgPerTrip: trips > 0 ? income / trips : 0,
       };
     });
-  }, [allTrips, payments, yearNum]);
+  }, [ieMonths, histMonths, payments, yearNum]);
 
   const yearTotals = useMemo<YearTotals>(() => {
     return monthlyTripData.reduce(
@@ -343,16 +371,14 @@ export default function ClientDashboard() {
   const monthlyDaysTripsData = useMemo<MonthlyDaysTripsRow[]>(() => {
     return MONTHS_SHORT.map((m, i) => {
       const monthNum = i + 1;
-      const monthTrips = allTrips.filter((t) => {
-        if (t.status === "cancelled") return false;
-        const d = new Date(t.tripStart);
-        return (
-          d.getFullYear() === yearNumTrips && d.getMonth() + 1 === monthNum
-        );
-      });
-      const days = monthTrips.reduce((s, t) => s + tripDays(t), 0);
-      const trips = monthTrips.length;
-      const income = monthTrips.reduce((s, t) => s + (t.earnings || 0), 0);
+      const histRow = histMonthsTrips.find((r: any) => Number(r.month) === monthNum);
+      const days = Number(histRow?.daysRented ?? 0);
+      const trips = Number(histRow?.tripsTaken ?? 0);
+      // income for avgPerTrip — use same IE data (trips year may differ from income year)
+      const ieRowTrips = (ieCarDataTrips?.data?.incomeExpenses ?? []).find(
+        (r: any) => Number(r.month) === monthNum,
+      );
+      const income = Number(ieRowTrips?.rentalIncome ?? 0);
       return {
         month: `${m} ${yearNumTrips}`,
         shortMonth: m,
@@ -362,7 +388,7 @@ export default function ClientDashboard() {
         income,
       };
     });
-  }, [allTrips, yearNumTrips]);
+  }, [histMonthsTrips, ieCarDataTrips, yearNumTrips]);
 
   const yearTotalsTrips = useMemo<YearTotalsTrips>(() => {
     return monthlyDaysTripsData.reduce(

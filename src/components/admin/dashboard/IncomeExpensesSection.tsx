@@ -32,6 +32,7 @@ import type {
 
 interface IncomeExpensesSectionProps {
   year: string;
+  onYearChange?: (year: string) => void;
 }
 
 interface ApiResponse {
@@ -359,7 +360,7 @@ function HorizontalBarChart({ items }: HorizontalBarChartProps) {
 
 // ── Main component ─────────────────────────────────────────────────────
 
-export default function IncomeExpensesSection({ year }: IncomeExpensesSectionProps) {
+export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpensesSectionProps) {
   const { data, isLoading, isError } = useQuery<ApiResponse>({
     queryKey: ["/api/income-expense/all-cars", year],
     queryFn: async () => {
