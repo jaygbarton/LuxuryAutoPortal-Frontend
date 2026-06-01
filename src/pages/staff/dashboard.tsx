@@ -96,7 +96,7 @@ export default function StaffDashboard() {
 
           {/* Filter Sections button + panel — mirrors the admin dashboard:
               count badge, chevron, Select All / Deselect All, checkbox grid. */}
-          <div className="flex flex-col items-end">
+          <div className="flex flex-col items-start">
             <button
               type="button"
               onClick={() => setPanelOpen((o) => !o)}
