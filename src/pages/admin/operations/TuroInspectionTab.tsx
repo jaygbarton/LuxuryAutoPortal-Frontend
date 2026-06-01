@@ -45,6 +45,10 @@ import type { Inspection, TuroTrip } from "./types";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 
+// Status dropdown values that filter the joined Turo *trip* status (client-side)
+// rather than the inspection status (server-side). Booked / Ended / Returned.
+const TRIP_STATUSES = new Set(["booked", "ended", "returned"]);
+
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
   try {
@@ -235,7 +239,10 @@ export function TuroInspectionTab() {
     queryKey: ["/api/operations/inspections", "turo_return", filterStatus],
     queryFn: async () => {
       const params = new URLSearchParams({ source: "turo_return", limit: "2000" });
-      if (filterStatus !== "all") {
+      // New / In Progress / Completed filter the *inspection* status server-side.
+      // Booked / Ended / Returned are *trip* statuses on the joined trip and are
+      // applied client-side below, so here they behave like "all".
+      if (filterStatus !== "all" && !TRIP_STATUSES.has(filterStatus)) {
         params.append("status", filterStatus);
       } else {
         // no_issues rows have been resolved — they live in No Car Issues tab
@@ -301,6 +308,12 @@ export function TuroInspectionTab() {
 
       const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
 
+      // Booked / Ended / Returned filter on the joined trip's status (the
+      // inspection-status values are filtered server-side in the query above).
+      if (TRIP_STATUSES.has(filterStatus)) {
+        if ((trip?.status ?? "").toLowerCase() !== filterStatus) return false;
+      }
+
       if (q) {
         const hay = [
           insp.car_name, insp.reservation_id, insp.assigned_to, insp.status,
@@ -328,7 +341,7 @@ export function TuroInspectionTab() {
 
       return true;
     });
-  }, [inspections, maintenanceInspectionIds, tripsById, search, tripStartFrom, tripEndOn]);
+  }, [inspections, maintenanceInspectionIds, tripsById, search, tripStartFrom, tripEndOn, filterStatus]);
 
   useEffect(() => {
     setPage(1);
@@ -364,6 +377,38 @@ export function TuroInspectionTab() {
         queryKey: ["/api/operations/inspections"],
       });
       toast({ title: "Success", description: "Inspection status updated" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Inline edit for the joined Turo *trip* status (Booked/Ended/Returned/
+  // Cancelled) — lets staff mark a vehicle Returned after it comes back.
+  const tripStatusUpdateMutation = useMutation({
+    mutationFn: async ({ tripId, status }: { tripId: number; status: string }) => {
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/${tripId}/status`),
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ status }),
+        },
+      );
+      if (!response.ok) throw new Error("Failed to update trip status");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/operations/inspections"],
+      });
+      toast({ title: "Success", description: "Trip status updated" });
     },
     onError: (error: Error) => {
       toast({
@@ -571,6 +616,9 @@ export function TuroInspectionTab() {
                   <SelectItem value="new">New</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="booked">Booked</SelectItem>
+                  <SelectItem value="ended">Ended</SelectItem>
+                  <SelectItem value="returned">Returned</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -822,7 +870,29 @@ export function TuroInspectionTab() {
                           {earnings != null ? formatCurrency(earnings) : "--"}
                         </TableCell>
                         <TableCell>
-                          {trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm">--</span>}
+                          {trip ? (
+                            <Select
+                              value={(trip.status || "").toLowerCase()}
+                              onValueChange={(v) =>
+                                tripStatusUpdateMutation.mutate({
+                                  tripId: trip.id,
+                                  status: v,
+                                })
+                              }
+                            >
+                              <SelectTrigger className="bg-transparent border-0 p-0 h-auto w-auto shadow-none focus:ring-0">
+                                <StatusBadge status={trip.status} />
+                              </SelectTrigger>
+                              <SelectContent className="bg-card border-border text-foreground">
+                                <SelectItem value="booked">Booked</SelectItem>
+                                <SelectItem value="ended">Ended</SelectItem>
+                                <SelectItem value="returned">Returned</SelectItem>
+                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">--</span>
+                          )}
                         </TableCell>
                         <TableCell className="min-w-[200px]">
                           <EmployeeSelectCombobox
