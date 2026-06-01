@@ -540,6 +540,10 @@ export default function AdminHrTaskManagement() {
       };
     }
     if (editingTask) {
+      // On edit, always send the `recurrence` key so the backend can also
+      // *clear* a previously-set recurrence when the admin switches it back to
+      // "Does not repeat". (On create we just omit it when there's none.)
+      if (recurrence.type === "none") payload.recurrence = null;
       updateMutation.mutate({ id: editingTask.task_timer_aid, body: payload });
     } else {
       createMutation.mutate(payload);
