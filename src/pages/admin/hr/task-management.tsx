@@ -504,16 +504,27 @@ export default function AdminHrTaskManagement() {
       return;
     }
     if (recurrence.type !== "none") {
+      if (!form.task_timer_date_end) {
+        toast({ title: "Due date is required for recurring tasks", variant: "destructive" });
+        return;
+      }
       if (!recurrence.endDate) {
         toast({ title: "End repeat date is required for recurring tasks", variant: "destructive" });
         return;
       }
-      if (recurrence.type === "weekly" && recurrence.days.length === 0) {
-        toast({ title: "Select at least one day of the week", variant: "destructive" });
+      // Occurrences are generated forward from the Due Date up to the End
+      // repeat date. If End is before Due, zero occurrences get created and the
+      // repeat silently does nothing — catch that here.
+      if (recurrence.endDate < form.task_timer_date_end) {
+        toast({
+          title: "End repeat date must be on or after the Due date",
+          description: "Repeated tasks are created from the Due date forward, so the end date can't be earlier.",
+          variant: "destructive",
+        });
         return;
       }
-      if (!form.task_timer_date_end) {
-        toast({ title: "Due date is required for recurring tasks", variant: "destructive" });
+      if (recurrence.type === "weekly" && recurrence.days.length === 0) {
+        toast({ title: "Select at least one day of the week", variant: "destructive" });
         return;
       }
     }
@@ -1008,6 +1019,7 @@ export default function AdminHrTaskManagement() {
                   <Input
                     type="date"
                     className="mt-1"
+                    min={form.task_timer_date_end || undefined}
                     value={recurrence.endDate}
                     onChange={(e) =>
                       setRecurrence((r) => ({ ...r, endDate: e.target.value }))
