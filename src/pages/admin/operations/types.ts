@@ -55,6 +55,22 @@ export type FuelLevelReturned =
   | "three_quarters"
   | "full";
 
+/** Fixed car-issue categories selectable during inspection. The inspector can
+ *  also add a free-text value via the "Others" box in the modal, so the stored
+ *  car_issue_types array may contain strings outside this list. */
+export const CAR_ISSUE_TYPES = [
+  "Mechanic",
+  "Electric",
+  "Accident",
+  "Brakes",
+  "Engine Light",
+  "Windshield",
+  "Battery",
+  "Oil Change",
+  "Tires",
+  "Gas Not full / Same Level",
+] as const;
+
 export interface Inspection {
   id: number;
   turo_trip_id: number | null;
@@ -72,6 +88,9 @@ export interface Inspection {
    *  other than 'full' fires an admin notification so the team can charge
    *  for an incidentals reimbursement on Turo. */
   fuel_level_returned?: FuelLevelReturned;
+  /** Categorized car issues found during inspection. Includes the fixed
+   *  CAR_ISSUE_TYPES plus any free-text "Others" values the inspector typed. */
+  car_issue_types?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -117,6 +136,10 @@ export interface MaintenanceRecord {
   trip_cancelled_earnings?: string | number | null;
   trip_status?: string | null;
   trip_plate_number?: string | null;
+  // Inspection findings joined on read so the Maintenance tab can show the
+  // same Fuel Returned / Car Issues Type columns as the other tabs.
+  inspection_fuel_level_returned?: FuelLevelReturned | null;
+  inspection_car_issue_types?: string[] | null;
 }
 
 export type TaskType = "cleaning" | "delivery" | "pickup";

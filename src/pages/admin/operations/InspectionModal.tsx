@@ -16,13 +16,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { buildApiUrl } from "@/lib/queryClient";
 import { toMtLocalInput, mtLocalInputToUtcDbString } from "@/lib/mt-datetime";
 import { useToast } from "@/hooks/use-toast";
 import { PhotoUpload } from "./PhotoUpload";
 import { CarSelectCombobox } from "./CarSelectCombobox";
 import { Plus, Trash2 } from "lucide-react";
-import type { FuelLevelReturned, Inspection } from "./types";
+import { CAR_ISSUE_TYPES, type FuelLevelReturned, type Inspection } from "./types";
+
+/** Split a stored car_issue_types array into the fixed-type selections and the
+ *  remaining free-text "Others" value. Anything not in CAR_ISSUE_TYPES is
+ *  treated as a custom value and joined back into the Others box. */
+function splitIssueTypes(types: string[] | null | undefined): {
+  fixed: string[];
+  other: string;
+} {
+  const all = types ?? [];
+  const fixedSet = new Set<string>(CAR_ISSUE_TYPES);
+  return {
+    fixed: all.filter((t) => fixedSet.has(t)),
+    other: all.filter((t) => !fixedSet.has(t)).join(", "),
+  };
+}
 
 /** Dropdown options for the post-trip fuel reading. The label order matches
  *  the order most fuel gauges read top-to-bottom on a dashboard. Anything
@@ -99,6 +115,17 @@ export function InspectionModal({
     (inspection as any)?.inspection_entries ?? [],
   );
 
+  // Car issue types: fixed checkbox selections + free-text "Others" value.
+  // Stored together as one car_issue_types string[] on submit.
+  const initialIssues = splitIssueTypes(inspection?.car_issue_types);
+  const [issueTypes, setIssueTypes] = useState<string[]>(initialIssues.fixed);
+  const [otherIssue, setOtherIssue] = useState<string>(initialIssues.other);
+
+  const toggleIssueType = (type: string) =>
+    setIssueTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
+    );
+
   const addEntry = () =>
     setExtraEntries((prev) => [...prev, { date: "", inspector: "" }]);
 
@@ -124,6 +151,9 @@ export function InspectionModal({
           "unknown") as FuelLevelReturned,
       });
       setExtraEntries((inspection as any)?.inspection_entries ?? []);
+      const split = splitIssueTypes(inspection.car_issue_types);
+      setIssueTypes(split.fixed);
+      setOtherIssue(split.other);
     } else if (prefill) {
       setFormData((prev) => ({
         ...prev,
@@ -132,6 +162,8 @@ export function InspectionModal({
         car_name: prefill.car_name || "",
       }));
       setExtraEntries([]);
+      setIssueTypes([]);
+      setOtherIssue("");
     }
   }, [inspection, prefill]);
 
@@ -181,9 +213,20 @@ export function InspectionModal({
       });
       return;
     }
+    // Merge fixed selections with any free-text "Others" values (comma-split,
+    // trimmed) into one car_issue_types array, dropping blanks/duplicates.
+    const otherValues = otherIssue
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const car_issue_types = Array.from(
+      new Set([...issueTypes, ...otherValues]),
+    );
+
     mutation.mutate({
       ...formData,
       inspection_entries: extraEntries.filter((e) => e.date || e.inspector),
+      car_issue_types,
     } as any);
   };
 
@@ -312,6 +355,41 @@ export function InspectionModal({
             <Plus className="w-4 h-4" />
             Add Another Inspection Date / Inspector
           </Button>
+
+          {/* Car issues found during inspection. Multi-select of fixed
+              categories plus a free-text "Others" box (per client request —
+              they need to record arbitrary issues, not just the preset list).
+              Stored together as the car_issue_types array. */}
+          <div>
+            <label className="text-sm text-muted-foreground mb-1 block">
+              Car Issues
+            </label>
+            <div className="grid grid-cols-2 gap-2 rounded-md border border-border p-3 bg-muted/20">
+              {CAR_ISSUE_TYPES.map((type) => (
+                <label
+                  key={type}
+                  className="flex items-center gap-2 text-sm text-foreground cursor-pointer"
+                >
+                  <Checkbox
+                    checked={issueTypes.includes(type)}
+                    onCheckedChange={() => toggleIssueType(type)}
+                  />
+                  {type}
+                </label>
+              ))}
+            </div>
+            <div className="mt-2">
+              <label className="text-xs text-muted-foreground">
+                Others (type a car issue, separate multiple with commas)
+              </label>
+              <Input
+                value={otherIssue}
+                onChange={(e) => setOtherIssue(e.target.value)}
+                className="bg-card border-border text-foreground mt-1"
+                placeholder="e.g. Cracked bumper, AC not cooling"
+              />
+            </div>
+          </div>
 
           {/* Fuel level on return.
               Anything other than "Full" fires an admin notification so the

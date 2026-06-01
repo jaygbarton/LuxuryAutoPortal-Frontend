@@ -30,6 +30,8 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
 import { StatusBadge } from "./StatusBadge";
 import { InspectionModal } from "./InspectionModal";
+import { CarIssueTypesCell } from "./CarIssueTypesCell";
+import { FuelReturnedCell } from "./FuelReturnedCell";
 import { useToast } from "@/hooks/use-toast";
 import {
   Edit,
@@ -318,6 +320,7 @@ export function TuroInspectionTab() {
         const hay = [
           insp.car_name, insp.reservation_id, insp.assigned_to, insp.status,
           insp.source, insp.notes, insp.inspection_date, insp.due_date,
+          insp.car_issue_types?.join(" "),
           trip?.plateNumber, trip?.pickupLocation, trip?.deliveryLocation,
           trip?.returnLocation, trip?.extras, trip?.milesIncluded,
           trip?.totalDistance, trip?.status, trip?.tripStart, trip?.tripEnd,
@@ -685,6 +688,7 @@ export function TuroInspectionTab() {
                   <TableHead className="text-foreground font-medium">Trip Status</TableHead>
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
                   <TableHead className="text-foreground font-medium whitespace-nowrap">Fuel Returned</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Car Issues Type</TableHead>
                   <TableHead className="text-foreground font-medium">Inspection Status</TableHead>
                   <TableHead className="text-center text-foreground font-medium">Actions</TableHead>
                 </TableRow>
@@ -693,7 +697,7 @@ export function TuroInspectionTab() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={19}
+                      colSpan={20}
                       className="text-center py-12 text-muted-foreground"
                     >
                       Loading inspections...
@@ -702,7 +706,7 @@ export function TuroInspectionTab() {
                 ) : filteredInspections.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={19}
+                      colSpan={20}
                       className="text-center py-12 text-muted-foreground"
                     >
                       No Turo return inspections found
@@ -926,44 +930,10 @@ export function TuroInspectionTab() {
                           />
                         </TableCell>
                         <TableCell>
-                          {/* Fuel-returned chip. Red = empty/quarter (high
-                              priority charge-back), amber = half/three_quarters,
-                              green = full, gray = unknown / not yet recorded.
-                              Mirrors the colors of the "not full" alert path. */}
-                          {(() => {
-                            const lvl = insp.fuel_level_returned ?? "unknown";
-                            const style =
-                              lvl === "empty"
-                                ? "bg-red-100 text-red-800 border-red-200"
-                                : lvl === "quarter"
-                                  ? "bg-red-50 text-red-700 border-red-200"
-                                  : lvl === "half"
-                                    ? "bg-amber-100 text-amber-800 border-amber-200"
-                                    : lvl === "three_quarters"
-                                      ? "bg-amber-50 text-amber-700 border-amber-200"
-                                      : lvl === "full"
-                                        ? "bg-green-100 text-green-800 border-green-200"
-                                        : "bg-gray-100 text-gray-600 border-gray-200";
-                            const label =
-                              lvl === "empty"
-                                ? "Empty"
-                                : lvl === "quarter"
-                                  ? "1/4"
-                                  : lvl === "half"
-                                    ? "1/2"
-                                    : lvl === "three_quarters"
-                                      ? "3/4"
-                                      : lvl === "full"
-                                        ? "Full"
-                                        : "—";
-                            return (
-                              <span
-                                className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${style}`}
-                              >
-                                {label}
-                              </span>
-                            );
-                          })()}
+                          <FuelReturnedCell level={insp.fuel_level_returned} />
+                        </TableCell>
+                        <TableCell>
+                          <CarIssueTypesCell types={insp.car_issue_types} />
                         </TableCell>
                         <TableCell>
                           <Select

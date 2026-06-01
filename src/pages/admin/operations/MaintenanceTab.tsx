@@ -37,6 +37,8 @@ import { Plus, Edit, Trash2, History } from "lucide-react";
 import type { Inspection, MaintenanceRecord, TuroTrip } from "./types";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
+import { CarIssueTypesCell } from "./CarIssueTypesCell";
+import { FuelReturnedCell } from "./FuelReturnedCell";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -191,6 +193,7 @@ export function MaintenanceTab({
           rec.repair_shop,
           rec.status,
           rec.notes,
+          rec.inspection_car_issue_types?.join(" "),
           rec.scheduled_date,
           rec.due_date,
           // Joined inspection / trip fields
@@ -455,6 +458,8 @@ export function MaintenanceTab({
                   <TableHead className="text-foreground font-medium">Total Miles</TableHead>
                   <TableHead className="text-foreground font-medium">Earnings</TableHead>
                   <TableHead className="text-foreground font-medium">Trip Status</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Fuel Returned</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Car Issues Type</TableHead>
                   <TableHead className="text-foreground font-medium">Description</TableHead>
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
                   <TableHead className="text-foreground font-medium">Scheduled Date</TableHead>
@@ -470,7 +475,7 @@ export function MaintenanceTab({
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={24}
+                      colSpan={26}
                       className="text-center py-12 text-muted-foreground"
                     >
                       Loading maintenance records...
@@ -479,7 +484,7 @@ export function MaintenanceTab({
                 ) : records.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={24}
+                      colSpan={26}
                       className="text-center py-12 text-muted-foreground"
                     >
                       No maintenance records found
@@ -593,6 +598,12 @@ export function MaintenanceTab({
                         </TableCell>
                         <TableCell>
                           {trip?.status ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm italic text-xs">Manual</span>}
+                        </TableCell>
+                        <TableCell>
+                          <FuelReturnedCell level={rec.inspection_fuel_level_returned} />
+                        </TableCell>
+                        <TableCell>
+                          <CarIssueTypesCell types={rec.inspection_car_issue_types} />
                         </TableCell>
                         <TableCell
                           className="text-foreground text-sm max-w-[200px] truncate"
