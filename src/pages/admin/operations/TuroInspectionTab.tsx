@@ -596,7 +596,7 @@ export function TuroInspectionTab() {
         </Button>
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-auto">
+      <div className="bg-card border border-border rounded-lg">
         <div className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-row lg:items-end gap-3 mb-4">
             <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1 lg:flex-1 lg:min-w-[200px]">
@@ -666,12 +666,12 @@ export function TuroInspectionTab() {
               : `Total: ${data?.total ?? filteredInspections.length}`}
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[60vh]">
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-foreground font-medium">Reservation #</TableHead>
-                  <TableHead className="text-foreground font-medium">CAR Name</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Reservation #</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">CAR Name</TableHead>
                   <TableHead className="text-foreground font-medium">Plate #</TableHead>
                   <TableHead className="text-foreground font-medium whitespace-nowrap">VIN #</TableHead>
                   <TableHead className="text-foreground font-medium">Trip Start</TableHead>
@@ -731,10 +731,10 @@ export function TuroInspectionTab() {
                         key={insp.id}
                         className="border-border hover:bg-card/50 transition-colors"
                       >
-                        <TableCell className="text-foreground font-mono text-sm">
+                        <TableCell className="text-foreground font-mono text-sm whitespace-nowrap">
                           {insp.reservation_id || trip?.reservationId || "--"}
                         </TableCell>
-                        <TableCell className="text-foreground">
+                        <TableCell className="text-foreground whitespace-nowrap">
                           {insp.car_name || "--"}
                         </TableCell>
                         <TableCell className="text-foreground font-mono text-sm">
