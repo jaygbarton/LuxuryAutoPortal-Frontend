@@ -45,7 +45,11 @@ import {
   History as HistoryIcon,
   MessageCircle,
   CalendarX,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Fragment, useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import TaskCommentsDialog from "@/components/tasks/TaskCommentsDialog";
@@ -271,6 +275,11 @@ export default function AdminHrTaskManagement() {
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
   const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  // Multi-select for bulk delete. Holds task_timer_aid values.
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  // Due Date sort. null = natural order (as returned); otherwise asc/desc.
+  const [dueSort, setDueSort] = useState<"asc" | "desc" | null>(null);
 
   // Fetch all employees once so we can resolve IDs → names in the table.
   const { data: employeesData } = useQuery<{ success: boolean; data: any[] }>({
@@ -426,11 +435,87 @@ export default function AdminHrTaskManagement() {
     new Set(allRows.map((r) => getAssignedName(r)).filter((n) => n && n !== "—"))
   ).sort();
 
-  const rows = allRows.filter((r) => {
+  const filteredRows = allRows.filter((r) => {
     if (filterStatus !== "all" && String(r.task_timer_status ?? 0) !== filterStatus) return false;
     if (filterAssignedTo !== "all" && getAssignedName(r) !== filterAssignedTo) return false;
     return true;
   });
+
+  // Apply Due Date sort when active. Due dates are "YYYY-MM-DD" strings, which
+  // sort lexicographically the same as chronologically. Missing dates sort last.
+  const rows =
+    dueSort === null
+      ? filteredRows
+      : [...filteredRows].sort((a, b) => {
+          const da = a.task_timer_date_end || "";
+          const db = b.task_timer_date_end || "";
+          if (!da && !db) return 0;
+          if (!da) return 1; // blanks last
+          if (!db) return -1;
+          const cmp = da < db ? -1 : da > db ? 1 : 0;
+          return dueSort === "asc" ? cmp : -cmp;
+        });
+
+  // Cycle the Due Date sort: none → ascending → descending → none.
+  function toggleDueSort() {
+    setDueSort((s) => (s === null ? "asc" : s === "asc" ? "desc" : null));
+  }
+
+  // ─── Selection helpers ──────────────────────────────────────────────────────
+  const visibleIds = rows.map((r) => r.task_timer_aid as number);
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+  const someVisibleSelected = visibleIds.some((id) => selectedIds.has(id));
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        visibleIds.forEach((id) => next.delete(id));
+      } else {
+        visibleIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }
+
+  function toggleSelectOne(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBulkDelete() {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (!confirm(`Delete ${ids.length} selected task(s)? This cannot be undone.`)) return;
+    setBulkDeleting(true);
+    let ok = 0;
+    let failed = 0;
+    // Delete sequentially to keep server load light and audit ordering sane.
+    for (const id of ids) {
+      try {
+        const res = await fetch(buildApiUrl(`/api/admin/hr/task-timers/${id}`), {
+          method: "DELETE",
+          credentials: "include",
+        });
+        if (res.ok) ok++;
+        else failed++;
+      } catch {
+        failed++;
+      }
+    }
+    setBulkDeleting(false);
+    setSelectedIds(new Set());
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/hr/task-timers"] });
+    toast({
+      title: failed === 0 ? `Deleted ${ok} task(s)` : `Deleted ${ok}, ${failed} failed`,
+      variant: failed === 0 ? undefined : "destructive",
+    });
+  }
 
   // Current admin (from the already-cached /api/auth/me query). Used to
   // pre-fill the "Assignee" / "Assigned By" input so newly created tasks
@@ -754,14 +839,74 @@ export default function AdminHrTaskManagement() {
               </p>
             ) : (
               <div className="overflow-x-auto">
+                {selectedIds.size > 0 && (
+                  <div className="flex items-center justify-between gap-3 mb-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+                    <span className="text-sm font-medium">
+                      {selectedIds.size} selected
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedIds(new Set())}
+                        disabled={bulkDeleting}
+                      >
+                        Clear
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="gap-2"
+                        onClick={handleBulkDelete}
+                        disabled={bulkDeleting}
+                      >
+                        {bulkDeleting ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                        Delete selected
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border hover:bg-transparent">
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={allVisibleSelected}
+                          onCheckedChange={toggleSelectAll}
+                          aria-label="Select all tasks"
+                        />
+                      </TableHead>
                       <TableHead className="font-medium whitespace-nowrap">Task Created</TableHead>
                       <TableHead className="font-medium">Task Name</TableHead>
                       <TableHead className="font-medium">Assigned By</TableHead>
                       <TableHead className="font-medium">Assigned To</TableHead>
-                      <TableHead className="font-medium">Due Date</TableHead>
+                      <TableHead className="font-medium">
+                        <button
+                          type="button"
+                          onClick={toggleDueSort}
+                          className="inline-flex items-center gap-1 hover:text-primary transition-colors"
+                          title={
+                            dueSort === "asc"
+                              ? "Sorted oldest → newest (click for newest first)"
+                              : dueSort === "desc"
+                                ? "Sorted newest → oldest (click to clear)"
+                                : "Sort by due date"
+                          }
+                        >
+                          Due Date
+                          {dueSort === "asc" ? (
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          ) : dueSort === "desc" ? (
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          ) : (
+                            <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                          )}
+                        </button>
+                      </TableHead>
                       <TableHead className="font-medium">Status</TableHead>
                       <TableHead className="font-medium">Description</TableHead>
                       <TableHead className="font-medium">Photos</TableHead>
@@ -774,8 +919,15 @@ export default function AdminHrTaskManagement() {
                     {rows.map((r) => (
                       <TableRow
                         key={r.task_timer_aid}
-                        className="border-border"
+                        className={`border-border ${selectedIds.has(r.task_timer_aid) ? "bg-muted/50" : ""}`}
                       >
+                        <TableCell className="w-10">
+                          <Checkbox
+                            checked={selectedIds.has(r.task_timer_aid)}
+                            onCheckedChange={() => toggleSelectOne(r.task_timer_aid)}
+                            aria-label={`Select task ${r.task_timer_name || r.task_timer_aid}`}
+                          />
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                           {formatCreatedAt(r.task_timer_created)}
                         </TableCell>

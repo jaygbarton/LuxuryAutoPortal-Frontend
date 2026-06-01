@@ -12,6 +12,31 @@ import { buildApiUrl } from "@/lib/queryClient";
 import { Eye, Search, Loader2, UserCog, LogOut, Briefcase } from "lucide-react";
 
 /**
+ * Parse a fetch Response as JSON, tolerating non-JSON error bodies.
+ *
+ * When the upstream is down, a reverse proxy (nginx/Cloudflare) returns a 502
+ * with an HTML body ("<!DOCTYPE ...>"). Calling res.json() on that throws the
+ * cryptic `Unexpected token '<'` error before any res.ok check runs. We instead
+ * surface a clear, status-aware message so the admin sees "Server unavailable"
+ * rather than a JSON parse error.
+ */
+async function parseJsonResponse(
+  res: Response,
+): Promise<{ success?: boolean; error?: string; data?: unknown }> {
+  const text = await res.text();
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {
+      error:
+        res.status >= 500
+          ? `Server unavailable (HTTP ${res.status}). Please try again in a moment.`
+          : `Unexpected response from server (HTTP ${res.status}).`,
+    };
+  }
+}
+
+/**
  * Mirror of /admin/view-as-client. Lets an admin pick a specific employee and
  * temporarily browse the staff workspace exactly as that employee sees it.
  *
@@ -91,7 +116,7 @@ export default function ViewAsEmployeePage() {
         credentials: "include",
         body: JSON.stringify({ employeeId }),
       });
-      const json = await res.json();
+      const json = await parseJsonResponse(res);
       if (!res.ok) throw new Error(json?.error || "Failed to start");
       return json.data as {
         employeeId: number;
@@ -122,7 +147,7 @@ export default function ViewAsEmployeePage() {
         method: "POST",
         credentials: "include",
       });
-      const json = await res.json();
+      const json = await parseJsonResponse(res);
       if (!res.ok) throw new Error(json?.error || "Failed to stop");
       return json;
     },
