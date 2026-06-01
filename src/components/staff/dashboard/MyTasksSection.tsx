@@ -6,7 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { Link } from "wouter";
-import { buildApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
 import {
   Select,
@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface TaskItem {
   task_timer_aid?: string | number;
+  task_timer_created?: string;
   task_timer_date_start?: string;
   task_timer_date_end?: string;
   task_timer_emp_list?: string;
@@ -26,6 +27,8 @@ interface TaskItem {
   task_timer_car_name?: string;
   task_timer_status?: number;
   task_timer_description?: string;
+  task_timer_goal?: string; // "Assigned By" on the admin page
+  task_timer_photos?: string; // JSON array of photo URLs
 }
 
 // Status codes match the admin Task Management page:
@@ -50,6 +53,37 @@ function fmtDate(s: string | undefined): string {
   if (!s) return "—";
   const d = new Date(s);
   return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+}
+
+// task_timer_created is a UTC DATETIME ("YYYY-MM-DD HH:mm:ss"); show it in
+// Mountain Time, matching the admin Task Management "Task Created" column.
+function fmtCreatedAt(s: string | undefined): string {
+  if (!s) return "—";
+  const raw = String(s).trim();
+  const iso = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(raw)
+    ? raw.replace(" ", "T") + "Z"
+    : raw;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-US", {
+    timeZone: "America/Denver",
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+// task_timer_photos is a JSON array of URLs. Return the parsed list.
+function parsePhotos(s: string | undefined): string[] {
+  if (!s) return [];
+  try {
+    const parsed = JSON.parse(s);
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -149,26 +183,24 @@ export default function MyTasksSection() {
           <table className="w-full border-y border-[#D3BC8D] border-collapse text-sm">
             <thead>
               <tr className="bg-black border-y border-[#D3BC8D]">
-                <th className="px-3 py-2 text-center font-bold uppercase text-white">Assigned To:</th>
-                <th className="px-3 py-2 text-center font-bold uppercase text-white">Date</th>
-                <th className="px-3 py-2 text-center font-bold uppercase text-white">Task Description</th>
+                <th className="px-3 py-2 text-center font-bold uppercase text-white whitespace-nowrap">Task Created</th>
+                <th className="px-3 py-2 text-center font-bold uppercase text-white">Task Name</th>
+                <th className="px-3 py-2 text-center font-bold uppercase text-white">Assigned By</th>
+                <th className="px-3 py-2 text-center font-bold uppercase text-white">Assigned To</th>
                 <th className="px-3 py-2 text-center font-bold uppercase text-white">Due Date</th>
-                <th className="px-3 py-2 text-center font-bold uppercase text-white">Repeat</th>
-                <th className="px-3 py-2 text-center font-bold uppercase text-white">Assignee</th>
                 <th className="px-3 py-2 text-center font-bold uppercase text-white">Status</th>
+                <th className="px-3 py-2 text-center font-bold uppercase text-white">Description</th>
+                <th className="px-3 py-2 text-center font-bold uppercase text-white">Photos</th>
               </tr>
             </thead>
             <tbody>
               {tasks.map((t, i) => (
                 <tr key={String(t.task_timer_aid ?? i)} className="bg-white border-y border-[#D3BC8D]">
+                  <td className="px-3 py-2 text-center text-black whitespace-nowrap">{fmtCreatedAt(t.task_timer_created)}</td>
+                  <td className="px-3 py-2 text-center text-black font-medium">{t.task_timer_name ?? "—"}</td>
+                  <td className="px-3 py-2 text-center text-black">{t.task_timer_goal?.trim() || "—"}</td>
                   <td className="px-3 py-2 text-center text-black">{parseAssignees(t.task_timer_emp_list)}</td>
-                  <td className="px-3 py-2 text-center text-black">{fmtDate(t.task_timer_date_start)}</td>
-                  <td className="px-3 py-2 text-center text-black">
-                    {t.task_timer_name ?? "—"}
-                  </td>
                   <td className="px-3 py-2 text-center text-black">{fmtDate(t.task_timer_date_end)}</td>
-                  <td className="px-3 py-2 text-center text-black">None</td>
-                  <td className="px-3 py-2 text-center text-black">—</td>
                   <td className="px-3 py-2 text-center text-black">
                     {t.task_timer_aid != null ? (
                       <Select
@@ -202,6 +234,30 @@ export default function MyTasksSection() {
                     ) : (
                       statusLabel(t.task_timer_status)
                     )}
+                  </td>
+                  <td className="px-3 py-2 text-center text-black max-w-[220px] truncate">
+                    {t.task_timer_description?.trim() || "—"}
+                  </td>
+                  <td className="px-3 py-2 text-center text-black">
+                    {(() => {
+                      const photos = parsePhotos(t.task_timer_photos);
+                      if (photos.length === 0) return "—";
+                      return (
+                        <div className="flex items-center justify-center gap-1 flex-wrap">
+                          {photos.slice(0, 3).map((src, idx) => (
+                            <img
+                              key={idx}
+                              src={getProxiedImageUrl(src)}
+                              alt={`Photo ${idx + 1}`}
+                              className="w-9 h-9 object-cover rounded border border-[#D3BC8D]"
+                            />
+                          ))}
+                          {photos.length > 3 && (
+                            <span className="text-xs text-gray-500">+{photos.length - 3}</span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </td>
                 </tr>
               ))}

@@ -41,6 +41,31 @@ function asString(v: unknown): string {
   return String(v);
 }
 
+// Shared cell formatters so the staff dashboard tables render trip columns the
+// same way the admin Operations tabs do.
+export function fmtMoney(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  if (!isFinite(n)) return "—";
+  return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+export function fmtNum(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  if (!isFinite(n)) return "—";
+  return n.toLocaleString("en-US");
+}
+
+// Days Rented can come back negative/NaN when a trip is missing a start or end
+// date; show a dash rather than a misleading number.
+export function fmtDays(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  if (!isFinite(n) || n < 0) return "—";
+  return String(n);
+}
+
 export default function ReservationsTableSection({
   title,
   subtitle,

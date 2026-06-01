@@ -1,23 +1,55 @@
 /**
  * Turo Messages / Inspections — reservations assigned to me for inspection.
  * Endpoint: /api/me/turo-inspections (graceful fallback).
+ *
+ * Columns mirror the admin Operations → Car Inspections tab, limited to the
+ * fields the /api/me/turo-inspections endpoint actually returns.
  */
-import ReservationsTableSection, { Column } from "./ReservationsTableSection";
+import ReservationsTableSection, {
+  Column,
+  ReservationRow,
+  fmtMoney,
+  fmtNum,
+  fmtDays,
+} from "./ReservationsTableSection";
+import { FuelReturnedCell } from "@/pages/admin/operations/FuelReturnedCell";
+import { CarIssueTypesCell } from "@/pages/admin/operations/CarIssueTypesCell";
+
+// car_issue_types is stored as a JSON string; parse to the string[] the
+// shared admin cell expects.
+function parseIssueTypes(v: unknown): string[] {
+  if (Array.isArray(v)) return v as string[];
+  if (typeof v !== "string" || !v.trim()) return [];
+  try {
+    const parsed = JSON.parse(v);
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
 
 const COLUMNS: Column[] = [
   { key: "reservation_no", label: "Reservation #" },
-  { key: "car", label: "CAR" },
+  { key: "car", label: "CAR Name" },
   { key: "plate", label: "Plate #" },
   { key: "trip_start", label: "Trip Start" },
   { key: "pickup_location", label: "Pick Up Location" },
   { key: "trip_end", label: "Trip Ends" },
+  { key: "days_rented", label: "Days Rented", render: (r: ReservationRow) => fmtDays(r.days_rented) },
   { key: "dropoff_location", label: "Drop Off Location" },
-  { key: "assigned_to", label: "Assigned to" },
-  { key: "car_issues", label: "Car Issues" },
+  { key: "extras", label: "Extras" },
+  { key: "miles_included", label: "Miles Included", render: (r: ReservationRow) => fmtNum(r.miles_included) },
+  { key: "trip_start_odometer", label: "Trip Start Odometer", render: (r: ReservationRow) => fmtNum(r.trip_start_odometer) },
+  { key: "trip_end_odometer", label: "Trip Ends Odometer", render: (r: ReservationRow) => fmtNum(r.trip_end_odometer) },
+  { key: "total_miles", label: "Total Miles", render: (r: ReservationRow) => fmtNum(r.total_miles) },
+  { key: "earnings", label: "Earnings", render: (r: ReservationRow) => fmtMoney(r.earnings) },
+  { key: "trip_status", label: "Trip Status" },
+  { key: "assigned_to", label: "Assigned To" },
+  { key: "fuel_returned", label: "Fuel Returned", render: (r: ReservationRow) => <FuelReturnedCell level={(r.fuel_returned as any) ?? null} /> },
+  { key: "car_issue_types", label: "Car Issues Type", render: (r: ReservationRow) => <CarIssueTypesCell types={parseIssueTypes(r.car_issue_types)} /> },
   { key: "photos", label: "Photos" },
   { key: "remarks", label: "Remarks" },
-  { key: "assign_for_inspection", label: "Assign for Inspection" },
-  { key: "status", label: "Status" },
+  { key: "status", label: "Inspection Status" },
 ];
 
 export default function MyTuroInspectionsSection() {

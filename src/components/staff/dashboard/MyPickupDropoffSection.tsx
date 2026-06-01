@@ -37,6 +37,37 @@ interface PickupDropoffRow {
   assigned_to?: string;
   status?: string;
   task_type?: string;
+  // Trip columns mirrored from the admin Trip Tasks tab.
+  days_rented?: number | string;
+  extras?: string;
+  miles_included?: number | string;
+  trip_start_odometer?: number | string;
+  trip_end_odometer?: number | string;
+  total_miles?: number | string;
+  earnings?: number | string;
+  trip_status?: string;
+  scheduled_date?: string;
+}
+
+function fmtMoney(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  if (!isFinite(n)) return "—";
+  return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function fmtNum(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  if (!isFinite(n)) return "—";
+  return n.toLocaleString("en-US");
+}
+
+function fmtDays(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  if (!isFinite(n) || n < 0) return "—";
+  return String(n);
 }
 
 // operation_tasks.task_type → friendly label + chip color.
@@ -139,15 +170,24 @@ export default function MyPickupDropoffSection() {
               <tr className="bg-black border-y border-[#D3BC8D]">
                 {[
                   "Reservation #",
-                  "Task Type",
-                  "Car",
+                  "CAR Name",
                   "Plate #",
                   "Trip Start",
                   "Pick Up Location",
                   "Trip Ends",
+                  "Days Rented",
                   "Drop Off Location",
-                  "Assigned to",
-                  "Status",
+                  "Extras",
+                  "Miles Included",
+                  "Trip Start Odometer",
+                  "Trip Ends Odometer",
+                  "Total Miles",
+                  "Earnings",
+                  "Trip Status",
+                  "Task Type",
+                  "Assigned To",
+                  "Scheduled Date/Time",
+                  "Task Status",
                 ].map((label) => (
                   <th
                     key={label}
@@ -164,6 +204,20 @@ export default function MyPickupDropoffSection() {
                 return (
                   <tr key={String(row.id ?? i)} className="bg-white border-y border-[#D3BC8D]">
                     <td className="px-3 py-2 text-center text-black">{asString(row.reservation_no)}</td>
+                    <td className="px-3 py-2 text-center text-black">{asString(row.car)}</td>
+                    <td className="px-3 py-2 text-center text-black">{asString(row.plate)}</td>
+                    <td className="px-3 py-2 text-center text-black">{asString(row.trip_start)}</td>
+                    <td className="px-3 py-2 text-center text-black">{asString(row.pickup_location)}</td>
+                    <td className="px-3 py-2 text-center text-black">{asString(row.trip_end)}</td>
+                    <td className="px-3 py-2 text-center text-black">{fmtDays(row.days_rented)}</td>
+                    <td className="px-3 py-2 text-center text-black">{asString(row.dropoff_location)}</td>
+                    <td className="px-3 py-2 text-center text-black">{asString(row.extras)}</td>
+                    <td className="px-3 py-2 text-center text-black">{fmtNum(row.miles_included)}</td>
+                    <td className="px-3 py-2 text-center text-black">{fmtNum(row.trip_start_odometer)}</td>
+                    <td className="px-3 py-2 text-center text-black">{fmtNum(row.trip_end_odometer)}</td>
+                    <td className="px-3 py-2 text-center text-black">{fmtNum(row.total_miles)}</td>
+                    <td className="px-3 py-2 text-center text-black">{fmtMoney(row.earnings)}</td>
+                    <td className="px-3 py-2 text-center text-black">{asString(row.trip_status)}</td>
                     <td className="px-3 py-2 text-center text-black">
                       <span
                         className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${type.className}`}
@@ -171,13 +225,8 @@ export default function MyPickupDropoffSection() {
                         {type.label}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.car)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.plate)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.trip_start)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.pickup_location)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.trip_end)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.dropoff_location)}</td>
                     <td className="px-3 py-2 text-center text-black">{asString(row.assigned_to)}</td>
+                    <td className="px-3 py-2 text-center text-black">{asString(row.scheduled_date)}</td>
                     <td className="px-3 py-2 text-center text-black">
                       {row.id != null ? (
                         <Select
