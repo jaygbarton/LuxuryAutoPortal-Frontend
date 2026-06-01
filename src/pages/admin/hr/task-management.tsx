@@ -44,6 +44,7 @@ import {
   X,
   History as HistoryIcon,
   MessageCircle,
+  CalendarX,
 } from "lucide-react";
 import { Fragment, useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -394,6 +395,25 @@ export default function AdminHrTaskManagement() {
         queryKey: ["/api/admin/hr/task-timers"],
       });
       toast({ title: "Task deleted" });
+    },
+    onError: (e: Error) =>
+      toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteSeriesMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(
+        buildApiUrl(`/api/admin/hr/task-timers/${id}/series`),
+        { method: "DELETE", credentials: "include" },
+      );
+      if (!res.ok) throw new Error("Failed to delete series");
+      return res.json() as Promise<{ success: boolean; deleted: number }>;
+    },
+    onSuccess: (r) => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/admin/hr/task-timers"],
+      });
+      toast({ title: `Deleted ${r.deleted} task(s) in the series` });
     },
     onError: (e: Error) =>
       toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -861,10 +881,31 @@ export default function AdminHrTaskManagement() {
                                   deleteMutation.mutate(r.task_timer_aid);
                               }}
                               disabled={deleteMutation.isPending}
-                              title="Delete"
+                              title="Delete this task only"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
+                            {r.task_timer_series_id ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive relative"
+                                onClick={() => {
+                                  if (
+                                    confirm(
+                                      `Delete the ENTIRE recurring series for "${r.task_timer_name}"?\n\nThis removes the original task and every generated occurrence. This cannot be undone.`,
+                                    )
+                                  )
+                                    deleteSeriesMutation.mutate(
+                                      r.task_timer_series_id,
+                                    );
+                                }}
+                                disabled={deleteSeriesMutation.isPending}
+                                title="Delete entire recurring series"
+                              >
+                                <CalendarX className="w-4 h-4" />
+                              </Button>
+                            ) : null}
                           </div>
                         </TableCell>
                       </TableRow>
