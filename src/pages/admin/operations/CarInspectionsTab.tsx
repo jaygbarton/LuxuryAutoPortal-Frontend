@@ -456,6 +456,7 @@ export function CarInspectionsTab() {
                   <TableHead className="text-foreground font-medium">Earnings</TableHead>
                   <TableHead className="text-foreground font-medium">Trip Status</TableHead>
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Fuel Returned</TableHead>
                   <TableHead className="text-foreground font-medium">Inspection Status</TableHead>
                   <TableHead className="text-center text-foreground font-medium">Actions</TableHead>
                 </TableRow>
@@ -463,11 +464,11 @@ export function CarInspectionsTab() {
               <TableBody>
                 {isLoading || isMaintLoading ? (
                   <TableRow>
-                    <TableCell colSpan={18} className="text-center py-12 text-muted-foreground">Loading inspections...</TableCell>
+                    <TableCell colSpan={19} className="text-center py-12 text-muted-foreground">Loading inspections...</TableCell>
                   </TableRow>
                 ) : inspections.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={18} className="text-center py-12 text-muted-foreground">No inspections found</TableCell>
+                    <TableCell colSpan={19} className="text-center py-12 text-muted-foreground">No inspections found</TableCell>
                   </TableRow>
                 ) : (
                   pagedInspections.map((insp) => {
@@ -565,6 +566,46 @@ export function CarInspectionsTab() {
                             }}
                             placeholder="Assign..."
                           />
+                        </TableCell>
+                        <TableCell>
+                          {/* Fuel-returned chip. Red = empty/quarter (high
+                              priority charge-back), amber = half/three_quarters,
+                              green = full, gray = unknown / not yet recorded.
+                              Mirrors the Turo Messages tab. */}
+                          {(() => {
+                            const lvl = insp.fuel_level_returned ?? "unknown";
+                            const style =
+                              lvl === "empty"
+                                ? "bg-red-100 text-red-800 border-red-200"
+                                : lvl === "quarter"
+                                  ? "bg-red-50 text-red-700 border-red-200"
+                                  : lvl === "half"
+                                    ? "bg-amber-100 text-amber-800 border-amber-200"
+                                    : lvl === "three_quarters"
+                                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                                      : lvl === "full"
+                                        ? "bg-green-100 text-green-800 border-green-200"
+                                        : "bg-gray-100 text-gray-600 border-gray-200";
+                            const label =
+                              lvl === "empty"
+                                ? "Empty"
+                                : lvl === "quarter"
+                                  ? "1/4"
+                                  : lvl === "half"
+                                    ? "1/2"
+                                    : lvl === "three_quarters"
+                                      ? "3/4"
+                                      : lvl === "full"
+                                        ? "Full"
+                                        : "—";
+                            return (
+                              <span
+                                className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${style}`}
+                              >
+                                {label}
+                              </span>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <Select
