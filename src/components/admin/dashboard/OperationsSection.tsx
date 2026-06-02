@@ -46,15 +46,20 @@ function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Denver",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(d);
+  return (
+    d.toLocaleDateString("en-US", {
+      timeZone: "America/Denver",
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    }) +
+    ", " +
+    d.toLocaleTimeString("en-US", {
+      timeZone: "America/Denver",
+      hour: "numeric",
+      minute: "2-digit",
+    })
+  );
 }
 
 function statusLabel(status: OperationTask["status"]): string {
