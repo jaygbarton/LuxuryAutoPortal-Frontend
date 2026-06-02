@@ -117,66 +117,64 @@ function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
   const total = data.reduce((s, d) => s + d.value, 0);
   const maxValue = Math.max(...data.map((d) => d.value), 0);
 
-  // Amount on each slice, description+% outside with no lines.
+  // Amount label centred on each slice band — no external labels.
   const renderLabel = (props: any) => {
-    const { cx, cy, midAngle, innerRadius, outerRadius, value, name } = props;
+    const { cx, cy, midAngle, innerRadius, outerRadius, value } = props;
     const RADIAN = Math.PI / 180;
-    const pct = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
-
-    // Amount — centred on the slice band
     const r = (innerRadius + outerRadius) / 2;
-    const ax = cx + r * Math.cos(-midAngle * RADIAN);
-    const ay = cy + r * Math.sin(-midAngle * RADIAN);
-
-    // Description — placed beyond the outer edge, no line
-    const labelR = outerRadius + 28;
-    const lx = cx + labelR * Math.cos(-midAngle * RADIAN);
-    const ly = cy + labelR * Math.sin(-midAngle * RADIAN);
-    const anchor = lx > cx ? "start" : lx < cx ? "end" : "middle";
-
+    const x = cx + r * Math.cos(-midAngle * RADIAN);
+    const y = cy + r * Math.sin(-midAngle * RADIAN);
     return (
-      <g>
-        {/* Money amount on the slice */}
-        <text x={ax} y={ay} textAnchor="middle" dominantBaseline="central"
-          style={{ fontWeight: 700, fontSize: 11, fill: "#000000" }}>
-          {formatValue(value)}
-        </text>
-        {/* Description + % outside the ring, no line */}
-        <text x={lx} y={ly} textAnchor={anchor} dominantBaseline="central"
-          style={{ fontSize: 9, fill: "#000000" }}>
-          <tspan x={lx} dy="-0.6em">{name}</tspan>
-          <tspan x={lx} dy="1.2em">{pct}%</tspan>
-        </text>
-      </g>
+      <text x={x} y={y} textAnchor="middle" dominantBaseline="central"
+        style={{ fontWeight: 700, fontSize: 11, fill: "#000000" }}>
+        {formatValue(value)}
+      </text>
     );
   };
 
   return (
-    <div className="h-full w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart margin={{ top: 20, right: 50, bottom: 20, left: 50 }}>
-          <Pie
-            data={data}
-            dataKey="value"
-            cx="50%"
-            cy="50%"
-            innerRadius="48%"
-            outerRadius="78%"
-            paddingAngle={0}
-            label={renderLabel}
-            labelLine={false}
-            isAnimationActive={false}
-          >
-            {data.map((entry, idx) => (
-              <Cell
-                key={idx}
-                fill={entry.value === maxValue ? DONUT_COLOR_LIGHT : DONUT_COLOR_DARK}
-                stroke="none"
-              />
-            ))}
-          </Pie>
-        </PieChart>
-      </ResponsiveContainer>
+    <div className="flex flex-col h-full w-full">
+      {/* Legend above the chart */}
+      <div className="flex flex-col gap-0.5 mb-1">
+        {data.map((entry, idx) => {
+          const pct = total > 0 ? ((entry.value / total) * 100).toFixed(1) : "0.0";
+          const color = entry.value === maxValue ? DONUT_COLOR_LIGHT : DONUT_COLOR_DARK;
+          return (
+            <div key={idx} className="flex items-center gap-1 text-[10px] leading-tight">
+              <span className="inline-block w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: color }} />
+              <span className="text-gray-700 truncate">{entry.name}</span>
+              <span className="ml-auto font-semibold text-gray-900 flex-shrink-0">{pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+      {/* Chart takes remaining space */}
+      <div className="flex-1 min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+            <Pie
+              data={data}
+              dataKey="value"
+              cx="50%"
+              cy="50%"
+              innerRadius="42%"
+              outerRadius="82%"
+              paddingAngle={0}
+              label={renderLabel}
+              labelLine={false}
+              isAnimationActive={false}
+            >
+              {data.map((entry, idx) => (
+                <Cell
+                  key={idx}
+                  fill={entry.value === maxValue ? DONUT_COLOR_LIGHT : DONUT_COLOR_DARK}
+                  stroke="none"
+                />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
