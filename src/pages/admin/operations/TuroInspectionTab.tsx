@@ -279,9 +279,13 @@ export function TuroInspectionTab() {
     queryKey: ["/api/turo-trips", "turo-messages-join", tripStartFrom, tripEndOn],
     queryFn: async () => {
       const params = new URLSearchParams({ limit: "2000" });
-      // Use trip-overlap logic: trips that are active during the filter window.
       if (tripStartFrom) params.set("startDate", tripStartFrom);
-      if (tripEndOn) params.set("endDate", tripEndOn);
+      // tripEndOn is an exact-date filter — fetch trips ending on that specific
+      // day by using it as both the lower and upper bound on trip_end.
+      if (tripEndOn) {
+        params.set("tripEndFrom", tripEndOn);
+        params.set("tripEndOn", tripEndOn);
+      }
       const res = await fetch(buildApiUrl(`/api/turo-trips?${params}`), {
         credentials: "include",
       });
@@ -340,7 +344,7 @@ export function TuroInspectionTab() {
       }
       if (!q && tripEndOn) {
         const endDate = toMtDate(trip?.tripEnd ?? insp.inspection_date);
-        if (!endDate || endDate > tripEndOn) return false;
+        if (!endDate || endDate !== tripEndOn) return false;
       }
 
       return true;
