@@ -36,13 +36,24 @@ const TABLE_COLUMNS = [
 const STATUS_SORT_ORDER: Record<number, number> = { 1: 0, 0: 1, 2: 2 };
 
 function parseAssignees(empList: string): string {
+  if (!empList) return "Unassigned";
   try {
     const parsed: unknown = JSON.parse(empList);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed.join(", ");
+      const names = (parsed as unknown[]).map((x) => {
+        if (x == null) return "";
+        if (typeof x === "string" || typeof x === "number") return String(x);
+        if (typeof x === "object") {
+          const o = x as Record<string, unknown>;
+          return String(o.name ?? o.fullname ?? o.label ?? o.email ?? o.id ?? "");
+        }
+        return "";
+      }).map((s) => s.trim()).filter(Boolean);
+      return names.length > 0 ? names.join(", ") : "Unassigned";
     }
   } catch {
-    // not valid JSON
+    // not valid JSON — treat as plain string
+    return empList.trim() || "Unassigned";
   }
   return "Unassigned";
 }

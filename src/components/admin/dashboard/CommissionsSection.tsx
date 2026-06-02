@@ -76,6 +76,42 @@ function getMonthRange(offset: number): {
   return { label, dateFrom, dateTo };
 }
 
+// Normalize legacy/variant commission type names to the canonical EXPENSE_TYPES labels.
+const TYPE_ALIASES: Record<string, string> = {
+  "airport":                         "Parking Airport",
+  "parking airport":                 "Parking Airport",
+  "uber":                            "Uber & Lyft",
+  "uber & lyft":                     "Uber & Lyft",
+  "electric, gas, uber - reimbursed":"Electric/Gas/Uber - Reimbursed",
+  "electric/gas/uber - reimbursed":  "Electric/Gas/Uber - Reimbursed",
+  "electric gas uber reimbursed":    "Electric/Gas/Uber - Reimbursed",
+  "ski rack":                        "Ski Rack's",
+  "ski racks":                       "Ski Rack's",
+  "ski rack's":                      "Ski Rack's",
+  "new car 1%":                      "New Car 1%",
+  "new car - onboard":               "New Car - Onboard",
+  "new car onboard":                 "New Car - Onboard",
+  "relist car":                      "Relist Car",
+  "annual inspections":              "Annual Inspections",
+  "annual inspection":               "Annual Inspections",
+  "insurance":                       "Insurance",
+  "car registrations":               "Car Registrations",
+  "car registration":                "Car Registrations",
+  "car swap":                        "Car Swap",
+  "zero parking fee":                "Zero Parking Fee",
+  "invoice":                         "Invoice",
+  "bouncie":                         "Bouncie",
+  "maintenance":                     "Maintenance",
+  "exit parking ticket":             "Exit Parking Ticket",
+  "last minute commissions":         "Last Minute Commissions",
+  "last minute":                     "Last Minute Commissions",
+};
+
+function normalizeType(raw: string): string {
+  const key = raw.trim().toLowerCase();
+  return TYPE_ALIASES[key] ?? raw.trim();
+}
+
 function buildMatrix(
   data: CommissionRow[],
   employeeNames: string[],
@@ -95,17 +131,20 @@ function buildMatrix(
   }
 
   for (const row of data) {
-    const type = row.commissions_type || "";
+    const type = normalizeType(row.commissions_type || "");
     const name = row.fullname || row.commissions_account_owner_name || "";
     const amount = parseFloat(row.commissions_amount) || 0;
 
-    if (matrix[type] && employeeNames.includes(name)) {
+    if (!matrix[type]) continue; // unknown type — skip
+
+    // Exact match first, then case-insensitive
+    if (employeeNames.includes(name)) {
       matrix[type][name] += amount;
       totals[name] += amount;
-    } else if (matrix[type]) {
-      // Try partial match
+    } else {
       const matched = employeeNames.find(
-        (n) => n.toLowerCase() === name.toLowerCase(),
+        (n) => n.toLowerCase() === name.toLowerCase() ||
+               name.toLowerCase().startsWith(n.toLowerCase()),
       );
       if (matched) {
         matrix[type][matched] += amount;
