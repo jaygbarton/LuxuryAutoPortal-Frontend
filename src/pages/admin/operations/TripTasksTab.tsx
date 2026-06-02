@@ -38,14 +38,15 @@ const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
   try {
     const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
     return (
       d.toLocaleDateString("en-US", {
         timeZone: "America/Denver",
+        weekday: "short",
         month: "short",
         day: "numeric",
-        year: "numeric",
       }) +
-      " " +
+      ", " +
       d.toLocaleTimeString("en-US", {
         timeZone: "America/Denver",
         hour: "numeric",
@@ -480,17 +481,7 @@ export function TripTasksTab() {
                           {task.assigned_to}
                         </TableCell>
                         <TableCell className="text-foreground text-sm whitespace-nowrap">
-                          {task.scheduled_date
-                            ? (() => {
-                                try {
-                                  return new Intl.DateTimeFormat("en-US", {
-                                    timeZone: "America/Denver",
-                                    month: "numeric", day: "numeric", year: "numeric",
-                                    hour: "numeric", minute: "2-digit", hour12: true,
-                                  }).format(new Date(task.scheduled_date));
-                                } catch { return task.scheduled_date; }
-                              })()
-                            : "--"}
+                          {formatDate(task.scheduled_date)}
                         </TableCell>
                         <TableCell>
                           <Select
