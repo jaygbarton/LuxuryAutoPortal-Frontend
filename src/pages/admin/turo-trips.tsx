@@ -1150,13 +1150,13 @@ export default function TuroTripsPage() {
                       Trip Ends
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
+                      Drop Off Location
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Days Rented
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Lead Time
-                    </TableHead>
-                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
-                      Drop Off Location
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Extras
@@ -1465,6 +1465,52 @@ export default function TuroTripsPage() {
                             </div>
                           </TableCell>
 
+                          {/* Drop Off Location — inline editable */}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              value={
+                                locationEdits[trip.id]?.dropoff !== undefined
+                                  ? locationEdits[trip.id].dropoff
+                                  : (trip.returnLocation ??
+                                    trip.deliveryLocation ??
+                                    "")
+                              }
+                              placeholder="-"
+                              className="h-8 w-36 text-sm"
+                              onChange={(e) =>
+                                setLocationEdits((prev) => ({
+                                  ...prev,
+                                  [trip.id]: {
+                                    pickup:
+                                      prev[trip.id]?.pickup !== undefined
+                                        ? prev[trip.id].pickup
+                                        : (trip.pickupLocation ??
+                                          trip.deliveryLocation ??
+                                          ""),
+                                    dropoff: e.target.value,
+                                    miles:
+                                      prev[trip.id]?.miles !== undefined
+                                        ? prev[trip.id].miles
+                                        : (trip.milesIncluded ??
+                                          trip.totalDistance ??
+                                          ""),
+                                  },
+                                }))
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter")
+                                  (e.target as HTMLInputElement).blur();
+                                if (e.key === "Escape") {
+                                  setLocationEdits((prev) => {
+                                    const n = { ...prev };
+                                    delete n[trip.id];
+                                    return n;
+                                  });
+                                }
+                              }}
+                            />
+                          </TableCell>
+
                           {/* Days Rented — null for cancelled trips, ceil(hours/24) otherwise */}
                           <TableCell
                             className="cursor-pointer"
@@ -1517,52 +1563,6 @@ export default function TuroTripsPage() {
                                 </span>
                               );
                             })()}
-                          </TableCell>
-
-                          {/* Drop Off Location — inline editable */}
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Input
-                              value={
-                                locationEdits[trip.id]?.dropoff !== undefined
-                                  ? locationEdits[trip.id].dropoff
-                                  : (trip.returnLocation ??
-                                    trip.deliveryLocation ??
-                                    "")
-                              }
-                              placeholder="-"
-                              className="h-8 w-36 text-sm"
-                              onChange={(e) =>
-                                setLocationEdits((prev) => ({
-                                  ...prev,
-                                  [trip.id]: {
-                                    pickup:
-                                      prev[trip.id]?.pickup !== undefined
-                                        ? prev[trip.id].pickup
-                                        : (trip.pickupLocation ??
-                                          trip.deliveryLocation ??
-                                          ""),
-                                    dropoff: e.target.value,
-                                    miles:
-                                      prev[trip.id]?.miles !== undefined
-                                        ? prev[trip.id].miles
-                                        : (trip.milesIncluded ??
-                                          trip.totalDistance ??
-                                          ""),
-                                  },
-                                }))
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter")
-                                  (e.target as HTMLInputElement).blur();
-                                if (e.key === "Escape") {
-                                  setLocationEdits((prev) => {
-                                    const n = { ...prev };
-                                    delete n[trip.id];
-                                    return n;
-                                  });
-                                }
-                              }}
-                            />
                           </TableCell>
 
                           {/* Extras — manual entry */}

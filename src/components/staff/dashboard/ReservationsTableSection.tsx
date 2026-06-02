@@ -9,10 +9,18 @@
  *
  * Rows are expected to be plain reservation-shaped objects coming from `/api/me/...`.
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 export interface ReservationRow {
   [key: string]: unknown;
@@ -26,6 +34,24 @@ export interface Column {
   render?: (row: ReservationRow) => React.ReactNode;
 }
 
+export interface StatusOption {
+  value: string;
+  label: string;
+  className?: string;
+}
+
+/**
+ * Opt-in inline status editor for one column. When supplied, the table renders
+ * a dropdown in `columnKey`'s cell and PATCHes `{endpoint}/{rowId}/status` with
+ * `{ status }`. Rows missing the id field fall back to a static label.
+ */
+export interface StatusEditConfig {
+  columnKey: string;
+  idKey: string; // row field holding the record id (e.g. "id")
+  endpoint: string; // PATCH base, e.g. "/api/me/inspections"
+  options: StatusOption[];
+}
+
 interface Props {
   title: string;
   subtitle?: string;
@@ -34,6 +60,7 @@ interface Props {
   columns: Column[];
   emptyMessage?: string;
   maxRows?: number;
+  statusEdit?: StatusEditConfig;
 }
 
 function asString(v: unknown): string {
@@ -74,7 +101,11 @@ export default function ReservationsTableSection({
   columns,
   emptyMessage = "Nothing assigned to you.",
   maxRows = 10,
+  statusEdit,
 }: Props) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   const { data, isLoading } = useQuery<{ success?: boolean; data?: ReservationRow[] }>({
     queryKey: [queryKey, endpoint],
     queryFn: async () => {
@@ -85,6 +116,64 @@ export default function ReservationsTableSection({
     },
     retry: false,
   });
+
+  const updateStatus = useMutation({
+    mutationFn: async (vars: { id: number | string; status: string }) => {
+      const r = await fetch(
+        buildApiUrl(`${statusEdit!.endpoint}/${vars.id}/status`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: vars.status }),
+        },
+      );
+      const body = await r.json().catch(() => null);
+      if (!r.ok || !body?.success) {
+        throw new Error(body?.error || `HTTP ${r.status}`);
+      }
+      return body;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [queryKey, endpoint] });
+      toast({ title: "Status updated" });
+    },
+    onError: (e: any) => {
+      toast({
+        title: "Could not update status",
+        description: e?.message ?? "",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Render the inline status dropdown for the configured column. Falls back to
+  // a plain label when the row has no id to PATCH against.
+  function renderStatusCell(row: ReservationRow) {
+    const cfg = statusEdit!;
+    const id = row[cfg.idKey] as number | string | undefined;
+    const current = String(row[cfg.columnKey] ?? "");
+    const match = cfg.options.find((o) => o.value === current);
+    if (id == null) return match?.label ?? asString(current);
+    return (
+      <Select
+        value={match?.value ?? current}
+        onValueChange={(v) => updateStatus.mutate({ id, status: v })}
+        disabled={updateStatus.isPending}
+      >
+        <SelectTrigger className={`h-8 w-[150px] mx-auto text-xs ${match?.className ?? ""}`}>
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent>
+          {cfg.options.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
 
   const rows = (data?.data ?? []).slice(0, maxRows);
 
@@ -116,11 +205,19 @@ export default function ReservationsTableSection({
             <tbody>
               {rows.map((row, i) => (
                 <tr key={i} className="bg-white border-y border-[#D3BC8D]">
-                  {columns.map((c) => (
-                    <td key={c.key} className="px-3 py-2 text-center text-black">
-                      {c.render ? c.render(row) : asString(row[c.key])}
-                    </td>
-                  ))}
+                  {columns.map((c) => {
+                    const isStatusEditor =
+                      statusEdit && c.key === statusEdit.columnKey;
+                    return (
+                      <td key={c.key} className="px-3 py-2 text-center text-black">
+                        {isStatusEditor
+                          ? renderStatusCell(row)
+                          : c.render
+                            ? c.render(row)
+                            : asString(row[c.key])}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>

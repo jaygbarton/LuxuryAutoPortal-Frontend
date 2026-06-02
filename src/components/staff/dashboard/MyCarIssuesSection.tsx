@@ -12,6 +12,7 @@ import ReservationsTableSection, {
   fmtNum,
   fmtDays,
 } from "./ReservationsTableSection";
+import { INSPECTION_STATUS_OPTIONS } from "./MyTuroInspectionsSection";
 import { FuelReturnedCell } from "@/pages/admin/operations/FuelReturnedCell";
 import { CarIssueTypesCell } from "@/pages/admin/operations/CarIssueTypesCell";
 
@@ -59,6 +60,12 @@ export default function MyCarIssuesSection() {
       endpoint="/api/me/car-issues"
       queryKey="me-car-issues"
       columns={COLUMNS}
+      statusEdit={{
+        columnKey: "status",
+        idKey: "id",
+        endpoint: "/api/me/inspections",
+        options: INSPECTION_STATUS_OPTIONS,
+      }}
     />
   );
 }

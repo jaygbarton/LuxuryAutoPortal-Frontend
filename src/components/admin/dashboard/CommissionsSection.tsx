@@ -27,7 +27,11 @@ interface CommissionsApiResponse {
 
 // ── Expense types from PDF ──────────────────────────────────────────────
 
-const EMPLOYEE_NAMES = ["Bynn", "Jen", "Armando", "Adam", "Olavo", "Matthew", "Cathy"];
+// Curated display order from the original PDF. Used only to keep the familiar
+// column order for these known names — the actual columns are derived from the
+// ACTIVE employee list at runtime, so inactive employees (e.g. Olavo) drop off
+// and new hires appear automatically. See `useActiveEmployeeNames`.
+const PREFERRED_ORDER = ["Bynn", "Jen", "Armando", "Adam", "Olavo", "Matthew", "Cathy"];
 
 const EXPENSE_TYPES = [
   "Parking Airport",
@@ -211,11 +215,76 @@ function MatrixTable({
   );
 }
 
+// ── Active employee columns ──────────────────────────────────────────────
+
+interface EmployeeApiRow {
+  employee_aid?: number;
+  employee_first_name?: string;
+  employee_last_name?: string;
+  employee_is_active?: number;
+}
+
+/**
+ * Derive the commission table's column names from ACTIVE employees only.
+ * Columns are first names (the commission matrix keys on first name). Known
+ * names keep the curated PREFERRED_ORDER; any other active employees are
+ * appended alphabetically. Inactive employees are excluded entirely — this is
+ * the fix for inactive staff (e.g. Olavo) still showing as a column.
+ *
+ * Falls back to the full curated list only while the request is in flight or
+ * if it fails, so the table never renders with zero columns.
+ */
+function useActiveEmployeeNames(): string[] {
+  const { data } = useQuery<{ success?: boolean; data?: EmployeeApiRow[] }>({
+    queryKey: ["/api/employees", "commission-columns"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/employees?limit=500"), {
+        credentials: "include",
+      });
+      if (!res.ok) return { success: false, data: [] };
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  if (!data?.data) return PREFERRED_ORDER;
+
+  const activeFirstNames = data.data
+    .filter((e) => (e.employee_is_active ?? 1) === 1)
+    .map((e) => (e.employee_first_name || "").trim())
+    .filter(Boolean);
+
+  if (activeFirstNames.length === 0) return PREFERRED_ORDER;
+
+  // De-dupe case-insensitively while preserving the first-seen casing.
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const name of activeFirstNames) {
+    const key = name.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(name);
+    }
+  }
+
+  // Known names first (curated order), then the rest alphabetically.
+  const known = PREFERRED_ORDER.filter((n) =>
+    seen.has(n.toLowerCase()),
+  );
+  const knownKeys = new Set(known.map((n) => n.toLowerCase()));
+  const extras = unique
+    .filter((n) => !knownKeys.has(n.toLowerCase()))
+    .sort((a, b) => a.localeCompare(b));
+
+  return [...known, ...extras];
+}
+
 // ── Main component ───────────────────────────────────────────────────────
 
 export default function CommissionsSection() {
   const current = getMonthRange(0);
   const prev = getMonthRange(-1);
+  const employeeNames = useActiveEmployeeNames();
 
   const currentQuery = useQuery<CommissionsApiResponse>({
     queryKey: ["/api/payroll/commissions", "current-month", current.dateFrom, current.dateTo],
@@ -257,12 +326,12 @@ export default function CommissionsSection() {
             <MatrixTable
               monthLabel={prev.label}
               data={prevQuery.data?.data}
-              employeeNames={EMPLOYEE_NAMES}
+              employeeNames={employeeNames}
             />
             <MatrixTable
               monthLabel={current.label}
               data={currentQuery.data?.data}
-              employeeNames={EMPLOYEE_NAMES}
+              employeeNames={employeeNames}
             />
           </div>
         )}

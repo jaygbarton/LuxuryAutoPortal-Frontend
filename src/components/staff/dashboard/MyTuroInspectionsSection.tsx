@@ -8,12 +8,21 @@
 import ReservationsTableSection, {
   Column,
   ReservationRow,
+  StatusOption,
   fmtMoney,
   fmtNum,
   fmtDays,
 } from "./ReservationsTableSection";
 import { FuelReturnedCell } from "@/pages/admin/operations/FuelReturnedCell";
 import { CarIssueTypesCell } from "@/pages/admin/operations/CarIssueTypesCell";
+
+// inspections.status enum, shared by the Turo Messages and Car Issues tables.
+export const INSPECTION_STATUS_OPTIONS: StatusOption[] = [
+  { value: "new", label: "New", className: "bg-gray-100 text-gray-700" },
+  { value: "in_progress", label: "In Progress", className: "bg-blue-100 text-blue-700" },
+  { value: "completed", label: "Completed", className: "bg-green-100 text-green-700" },
+  { value: "no_issues", label: "No Issues", className: "bg-emerald-100 text-emerald-700" },
+];
 
 // car_issue_types is stored as a JSON string; parse to the string[] the
 // shared admin cell expects.
@@ -60,6 +69,12 @@ export default function MyTuroInspectionsSection() {
       endpoint="/api/me/turo-inspections"
       queryKey="me-turo-inspections"
       columns={COLUMNS}
+      statusEdit={{
+        columnKey: "status",
+        idKey: "id",
+        endpoint: "/api/me/inspections",
+        options: INSPECTION_STATUS_OPTIONS,
+      }}
     />
   );
 }
