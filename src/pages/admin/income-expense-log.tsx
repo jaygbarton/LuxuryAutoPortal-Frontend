@@ -66,13 +66,21 @@ export default function IncomeExpenseLogPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    if (isNaN(date.getTime())) return dateString;
+    return (
+      date.toLocaleDateString("en-US", {
+        timeZone: "America/Denver",
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }) +
+      ", " +
+      date.toLocaleTimeString("en-US", {
+        timeZone: "America/Denver",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    );
   };
 
   const getMonthName = (month: number) => {

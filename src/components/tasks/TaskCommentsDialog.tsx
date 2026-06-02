@@ -42,13 +42,21 @@ interface Props {
 function formatWhen(d: string): string {
   try {
     const date = new Date(d);
-    return date.toLocaleString("en-US", {
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    if (isNaN(date.getTime())) return d;
+    return (
+      date.toLocaleDateString("en-US", {
+        timeZone: "America/Denver",
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }) +
+      ", " +
+      date.toLocaleTimeString("en-US", {
+        timeZone: "America/Denver",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    );
   } catch {
     return d;
   }

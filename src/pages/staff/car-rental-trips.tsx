@@ -33,7 +33,21 @@ function formatDate(d: string | undefined, fallback = "--") {
   if (!d) return fallback;
   try {
     const x = new Date(d);
-    return isNaN(x.getTime()) ? fallback : x.toLocaleDateString();
+    if (isNaN(x.getTime())) return fallback;
+    return (
+      x.toLocaleDateString("en-US", {
+        timeZone: "America/Denver",
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }) +
+      ", " +
+      x.toLocaleTimeString("en-US", {
+        timeZone: "America/Denver",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    );
   } catch {
     return fallback;
   }
