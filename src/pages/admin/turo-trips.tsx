@@ -760,27 +760,25 @@ export default function TuroTripsPage() {
   // the admin's browser timezone.
   const MT_DATETIME_FMT = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Denver",
+    weekday: "short",
     month: "short",
     day: "numeric",
-    year: "numeric",
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
   });
   const MT_DATE_FMT = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Denver",
+    weekday: "short",
     month: "short",
     day: "numeric",
-    year: "numeric",
   });
 
   const formatInMt = (dateStr: string, fmt: Intl.DateTimeFormat) => {
     try {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return dateStr;
-      // Intl outputs e.g. "Jun 5, 2026, 10:00 AM"; drop the comma before time to
-      // match the previous "MMM d, yyyy h:mm a" layout.
-      return fmt.format(d).replace(/,\s(\d{1,2}:\d{2})/, " $1");
+      return fmt.format(d);
     } catch {
       return dateStr;
     }
