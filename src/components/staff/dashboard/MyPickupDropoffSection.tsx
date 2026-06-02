@@ -70,6 +70,30 @@ function fmtDays(v: unknown): string {
   return String(n);
 }
 
+function fmtDateTime(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  try {
+    const d = new Date(String(v));
+    if (isNaN(d.getTime())) return String(v);
+    return (
+      d.toLocaleDateString("en-US", {
+        timeZone: "America/Denver",
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }) +
+      ", " +
+      d.toLocaleTimeString("en-US", {
+        timeZone: "America/Denver",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    );
+  } catch {
+    return String(v);
+  }
+}
+
 // operation_tasks.task_type → friendly label + chip color.
 const TASK_TYPE_META: Record<string, { label: string; className: string }> = {
   pickup: { label: "Pick Up", className: "bg-blue-100 text-blue-700" },
@@ -206,9 +230,9 @@ export default function MyPickupDropoffSection() {
                     <td className="px-3 py-2 text-center text-black">{asString(row.reservation_no)}</td>
                     <td className="px-3 py-2 text-center text-black">{asString(row.car)}</td>
                     <td className="px-3 py-2 text-center text-black">{asString(row.plate)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.trip_start)}</td>
+                    <td className="px-3 py-2 text-center text-black">{fmtDateTime(row.trip_start)}</td>
                     <td className="px-3 py-2 text-center text-black">{asString(row.pickup_location)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.trip_end)}</td>
+                    <td className="px-3 py-2 text-center text-black">{fmtDateTime(row.trip_end)}</td>
                     <td className="px-3 py-2 text-center text-black">{fmtDays(row.days_rented)}</td>
                     <td className="px-3 py-2 text-center text-black">{asString(row.dropoff_location)}</td>
                     <td className="px-3 py-2 text-center text-black">{asString(row.extras)}</td>

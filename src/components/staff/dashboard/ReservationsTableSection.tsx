@@ -93,6 +93,26 @@ export function fmtDays(v: unknown): string {
   return String(n);
 }
 
+export function fmtDateTime(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  try {
+    const d = new Date(String(v));
+    if (isNaN(d.getTime())) return String(v);
+    return d.toLocaleDateString("en-US", {
+      timeZone: "America/Denver",
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    }) + ", " + d.toLocaleTimeString("en-US", {
+      timeZone: "America/Denver",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return String(v);
+  }
+}
+
 export default function ReservationsTableSection({
   title,
   subtitle,

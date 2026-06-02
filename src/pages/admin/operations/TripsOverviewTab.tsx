@@ -41,14 +41,15 @@ const formatDateTime = (dateStr: string | null): string => {
   if (!dateStr) return "--";
   try {
     const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
     return (
       d.toLocaleDateString("en-US", {
         timeZone: "America/Denver",
+        weekday: "short",
         month: "short",
         day: "numeric",
-        year: "numeric",
       }) +
-      " " +
+      ", " +
       d.toLocaleTimeString("en-US", {
         timeZone: "America/Denver",
         hour: "numeric",

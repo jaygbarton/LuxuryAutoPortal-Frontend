@@ -2,7 +2,7 @@
  * Operations — trips with miles and earnings, assigned to me.
  * Endpoint: /api/me/operations (graceful fallback).
  */
-import ReservationsTableSection, { Column, ReservationRow } from "./ReservationsTableSection";
+import ReservationsTableSection, { Column, ReservationRow, fmtDateTime } from "./ReservationsTableSection";
 
 function fmt$(v: unknown): string {
   const n = Number(v ?? 0);
@@ -20,8 +20,8 @@ const COLUMNS: Column[] = [
   { key: "reservation_no", label: "Reservation #" },
   { key: "car", label: "Car" },
   { key: "plate", label: "Plate #" },
-  { key: "trip_start", label: "Trip Start" },
-  { key: "trip_end", label: "Trip Ends" },
+  { key: "trip_start", label: "Trip Start", render: (r: ReservationRow) => fmtDateTime(r.trip_start) },
+  { key: "trip_end", label: "Trip Ends", render: (r: ReservationRow) => fmtDateTime(r.trip_end) },
   { key: "miles_included", label: "Miles Included", align: "right", render: (r: ReservationRow) => fmtNum(r.miles_included) },
   { key: "miles_driven", label: "Miles Driven", align: "right", render: (r: ReservationRow) => fmtNum(r.miles_driven) },
   { key: "total_miles", label: "Total Miles", align: "right", render: (r: ReservationRow) => fmtNum(r.total_miles) },

@@ -11,6 +11,7 @@ import ReservationsTableSection, {
   fmtMoney,
   fmtNum,
   fmtDays,
+  fmtDateTime,
 } from "./ReservationsTableSection";
 import { INSPECTION_STATUS_OPTIONS } from "./MyTuroInspectionsSection";
 import { FuelReturnedCell } from "@/pages/admin/operations/FuelReturnedCell";
@@ -31,9 +32,9 @@ const COLUMNS: Column[] = [
   { key: "reservation_no", label: "Reservation #" },
   { key: "car", label: "CAR Name" },
   { key: "plate", label: "Plate #" },
-  { key: "trip_start", label: "Trip Start" },
+  { key: "trip_start", label: "Trip Start", render: (r: ReservationRow) => fmtDateTime(r.trip_start) },
   { key: "pickup_location", label: "Pick Up Location" },
-  { key: "trip_end", label: "Trip Ends" },
+  { key: "trip_end", label: "Trip Ends", render: (r: ReservationRow) => fmtDateTime(r.trip_end) },
   { key: "days_rented", label: "Days Rented", render: (r: ReservationRow) => fmtDays(r.days_rented) },
   { key: "dropoff_location", label: "Drop Off Location" },
   { key: "extras", label: "Extras" },
