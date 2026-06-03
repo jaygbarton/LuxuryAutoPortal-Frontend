@@ -26,8 +26,8 @@ interface Inspection {
   due_date: string | null;
   notes: string | null;
   photos: string[] | null;
-  trip_start?: string | null;
-  trip_end?: string | null;
+  tt_trip_start?: string | null;
+  tt_trip_end?: string | null;
   days_rented?: number | string | null;
   pickup_location?: string | null;
   dropoff_location?: string | null;
@@ -221,9 +221,9 @@ export default function TuroInspectionsSection() {
                     <td className="px-3 py-2 text-center text-black">{asStr(insp.reservation_id)}</td>
                     <td className="px-3 py-2 text-center text-black">{asStr(insp.car_name)}</td>
                     <td className="px-3 py-2 text-center text-black">{asStr(insp.plate)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtDateTime(insp.trip_start)}</td>
+                    <td className="px-3 py-2 text-center text-black">{fmtDateTime(insp.tt_trip_start)}</td>
                     <td className="px-3 py-2 text-center text-black">{asStr(insp.pickup_location)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtDateTime(insp.trip_end)}</td>
+                    <td className="px-3 py-2 text-center text-black">{fmtDateTime(insp.tt_trip_end)}</td>
                     <td className="px-3 py-2 text-center text-black">{fmtDays(insp.days_rented)}</td>
                     <td className="px-3 py-2 text-center text-black">{asStr(insp.dropoff_location)}</td>
                     <td className="px-3 py-2 text-center text-black">{asStr(insp.extras)}</td>
