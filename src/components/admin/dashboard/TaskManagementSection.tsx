@@ -15,6 +15,7 @@ interface TaskTimer {
   task_timer_goal: string;
   task_timer_car_name: string;
   task_timer_recurrence: string | null;
+  task_timer_series_id: number | null;
   task_timer_created: string;
 }
 
@@ -63,7 +64,7 @@ function formatRecurrence(raw: string | null | undefined): string {
   if (!raw) return "None";
   try {
     const r = JSON.parse(raw) as { type?: string; days?: string[]; dayOfMonth?: number };
-    if (!r?.type) return "None";
+    if (!r?.type || r.type === "none") return "None";
     if (r.type === "daily") return "Daily";
     if (r.type === "weekly") {
       return r.days && r.days.length > 0 ? `Weekly (${r.days.join(", ")})` : "Weekly";
@@ -126,6 +127,13 @@ export default function TaskManagementSection() {
 
   const tasks = data?.data ?? [];
 
+  // Build a map of aid → recurrence so child tasks (which have null recurrence
+  // but a task_timer_series_id pointing to the parent) can inherit the label.
+  const recurrenceByAid = new Map<number, string | null>();
+  for (const t of tasks) {
+    if (t.task_timer_recurrence) recurrenceByAid.set(t.task_timer_aid, t.task_timer_recurrence);
+  }
+
   const sortedTasks = [...tasks]
     .sort(
       (a, b) =>
@@ -144,7 +152,10 @@ export default function TaskManagementSection() {
       date: formatDate(task.task_timer_date_start),
       taskDescription: combined,
       dueDate: formatDate(task.task_timer_date_end),
-      repeat: formatRecurrence(task.task_timer_recurrence),
+      repeat: formatRecurrence(
+        task.task_timer_recurrence ??
+        (task.task_timer_series_id ? recurrenceByAid.get(task.task_timer_series_id) ?? null : null)
+      ),
       assignedBy: task.task_timer_goal || "—",
       status: <StatusBadge status={task.task_timer_status} />,
     };
