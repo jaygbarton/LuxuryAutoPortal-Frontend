@@ -71,7 +71,7 @@ interface TuroTrip {
   tripEnd: string;
   earnings: number;
   cancelledEarnings: number;
-  status: "booked" | "cancelled" | "completed";
+  status: "booked" | "cancelled" | "ended" | "returned";
   calendarEventId: string | null;
   pickupLocation: string | null;
   returnLocation: string | null;
@@ -92,8 +92,8 @@ interface TuroTrip {
 interface TripsSummary {
   totalTrips: number;
   bookedTrips: number;
-  cancelledTrips: number;
   completedTrips: number;
+  cancelledTrips: number;
   totalEarnings: number;
   cancelledEarnings: number;
 }
@@ -122,7 +122,7 @@ export default function TuroTripsPage() {
   const [selectedTrip, setSelectedTrip] = useState<TuroTrip | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "booked" | "cancelled" | "completed"
+    "all" | "booked" | "cancelled" | "ended" | "returned"
   >("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -817,8 +817,10 @@ export default function TuroTripsPage() {
         return <Badge className="bg-green-500">Booked</Badge>;
       case "cancelled":
         return <Badge variant="destructive">Cancelled</Badge>;
-      case "completed":
-        return <Badge className="bg-blue-500">Completed</Badge>;
+      case "ended":
+        return <Badge className="bg-blue-500">Ended</Badge>;
+      case "returned":
+        return <Badge className="bg-purple-500">Returned</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -1063,8 +1065,9 @@ export default function TuroTripsPage() {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="booked">Booked</SelectItem>
+                  <SelectItem value="ended">Ended</SelectItem>
+                  <SelectItem value="returned">Returned</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
               {(searchQuery ||

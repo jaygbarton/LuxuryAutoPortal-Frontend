@@ -971,12 +971,14 @@ export default function IncomeExpenseTable({
       prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevDec);
       prevTotalCogs = getPrevYearTotalCogs(prevDec);
       prevTotalParkingFeeLabor = getPrevYearTotalParkingFeeLabor(prevDec);
-      prevCarOwnerSplitPercent =
-        getPrevYearValue(
+      const prevYearOwnerRaw = getPrevYearValue(
           prevYearDecData?.incomeExpenses || [],
           prevDec,
           "carOwnerSplit",
-        ) || 0;
+        );
+      prevCarOwnerSplitPercent = (prevYearOwnerRaw != null && prevYearOwnerRaw !== 0)
+        ? prevYearOwnerRaw
+        : (prevYearDecData?.formulaSetting?.carOwnerSplitPercent ?? data.formulaSetting?.carOwnerSplitPercent ?? 50);
 
       // Calculate previous year December's negative balance carry over
       // The function will use December's mode internally
@@ -1047,8 +1049,10 @@ export default function IncomeExpenseTable({
       prevTotalDirectDelivery = getTotalDirectDeliveryForMonth(prevMonth);
       prevTotalCogs = getTotalCogsForMonth(prevMonth);
       prevTotalParkingFeeLabor = getTotalParkingFeeLaborForMonth(prevMonth);
-      prevCarOwnerSplitPercent =
-        getMonthValue(data.incomeExpenses, prevMonth, "carOwnerSplit") || 0;
+      const prevMonthOwnerRaw = data.incomeExpenses?.find((x: any) => x && x.month === prevMonth)?.carOwnerSplit;
+      prevCarOwnerSplitPercent = (prevMonthOwnerRaw != null)
+        ? Number(prevMonthOwnerRaw)
+        : (data.formulaSetting?.carOwnerSplitPercent ?? 50);
     }
 
     const prevCarOwnerSplitDecimal = prevCarOwnerSplitPercent / 100;
@@ -1137,9 +1141,13 @@ export default function IncomeExpenseTable({
 
   // Calculate Car Management Split based on formula
   const calculateCarManagementSplit = (month: number): number => {
-    // Use stored percentage, default to 0 if not set (independent of car owner split)
-    const storedPercent =
-      getMonthValue(data.incomeExpenses, month, "carManagementSplit") || 0;
+    // Use stored per-month %, fall back to the car's formulaSetting default
+    const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
+    const rawStored = monthRow?.carManagementSplit;
+    const defaultPct = data.formulaSetting?.carManagementSplitPercent ?? 50;
+    const storedPercent = (rawStored != null)
+      ? Number(rawStored)
+      : defaultPct;
     const mgmtPercent = storedPercent / 100; // Split percentage for management
 
     const rentalIncome = getMonthValue(
@@ -1473,9 +1481,13 @@ export default function IncomeExpenseTable({
 
   // Calculate Car Owner Split based on formula
   const calculateCarOwnerSplit = (month: number): number => {
-    // Use stored percentage, default to 0 if not set (independent of car management split)
-    const storedPercent =
-      getMonthValue(data.incomeExpenses, month, "carOwnerSplit") || 0;
+    // Use stored per-month %, fall back to the car's formulaSetting default
+    const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
+    const rawStored = monthRow?.carOwnerSplit;
+    const defaultPct = data.formulaSetting?.carOwnerSplitPercent ?? 50;
+    const storedPercent = (rawStored != null)
+      ? Number(rawStored)
+      : defaultPct;
     const ownerPercent = storedPercent / 100; // Split percentage for owner
 
     const rentalIncome = getMonthValue(
