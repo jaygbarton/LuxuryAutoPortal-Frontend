@@ -14,6 +14,7 @@ interface TaskTimer {
   task_timer_description: string;
   task_timer_goal: string;
   task_timer_car_name: string;
+  task_timer_recurrence: string | null;
   task_timer_created: string;
 }
 
@@ -56,6 +57,24 @@ function parseAssignees(empList: string): string {
     return empList.trim() || "Unassigned";
   }
   return "Unassigned";
+}
+
+function formatRecurrence(raw: string | null | undefined): string {
+  if (!raw) return "None";
+  try {
+    const r = JSON.parse(raw) as { type?: string; days?: string[]; dayOfMonth?: number };
+    if (!r?.type) return "None";
+    if (r.type === "daily") return "Daily";
+    if (r.type === "weekly") {
+      return r.days && r.days.length > 0 ? `Weekly (${r.days.join(", ")})` : "Weekly";
+    }
+    if (r.type === "monthly") {
+      return r.dayOfMonth ? `Monthly (day ${r.dayOfMonth})` : "Monthly";
+    }
+    return r.type;
+  } catch {
+    return raw;
+  }
 }
 
 function truncate(text: string, max: number): string {
@@ -125,7 +144,7 @@ export default function TaskManagementSection() {
       date: formatDate(task.task_timer_date_start),
       taskDescription: combined,
       dueDate: formatDate(task.task_timer_date_end),
-      repeat: "None",
+      repeat: formatRecurrence(task.task_timer_recurrence),
       assignedBy: task.task_timer_goal || "—",
       status: <StatusBadge status={task.task_timer_status} />,
     };
