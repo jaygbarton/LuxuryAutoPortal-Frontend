@@ -127,11 +127,29 @@ export default function TaskManagementSection() {
 
   const tasks = data?.data ?? [];
 
-  // Build a map of aid → recurrence so child tasks (which have null recurrence
-  // but a task_timer_series_id pointing to the parent) can inherit the label.
-  const recurrenceByAid = new Map<number, string | null>();
+  // Recurrence JSON is consumed on generation and not stored on any row.
+  // Infer the pattern from the gap between due dates within the same series.
+  const seriesDates = new Map<number, number[]>(); // seriesId → sorted timestamps
   for (const t of tasks) {
-    if (t.task_timer_recurrence) recurrenceByAid.set(t.task_timer_aid, t.task_timer_recurrence);
+    if (!t.task_timer_series_id || !t.task_timer_date_end) continue;
+    const ts = new Date(t.task_timer_date_end).getTime();
+    if (!isNaN(ts)) {
+      const arr = seriesDates.get(t.task_timer_series_id) ?? [];
+      arr.push(ts);
+      seriesDates.set(t.task_timer_series_id, arr);
+    }
+  }
+
+  function inferSeriesRecurrence(seriesId: number | null): string {
+    if (!seriesId) return "None";
+    const dates = (seriesDates.get(seriesId) ?? []).sort((a, b) => a - b);
+    if (dates.length < 2) return "None";
+    const gapMs = dates[1] - dates[0];
+    const gapDays = Math.round(gapMs / (1000 * 60 * 60 * 24));
+    if (gapDays === 1) return "Daily";
+    if (gapDays === 7) return "Weekly";
+    if (gapDays >= 28 && gapDays <= 31) return "Monthly";
+    return `Every ${gapDays} days`;
   }
 
   const sortedTasks = [...tasks]
@@ -152,10 +170,9 @@ export default function TaskManagementSection() {
       date: formatDate(task.task_timer_date_start),
       taskDescription: combined,
       dueDate: formatDate(task.task_timer_date_end),
-      repeat: formatRecurrence(
-        task.task_timer_recurrence ??
-        (task.task_timer_series_id ? recurrenceByAid.get(task.task_timer_series_id) ?? null : null)
-      ),
+      repeat: task.task_timer_recurrence
+        ? formatRecurrence(task.task_timer_recurrence)
+        : inferSeriesRecurrence(task.task_timer_series_id),
       assignedBy: task.task_timer_goal || "—",
       status: <StatusBadge status={task.task_timer_status} />,
     };
