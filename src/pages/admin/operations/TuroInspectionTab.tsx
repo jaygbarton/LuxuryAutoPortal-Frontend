@@ -36,7 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Edit,
   Trash2,
-  ArrowRight,
+  Wrench,
   CheckCircle,
   CheckCircle2,
   ClipboardList,
@@ -1020,7 +1020,7 @@ export function TuroInspectionTab() {
                               className="text-muted-foreground hover:text-blue-400 h-8 px-2"
                               title="Move to Maintenance"
                             >
-                              <ArrowRight className="w-3.5 h-3.5" />
+                              <Wrench className="w-3.5 h-3.5" />
                             </Button>
                             <Button
                               variant="ghost"
