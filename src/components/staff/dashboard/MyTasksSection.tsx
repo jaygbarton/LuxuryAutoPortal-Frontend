@@ -3,8 +3,9 @@
  * Pulls from /api/staff/task-management. Employees can edit the status
  * inline via PATCH /api/staff/task-management/:id/status.
  */
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 import { Link } from "wouter";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
@@ -166,18 +167,69 @@ export default function MyTasksSection() {
     },
   });
 
-  const tasks = data?.data ?? [];
+  const allTasks = data?.data ?? [];
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const tasks = useMemo(() => {
+    let filtered = allTasks;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter((t) =>
+        [t.task_timer_name, t.task_timer_description, t.task_timer_goal, t.task_timer_car_name]
+          .some((v) => v && v.toLowerCase().includes(q))
+      );
+    }
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((t) => String(Number(t.task_timer_status ?? 0)) === statusFilter);
+    }
+    return filtered;
+  }, [allTasks, search, statusFilter]);
 
   return (
     <div className="mb-8">
       <SectionHeader title="TASK MANAGEMENT" subtitle="Tasks assigned to you." />
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-3 mt-2">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search task name, description..."
+            className="w-full pl-8 pr-7 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]"
+        >
+          <option value="all">All Statuses</option>
+          {STATUS_OPTIONS.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+        {(search || statusFilter !== "all") && (
+          <span className="text-xs text-gray-500">{tasks.length} result{tasks.length !== 1 ? "s" : ""}</span>
+        )}
+      </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-[#d3bc8d]" />
         </div>
       ) : tasks.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-500">No tasks assigned.</p>
+        <p className="py-8 text-center text-sm text-gray-500">
+          {search || statusFilter !== "all" ? "No matching results." : "No tasks assigned."}
+        </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-y border-[#D3BC8D] border-collapse text-sm">

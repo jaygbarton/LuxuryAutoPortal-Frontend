@@ -9,9 +9,10 @@
  *
  * Rows are expected to be plain reservation-shaped objects coming from `/api/me/...`.
  */
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
-import { buildApiUrl } from "@/lib/queryClient";
+import { Loader2, Search, X } from "lucide-react";
+import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
 import {
   Select,
@@ -66,6 +67,46 @@ interface Props {
 function asString(v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
   return String(v);
+}
+
+function parsePhotos(v: unknown): string[] {
+  if (Array.isArray(v)) return (v as unknown[]).map(String).filter(Boolean);
+  if (typeof v !== "string" || !v.trim()) return [];
+  try {
+    const p = JSON.parse(v);
+    if (Array.isArray(p)) return p.map(String).filter(Boolean);
+  } catch {}
+  // single URL string
+  if (v.startsWith("http")) return [v];
+  return [];
+}
+
+function PhotosCell({ value }: { value: unknown }) {
+  const [expanded, setExpanded] = useState(false);
+  const photos = parsePhotos(value);
+  if (photos.length === 0) return <span>—</span>;
+  const visible = expanded ? photos : photos.slice(0, 2);
+  return (
+    <div className="flex items-center justify-center gap-1 flex-wrap">
+      {visible.map((src, i) => (
+        <a key={i} href={src} target="_blank" rel="noopener noreferrer">
+          <img
+            src={getProxiedImageUrl(src)}
+            alt={`Photo ${i + 1}`}
+            className="w-10 h-10 object-cover rounded border border-[#D3BC8D] hover:opacity-80 transition-opacity"
+          />
+        </a>
+      ))}
+      {!expanded && photos.length > 2 && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="text-[10px] text-[#B8860B] hover:underline whitespace-nowrap"
+        >
+          +{photos.length - 2} more
+        </button>
+      )}
+    </div>
+  );
 }
 
 // Shared cell formatters so the staff dashboard tables render trip columns the
@@ -125,6 +166,8 @@ export default function ReservationsTableSection({
 }: Props) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const { data, isLoading } = useQuery<{ success?: boolean; data?: ReservationRow[] }>({
     queryKey: [queryKey, endpoint],
@@ -195,18 +238,77 @@ export default function ReservationsTableSection({
     );
   }
 
-  const rows = (data?.data ?? []).slice(0, maxRows);
+  const allRows = data?.data ?? [];
+
+  const statusOptions = useMemo(() => {
+    if (!statusEdit) return [];
+    return statusEdit.options;
+  }, [statusEdit]);
+
+  const rows = useMemo(() => {
+    let filtered = allRows;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter((row) =>
+        Object.values(row).some((v) =>
+          v != null && String(v).toLowerCase().includes(q)
+        )
+      );
+    }
+    if (statusFilter !== "all" && statusEdit) {
+      filtered = filtered.filter(
+        (row) => String(row[statusEdit.columnKey] ?? "") === statusFilter
+      );
+    }
+    return filtered.slice(0, maxRows);
+  }, [allRows, search, statusFilter, statusEdit, maxRows]);
 
   return (
     <div className="mb-8">
       <SectionHeader title={title} subtitle={subtitle} />
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-3 mt-2">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search reservation, car, guest..."
+            className="w-full pl-8 pr-7 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+        {statusOptions.length > 0 && (
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]"
+          >
+            <option value="all">All Statuses</option>
+            {statusOptions.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        )}
+        {(search || statusFilter !== "all") && (
+          <span className="text-xs text-gray-500">{rows.length} result{rows.length !== 1 ? "s" : ""}</span>
+        )}
+      </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-[#d3bc8d]" />
         </div>
       ) : rows.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-500">{emptyMessage}</p>
+        <p className="py-8 text-center text-sm text-gray-500">
+          {search || statusFilter !== "all" ? "No matching results." : emptyMessage}
+        </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-y border-[#D3BC8D] border-collapse text-xs">
@@ -234,7 +336,9 @@ export default function ReservationsTableSection({
                           ? renderStatusCell(row)
                           : c.render
                             ? c.render(row)
-                            : asString(row[c.key])}
+                            : c.key === "photos"
+                              ? <PhotosCell value={row[c.key]} />
+                              : asString(row[c.key])}
                       </td>
                     );
                   })}
