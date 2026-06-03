@@ -1,6 +1,8 @@
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
+import { Search, X } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
+import { format } from "date-fns";
 import { SectionHeader, DashboardTable } from "@/components/admin/dashboard";
 
 interface TaskTimer {
@@ -152,13 +154,25 @@ export default function TaskManagementSection() {
     return `Every ${gapDays} days`;
   }
 
-  const sortedTasks = [...tasks]
-    .sort(
-      (a, b) =>
-        (STATUS_SORT_ORDER[a.task_timer_status] ?? 3) -
-        (STATUS_SORT_ORDER[b.task_timer_status] ?? 3),
-    )
-    .slice(0, 25);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const sortedTasks = useMemo(() => {
+    let f = [...tasks].sort(
+      (a, b) => (STATUS_SORT_ORDER[a.task_timer_status] ?? 3) - (STATUS_SORT_ORDER[b.task_timer_status] ?? 3),
+    );
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      f = f.filter(t => [t.task_timer_name, t.task_timer_description, t.task_timer_goal, t.task_timer_car_name]
+        .some(v => v && v.toLowerCase().includes(q)));
+    }
+    if (statusFilter !== "all") {
+      f = f.filter(t => String(Number(t.task_timer_status ?? 0)) === statusFilter);
+    }
+    return f.slice(0, 25);
+  }, [tasks, search, statusFilter]);
+
+  const isFiltered = search || statusFilter !== "all";
 
   const rows = sortedTasks.map((task) => {
     const name = task.task_timer_name || "";
@@ -178,19 +192,46 @@ export default function TaskManagementSection() {
     };
   });
 
+  const STATUS_FILTER_OPTIONS = [
+    { value: "0", label: "Not Started" },
+    { value: "1", label: "In Progress" },
+    { value: "2", label: "Completed" },
+  ];
+
   return (
     <div className="mb-8">
       <SectionHeader title="TASK MANAGEMENT" />
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-3 mt-2">
+        <div className="relative min-w-[180px] max-w-xs flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search task name, description…"
+            className="w-full pl-8 pr-7 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+          {search && <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
+        </div>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+          className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]">
+          <option value="all">All Statuses</option>
+          {STATUS_FILTER_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+        </select>
+        {isFiltered && (
+          <>
+            <span className="text-xs text-gray-500">{rows.length} result{rows.length !== 1 ? "s" : ""}</span>
+            <button onClick={() => { setSearch(""); setStatusFilter("all"); }} className="text-xs text-[#B8860B] hover:underline">Clear all</button>
+          </>
+        )}
+      </div>
 
       {isLoading ? (
         <LoadingSkeleton />
       ) : (
         <>
-          {/* Task Table */}
           <div className="mt-4">
             {rows.length === 0 ? (
               <div className="rounded-md bg-[#111111] px-6 py-8 text-center">
-                <p className="text-sm text-white/60">No tasks found</p>
+                <p className="text-sm text-white/60">{isFiltered ? "No matching results." : "No tasks found"}</p>
               </div>
             ) : (
               <DashboardTable columns={TABLE_COLUMNS} rows={rows} />

@@ -1,5 +1,6 @@
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
 import {
@@ -185,24 +186,81 @@ export default function OperationsSection() {
     },
   });
 
-  const tasks = [...(data?.data ?? [])]
-    .sort((a, b) => {
+  const allTasks = useMemo(() =>
+    [...(data?.data ?? [])].sort((a, b) => {
       const aTime = a.scheduled_date ? new Date(a.scheduled_date).getTime() : 0;
       const bTime = b.scheduled_date ? new Date(b.scheduled_date).getTime() : 0;
       return bTime - aTime;
-    })
-    .slice(0, 20);
+    }),
+    [data]
+  );
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [assignedToFilter, setAssignedToFilter] = useState("all");
+  const [tripStartFrom, setTripStartFrom] = useState("");
+  const [tripEndTo, setTripEndTo] = useState("");
+
+  const assignedToOptions = useMemo(() => {
+    const names = new Set<string>();
+    for (const t of allTasks) { const v = (t.assigned_to ?? "").trim(); if (v) names.add(v); }
+    return Array.from(names).sort();
+  }, [allTasks]);
+
+  const tasks = useMemo(() => {
+    let f = allTasks;
+    if (search.trim()) { const q = search.toLowerCase(); f = f.filter(t => Object.values(t).some(v => v != null && String(v).toLowerCase().includes(q))); }
+    if (statusFilter !== "all") f = f.filter(t => t.status === statusFilter);
+    if (assignedToFilter !== "all") f = f.filter(t => (t.assigned_to ?? "").trim() === assignedToFilter);
+    if (tripStartFrom) { const from = new Date(tripStartFrom).getTime(); f = f.filter(t => t.trip_start && new Date(String(t.trip_start)).getTime() >= from); }
+    if (tripEndTo) { const to = new Date(tripEndTo).getTime() + 86399999; f = f.filter(t => t.trip_end && new Date(String(t.trip_end)).getTime() <= to); }
+    return f.slice(0, 20);
+  }, [allTasks, search, statusFilter, assignedToFilter, tripStartFrom, tripEndTo]);
+
+  const isFiltered = search || statusFilter !== "all" || assignedToFilter !== "all" || tripStartFrom || tripEndTo;
+  function clearAll() { setSearch(""); setStatusFilter("all"); setAssignedToFilter("all"); setTripStartFrom(""); setTripEndTo(""); }
 
   return (
     <div className="mb-8">
       <SectionHeader title="OPERATIONS" subtitle="PICK UP AND DROP OFF" />
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-3 mt-2">
+        <div className="relative min-w-[180px] max-w-xs flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search reservation, car, guest…"
+            className="w-full pl-8 pr-7 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+          {search && <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
+        </div>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]">
+          <option value="all">All Statuses</option>
+          {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+        </select>
+        {assignedToOptions.length > 0 && (
+          <select value={assignedToFilter} onChange={e => setAssignedToFilter(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]">
+            <option value="all">All Assignees</option>
+            {assignedToOptions.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+        )}
+        <div className="flex items-center gap-1">
+          <label className="text-xs text-gray-500 whitespace-nowrap">Trip Start From</label>
+          <input type="date" value={tripStartFrom} onChange={e => setTripStartFrom(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+          {tripStartFrom && <button onClick={() => setTripStartFrom("")} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
+        </div>
+        <div className="flex items-center gap-1">
+          <label className="text-xs text-gray-500 whitespace-nowrap">Trip Ends To</label>
+          <input type="date" value={tripEndTo} onChange={e => setTripEndTo(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+          {tripEndTo && <button onClick={() => setTripEndTo("")} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
+        </div>
+        {isFiltered && <><span className="text-xs text-gray-500">{tasks.length} result{tasks.length !== 1 ? "s" : ""}</span><button onClick={clearAll} className="text-xs text-[#B8860B] hover:underline">Clear all</button></>}
+      </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-[#d3bc8d]" />
         </div>
       ) : tasks.length === 0 ? (
-        <p className="py-8 text-center text-sm text-gray-500">No tasks found.</p>
+        <p className="py-8 text-center text-sm text-gray-500">{isFiltered ? "No matching results." : "No tasks found."}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-y border-[#D3BC8D] border-collapse text-xs">

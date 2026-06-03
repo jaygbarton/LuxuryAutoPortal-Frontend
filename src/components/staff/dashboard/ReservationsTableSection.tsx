@@ -168,6 +168,14 @@ export default function ReservationsTableSection({
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [assignedToFilter, setAssignedToFilter] = useState("all");
+  const [tripStartFrom, setTripStartFrom] = useState("");
+  const [tripEndTo, setTripEndTo] = useState("");
+
+  const colKeys = useMemo(() => new Set(columns.map((c) => c.key)), [columns]);
+  const hasAssignedTo = colKeys.has("assigned_to");
+  const hasTripStart = colKeys.has("trip_start");
+  const hasTripEnd = colKeys.has("trip_end");
 
   const { data, isLoading } = useQuery<{ success?: boolean; data?: ReservationRow[] }>({
     queryKey: [queryKey, endpoint],
@@ -240,28 +248,56 @@ export default function ReservationsTableSection({
 
   const allRows = data?.data ?? [];
 
-  const statusOptions = useMemo(() => {
-    if (!statusEdit) return [];
-    return statusEdit.options;
-  }, [statusEdit]);
+  const statusOptions = useMemo(() => (statusEdit ? statusEdit.options : []), [statusEdit]);
+
+  const assignedToOptions = useMemo(() => {
+    if (!hasAssignedTo) return [];
+    const names = new Set<string>();
+    for (const row of allRows) {
+      const v = String(row["assigned_to"] ?? "").trim();
+      if (v && v !== "—") names.add(v);
+    }
+    return Array.from(names).sort();
+  }, [allRows, hasAssignedTo]);
 
   const rows = useMemo(() => {
     let filtered = allRows;
     if (search.trim()) {
       const q = search.toLowerCase();
       filtered = filtered.filter((row) =>
-        Object.values(row).some((v) =>
-          v != null && String(v).toLowerCase().includes(q)
-        )
+        Object.values(row).some((v) => v != null && String(v).toLowerCase().includes(q))
       );
     }
     if (statusFilter !== "all" && statusEdit) {
-      filtered = filtered.filter(
-        (row) => String(row[statusEdit.columnKey] ?? "") === statusFilter
-      );
+      filtered = filtered.filter((row) => String(row[statusEdit.columnKey] ?? "") === statusFilter);
+    }
+    if (assignedToFilter !== "all" && hasAssignedTo) {
+      filtered = filtered.filter((row) => String(row["assigned_to"] ?? "").trim() === assignedToFilter);
+    }
+    if (tripStartFrom && hasTripStart) {
+      const from = new Date(tripStartFrom).getTime();
+      filtered = filtered.filter((row) => {
+        const v = row["trip_start"];
+        if (!v) return false;
+        return new Date(String(v)).getTime() >= from;
+      });
+    }
+    if (tripEndTo && hasTripEnd) {
+      const to = new Date(tripEndTo).getTime() + 86400000 - 1; // inclusive end of day
+      filtered = filtered.filter((row) => {
+        const v = row["trip_end"];
+        if (!v) return false;
+        return new Date(String(v)).getTime() <= to;
+      });
     }
     return filtered.slice(0, maxRows);
-  }, [allRows, search, statusFilter, statusEdit, maxRows]);
+  }, [allRows, search, statusFilter, assignedToFilter, tripStartFrom, tripEndTo, statusEdit, hasAssignedTo, hasTripStart, hasTripEnd, maxRows]);
+
+  const isFiltered = search || statusFilter !== "all" || assignedToFilter !== "all" || tripStartFrom || tripEndTo;
+
+  function clearAll() {
+    setSearch(""); setStatusFilter("all"); setAssignedToFilter("all"); setTripStartFrom(""); setTripEndTo("");
+  }
 
   return (
     <div className="mb-8">
@@ -269,13 +305,14 @@ export default function ReservationsTableSection({
 
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2 mb-3 mt-2">
-        <div className="relative flex-1 min-w-[180px] max-w-xs">
+        {/* Search */}
+        <div className="relative min-w-[180px] max-w-xs flex-1">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search reservation, car, guest..."
+            placeholder="Search reservation, car, guest…"
             className="w-full pl-8 pr-7 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]"
           />
           {search && (
@@ -284,20 +321,51 @@ export default function ReservationsTableSection({
             </button>
           )}
         </div>
+
+        {/* Status */}
         {statusOptions.length > 0 && (
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]"
-          >
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+            className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]">
             <option value="all">All Statuses</option>
-            {statusOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
+            {statusOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         )}
-        {(search || statusFilter !== "all") && (
-          <span className="text-xs text-gray-500">{rows.length} result{rows.length !== 1 ? "s" : ""}</span>
+
+        {/* Assigned To */}
+        {hasAssignedTo && assignedToOptions.length > 0 && (
+          <select value={assignedToFilter} onChange={(e) => setAssignedToFilter(e.target.value)}
+            className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]">
+            <option value="all">All Assignees</option>
+            {assignedToOptions.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        )}
+
+        {/* Trip Start From */}
+        {hasTripStart && (
+          <div className="flex items-center gap-1">
+            <label className="text-xs text-gray-500 whitespace-nowrap">Trip Start From</label>
+            <input type="date" value={tripStartFrom} onChange={(e) => setTripStartFrom(e.target.value)}
+              className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+            {tripStartFrom && <button onClick={() => setTripStartFrom("")} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
+          </div>
+        )}
+
+        {/* Trip End To */}
+        {hasTripEnd && (
+          <div className="flex items-center gap-1">
+            <label className="text-xs text-gray-500 whitespace-nowrap">Trip Ends To</label>
+            <input type="date" value={tripEndTo} onChange={(e) => setTripEndTo(e.target.value)}
+              className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+            {tripEndTo && <button onClick={() => setTripEndTo("")} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
+          </div>
+        )}
+
+        {/* Results count + clear */}
+        {isFiltered && (
+          <>
+            <span className="text-xs text-gray-500">{rows.length} result{rows.length !== 1 ? "s" : ""}</span>
+            <button onClick={clearAll} className="text-xs text-[#B8860B] hover:underline">Clear all</button>
+          </>
         )}
       </div>
 
@@ -307,7 +375,7 @@ export default function ReservationsTableSection({
         </div>
       ) : rows.length === 0 ? (
         <p className="py-8 text-center text-sm text-gray-500">
-          {search || statusFilter !== "all" ? "No matching results." : emptyMessage}
+          {isFiltered ? "No matching results." : emptyMessage}
         </p>
       ) : (
         <div className="overflow-x-auto">
