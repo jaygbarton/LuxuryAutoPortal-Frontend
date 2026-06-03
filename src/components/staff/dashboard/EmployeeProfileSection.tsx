@@ -5,7 +5,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { EmployeeDocumentImage } from "@/components/admin/EmployeeDocumentImage";
-import { Image, Phone } from "lucide-react";
+import { Image } from "lucide-react";
 import { NewsMediaSlot } from "@/pages/client/_components/NewsMediaSlot";
 
 interface MeEmployeeResponse {
@@ -85,10 +85,6 @@ export default function EmployeeProfileSection() {
     .map((p) => (p ?? "").trim())
     .filter(Boolean)
     .join(" ");
-  const address = [e.employee_street, e.employee_city, e.employee_state, e.employee_zip_code]
-    .map((p) => (p ?? "").trim())
-    .filter(Boolean)
-    .join(", ");
   const email = e.employee_job_pay_work_email?.trim() || e.employee_email || "";
 
   return (
@@ -110,12 +106,10 @@ export default function EmployeeProfileSection() {
               <span className="font-semibold">Last Name:</span>{" "}
               {unspecified(e.employee_last_name)}
             </div>
-            {e.employee_mobile_number && (
-              <div className="flex items-center gap-1.5">
-                <span className="font-semibold">Mobile Number:</span>
-                <span>{e.employee_mobile_number}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold">Mobile Number:</span>
+              <span>{e.employee_mobile_number?.trim() || "—"}</span>
+            </div>
             {email && (
               <div className="truncate">
                 <span className="font-semibold">Email:</span>{" "}

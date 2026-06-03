@@ -53,7 +53,7 @@ export function VehicleOwnerInfo({
           <div>
             <div className="space-y-1.5 text-sm">
               <p><span className="font-bold text-foreground">Name</span> :{ownerName || "—"}</p>
-              <p><span className="font-bold text-foreground">Contact #</span> :{ownerPhone || "—"}</p>
+              <p><span className="font-bold text-foreground">Mobile Number</span> :{ownerPhone || "—"}</p>
               <p><span className="font-bold text-foreground">Email</span> :{ownerEmail || "—"}</p>
 
               <div className="pt-1">
