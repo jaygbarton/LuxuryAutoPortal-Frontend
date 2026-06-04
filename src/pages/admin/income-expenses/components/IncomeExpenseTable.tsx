@@ -1967,7 +1967,7 @@ export default function IncomeExpenseTable({
                   `mgmtIncome` / `ownerIncome` — these are summed per-car
                   results matching GLA-V3's SUM-of-stored-splits semantics. */}
               <CategoryRow
-                label="Car Management Split"
+                label="Co-Host Split"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
                   return isAllCarsView

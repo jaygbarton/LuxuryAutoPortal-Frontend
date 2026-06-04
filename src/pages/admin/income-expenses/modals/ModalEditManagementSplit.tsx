@@ -51,7 +51,7 @@ export default function ModalEditManagementSplit() {
   if (!editingCell || editingCell.category !== "managementSplit") return null;
 
   const fieldNames: { [key: string]: string } = {
-    carManagementSplit: "Car Management Split",
+    carManagementSplit: "Co-Host Split",
     carOwnerSplit: "Car Owner Split",
   };
 

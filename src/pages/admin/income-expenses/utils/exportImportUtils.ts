@@ -778,7 +778,7 @@ export function buildIncomeExpenseCSV(
   csvContent += `YER,YER SPLIT,TOTAL\n`;
   
   // Car Management Split row (calculated with percentage)
-  csvContent += `Car Management Split,`;
+  csvContent += `Co-Host Split,`;
   let mgmtSplitTotal = 0;
   MONTHS.forEach((_, idx) => {
     const monthNum = idx + 1;
@@ -1811,7 +1811,7 @@ export function parseImportedCSV(
       }
 
       // Parse Car Management Split / Car Owner Split percentage rows.
-      // Format: "Car Management Split,$1234.56 (30%),...". We only care about
+      // Format: "Co-Host Split,$1234.56 (30%),...". We only care about
       // the percentage embedded in each cell — not the calculated dollar amount.
       if (
         currentSection === 'CO HOSTING ACCESS' &&

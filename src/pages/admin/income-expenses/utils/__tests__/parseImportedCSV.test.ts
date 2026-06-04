@@ -64,7 +64,7 @@ function makeCSV(overrides: { [section: string]: string[] } = {}): string {
     `SECTION,CO HOSTING ACCESS`,
     `Mode Settings,Jan 2024: 50,Feb 2024: 70,Mar 2024: 50,Apr 2024: 50,May 2024: 50,Jun 2024: 50,Jul 2024: 50,Aug 2024: 50,Sep 2024: 50,Oct 2024: 50,Nov 2024: 50,Dec 2024: 50`,
     `Category,${months},YER,YER SPLIT,TOTAL`,
-    `Car Management Split,$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00,$0.00,$0.00`,
+    `Co-Host Split,$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00,$0.00,$0.00`,
     `Car Owner Split,$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00 (70%),$0.00,$0.00,$0.00`,
     ``,
     `SECTION,INCOME & EXPENSES`,
@@ -370,7 +370,7 @@ describe("parseImportedCSV", () => {
     });
   });
 
-  describe("Car Management / Car Owner Split percentage parsing", () => {
+  describe("Co-Host Split / Car Owner Split percentage parsing", () => {
     it("extracts management split percentage from each month cell", () => {
       const result = parseImportedCSV(makeCSV());
       const mgmt = result.sections!.managementSplit?.find(

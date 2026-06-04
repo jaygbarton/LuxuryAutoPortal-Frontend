@@ -1394,7 +1394,7 @@ export default function EarningsPage() {
                   onToggle={() => toggleSection("managementOwner")}
                 >
                   <TableRow
-                    label="Car Management Split"
+                    label="Co-Host Split"
                     values={MONTHS.map((_, i) => calculateCarManagementSplit(i + 1))}
                   />
                   <TableRow

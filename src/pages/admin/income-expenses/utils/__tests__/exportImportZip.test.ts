@@ -146,7 +146,7 @@ function minimalValidCSV(): string {
     "OIL TYPE,Syn", "TURO LINK,N/A", "ADMIN TURO LINK,N/A", "",
     "SECTION,CO HOSTING ACCESS",
     `Category,${months},YER,YER SPLIT,TOTAL`,
-    zeroRow("Car Management Split"), zeroRow("Car Owner Split"), "",
+    zeroRow("Co-Host Split"), zeroRow("Car Owner Split"), "",
     "SECTION,INCOME & EXPENSES",
     `Category,${months},YER,YER SPLIT,TOTAL`,
     `Rental Income,$1000.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$0.00,$1000.00`,
