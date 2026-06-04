@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, X, FileText, Image as ImageIcon } from "lucide-react";
+import { Upload, X, FileText, Image as ImageIcon, ExternalLink } from "lucide-react";
 
 interface Payment {
   payments_aid: number;
@@ -64,6 +64,17 @@ export function AddEditPaymentModal({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isEdit = payment !== null;
+
+  // Parse existing receipt file IDs from payments_attachment JSON
+  const existingReceiptIds: string[] = useMemo(() => {
+    if (!payment?.payments_attachment) return [];
+    try {
+      const parsed = JSON.parse(payment.payments_attachment);
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      return [];
+    }
+  }, [payment?.payments_attachment]);
 
   // Form state
   const [yearMonth, setYearMonth] = useState("");
@@ -954,6 +965,49 @@ export function AddEditPaymentModal({
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Receipt
             </h4>
+
+            {/* Existing receipts (edit mode) */}
+            {existingReceiptIds.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">
+                  Saved ({existingReceiptIds.length} file{existingReceiptIds.length !== 1 ? "s" : ""})
+                </p>
+                {existingReceiptIds.map((id, index) => {
+                  const isLocal = id.startsWith("/uploads/") || id.startsWith("http");
+                  const url = isLocal
+                    ? (id.startsWith("http") ? id : buildApiUrl(id))
+                    : buildApiUrl(`/api/payments/receipt/file-content?fileId=${encodeURIComponent(id)}`);
+                  const isPdf = id.toLowerCase().endsWith(".pdf");
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between bg-background border border-border rounded-md px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {isPdf ? (
+                          <FileText className="w-4 h-4 text-[#D3BC8D] flex-shrink-0" />
+                        ) : (
+                          <ImageIcon className="w-4 h-4 text-[#D3BC8D] flex-shrink-0" />
+                        )}
+                        <span className="text-sm text-foreground truncate">
+                          Receipt {index + 1}
+                        </span>
+                      </div>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:text-primary/80 ml-2 h-7 w-7 p-0 inline-flex items-center justify-center"
+                        title="View file"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             <input
               ref={fileInputRef}
               type="file"
@@ -971,7 +1025,9 @@ export function AddEditPaymentModal({
               className="w-full bg-muted border-dashed border-border text-foreground hover:bg-muted h-12"
             >
               <Upload className="w-4 h-4 mr-2" />
-              {receiptFiles.length > 0 ? "Add More Files" : "Upload Receipt (PDF / image)"}
+              {existingReceiptIds.length > 0
+                ? receiptFiles.length > 0 ? "Add More Files" : "Add / Replace Receipt"
+                : receiptFiles.length > 0 ? "Add More Files" : "Upload Receipt (PDF / image)"}
             </Button>
 
             {receiptFiles.length > 0 && (
