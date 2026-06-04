@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,7 +25,8 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, buildApiUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
-import { Search, Eye, CheckCircle, XCircle, Trash2, Loader2, ExternalLink, QrCode } from "lucide-react";
+import { Search, Eye, CheckCircle, XCircle, Trash2, Loader2, ExternalLink, QrCode, Car, Save } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -71,6 +72,17 @@ interface CoHost {
   created_at: string;
 }
 
+interface FleetCar {
+  id: number;
+  year: string;
+  make: string;
+  model: string;
+  vin: string;
+  licensePlate: string;
+  color: string;
+  isActive: number;
+}
+
 function statusBadge(status: string) {
   if (status === "approved") return "bg-green-500/20 text-green-700 border-green-500/30";
   if (status === "rejected") return "bg-red-500/20 text-red-700 border-red-500/30";
@@ -89,6 +101,7 @@ export default function CoHostsPage() {
   const [approveNotes, setApproveNotes] = useState("");
   const [rejectNotes, setRejectNotes] = useState("");
   const [showQr, setShowQr] = useState(false);
+  const [selectedCarAids, setSelectedCarAids] = useState<Set<number>>(new Set());
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -128,6 +141,49 @@ export default function CoHostsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/co-hosts"] });
       toast({ title: "Deleted", description: "Co-host application removed." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  // All fleet cars (for the assignment picker)
+  const { data: carsData } = useQuery<{ cars: FleetCar[] }>({
+    queryKey: ["/api/admin/co-hosts-cars"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/admin/co-hosts-cars"), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch cars");
+      return res.json();
+    },
+  });
+
+  // Assigned vehicles for the currently-open co-host
+  const { data: assignedData } = useQuery<{ carAids: number[] }>({
+    queryKey: ["/api/admin/co-hosts", viewCoHost?.id, "vehicles"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl(`/api/admin/co-hosts/${viewCoHost!.id}/vehicles`), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch assigned vehicles");
+      return res.json();
+    },
+    enabled: !!viewCoHost,
+  });
+
+  // Sync selectedCarAids whenever the modal's assigned data loads/changes
+  useEffect(() => {
+    if (assignedData) {
+      setSelectedCarAids(new Set(assignedData.carAids));
+    } else {
+      setSelectedCarAids(new Set());
+    }
+  }, [assignedData, viewCoHost?.id]);
+
+  const saveVehiclesMutation = useMutation({
+    mutationFn: async ({ id, carAids }: { id: number; carAids: number[] }) => {
+      const res = await apiRequest("PUT", `/api/admin/co-hosts/${id}/vehicles`, { carAids });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || "Failed to save"); }
+      return res.json();
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/co-hosts", vars.id, "vehicles"] });
+      toast({ title: "Saved", description: "Vehicle assignments updated." });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -417,6 +473,69 @@ export default function CoHostsPage() {
                   <p className="text-muted-foreground">{viewCoHost.notes}</p>
                 </DetailSection>
               )}
+
+              {/* Managed Vehicles */}
+              <DetailSection title="Managed Vehicles">
+                <div className="space-y-3">
+                  {!carsData ? (
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Loading fleet...
+                    </div>
+                  ) : carsData.cars.length === 0 ? (
+                    <p className="text-muted-foreground text-xs">No cars in the fleet yet.</p>
+                  ) : (
+                    <>
+                      <p className="text-muted-foreground text-xs">
+                        Select the GLA fleet vehicles this co-host will manage. Only these cars will appear in their co-host view.
+                      </p>
+                      <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-md p-2">
+                        {carsData.cars.map((car) => {
+                          const label = [car.year, car.make, car.model].filter(Boolean).join(" ");
+                          const sub = [car.licensePlate, car.color].filter(Boolean).join(" · ");
+                          return (
+                            <label
+                              key={car.id}
+                              className="flex items-start gap-2 cursor-pointer hover:bg-muted/40 rounded px-1 py-0.5 transition-colors"
+                            >
+                              <Checkbox
+                                checked={selectedCarAids.has(car.id)}
+                                onCheckedChange={(checked) => {
+                                  setSelectedCarAids((prev) => {
+                                    const next = new Set(prev);
+                                    checked ? next.add(car.id) : next.delete(car.id);
+                                    return next;
+                                  });
+                                }}
+                                className="mt-0.5 shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <span className="text-foreground text-xs font-medium">{label || `Car #${car.id}`}</span>
+                                {sub && <span className="text-muted-foreground text-xs ml-1">— {sub}</span>}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground text-xs">
+                          {selectedCarAids.size} vehicle{selectedCarAids.size !== 1 ? "s" : ""} selected
+                        </span>
+                        <Button
+                          size="sm"
+                          className="bg-primary text-primary-foreground hover:bg-primary/80"
+                          disabled={saveVehiclesMutation.isPending}
+                          onClick={() => saveVehiclesMutation.mutate({ id: viewCoHost.id, carAids: Array.from(selectedCarAids) })}
+                        >
+                          {saveVehiclesMutation.isPending
+                            ? <><Loader2 className="w-3 h-3 animate-spin mr-1" /> Saving...</>
+                            : <><Save className="w-3 h-3 mr-1" /> Save Assignments</>
+                          }
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </DetailSection>
 
               {/* Approval actions */}
               {viewCoHost.status === "pending" && (
