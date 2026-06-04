@@ -385,28 +385,35 @@ export default function CarBlockOffPage() {
 
         {/* Pickup Form */}
         {mode === "start" && (
-          <Card className="bg-card border-border max-w-2xl">
+          <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-foreground text-lg">Car Block Off Start – Car Owner Pick Up</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePickupSubmit} className="space-y-4">
-                <div>
-                  <Label className="text-muted-foreground text-sm">Car *</Label>
-                  <CarSelect
-                    value={carIdStr}
-                    onChange={(v, car) => {
-                      setCarIdStr(v);
-                      if (car) {
-                        setCarName(`${car.makeModel}${car.year ? ` (${car.year})` : ""}`);
-                        setPlateNumber(car.licensePlate ?? "");
-                      }
-                    }}
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Car *</Label>
+                    <CarSelect
+                      value={carIdStr}
+                      onChange={(v, car) => {
+                        setCarIdStr(v);
+                        if (car) {
+                          setCarName(`${car.makeModel}${car.year ? ` (${car.year})` : ""}`);
+                          setPlateNumber(car.licensePlate ?? "");
+                        }
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Car Owner Name *</Label>
+                    <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)}
+                      className="bg-card border-border text-foreground" placeholder="Full name" />
+                  </div>
                 </div>
 
                 {carIdStr && (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-muted-foreground text-sm">Car Name</Label>
                       <Input value={carName} onChange={(e) => setCarName(e.target.value)}
@@ -420,10 +427,17 @@ export default function CarBlockOffPage() {
                   </div>
                 )}
 
-                <div>
-                  <Label className="text-muted-foreground text-sm">Car Owner Name *</Label>
-                  <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)}
-                    className="bg-card border-border text-foreground" placeholder="Full name" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Pick Up Date & Time *</Label>
+                    <Input type="datetime-local" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)}
+                      className="bg-card border-border text-foreground" />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Pick Up Location *</Label>
+                    <Input value={pickupLocation} onChange={(e) => setPickupLocation(e.target.value)}
+                      className="bg-card border-border text-foreground" placeholder="Address or description" />
+                  </div>
                 </div>
 
                 <div>
@@ -454,19 +468,6 @@ export default function CarBlockOffPage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-muted-foreground text-sm">Pick Up Date & Time *</Label>
-                    <Input type="datetime-local" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)}
-                      className="bg-card border-border text-foreground" />
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground text-sm">Pick Up Location *</Label>
-                    <Input value={pickupLocation} onChange={(e) => setPickupLocation(e.target.value)}
-                      className="bg-card border-border text-foreground" placeholder="Address or description" />
-                  </div>
-                </div>
-
                 <div>
                   <Label className="text-muted-foreground text-sm">Notes</Label>
                   <Textarea value={notes} onChange={(e) => setNotes(e.target.value)}
@@ -484,27 +485,28 @@ export default function CarBlockOffPage() {
 
         {/* Drop-off Form */}
         {mode === "end" && (
-          <Card className="bg-card border-border max-w-2xl">
+          <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-foreground text-lg">Car Block Off End – Car Owner Drop Off</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleDropoffSubmit} className="space-y-4">
-                <div>
-                  <Label className="text-muted-foreground text-sm">Select Active Block-Off *</Label>
-                  <BlockOffSelect value={blockOffId} onChange={setBlockOffId} />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-muted-foreground text-sm">Drop Off Date & Time *</Label>
-                    <Input type="datetime-local" value={dropoffDate} onChange={(e) => setDropoffDate(e.target.value)}
-                      className="bg-card border-border text-foreground" />
+                    <Label className="text-muted-foreground text-sm">Select Active Block-Off *</Label>
+                    <BlockOffSelect value={blockOffId} onChange={setBlockOffId} />
                   </div>
-                  <div>
-                    <Label className="text-muted-foreground text-sm">Drop Off Location *</Label>
-                    <Input value={dropoffLocation} onChange={(e) => setDropoffLocation(e.target.value)}
-                      className="bg-card border-border text-foreground" placeholder="Address or description" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-1">
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Drop Off Date & Time *</Label>
+                      <Input type="datetime-local" value={dropoffDate} onChange={(e) => setDropoffDate(e.target.value)}
+                        className="bg-card border-border text-foreground" />
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Drop Off Location *</Label>
+                      <Input value={dropoffLocation} onChange={(e) => setDropoffLocation(e.target.value)}
+                        className="bg-card border-border text-foreground" placeholder="Address or description" />
+                    </div>
                   </div>
                 </div>
 
