@@ -53,6 +53,8 @@ import PayrollByRunPage from "@/pages/admin/payroll/payroll-by-run";
 import PayslipPage from "@/pages/admin/payroll/payslip";
 import PayrollCommissionsPage from "@/pages/admin/payroll/commissions";
 import EmployeeFormPage from "@/pages/employee-form";
+import CoHostFormPage from "@/pages/co-host-form";
+import CoHostsPage from "@/pages/admin/co-hosts";
 import BouncieDevicesPage from "@/pages/admin/bouncie-devices";
 import BouncieFleetPage from "@/pages/admin/bouncie";
 import BouncieTripsPage from "@/pages/admin/bouncie-trips";
@@ -116,6 +118,7 @@ function Router() {
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/employee-form" component={EmployeeFormPage} />
+      <Route path="/co-host-form" component={CoHostFormPage} />
 
       {/*
         Protected / in-app routes share a single persistent <AdminLayout> shell.
@@ -202,6 +205,9 @@ function Router() {
             {/* Admin-only routes */}
             <Route path="/admin/admins">
               <RequireRole roles={["isAdmin"]}><AdminsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/co-hosts">
+              <RequireRole roles={["isAdmin"]}><CoHostsPage /></RequireRole>
             </Route>
             <Route path="/admin/clients/:id">
               <RequireRole roles={["isAdmin"]}><ClientDetailPage /></RequireRole>
