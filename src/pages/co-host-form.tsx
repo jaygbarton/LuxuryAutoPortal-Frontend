@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, Loader2, X, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 
@@ -38,15 +39,58 @@ const schema = z.object({
   emergencyNumber: z.string().min(1, "Required"),
   ssnEin: z.string().min(1, "Required"),
   shirtSize: z.string().min(1, "Required"),
-  // Co-host specific
-  vehicleMake: z.string().min(1, "Required"),
-  vehicleModel: z.string().min(1, "Required"),
-  vehicleYear: z.string().min(1, "Required"),
-  vehicleVin: z.string().min(1, "Required"),
-  vehicleLicensePlate: z.string().min(1, "Required"),
-  turoProfileUrl: z.string().optional().default(""),
-  bankAccountInfo: z.string().optional().default(""),
   coHostSplitPercent: z.string().min(1, "Required"),
+  // Vehicle fields — only required when ownsVehicle = true
+  vehicleMake: z.string().optional().default(""),
+  vehicleModel: z.string().optional().default(""),
+  vehicleYear: z.string().optional().default(""),
+  vehicleTrim: z.string().optional().default(""),
+  vehicleMiles: z.string().optional().default(""),
+  exteriorColor: z.string().optional().default(""),
+  interiorColor: z.string().optional().default(""),
+  titleType: z.string().optional().default(""),
+  vehicleVin: z.string().optional().default(""),
+  vehicleLicensePlate: z.string().optional().default(""),
+  registrationExpiration: z.string().optional().default(""),
+  vehicleRecall: z.string().optional().default(""),
+  numberOfSeats: z.string().optional().default(""),
+  numberOfDoors: z.string().optional().default(""),
+  skiRacks: z.string().optional().default(""),
+  skiCrossBars: z.string().optional().default(""),
+  roofRails: z.string().optional().default(""),
+  lastOilChange: z.string().optional().default(""),
+  oilType: z.string().optional().default(""),
+  freeDealershipOilChanges: z.string().optional().default(""),
+  oilPackageDetails: z.string().optional().default(""),
+  dealershipAddress: z.string().optional().default(""),
+  fuelType: z.string().optional().default(""),
+  tireSize: z.string().optional().default(""),
+  vehicleFeatures: z.array(z.string()).optional().default([]),
+  turoProfileUrl: z.string().optional().default(""),
+  // Insurance
+  insuranceProvider: z.string().optional().default(""),
+  insurancePhone: z.string().optional().default(""),
+  policyNumber: z.string().optional().default(""),
+  insuranceExpiration: z.string().optional().default(""),
+  // Purchase
+  purchasePrice: z.string().optional().default(""),
+  interestRate: z.string().optional().default(""),
+  monthlyPayment: z.string().optional().default(""),
+  downPayment: z.string().optional().default(""),
+  transportCityToCity: z.string().optional().default(""),
+  ultimateGoal: z.string().optional().default(""),
+  // ACH
+  bankName: z.string().optional().default(""),
+  taxClassification: z.string().optional().default(""),
+  routingNumber: z.string().optional().default(""),
+  accountNumber: z.string().optional().default(""),
+  businessName: z.string().optional().default(""),
+  ein: z.string().optional().default(""),
+  bankAccountInfo: z.string().optional().default(""),
+  // Car login
+  carManufacturerWebsite: z.string().optional().default(""),
+  carManufacturerUsername: z.string().optional().default(""),
+  carPassword: z.string().optional().default(""),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -55,9 +99,18 @@ const ACCEPTED_DOC_TYPES = "image/jpeg,image/jpg,image/png,image/gif,image/webp,
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
+const VEHICLE_FEATURES_LIST = [
+  "All-wheel drive", "AUX input", "Blind Spot Warning", "Convertible",
+  "Keyless Entry", "Snow Tires or Chains", "USB Charger", "Android Auto",
+  "Back Up Camera", "Bluetooth", "GPS", "Pet Friendly",
+  "Sunroof", "USB Input", "Apple CarPlay", "Bike Rack",
+  "Toll Pass", "Wheelchair Accessible",
+];
+
 export default function CoHostFormPage() {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
+  const [ownsVehicle, setOwnsVehicle] = useState(false);
   const [driverLicenseFile, setDriverLicenseFile] = useState<File | null>(null);
   const [carInsuranceFile, setCarInsuranceFile] = useState<File | null>(null);
   const [vehicleRegistrationFile, setVehicleRegistrationFile] = useState<File | null>(null);
@@ -65,42 +118,51 @@ export default function CoHostFormPage() {
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      middleName: "",
-      email: "",
-      birthday: "",
-      maritalStatus: "",
-      street: "",
-      city: "",
-      state: "",
-      country: "",
-      zipCode: "",
-      telephone: "",
-      mobileNumber: "",
-      motherName: "",
-      fatherName: "",
-      homeContact: "",
-      homeAddress: "",
-      emergencyContactPerson: "",
-      emergencyRelationship: "",
-      emergencyAddress: "",
-      emergencyNumber: "",
-      ssnEin: "",
-      shirtSize: "",
-      vehicleMake: "",
-      vehicleModel: "",
-      vehicleYear: "",
-      vehicleVin: "",
-      vehicleLicensePlate: "",
-      turoProfileUrl: "",
-      bankAccountInfo: "",
-      coHostSplitPercent: "",
+      firstName: "", lastName: "", middleName: "", email: "",
+      birthday: "", maritalStatus: "",
+      street: "", city: "", state: "", country: "", zipCode: "",
+      telephone: "", mobileNumber: "",
+      motherName: "", fatherName: "", homeContact: "", homeAddress: "",
+      emergencyContactPerson: "", emergencyRelationship: "", emergencyAddress: "", emergencyNumber: "",
+      ssnEin: "", shirtSize: "", coHostSplitPercent: "",
+      vehicleMake: "", vehicleModel: "", vehicleYear: "", vehicleTrim: "",
+      vehicleMiles: "", exteriorColor: "", interiorColor: "", titleType: "",
+      vehicleVin: "", vehicleLicensePlate: "", registrationExpiration: "",
+      vehicleRecall: "", numberOfSeats: "", numberOfDoors: "",
+      skiRacks: "", skiCrossBars: "", roofRails: "",
+      lastOilChange: "", oilType: "", freeDealershipOilChanges: "",
+      oilPackageDetails: "", dealershipAddress: "", fuelType: "", tireSize: "",
+      vehicleFeatures: [], turoProfileUrl: "",
+      insuranceProvider: "", insurancePhone: "", policyNumber: "", insuranceExpiration: "",
+      purchasePrice: "", interestRate: "", monthlyPayment: "", downPayment: "",
+      transportCityToCity: "", ultimateGoal: "",
+      bankName: "", taxClassification: "", routingNumber: "", accountNumber: "",
+      businessName: "", ein: "", bankAccountInfo: "",
+      carManufacturerWebsite: "", carManufacturerUsername: "", carPassword: "",
     },
   });
 
   const mutation = useMutation({
     mutationFn: async (values: FormData) => {
+      if (ownsVehicle) {
+        const requiredVehicleFields: (keyof FormData)[] = [
+          "vehicleMake", "vehicleModel", "vehicleYear", "vehicleTrim", "vehicleMiles",
+          "exteriorColor", "interiorColor", "titleType", "vehicleVin", "vehicleLicensePlate",
+          "registrationExpiration", "vehicleRecall", "numberOfSeats", "numberOfDoors",
+          "skiRacks", "skiCrossBars", "roofRails", "lastOilChange", "oilType",
+          "freeDealershipOilChanges", "fuelType", "tireSize",
+          "insuranceProvider", "insurancePhone", "policyNumber", "insuranceExpiration",
+          "purchasePrice", "interestRate", "monthlyPayment", "downPayment",
+          "transportCityToCity", "ultimateGoal",
+          "bankName", "taxClassification", "routingNumber", "accountNumber",
+          "carManufacturerWebsite", "carManufacturerUsername", "carPassword",
+        ];
+        const missing = requiredVehicleFields.filter((f) => !values[f]);
+        if (missing.length > 0) throw new Error("Please fill in all required vehicle fields.");
+        if (!values.vehicleFeatures || values.vehicleFeatures.length === 0)
+          throw new Error("Please select at least one vehicle feature.");
+      }
+
       if (driverLicenseFile && driverLicenseFile.size > MAX_FILE_SIZE_BYTES)
         throw new Error(`Driver's license must be under ${MAX_FILE_SIZE_MB}MB`);
       if (carInsuranceFile && carInsuranceFile.size > MAX_FILE_SIZE_BYTES)
@@ -108,7 +170,7 @@ export default function CoHostFormPage() {
       if (vehicleRegistrationFile && vehicleRegistrationFile.size > MAX_FILE_SIZE_BYTES)
         throw new Error(`Vehicle registration must be under ${MAX_FILE_SIZE_MB}MB`);
 
-      const payload = { ...values, link: window.location.origin };
+      const payload = { ...values, ownsVehicle, link: window.location.origin };
       const formData = new FormData();
       formData.append("data", JSON.stringify(payload));
       if (driverLicenseFile) formData.append("driver_license", driverLicenseFile, driverLicenseFile.name);
@@ -141,6 +203,9 @@ export default function CoHostFormPage() {
   const [, setLocation] = useLocation();
   const { register, handleSubmit, formState, setValue, watch } = form;
   const { errors } = formState;
+
+  const freeOilChanges = watch("freeDealershipOilChanges");
+  const vehicleFeatures = watch("vehicleFeatures") || [];
 
   if (submitted) {
     return (
@@ -325,41 +390,414 @@ export default function CoHostFormPage() {
                 </div>
               </section>
 
-              {/* Vehicle Information */}
-              <section className="space-y-4">
-                <h2 className="text-lg font-semibold text-primary border-b border-primary/30 pb-2">Vehicle Information</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground">Vehicle Make *</Label>
-                    <Input {...register("vehicleMake")} placeholder="e.g. Toyota" className="bg-card border-border text-foreground" />
-                    {errors.vehicleMake && <p className="text-red-700 text-xs">{errors.vehicleMake.message}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground">Vehicle Model *</Label>
-                    <Input {...register("vehicleModel")} placeholder="e.g. Camry" className="bg-card border-border text-foreground" />
-                    {errors.vehicleModel && <p className="text-red-700 text-xs">{errors.vehicleModel.message}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground">Vehicle Year *</Label>
-                    <Input {...register("vehicleYear")} placeholder="e.g. 2022" className="bg-card border-border text-foreground" />
-                    {errors.vehicleYear && <p className="text-red-700 text-xs">{errors.vehicleYear.message}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground">VIN # *</Label>
-                    <Input {...register("vehicleVin")} className="bg-card border-border text-foreground" />
-                    {errors.vehicleVin && <p className="text-red-700 text-xs">{errors.vehicleVin.message}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground">License Plate *</Label>
-                    <Input {...register("vehicleLicensePlate")} className="bg-card border-border text-foreground" />
-                    {errors.vehicleLicensePlate && <p className="text-red-700 text-xs">{errors.vehicleLicensePlate.message}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground">Turo Profile URL</Label>
-                    <Input {...register("turoProfileUrl")} placeholder="https://turo.com/..." className="bg-card border-border text-foreground" />
-                  </div>
-                </div>
-              </section>
+              {/* Owns Vehicle Checkbox */}
+              <div className="flex items-center gap-3 p-4 border border-primary/30 rounded-lg bg-primary/5">
+                <Checkbox
+                  id="owns-vehicle"
+                  checked={ownsVehicle}
+                  onCheckedChange={(checked) => setOwnsVehicle(!!checked)}
+                  className="border-primary"
+                />
+                <Label htmlFor="owns-vehicle" className="text-foreground font-medium cursor-pointer">
+                  I own a vehicle and would like to include it in the program
+                </Label>
+              </div>
+
+              {ownsVehicle && (
+                <>
+                  {/* Vehicle Information */}
+                  <section className="space-y-4">
+                    <h2 className="text-lg font-semibold text-primary border-b border-primary/30 pb-2">Vehicle Information</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Vehicle Year *</Label>
+                        <Input {...register("vehicleYear")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Vehicle Make *</Label>
+                        <Input {...register("vehicleMake")} placeholder="e.g. Mercedes-Benz" className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Vehicle Model *</Label>
+                        <Input {...register("vehicleModel")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Vehicle Trim *</Label>
+                        <Input {...register("vehicleTrim")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Vehicle Miles *</Label>
+                        <Input {...register("vehicleMiles")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Exterior Color *</Label>
+                        <Input {...register("exteriorColor")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Interior Color *</Label>
+                        <Input {...register("interiorColor")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Title Type *</Label>
+                        <Select
+                          value={watch("titleType")}
+                          onValueChange={(v) => setValue("titleType", v, { shouldValidate: true })}
+                        >
+                          <SelectTrigger className="bg-card border-border text-foreground">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border text-foreground">
+                            {["Clean", "Salvage", "Rebuilt", "Branded", "Other"].map((t) => (
+                              <SelectItem key={t} value={t}>{t}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">VIN # *</Label>
+                        <Input {...register("vehicleVin")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">License Plate *</Label>
+                        <Input {...register("vehicleLicensePlate")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Registration Expiration *</Label>
+                        <Input
+                          {...register("registrationExpiration")}
+                          type="date"
+                          className="bg-card border-border text-foreground [&::-webkit-calendar-picker-indicator]:invert"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Vehicle Recall *</Label>
+                        <Select
+                          value={watch("vehicleRecall")}
+                          onValueChange={(v) => setValue("vehicleRecall", v, { shouldValidate: true })}
+                        >
+                          <SelectTrigger className="bg-card border-border text-foreground">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border text-foreground">
+                            <SelectItem value="Yes">Yes</SelectItem>
+                            <SelectItem value="No">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 mb-2 text-center">
+                      <p className="text-sm text-muted-foreground mb-1">
+                        If You're Not Sure If Your Vehicle May Have a Recall You Can Check Here:
+                      </p>
+                      <a
+                        href="https://www.nhtsa.gov/recalls"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:text-primary/80 underline font-medium"
+                      >
+                        National Highway Traffic Safety Administration (NHTSA)
+                      </a>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Number of Seats *</Label>
+                        <Input {...register("numberOfSeats")} type="number" min="1" placeholder="e.g. 5" className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Number of Doors *</Label>
+                        <Input {...register("numberOfDoors")} type="number" min="1" placeholder="e.g. 4" className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Ski Racks *</Label>
+                        <Select
+                          value={watch("skiRacks")}
+                          onValueChange={(v) => setValue("skiRacks", v)}
+                        >
+                          <SelectTrigger className="bg-card border-border text-foreground">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border text-foreground">
+                            <SelectItem value="Yes">Yes</SelectItem>
+                            <SelectItem value="No">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Ski Cross Bars *</Label>
+                        <Select
+                          value={watch("skiCrossBars")}
+                          onValueChange={(v) => setValue("skiCrossBars", v)}
+                        >
+                          <SelectTrigger className="bg-card border-border text-foreground">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border text-foreground">
+                            <SelectItem value="Yes">Yes</SelectItem>
+                            <SelectItem value="No">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Roof Rails *</Label>
+                        <Select
+                          value={watch("roofRails")}
+                          onValueChange={(v) => setValue("roofRails", v)}
+                        >
+                          <SelectTrigger className="bg-card border-border text-foreground">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border text-foreground">
+                            <SelectItem value="Yes">Yes</SelectItem>
+                            <SelectItem value="No">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Last Oil Change *</Label>
+                        <Input
+                          {...register("lastOilChange")}
+                          type="date"
+                          className="bg-card border-border text-foreground [&::-webkit-calendar-picker-indicator]:invert"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Oil Type *</Label>
+                        <Input {...register("oilType")} placeholder="e.g. 5W-30" className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Does Your Vehicle Have Free Dealership Oil Changes? *</Label>
+                        <Select
+                          value={watch("freeDealershipOilChanges")}
+                          onValueChange={(v) => setValue("freeDealershipOilChanges", v)}
+                        >
+                          <SelectTrigger className="bg-card border-border text-foreground">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border text-foreground">
+                            <SelectItem value="Yes">Yes</SelectItem>
+                            <SelectItem value="No">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-muted-foreground">
+                        If Yes, For How Many Years of Oil Changes OR What Oil Package
+                        {freeOilChanges === "Yes" ? " *" : ""}
+                      </Label>
+                      <Input
+                        {...register("oilPackageDetails")}
+                        placeholder={freeOilChanges === "Yes" ? "e.g. 2 years / Premium oil package" : "Select \"Yes\" above to enable"}
+                        disabled={freeOilChanges !== "Yes"}
+                        className="bg-card border-border text-foreground disabled:opacity-60"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-muted-foreground">Address of Dealership (If Applicable)</Label>
+                      <Input {...register("dealershipAddress")} placeholder="Dealership address (optional)" className="bg-card border-border text-foreground" />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Fuel Type *</Label>
+                        <Select
+                          value={watch("fuelType")}
+                          onValueChange={(v) => setValue("fuelType", v)}
+                        >
+                          <SelectTrigger className="bg-card border-border text-foreground">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border text-foreground">
+                            {["Regular", "Premium", "Premium 91 Unleaded", "Regular Unleaded", "91 Unleaded", "Gasoline", "Electric", "Diesel", "Others"].map((f) => (
+                              <SelectItem key={f} value={f}>{f}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Tire Size *</Label>
+                        <Input {...register("tireSize")} placeholder="e.g. 225/45R17" className="bg-card border-border text-foreground" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-muted-foreground">Turo Profile URL</Label>
+                      <Input {...register("turoProfileUrl")} placeholder="https://turo.com/..." className="bg-card border-border text-foreground" />
+                    </div>
+
+                    {/* Vehicle Features */}
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground font-semibold">
+                        Features (check all that apply) <span className="text-red-500">* Required</span>
+                      </Label>
+                      <div className="border border-primary/30 rounded-lg p-4 grid grid-cols-2 gap-3">
+                        {VEHICLE_FEATURES_LIST.map((feature) => (
+                          <div key={feature} className="flex items-center gap-2">
+                            <Checkbox
+                              id={`feature-${feature}`}
+                              checked={vehicleFeatures.includes(feature)}
+                              onCheckedChange={(checked) => {
+                                const current = vehicleFeatures;
+                                setValue(
+                                  "vehicleFeatures",
+                                  checked ? [...current, feature] : current.filter((f) => f !== feature)
+                                );
+                              }}
+                            />
+                            <Label htmlFor={`feature-${feature}`} className="text-muted-foreground text-sm font-normal cursor-pointer">
+                              {feature}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Vehicle Insurance Info */}
+                  <section className="space-y-4">
+                    <h2 className="text-lg font-semibold text-primary border-b border-primary/30 pb-2">Vehicle Insurance Info</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Insurance Provider *</Label>
+                        <Input {...register("insuranceProvider")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Insurance Phone *</Label>
+                        <Input {...register("insurancePhone")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Policy # *</Label>
+                        <Input {...register("policyNumber")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Expiration *</Label>
+                        <Input
+                          {...register("insuranceExpiration")}
+                          type="date"
+                          className="bg-card border-border text-foreground [&::-webkit-calendar-picker-indicator]:invert"
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Vehicle Purchase Info */}
+                  <section className="space-y-4">
+                    <h2 className="text-lg font-semibold text-primary border-b border-primary/30 pb-2">Vehicle Purchase Info</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Purchase Price *</Label>
+                        <Input {...register("purchasePrice")} placeholder="e.g. 50000" className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Interest Rate *</Label>
+                        <Input {...register("interestRate")} placeholder="e.g. 3.5" className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Monthly Payment *</Label>
+                        <Input {...register("monthlyPayment")} placeholder="e.g. 750" className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Down Payment *</Label>
+                        <Input {...register("downPayment")} placeholder="e.g. 10000" className="bg-card border-border text-foreground" />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-muted-foreground">
+                        To maximize profits, would you like us to transport the vehicle from city to city if necessary? (US only) *
+                      </Label>
+                      <Select
+                        value={watch("transportCityToCity")}
+                        onValueChange={(v) => setValue("transportCityToCity", v)}
+                      >
+                        <SelectTrigger className="bg-card border-border text-foreground">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border text-foreground">
+                          <SelectItem value="Yes">Yes</SelectItem>
+                          <SelectItem value="No">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-muted-foreground">What is your ultimate goal we can help you achieve with our program *</Label>
+                      <Textarea
+                        {...register("ultimateGoal")}
+                        placeholder="Tell us about your goals..."
+                        className="bg-card border-border text-foreground min-h-[100px]"
+                      />
+                    </div>
+                  </section>
+
+                  {/* ACH Direct Deposit */}
+                  <section className="space-y-4">
+                    <h2 className="text-lg font-semibold text-primary border-b border-primary/30 pb-2">ACH Direct Deposit Payment Information</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Bank Name *</Label>
+                        <Input {...register("bankName")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Tax Classification *</Label>
+                        <Select
+                          value={watch("taxClassification")}
+                          onValueChange={(v) => setValue("taxClassification", v)}
+                        >
+                          <SelectTrigger className="bg-card border-border text-foreground">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border text-foreground">
+                            <SelectItem value="Individual">Individual</SelectItem>
+                            <SelectItem value="Business">Business</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Routing Number *</Label>
+                        <Input {...register("routingNumber")} placeholder="9 digits" maxLength={9} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Account Number *</Label>
+                        <Input {...register("accountNumber")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Business Name</Label>
+                        <Input {...register("businessName")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">EIN</Label>
+                        <Input {...register("ein")} placeholder="XX-XXXXXXX" className="bg-card border-border text-foreground" />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-muted-foreground">Additional Bank Account Info (optional)</Label>
+                      <Input {...register("bankAccountInfo")} placeholder="Bank name, account #, routing #" className="bg-card border-border text-foreground" />
+                    </div>
+                  </section>
+
+                  {/* Car Login Information */}
+                  <section className="space-y-4">
+                    <h2 className="text-lg font-semibold text-primary border-b border-primary/30 pb-2">Car Login Information</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Car Manufacturer Website *</Label>
+                        <Input {...register("carManufacturerWebsite")} placeholder="https://..." className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Car Manufacturer Username *</Label>
+                        <Input {...register("carManufacturerUsername")} className="bg-card border-border text-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Password *</Label>
+                        <Input {...register("carPassword")} type="password" className="bg-card border-border text-foreground" />
+                      </div>
+                    </div>
+                  </section>
+                </>
+              )}
 
               {/* Co-Host Agreement */}
               <section className="space-y-4">
@@ -381,10 +819,6 @@ export default function CoHostFormPage() {
                       </SelectContent>
                     </Select>
                     {errors.coHostSplitPercent && <p className="text-red-700 text-xs">{errors.coHostSplitPercent.message}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground">Bank Account Info (optional)</Label>
-                    <Input {...register("bankAccountInfo")} placeholder="Bank name, account #, routing #" className="bg-card border-border text-foreground" />
                   </div>
                 </div>
               </section>
@@ -418,7 +852,6 @@ export default function CoHostFormPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                  {/* Driver's License */}
                   <FileUploadField
                     label="Driver's License (optional)"
                     accept={ACCEPTED_DOC_TYPES}
@@ -427,7 +860,6 @@ export default function CoHostFormPage() {
                     onFile={setDriverLicenseFile}
                     inputId="dl-upload"
                   />
-                  {/* Car Insurance */}
                   <FileUploadField
                     label="Car Insurance (optional)"
                     accept={ACCEPTED_DOC_TYPES}
@@ -436,7 +868,6 @@ export default function CoHostFormPage() {
                     onFile={setCarInsuranceFile}
                     inputId="ci-upload"
                   />
-                  {/* Vehicle Registration */}
                   <FileUploadField
                     label="Vehicle Registration (optional)"
                     accept={ACCEPTED_DOC_TYPES}
