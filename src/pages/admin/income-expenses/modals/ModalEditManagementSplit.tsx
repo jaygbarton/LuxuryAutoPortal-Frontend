@@ -1,4 +1,4 @@
-// Modal for CAR MANAGEMENT OWNER SPLIT category
+// Modal for CO HOSTING ACCESS category
 import React from "react";
 import {
   Dialog,

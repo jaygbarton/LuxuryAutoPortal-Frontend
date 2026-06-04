@@ -1947,9 +1947,9 @@ export default function IncomeExpenseTable({
           </thead>
 
           <tbody>
-            {/* CAR MANAGEMENT AND OWNER SPLIT */}
+            {/* CO HOSTING ACCESS */}
             <CategorySection
-              title="CAR MANAGEMENT OWNER SPLIT"
+              title="CO HOSTING ACCESS"
               isExpanded={expandedSections.managementOwner}
               onToggle={() => toggleSection("managementOwner")}
             >

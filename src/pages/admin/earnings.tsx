@@ -1387,9 +1387,9 @@ export default function EarningsPage() {
                 </tr>
               </thead>
               <tbody className="relative">
-                {/* CAR MANAGEMENT OWNER SPLIT */}
+                {/* CO HOSTING ACCESS */}
                 <CategorySection
-                  title="CAR MANAGEMENT OWNER SPLIT"
+                  title="CO HOSTING ACCESS"
                   isExpanded={expandedSections.managementOwner}
                   onToggle={() => toggleSection("managementOwner")}
                 >

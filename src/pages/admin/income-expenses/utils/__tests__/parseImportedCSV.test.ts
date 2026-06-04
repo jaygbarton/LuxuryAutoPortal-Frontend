@@ -61,7 +61,7 @@ function makeCSV(overrides: { [section: string]: string[] } = {}): string {
     `TURO LINK,N/A`,
     `ADMIN TURO LINK,N/A`,
     ``,
-    `SECTION,CAR MANAGEMENT OWNER SPLIT`,
+    `SECTION,CO HOSTING ACCESS`,
     `Mode Settings,Jan 2024: 50,Feb 2024: 70,Mar 2024: 50,Apr 2024: 50,May 2024: 50,Jun 2024: 50,Jul 2024: 50,Aug 2024: 50,Sep 2024: 50,Oct 2024: 50,Nov 2024: 50,Dec 2024: 50`,
     `Category,${months},YER,YER SPLIT,TOTAL`,
     `Car Management Split,$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00 (30%),$0.00,$0.00,$0.00`,

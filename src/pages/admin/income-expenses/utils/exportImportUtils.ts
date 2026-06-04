@@ -763,9 +763,9 @@ export function buildIncomeExpenseCSV(
   csvContent += `\n`;
   
   // ========================================
-  // SECTION 1: CAR MANAGEMENT OWNER SPLIT
+  // SECTION 1: CO HOSTING ACCESS
   // ========================================
-  csvContent += `SECTION,CAR MANAGEMENT OWNER SPLIT\n`;
+  csvContent += `SECTION,CO HOSTING ACCESS\n`;
   csvContent += `Mode Settings,`;
   MONTHS.forEach((month, idx) => {
     csvContent += `${month} ${year}: ${monthModes[idx + 1] || 50},`;
@@ -1788,14 +1788,14 @@ export function parseImportedCSV(
         'REIMBURSE AND NON-REIMBURSE BILLS',
         'REIMBURSE & NON-REIMBURSE BILLS',
         'HISTORY',
-        'CAR MANAGEMENT OWNER SPLIT',
+        'CO HOSTING ACCESS',
       ];
       const isKnownLegacyName = KNOWN_LEGACY_SECTION_NAMES.includes(normalized);
       const looksLikeLegacySectionHeader = !isNewSectionRow && isKnownLegacyName;
 
-      // Parse Mode Settings row inside CAR MANAGEMENT OWNER SPLIT section.
+      // Parse Mode Settings row inside CO HOSTING ACCESS section.
       // Format: "Mode Settings,Jan 2026: 50,Feb 2026: 70,..."
-      if (currentSection === 'CAR MANAGEMENT OWNER SPLIT' && firstCell === 'MODE SETTINGS') {
+      if (currentSection === 'CO HOSTING ACCESS' && firstCell === 'MODE SETTINGS') {
         for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
           const cell = cells[monthIdx + 1] || '';
           // Extract the number after the colon (e.g. "Jan 2026: 70" → 70)
@@ -1814,7 +1814,7 @@ export function parseImportedCSV(
       // Format: "Car Management Split,$1234.56 (30%),...". We only care about
       // the percentage embedded in each cell — not the calculated dollar amount.
       if (
-        currentSection === 'CAR MANAGEMENT OWNER SPLIT' &&
+        currentSection === 'CO HOSTING ACCESS' &&
         (firstCell === 'CAR MANAGEMENT SPLIT' || firstCell === 'CAR OWNER SPLIT')
       ) {
         const field = firstCell === 'CAR MANAGEMENT SPLIT' ? 'carManagementSplit' : 'carOwnerSplit';
@@ -1832,8 +1832,8 @@ export function parseImportedCSV(
       if (isNewSectionRow || looksLikeLegacySectionHeader) {
         const sectionLabel = isNewSectionRow ? cells[1].toUpperCase() : firstCell;
 
-        if (sectionLabel.includes('CAR MANAGEMENT OWNER SPLIT')) {
-          currentSection = 'CAR MANAGEMENT OWNER SPLIT';
+        if (sectionLabel.includes('CO HOSTING ACCESS')) {
+          currentSection = 'CO HOSTING ACCESS';
           continue;
         }
         if (sectionLabel.includes('INCOME') && sectionLabel.includes('EXPENSES')) {
@@ -1881,7 +1881,7 @@ export function parseImportedCSV(
       }
       
       // Parse data rows based on current section.
-      // Skip: unrecognised sections, summary/total rows, and the CAR MANAGEMENT OWNER SPLIT section.
+      // Skip: unrecognised sections, summary/total rows, and the CO HOSTING ACCESS section.
       // "Car Payment" is a formula row inside INCOME & EXPENSES (skip it there),
       // but it is also a real data row inside COGS (keep it there).
       const isIncomeSection = currentSection === 'INCOME & EXPENSES';
@@ -1902,7 +1902,7 @@ export function parseImportedCSV(
         firstCell.includes('INCOME & EXPENSES') ||
         firstCell.includes('INCOME AND EXPENSES');
 
-      if (currentSection && currentSection !== 'SKIP' && currentSection !== 'CAR MANAGEMENT OWNER SPLIT' && cells.length > 1 && cells[0] && !isSummaryRow) {
+      if (currentSection && currentSection !== 'SKIP' && currentSection !== 'CO HOSTING ACCESS' && cells.length > 1 && cells[0] && !isSummaryRow) {
         const rowData: any = { category: cells[0] };
         
         // Parse 12 month values (columns 1-12)

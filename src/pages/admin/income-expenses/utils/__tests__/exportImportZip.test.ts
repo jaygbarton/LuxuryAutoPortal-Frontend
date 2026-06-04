@@ -144,7 +144,7 @@ function minimalValidCSV(): string {
     "CAR NAME,Test Car", "VIN #,VIN1", "LICENSE,ABC", "OWNER NAME,A B",
     "CONTACT #,0", "EMAIL,a@b.com", "FUEL/GAS,Gas", "TIRE SIZE,16",
     "OIL TYPE,Syn", "TURO LINK,N/A", "ADMIN TURO LINK,N/A", "",
-    "SECTION,CAR MANAGEMENT OWNER SPLIT",
+    "SECTION,CO HOSTING ACCESS",
     `Category,${months},YER,YER SPLIT,TOTAL`,
     zeroRow("Car Management Split"), zeroRow("Car Owner Split"), "",
     "SECTION,INCOME & EXPENSES",
@@ -305,7 +305,7 @@ describe("buildIncomeExpenseCSV", () => {
   });
 
   it("includes all required SECTION markers", () => {
-    expect(csv).toContain("SECTION,CAR MANAGEMENT OWNER SPLIT");
+    expect(csv).toContain("SECTION,CO HOSTING ACCESS");
     expect(csv).toContain("SECTION,INCOME & EXPENSES");
     expect(csv).toContain("SECTION,OPERATING EXPENSE (Direct Delivery)");
     expect(csv).toContain("SECTION,OPERATING EXPENSE (COGS - Per Vehicle)");
