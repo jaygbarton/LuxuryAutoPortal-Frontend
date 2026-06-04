@@ -39,7 +39,6 @@ const schema = z.object({
   emergencyNumber: z.string().min(1, "Required"),
   ssnEin: z.string().min(1, "Required"),
   shirtSize: z.string().min(1, "Required"),
-  coHostSplitPercent: z.string().min(1, "Required"),
   // Vehicle fields — only required when ownsVehicle = true
   vehicleMake: z.string().optional().default(""),
   vehicleModel: z.string().optional().default(""),
@@ -124,7 +123,7 @@ export default function CoHostFormPage() {
       telephone: "", mobileNumber: "",
       motherName: "", fatherName: "", homeContact: "", homeAddress: "",
       emergencyContactPerson: "", emergencyRelationship: "", emergencyAddress: "", emergencyNumber: "",
-      ssnEin: "", shirtSize: "", coHostSplitPercent: "",
+      ssnEin: "", shirtSize: "",
       vehicleMake: "", vehicleModel: "", vehicleYear: "", vehicleTrim: "",
       vehicleMiles: "", exteriorColor: "", interiorColor: "", titleType: "",
       vehicleVin: "", vehicleLicensePlate: "", registrationExpiration: "",
@@ -798,30 +797,6 @@ export default function CoHostFormPage() {
                   </section>
                 </>
               )}
-
-              {/* Co-Host Agreement */}
-              <section className="space-y-4">
-                <h2 className="text-lg font-semibold text-primary border-b border-primary/30 pb-2">Co-Host Agreement</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground">Co-Host Split % (Owner's share) *</Label>
-                    <Select
-                      value={watch("coHostSplitPercent")}
-                      onValueChange={(v) => setValue("coHostSplitPercent", v, { shouldValidate: true })}
-                    >
-                      <SelectTrigger className="bg-card border-border text-foreground">
-                        <SelectValue placeholder="Select split" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border text-foreground">
-                        {["50", "55", "60", "65", "70", "75", "80"].map((p) => (
-                          <SelectItem key={p} value={p}>{p}%</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.coHostSplitPercent && <p className="text-red-700 text-xs">{errors.coHostSplitPercent.message}</p>}
-                  </div>
-                </div>
-              </section>
 
               {/* Other / Documents */}
               <section className="space-y-4">
