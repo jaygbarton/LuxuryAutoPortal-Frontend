@@ -20,6 +20,7 @@ import MonthlyEmployeeStatsSection from "@/components/admin/dashboard/MonthlyEmp
 import TuroInspectionsSection from "@/components/admin/dashboard/TuroInspectionsSection";
 import CarIssuesSection from "@/components/admin/dashboard/CarIssuesSection";
 import CarPerformanceSection from "@/components/admin/dashboard/CarPerformanceSection";
+import CarBlockedOffSection from "@/components/admin/dashboard/CarBlockedOffSection";
 
 /* ── Section filter configuration ──
  * Admins can show/hide individual dashboard sections via a checkbox panel at
@@ -38,6 +39,7 @@ const ALL_SECTIONS: SectionDef[] = [
   { id: "income-expenses", label: "Income & Expenses" },
   { id: "airport-parking", label: "Airport Parking & Trips" },
   { id: "commissions", label: "Commissions" },
+  { id: "car-blocked-off", label: "Car Blocked Off" },
   { id: "operations", label: "Operations" },
   { id: "turo-inspections", label: "Turo Inspections" },
   { id: "car-issues", label: "Car Issues" },
@@ -376,6 +378,8 @@ export default function AdminDashboard() {
           {show["airport-parking"] && <AirportParkingSection year={selectedYear} />}
 
           {show["commissions"] && <CommissionsSection />}
+
+          {show["car-blocked-off"] && <CarBlockedOffSection />}
 
           {show["operations"] && <OperationsSection />}
 

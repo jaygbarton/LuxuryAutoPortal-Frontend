@@ -71,10 +71,11 @@ export function AdminPageLinks() {
   ];
 
   const operationsLinks = [
-    { href: "/admin/turo-trips",  icon: TrendingUp,    label: "Turo Trips" },
-    { href: "/admin/bouncie",     icon: Radio,         label: "Bouncie" },
-    { href: "/admin/operations",  icon: Anchor,        label: "Operations" },
-    { href: "/admin/forms",       icon: ClipboardList, label: "Forms" },
+    { href: "/admin/turo-trips",    icon: TrendingUp,    label: "Turo Trips" },
+    { href: "/admin/bouncie",       icon: Radio,         label: "Bouncie" },
+    { href: "/admin/operations",    icon: Anchor,        label: "Operations" },
+    { href: "/admin/car-block-off", icon: CalendarOff,   label: "Car Block Off" },
+    { href: "/admin/forms",         icon: ClipboardList, label: "Forms" },
   ];
 
   const hrLinks = [

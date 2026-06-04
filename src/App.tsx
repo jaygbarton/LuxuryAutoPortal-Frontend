@@ -92,6 +92,7 @@ import StaffCarRentalFormSubmit from "@/pages/staff/car-rental-form-submit";
 import StaffCommissionForm from "@/pages/staff/commission-form";
 import StaffCommissionFormMySubmissions from "@/pages/staff/commission-form-my-submissions";
 import TuroTripsPage from "@/pages/admin/turo-trips";
+import CarBlockOffPage from "@/pages/admin/CarBlockOff";
 import AdminTestimonialsPage from "@/pages/admin/testimonials";
 import AdminTuroGuidePage from "@/pages/admin/turo-guide";
 import NewsMediaPage from "@/pages/admin/news-media";
@@ -285,6 +286,9 @@ function Router() {
             </Route>
             <Route path="/admin/operations">
               <RequireRole roles={["isAdmin", "isEmployee"]}><OperationsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/car-block-off">
+              <RequireRole roles={["isAdmin", "isClient"]}><CarBlockOffPage /></RequireRole>
             </Route>
             <Route path="/admin/bouncie">
               <RequireRole roles={["isAdmin", "isEmployee"]}><BouncieFleetPage /></RequireRole>

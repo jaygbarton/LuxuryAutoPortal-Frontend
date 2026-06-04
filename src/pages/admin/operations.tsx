@@ -8,6 +8,7 @@ import { TuroInspectionTab } from "./operations/TuroInspectionTab";
 import { CarInspectionsTab } from "./operations/CarInspectionsTab";
 import { MaintenanceTab } from "./operations/MaintenanceTab";
 import { NoCarIssuesTab } from "./operations/NoCarIssuesTab";
+import { CarBlockOffTab } from "./operations/CarBlockOffTab";
 
 export default function OperationsPage() {
   return (
@@ -35,6 +36,9 @@ export default function OperationsPage() {
               <TabsTrigger value="inspections" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 Car Issues
               </TabsTrigger>
+              <TabsTrigger value="car-block-off" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
+                Car Block Off
+              </TabsTrigger>
               <TabsTrigger value="maintenance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 Maintenance
               </TabsTrigger>
@@ -55,6 +59,9 @@ export default function OperationsPage() {
           </TabsContent>
           <TabsContent value="inspections">
             <CarInspectionsTab />
+          </TabsContent>
+          <TabsContent value="car-block-off">
+            <CarBlockOffTab />
           </TabsContent>
           <TabsContent value="maintenance">
             <MaintenanceTab />
