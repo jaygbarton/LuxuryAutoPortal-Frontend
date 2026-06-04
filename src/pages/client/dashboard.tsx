@@ -29,6 +29,7 @@ import {
   PlusCircle,
   UserPlus,
   Map,
+  CalendarOff,
 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { differenceInDays } from "date-fns";
@@ -441,6 +442,7 @@ export default function ClientDashboard() {
   ];
 
   const supportLinks = [
+    { href: "/admin/car-block-off", icon: CalendarOff, label: "Car Block Off Form" },
     { href: "/client/offboarding-form", icon: ClipboardList, label: "Off-boarding Form" },
     { href: "https://rent.goldenluxuryauto.com/start-block", icon: Car, label: "Book Your Car", external: true },
     { href: "/tutorial",             icon: BookOpen,      label: "Training Manual" },
@@ -502,6 +504,16 @@ export default function ClientDashboard() {
             </Select>
           </div>
         )}
+
+        {/* Add Car Block Off button */}
+        <div className="flex justify-end">
+          <a href="/admin/car-block-off">
+            <button className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 font-medium px-4 py-2 rounded-md text-sm transition-colors">
+              <CalendarOff className="w-4 h-4" />
+              Add Car Block Off
+            </button>
+          </a>
+        </div>
 
         {/* ROW 1 (top): News & Media slots — moved from previous third position */}
         {newsLoading ? (

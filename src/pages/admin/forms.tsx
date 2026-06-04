@@ -991,6 +991,19 @@ export default function FormsPage() {
       icon: Car,
     };
 
+    const carBlockOffStartItem: FormItem = {
+      id: "car-block-off-start",
+      title: "Car Block Off Start – Car Owner Pick Up",
+      icon: Car,
+      externalUrl: "/admin/car-block-off",
+    };
+    const carBlockOffEndItem: FormItem = {
+      id: "car-block-off-end",
+      title: "Car Block Off End – Car Owner Drop Off",
+      icon: Car,
+      externalUrl: "/admin/car-block-off",
+    };
+
     if (formVisibilityData?.isAdmin) {
       return [
         {
@@ -1046,6 +1059,12 @@ export default function FormsPage() {
           title: "Car Issue Form",
           icon: Car,
           items: [carIssueSubmitItem],
+        },
+        {
+          id: "car-block-off-forms",
+          title: "Car Block Off Form",
+          icon: Car,
+          items: [carBlockOffStartItem, carBlockOffEndItem],
         },
       ];
     }
@@ -1116,6 +1135,12 @@ export default function FormsPage() {
           title: "Client Onboarding Form",
           icon: ClipboardList,
           items: visibleItems,
+        },
+        {
+          id: "car-block-off-forms",
+          title: "Car Block Off Form",
+          icon: Car,
+          items: [carBlockOffStartItem, carBlockOffEndItem],
         },
         {
           id: "referral-forms",
