@@ -89,8 +89,10 @@ function statusBadge(status: string) {
 function fmtDateTime(v: string | null | undefined) {
   if (!v) return "—";
   try {
-    return new Date(v).toLocaleString("en-US", {
-      timeZone: "America/Denver",
+    // DB stores datetime-local value as-is (Mountain time) — parse without UTC conversion
+    const normalized = String(v).replace(" ", "T").replace(/Z$/, "");
+    const d = new Date(normalized);
+    return d.toLocaleString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",

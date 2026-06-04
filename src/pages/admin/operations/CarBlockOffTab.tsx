@@ -80,8 +80,10 @@ function statusMeta(v: string) {
 function fmtDateTime(v: string | null | undefined) {
   if (!v) return "—";
   try {
-    return new Date(v).toLocaleString("en-US", {
-      timeZone: "America/Denver",
+    // DB stores datetime-local value as-is (Mountain time) — parse without UTC conversion
+    const normalized = String(v).replace(" ", "T").replace(/Z$/, "");
+    const d = new Date(normalized);
+    return d.toLocaleString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -227,7 +229,7 @@ export function CarBlockOffTab() {
                 "Car Name", "Plate #", "Owner", "Reason",
                 "Pick Up Date", "Pick Up Location",
                 "Drop Off Date", "Drop Off Location",
-                "Assigned To", "Delivery Assigned To", "Retrieval Assigned To",
+                "Assigned To", "Pick Up Assigned To", "Drop Off Assigned To",
                 "Status", "Actions"
               ].map((h) => (
                 <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
@@ -295,7 +297,7 @@ export function CarBlockOffTab() {
                           fields: { delivery_assigned_to: fullName, delivery_assigned_to_id: emp.employee_aid },
                         });
                       }}
-                      placeholder="Assign delivery..."
+                      placeholder="Pick up assigned..."
                     />
                   </td>
 
@@ -312,7 +314,7 @@ export function CarBlockOffTab() {
                           fields: { retrieval_assigned_to: fullName, retrieval_assigned_to_id: emp.employee_aid },
                         });
                       }}
-                      placeholder="Assign retrieval..."
+                      placeholder="Drop off assigned..."
                     />
                   </td>
 

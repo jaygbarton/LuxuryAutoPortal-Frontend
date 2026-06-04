@@ -36,14 +36,14 @@ export default function OperationsPage() {
               <TabsTrigger value="inspections" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 Car Issues
               </TabsTrigger>
-              <TabsTrigger value="car-block-off" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                Car Block Off
-              </TabsTrigger>
               <TabsTrigger value="maintenance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 Maintenance
               </TabsTrigger>
               <TabsTrigger value="completed" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 No Car Issues
+              </TabsTrigger>
+              <TabsTrigger value="car-block-off" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
+                Car Block Off
               </TabsTrigger>
             </TabsList>
           </div>
