@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Users,
   Car,
+  CalendarOff,
   DollarSign,
   Calculator,
   ClipboardList,
@@ -181,6 +182,20 @@ const allSidebarItems: SidebarItem[] = [
     label: "Operations",
     icon: Cog,
     roles: ["admin"],
+    children: [
+      {
+        href: "/admin/operations",
+        label: "Operations",
+        icon: Cog,
+        roles: ["admin"],
+      },
+      {
+        href: "/admin/car-block-off",
+        label: "Car Block Off",
+        icon: CalendarOff,
+        roles: ["admin"],
+      },
+    ],
   },
   {
     href: "/admin/forms",
