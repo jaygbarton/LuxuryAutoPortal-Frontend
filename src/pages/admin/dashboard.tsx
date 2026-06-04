@@ -58,7 +58,12 @@ function loadVisibleSections(): Set<string> {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as string[];
-      if (Array.isArray(parsed)) return new Set(parsed);
+      if (Array.isArray(parsed)) {
+        // Always include any new sections not yet in the saved list
+        const merged = new Set(parsed);
+        ALL_IDS.forEach((id) => merged.add(id));
+        return merged;
+      }
     }
   } catch {
     /* ignore — fall through to default */
