@@ -145,7 +145,7 @@ function BlockOffSelect({ value, onChange }: { value: string; onChange: (v: stri
   const { data } = useQuery<SubmissionsResponse>({
     queryKey: ["/api/car-block-off/submissions", "dropoff-picker"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/car-block-off/submissions?status=block_off_started&limit=100"), {
+      const res = await fetch(buildApiUrl("/api/car-block-off/submissions?limit=100"), {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch block-offs");
@@ -153,7 +153,7 @@ function BlockOffSelect({ value, onChange }: { value: string; onChange: (v: stri
     },
   });
 
-  const records = data?.data ?? [];
+  const records = (data?.data ?? []).filter((r) => r.status !== "blocked_off_ended");
 
   return (
     <Select value={value} onValueChange={onChange}>
