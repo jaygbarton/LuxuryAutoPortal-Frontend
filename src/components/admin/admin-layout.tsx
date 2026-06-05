@@ -94,6 +94,7 @@ const allSidebarItems: SidebarItem[] = [
   },
   { href: "/admin/admins", label: "Admins", icon: Users, roles: ["admin"] },
   { href: "/admin/co-hosts", label: "Co-Hosts", icon: Users, roles: ["admin"] },
+  { href: "/admin/my-co-host-cars", label: "My Co-Host Cars", icon: Car, roles: ["admin"] },
   { href: "/admin/clients", label: "Clients", icon: Users, roles: ["admin"] },
   { href: "/cars", label: "Cars", icon: Car, roles: ["admin", "client"] },
   { href: "/admin/car-block-off", label: "Car Block Off", icon: CalendarOff, roles: ["client"] },
