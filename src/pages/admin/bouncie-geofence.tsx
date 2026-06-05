@@ -143,11 +143,10 @@ function ZoneMap({ zones, onClickMap, pendingCircle, height = "400px" }: ZoneMap
   const mapInstanceRef = useRef<any>(null);
   const circleLayersRef = useRef<any[]>([]);
   const pendingLayerRef = useRef<any>(null);
+  const roRef = useRef<ResizeObserver | null>(null);
 
   useEffect(() => {
     if (!mapRef.current) return;
-
-    let ro: ResizeObserver | null = null;
 
     import("leaflet").then((L) => {
       delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -165,13 +164,12 @@ function ZoneMap({ zones, onClickMap, pendingCircle, height = "400px" }: ZoneMap
         }).addTo(map);
         mapInstanceRef.current = map;
 
-        // ResizeObserver fires each time the container is resized (including
-        // when the Dialog animation settles). This is more reliable than
-        // fixed timeouts and ensures tiles fill the full allocated area.
-        ro = new ResizeObserver(() => {
-          map.invalidateSize();
+        // ResizeObserver fires each time the container resizes (Dialog animation).
+        // Stored in a ref so the cleanup can disconnect it before map.remove().
+        roRef.current = new ResizeObserver(() => {
+          if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
         });
-        ro.observe(mapRef.current!);
+        roRef.current.observe(mapRef.current!);
 
         if (onClickMap) {
           map.on("click", (e: any) => {
@@ -232,7 +230,8 @@ function ZoneMap({ zones, onClickMap, pendingCircle, height = "400px" }: ZoneMap
     });
 
     return () => {
-      ro?.disconnect();
+      roRef.current?.disconnect();
+      roRef.current = null;
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
