@@ -75,6 +75,7 @@ export function AdminPageLinks() {
     { href: "/admin/bouncie",       icon: Radio,         label: "Bouncie" },
     { href: "/admin/operations",    icon: Anchor,        label: "Operations" },
     { href: "/admin/car-block-off", icon: CalendarOff,   label: "Car Block Off" },
+    { href: "/admin/rental-listings", icon: Car,         label: "Rental Listings" },
     { href: "/admin/forms",         icon: ClipboardList, label: "Forms" },
   ];
 

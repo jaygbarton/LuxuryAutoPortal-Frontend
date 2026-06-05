@@ -99,6 +99,7 @@ import TuroTripsPage from "@/pages/admin/turo-trips";
 import CarBlockOffPage from "@/pages/admin/CarBlockOff";
 import AdminTestimonialsPage from "@/pages/admin/testimonials";
 import AdminTuroGuidePage from "@/pages/admin/turo-guide";
+import RentalListingsPage from "@/pages/admin/rental-listings";
 import NewsMediaPage from "@/pages/admin/news-media";
 import NoticeBoardManagementPage from "@/pages/admin/notice-board";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -375,6 +376,9 @@ function Router() {
             </Route>
             <Route path="/admin/turo-guide">
               <RequireRole roles={["isAdmin", "isClient"]}><AdminTuroGuidePage /></RequireRole>
+            </Route>
+            <Route path="/admin/rental-listings">
+              <RequireRole roles={["isAdmin"]}><RentalListingsPage /></RequireRole>
             </Route>
             <Route path="/admin/news-media">
               <RequireRole roles={["isAdmin", "isClient"]}><NewsMediaPage /></RequireRole>
