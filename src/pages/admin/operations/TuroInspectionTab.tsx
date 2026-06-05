@@ -776,21 +776,7 @@ export function TuroInspectionTab() {
                           {trip?.extras || "--"}
                         </TableCell>
                         <TableCell className="text-foreground text-sm">
-                          {!trip ? (
-                            "--"
-                          ) : (
-                            (() => {
-                              const totalMiles =
-                                trip.tripStartOdometer != null &&
-                                trip.tripEndOdometer != null &&
-                                trip.tripEndOdometer >= trip.tripStartOdometer
-                                  ? (trip.tripEndOdometer - trip.tripStartOdometer).toLocaleString()
-                                  : "--";
-                              return (
-                                <span>{totalMiles}</span>
-                              );
-                            })()
-                          )}
+                          {trip?.totalDistance || "--"}
                         </TableCell>
                         <TableCell className="text-foreground text-sm tabular-nums">
                           {!trip ? (
@@ -873,7 +859,19 @@ export function TuroInspectionTab() {
                           )}
                         </TableCell>
                         <TableCell className="text-foreground text-sm">
-                          {trip?.totalDistance || "--"}
+                          {!trip ? (
+                            "--"
+                          ) : (
+                            (() => {
+                              const totalMiles =
+                                trip.tripStartOdometer != null &&
+                                trip.tripEndOdometer != null &&
+                                trip.tripEndOdometer >= trip.tripStartOdometer
+                                  ? (trip.tripEndOdometer - trip.tripStartOdometer).toLocaleString()
+                                  : "--";
+                              return <span>{totalMiles}</span>;
+                            })()
+                          )}
                         </TableCell>
                         <TableCell className="text-foreground text-sm">
                           {earnings != null ? formatCurrency(earnings) : "--"}
