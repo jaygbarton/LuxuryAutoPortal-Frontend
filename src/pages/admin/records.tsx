@@ -82,7 +82,7 @@ export default function RecordsPage() {
   const carId = params?.id ? parseInt(params.id, 10) : null;
   const [filterStatus, setFilterStatus] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [itemsPerPage, setItemsPerPage] = useState<10 | 20 | 50>(10);
+  const [itemsPerPage, setItemsPerPage] = useState<5 | 10 | 20 | 50>(5);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [onSearch, setOnSearch] = useState(false);
   const [isFilter, setIsFilter] = useState(false);
@@ -559,7 +559,7 @@ export default function RecordsPage() {
         </div>
 
         {/* Records And Files Section */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden" style={{ overflowY: 'auto' }}>
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
           <div className="p-4 sm:p-6">
             <h2 className="text-xl font-semibold text-foreground mb-4 sm:mb-6">Records And Files</h2>
             
@@ -581,12 +581,13 @@ export default function RecordsPage() {
                   <List className="w-4 h-4 text-muted-foreground" />
                   <Select
                     value={itemsPerPage.toString()}
-                    onValueChange={(value) => setItemsPerPage(parseInt(value) as 10 | 20 | 50)}
+                    onValueChange={(value) => setItemsPerPage(parseInt(value) as 5 | 10 | 20 | 50)}
                   >
                     <SelectTrigger className="bg-card border-border text-foreground w-[80px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border text-foreground">
+                      <SelectItem value="5">5</SelectItem>
                       <SelectItem value="10">10</SelectItem>
                       <SelectItem value="20">20</SelectItem>
                       <SelectItem value="50">50</SelectItem>
