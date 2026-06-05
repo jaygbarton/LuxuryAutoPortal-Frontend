@@ -8,6 +8,7 @@ export { default as MyCarIssuesSection } from "./MyCarIssuesSection";
 export { default as MyMaintenanceSection } from "./MyMaintenanceSection";
 export { default as MyOperationsSection } from "./MyOperationsSection";
 export { default as MyTasksSection } from "./MyTasksSection";
+export { default as MyCarBlockOffSection } from "./MyCarBlockOffSection";
 export { default as MyWorkScheduleSection } from "./MyWorkScheduleSection";
 export { default as MyEmployeeStatsSection } from "./MyEmployeeStatsSection";
 export { default as MyMonthlyStatsSection } from "./MyMonthlyStatsSection";

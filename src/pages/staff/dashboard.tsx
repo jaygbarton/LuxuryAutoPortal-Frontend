@@ -33,6 +33,7 @@ import {
   MyCarIssuesSection,
   MyMaintenanceSection,
   MyTasksSection,
+  MyCarBlockOffSection,
   MyWorkScheduleSection,
   MyEmployeeStatsSection,
   MyMonthlyStatsSection,
@@ -53,6 +54,7 @@ const ALL_SECTIONS = [
   { id: "carissues",     label: "Car Issues / Inspections" },
   { id: "maintenance",   label: "Maintenance" },
   { id: "tasks",         label: "Task Management" },
+  { id: "carblockoff",   label: "Car Block Off" },
   { id: "noticeboard",   label: "Notice Board" },
   { id: "stats-daily",   label: "Employee Stats — Daily" },
   { id: "stats-monthly", label: "Employee Stats — Monthly" },
@@ -176,6 +178,7 @@ export default function StaffDashboard() {
             {show("carissues")   && <MyCarIssuesSection />}
             {show("maintenance") && <MyMaintenanceSection />}
             {show("tasks")       && <MyTasksSection />}
+            {show("carblockoff") && <MyCarBlockOffSection />}
             {show("noticeboard") && <EmployeeNoticeBoardSection />}
             {show("stats-daily") && <MyEmployeeStatsSection />}
             {show("stats-monthly") && <MyMonthlyStatsSection />}
