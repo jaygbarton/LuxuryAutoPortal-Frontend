@@ -31,6 +31,12 @@ interface AuthMe {
       employeeName: string;
       startedAt: string;
     };
+    viewAsCoHost?: {
+      coHostId: number;
+      coHostEmail: string;
+      coHostName: string;
+      startedAt: string;
+    };
   };
 }
 
@@ -110,6 +116,28 @@ export function ViewAsClientBanner() {
     },
   });
 
+  const stopCoHostMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(buildApiUrl("/api/admin/view-as-co-host/stop"), {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j?.error || "Failed to stop");
+      }
+      return res.json();
+    },
+    onSuccess: async () => {
+      toast({ title: "Back to admin", description: "Returned to admin view." });
+      qc.clear();
+      window.location.assign("/dashboard");
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
   const user = data?.user;
   // Show the banner whenever the underlying logged-in user is an admin —
   // either currently identified as admin, or temporarily presenting as a
@@ -119,24 +147,34 @@ export function ViewAsClientBanner() {
 
   const viewingAsClient = !!user?.viewAsClient?.clientId;
   const viewingAsEmployee = !viewingAsClient && !!user?.viewAsEmployee?.employeeId;
+  const viewingAsCoHost = !viewingAsClient && !viewingAsEmployee && !!user?.viewAsCoHost?.coHostId;
 
-  if (!viewingAsClient && !viewingAsEmployee) return null;
+  if (!viewingAsClient && !viewingAsEmployee && !viewingAsCoHost) return null;
 
-  const label = viewingAsClient ? "Client" : "Employee";
+  const label = viewingAsClient ? "Client" : viewingAsEmployee ? "Employee" : "Co-Host";
   const subtitle = viewingAsClient
     ? `${user.viewAsClient!.clientName} (${user.viewAsClient!.clientEmail})`
-    : `${user.viewAsEmployee!.employeeName} (${user.viewAsEmployee!.employeeEmail})`;
-  const actionLabel = viewingAsClient ? "Exit client view" : "Exit employee view";
+    : viewingAsEmployee
+    ? `${user.viewAsEmployee!.employeeName} (${user.viewAsEmployee!.employeeEmail})`
+    : `${user.viewAsCoHost!.coHostName} (${user.viewAsCoHost!.coHostEmail})`;
+  const actionLabel = viewingAsClient
+    ? "Exit client view"
+    : viewingAsEmployee
+    ? "Exit employee view"
+    : "Exit co-host view";
   const onAction = () => {
     if (viewingAsClient) {
       stopClientMutation.mutate();
-    } else {
+    } else if (viewingAsEmployee) {
       stopEmployeeMutation.mutate();
+    } else {
+      stopCoHostMutation.mutate();
     }
   };
   const isLoading =
     (viewingAsClient && stopClientMutation.isPending) ||
-    (viewingAsEmployee && stopEmployeeMutation.isPending);
+    (viewingAsEmployee && stopEmployeeMutation.isPending) ||
+    (viewingAsCoHost && stopCoHostMutation.isPending);
 
   return (
     <div className="sticky top-0 z-30 -mx-3 sm:-mx-4 md:-mx-6 -mt-3 sm:-mt-4 md:-mt-6 mb-3 sm:mb-4 md:mb-6 border-b border-amber-500/40 bg-amber-500/15 backdrop-blur px-3 sm:px-4 md:px-6 py-2">

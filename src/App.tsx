@@ -17,6 +17,7 @@ import ClientsPage from "@/pages/admin/clients";
 import ClientDetailPage from "@/pages/admin/client-detail";
 import ViewAsClientPage from "@/pages/admin/view-as-client";
 import ViewAsEmployeePage from "@/pages/admin/view-as-employee";
+import ViewAsCoHostPage from "@/pages/admin/view-as-co-host";
 import FormsPage from "@/pages/admin/forms";
 import CarsPage from "@/pages/admin/cars";
 import CarDetailPage from "@/pages/admin/car-detail";
@@ -224,6 +225,9 @@ function Router() {
             </Route>
             <Route path="/admin/view-as-employee">
               <RequireRole roles={["isAdmin"]}><ViewAsEmployeePage /></RequireRole>
+            </Route>
+            <Route path="/admin/view-as-co-host">
+              <RequireRole roles={["isAdmin"]}><ViewAsCoHostPage /></RequireRole>
             </Route>
             <Route path="/admin/forms">
               <RequireRole roles={["isAdmin", "isClient"]}><FormsPage /></RequireRole>

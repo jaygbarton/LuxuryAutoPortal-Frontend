@@ -330,6 +330,12 @@ const allSidebarItems: SidebarItem[] = [
     icon: Eye,
     roles: ["admin"],
   },
+  {
+    href: "/admin/view-as-co-host",
+    label: "View as Co-Host",
+    icon: Eye,
+    roles: ["admin"],
+  },
 ];
 
 // Staff/employee sidebar: Dashboard, My Info, Forms, Task Management, Turo Guide, System Tutorial, Client Testimonials, Car Rental
