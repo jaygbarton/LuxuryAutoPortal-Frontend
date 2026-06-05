@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Search, CalendarOff } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
 import { Badge } from "@/components/ui/badge";
@@ -72,8 +72,6 @@ export default function MyCarBlockOffSection() {
       <SectionHeader
         title="Car Block Off"
         subtitle="Block-off requests assigned to you"
-        icon={<CalendarOff className="w-5 h-5" />}
-        count={allRows.length}
       />
 
       <div className="relative mb-3 max-w-xs">

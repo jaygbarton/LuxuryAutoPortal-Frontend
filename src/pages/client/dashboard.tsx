@@ -53,6 +53,7 @@ import { VehicleOwnerInfo } from "./_components/VehicleOwnerInfo";
 import { GlaContactCard } from "./_components/GlaContactCard";
 import { NewsMediaSlot } from "./_components/NewsMediaSlot";
 import { IncomeExpensesSection } from "./_components/IncomeExpensesSection";
+import { TuroEarningsSection } from "./_components/TuroEarningsSection";
 import { IncomeExpensesCharts } from "./_components/IncomeExpensesCharts";
 import { DonutCharts } from "./_components/DonutCharts";
 import { NadaChart } from "./_components/NadaChart";
@@ -571,6 +572,9 @@ export default function ClientDashboard() {
           isLoadingIncome={paymentsLoading}
           isLoadingTrips={tripsLoading}
         />
+
+        {/* Turo earnings screenshots (ported from gla-v3) */}
+        <TuroEarningsSection carId={carId} year={selectedYear} />
 
         {/* Section 5: Line + Bar charts */}
         <IncomeExpensesCharts
