@@ -375,7 +375,6 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
             <ZoneMap
               zones={zones.filter((z) => z.active && (!initial || z.id !== initial.id))}
               onClickMap={handleMapClick}
-              height="320px"
               pendingCircle={
                 centerLat !== null && centerLng !== null
                   ? { lat: centerLat, lng: centerLng, radiusMeters }

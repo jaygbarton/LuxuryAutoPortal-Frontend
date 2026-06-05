@@ -262,9 +262,8 @@ export function EmployeeOnboardingFormContent() {
               </Table>
             </div>
             <TablePagination
-              page={pagination.page}
-              totalPages={pagination.totalPages}
-              total={pagination.total}
+              currentPage={page}
+              totalItems={pagination.total}
               onPageChange={setPage}
               itemsPerPage={itemsPerPage}
               onItemsPerPageChange={setItemsPerPage}
@@ -417,9 +416,8 @@ export function EmployeeOffboardingContent() {
             </Table>
           </div>
           <TablePagination
-            page={pagination.page}
-            totalPages={pagination.totalPages}
-            total={pagination.total}
+            currentPage={page}
+            totalItems={pagination.total}
             onPageChange={setPage}
             itemsPerPage={itemsPerPage}
             onItemsPerPageChange={setItemsPerPage}
