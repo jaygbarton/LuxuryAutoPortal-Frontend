@@ -147,6 +147,8 @@ function ZoneMap({ zones, onClickMap, pendingCircle, height = "400px" }: ZoneMap
   useEffect(() => {
     if (!mapRef.current) return;
 
+    let ro: ResizeObserver | null = null;
+
     import("leaflet").then((L) => {
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
@@ -156,18 +158,20 @@ function ZoneMap({ zones, onClickMap, pendingCircle, height = "400px" }: ZoneMap
       });
 
       if (!mapInstanceRef.current) {
-        const map = L.map(mapRef.current!).setView([40.7608, -111.8910], 11);
+        const map = L.map(mapRef.current!, { zoomControl: true }).setView([40.7608, -111.8910], 11);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
           maxZoom: 19,
         }).addTo(map);
         mapInstanceRef.current = map;
 
-        // Dialog CSS transition finishes ~300ms after mount; invalidate so
-        // Leaflet re-measures the container and fills the full allocated area.
-        setTimeout(() => map.invalidateSize(), 50);
-        setTimeout(() => map.invalidateSize(), 200);
-        setTimeout(() => map.invalidateSize(), 400);
+        // ResizeObserver fires each time the container is resized (including
+        // when the Dialog animation settles). This is more reliable than
+        // fixed timeouts and ensures tiles fill the full allocated area.
+        ro = new ResizeObserver(() => {
+          map.invalidateSize();
+        });
+        ro.observe(mapRef.current!);
 
         if (onClickMap) {
           map.on("click", (e: any) => {
@@ -228,6 +232,7 @@ function ZoneMap({ zones, onClickMap, pendingCircle, height = "400px" }: ZoneMap
     });
 
     return () => {
+      ro?.disconnect();
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -367,10 +372,11 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
           </div>
 
           {/* Right: mini map */}
-          <div className="rounded-lg overflow-hidden border" style={{ minHeight: 280 }}>
+          <div className="rounded-lg overflow-hidden border" style={{ height: 320 }}>
             <ZoneMap
               zones={zones.filter((z) => z.active && (!initial || z.id !== initial.id))}
               onClickMap={handleMapClick}
+              height="320px"
               pendingCircle={
                 centerLat !== null && centerLng !== null
                   ? { lat: centerLat, lng: centerLng, radiusMeters }
