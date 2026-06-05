@@ -97,7 +97,7 @@ export function EmployeeSelectCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[--radix-popover-trigger-width] p-0 bg-card border-border"
+        className="min-w-[220px] w-[--radix-popover-trigger-width] p-0 bg-card border-border"
         align="start"
       >
         <Command className="bg-card">
@@ -130,12 +130,7 @@ export function EmployeeSelectCombobox({
                         isMatch ? "opacity-100 text-primary" : "opacity-0"
                       )}
                     />
-                    <span className="truncate">{name}</span>
-                    {e.employee_email && (
-                      <span className="ml-2 text-xs text-muted-foreground truncate">
-                        {e.employee_email}
-                      </span>
-                    )}
+                    <span>{name}</span>
                   </CommandItem>
                 );
               })}
