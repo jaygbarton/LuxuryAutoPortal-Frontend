@@ -38,8 +38,8 @@ interface CarOption {
   licensePlate: string | null;
   year: number | null;
   vin: string | null;
-  ownerFirstName: string | null;
-  ownerLastName: string | null;
+  owner?: { firstName: string; lastName: string } | null;
+  ownerNameOverride?: string | null;
 }
 
 interface CarBlockOff {
@@ -408,7 +408,9 @@ export default function CarBlockOffPage() {
                         if (car) {
                           setCarName(`${car.makeModel}${car.year ? ` (${car.year})` : ""}`);
                           setPlateNumber(car.licensePlate ?? "");
-                          const ownerFromCar = [car.ownerFirstName, car.ownerLastName].filter(Boolean).join(" ");
+                          const ownerFromCar = car.owner
+                            ? `${car.owner.firstName} ${car.owner.lastName}`.trim()
+                            : (car.ownerNameOverride ?? "");
                           if (ownerFromCar) setOwnerName(ownerFromCar);
                         }
                       }}
