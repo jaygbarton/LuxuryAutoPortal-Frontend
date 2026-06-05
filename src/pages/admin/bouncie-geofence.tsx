@@ -163,6 +163,12 @@ function ZoneMap({ zones, onClickMap, pendingCircle, height = "400px" }: ZoneMap
         }).addTo(map);
         mapInstanceRef.current = map;
 
+        // Dialog CSS transition finishes ~300ms after mount; invalidate so
+        // Leaflet re-measures the container and fills the full allocated area.
+        setTimeout(() => map.invalidateSize(), 50);
+        setTimeout(() => map.invalidateSize(), 200);
+        setTimeout(() => map.invalidateSize(), 400);
+
         if (onClickMap) {
           map.on("click", (e: any) => {
             onClickMap(e.latlng.lat, e.latlng.lng);
