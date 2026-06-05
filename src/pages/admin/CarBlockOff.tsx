@@ -37,6 +37,9 @@ interface CarOption {
   makeModel: string;
   licensePlate: string | null;
   year: number | null;
+  vin: string | null;
+  ownerFirstName: string | null;
+  ownerLastName: string | null;
 }
 
 interface CarBlockOff {
@@ -133,7 +136,9 @@ function CarSelect({ value, onChange }: { value: string; onChange: (v: string, c
       <SelectContent className="bg-card border-border text-foreground">
         {cars.map((c) => (
           <SelectItem key={c.id} value={String(c.id)}>
-            {c.makeModel} {c.year ? `(${c.year})` : ""}{c.licensePlate ? ` — ${c.licensePlate}` : ""}
+            {c.makeModel} {c.year ? `(${c.year})` : ""}
+            {c.vin ? ` — VIN: ${c.vin}` : ""}
+            {c.licensePlate ? ` — ${c.licensePlate}` : ""}
           </SelectItem>
         ))}
       </SelectContent>
@@ -403,6 +408,8 @@ export default function CarBlockOffPage() {
                         if (car) {
                           setCarName(`${car.makeModel}${car.year ? ` (${car.year})` : ""}`);
                           setPlateNumber(car.licensePlate ?? "");
+                          const ownerFromCar = [car.ownerFirstName, car.ownerLastName].filter(Boolean).join(" ");
+                          if (ownerFromCar) setOwnerName(ownerFromCar);
                         }
                       }}
                     />
