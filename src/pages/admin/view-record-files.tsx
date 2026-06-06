@@ -23,6 +23,74 @@ import { buildApiUrl } from "@/lib/queryClient";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { cn } from "@/lib/utils";
 
+/**
+ * LazyRecordImage — fetches a record-file image (authenticated /content endpoint
+ * → blob) ONLY when its card scrolls near the viewport, instead of loading all
+ * 20+ images up front. This keeps the Records & Files page responsive even with
+ * many large images: the browser only pays for what the user actually scrolls to.
+ */
+function LazyRecordImage({ fileAid, alt }: { fileAid: number; alt: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+  const ref = React.useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    const load = async () => {
+      setState("loading");
+      try {
+        const res = await fetch(buildApiUrl(`/api/record-file-views/${fileAid}/content`), {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        const blob = await res.blob();
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setSrc(objectUrl);
+        setState("idle");
+      } catch {
+        if (!cancelled) setState("error");
+      }
+    };
+
+    // Fetch a bit before the card is fully visible (rootMargin) for smoothness.
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          observer.disconnect();
+          load();
+        }
+      },
+      { rootMargin: "300px" },
+    );
+    observer.observe(el);
+
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [fileAid]);
+
+  return (
+    <div ref={ref} className="w-full h-full">
+      {src ? (
+        <img src={src} alt={alt} loading="lazy" className="w-full h-full object-contain" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-card">
+          <span className="text-muted-foreground text-sm animate-pulse">
+            {state === "error" ? "No Preview" : "Loading…"}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface CarDetail {
   id: number;
   vin: string;
@@ -93,8 +161,6 @@ export default function ViewRecordFilesPage() {
   const [itemEdit, setItemEdit] = useState<RecordFileView | null>(null);
   const [viewingFile, setViewingFile] = useState<RecordFileView | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
-  const [imageUrls, setImageUrls] = useState<Map<number, string>>(new Map());
-  const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const queryClient = useQueryClient();
 
   // Fetch user data
@@ -250,61 +316,9 @@ export default function ViewRecordFilesPage() {
     }
   }, [totalPages, currentPage]);
 
-  // Load images as blobs with credentials (required for authenticated endpoints)
-  useEffect(() => {
-    if (!recordsData?.data) return;
-
-    const loadImages = async () => {
-      const newImageUrls = new Map<number, string>();
-      const newImageErrors = new Set<number>();
-
-      // Only the image files not already loaded/failed.
-      const pending = recordsData.data.filter((file) => {
-        const ext = file.recordsFileViewName.split('.').pop()?.toLowerCase() || '';
-        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
-        return (
-          isImage &&
-          !imageUrls.has(file.recordsFileViewAid) &&
-          !imageErrors.has(file.recordsFileViewAid)
-        );
-      });
-
-      // Fetch all pending images IN PARALLEL. Previously this was a sequential
-      // for-await loop, so N files = N serial round-trips — the main cause of
-      // the slow Records & Files page. Promise.all overlaps them.
-      await Promise.all(
-        pending.map(async (file) => {
-          try {
-            const response = await fetch(getFileContentUrl(file.recordsFileViewAid), {
-              credentials: 'include',
-              method: 'GET',
-            });
-            if (!response.ok) throw new Error(`Failed to load image: ${response.status}`);
-            const blob = await response.blob();
-            newImageUrls.set(file.recordsFileViewAid, URL.createObjectURL(blob));
-          } catch (error) {
-            console.error(`Failed to load image for file ${file.recordsFileViewAid}:`, error);
-            newImageErrors.add(file.recordsFileViewAid);
-          }
-        }),
-      );
-
-      if (newImageUrls.size > 0 || newImageErrors.size > 0) {
-        setImageUrls(prev => new Map([...prev, ...newImageUrls]));
-        setImageErrors(prev => new Set([...prev, ...newImageErrors]));
-      }
-    };
-
-    loadImages();
-
-    // Cleanup: revoke object URLs when component unmounts
-    return () => {
-      imageUrls.forEach((url) => {
-        URL.revokeObjectURL(url);
-      });
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recordsData?.data]);
+  // Images are now loaded lazily per-card by <LazyRecordImage> (fetch-on-visible
+  // via IntersectionObserver), so there is no longer a bulk up-front fetch here.
+  // This is what keeps folders with many images responsive.
 
   // Handle search
   const handleSearch = () => {
@@ -773,26 +787,10 @@ export default function ViewRecordFilesPage() {
                             }}
                             className="block w-full h-full cursor-pointer"
                           >
-                            {imageUrls.has(file.recordsFileViewAid) ? (
-                              <img
-                                src={imageUrls.get(file.recordsFileViewAid)}
-                                alt={file.recordsFileViewName}
-                                className="w-full h-full object-contain"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  // Final fallback to placeholder
-                                  target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%231a1a1a' width='200' height='200'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='14' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ENo Preview%3C/text%3E%3C/svg%3E";
-                                }}
-                              />
-                            ) : imageErrors.has(file.recordsFileViewAid) ? (
-                              <div className="w-full h-full flex items-center justify-center bg-card">
-                                <span className="text-muted-foreground text-sm">No Preview</span>
-                              </div>
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-card">
-                                <span className="text-muted-foreground text-sm animate-pulse">Loading...</span>
-                              </div>
-                            )}
+                            <LazyRecordImage
+                              fileAid={file.recordsFileViewAid}
+                              alt={file.recordsFileViewName}
+                            />
                           </button>
                           {/* File Number Badge */}
                           <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs font-semibold px-2 py-1 rounded">
