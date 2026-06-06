@@ -112,12 +112,11 @@ function fmtDateTime(v: string | null | undefined) {
 
 // ── Car selector ──────────────────────────────────────────────────────────────
 
-function CarSelect({ value, onChange, isAdmin }: { value: string; onChange: (v: string, car: CarOption | null) => void; isAdmin: boolean }) {
-  const url = isAdmin ? "/api/cars?limit=500&status=ACTIVE" : "/api/client/cars";
+function CarSelect({ value, onChange, isAdmin: _isAdmin }: { value: string; onChange: (v: string, car: CarOption | null) => void; isAdmin: boolean }) {
   const { data } = useQuery<{ success: boolean; data: CarOption[] }>({
-    queryKey: [isAdmin ? "/api/cars" : "/api/client/cars", "block-off-picker"],
+    queryKey: ["/api/car-block-off/my-cars"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl(url), { credentials: "include" });
+      const res = await fetch(buildApiUrl("/api/car-block-off/my-cars"), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch cars");
       return res.json();
     },
