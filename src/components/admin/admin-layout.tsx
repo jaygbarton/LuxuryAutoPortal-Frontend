@@ -513,7 +513,6 @@ const coHostSidebarItems: SidebarItem[] = [
   { href: "/admin/testimonials", label: "Client Testimonials", icon: Star },
   { href: "/admin/news-media", label: "News & Media", icon: Newspaper },
   { href: "/admin/notice-board", label: "Notice Board", icon: ClipboardList },
-  { href: "/admin/view-as-employee", label: "View as Employee", icon: Eye },
 ];
 
 interface RoleOption {
