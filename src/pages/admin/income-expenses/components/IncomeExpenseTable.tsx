@@ -1947,9 +1947,9 @@ export default function IncomeExpenseTable({
           </thead>
 
           <tbody>
-            {/* CO HOSTING ACCESS */}
+            {/* CAR MANAGEMENT ACCESS */}
             <CategorySection
-              title="CO HOSTING ACCESS"
+              title="CAR MANAGEMENT ACCESS"
               isExpanded={expandedSections.managementOwner}
               onToggle={() => toggleSection("managementOwner")}
             >
@@ -1967,7 +1967,7 @@ export default function IncomeExpenseTable({
                   `mgmtIncome` / `ownerIncome` — these are summed per-car
                   results matching GLA-V3's SUM-of-stored-splits semantics. */}
               <CategoryRow
-                label="Co-Host Split"
+                label="Car Management Split"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
                   return isAllCarsView

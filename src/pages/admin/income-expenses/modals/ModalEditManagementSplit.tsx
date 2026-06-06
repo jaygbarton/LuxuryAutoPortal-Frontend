@@ -1,4 +1,4 @@
-// Modal for CO HOSTING ACCESS category
+// Modal for CAR MANAGEMENT ACCESS category
 import React from "react";
 import {
   Dialog,
@@ -51,7 +51,7 @@ export default function ModalEditManagementSplit() {
   if (!editingCell || editingCell.category !== "managementSplit") return null;
 
   const fieldNames: { [key: string]: string } = {
-    carManagementSplit: "Co-Host Split",
+    carManagementSplit: "Car Management Split",
     carOwnerSplit: "Car Owner Split",
   };
 

@@ -1387,14 +1387,14 @@ export default function EarningsPage() {
                 </tr>
               </thead>
               <tbody className="relative">
-                {/* CO HOSTING ACCESS */}
+                {/* CAR MANAGEMENT ACCESS */}
                 <CategorySection
-                  title="CO HOSTING ACCESS"
+                  title="CAR MANAGEMENT ACCESS"
                   isExpanded={expandedSections.managementOwner}
                   onToggle={() => toggleSection("managementOwner")}
                 >
                   <TableRow
-                    label="Co-Host Split"
+                    label="Car Management Split"
                     values={MONTHS.map((_, i) => calculateCarManagementSplit(i + 1))}
                   />
                   <TableRow

@@ -718,7 +718,7 @@ export default function TotalsPage() {
               title="EXPENSES — Car Management & Owner Split"
               totalValue={(Number(totals?.carManagementSplit || 0) + Number(totals?.carOwnerSplit || 0))}
             >
-              <TotalRow label="Co-Host Split" value={totals?.carManagementSplit} />
+              <TotalRow label="Car Management Split" value={totals?.carManagementSplit} />
               <TotalRow label="Car Owner Split" value={totals?.carOwnerSplit} />
             </Section>
 
