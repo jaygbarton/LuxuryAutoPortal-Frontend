@@ -216,6 +216,7 @@ export default function IncomeExpenseTable({
   });
 
   const [expandedSections, setExpandedSections] = useState({
+    coHostingSplit: true,
     managementOwner: true,
     incomeExpenses: true,
     directDelivery: true,
@@ -1947,6 +1948,48 @@ export default function IncomeExpenseTable({
           </thead>
 
           <tbody>
+            {/* CO-HOSTING SPLIT — visual scaffold per PM (calculation logic TBD).
+                Admin + co-host only: this IncomeExpenseTable is the admin/co-host
+                view; regular clients use client/_components/IncomeExpensesSection,
+                so this section is naturally hidden from clients. Rows mirror the
+                Car Management / Car Owner split layout. Amounts are placeholders
+                (0) until the PM confirms the formula; percentages read from the
+                stored co-host split fields when present. */}
+            <CategorySection
+              title="Co-Hosting Split"
+              isExpanded={expandedSections.coHostingSplit}
+              onToggle={() => toggleSection("coHostingSplit")}
+            >
+              {/* GLA Split — styled like Car Management Split */}
+              <CategoryRow
+                label="GLA Split"
+                values={MONTHS.map(() => 0)}
+                percentageValues={MONTHS.map((_, i) =>
+                  getMonthValue(data.incomeExpenses, i + 1, "glaSplit"),
+                )}
+                category="income"
+                field="glaSplit"
+                isEditable={false}
+                formatType={isAllCarsView ? undefined : "managementSplit"}
+                monthModes={monthModes}
+                showAmountAndPercentage={!isAllCarsView}
+              />
+              {/* Co-Host Split — styled like Car Owner Split */}
+              <CategoryRow
+                label="Co-Host Split"
+                values={MONTHS.map(() => 0)}
+                percentageValues={MONTHS.map((_, i) =>
+                  getMonthValue(data.incomeExpenses, i + 1, "coHostSplit"),
+                )}
+                category="income"
+                field="coHostSplit"
+                isEditable={false}
+                formatType={isAllCarsView ? undefined : "ownerSplit"}
+                monthModes={monthModes}
+                showAmountAndPercentage={!isAllCarsView}
+              />
+            </CategorySection>
+
             {/* CAR MANAGEMENT - OWNER SPLIT */}
             <CategorySection
               title="Car Management - Owner Split"
