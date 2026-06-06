@@ -218,6 +218,12 @@ const allSidebarItems: SidebarItem[] = [
     external: true,
   },
   {
+    href: "/admin/rental-listings",
+    label: "Rental Listings",
+    icon: Car,
+    roles: ["admin"],
+  },
+  {
     href: "/admin/hr",
     label: "Human Resources",
     icon: Briefcase,
