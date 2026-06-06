@@ -36,10 +36,13 @@ interface CarOption {
   id: number;
   makeModel: string;
   licensePlate: string | null;
+  plateNumber?: string | null;
   year: number | null;
   vin: string | null;
   owner?: { firstName: string; lastName: string } | null;
   ownerNameOverride?: string | null;
+  ownerFirstName?: string | null;
+  ownerLastName?: string | null;
 }
 
 interface CarBlockOff {
@@ -109,11 +112,12 @@ function fmtDateTime(v: string | null | undefined) {
 
 // ── Car selector ──────────────────────────────────────────────────────────────
 
-function CarSelect({ value, onChange }: { value: string; onChange: (v: string, car: CarOption | null) => void }) {
+function CarSelect({ value, onChange, isAdmin }: { value: string; onChange: (v: string, car: CarOption | null) => void; isAdmin: boolean }) {
+  const url = isAdmin ? "/api/cars?limit=500&status=ACTIVE" : "/api/client/cars";
   const { data } = useQuery<{ success: boolean; data: CarOption[] }>({
-    queryKey: ["/api/cars", "block-off-picker"],
+    queryKey: [isAdmin ? "/api/cars" : "/api/client/cars", "block-off-picker"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/cars?limit=500&status=ACTIVE"), { credentials: "include" });
+      const res = await fetch(buildApiUrl(url), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch cars");
       return res.json();
     },
@@ -138,7 +142,7 @@ function CarSelect({ value, onChange }: { value: string; onChange: (v: string, c
           <SelectItem key={c.id} value={String(c.id)}>
             {c.makeModel} {c.year ? `(${c.year})` : ""}
             {c.vin ? ` — VIN: ${c.vin}` : ""}
-            {c.licensePlate ? ` — ${c.licensePlate}` : ""}
+            {(c.licensePlate ?? c.plateNumber) ? ` — ${c.licensePlate ?? c.plateNumber}` : ""}
           </SelectItem>
         ))}
       </SelectContent>
@@ -402,14 +406,17 @@ export default function CarBlockOffPage() {
                   <div>
                     <Label className="text-muted-foreground text-sm">Car *</Label>
                     <CarSelect
+                      isAdmin={isAdmin}
                       value={carIdStr}
                       onChange={(v, car) => {
                         setCarIdStr(v);
                         if (car) {
                           setCarName(`${car.makeModel}${car.year ? ` (${car.year})` : ""}`);
-                          setPlateNumber(car.licensePlate ?? "");
+                          setPlateNumber(car.licensePlate ?? car.plateNumber ?? "");
                           const ownerFromCar = car.owner
                             ? `${car.owner.firstName} ${car.owner.lastName}`.trim()
+                            : car.ownerFirstName
+                            ? `${car.ownerFirstName} ${car.ownerLastName ?? ""}`.trim()
                             : (car.ownerNameOverride ?? "");
                           if (ownerFromCar) setOwnerName(ownerFromCar);
                         }
