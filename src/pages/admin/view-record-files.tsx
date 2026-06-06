@@ -258,39 +258,36 @@ export default function ViewRecordFilesPage() {
       const newImageUrls = new Map<number, string>();
       const newImageErrors = new Set<number>();
 
-      for (const file of recordsData.data) {
-        // Check if it's an image file
-        const fileExt = file.recordsFileViewName.split('.').pop()?.toLowerCase() || '';
-        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(fileExt);
-        
-        if (!isImage) {
-          continue;
-        }
+      // Only the image files not already loaded/failed.
+      const pending = recordsData.data.filter((file) => {
+        const ext = file.recordsFileViewName.split('.').pop()?.toLowerCase() || '';
+        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
+        return (
+          isImage &&
+          !imageUrls.has(file.recordsFileViewAid) &&
+          !imageErrors.has(file.recordsFileViewAid)
+        );
+      });
 
-        // Skip if already loaded or failed
-        if (imageUrls.has(file.recordsFileViewAid) || imageErrors.has(file.recordsFileViewAid)) {
-          continue;
-        }
-
-        try {
-          const url = getFileContentUrl(file.recordsFileViewAid);
-          const response = await fetch(url, {
-            credentials: 'include',
-            method: 'GET',
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to load image: ${response.status}`);
+      // Fetch all pending images IN PARALLEL. Previously this was a sequential
+      // for-await loop, so N files = N serial round-trips — the main cause of
+      // the slow Records & Files page. Promise.all overlaps them.
+      await Promise.all(
+        pending.map(async (file) => {
+          try {
+            const response = await fetch(getFileContentUrl(file.recordsFileViewAid), {
+              credentials: 'include',
+              method: 'GET',
+            });
+            if (!response.ok) throw new Error(`Failed to load image: ${response.status}`);
+            const blob = await response.blob();
+            newImageUrls.set(file.recordsFileViewAid, URL.createObjectURL(blob));
+          } catch (error) {
+            console.error(`Failed to load image for file ${file.recordsFileViewAid}:`, error);
+            newImageErrors.add(file.recordsFileViewAid);
           }
-
-          const blob = await response.blob();
-          const objectUrl = URL.createObjectURL(blob);
-          newImageUrls.set(file.recordsFileViewAid, objectUrl);
-        } catch (error) {
-          console.error(`Failed to load image for file ${file.recordsFileViewAid}:`, error);
-          newImageErrors.add(file.recordsFileViewAid);
-        }
-      }
+        }),
+      );
 
       if (newImageUrls.size > 0 || newImageErrors.size > 0) {
         setImageUrls(prev => new Map([...prev, ...newImageUrls]));
