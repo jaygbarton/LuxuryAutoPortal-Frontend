@@ -3,6 +3,7 @@
 export interface FormulaSetting {
   carManagementSplitPercent: number;
   carOwnerSplitPercent: number;
+  coHostSplitPercent?: number;
   monthModes?: { [month: number]: 50 | 70 };
   skiRacksOwner?: { [month: number]: "GLA" | "CAR_OWNER" };
 }
@@ -31,6 +32,9 @@ export interface IncomeExpenseMonth {
   carOwnerTotalExpenses: number;
   carManagementSplit?: number | null;
   carOwnerSplit?: number | null;
+  // Co-Hosting Split: editable co-host % per month (GLA % is the remainder).
+  coHostSplit?: number | null;
+  glaSplit?: number | null;
   // Backend-aggregated totals for the "All Cars" view only. These are
   // computed per-car (respecting each car's own split %, 50:50 vs 30:70
   // mode, and ski-racks owner) and then summed. The per-car view does not

@@ -104,6 +104,33 @@ export default function IncomeExpenseTable({
     getCategoryMonthFormTotal,
   } = useIncomeExpense();
 
+  // ── Co-Hosting: "Managed/Owned by GLA" flag (drives the split formula) ──
+  // Seeded from the I&E read (data.isGlaOwned); toggling persists via the
+  // /api/income-expense/gla-owned endpoint. Admin/co-host view only.
+  const [isGlaOwned, setIsGlaOwned] = useState<boolean>(Boolean((data as any)?.isGlaOwned));
+  const [savingGlaOwned, setSavingGlaOwned] = useState(false);
+  React.useEffect(() => {
+    setIsGlaOwned(Boolean((data as any)?.isGlaOwned));
+  }, [(data as any)?.isGlaOwned]);
+  const handleToggleGlaOwned = async (next: boolean) => {
+    if (isReadOnly || isAllCars) return;
+    setIsGlaOwned(next); // optimistic
+    setSavingGlaOwned(true);
+    try {
+      const res = await fetch(buildApiUrl("/api/income-expense/gla-owned"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ carId, isGlaOwned: next }),
+      });
+      if (!res.ok) throw new Error("save failed");
+    } catch {
+      setIsGlaOwned(!next); // revert on failure
+    } finally {
+      setSavingGlaOwned(false);
+    }
+  };
+
   // Fetch previous year December data for January calculation
   const previousYear = String(parseInt(year) - 1);
   const { data: previousYearData } = useQuery<{
@@ -1771,6 +1798,62 @@ export default function IncomeExpenseTable({
     return 0;
   };
 
+  // ===== CO-HOSTING SPLIT (per PM rule) =====
+  // The co-host % is editable per month (stored field `coHostSplit`), falling
+  // back to the car/year formula default `coHostSplitPercent`, then 85.
+  const getCoHostPercent = (month: number): number => {
+    const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
+    const stored = monthRow?.coHostSplit;
+    const def = (data as any).formulaSetting?.coHostSplitPercent ?? 85;
+    return stored != null ? Number(stored) : Number(def);
+  };
+
+  // Co-Host Split amount for a month.
+  //  • GLA-owned car: same formula/base as the Car Owner Split, using the
+  //    co-host %. (Car Management Split is left untouched.)
+  //  • Owned by another person: split the CAR MANAGEMENT SPLIT amount —
+  //    Co-Host = cohost% × CarManagementSplit  (PM ex: $1000 @85% → $850).
+  const calculateCoHostSplit = (month: number): number => {
+    const pct = getCoHostPercent(month) / 100;
+    // uses the component-level `isGlaOwned` state (live toggle)
+    if (isGlaOwned) {
+      // same base as owner split, but co-host %. Owner split already applies
+      // ownerPercent to the base; derive the base = ownerSplit / ownerPercent
+      // would be fragile, so apply pct directly to the owner-split base by
+      // scaling: ownerSplit uses ownerPercent; we want the same base × pct.
+      const ownerSplit = calculateCarOwnerSplit(month);
+      const ownerPct = (() => {
+        const r = data.incomeExpenses?.find((x: any) => x && x.month === month)?.carOwnerSplit;
+        const d = data.formulaSetting?.carOwnerSplitPercent ?? 50;
+        return (r != null ? Number(r) : d) / 100;
+      })();
+      if (ownerPct === 0) return 0;
+      const base = ownerSplit / ownerPct; // recover the pre-% base
+      return base * pct;
+    }
+    // Not GLA-owned: share of the Car Management Split.
+    return calculateCarManagementSplit(month) * pct;
+  };
+
+  // GLA Split amount = the remainder of the same base the Co-Host Split uses.
+  const calculateGlaSplit = (month: number): number => {
+    const pct = getCoHostPercent(month) / 100;
+    // uses the component-level `isGlaOwned` state (live toggle)
+    if (isGlaOwned) {
+      const ownerSplit = calculateCarOwnerSplit(month);
+      const ownerPct = (() => {
+        const r = data.incomeExpenses?.find((x: any) => x && x.month === month)?.carOwnerSplit;
+        const d = data.formulaSetting?.carOwnerSplitPercent ?? 50;
+        return (r != null ? Number(r) : d) / 100;
+      })();
+      if (ownerPct === 0) return 0;
+      const base = ownerSplit / ownerPct;
+      return base * (1 - pct);
+    }
+    // Not GLA-owned: remainder of the Car Management Split (PM ex: $1000 → $150).
+    return calculateCarManagementSplit(month) * (1 - pct);
+  };
+
   // Calculate Car Management Total Expenses:
   // In 30:70 mode: "TOTAL REIMBURSE AND NON-REIMBURSE BILLS" only
   // In 50:50 mode: "TOTAL REIMBURSE AND NON-REIMBURSE BILLS" + ("TOTAL OPERATING EXPENSE (Direct Delivery)" + "TOTAL OPERATING EXPENSE (COGS - Per Vehicle)") * "Car Management Split %"
@@ -1844,6 +1927,31 @@ export default function IncomeExpenseTable({
     // with the content instead of pinning. We let the inner scroll container
     // own both the clipping and the sticky positioning.
     <div className="w-full min-w-0 bg-card border border-border rounded-lg">
+      {/* Co-Hosting: "Managed/Owned by GLA?" checkbox + indicator (per-car only) */}
+      {!isAllCars && (
+        <div className="flex items-center gap-3 px-3 py-2 border-b border-border">
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={isGlaOwned}
+              disabled={isReadOnly || savingGlaOwned}
+              onChange={(e) => handleToggleGlaOwned(e.target.checked)}
+            />
+            <span className="font-medium">Managed / Owned by GLA</span>
+          </label>
+          <span
+            className={cn(
+              "text-xs px-2 py-0.5 rounded-full font-medium",
+              isGlaOwned
+                ? "bg-green-100 text-green-700"
+                : "bg-amber-100 text-amber-700",
+            )}
+          >
+            {isGlaOwned ? "GLA-Owned" : "Owned by another person"}
+          </span>
+          {savingGlaOwned && <span className="text-xs text-muted-foreground">saving…</span>}
+        </div>
+      )}
       {/*
         Single scroll container for both axes with a bounded height so that
         position: sticky on the header row (top), the Category column (left),
@@ -1960,13 +2068,11 @@ export default function IncomeExpenseTable({
               isExpanded={expandedSections.coHostingSplit}
               onToggle={() => toggleSection("coHostingSplit")}
             >
-              {/* GLA Split — styled like Car Management Split */}
+              {/* GLA Split — amount = remainder of the split base; % = 100 − coHost% */}
               <CategoryRow
                 label="GLA Split"
-                values={MONTHS.map(() => 0)}
-                percentageValues={MONTHS.map((_, i) =>
-                  getMonthValue(data.incomeExpenses, i + 1, "glaSplit"),
-                )}
+                values={MONTHS.map((_, i) => roundToPhp2Dp(calculateGlaSplit(i + 1)))}
+                percentageValues={MONTHS.map((_, i) => 100 - getCoHostPercent(i + 1))}
                 category="income"
                 field="glaSplit"
                 isEditable={false}
@@ -1974,16 +2080,14 @@ export default function IncomeExpenseTable({
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
               />
-              {/* Co-Host Split — styled like Car Owner Split */}
+              {/* Co-Host Split — amount per Case A/B; % is the editable co-host % */}
               <CategoryRow
                 label="Co-Host Split"
-                values={MONTHS.map(() => 0)}
-                percentageValues={MONTHS.map((_, i) =>
-                  getMonthValue(data.incomeExpenses, i + 1, "coHostSplit"),
-                )}
+                values={MONTHS.map((_, i) => roundToPhp2Dp(calculateCoHostSplit(i + 1)))}
+                percentageValues={MONTHS.map((_, i) => getCoHostPercent(i + 1))}
                 category="income"
                 field="coHostSplit"
-                isEditable={false}
+                isEditable={!isReadOnly}
                 formatType={isAllCarsView ? undefined : "ownerSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
