@@ -93,6 +93,8 @@ export default function AdminTestimonialsPage() {
     staleTime: 1000 * 60 * 5,
   });
   const isClient = Boolean(meData?.user?.isClient) && !meData?.user?.isAdmin;
+  const isCoHost = !!(meData?.user as any)?.isCoHost || !!(meData?.user as any)?.viewAsCoHost?.coHostId;
+  const viewOnly = isClient || isCoHost;
   // Wait for auth check before deciding which API endpoint to hit.
   // - Clients use /api/client-testimonials/active (no admin auth required, active-only)
   // - Admins use /api/client-testimonials        (requireAdmin, full CRUD view)
@@ -291,7 +293,7 @@ export default function AdminTestimonialsPage() {
                 : "Manage client testimonials. Archive or restore to control visibility on staff/client views."}
             </p>
           </div>
-          {!isClient && (
+          {!viewOnly && (
             <Button
               className="w-full sm:w-auto"
               onClick={() => {
@@ -320,7 +322,7 @@ export default function AdminTestimonialsPage() {
                 />
               </div>
               {/* Status filter is only meaningful for admins */}
-              {!isClient && (
+              {!viewOnly && (
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[140px]">
                     <SelectValue placeholder="Status" />
@@ -393,7 +395,7 @@ export default function AdminTestimonialsPage() {
                         <span className="text-xs text-muted-foreground">
                           {formatDate(row.client_testimonial_datetime)}
                         </span>
-                        {!isClient && (
+                        {!viewOnly && (
                           <div className="flex items-center gap-0.5">
                             <Button
                               variant="ghost"

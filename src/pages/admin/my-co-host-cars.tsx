@@ -2,8 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Car } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Car, Eye } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
+import { Link } from "wouter";
 
 interface CoHostCar {
   id: number;
@@ -17,6 +19,23 @@ interface CoHostCar {
 }
 
 export default function MyCoHostCarsPage() {
+  const { data: meData } = useQuery<{ user?: any }>({
+    queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
+      if (!res.ok) return { user: undefined };
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const user = meData?.user;
+  const isRealCoHost = !!(user as any)?.isCoHost;
+  const isViewingAsCoHost = !!(user as any)?.viewAsCoHost?.coHostId;
+  const isCoHostContext = isRealCoHost || isViewingAsCoHost;
+  // GLA admin visiting this page without selecting a co-host
+  const isGlaAdminNoContext = user?.isAdmin && !isCoHostContext;
+
   const { data, isLoading } = useQuery<{ cars: CoHostCar[] }>({
     queryKey: ["/api/co-host/my-vehicles"],
     queryFn: async () => {
@@ -24,6 +43,7 @@ export default function MyCoHostCarsPage() {
       if (!res.ok) throw new Error("Failed to fetch co-host vehicles");
       return res.json();
     },
+    enabled: isCoHostContext,
   });
 
   const cars = data?.cars ?? [];
@@ -41,6 +61,20 @@ export default function MyCoHostCarsPage() {
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : isGlaAdminNoContext ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-4 text-muted-foreground">
+                <Eye className="w-10 h-10 opacity-30" />
+                <p className="text-sm font-medium text-foreground">Select a co-host to view their cars</p>
+                <p className="text-xs text-center max-w-xs">
+                  Use "View as Co-Host" to select a co-host account and see their assigned vehicles here.
+                </p>
+                <Link href="/admin/view-as-co-host">
+                  <Button variant="outline" size="sm">
+                    <Eye className="w-4 h-4 mr-2" />
+                    View as Co-Host
+                  </Button>
+                </Link>
               </div>
             ) : cars.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">

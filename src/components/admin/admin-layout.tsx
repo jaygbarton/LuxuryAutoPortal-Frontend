@@ -67,7 +67,7 @@ interface SidebarItem {
   href: string;
   label: string;
   icon: any;
-  roles?: ("admin" | "client" | "employee")[];
+  roles?: ("admin" | "client" | "employee" | "cohost")[];
   children?: SidebarItem[];
   /** When true, render as a plain <a target="_blank"> instead of an in-app
    *  router link. Used for sidebar entries that link out to third-party
@@ -438,6 +438,84 @@ const employeeSidebarItems: SidebarItem[] = [
   },
 ];
 
+// Co-host sidebar: same as admin but scoped — no Co-Hosts mgmt, no GLA-only admin items
+const coHostSidebarItems: SidebarItem[] = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/admins", label: "Admins", icon: Users },
+  { href: "/admin/my-co-host-cars", label: "My Co-Host Cars", icon: Car },
+  { href: "/cars", label: "Cars", icon: Car },
+  { href: "/admin/income-expenses", label: "Income and Expenses", icon: DollarSign },
+  {
+    href: "/admin/payments",
+    label: "Client Payments",
+    icon: CreditCard,
+    children: [
+      { href: "/admin/payments", label: "Payments", icon: CreditCard },
+      { href: "/admin/payment-status", label: "Status", icon: ClipboardList },
+    ],
+  },
+  { href: "/admin/totals", label: "Totals", icon: Calculator },
+  { href: "/admin/turo-trips", label: "Turo Trips", icon: Mail },
+  {
+    href: "/admin/bouncie",
+    label: "BOUNCIE",
+    icon: MapPin,
+    children: [
+      { href: "/admin/bouncie", label: "Fleet Tracking", icon: Navigation },
+      { href: "/admin/bouncie-devices", label: "Devices", icon: Cpu },
+      { href: "/admin/bouncie-trips", label: "Trip History", icon: Route },
+      { href: "/admin/bouncie-behavior", label: "Driving Behavior", icon: ShieldAlert },
+      { href: "/admin/bouncie-geofence", label: "Geofence", icon: MapPin },
+      { href: "/admin/bouncie-analytics", label: "Analytics", icon: BarChart3 },
+    ],
+  },
+  {
+    href: "/admin/operations",
+    label: "Operations",
+    icon: Cog,
+    children: [
+      { href: "/admin/operations", label: "Operations", icon: Cog },
+      { href: "/admin/car-block-off", label: "Car Block Off", icon: CalendarOff },
+    ],
+  },
+  { href: "/admin/forms", label: "Forms", icon: ClipboardList },
+  {
+    href: "https://turo.com/us/en/host/4325673",
+    label: "Car Rental",
+    icon: Key,
+    external: true,
+  },
+  {
+    href: "/admin/hr",
+    label: "Human Resources",
+    icon: Briefcase,
+    children: [
+      { href: "/admin/hr/employees", label: "Employees", icon: Users },
+      { href: "/admin/hr/work-schedule", label: "Work Schedule", icon: Clock },
+      { href: "/admin/hr/task-management", label: "Task Management", icon: Briefcase },
+      { href: "/admin/hr/time", label: "Time", icon: Clock },
+      { href: "/admin/hr/time-off", label: "Time Off", icon: Clock },
+      { href: "/admin/hr/report", label: "Report", icon: ClipboardList },
+    ],
+  },
+  {
+    href: "/admin/payroll",
+    label: "Payroll",
+    icon: DollarSign,
+    children: [
+      { href: "/admin/payroll", label: "Pay Run", icon: DollarSign },
+      { href: "/admin/payroll/commissions", label: "Commissions", icon: DollarSign },
+    ],
+  },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/turo-guide", label: "Turo Guide", icon: BookOpen },
+  { href: "/admin/training-manual", label: "System Tutorial", icon: GraduationCap },
+  { href: "/admin/testimonials", label: "Client Testimonials", icon: Star },
+  { href: "/admin/news-media", label: "News & Media", icon: Newspaper },
+  { href: "/admin/notice-board", label: "Notice Board", icon: ClipboardList },
+  { href: "/admin/view-as-employee", label: "View as Employee", icon: Eye },
+];
+
 interface RoleOption {
   id: number;
   name: string;
@@ -462,7 +540,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       if (href === "/dashboard") return false;
       return pathname.startsWith(href + "/");
     };
-    [...allSidebarItems, ...employeeSidebarItems].forEach((it) => {
+    [...allSidebarItems, ...employeeSidebarItems, ...coHostSidebarItems].forEach((it) => {
       if (it.children && it.children.length > 0) {
         obj[it.href] = it.children.some((c) => matches(location, c.href));
       }
@@ -484,7 +562,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     // Auto-expand parent when a child matches the current location
     let changed = false;
     const newState = { ...expandedParents };
-    [...allSidebarItems, ...employeeSidebarItems].forEach((it) => {
+    [...allSidebarItems, ...employeeSidebarItems, ...coHostSidebarItems].forEach((it) => {
       if (it.children && it.children.length > 0) {
         const childActive = it.children.some((c) =>
           isPathActive(location, c.href),
@@ -526,6 +604,12 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
   const user = data?.user;
 
+  // Detect co-host: real co-host login (isCoHost=true from /api/auth/me)
+  // OR admin impersonating a co-host via "View as Co-Host"
+  const isViewingAsCoHost = !!(user as any)?.viewAsCoHost?.coHostId;
+  const isRealCoHost = !!(user as any)?.isCoHost;
+  const showCoHostSidebar = isRealCoHost || isViewingAsCoHost;
+
   // When on /staff path, show staff sidebar for both employees and admins (managers) so staff functions are available.
   // While impersonating an employee, the backend has already flipped
   // user.isEmployee to true on /api/auth/me, so the staff sidebar appears
@@ -538,6 +622,11 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   // Filter sidebar items based on user role and path (employees see staff nav; on /staff path admins also see staff nav)
   const sidebarItems = useMemo(() => {
     if (!user) return [];
+
+    // Co-host sidebar — scoped view, no GLA admin data
+    if (showCoHostSidebar) {
+      return coHostSidebarItems;
+    }
 
     // Resolve the user's effective role for sidebar filtering.
     // We trust the boolean flags first, but fall back to the role name when
@@ -629,7 +718,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         return item;
       })
       .filter(Boolean) as SidebarItem[];
-  }, [user, location, showStaffSidebar]);
+  }, [user, location, showStaffSidebar, showCoHostSidebar]);
 
   const handleLogout = async () => {
     try {

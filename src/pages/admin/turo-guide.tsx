@@ -93,6 +93,8 @@ export default function AdminTuroGuidePage() {
     staleTime: 1000 * 60 * 5,
   });
   const isClient = Boolean(meData?.user?.isClient) && !meData?.user?.isAdmin;
+  const isCoHost = !!(meData?.user as any)?.isCoHost || !!(meData?.user as any)?.viewAsCoHost?.coHostId;
+  const viewOnly = isClient || isCoHost;
   const [editItem, setEditItem] = useState<TuroGuideRow | null>(null);
   const [archiveId, setArchiveId] = useState<number | null>(null);
   const [restoreId, setRestoreId] = useState<number | null>(null);
@@ -283,7 +285,7 @@ export default function AdminTuroGuidePage() {
                 : "Manage Turo hosting guide entries. Archive or restore to control visibility on staff/client views."}
             </p>
           </div>
-          {!isClient && (
+          {!viewOnly && (
             <Button
               className="w-full sm:w-auto"
               onClick={() => {
@@ -385,7 +387,7 @@ export default function AdminTuroGuidePage() {
                         <span className="text-xs text-muted-foreground">
                           {formatDate(row.turo_guide_datetime)}
                         </span>
-                        {!isClient && (
+                        {!viewOnly && (
                           <div className="flex items-center gap-0.5">
                             <Button
                               variant="ghost"

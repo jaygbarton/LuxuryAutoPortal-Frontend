@@ -113,6 +113,8 @@ export default function NewsMediaPage() {
     staleTime: 1000 * 60 * 5,
   });
   const isClient = Boolean(meData?.user?.isClient) && !meData?.user?.isAdmin;
+  const isCoHost = !!(meData?.user as any)?.isCoHost || !!(meData?.user as any)?.viewAsCoHost?.coHostId;
+  const viewOnly = isClient || isCoHost;
   const authResolved = meData !== undefined;
 
   // Re-use the client-testimonials API with a "news_media" tag for separation.
@@ -316,7 +318,7 @@ export default function NewsMediaPage() {
                 : "Manage news updates, video links, and media content displayed on dashboards."}
             </p>
           </div>
-          {!isClient && (
+          {!viewOnly && (
             <Button
               className="w-full sm:w-auto"
               onClick={() => { resetForm(); setAddOpen(true); }}
@@ -339,7 +341,7 @@ export default function NewsMediaPage() {
                   className="pl-8"
                 />
               </div>
-              {!isClient && (
+              {!viewOnly && (
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[140px]">
                     <SelectValue placeholder="Status" />
@@ -430,7 +432,7 @@ export default function NewsMediaPage() {
                           <span className="text-xs text-muted-foreground">
                             {formatDate(row.client_testimonial_datetime)}
                           </span>
-                          {!isClient && (
+                          {!viewOnly && (
                             <div className="flex items-center gap-0.5">
                               <Button
                                 variant="ghost"
