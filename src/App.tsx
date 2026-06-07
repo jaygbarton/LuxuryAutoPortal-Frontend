@@ -57,6 +57,7 @@ import EmployeeFormPage from "@/pages/employee-form";
 import CoHostFormPage from "@/pages/co-host-form";
 import CoHostsPage from "@/pages/admin/co-hosts";
 import MyCoHostCarsPage from "@/pages/admin/my-co-host-cars";
+import CoHostPaymentsPage from "@/pages/admin/co-host-payments";
 import BouncieDevicesPage from "@/pages/admin/bouncie-devices";
 import BouncieFleetPage from "@/pages/admin/bouncie";
 import BouncieTripsPage from "@/pages/admin/bouncie-trips";
@@ -280,6 +281,9 @@ function Router() {
             </Route>
             <Route path="/admin/payment-status">
               <RequireRole roles={["isAdmin"]}><PaymentStatusPage /></RequireRole>
+            </Route>
+            <Route path="/admin/co-host-payments">
+              <RequireRole roles={["isAdmin"]}><CoHostPaymentsPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/payments">
               <RequireRole roles={["isAdmin", "isClient"]}><PaymentsPage /></RequireRole>

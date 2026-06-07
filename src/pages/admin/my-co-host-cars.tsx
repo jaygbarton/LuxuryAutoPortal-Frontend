@@ -12,8 +12,10 @@ interface CoHostCar {
   model: string;
   vin: string;
   licensePlate: string;
-  color: string;
   isActive: number;
+  ownerFirstName?: string | null;
+  ownerLastName?: string | null;
+  ownerEmail?: string | null;
 }
 
 interface CoHostGroup {
@@ -30,14 +32,17 @@ function CarTable({ cars }: { cars: CoHostCar[] }) {
         <thead>
           <tr className="border-b border-border">
             <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Vehicle</th>
-            <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Color</th>
             <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3 hidden md:table-cell">License Plate</th>
             <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3 hidden lg:table-cell">VIN</th>
+            <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Owner Name</th>
+            <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3 hidden xl:table-cell">Owner Email</th>
             <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Status</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {cars.map((car) => (
+          {cars.map((car) => {
+            const ownerName = [car.ownerFirstName, car.ownerLastName].filter(Boolean).join(" ");
+            return (
             <tr key={car.id} className="hover:bg-muted/50 transition-colors">
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
@@ -47,9 +52,10 @@ function CarTable({ cars }: { cars: CoHostCar[] }) {
                   </span>
                 </div>
               </td>
-              <td className="px-4 py-3 text-sm text-muted-foreground hidden sm:table-cell">{car.color || "—"}</td>
               <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">{car.licensePlate || "—"}</td>
               <td className="px-4 py-3 text-xs text-muted-foreground font-mono hidden lg:table-cell">{car.vin || "—"}</td>
+              <td className="px-4 py-3 text-sm text-muted-foreground hidden sm:table-cell">{ownerName || "—"}</td>
+              <td className="px-4 py-3 text-sm text-muted-foreground hidden xl:table-cell">{car.ownerEmail || "—"}</td>
               <td className="px-4 py-3">
                 <Badge
                   variant="outline"
@@ -61,7 +67,8 @@ function CarTable({ cars }: { cars: CoHostCar[] }) {
                 </Badge>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
