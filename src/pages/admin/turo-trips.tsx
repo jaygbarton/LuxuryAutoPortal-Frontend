@@ -402,6 +402,38 @@ export default function TuroTripsPage() {
     },
   });
 
+  // Backfill Plates — for trips missing plate_number, resolve the car via
+  // single-candidate name match first, then Bouncie GPS overlap for ambiguous cases.
+  const backfillPlatesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/backfill-plates`),
+        { method: "POST", credentials: "include" },
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        const reason = data?.error || data?.message || `HTTP ${response.status}`;
+        throw new Error(reason);
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      const d = data.data ?? {};
+      toast({
+        title: "Plate backfill complete",
+        description: `Fixed ${d.fixed ?? 0} of ${d.total ?? 0} trips. ${d.noDevice ?? 0} no device, ${d.noMatch ?? 0} no GPS match.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Plate backfill failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Per-trip re-parse — re-fetches the original Turo email for ONE trip by
   // reservation ID and rewrites its trip_start/trip_end. Used as the fallback
   // when the bulk Repair Dates pass left a single row wrong (its email used a
@@ -879,6 +911,25 @@ export default function TuroTripsPage() {
                 <>
                   <MapPin className="w-4 h-4 mr-2" />
                   Backfill Locations
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => backfillPlatesMutation.mutate()}
+              disabled={backfillPlatesMutation.isPending}
+              title="For trips with no plate number, resolve the car via GPS overlap with Bouncie trip history. Fills plate + VIN. Never overwrites existing values."
+            >
+              {backfillPlatesMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Matching...
+                </>
+              ) : (
+                <>
+                  <Car className="w-4 h-4 mr-2" />
+                  Backfill Plates
                 </>
               )}
             </Button>
