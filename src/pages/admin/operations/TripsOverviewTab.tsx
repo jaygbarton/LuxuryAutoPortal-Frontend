@@ -366,16 +366,19 @@ export function TripsOverviewTab() {
     },
   });
 
-  // Unfiltered summary counts (Active / Completed / Cancelled cards). Kept
-  // independent of the search/date filters so the cards always show fleet-wide
-  // totals — matching what users expect from a "summary" row.
+  // Summary counts (Active / Completed / Cancelled cards). Respects the same
+  // date filters as the table so the cards stay in sync with what's visible.
   const { data: summaryData } = useQuery<{
     data: { totalTrips: number; bookedTrips: number; cancelledTrips: number };
   }>({
-    queryKey: ["/api/turo-trips/summary", "operations-tab-cards"],
+    queryKey: ["/api/turo-trips/summary", "operations-tab-cards", tripStartFrom, tripEndOn],
     queryFn: async () => {
+      const params = new URLSearchParams();
+      if (tripStartFrom) params.set("startDate", tripStartFrom);
+      if (tripEndOn) params.set("endDate", tripEndOn);
+      const qs = params.toString();
       const response = await fetch(
-        buildApiUrl("/api/turo-trips/summary"),
+        buildApiUrl(`/api/turo-trips/summary${qs ? `?${qs}` : ""}`),
         { credentials: "include" },
       );
       if (!response.ok) throw new Error("Failed to fetch summary");
