@@ -105,7 +105,7 @@ export default function ModalEditIncomeExpense() {
     
     try {
       // Upload images first if there are any new ones (skip for management/owner split)
-      if (imageFiles.length > 0 && editingCell.field !== "carManagementSplit" && editingCell.field !== "carOwnerSplit") {
+      if (imageFiles.length > 0 && editingCell.field !== "carManagementSplit" && editingCell.field !== "carOwnerSplit" && editingCell.field !== "coHostSplit") {
         await uploadImages();
       }
     
@@ -143,6 +143,7 @@ export default function ModalEditIncomeExpense() {
     carPayment: "Car Payment",
     carManagementTotalExpenses: "Car Management Total Expenses",
     carOwnerTotalExpenses: "Car Owner Total Expenses",
+    coHostSplit: "Co-Host Split",
   };
 
   const fieldName = fieldNames[editingCell.field] || editingCell.field;
@@ -150,6 +151,13 @@ export default function ModalEditIncomeExpense() {
   // Get all values for the current month (only for management/owner split)
   const month = editingCell.month;
   const isManagementSplit = editingCell.field === "carManagementSplit" || editingCell.field === "carOwnerSplit";
+  // Co-Host Split is a plain editable percentage (0–100): no receipts, no
+  // form-amount breakdown, and no Car Management/Owner subcategory panel.
+  const isCoHostSplit = editingCell.field === "coHostSplit";
+  // Fields whose value is a percentage (drives the % input + suppresses the
+  // currency/receipt UI). Management split uses the big breakdown panel;
+  // co-host split uses the same simple % input without that panel.
+  const isPercentField = isManagementSplit || isCoHostSplit;
   
   // Income values
   const incomeValues = isManagementSplit ? {
@@ -286,7 +294,7 @@ export default function ModalEditIncomeExpense() {
 
           <div>
             <Label className="text-muted-foreground text-xs">
-              {isManagementSplit
+              {isPercentField
                 ? "Percentage"
                 : "Manual Amount"}
             </Label>
@@ -300,19 +308,23 @@ export default function ModalEditIncomeExpense() {
                 })
               }
               className="bg-card border-border text-foreground text-sm mt-1"
-              step={isManagementSplit ? "1" : "0.01"}
-              min={isManagementSplit ? "0" : undefined}
-              max={isManagementSplit ? "100" : undefined}
+              step={isPercentField ? "1" : "0.01"}
+              min={isPercentField ? "0" : undefined}
+              max={isPercentField ? "100" : undefined}
               autoFocus
             />
-            {!isManagementSplit && (
+            {isCoHostSplit ? (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Co-Host's share of the split (0–100%). GLA's share is the remainder.
+              </p>
+            ) : !isManagementSplit && (
               <p className="text-[11px] text-muted-foreground mt-1">
                 Manually-entered amount. Set to 0 to remove it; the Form Amount is unaffected.
               </p>
             )}
           </div>
 
-          {isManagementSplit ? (
+          {isPercentField ? (
             <div>
               <Label className="text-muted-foreground text-xs">Inputted Percentage:</Label>
               <Input
@@ -328,7 +340,7 @@ export default function ModalEditIncomeExpense() {
             />
           )}
 
-          {editingCell.field !== "carManagementSplit" && editingCell.field !== "carOwnerSplit" && (
+          {editingCell.field !== "carManagementSplit" && editingCell.field !== "carOwnerSplit" && editingCell.field !== "coHostSplit" && (
           <div>
             <Label className="text-muted-foreground text-xs">Remarks</Label>
             <Textarea
@@ -660,7 +672,7 @@ export default function ModalEditIncomeExpense() {
             </div>
           )}
 
-          {editingCell.field !== "carManagementSplit" && editingCell.field !== "carOwnerSplit" && (
+          {!isPercentField && (
             <>
               <FormReceiptInModal carId={carId} year={year} editingCell={editingCell} isOpen={isOpen} />
 
@@ -689,12 +701,12 @@ export default function ModalEditIncomeExpense() {
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isSaving || (isUploading && editingCell.field !== "carManagementSplit" && editingCell.field !== "carOwnerSplit")}
+            disabled={isSaving || (isUploading && !isPercentField)}
             className="flex-1 bg-primary text-primary-foreground hover:bg-primary/80"
           >
-            {isSaving || (isUploading && editingCell.field !== "carManagementSplit" && editingCell.field !== "carOwnerSplit") 
-              ? "Saving..." 
-              : editingCell.field === "carManagementSplit" || editingCell.field === "carOwnerSplit"
+            {isSaving || (isUploading && !isPercentField)
+              ? "Saving..."
+              : isPercentField
               ? "Save"
               : `Save${imageFiles.length > 0 ? ` & Upload ${imageFiles.length} Image${imageFiles.length > 1 ? 's' : ''}` : ''}`
             }

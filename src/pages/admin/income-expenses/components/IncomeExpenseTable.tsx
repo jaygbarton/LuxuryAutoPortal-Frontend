@@ -2068,19 +2068,8 @@ export default function IncomeExpenseTable({
               isExpanded={expandedSections.coHostingSplit}
               onToggle={() => toggleSection("coHostingSplit")}
             >
-              {/* GLA Split — amount = remainder of the split base; % = 100 − coHost% */}
-              <CategoryRow
-                label="GLA Split"
-                values={MONTHS.map((_, i) => roundToPhp2Dp(calculateGlaSplit(i + 1)))}
-                percentageValues={MONTHS.map((_, i) => 100 - getCoHostPercent(i + 1))}
-                category="income"
-                field="glaSplit"
-                isEditable={false}
-                formatType={isAllCarsView ? undefined : "managementSplit"}
-                monthModes={monthModes}
-                showAmountAndPercentage={!isAllCarsView}
-              />
-              {/* Co-Host Split — amount per Case A/B; % is the editable co-host % */}
+              {/* Co-Host Split — listed first per client. Amount per Case A/B;
+                  % is the editable co-host % (GLA % derives as the remainder). */}
               <CategoryRow
                 label="Co-Host Split"
                 values={MONTHS.map((_, i) => roundToPhp2Dp(calculateCoHostSplit(i + 1)))}
@@ -2089,6 +2078,18 @@ export default function IncomeExpenseTable({
                 field="coHostSplit"
                 isEditable={!isReadOnly}
                 formatType={isAllCarsView ? undefined : "ownerSplit"}
+                monthModes={monthModes}
+                showAmountAndPercentage={!isAllCarsView}
+              />
+              {/* GLA Split — amount = remainder of the split base; % = 100 − coHost% (read-only, derived) */}
+              <CategoryRow
+                label="GLA Split"
+                values={MONTHS.map((_, i) => roundToPhp2Dp(calculateGlaSplit(i + 1)))}
+                percentageValues={MONTHS.map((_, i) => 100 - getCoHostPercent(i + 1))}
+                category="income"
+                field="glaSplit"
+                isEditable={false}
+                formatType={isAllCarsView ? undefined : "managementSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
               />
