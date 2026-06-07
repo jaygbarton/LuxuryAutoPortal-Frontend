@@ -38,11 +38,15 @@ import { parseVideoSource } from "@/lib/video-utils";
 
 // Check if user is admin
 function useIsAdmin() {
-  const { data: userData } = useQuery<{ user?: { isAdmin?: boolean } }>({
+  const { data: userData } = useQuery<{ user?: { isAdmin?: boolean; isCoHost?: boolean; viewAsCoHost?: object } }>({
     queryKey: ["/api/auth/me"],
     retry: false,
   });
-  return userData?.user?.isAdmin === true;
+  const user = userData?.user;
+  if (!user?.isAdmin) return false;
+  // Co-hosts retain isAdmin=true on the backend but should have view-only access here.
+  if (user.isCoHost || user.viewAsCoHost) return false;
+  return true;
 }
 
 // Form schema for tutorial step
