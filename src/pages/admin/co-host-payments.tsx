@@ -1,46 +1,80 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Car, Users, ExternalLink } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
-import { useLocation } from "wouter";
 
-interface CoHostCar {
-  id: number;
-  year: string;
-  make: string;
-  model: string;
-  vin: string;
-  licensePlate: string;
-  isActive: number;
-  ownerFirstName?: string | null;
-  ownerLastName?: string | null;
-  ownerEmail?: string | null;
+interface Payment {
+  payments_aid: number;
+  payments_car_id: number;
+  payments_year_month: string;
+  payments_amount: number;
+  payments_amount_payout: number;
+  payments_amount_balance: number;
+  payments_reference_number: string;
+  payments_invoice_date: string | null;
+  payments_remarks: string | null;
+  payment_status_name: string;
+  payment_status_color: string;
+  car_make_model: string;
+  car_plate_number: string;
+  car_vin_number: string;
+  car_year: number;
+  client_fname: string;
+  client_lname: string;
+  fullname: string;
 }
 
-interface CoHostGroup {
-  coHostId: number;
-  coHostName: string;
-  coHostNumber: string;
-  cars: CoHostCar[];
+function formatYearMonth(ym: string): string {
+  try {
+    const [year, month] = ym.split("-");
+    return new Date(Number(year), Number(month) - 1).toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return ym;
+  }
+}
+
+function fmt(n: number | string): string {
+  return `$${Number(n || 0).toFixed(2)}`;
 }
 
 export default function CoHostPaymentsPage() {
-  const [, navigate] = useLocation();
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(30);
 
-  const { data, isLoading } = useQuery<{ groups: CoHostGroup[] }>({
-    queryKey: ["/api/admin/all-co-host-cars"],
+  const { data: paymentsData, isLoading } = useQuery<{
+    success: boolean;
+    data: Payment[];
+    total: number;
+    totalPages: number;
+  }>({
+    queryKey: ["/api/payments/search", "co-host", page, pageSize],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/admin/all-co-host-cars"), { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch co-host cars");
+      const res = await fetch(buildApiUrl("/api/payments/search"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          carActiveStatus: "active",
+          page,
+          limit: pageSize,
+          sortOrder: "desc",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to fetch payments");
       return res.json();
     },
   });
 
-  const groups = data?.groups ?? [];
-  const currentYear = new Date().getFullYear();
+  const payments = paymentsData?.data ?? [];
+  const total = paymentsData?.total ?? 0;
+  const totalPages = paymentsData?.totalPages ?? 1;
 
   return (
     <AdminLayout>
@@ -48,104 +82,114 @@ export default function CoHostPaymentsPage() {
         <div>
           <h1 className="text-2xl font-bold text-primary">Co-Host Payments</h1>
           <p className="text-muted-foreground text-sm">
-            Co-host earnings by car — view each car's income &amp; expense page for the detailed split breakdown.
+            Payments for your assigned cars.
           </p>
         </div>
 
-        {isLoading ? (
-          <Card className="bg-card border-border">
+        <Card className="bg-card border-border overflow-hidden">
+          {isLoading ? (
             <CardContent className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </CardContent>
-          </Card>
-        ) : groups.length === 0 ? (
-          <Card className="bg-card border-border">
+          ) : payments.length === 0 ? (
             <CardContent className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
-              <Users className="w-10 h-10 opacity-30" />
-              <p className="text-sm">No co-hosts have been assigned cars yet.</p>
+              <p className="text-sm">No payments found for your cars.</p>
             </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            {groups.map((g) => (
-              <Card key={g.coHostId} className="bg-card border-border overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/30">
-                  <Users className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">{g.coHostName}</span>
-                  {g.coHostNumber && (
-                    <Badge variant="outline" className="text-xs">{g.coHostNumber}</Badge>
-                  )}
-                  <span className="text-xs text-muted-foreground ml-auto">
-                    {g.cars.length} car{g.cars.length !== 1 ? "s" : ""}
-                  </span>
+          ) : (
+            <>
+              <div className="w-full overflow-x-auto">
+                <table className="w-full min-w-[640px] border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">#</th>
+                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Status</th>
+                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Date</th>
+                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Car</th>
+                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden sm:table-cell">Client</th>
+                      <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Car Owner Split</th>
+                      <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden md:table-cell">Paid</th>
+                      <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden md:table-cell">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {payments.map((p, i) => (
+                      <tr key={p.payments_aid} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-3 py-2 text-muted-foreground">{(page - 1) * pageSize + i + 1}</td>
+                        <td className="px-3 py-2">
+                          <Badge
+                            variant="outline"
+                            className="text-xs"
+                            style={{
+                              backgroundColor: `${p.payment_status_color}22`,
+                              color: p.payment_status_color,
+                              borderColor: `${p.payment_status_color}44`,
+                            }}
+                          >
+                            {p.payment_status_name}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                          {formatYearMonth(p.payments_year_month)}
+                        </td>
+                        <td className="px-3 py-2 text-foreground max-w-[180px]">
+                          <div className="truncate">
+                            {[p.car_year, p.car_make_model].filter(Boolean).join(" ")}
+                          </div>
+                          {p.car_plate_number && (
+                            <div className="text-muted-foreground text-[10px] truncate">#{p.car_plate_number}</div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground hidden sm:table-cell">
+                          {p.fullname || [p.client_fname, p.client_lname].filter(Boolean).join(" ") || "—"}
+                        </td>
+                        <td className="px-3 py-2 text-right text-primary font-medium">
+                          {fmt(p.payments_amount)}
+                        </td>
+                        <td className="px-3 py-2 text-right text-muted-foreground hidden md:table-cell">
+                          {fmt(p.payments_amount_payout)}
+                        </td>
+                        <td className="px-3 py-2 text-right hidden md:table-cell">
+                          <span className={Number(p.payments_amount_balance) < 0 ? "text-red-500" : "text-muted-foreground"}>
+                            {fmt(p.payments_amount_balance)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                <span className="text-xs text-muted-foreground">
+                  Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="border-border text-muted-foreground"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Previous
+                  </Button>
+                  <span className="text-xs text-muted-foreground">Page {page} of {totalPages}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                    className="border-border text-muted-foreground"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
                 </div>
-                <CardContent className="p-0">
-                  <div className="w-full overflow-x-auto">
-                    <table className="w-full min-w-[540px]">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Vehicle</th>
-                          <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3 hidden md:table-cell">License Plate</th>
-                          <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Owner</th>
-                          <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3 hidden lg:table-cell">Owner Email</th>
-                          <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Status</th>
-                          <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Earnings</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {g.cars.map((car) => {
-                          const ownerName = [car.ownerFirstName, car.ownerLastName].filter(Boolean).join(" ");
-                          return (
-                            <tr key={car.id} className="hover:bg-muted/50 transition-colors">
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  <Car className="w-4 h-4 text-muted-foreground shrink-0" />
-                                  <span className="text-sm font-medium text-foreground">
-                                    {[car.year, car.make, car.model].filter(Boolean).join(" ") || `Car #${car.id}`}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">
-                                {car.licensePlate || "—"}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground hidden sm:table-cell">
-                                {ownerName || "—"}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground hidden lg:table-cell">
-                                {car.ownerEmail || "—"}
-                              </td>
-                              <td className="px-4 py-3">
-                                <Badge
-                                  variant="outline"
-                                  className={car.isActive
-                                    ? "bg-green-500/20 text-green-700 border-green-500/30 text-xs"
-                                    : "bg-muted text-muted-foreground border-border text-xs"}
-                                >
-                                  {car.isActive ? "Active" : "Inactive"}
-                                </Badge>
-                              </td>
-                              <td className="px-4 py-3 text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-xs text-primary hover:text-primary/80 gap-1"
-                                  onClick={() => navigate(`/admin/cars/${car.id}/income-expense?year=${currentYear}`)}
-                                >
-                                  View I&amp;E
-                                  <ExternalLink className="w-3 h-3" />
-                                </Button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+              </div>
+            </>
+          )}
+        </Card>
       </div>
     </AdminLayout>
   );
