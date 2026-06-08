@@ -2105,16 +2105,18 @@ export default function IncomeExpenseTable({
                 showAmountAndPercentage={!isAllCarsView}
               />
               {/* GLA Split — same FORMULA as the Car Management Split (GLA-owned) /
-                  remainder of Car Mgmt Split (else). For a GLA-owned car the % is
-                  its own editable field (`glaSplit`); for an externally-owned car
-                  it derives as the remainder of the co-host % (not editable). */}
+                  remainder of Car Mgmt Split (else). Editable in BOTH ownership
+                  cases via its own field (`glaSplit`). For an externally-owned car
+                  the GLA % and Co-Host % are the two halves of one split, so the
+                  modal's handleSave writes the inverse to `coHostSplit`
+                  (GLA% + coHost% = 100) and the Co-Host row re-derives from it. */}
               <CategoryRow
                 label="GLA Split"
                 values={MONTHS.map((_, i) => roundToPhp2Dp(calculateGlaSplit(i + 1)))}
                 percentageValues={MONTHS.map((_, i) => getGlaSplitPercent(i + 1))}
                 category="income"
                 field="glaSplit"
-                isEditable={!isReadOnly && !isAllCarsView && isGlaOwned}
+                isEditable={!isReadOnly && !isAllCarsView}
                 formatType={isAllCarsView ? undefined : "managementSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}

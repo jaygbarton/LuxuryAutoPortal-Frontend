@@ -112,15 +112,22 @@ export default function ModalEditIncomeExpense() {
       // Save the change with remarks - remarks will be included in the save request
       // The saveChanges function will send remarks along with the value.
       //
-      // GLA Split has no stored field of its own — it's the remainder of the
-      // co-host split base. Editing the GLA % therefore writes the inverse to
-      // `coHostSplit` (GLA% + coHost% = 100); the GLA row re-derives from there.
+      // GLA Split editing depends on ownership:
+      //  • Externally-owned car: GLA % and Co-Host % are the two halves of ONE
+      //    split (sum = 100). GLA Split has no field of its own here, so editing
+      //    the GLA % writes the inverse to `coHostSplit` (GLA% = 100 − coHost%);
+      //    the Co-Host row re-derives from it.
+      //  • GLA-owned car: GLA Split mirrors the Car Management Split and has its
+      //    OWN independent field (`glaSplit`) — NOT a 100-complement of the
+      //    co-host %. Save it directly.
       const isGlaSplit = editingCell.field === "glaSplit";
+      const isGlaOwned = Boolean((data as any)?.isGlaOwned);
+      const convertGlaToCoHost = isGlaSplit && !isGlaOwned;
       saveChanges({
         category: editingCell.category,
-        field: isGlaSplit ? "coHostSplit" : editingCell.field,
+        field: convertGlaToCoHost ? "coHostSplit" : editingCell.field,
         month: editingCell.month,
-        value: isGlaSplit ? 100 - editingCell.value : editingCell.value,
+        value: convertGlaToCoHost ? 100 - editingCell.value : editingCell.value,
         remarks: remarks.trim(), // Include remarks in the save
       });
     } catch (error) {
@@ -163,6 +170,10 @@ export default function ModalEditIncomeExpense() {
   // is the GLA % itself (0–100); handleSave converts it to coHostSplit on save.
   const isGlaSplit = editingCell.field === "glaSplit";
   const isCoHostSplit = editingCell.field === "coHostSplit";
+  // GLA-owned cars: Co-Host/GLA split mirror the Car Owner/Management Split with
+  // their OWN independent %s (not 100-complements). Externally-owned cars: GLA %
+  // and Co-Host % are the two halves of one split (sum = 100).
+  const isGlaOwned = Boolean((data as any)?.isGlaOwned);
   // Fields whose value is a percentage (drives the % input + suppresses the
   // currency/receipt UI). Management split uses the big breakdown panel;
   // co-host / GLA split use the same simple % input without that panel.
@@ -290,9 +301,13 @@ export default function ModalEditIncomeExpense() {
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {isCoHostSplit
-              ? `Set the Co-Host % for ${monthName} ${year}. GLA's % is the remainder (100 − Co-Host %).`
+              ? isGlaOwned
+                ? `Set the Co-Host % for ${monthName} ${year}. Same formula as the Car Owner Split.`
+                : `Set the Co-Host % for ${monthName} ${year}. GLA's % is the remainder (100 − Co-Host %).`
               : isGlaSplit
-              ? `Set GLA's % for ${monthName} ${year}. The Co-Host's % is the remainder (100 − GLA %).`
+              ? isGlaOwned
+                ? `Set GLA's % for ${monthName} ${year}. Same formula as the Car Management Split.`
+                : `Set GLA's % for ${monthName} ${year}. The Co-Host's % is the remainder (100 − GLA %).`
               : `Enter the amount for ${fieldName} for ${monthName} ${year}`}
           </DialogDescription>
         </DialogHeader>
@@ -333,11 +348,15 @@ export default function ModalEditIncomeExpense() {
             />
             {isCoHostSplit ? (
               <p className="text-[11px] text-muted-foreground mt-1">
-                Co-Host's share of the split (0–100%). GLA's share is the remainder.
+                Co-Host's % (0–100%).{isGlaOwned
+                  ? " Uses the same formula as the Car Owner Split."
+                  : " GLA's share is the remainder."}
               </p>
             ) : isGlaSplit ? (
               <p className="text-[11px] text-muted-foreground mt-1">
-                GLA's share of the split (0–100%). The Co-Host's share is set to the remainder.
+                GLA's % (0–100%).{isGlaOwned
+                  ? " Uses the same formula as the Car Management Split."
+                  : " The Co-Host's share is set to the remainder."}
               </p>
             ) : !isManagementSplit && (
               <p className="text-[11px] text-muted-foreground mt-1">
