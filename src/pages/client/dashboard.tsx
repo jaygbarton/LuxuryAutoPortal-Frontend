@@ -124,7 +124,16 @@ export default function ClientDashboard() {
   const { data: ieCarData, isLoading: ieCarLoading } = useQuery<{
     success: boolean;
     data: {
-      incomeExpenses: { month: number; rentalIncome: number; carOwnerTotalExpenses: number }[];
+      incomeExpenses: {
+        month: number;
+        rentalIncome: number;
+        carOwnerTotalExpenses: number;
+        // Authoritative DOLLAR values computed by the backend split formula.
+        computedCarOwnerSplit?: number;
+        computedCarOwnerTotalExpenses?: number;
+        computedCarManagementSplit?: number;
+        computedCarManagementTotalExpenses?: number;
+      }[];
       history: { month: number; daysRented: number; tripsTaken: number }[];
     };
   }>({
@@ -334,15 +343,11 @@ export default function ClientDashboard() {
       const histRow = histMonths.find((r: any) => Number(r.month) === monthNum);
       const days = Number(histRow?.daysRented ?? 0);
       const trips = Number(histRow?.tripsTaken ?? 0);
-      // Expenses from client_payments filtered by this car + month
-      const monthPayments = payments.filter(
-        (p) => p.payments_year_month === monthKey,
-      );
-      const expenses = monthPayments.reduce(
-        (s, p) => s + (parseFloat(String(p.payments_amount)) || 0),
-        0,
-      );
-      const profit = income - expenses;
+      // Car owner's share of expenses + the Car Owner Split, both computed by
+      // the authoritative backend formula (same value the admin I&E page shows).
+      // Previously this column wrongly used rentalIncome - sum(clientPayments).
+      const expenses = Number(ieRow?.computedCarOwnerTotalExpenses ?? 0);
+      const profit = Number(ieRow?.computedCarOwnerSplit ?? 0);
       return {
         month: `${m} ${yearNum}`,
         shortMonth: m,
@@ -355,7 +360,7 @@ export default function ClientDashboard() {
         avgPerTrip: trips > 0 ? income / trips : 0,
       };
     });
-  }, [ieMonths, histMonths, payments, yearNum]);
+  }, [ieMonths, histMonths, yearNum]);
 
   const yearTotals = useMemo<YearTotals>(() => {
     return monthlyTripData.reduce(

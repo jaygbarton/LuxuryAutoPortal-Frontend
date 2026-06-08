@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader } from "./SectionHeader";
+import { useCoHost } from "@/hooks/use-co-host";
 
 const MONTHS = [
   "All", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -38,9 +39,10 @@ interface Props {
 
 export default function CarPerformanceSection({ year }: Props) {
   const [selectedMonth, setSelectedMonth] = useState(0); // 0 = All
+  const { coHostId } = useCoHost();
 
   const { data, isLoading } = useQuery<{ success: boolean; data: CarRow[] }>({
-    queryKey: ["/api/income-expense/car-performance", year, selectedMonth],
+    queryKey: ["/api/income-expense/car-performance", year, selectedMonth, coHostId ?? "all"],
     queryFn: async () => {
       const url = selectedMonth > 0
         ? buildApiUrl(`/api/income-expense/car-performance/${year}?month=${selectedMonth}`)
