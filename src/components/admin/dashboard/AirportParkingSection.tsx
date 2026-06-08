@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { DashboardTable } from "@/components/admin/dashboard";
 import { formatCurrency, MONTH_LABELS } from "./utils";
+import { useCoHost } from "@/hooks/use-co-host";
 import type {
   IncomeExpenseData,
   ParkingAirportQBMonth,
@@ -73,6 +74,7 @@ function buildRows(
 }
 
 export default function AirportParkingSection({ year }: AirportParkingSectionProps) {
+  const { isCoHost } = useCoHost();
   const { data, isLoading, isError } = useQuery<ApiResponse>({
     queryKey: ["/api/income-expense/all-cars", year],
     queryFn: async () => {
@@ -116,12 +118,12 @@ export default function AirportParkingSection({ year }: AirportParkingSectionPro
         const history: HistoryMonth[] = d.history ?? [];
 
         const gla = buildRows(
-          (m) => getMonthEntry(reimbursedBills, m)?.parkingAirport ?? 0,
+          (m) => Number(getMonthEntry(reimbursedBills, m)?.parkingAirport ?? 0),
           history,
           year,
         );
         const qb = buildRows(
-          (m) => getMonthEntry(parkingAirportQB, m)?.totalParkingAirport ?? 0,
+          (m) => Number(getMonthEntry(parkingAirportQB, m)?.totalParkingAirport ?? 0),
           history,
           year,
         );
@@ -141,18 +143,18 @@ export default function AirportParkingSection({ year }: AirportParkingSectionPro
               />
             </div>
 
-            {/* QB — sourced from the same column as the I&E page's
-                "PARKING AIRPORT AVERAGE PER TRIP - QB" section. */}
-            <div className="min-w-[300px] flex-1">
-              <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
-                PARKING AIRPORT AVERAGE PER TRIP - QB
-              </h3>
-              <DashboardTable
-                columns={TABLE_COLUMNS}
-                rows={qb.rows}
-                totalsRow={qb.totalsRow}
-              />
-            </div>
+            {!isCoHost && (
+              <div className="min-w-[300px] flex-1">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
+                  PARKING AIRPORT AVERAGE PER TRIP - QB
+                </h3>
+                <DashboardTable
+                  columns={TABLE_COLUMNS}
+                  rows={qb.rows}
+                  totalsRow={qb.totalsRow}
+                />
+              </div>
+            )}
           </div>
         );
       })()}
