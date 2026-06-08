@@ -232,7 +232,7 @@ export default function BouncieAnalyticsPage() {
           <Card>
             <CardContent className="pt-5 pb-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide">Fleet Avg Speed</p>
-              <p className="text-2xl sm:text-3xl font-bold mt-1">{isLoading ? "—" : `${n(totals?.fleet_avg_speed).toFixed(0)}`}</p>
+              <p className="text-2xl sm:text-3xl font-bold mt-1">{isLoading ? "—" : totals?.fleet_avg_speed ? `${n(totals.fleet_avg_speed).toFixed(0)}` : "—"}</p>
               <p className="text-xs text-muted-foreground">mph</p>
             </CardContent>
           </Card>

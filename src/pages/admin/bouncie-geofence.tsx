@@ -116,6 +116,7 @@ function vehicleName(event: GeofenceEvent): string {
 
 function formatTime(ts: string): string {
   return new Date(ts).toLocaleString("en-US", {
+    timeZone: "America/Denver",
     month: "short",
     day: "numeric",
     hour: "2-digit",

@@ -89,7 +89,7 @@ function vehicleName(event: DrivingEvent): string {
 }
 
 function formatTime(ts: string): string {
-  return new Date(ts).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return new Date(ts).toLocaleString("en-US", { timeZone: "America/Denver", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 export default function BouncieBehaviorPage() {
