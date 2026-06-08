@@ -1810,17 +1810,6 @@ export default function IncomeExpenseTable({
   };
 
   // ===== CO-HOSTING SPLIT (per PM rule) =====
-  // The co-host % is editable per month (stored field `coHostSplit`), falling
-  // back to the car/year formula default `coHostSplitPercent`, then 0. Default
-  // is 0 (not 85) per client: a month that has never been set shows Co-Host 0%
-  // / GLA 100% and $0 amounts until an admin enters the percentages.
-  const getCoHostPercent = (month: number): number => {
-    const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
-    const stored = monthRow?.coHostSplit;
-    const def = (data as any).formulaSetting?.coHostSplitPercent ?? 0;
-    return stored != null ? Number(stored) : Number(def);
-  };
-
   const getCarOwnerPercent = (month: number): number => {
     const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
     const stored = monthRow?.carOwnerSplit;
@@ -1835,23 +1824,51 @@ export default function IncomeExpenseTable({
     return stored != null ? Number(stored) : Number(def);
   };
 
+  // Co-Host % — its OWN editable per-month field (`coHostSplit`), independent of
+  // the Car Owner Split %. Per @Jin: for a GLA-owned car the co-hosting split
+  // uses the SAME formula as the owner/management split, but the % must be
+  // separately editable — so the default seeds from the relevant base % (owner %
+  // when GLA-owned, else the car/year `coHostSplitPercent`, then 0) and the admin
+  // can override it per month without touching the Car Owner Split row.
+  const getCoHostPercent = (month: number): number => {
+    const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
+    const stored = monthRow?.coHostSplit;
+    if (stored != null) return Number(stored);
+    if (isGlaOwned) return getCarOwnerPercent(month);
+    return Number((data as any).formulaSetting?.coHostSplitPercent ?? 0);
+  };
+
+  // GLA % — its OWN editable per-month field (`glaSplit`). For a GLA-owned car
+  // it defaults to the Car Management %; for an externally-owned car it is the
+  // remainder of the co-host % (derived, not separately stored).
+  const getGlaSplitPercent = (month: number): number => {
+    const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
+    const stored = monthRow?.glaSplit;
+    if (stored != null) return Number(stored);
+    if (isGlaOwned) return getCarManagementPercent(month);
+    return 100 - getCoHostPercent(month);
+  };
+
   // Co-Host Split amount for a month.
-  //  • GLA-owned car: equals the Car Owner Split exactly (same formula, same %).
+  //  • GLA-owned car: SAME formula as the Car Owner Split, but driven by the
+  //    independently-editable co-host % (via percentOverride) instead of the
+  //    stored carOwnerSplit %.
   //  • Owned by another person: cohost% × Car Management Split.
   const calculateCoHostSplit = (month: number): number => {
     if (isGlaOwned) {
-      return calculateCarOwnerSplit(month);
+      return calculateCarOwnerSplit(month, getCoHostPercent(month));
     }
     const coHostPct = getCoHostPercent(month);
     return calculateCarManagementSplit(month) * (coHostPct / 100);
   };
 
   // GLA Split amount.
-  //  • GLA-owned car: equals the Car Management Split exactly (same formula, same %).
+  //  • GLA-owned car: SAME formula as the Car Management Split, driven by the
+  //    independently-editable GLA % (via percentOverride).
   //  • Owned by another person: remainder of the Car Management Split.
   const calculateGlaSplit = (month: number): number => {
     if (isGlaOwned) {
-      return calculateCarManagementSplit(month);
+      return calculateCarManagementSplit(month, getGlaSplitPercent(month));
     }
     const coHostPct = getCoHostPercent(month);
     return calculateCarManagementSplit(month) * (1 - coHostPct / 100);
@@ -2071,39 +2088,33 @@ export default function IncomeExpenseTable({
               isExpanded={expandedSections.coHostingSplit}
               onToggle={() => toggleSection("coHostingSplit")}
             >
-              {/* Co-Host Split — listed first per client.
-                  • Owned by another person: editable co-host % (field coHostSplit);
-                    GLA % derives as the remainder, amount = coHost% × Car Mgmt Split.
-                  • GLA-owned: equals the Car Owner Split exactly, so editing the %
-                    must write the Car Owner Split field (carOwnerSplit) — editing
-                    coHostSplit would have no effect on the displayed amount. */}
+              {/* Co-Host Split — listed first per client. Same amount FORMULA as
+                  the Car Owner Split (GLA-owned) / cohost% × Car Mgmt Split (else),
+                  but the % is its OWN editable field (`coHostSplit`) so it can be
+                  set independently of the Car Owner Split %. Editable in both
+                  ownership cases (the percent default seeds from the base %). */}
               <CategoryRow
                 label="Co-Host Split"
                 values={MONTHS.map((_, i) => roundToPhp2Dp(calculateCoHostSplit(i + 1)))}
-                percentageValues={MONTHS.map((_, i) =>
-                  isGlaOwned ? getCarOwnerPercent(i + 1) : getCoHostPercent(i + 1)
-                )}
+                percentageValues={MONTHS.map((_, i) => getCoHostPercent(i + 1))}
                 category="income"
-                field={isGlaOwned ? "carOwnerSplit" : "coHostSplit"}
+                field="coHostSplit"
                 isEditable={!isReadOnly && !isAllCarsView}
                 formatType={isAllCarsView ? undefined : "ownerSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
               />
-              {/* GLA Split.
-                  • Owned by another person: remainder of the Car Management Split
-                    (the % is the GLA remainder; the editable co-host % lives above).
-                  • GLA-owned: equals the Car Management Split exactly, so editing the
-                    % writes the Car Management Split field (carManagementSplit). */}
+              {/* GLA Split — same FORMULA as the Car Management Split (GLA-owned) /
+                  remainder of Car Mgmt Split (else). For a GLA-owned car the % is
+                  its own editable field (`glaSplit`); for an externally-owned car
+                  it derives as the remainder of the co-host % (not editable). */}
               <CategoryRow
                 label="GLA Split"
                 values={MONTHS.map((_, i) => roundToPhp2Dp(calculateGlaSplit(i + 1)))}
-                percentageValues={MONTHS.map((_, i) =>
-                  isGlaOwned ? getCarManagementPercent(i + 1) : 100 - getCoHostPercent(i + 1)
-                )}
+                percentageValues={MONTHS.map((_, i) => getGlaSplitPercent(i + 1))}
                 category="income"
-                field={isGlaOwned ? "carManagementSplit" : "glaSplit"}
-                isEditable={!isReadOnly && !isAllCarsView}
+                field="glaSplit"
+                isEditable={!isReadOnly && !isAllCarsView && isGlaOwned}
                 formatType={isAllCarsView ? undefined : "managementSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
