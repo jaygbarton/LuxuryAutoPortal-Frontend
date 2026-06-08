@@ -589,6 +589,10 @@ function FleetMap({
     const map = mapInst.current;
     if (!mapReady || !L || !map) return;
 
+    // If new data is empty but we already have markers, this is a transient
+    // refetch gap (keepPreviousData momentarily undefined). Don't wipe markers.
+    if (withCoords.length === 0 && Object.keys(markerMap.current).length > 0) return;
+
     const existing = new Set(Object.keys(markerMap.current));
 
     withCoords.forEach((v) => {

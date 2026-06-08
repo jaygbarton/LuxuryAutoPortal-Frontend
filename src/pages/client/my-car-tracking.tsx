@@ -386,6 +386,9 @@ function FleetMap({
     const L = leafletRef.current;
     const map = mapInst.current;
     if (!mapReady || !L || !map) return;
+
+    if (withCoords.length === 0 && Object.keys(markerMap.current).length > 0) return;
+
     const existing = new Set(Object.keys(markerMap.current));
 
     withCoords.forEach(v => {
