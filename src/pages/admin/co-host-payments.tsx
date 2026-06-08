@@ -82,7 +82,7 @@ export default function CoHostPaymentsPage() {
         <div>
           <h1 className="text-2xl font-bold text-primary">Co-Host Payments</h1>
           <p className="text-muted-foreground text-sm">
-            Payments for your assigned cars.
+            View payments for co-host assigned cars.
           </p>
         </div>
 

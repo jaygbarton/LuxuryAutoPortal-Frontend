@@ -49,25 +49,28 @@ export default function AdminLogin() {
       return response.json();
     },
     onSuccess: async (data) => {
-      // Set the user data directly in the cache FIRST
-      // This ensures all components see the user immediately without querying
+      // Optimistically prime the cache so components see the user immediately.
       queryClient.setQueryData(["/api/auth/me"], {
         user: { ...data.user, ...(data.roles && data.roles.length ? { roles: data.roles } : {}) },
       });
-      
+
       // Wait for session cookie to be fully set and propagated
       // This prevents race conditions where queries fire before cookie is ready
       await new Promise(resolve => setTimeout(resolve, 800));
-      
+
+      // The /api/auth/login response is the raw session user and is MISSING
+      // server-computed fields like isCoHost / viewAsCoHost that the sidebar
+      // role filter depends on. Refetch the authoritative /api/auth/me (the
+      // same payload a hard refresh gets) so the correct sidebar renders on
+      // the first dashboard paint instead of only after a manual refresh.
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
+
       toast({
         title: "Welcome back!",
         description: `Logged in as ${data.user.firstName}`,
       });
-      
-      // Wait a bit more before redirecting to ensure everything is stable
-      // This gives time for the cookie to be fully set and all components to see cached data
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       setLocation("/dashboard");
     },
     onError: (error: any) => {

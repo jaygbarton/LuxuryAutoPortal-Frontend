@@ -383,6 +383,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     const dd = getMonthEntry(ieData?.directDelivery ?? [], m);
 
     const gross = ie ? grossRentalIncome(ie) : 0;
+    const rentalIncome = ie ? Number(ie.rentalIncome ?? 0) : 0;
     // Use pre-computed splits from backend (aggregated per-car) when available,
     // otherwise fall back to local calculation (single-car view)
     const mgmtInc = (ie?.mgmtIncome != null && ie.mgmtIncome > 0)
@@ -397,6 +398,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     return {
       month: m,
       gross,
+      rentalIncome,
       mgmtIncome: mgmtInc,
       ownerIncome: ownerInc,
       mgmtExpenses: mgmtExp,
@@ -470,7 +472,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
           {formatShortMonth(mc.month)} {year}
         </span>
       ),
-      rentalIncome: formatCurrency(mc.gross),
+      rentalIncome: formatCurrency(mc.rentalIncome),
       mgmtExpenses: formatCurrency(mc.mgmtExpenses),
       mgmtSplit: formatCurrency(mc.mgmtIncome),
       ownerExpenses: formatCurrency(mc.ownerExpenses),
@@ -517,9 +519,11 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
   const yearAvgLeadTime = yearTripsWithLeadTime > 0 ? yearTotalLeadTime / yearTripsWithLeadTime : 0;
   const yearAvgPerMile = totalMilesAll > 0 ? totalGross / totalMilesAll : 0;
 
+  const totalRentalIncome = monthlyComputed.reduce((s, m) => s + m.rentalIncome, 0);
+
   const tableTotals = {
     month: "TOTAL",
-    rentalIncome: formatCurrency(totalGross),
+    rentalIncome: formatCurrency(totalRentalIncome),
     mgmtExpenses: formatCurrency(totalMgmtExpenses),
     mgmtSplit: formatCurrency(totalMgmtIncome),
     ownerExpenses: formatCurrency(totalOwnerExpenses),
@@ -650,7 +654,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                   Total Management Income and Expenses
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" className="h-20" />
+                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.rentalIncome, 0))} variant="dark" className="h-20" />
                   <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" className="h-20" />
                   <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" className="h-20" />
                 </div>
@@ -662,12 +666,12 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                   Management Income and Expenses
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" className="h-20" />
+                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.rentalIncome, 0))} variant="dark" className="h-20" />
                   <SummaryCard label="Total Management Expenses" value={formatCurrency(totalMgmtExpenses)} variant="white" className="h-20" />
                   <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome - totalMgmtExpenses)} variant="gold" className="h-20" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
-                  <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" className="h-20" />
+                  <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.rentalIncome ?? 0)} variant="dark" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Mgmt Expenses`} value={formatCurrency(prevMonth?.mgmtExpenses ?? 0)} variant="white" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Mgmt Profit`} value={formatCurrency((prevMonth?.mgmtIncome ?? 0) - (prevMonth?.mgmtExpenses ?? 0))} variant="gold" className="h-20" />
                 </div>
@@ -679,12 +683,12 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                   Car Owner Income and Expenses
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.gross, 0))} variant="dark" className="h-20" />
+                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.rentalIncome, 0))} variant="dark" className="h-20" />
                   <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" className="h-20" />
                   <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" className="h-20" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
-                  <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" className="h-20" />
+                  <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.rentalIncome ?? 0)} variant="dark" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Owner Expenses`} value={formatCurrency(prevMonth?.ownerExpenses ?? 0)} variant="white" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Owner Profit`} value={formatCurrency((prevMonth?.ownerIncome ?? 0) - (prevMonth?.ownerExpenses ?? 0))} variant="gold" className="h-20" />
                 </div>
