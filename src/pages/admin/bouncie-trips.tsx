@@ -202,7 +202,9 @@ export default function BouncieTripsPage() {
   const queryParams = new URLSearchParams();
   if (deviceFilter) queryParams.set("deviceId", deviceFilter);
   if (startDate) queryParams.set("startDate", startDate);
-  if (endDate) queryParams.set("endDate", endDate + "T23:59:59-07:00"); // end of day Mountain Time (MST; MDT offset handled by backend)
+  // Compute end-of-day in Mountain Time respecting DST (-07:00 MDT, -06:00 MST)
+  const mtOffset = new Date(`${endDate}T12:00:00`).toLocaleString("en-US", { timeZone: "America/Denver", timeZoneName: "shortOffset" }).match(/GMT([+-]\d+:\d+)/)?.[1] ?? "-07:00";
+  if (endDate) queryParams.set("endDate", endDate + "T23:59:59" + mtOffset);
   queryParams.set("limit", "100");
 
   const { data, isLoading, refetch, isFetching } = useQuery<{ success: boolean; data: StoredTrip[] }>({

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
@@ -511,13 +511,15 @@ export default function BouncieDevicesPage() {
       }),
   });
 
-  // Auto-sync on first load when devices are loaded and Bouncie is connected
+  // Auto-sync exactly once after devices data first loads — useRef prevents re-running on refetch
+  const autoSyncedRef = useRef(false);
   useEffect(() => {
-    if (devicesData && !autoSyncMutation.isPending) {
+    if (devicesData && !autoSyncedRef.current) {
+      autoSyncedRef.current = true;
       autoSyncMutation.mutate();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!devicesData]); // run once after devices data first arrives
+  }, [!!devicesData]);
 
   return (
     <AdminLayout>

@@ -216,7 +216,7 @@ export default function BouncieBehaviorPage() {
             <CardContent className="space-y-3">
               {Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).map(([type, count]) => {
                 const Icon = EVENT_TYPE_ICONS[type] || AlertTriangle;
-                const maxCount = Math.max(...Object.values(typeCounts));
+                const maxCount = Math.max(...Object.values(typeCounts), 1);
                 return (
                   <div key={type} className="flex items-center gap-3">
                     <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
