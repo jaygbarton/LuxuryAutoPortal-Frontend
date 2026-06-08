@@ -209,12 +209,13 @@ export default function TuroTripsPage() {
     success: boolean;
     data: TripsSummary;
   }>({
-    queryKey: ["/api/turo-trips/summary", startDate, endDate],
+    queryKey: ["/api/turo-trips/summary", startDate, endDate, statusFilter],
     queryFn: async () => {
       let url = buildApiUrl("/api/turo-trips/summary");
       const params = new URLSearchParams();
       if (startDate) params.set("startDate", startDate);
       if (endDate) params.set("endDate", endDate);
+      if (statusFilter) params.set("status", statusFilter);
       if (params.toString()) url += `?${params.toString()}`;
       const response = await fetch(url, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch summary");
@@ -238,7 +239,7 @@ export default function TuroTripsPage() {
       licensePlate?: string | null;
     }>;
   }>({
-    queryKey: ["/api/cars", "for-turo-trips"],
+    queryKey: ["/api/cars", "name-year-lookup"],
     queryFn: async () => {
       const res = await fetch(buildApiUrl("/api/cars?limit=500"), {
         credentials: "include",
@@ -619,17 +620,15 @@ export default function TuroTripsPage() {
           }),
         },
       );
-      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
-      const next = { ...locationEdits };
-      delete next[trip.id];
-      setLocationEdits(next);
-      toast({
-        title: response.ok ? "Locations updated" : "Error",
-        description: response.ok
-          ? "Trip locations have been saved."
-          : "Failed to save locations.",
-        variant: response.ok ? undefined : "destructive",
-      });
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+        const next = { ...locationEdits };
+        delete next[trip.id];
+        setLocationEdits(next);
+        toast({ title: "Locations updated", description: "Trip locations have been saved." });
+      } else {
+        toast({ title: "Error", description: "Failed to save locations.", variant: "destructive" });
+      }
     } finally {
       setSavingLocations(null);
     }
@@ -709,7 +708,7 @@ export default function TuroTripsPage() {
       const row: any = { reservationId };
       // Only include fields the user actually filled in so we don't clobber
       // existing values with blanks.
-      if (cols.length >= 2) row.plateNumber = plateNumber;
+      if (plateRaw !== "" && plateNumber !== null) row.plateNumber = plateNumber;
       if (vinRaw !== "") row.vinNumber = vinRaw;
       if (startRaw !== "") row.tripStartOdometer = startRaw;
       if (endRaw !== "") row.tripEndOdometer = endRaw;
@@ -761,7 +760,7 @@ export default function TuroTripsPage() {
   // Reset to page 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, searchQuery, startDate, endDate]);
+  }, [statusFilter, debouncedSearchQuery, startDate, endDate]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -783,10 +782,11 @@ export default function TuroTripsPage() {
   }, [searchQuery]);
 
   const formatCurrency = (amount: number) => {
+    const safe = isNaN(amount) || amount == null ? 0 : amount;
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
-    }).format(amount);
+    }).format(safe);
   };
 
   // Turo emails express all trip times in Mountain Time (Salt Lake City).
@@ -827,7 +827,8 @@ export default function TuroTripsPage() {
   const highlightText = (text: string | null, searchTerm: string) => {
     if (!text || !searchTerm) return text || "";
 
-    const parts = text.split(new RegExp(`(${searchTerm})`, "gi"));
+    const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const parts = text.split(new RegExp(`(${escaped})`, "gi"));
     return (
       <>
         {parts.map((part, index) =>
@@ -2050,7 +2051,7 @@ export default function TuroTripsPage() {
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-muted-foreground" />
                     <span className="font-medium">Booked:</span>
-                    {formatDate(selectedTrip.dateBooked)}
+                    {selectedTrip.dateBooked ? formatDate(selectedTrip.dateBooked) : '-'}
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-muted-foreground" />
