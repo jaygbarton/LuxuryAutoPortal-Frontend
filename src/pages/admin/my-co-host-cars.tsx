@@ -69,7 +69,7 @@ function CarTable({ cars }: { cars: CoHostCar[] }) {
               </td>
               <td className="px-4 py-3">
                 <a
-                  href={`/admin/income-expenses?carId=${car.id}`}
+                  href={`/admin/cars/${car.id}/income-expense`}
                   className="inline-flex items-center gap-1 text-xs text-[#D3BC8D] hover:text-[#b89d6a] font-medium transition-colors"
                 >
                   <DollarSign className="w-3.5 h-3.5" />
