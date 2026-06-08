@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Car, Users, DollarSign, MapPin } from "lucide-react";
+import { Loader2, Car, Users, DollarSign, MapPin, Mail, Phone } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 
 interface CoHostCar {
@@ -24,6 +24,8 @@ interface CoHostGroup {
   coHostNumber: string;
   coHostCity?: string | null;
   coHostState?: string | null;
+  coHostEmail?: string | null;
+  coHostPhone?: string | null;
   cars: CoHostCar[];
 }
 
@@ -164,21 +166,39 @@ export default function MyCoHostCarsPage() {
             <div className="space-y-6">
               {groups.map((g) => (
                 <Card key={g.coHostId} className="bg-card border-border overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/30">
-                    <Users className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-semibold text-foreground">{g.coHostName}</span>
-                    {g.coHostNumber && (
-                      <Badge variant="outline" className="text-xs">{g.coHostNumber}</Badge>
-                    )}
-                    {[g.coHostCity, g.coHostState].filter(Boolean).length > 0 && (
-                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="w-3.5 h-3.5 shrink-0" />
-                        {[g.coHostCity, g.coHostState].filter(Boolean).join(", ")}
+                  <div className="px-4 py-3 border-b border-border bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-sm font-semibold text-foreground">{g.coHostName}</span>
+                      {g.coHostNumber && (
+                        <Badge variant="outline" className="text-xs">{g.coHostNumber}</Badge>
+                      )}
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        {g.cars.length} car{g.cars.length !== 1 ? "s" : ""}
                       </span>
+                    </div>
+                    {[g.coHostCity, g.coHostState, g.coHostEmail, g.coHostPhone].filter(Boolean).length > 0 && (
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 pl-6 text-xs text-muted-foreground">
+                        {[g.coHostCity, g.coHostState].filter(Boolean).length > 0 && (
+                          <span className="inline-flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5 shrink-0" />
+                            {[g.coHostCity, g.coHostState].filter(Boolean).join(", ")}
+                          </span>
+                        )}
+                        {g.coHostEmail && (
+                          <a href={`mailto:${g.coHostEmail}`} className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
+                            <Mail className="w-3.5 h-3.5 shrink-0" />
+                            {g.coHostEmail}
+                          </a>
+                        )}
+                        {g.coHostPhone && (
+                          <a href={`tel:${g.coHostPhone}`} className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
+                            <Phone className="w-3.5 h-3.5 shrink-0" />
+                            {g.coHostPhone}
+                          </a>
+                        )}
+                      </div>
                     )}
-                    <span className="text-xs text-muted-foreground ml-auto">
-                      {g.cars.length} car{g.cars.length !== 1 ? "s" : ""}
-                    </span>
                   </div>
                   <CardContent className="p-0">
                     <CarTable cars={g.cars} />
