@@ -202,18 +202,21 @@ export default function TuroTripsPage() {
     },
   });
 
-  // Fetch summary — always all-time totals, never date-filtered,
-  // so the stat cards show accurate fleet-wide numbers regardless of
-  // which date range the trips table is currently filtered to.
+  // Fetch summary — scoped to the active date filter when one is set so the
+  // stat cards match the rows shown in the table. Falls back to all-time when
+  // no date range is selected.
   const { data: summaryData } = useQuery<{
     success: boolean;
     data: TripsSummary;
   }>({
-    queryKey: ["/api/turo-trips/summary"],
+    queryKey: ["/api/turo-trips/summary", startDate, endDate],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl("/api/turo-trips/summary"), {
-        credentials: "include",
-      });
+      let url = buildApiUrl("/api/turo-trips/summary");
+      const params = new URLSearchParams();
+      if (startDate) params.set("startDate", startDate);
+      if (endDate) params.set("endDate", endDate);
+      if (params.toString()) url += `?${params.toString()}`;
+      const response = await fetch(url, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch summary");
       return response.json();
     },
@@ -1190,7 +1193,9 @@ export default function TuroTripsPage() {
                       VIN #
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
-                      Booking Date
+                      <span title="Date the booking email was received — not necessarily the exact moment the guest booked on Turo">
+                        Booking Date
+                      </span>
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Trip Start
@@ -1208,7 +1213,9 @@ export default function TuroTripsPage() {
                       Days Rented
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
-                      Lead Time
+                      <span title="Days from booking email received to trip start. May understate true lead time if email was synced late.">
+                        Lead Time
+                      </span>
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Extras
@@ -1463,48 +1470,69 @@ export default function TuroTripsPage() {
 
                           {/* Pick Up Location — inline editable */}
                           <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Input
-                              value={
-                                locationEdits[trip.id]?.pickup !== undefined
-                                  ? locationEdits[trip.id].pickup
-                                  : (trip.pickupLocation ??
-                                    trip.deliveryLocation ??
-                                    "")
-                              }
-                              placeholder="-"
-                              className="h-8 w-36 text-sm"
-                              onChange={(e) =>
-                                setLocationEdits((prev) => ({
-                                  ...prev,
-                                  [trip.id]: {
-                                    pickup: e.target.value,
-                                    dropoff:
-                                      prev[trip.id]?.dropoff !== undefined
-                                        ? prev[trip.id].dropoff
-                                        : (trip.returnLocation ??
-                                          trip.deliveryLocation ??
-                                          ""),
-                                    miles:
-                                      prev[trip.id]?.miles !== undefined
-                                        ? prev[trip.id].miles
-                                        : (trip.milesIncluded ??
-                                          trip.totalDistance ??
-                                          ""),
-                                  },
-                                }))
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter")
-                                  (e.target as HTMLInputElement).blur();
-                                if (e.key === "Escape") {
-                                  setLocationEdits((prev) => {
-                                    const n = { ...prev };
-                                    delete n[trip.id];
-                                    return n;
-                                  });
+                            <div className="flex items-center gap-1">
+                              <Input
+                                value={
+                                  locationEdits[trip.id]?.pickup !== undefined
+                                    ? locationEdits[trip.id].pickup
+                                    : (trip.pickupLocation ??
+                                      trip.deliveryLocation ??
+                                      "")
                                 }
-                              }}
-                            />
+                                placeholder={
+                                  trip.deliveryLocation && !trip.pickupLocation
+                                    ? "(delivery fallback)"
+                                    : "-"
+                                }
+                                className="h-8 w-36 text-sm"
+                                onChange={(e) =>
+                                  setLocationEdits((prev) => ({
+                                    ...prev,
+                                    [trip.id]: {
+                                      pickup: e.target.value,
+                                      dropoff:
+                                        prev[trip.id]?.dropoff !== undefined
+                                          ? prev[trip.id].dropoff
+                                          : (trip.returnLocation ??
+                                            trip.deliveryLocation ??
+                                            ""),
+                                      miles:
+                                        prev[trip.id]?.miles !== undefined
+                                          ? prev[trip.id].miles
+                                          : (trip.milesIncluded ??
+                                            trip.totalDistance ??
+                                            ""),
+                                    },
+                                  }))
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter")
+                                    (e.target as HTMLInputElement).blur();
+                                  if (e.key === "Escape") {
+                                    setLocationEdits((prev) => {
+                                      const n = { ...prev };
+                                      delete n[trip.id];
+                                      return n;
+                                    });
+                                  }
+                                }}
+                              />
+                              {locationEdits[trip.id] !== undefined && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs"
+                                  disabled={savingLocations === trip.id}
+                                  onClick={() => saveLocations(trip)}
+                                >
+                                  {savingLocations === trip.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    "Save"
+                                  )}
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
 
                           {/* Trip Ends */}
@@ -1519,48 +1547,69 @@ export default function TuroTripsPage() {
 
                           {/* Drop Off Location — inline editable */}
                           <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Input
-                              value={
-                                locationEdits[trip.id]?.dropoff !== undefined
-                                  ? locationEdits[trip.id].dropoff
-                                  : (trip.returnLocation ??
-                                    trip.deliveryLocation ??
-                                    "")
-                              }
-                              placeholder="-"
-                              className="h-8 w-36 text-sm"
-                              onChange={(e) =>
-                                setLocationEdits((prev) => ({
-                                  ...prev,
-                                  [trip.id]: {
-                                    pickup:
-                                      prev[trip.id]?.pickup !== undefined
-                                        ? prev[trip.id].pickup
-                                        : (trip.pickupLocation ??
-                                          trip.deliveryLocation ??
-                                          ""),
-                                    dropoff: e.target.value,
-                                    miles:
-                                      prev[trip.id]?.miles !== undefined
-                                        ? prev[trip.id].miles
-                                        : (trip.milesIncluded ??
-                                          trip.totalDistance ??
-                                          ""),
-                                  },
-                                }))
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter")
-                                  (e.target as HTMLInputElement).blur();
-                                if (e.key === "Escape") {
-                                  setLocationEdits((prev) => {
-                                    const n = { ...prev };
-                                    delete n[trip.id];
-                                    return n;
-                                  });
+                            <div className="flex items-center gap-1">
+                              <Input
+                                value={
+                                  locationEdits[trip.id]?.dropoff !== undefined
+                                    ? locationEdits[trip.id].dropoff
+                                    : (trip.returnLocation ??
+                                      trip.deliveryLocation ??
+                                      "")
                                 }
-                              }}
-                            />
+                                placeholder={
+                                  trip.deliveryLocation && !trip.returnLocation
+                                    ? "(delivery fallback)"
+                                    : "-"
+                                }
+                                className="h-8 w-36 text-sm"
+                                onChange={(e) =>
+                                  setLocationEdits((prev) => ({
+                                    ...prev,
+                                    [trip.id]: {
+                                      pickup:
+                                        prev[trip.id]?.pickup !== undefined
+                                          ? prev[trip.id].pickup
+                                          : (trip.pickupLocation ??
+                                            trip.deliveryLocation ??
+                                            ""),
+                                      dropoff: e.target.value,
+                                      miles:
+                                        prev[trip.id]?.miles !== undefined
+                                          ? prev[trip.id].miles
+                                          : (trip.milesIncluded ??
+                                            trip.totalDistance ??
+                                            ""),
+                                    },
+                                  }))
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter")
+                                    (e.target as HTMLInputElement).blur();
+                                  if (e.key === "Escape") {
+                                    setLocationEdits((prev) => {
+                                      const n = { ...prev };
+                                      delete n[trip.id];
+                                      return n;
+                                    });
+                                  }
+                                }}
+                              />
+                              {locationEdits[trip.id] !== undefined && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs"
+                                  disabled={savingLocations === trip.id}
+                                  onClick={() => saveLocations(trip)}
+                                >
+                                  {savingLocations === trip.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    "Save"
+                                  )}
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
 
                           {/* Days Rented — null for cancelled trips, ceil(hours/24) otherwise */}
