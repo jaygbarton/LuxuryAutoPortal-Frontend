@@ -278,8 +278,13 @@ export default function ModalEditIncomeExpense() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className={`bg-card border-border text-foreground ${isManagementSplit ? 'max-w-4xl max-h-[90vh] overflow-hidden flex flex-col' : 'max-w-md'}`}>
-        <DialogHeader>
+      <DialogContent
+        className={`bg-card border-border text-foreground !flex flex-col p-0 gap-0 !overflow-hidden
+          top-2 translate-y-0 max-h-[calc(100dvh-1rem)]
+          sm:top-[50%] sm:translate-y-[-50%] sm:max-h-[90vh]
+          ${isManagementSplit ? 'max-w-4xl' : 'max-w-md'}`}
+      >
+        <DialogHeader className="shrink-0 px-6 pt-6">
           <DialogTitle className="text-foreground text-lg">
             {`Update ${fieldName}`}
           </DialogTitle>
@@ -292,7 +297,7 @@ export default function ModalEditIncomeExpense() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 px-6 flex-1 overflow-y-auto min-h-0">
           <div>
             <Label className="text-muted-foreground text-xs">Type:</Label>
             <div className="text-foreground text-sm font-medium mt-1">{fieldName}</div>
@@ -708,7 +713,7 @@ export default function ModalEditIncomeExpense() {
           )}
         </div>
 
-        <DialogFooter className="flex gap-2">
+        <DialogFooter className="flex gap-2 shrink-0 px-6 pb-6 pt-2 border-t border-border bg-card">
           <Button
             onClick={handleClose}
             variant="outline"
