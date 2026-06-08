@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Car, Users, DollarSign } from "lucide-react";
+import { Loader2, Car, Users, DollarSign, MapPin } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 
 interface CoHostCar {
@@ -22,6 +22,8 @@ interface CoHostGroup {
   coHostId: number;
   coHostName: string;
   coHostNumber: string;
+  coHostCity?: string | null;
+  coHostState?: string | null;
   cars: CoHostCar[];
 }
 
@@ -167,6 +169,12 @@ export default function MyCoHostCarsPage() {
                     <span className="text-sm font-semibold text-foreground">{g.coHostName}</span>
                     {g.coHostNumber && (
                       <Badge variant="outline" className="text-xs">{g.coHostNumber}</Badge>
+                    )}
+                    {[g.coHostCity, g.coHostState].filter(Boolean).length > 0 && (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="w-3.5 h-3.5 shrink-0" />
+                        {[g.coHostCity, g.coHostState].filter(Boolean).join(", ")}
+                      </span>
                     )}
                     <span className="text-xs text-muted-foreground ml-auto">
                       {g.cars.length} car{g.cars.length !== 1 ? "s" : ""}
