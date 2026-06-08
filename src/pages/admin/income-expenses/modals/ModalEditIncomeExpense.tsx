@@ -302,11 +302,11 @@ export default function ModalEditIncomeExpense() {
           <DialogDescription className="text-muted-foreground">
             {isCoHostSplit
               ? isGlaOwned
-                ? `Set the Co-Host % for ${monthName} ${year}. Same formula as the Car Owner Split.`
+                ? `Set the Co-Host % for ${monthName} ${year}. Same formula as the Car Management Split.`
                 : `Set the Co-Host % for ${monthName} ${year}. GLA's % is the remainder (100 − Co-Host %).`
               : isGlaSplit
               ? isGlaOwned
-                ? `Set GLA's % for ${monthName} ${year}. Same formula as the Car Management Split.`
+                ? `Set GLA's % for ${monthName} ${year}. Same formula as the Car Owner Split.`
                 : `Set GLA's % for ${monthName} ${year}. The Co-Host's % is the remainder (100 − GLA %).`
               : `Enter the amount for ${fieldName} for ${monthName} ${year}`}
           </DialogDescription>
@@ -349,13 +349,13 @@ export default function ModalEditIncomeExpense() {
             {isCoHostSplit ? (
               <p className="text-[11px] text-muted-foreground mt-1">
                 Co-Host's % (0–100%).{isGlaOwned
-                  ? " Uses the same formula as the Car Owner Split."
+                  ? " Uses the same formula as the Car Management Split."
                   : " GLA's share is the remainder."}
               </p>
             ) : isGlaSplit ? (
               <p className="text-[11px] text-muted-foreground mt-1">
                 GLA's % (0–100%).{isGlaOwned
-                  ? " Uses the same formula as the Car Management Split."
+                  ? " Uses the same formula as the Car Owner Split."
                   : " The Co-Host's share is set to the remainder."}
               </p>
             ) : !isManagementSplit && (

@@ -1825,50 +1825,50 @@ export default function IncomeExpenseTable({
   };
 
   // Co-Host % — its OWN editable per-month field (`coHostSplit`), independent of
-  // the Car Owner Split %. Per @Jin: for a GLA-owned car the co-hosting split
-  // uses the SAME formula as the owner/management split, but the % must be
-  // separately editable — so the default seeds from the relevant base % (owner %
-  // when GLA-owned, else the car/year `coHostSplitPercent`, then 0) and the admin
-  // can override it per month without touching the Car Owner Split row.
+  // the Car Management Split %. Per @Jin, for a GLA-owned car the Co-Host Split
+  // uses the SAME formula as the CAR MANAGEMENT Split, but the % must be
+  // separately editable — so the default seeds from the Car Management % when
+  // GLA-owned (else the car/year `coHostSplitPercent`, then 0) and the admin can
+  // override it per month without touching the Car Management Split row.
   const getCoHostPercent = (month: number): number => {
     const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
     const stored = monthRow?.coHostSplit;
     if (stored != null) return Number(stored);
-    if (isGlaOwned) return getCarOwnerPercent(month);
+    if (isGlaOwned) return getCarManagementPercent(month);
     return Number((data as any).formulaSetting?.coHostSplitPercent ?? 0);
   };
 
-  // GLA % — its OWN editable per-month field (`glaSplit`). For a GLA-owned car
-  // it defaults to the Car Management %; for an externally-owned car it is the
+  // GLA % — its OWN editable per-month field (`glaSplit`). Per @Jin, for a
+  // GLA-owned car the GLA Split uses the SAME formula as the CAR OWNER Split, so
+  // it defaults to the Car Owner %; for an externally-owned car it is the
   // remainder of the co-host % (derived, not separately stored).
   const getGlaSplitPercent = (month: number): number => {
     const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
     const stored = monthRow?.glaSplit;
     if (stored != null) return Number(stored);
-    if (isGlaOwned) return getCarManagementPercent(month);
+    if (isGlaOwned) return getCarOwnerPercent(month);
     return 100 - getCoHostPercent(month);
   };
 
   // Co-Host Split amount for a month.
-  //  • GLA-owned car: SAME formula as the Car Owner Split, but driven by the
-  //    independently-editable co-host % (via percentOverride) instead of the
-  //    stored carOwnerSplit %.
+  //  • GLA-owned car: SAME formula as the CAR MANAGEMENT Split, driven by the
+  //    independently-editable co-host % (via percentOverride).
   //  • Owned by another person: cohost% × Car Management Split.
   const calculateCoHostSplit = (month: number): number => {
     if (isGlaOwned) {
-      return calculateCarOwnerSplit(month, getCoHostPercent(month));
+      return calculateCarManagementSplit(month, getCoHostPercent(month));
     }
     const coHostPct = getCoHostPercent(month);
     return calculateCarManagementSplit(month) * (coHostPct / 100);
   };
 
   // GLA Split amount.
-  //  • GLA-owned car: SAME formula as the Car Management Split, driven by the
+  //  • GLA-owned car: SAME formula as the CAR OWNER Split, driven by the
   //    independently-editable GLA % (via percentOverride).
   //  • Owned by another person: remainder of the Car Management Split.
   const calculateGlaSplit = (month: number): number => {
     if (isGlaOwned) {
-      return calculateCarManagementSplit(month, getGlaSplitPercent(month));
+      return calculateCarOwnerSplit(month, getGlaSplitPercent(month));
     }
     const coHostPct = getCoHostPercent(month);
     return calculateCarManagementSplit(month) * (1 - coHostPct / 100);
@@ -2089,10 +2089,11 @@ export default function IncomeExpenseTable({
               onToggle={() => toggleSection("coHostingSplit")}
             >
               {/* Co-Host Split — listed first per client. Same amount FORMULA as
-                  the Car Owner Split (GLA-owned) / cohost% × Car Mgmt Split (else),
-                  but the % is its OWN editable field (`coHostSplit`) so it can be
-                  set independently of the Car Owner Split %. Editable in both
-                  ownership cases (the percent default seeds from the base %). */}
+                  the CAR MANAGEMENT Split (GLA-owned) / cohost% × Car Mgmt Split
+                  (else), but the % is its OWN editable field (`coHostSplit`) so it
+                  can be set independently of the Car Management Split %. Editable
+                  in both ownership cases (the percent default seeds from the
+                  Car Management %). */}
               <CategoryRow
                 label="Co-Host Split"
                 values={MONTHS.map((_, i) => roundToPhp2Dp(calculateCoHostSplit(i + 1)))}
@@ -2100,11 +2101,11 @@ export default function IncomeExpenseTable({
                 category="income"
                 field="coHostSplit"
                 isEditable={!isReadOnly && !isAllCarsView}
-                formatType={isAllCarsView ? undefined : "ownerSplit"}
+                formatType={isAllCarsView ? undefined : "managementSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
               />
-              {/* GLA Split — same FORMULA as the Car Management Split (GLA-owned) /
+              {/* GLA Split — same FORMULA as the CAR OWNER Split (GLA-owned) /
                   remainder of Car Mgmt Split (else). Editable in BOTH ownership
                   cases via its own field (`glaSplit`). For an externally-owned car
                   the GLA % and Co-Host % are the two halves of one split, so the
@@ -2117,7 +2118,7 @@ export default function IncomeExpenseTable({
                 category="income"
                 field="glaSplit"
                 isEditable={!isReadOnly && !isAllCarsView}
-                formatType={isAllCarsView ? undefined : "managementSplit"}
+                formatType={isAllCarsView ? undefined : "ownerSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
               />
