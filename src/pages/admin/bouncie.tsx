@@ -592,6 +592,11 @@ function FleetMap({
     // If new data is empty but we already have markers, this is a transient
     // refetch gap (keepPreviousData momentarily undefined). Don't wipe markers.
     if (withCoords.length === 0 && Object.keys(markerMap.current).length > 0) return;
+    // Also guard against a partial Bouncie API miss: if the number of vehicles
+    // with coordinates dropped by more than 50% vs current markers, treat it as
+    // a transient gap (some vehicles returned with null lat/lng) and skip removal.
+    const currentMarkerCount = Object.keys(markerMap.current).length;
+    if (currentMarkerCount > 0 && withCoords.length < currentMarkerCount * 0.5) return;
 
     const existing = new Set(Object.keys(markerMap.current));
 
