@@ -406,6 +406,7 @@ export default function BouncieDevicesPage() {
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString("en-US", {
+      timeZone: "America/Denver",
       year: "numeric",
       month: "short",
       day: "numeric",
