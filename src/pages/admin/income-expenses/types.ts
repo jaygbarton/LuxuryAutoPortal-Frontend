@@ -6,6 +6,8 @@ export interface FormulaSetting {
   coHostSplitPercent?: number;
   monthModes?: { [month: number]: 50 | 70 };
   skiRacksOwner?: { [month: number]: "GLA" | "CAR_OWNER" };
+  // Per-month Co-Host vs Management/Owner split selector (GLA-owned cars only).
+  splitTypeByMonth?: { [month: number]: "coHost" | "mgmtOwner" };
 }
 
 export interface MonthMode {

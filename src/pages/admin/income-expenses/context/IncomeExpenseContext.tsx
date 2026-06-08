@@ -20,6 +20,9 @@ interface IncomeExpenseContextType {
   skiRacksOwner: { [month: number]: "GLA" | "CAR_OWNER" };
   toggleSkiRacksOwner: (month: number) => Promise<void>;
   isSavingSkiRacksOwner: boolean;
+  splitTypeByMonth: { [month: number]: "coHost" | "mgmtOwner" };
+  toggleSplitType: (month: number) => Promise<void>;
+  isSavingSplitType: boolean;
   year: string;
   carId: number;
   isAllCars: boolean;
@@ -219,6 +222,17 @@ export function IncomeExpenseProvider({
   
   const [skiRacksOwner, setSkiRacksOwner] = useState<{ [month: number]: "GLA" | "CAR_OWNER" }>(getDefaultSkiRacksOwner);
   const [isSavingSkiRacksOwner, setIsSavingSkiRacksOwner] = useState(false);
+
+  // Per-month split-type selector (GLA-owned cars only): each month uses either
+  // the Co-Hosting Split formula ("coHost") or the Car Management/Owner Split
+  // formula ("mgmtOwner"). Default "mgmtOwner" so existing cars are unchanged.
+  const getDefaultSplitTypeByMonth = (): { [month: number]: "coHost" | "mgmtOwner" } => {
+    const types: { [month: number]: "coHost" | "mgmtOwner" } = {};
+    for (let i = 1; i <= 12; i++) types[i] = "mgmtOwner";
+    return types;
+  };
+  const [splitTypeByMonth, setSplitTypeByMonth] = useState<{ [month: number]: "coHost" | "mgmtOwner" }>(getDefaultSplitTypeByMonth);
+  const [isSavingSplitType, setIsSavingSplitType] = useState(false);
   const [dynamicSubcategories, setDynamicSubcategories] = useState({
     directDelivery: [] as any[],
     cogs: [] as any[],
@@ -488,6 +502,14 @@ export function IncomeExpenseProvider({
         // If formulaSetting exists but no skiRacksOwner, use defaults
         setSkiRacksOwner(getDefaultSkiRacksOwner());
       }
+
+      if (incomeExpenseData.data.formulaSetting?.splitTypeByMonth) {
+        const defaults = getDefaultSplitTypeByMonth();
+        const loaded = { ...defaults, ...incomeExpenseData.data.formulaSetting.splitTypeByMonth };
+        setSplitTypeByMonth(loaded);
+      } else {
+        setSplitTypeByMonth(getDefaultSplitTypeByMonth());
+      }
     }
   }, [incomeExpenseData, carId, year]);
 
@@ -661,6 +683,61 @@ export function IncomeExpenseProvider({
       });
     } finally {
       setIsSavingSkiRacksOwner(false);
+    }
+  };
+
+  // Toggle a single month between the Co-Hosting Split formula ("coHost") and
+  // the Car Management/Owner Split formula ("mgmtOwner"). Per-month only — no
+  // cascade to later months (the admin picks each month independently).
+  const toggleSplitType = async (month: number) => {
+    let newTypes: { [month: number]: "coHost" | "mgmtOwner" } | undefined;
+    let previousTypes: { [month: number]: "coHost" | "mgmtOwner" } | undefined;
+
+    setSplitTypeByMonth((current) => {
+      previousTypes = { ...current };
+      const cur = current[month] || "mgmtOwner";
+      const next = cur === "coHost" ? "mgmtOwner" : "coHost";
+      newTypes = { ...current, [month]: next };
+      return newTypes;
+    });
+
+    if (!newTypes || !previousTypes) return;
+
+    setIsSavingSplitType(true);
+    try {
+      const response = await fetch(buildApiUrl("/api/income-expense/formula"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          carId,
+          year: parseInt(year),
+          splitTypeByMonth: newTypes,
+        }),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to save split-type change: ${errorText}`);
+      }
+      const result = await response.json();
+      if (result.success && result.data?.splitTypeByMonth) {
+        setSplitTypeByMonth({ ...getDefaultSplitTypeByMonth(), ...result.data.splitTypeByMonth });
+      }
+      queryClient.invalidateQueries({
+        queryKey: isAllCars
+          ? ["/api/income-expense/all-cars", year]
+          : ["/api/income-expense", carId, year],
+      });
+      toast({ title: "Success", description: "Split type updated successfully" });
+    } catch (error: any) {
+      setSplitTypeByMonth(previousTypes);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save split-type change",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingSplitType(false);
     }
   };
 
@@ -863,6 +940,9 @@ export function IncomeExpenseProvider({
         skiRacksOwner,
         toggleSkiRacksOwner,
         isSavingSkiRacksOwner,
+        splitTypeByMonth,
+        toggleSplitType,
+        isSavingSplitType,
         year,
         carId,
         isAllCars,

@@ -91,6 +91,9 @@ export default function IncomeExpenseTable({
     skiRacksOwner,
     toggleSkiRacksOwner,
     isSavingSkiRacksOwner,
+    splitTypeByMonth,
+    toggleSplitType,
+    isSavingSplitType,
     dynamicSubcategories,
     addDynamicSubcategory,
     updateDynamicSubcategoryName,
@@ -1850,6 +1853,20 @@ export default function IncomeExpenseTable({
     return 100 - getCoHostPercent(month);
   };
 
+  // Per-month split-type selector (GLA-owned cars only). When a month is set to
+  // "coHost", the Car Management/Owner Split rows show $0 for that month; when
+  // "mgmtOwner" (default), the Co-Host/GLA Split rows show $0. For non-GLA-owned
+  // cars there is no toggle — both pairs compute as before.
+  const getSplitType = (month: number): "coHost" | "mgmtOwner" =>
+    (splitTypeByMonth?.[month] as "coHost" | "mgmtOwner") || "mgmtOwner";
+  // Is the Co-Hosting Split active (non-zero) for this month?
+  const isCoHostActive = (month: number): boolean =>
+    isGlaOwned && getSplitType(month) === "coHost";
+  // Is the Car Management/Owner Split active (non-zero) for this month?
+  // Always active for non-GLA-owned cars; for GLA-owned only in "mgmtOwner".
+  const isMgmtOwnerActive = (month: number): boolean =>
+    !isGlaOwned || getSplitType(month) === "mgmtOwner";
+
   // Co-Host Split amount for a month.
   //  • GLA-owned car: SAME formula as the CAR MANAGEMENT Split, driven by the
   //    independently-editable co-host % (via percentOverride).
@@ -2038,6 +2055,33 @@ export default function IncomeExpenseTable({
                           >
                             {isSavingMode ? "..." : currentMode}
                           </button>
+                          {/* Per-month Co-Host (CH) vs Management/Owner (MO)
+                              selector — GLA-owned cars only. CH → only the
+                              Co-Hosting Split rows carry value that month;
+                              MO → only the Car Management/Owner Split rows. */}
+                          {isGlaOwned && (
+                            <button
+                              onClick={() => toggleSplitType(monthNum)}
+                              disabled={isSavingSplitType}
+                              className={cn(
+                                "px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all duration-200 min-w-[26px]",
+                                "disabled:opacity-50 disabled:cursor-not-allowed",
+                                getSplitType(monthNum) === "coHost"
+                                  ? "bg-teal-600 text-white hover:bg-teal-700 active:bg-teal-800 shadow-lg shadow-teal-600/50"
+                                  : "bg-slate-600 text-white hover:bg-slate-700 active:bg-slate-800 shadow-lg shadow-slate-600/50",
+                                isSavingSplitType && "animate-pulse",
+                              )}
+                              title={
+                                isSavingSplitType
+                                  ? "Saving split type..."
+                                  : getSplitType(monthNum) === "coHost"
+                                    ? "This month uses the Co-Hosting Split (click to switch to Management/Owner). Car Management & Car Owner show $0."
+                                    : "This month uses the Car Management/Owner Split (click to switch to Co-Host). Co-Host & GLA show $0."
+                              }
+                            >
+                              {isSavingSplitType ? "..." : getSplitType(monthNum) === "coHost" ? "CH" : "MO"}
+                            </button>
+                          )}
                           {showSkiRacksToggle && hasSkiRacksIncome && (
                             <button
                               onClick={() => toggleSkiRacksOwner(monthNum)}
@@ -2096,11 +2140,15 @@ export default function IncomeExpenseTable({
                   Car Management %). */}
               <CategoryRow
                 label="Co-Host Split"
-                values={MONTHS.map((_, i) => roundToPhp2Dp(calculateCoHostSplit(i + 1)))}
-                percentageValues={MONTHS.map((_, i) => getCoHostPercent(i + 1))}
+                values={MONTHS.map((_, i) =>
+                  isCoHostActive(i + 1) ? roundToPhp2Dp(calculateCoHostSplit(i + 1)) : 0,
+                )}
+                percentageValues={MONTHS.map((_, i) =>
+                  isCoHostActive(i + 1) ? getCoHostPercent(i + 1) : 0,
+                )}
                 category="income"
                 field="coHostSplit"
-                isEditable={!isReadOnly && !isAllCarsView}
+                isEditablePerMonth={(m) => !isReadOnly && !isAllCarsView && isCoHostActive(m)}
                 formatType={isAllCarsView ? undefined : "managementSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
@@ -2113,11 +2161,15 @@ export default function IncomeExpenseTable({
                   (GLA% + coHost% = 100) and the Co-Host row re-derives from it. */}
               <CategoryRow
                 label="GLA Split"
-                values={MONTHS.map((_, i) => roundToPhp2Dp(calculateGlaSplit(i + 1)))}
-                percentageValues={MONTHS.map((_, i) => getGlaSplitPercent(i + 1))}
+                values={MONTHS.map((_, i) =>
+                  isCoHostActive(i + 1) ? roundToPhp2Dp(calculateGlaSplit(i + 1)) : 0,
+                )}
+                percentageValues={MONTHS.map((_, i) =>
+                  isCoHostActive(i + 1) ? getGlaSplitPercent(i + 1) : 0,
+                )}
                 category="income"
                 field="glaSplit"
-                isEditable={!isReadOnly && !isAllCarsView}
+                isEditablePerMonth={(m) => !isReadOnly && !isAllCarsView && isCoHostActive(m)}
                 formatType={isAllCarsView ? undefined : "ownerSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
@@ -2147,12 +2199,15 @@ export default function IncomeExpenseTable({
                 label="Car Management Split"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
+                  // GLA-owned month set to Co-Host → this row is unused ($0).
+                  if (!isMgmtOwnerActive(monthNum)) return 0;
                   return isAllCarsView
                     ? getMonthValue(data.incomeExpenses, monthNum, "mgmtIncome")
                     : roundToPhp2Dp(calculateCarManagementSplit(monthNum));
                 })}
                 percentageValues={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
+                  if (!isMgmtOwnerActive(monthNum)) return 0;
                   return getMonthValue(
                     data.incomeExpenses,
                     monthNum,
@@ -2161,7 +2216,7 @@ export default function IncomeExpenseTable({
                 })}
                 category="income"
                 field="carManagementSplit"
-                isEditable={!isReadOnly}
+                isEditablePerMonth={(m) => !isReadOnly && isMgmtOwnerActive(m)}
                 formatType={isAllCarsView ? undefined : "managementSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
@@ -2171,6 +2226,8 @@ export default function IncomeExpenseTable({
                 label="Car Owner Split"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
+                  // GLA-owned month set to Co-Host → this row is unused ($0).
+                  if (!isMgmtOwnerActive(monthNum)) return 0;
                   return isAllCarsView
                     ? getMonthValue(
                         data.incomeExpenses,
@@ -2181,6 +2238,7 @@ export default function IncomeExpenseTable({
                 })}
                 percentageValues={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
+                  if (!isMgmtOwnerActive(monthNum)) return 0;
                   return getMonthValue(
                     data.incomeExpenses,
                     monthNum,
@@ -2189,7 +2247,7 @@ export default function IncomeExpenseTable({
                 })}
                 category="income"
                 field="carOwnerSplit"
-                isEditable={!isReadOnly}
+                isEditablePerMonth={(m) => !isReadOnly && isMgmtOwnerActive(m)}
                 formatType={isAllCarsView ? undefined : "ownerSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
