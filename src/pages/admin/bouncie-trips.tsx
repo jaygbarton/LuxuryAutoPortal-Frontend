@@ -202,7 +202,7 @@ export default function BouncieTripsPage() {
   const queryParams = new URLSearchParams();
   if (deviceFilter) queryParams.set("deviceId", deviceFilter);
   if (startDate) queryParams.set("startDate", startDate);
-  if (endDate) queryParams.set("endDate", endDate + "T23:59:59");
+  if (endDate) queryParams.set("endDate", endDate + "T23:59:59-07:00"); // end of day Mountain Time (MST; MDT offset handled by backend)
   queryParams.set("limit", "100");
 
   const { data, isLoading, refetch, isFetching } = useQuery<{ success: boolean; data: StoredTrip[] }>({
