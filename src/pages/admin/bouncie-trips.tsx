@@ -219,7 +219,7 @@ export default function BouncieTripsPage() {
   const n = (v: any) => Number(v) || 0;
   const totalMiles = trips.reduce((sum, t) => sum + n(t.distance_miles), 0);
   const totalDuration = trips.reduce((sum, t) => sum + n(t.duration_seconds), 0);
-  const tripsWithSpeed = trips.filter(t => t.avg_speed_mph != null && Number(t.avg_speed_mph) > 0);
+  const tripsWithSpeed = trips.filter(t => t.avg_speed_mph != null);
   const avgSpeed = tripsWithSpeed.length > 0
     ? tripsWithSpeed.reduce((sum, t) => sum + n(t.avg_speed_mph), 0) / tripsWithSpeed.length
     : 0;

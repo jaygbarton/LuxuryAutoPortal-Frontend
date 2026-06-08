@@ -96,7 +96,7 @@ function vehicleDisplayName(v: VehicleEntry): string {
   const rawModel = v.model || v.liveStatus?.vehicleInfo?.model;
   const model =
     rawModel && typeof rawModel === "object"
-      ? (rawModel as any).name
+      ? (rawModel as any).name ?? null
       : rawModel;
   const nick =
     v.liveStatus?.vehicleInfo?.nickname ||
@@ -114,7 +114,7 @@ function vehicleSidebarName(v: VehicleEntry): string {
   const rawModel = v.model || v.liveStatus?.vehicleInfo?.model;
   const model =
     rawModel && typeof rawModel === "object"
-      ? (rawModel as any).name
+      ? (rawModel as any).name ?? null
       : rawModel;
   const plate = v.license_plate;
   const nick =
