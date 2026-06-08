@@ -275,7 +275,9 @@ export default function ModalEditIncomeExpense() {
             {`Update ${fieldName}`}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Enter the amount for {fieldName} for {monthName} {year}
+            {isCoHostSplit
+              ? `Set the Co-Host % for ${monthName} ${year}. GLA's % is the remainder (100 − Co-Host %).`
+              : `Enter the amount for ${fieldName} for ${monthName} ${year}`}
           </DialogDescription>
         </DialogHeader>
 

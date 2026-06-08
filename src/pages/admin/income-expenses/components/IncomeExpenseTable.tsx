@@ -2092,6 +2092,9 @@ export default function IncomeExpenseTable({
                 formatType={isAllCarsView ? undefined : "managementSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
+                onPercentCellClick={!isAllCarsView ? (month) => {
+                  setEditingCell({ category: "income", field: "coHostSplit", month, value: getCoHostPercent(month) });
+                } : undefined}
               />
             </CategorySection>
 
@@ -4546,6 +4549,8 @@ interface CategoryRowProps {
    *  ✏️ focuses month-1 for editing; 🗑️ resets all 12 months to $0. */
   onEdit?: () => void;
   onClear?: () => void;
+  /** Called when a non-editable percentage cell is clicked. Receives the 1-based month number. */
+  onPercentCellClick?: (month: number) => void;
 }
 
 function CategoryRow({
@@ -4568,6 +4573,7 @@ function CategoryRow({
   alwaysEditable = false,
   onEdit,
   onClear,
+  onPercentCellClick,
 }: CategoryRowProps) {
   const [location] = useLocation();
   // Categories whose data is stored globally at car_id = 0 (not aggregated from
@@ -4758,7 +4764,10 @@ function CategoryRow({
                 className={cn(
                   "text-xs text-right block",
                   cellValue === 0 && "text-gray-600",
+                  onPercentCellClick && !isReadOnly && "cursor-pointer hover:bg-muted px-2 py-1 rounded transition-colors",
                 )}
+                onClick={onPercentCellClick && !isReadOnly ? () => onPercentCellClick(month) : undefined}
+                title={onPercentCellClick && !isReadOnly ? "Click to edit Co-Host %" : undefined}
               >
                 {formatValue(cellValue, month)}
               </span>
