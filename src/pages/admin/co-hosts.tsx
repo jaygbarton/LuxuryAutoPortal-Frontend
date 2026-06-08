@@ -25,7 +25,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, buildApiUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
-import { Search, Eye, CheckCircle, XCircle, Trash2, Loader2, ExternalLink, QrCode, Car, Save } from "lucide-react";
+import { Search, Eye, CheckCircle, XCircle, Trash2, Loader2, ExternalLink, QrCode, Car, Save, Copy } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
@@ -534,6 +534,32 @@ export default function CoHostsPage() {
                       </div>
                     </>
                   )}
+                  {/* Co-host employee onboarding link: employees who submit through
+                      this link are linked to this co-host (employee_co_host_id),
+                      so they show up in the co-host's Payroll / Work Schedule / Time Off. */}
+                  <div className="border-t border-border pt-3 mt-3 space-y-2">
+                    <p className="text-muted-foreground text-xs">
+                      Share this link with employees joining this co-host. Anyone who onboards through it
+                      is automatically added to this co-host's team.
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="text-xs"
+                      onClick={async () => {
+                        const link = `${window.location.origin}/employee-form?coHost=${encodeURIComponent(viewCoHost.co_host_number || String(viewCoHost.id))}`;
+                        try {
+                          await navigator.clipboard.writeText(link);
+                          toast({ title: "Copied", description: "Employee onboarding link copied." });
+                        } catch {
+                          toast({ title: "Copy failed", description: link, variant: "destructive" });
+                        }
+                      }}
+                    >
+                      <Copy className="w-3 h-3 mr-1" /> Copy employee onboarding link
+                    </Button>
+                  </div>
                 </div>
               </DetailSection>
 

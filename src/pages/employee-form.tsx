@@ -83,10 +83,15 @@ export default function EmployeeFormPage() {
 
   const mutation = useMutation({
     mutationFn: async (values: FormData) => {
-      const payload = {
+      // Co-host onboarding link: if the employee arrived via
+      // /employee-form?coHost=CH-XXXXX, forward the token so the backend can
+      // link this employee to that co-host. Absent for normal GLA onboarding.
+      const coHostToken = new URLSearchParams(window.location.search).get("coHost")?.trim() || "";
+      const payload: Record<string, unknown> = {
         ...values,
         link: window.location.origin,
       };
+      if (coHostToken) payload.coHostToken = coHostToken;
 
       if (driverLicenseFile && driverLicenseFile.size > MAX_FILE_SIZE_BYTES) {
         throw new Error(`Driver's license must be under ${MAX_FILE_SIZE_MB}MB`);

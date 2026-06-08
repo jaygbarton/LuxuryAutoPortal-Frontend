@@ -117,8 +117,15 @@ function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
   const total = data.reduce((s, d) => s + d.value, 0);
   const maxValue = Math.max(...data.map((d) => d.value), 0);
 
+  // When every value is 0 the real data sums to 0 and Recharts draws nothing.
+  // Feed the Pie a single placeholder slice so it renders an empty grey ring
+  // (no value label) instead of disappearing. Legend still shows the 0.0%s.
+  const isEmpty = total <= 0;
+  const pieData = isEmpty ? [{ name: "__empty__", value: 1 }] : data;
+
   // Amount label centred on each slice band — no external labels.
   const renderLabel = (props: any) => {
+    if (isEmpty) return null; // empty ring carries no amount label
     const { cx, cy, midAngle, innerRadius, outerRadius, value } = props;
     const RADIAN = Math.PI / 180;
     const r = (innerRadius + outerRadius) / 2;
@@ -153,7 +160,7 @@ function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
         <ResponsiveContainer width="100%" height="100%">
           <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
             <Pie
-              data={data}
+              data={pieData}
               dataKey="value"
               cx="50%"
               cy="50%"
@@ -164,10 +171,12 @@ function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
               labelLine={false}
               isAnimationActive={false}
             >
-              {data.map((entry, idx) => (
+              {pieData.map((entry, idx) => (
                 <Cell
                   key={idx}
-                  fill={entry.value === maxValue ? DONUT_COLOR_LIGHT : DONUT_COLOR_DARK}
+                  fill={isEmpty
+                    ? DONUT_COLOR_DARK
+                    : entry.value === maxValue ? DONUT_COLOR_LIGHT : DONUT_COLOR_DARK}
                   stroke="none"
                 />
               ))}
