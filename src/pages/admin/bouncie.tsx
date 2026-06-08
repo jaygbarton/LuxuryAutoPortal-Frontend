@@ -185,6 +185,8 @@ function slideMarkerTo(
   newLng: number,
   durationMs = 1500,
 ) {
+  // Store the true destination so flyTo can use it even mid-animation
+  marker._targetLatLng = { lat: newLat, lng: newLng };
   const start = marker.getLatLng();
   const startTime = performance.now();
   function step(now: number) {
@@ -197,6 +199,46 @@ function slideMarkerTo(
     if (t < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
+}
+
+function buildIcon(L: any, v: VehicleEntry, selected: boolean) {
+  const si = getStatusInfo(v.displayStatus);
+  const ring = selected ? "3px solid #f59e0b" : "2.5px solid white";
+  const glow = selected
+    ? "0 0 0 4px rgba(245,158,11,0.35), 0 4px 14px rgba(0,0,0,0.3)"
+    : "0 2px 8px rgba(0,0,0,0.35)";
+  const size = selected ? 46 : 40;
+  const photoUrl = v.car_photo_url ? getProxiedImageUrl(v.car_photo_url) : null;
+  const initials = vehicleInitials(v);
+  const inner = photoUrl
+    ? `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"
+         onerror="this.style.display='none';this.nextSibling.style.display='flex'" />
+       <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;
+         background:${si.color};border-radius:50%;color:white;font-weight:700;font-size:${size * 0.32}px">
+         ${initials}</div>`
+    : `<span style="color:white;font-weight:700;font-size:${size * 0.32}px">${initials}</span>`;
+  return L.divIcon({
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${si.color};
+      border:${ring};box-shadow:${glow};overflow:hidden;
+      display:flex;align-items:center;justify-content:center">${inner}</div>`,
+    className: "",
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
+
+function buildLabel(v: VehicleEntry) {
+  const name = vehicleDisplayName(v);
+  const short = name.length > 22 ? name.slice(0, 20) + "…" : name;
+  const speed = v.speed ?? 0;
+  const mph =
+    v.displayStatus === "driving" && Number(speed) > 0
+      ? ` <b style="color:#4ade80">${Number(speed).toFixed(0)} mph</b>`
+      : "";
+  return `<div style="background:rgba(15,23,42,0.88);backdrop-filter:blur(6px);
+    color:white;border-radius:6px;padding:3px 9px;font-family:system-ui;font-size:11px;
+    font-weight:500;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3);
+    pointer-events:none;margin-top:4px">${short}${mph}</div>`;
 }
 
 /* ─── Vehicle Avatar ─────────────────────────────────────────────── */
@@ -454,52 +496,6 @@ function FleetMap({
     [vehicles],
   );
 
-  const buildIcon = useCallback(
-    (L: any, v: VehicleEntry, selected: boolean) => {
-      const si = getStatusInfo(v.displayStatus);
-      const ring = selected ? "3px solid #f59e0b" : "2.5px solid white";
-      const glow = selected
-        ? "0 0 0 4px rgba(245,158,11,0.35), 0 4px 14px rgba(0,0,0,0.3)"
-        : "0 2px 8px rgba(0,0,0,0.35)";
-      const size = selected ? 46 : 40;
-      const photoUrl = v.car_photo_url
-        ? getProxiedImageUrl(v.car_photo_url)
-        : null;
-      const initials = vehicleInitials(v);
-
-      const inner = photoUrl
-        ? `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"
-           onerror="this.style.display='none';this.nextSibling.style.display='flex'" />
-         <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;
-           background:${si.color};border-radius:50%;color:white;font-weight:700;font-size:${size * 0.32}px">
-           ${initials}</div>`
-        : `<span style="color:white;font-weight:700;font-size:${size * 0.32}px">${initials}</span>`;
-
-      return L.divIcon({
-        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${si.color};
-        border:${ring};box-shadow:${glow};overflow:hidden;
-        display:flex;align-items:center;justify-content:center">${inner}</div>`,
-        className: "",
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
-      });
-    },
-    [],
-  );
-
-  const buildLabel = useCallback((v: VehicleEntry) => {
-    const name = vehicleDisplayName(v);
-    const short = name.length > 22 ? name.slice(0, 20) + "…" : name;
-    const speed = v.speed ?? 0;
-    const mph =
-      v.displayStatus === "driving" && Number(speed) > 0
-        ? ` <b style="color:#4ade80">${Number(speed).toFixed(0)} mph</b>`
-        : "";
-    return `<div style="background:rgba(15,23,42,0.88);backdrop-filter:blur(6px);
-      color:white;border-radius:6px;padding:3px 9px;font-family:system-ui;font-size:11px;
-      font-weight:500;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3);
-      pointer-events:none;margin-top:4px">${short}${mph}</div>`;
-  }, []);
 
   // Initialize map once
   useEffect(() => {
@@ -625,7 +621,7 @@ function FleetMap({
       map.fitBounds(group.getBounds().pad(0.25), { maxZoom: 13 });
       fittedRef.current = true;
     }
-  }, [mapReady, withCoords, buildIcon, buildLabel]);
+  }, [mapReady, withCoords]);
 
   // Selection highlight — only updates icons, never adds/removes markers
   const prevSelectedRef = useRef<string | null>(null);
@@ -640,15 +636,15 @@ function FleetMap({
       const v = vehiclesRef.current.find((vv) => vv.device_id === prev);
       if (v) markerMap.current[prev].setIcon(buildIcon(L, v, false));
     }
-    // Highlight new
+    // Highlight new — fly to true destination, not mid-animation position
     if (selectedId && markerMap.current[selectedId]) {
       const v = vehiclesRef.current.find((vv) => vv.device_id === selectedId);
       if (v) markerMap.current[selectedId].setIcon(buildIcon(L, v, true));
-      mapInst.current?.flyTo(markerMap.current[selectedId].getLatLng(), 16, {
-        duration: 0.8,
-      });
+      const m = markerMap.current[selectedId];
+      const target = m._targetLatLng ?? m.getLatLng();
+      mapInst.current?.flyTo(target, 16, { duration: 0.8 });
     }
-  }, [selectedId, buildIcon]);
+  }, [selectedId]);
 
   return (
     <div className="relative h-full">
