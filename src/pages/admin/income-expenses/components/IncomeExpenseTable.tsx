@@ -1167,15 +1167,21 @@ export default function IncomeExpenseTable({
     }
   };
 
-  // Calculate Car Management Split based on formula
-  const calculateCarManagementSplit = (month: number): number => {
+  // Calculate Car Management Split based on formula.
+  // `percentOverride` (0–100) lets the GLA-owned Co-Host Split reuse this exact
+  // formula with the co-host % in place of the management %, so the GLA-owned
+  // split mirrors the Car Management / Car Owner Split structure (including the
+  // %-independent part1 income components) rather than a naive base × pct.
+  const calculateCarManagementSplit = (month: number, percentOverride?: number): number => {
     // Use stored per-month %, fall back to the car's formulaSetting default
     const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
     const rawStored = monthRow?.carManagementSplit;
     const defaultPct = data.formulaSetting?.carManagementSplitPercent ?? 50;
-    const storedPercent = (rawStored != null)
-      ? Number(rawStored)
-      : defaultPct;
+    const storedPercent = (percentOverride != null)
+      ? percentOverride
+      : (rawStored != null)
+        ? Number(rawStored)
+        : defaultPct;
     const mgmtPercent = storedPercent / 100; // Split percentage for management
 
     const rentalIncome = getMonthValue(
@@ -1507,15 +1513,20 @@ export default function IncomeExpenseTable({
     return 0;
   };
 
-  // Calculate Car Owner Split based on formula
-  const calculateCarOwnerSplit = (month: number): number => {
+  // Calculate Car Owner Split based on formula.
+  // `percentOverride` (0–100) lets the GLA-owned GLA Split reuse this exact
+  // formula with the GLA remainder % (100 − coHost%) in place of the owner %,
+  // mirroring the Car Management / Car Owner Split structure.
+  const calculateCarOwnerSplit = (month: number, percentOverride?: number): number => {
     // Use stored per-month %, fall back to the car's formulaSetting default
     const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
     const rawStored = monthRow?.carOwnerSplit;
     const defaultPct = data.formulaSetting?.carOwnerSplitPercent ?? 50;
-    const storedPercent = (rawStored != null)
-      ? Number(rawStored)
-      : defaultPct;
+    const storedPercent = (percentOverride != null)
+      ? percentOverride
+      : (rawStored != null)
+        ? Number(rawStored)
+        : defaultPct;
     const ownerPercent = storedPercent / 100; // Split percentage for owner
 
     const rentalIncome = getMonthValue(
@@ -1809,49 +1820,37 @@ export default function IncomeExpenseTable({
   };
 
   // Co-Host Split amount for a month.
-  //  • GLA-owned car: same formula/base as the Car Owner Split, using the
-  //    co-host %. (Car Management Split is left untouched.)
+  //  • GLA-owned car: use the SAME full formula as the Car Management / Car
+  //    Owner Split (per client). The Co-Host is the operator share, so it
+  //    mirrors the Car OWNER Split formula but with the co-host % — this keeps
+  //    the %-independent part1 income components (miles, etc.) instead of the
+  //    old naive `base × pct`, which dropped them and produced $0.00 at low %.
   //  • Owned by another person: split the CAR MANAGEMENT SPLIT amount —
   //    Co-Host = cohost% × CarManagementSplit  (PM ex: $1000 @85% → $850).
   const calculateCoHostSplit = (month: number): number => {
-    const pct = getCoHostPercent(month) / 100;
+    const coHostPct = getCoHostPercent(month);
     // uses the component-level `isGlaOwned` state (live toggle)
     if (isGlaOwned) {
-      // same base as owner split, but co-host %. Owner split already applies
-      // ownerPercent to the base; derive the base = ownerSplit / ownerPercent
-      // would be fragile, so apply pct directly to the owner-split base by
-      // scaling: ownerSplit uses ownerPercent; we want the same base × pct.
-      const ownerSplit = calculateCarOwnerSplit(month);
-      const ownerPct = (() => {
-        const r = data.incomeExpenses?.find((x: any) => x && x.month === month)?.carOwnerSplit;
-        const d = data.formulaSetting?.carOwnerSplitPercent ?? 50;
-        return (r != null ? Number(r) : d) / 100;
-      })();
-      if (ownerPct === 0) return 0;
-      const base = ownerSplit / ownerPct; // recover the pre-% base
-      return base * pct;
+      return calculateCarOwnerSplit(month, coHostPct);
     }
     // Not GLA-owned: share of the Car Management Split.
-    return calculateCarManagementSplit(month) * pct;
+    return calculateCarManagementSplit(month) * (coHostPct / 100);
   };
 
-  // GLA Split amount = the remainder of the same base the Co-Host Split uses.
+  // GLA Split amount.
+  //  • GLA-owned car: mirrors the Car MANAGEMENT Split formula with the GLA
+  //    remainder % (100 − coHost%), so GLA keeps the management-side fixed
+  //    income components (matching how Car Management Split shows a nonzero
+  //    amount even at 0%).
+  //  • Owned by another person: remainder of the Car Management Split.
   const calculateGlaSplit = (month: number): number => {
-    const pct = getCoHostPercent(month) / 100;
+    const coHostPct = getCoHostPercent(month);
     // uses the component-level `isGlaOwned` state (live toggle)
     if (isGlaOwned) {
-      const ownerSplit = calculateCarOwnerSplit(month);
-      const ownerPct = (() => {
-        const r = data.incomeExpenses?.find((x: any) => x && x.month === month)?.carOwnerSplit;
-        const d = data.formulaSetting?.carOwnerSplitPercent ?? 50;
-        return (r != null ? Number(r) : d) / 100;
-      })();
-      if (ownerPct === 0) return 0;
-      const base = ownerSplit / ownerPct;
-      return base * (1 - pct);
+      return calculateCarManagementSplit(month, 100 - coHostPct);
     }
     // Not GLA-owned: remainder of the Car Management Split (PM ex: $1000 → $150).
-    return calculateCarManagementSplit(month) * (1 - pct);
+    return calculateCarManagementSplit(month) * (1 - coHostPct / 100);
   };
 
   // Calculate Car Management Total Expenses:

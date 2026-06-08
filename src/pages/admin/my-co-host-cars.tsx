@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Car, Users } from "lucide-react";
+import { Loader2, Car, Users, DollarSign } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 
 interface CoHostCar {
@@ -37,6 +37,7 @@ function CarTable({ cars }: { cars: CoHostCar[] }) {
             <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Owner Name</th>
             <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3 hidden xl:table-cell">Owner Email</th>
             <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Status</th>
+            <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Income & Expenses</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -65,6 +66,15 @@ function CarTable({ cars }: { cars: CoHostCar[] }) {
                 >
                   {car.isActive ? "Active" : "Inactive"}
                 </Badge>
+              </td>
+              <td className="px-4 py-3">
+                <a
+                  href={`/admin/income-expenses?carId=${car.id}`}
+                  className="inline-flex items-center gap-1 text-xs text-[#D3BC8D] hover:text-[#b89d6a] font-medium transition-colors"
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  View I&amp;E
+                </a>
               </td>
             </tr>
             );
