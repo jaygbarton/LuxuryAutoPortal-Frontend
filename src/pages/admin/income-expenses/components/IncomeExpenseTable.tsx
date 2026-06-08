@@ -2071,8 +2071,12 @@ export default function IncomeExpenseTable({
               isExpanded={expandedSections.coHostingSplit}
               onToggle={() => toggleSection("coHostingSplit")}
             >
-              {/* Co-Host Split — listed first per client. Amount per Case A/B;
-                  % is the editable co-host % (GLA % derives as the remainder). */}
+              {/* Co-Host Split — listed first per client.
+                  • Owned by another person: editable co-host % (field coHostSplit);
+                    GLA % derives as the remainder, amount = coHost% × Car Mgmt Split.
+                  • GLA-owned: equals the Car Owner Split exactly, so editing the %
+                    must write the Car Owner Split field (carOwnerSplit) — editing
+                    coHostSplit would have no effect on the displayed amount. */}
               <CategoryRow
                 label="Co-Host Split"
                 values={MONTHS.map((_, i) => roundToPhp2Dp(calculateCoHostSplit(i + 1)))}
@@ -2080,12 +2084,17 @@ export default function IncomeExpenseTable({
                   isGlaOwned ? getCarOwnerPercent(i + 1) : getCoHostPercent(i + 1)
                 )}
                 category="income"
-                field="coHostSplit"
-                isEditable={!isReadOnly && !isGlaOwned}
+                field={isGlaOwned ? "carOwnerSplit" : "coHostSplit"}
+                isEditable={!isReadOnly && !isAllCarsView}
                 formatType={isAllCarsView ? undefined : "ownerSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
               />
+              {/* GLA Split.
+                  • Owned by another person: remainder of the Car Management Split
+                    (the % is the GLA remainder; the editable co-host % lives above).
+                  • GLA-owned: equals the Car Management Split exactly, so editing the
+                    % writes the Car Management Split field (carManagementSplit). */}
               <CategoryRow
                 label="GLA Split"
                 values={MONTHS.map((_, i) => roundToPhp2Dp(calculateGlaSplit(i + 1)))}
@@ -2093,8 +2102,8 @@ export default function IncomeExpenseTable({
                   isGlaOwned ? getCarManagementPercent(i + 1) : 100 - getCoHostPercent(i + 1)
                 )}
                 category="income"
-                field="glaSplit"
-                isEditable={!isReadOnly && !isAllCarsView && !isGlaOwned}
+                field={isGlaOwned ? "carManagementSplit" : "glaSplit"}
+                isEditable={!isReadOnly && !isAllCarsView}
                 formatType={isAllCarsView ? undefined : "managementSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
