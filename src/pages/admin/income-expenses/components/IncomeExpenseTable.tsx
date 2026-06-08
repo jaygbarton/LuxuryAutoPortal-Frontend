@@ -2081,20 +2081,20 @@ export default function IncomeExpenseTable({
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
               />
-              {/* GLA Split — amount = remainder of the split base; % = 100 − coHost% (read-only, derived) */}
+              {/* GLA Split — amount = remainder of the split base; % is directly
+                  editable. The stored field is `coHostSplit`, so editing the
+                  GLA % saves `coHostSplit = 100 − GLA%` (see ModalEditIncomeExpense).
+                  Co-Host % derives as the remainder and stays in sync. */}
               <CategoryRow
                 label="GLA Split"
                 values={MONTHS.map((_, i) => roundToPhp2Dp(calculateGlaSplit(i + 1)))}
                 percentageValues={MONTHS.map((_, i) => 100 - getCoHostPercent(i + 1))}
                 category="income"
                 field="glaSplit"
-                isEditable={false}
+                isEditable={!isReadOnly && !isAllCarsView}
                 formatType={isAllCarsView ? undefined : "managementSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
-                onPercentCellClick={!isAllCarsView ? (month) => {
-                  setEditingCell({ category: "income", field: "coHostSplit", month, value: getCoHostPercent(month) });
-                } : undefined}
               />
             </CategorySection>
 

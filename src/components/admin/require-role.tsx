@@ -7,13 +7,14 @@ interface AuthMe {
     isAdmin?: boolean;
     isClient?: boolean;
     isEmployee?: boolean;
+    isCoHost?: boolean;
   };
 }
 
 interface RequireRoleProps {
   children: React.ReactNode;
   /** At least one of these flags must be true on the authenticated user. */
-  roles: ("isAdmin" | "isClient" | "isEmployee")[];
+  roles: ("isAdmin" | "isClient" | "isEmployee" | "isCoHost")[];
   /** Where to send unauthorized users. Defaults to /dashboard. */
   redirectTo?: string;
 }

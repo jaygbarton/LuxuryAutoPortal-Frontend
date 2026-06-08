@@ -1016,7 +1016,9 @@ export default function AdminsPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Quick Links Management Section */}
+        {/* Quick Links Management Section — hidden per request; the modal and
+            state below remain so it can be re-enabled by flipping this guard. */}
+        {false && (
         <div className="mt-12 space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -1060,8 +1062,8 @@ export default function AdminsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {quickLinks && quickLinks.length > 0 ? (
-                      quickLinks.map((link) => (
+                    {quickLinks && (quickLinks?.length ?? 0) > 0 ? (
+                      quickLinks?.map((link) => (
                         <tr
                           key={link.id}
                           className="hover:bg-muted/50 transition-colors"
@@ -1165,6 +1167,7 @@ export default function AdminsPage() {
             </CardContent>
           </Card>
         </div>
+        )}
 
         {/* Quick Link Modal */}
         <Dialog

@@ -283,7 +283,7 @@ function Router() {
               <RequireRole roles={["isAdmin"]}><PaymentStatusPage /></RequireRole>
             </Route>
             <Route path="/admin/co-host-payments">
-              <RequireRole roles={["isAdmin"]}><CoHostPaymentsPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isCoHost"]}><CoHostPaymentsPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/payments">
               <RequireRole roles={["isAdmin", "isClient"]}><PaymentsPage /></RequireRole>

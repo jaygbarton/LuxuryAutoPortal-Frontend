@@ -105,17 +105,22 @@ export default function ModalEditIncomeExpense() {
     
     try {
       // Upload images first if there are any new ones (skip for management/owner split)
-      if (imageFiles.length > 0 && editingCell.field !== "carManagementSplit" && editingCell.field !== "carOwnerSplit" && editingCell.field !== "coHostSplit") {
+      if (imageFiles.length > 0 && editingCell.field !== "carManagementSplit" && editingCell.field !== "carOwnerSplit" && editingCell.field !== "coHostSplit" && editingCell.field !== "glaSplit") {
         await uploadImages();
       }
     
       // Save the change with remarks - remarks will be included in the save request
-      // The saveChanges function will send remarks along with the value
+      // The saveChanges function will send remarks along with the value.
+      //
+      // GLA Split has no stored field of its own — it's the remainder of the
+      // co-host split base. Editing the GLA % therefore writes the inverse to
+      // `coHostSplit` (GLA% + coHost% = 100); the GLA row re-derives from there.
+      const isGlaSplit = editingCell.field === "glaSplit";
       saveChanges({
         category: editingCell.category,
-        field: editingCell.field,
+        field: isGlaSplit ? "coHostSplit" : editingCell.field,
         month: editingCell.month,
-        value: editingCell.value,
+        value: isGlaSplit ? 100 - editingCell.value : editingCell.value,
         remarks: remarks.trim(), // Include remarks in the save
       });
     } catch (error) {
@@ -144,6 +149,7 @@ export default function ModalEditIncomeExpense() {
     carManagementTotalExpenses: "Car Management Total Expenses",
     carOwnerTotalExpenses: "Car Owner Total Expenses",
     coHostSplit: "Co-Host Split",
+    glaSplit: "GLA Split",
   };
 
   const fieldName = fieldNames[editingCell.field] || editingCell.field;
@@ -153,11 +159,14 @@ export default function ModalEditIncomeExpense() {
   const isManagementSplit = editingCell.field === "carManagementSplit" || editingCell.field === "carOwnerSplit";
   // Co-Host Split is a plain editable percentage (0–100): no receipts, no
   // form-amount breakdown, and no Car Management/Owner subcategory panel.
+  // GLA Split shares the co-host's plain-percentage UI. Its value in the editor
+  // is the GLA % itself (0–100); handleSave converts it to coHostSplit on save.
+  const isGlaSplit = editingCell.field === "glaSplit";
   const isCoHostSplit = editingCell.field === "coHostSplit";
   // Fields whose value is a percentage (drives the % input + suppresses the
   // currency/receipt UI). Management split uses the big breakdown panel;
-  // co-host split uses the same simple % input without that panel.
-  const isPercentField = isManagementSplit || isCoHostSplit;
+  // co-host / GLA split use the same simple % input without that panel.
+  const isPercentField = isManagementSplit || isCoHostSplit || isGlaSplit;
   
   // Income values
   const incomeValues = isManagementSplit ? {
@@ -277,6 +286,8 @@ export default function ModalEditIncomeExpense() {
           <DialogDescription className="text-muted-foreground">
             {isCoHostSplit
               ? `Set the Co-Host % for ${monthName} ${year}. GLA's % is the remainder (100 − Co-Host %).`
+              : isGlaSplit
+              ? `Set GLA's % for ${monthName} ${year}. The Co-Host's % is the remainder (100 − GLA %).`
               : `Enter the amount for ${fieldName} for ${monthName} ${year}`}
           </DialogDescription>
         </DialogHeader>
@@ -319,6 +330,10 @@ export default function ModalEditIncomeExpense() {
               <p className="text-[11px] text-muted-foreground mt-1">
                 Co-Host's share of the split (0–100%). GLA's share is the remainder.
               </p>
+            ) : isGlaSplit ? (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                GLA's share of the split (0–100%). The Co-Host's share is set to the remainder.
+              </p>
             ) : !isManagementSplit && (
               <p className="text-[11px] text-muted-foreground mt-1">
                 Manually-entered amount. Set to 0 to remove it; the Form Amount is unaffected.
@@ -342,7 +357,7 @@ export default function ModalEditIncomeExpense() {
             />
           )}
 
-          {editingCell.field !== "carManagementSplit" && editingCell.field !== "carOwnerSplit" && editingCell.field !== "coHostSplit" && (
+          {editingCell.field !== "carManagementSplit" && editingCell.field !== "carOwnerSplit" && editingCell.field !== "coHostSplit" && editingCell.field !== "glaSplit" && (
           <div>
             <Label className="text-muted-foreground text-xs">Remarks</Label>
             <Textarea
