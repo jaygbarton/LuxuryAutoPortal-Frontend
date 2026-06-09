@@ -1861,7 +1861,7 @@ export default function IncomeExpenseTable({
     (splitTypeByMonth?.[month] as "coHost" | "mgmtOwner") || "mgmtOwner";
   // Is the Co-Hosting Split active (non-zero) for this month?
   const isCoHostActive = (month: number): boolean =>
-    isGlaOwned && getSplitType(month) === "coHost";
+    !isGlaOwned || getSplitType(month) === "coHost";
   // Is the Car Management/Owner Split active (non-zero) for this month?
   // Always active for non-GLA-owned cars; for GLA-owned only in "mgmtOwner".
   const isMgmtOwnerActive = (month: number): boolean =>
