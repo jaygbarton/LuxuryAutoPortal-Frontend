@@ -2148,7 +2148,7 @@ export default function IncomeExpenseTable({
                 )}
                 category="income"
                 field="coHostSplit"
-                isEditablePerMonth={(m) => !isReadOnly && !isAllCarsView && isCoHostActive(m)}
+                isEditablePerMonth={() => !isReadOnly && !isAllCarsView}
                 formatType={isAllCarsView ? undefined : "managementSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
@@ -2169,7 +2169,7 @@ export default function IncomeExpenseTable({
                 )}
                 category="income"
                 field="glaSplit"
-                isEditablePerMonth={(m) => !isReadOnly && !isAllCarsView && isCoHostActive(m)}
+                isEditablePerMonth={() => !isReadOnly && !isAllCarsView}
                 formatType={isAllCarsView ? undefined : "ownerSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
