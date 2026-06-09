@@ -993,12 +993,12 @@ export default function TuroTripsPage() {
             <Card>
               <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-2">
                 <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
+                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
                   <span className="truncate">Booked Trips</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                <div className="text-lg sm:text-2xl font-bold text-green-600">
+                <div className="text-lg sm:text-2xl font-bold text-primary">
                   {summary.bookedTrips}
                 </div>
               </CardContent>
@@ -1007,12 +1007,12 @@ export default function TuroTripsPage() {
             <Card>
               <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-2">
                 <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500 flex-shrink-0" />
+                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-foreground flex-shrink-0" />
                   <span className="truncate">Completed Trips</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                <div className="text-lg sm:text-2xl font-bold text-blue-600">
+                <div className="text-lg sm:text-2xl font-bold text-foreground">
                   {summary.completedTrips}
                 </div>
               </CardContent>
@@ -1021,12 +1021,12 @@ export default function TuroTripsPage() {
             <Card>
               <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-2">
                 <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                  <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 flex-shrink-0" />
+                  <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-destructive flex-shrink-0" />
                   <span className="truncate">Cancelled Trips</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                <div className="text-lg sm:text-2xl font-bold text-red-600">
+                <div className="text-lg sm:text-2xl font-bold text-destructive">
                   {summary.cancelledTrips}
                 </div>
               </CardContent>
@@ -1035,12 +1035,12 @@ export default function TuroTripsPage() {
             <Card>
               <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-2">
                 <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                  <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
+                  <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
                   <span className="truncate">Total Earnings</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                <div className="text-lg sm:text-2xl font-bold text-green-600 truncate">
+                <div className="text-lg sm:text-2xl font-bold text-primary truncate">
                   {formatCurrency(summary.totalEarnings)}
                 </div>
               </CardContent>
@@ -1049,12 +1049,12 @@ export default function TuroTripsPage() {
             <Card>
               <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-2">
                 <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
-                  <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 flex-shrink-0" />
+                  <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-destructive flex-shrink-0" />
                   <span className="truncate">Lost Earnings</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
-                <div className="text-lg sm:text-2xl font-bold text-red-600 truncate">
+                <div className="text-lg sm:text-2xl font-bold text-destructive truncate">
                   {formatCurrency(summary.cancelledEarnings)}
                 </div>
               </CardContent>
@@ -1851,11 +1851,11 @@ export default function TuroTripsPage() {
                             onClick={() => setSelectedTrip(trip)}
                           >
                             {trip.status === "cancelled" ? (
-                              <span className="text-red-600 font-semibold whitespace-nowrap text-sm">
+                              <span className="text-destructive font-semibold whitespace-nowrap text-sm">
                                 ({formatCurrency(trip.cancelledEarnings)})
                               </span>
                             ) : (
-                              <span className="text-green-600 font-semibold whitespace-nowrap text-sm">
+                              <span className="text-primary font-semibold whitespace-nowrap text-sm">
                                 {formatCurrency(trip.earnings)}
                               </span>
                             )}
@@ -2107,11 +2107,11 @@ export default function TuroTripsPage() {
                 <h4 className="text-sm font-semibold mb-2">Earnings</h4>
                 <div className="text-2xl font-bold">
                   {selectedTrip.status === "cancelled" ? (
-                    <span className="text-red-600">
+                    <span className="text-destructive">
                       {formatCurrency(selectedTrip.cancelledEarnings)} (Lost)
                     </span>
                   ) : (
-                    <span className="text-green-600">
+                    <span className="text-primary">
                       {formatCurrency(selectedTrip.earnings)}
                     </span>
                   )}
