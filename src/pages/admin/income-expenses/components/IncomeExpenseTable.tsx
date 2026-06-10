@@ -2529,7 +2529,7 @@ export default function IncomeExpenseTable({
                 )}
               />
               {/* Dynamic Subcategories */}
-              {dynamicSubcategories.directDelivery.map((subcat) => (
+              {dynamicSubcategories.directDelivery.filter((s) => findStandardCategoryMatch("directDelivery", s.name) == null).map((subcat) => (
                 <DynamicSubcategoryRow
                   key={subcat.id}
                   subcategory={subcat}
@@ -2872,7 +2872,7 @@ export default function IncomeExpenseTable({
                 )}
               />
               {/* Dynamic Subcategories */}
-              {dynamicSubcategories.cogs.map((subcat) => (
+              {dynamicSubcategories.cogs.filter((s) => findStandardCategoryMatch("cogs", s.name) == null).map((subcat) => (
                 <DynamicSubcategoryRow
                   key={subcat.id}
                   subcategory={subcat}
@@ -3009,7 +3009,7 @@ export default function IncomeExpenseTable({
                 )}
               />
               {/* Dynamic Subcategories */}
-              {dynamicSubcategories.parkingFeeLabor.map((subcat) => (
+              {dynamicSubcategories.parkingFeeLabor.filter((s) => findStandardCategoryMatch("parkingFeeLabor", s.name) == null).map((subcat) => (
                 <DynamicSubcategoryRow
                   key={subcat.id}
                   subcategory={subcat}
@@ -3234,7 +3234,7 @@ export default function IncomeExpenseTable({
                 )}
               />
               {/* Dynamic Subcategories */}
-              {dynamicSubcategories.reimbursedBills.map((subcat) => (
+              {dynamicSubcategories.reimbursedBills.filter((s) => findStandardCategoryMatch("reimbursedBills", s.name) == null).map((subcat) => (
                 <DynamicSubcategoryRow
                   key={subcat.id}
                   subcategory={subcat}
