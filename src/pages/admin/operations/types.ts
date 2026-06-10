@@ -35,7 +35,7 @@ export interface OperationTask {
   reservation_id: string | null;
   car_name: string;
   guest_name: string | null;
-  task_type: "cleaning" | "delivery" | "pickup";
+  task_type: "cleaning" | "delivery" | "pickup" | "refuel";
   assigned_to: string;
   assigned_to_id: number | null;
   scheduled_date: string | null;
@@ -142,7 +142,7 @@ export interface MaintenanceRecord {
   inspection_car_issue_types?: string[] | null;
 }
 
-export type TaskType = "cleaning" | "delivery" | "pickup";
+export type TaskType = "cleaning" | "delivery" | "pickup" | "refuel";
 export type TaskStatus = "new" | "in_progress" | "completed" | "delivered";
 export type InspectionStatus =
   | "new"
