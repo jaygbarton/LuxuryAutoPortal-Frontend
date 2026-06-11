@@ -65,6 +65,9 @@ interface GeofenceZone {
   radius_meters: number | null;
   polygon_coords: any[] | null;
   active: boolean;
+  alert_on_entry: boolean;
+  alert_on_exit: boolean;
+  created_by_client_id: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -261,6 +264,8 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
   const [centerLat, setCenterLat] = useState<number | null>(initial?.center_lat ?? null);
   const [centerLng, setCenterLng] = useState<number | null>(initial?.center_lng ?? null);
   const [radiusMeters, setRadiusMeters] = useState<number>(initial?.radius_meters ?? 500);
+  const [alertOnEntry, setAlertOnEntry] = useState<boolean>(!!(initial as any)?.alert_on_entry);
+  const [alertOnExit, setAlertOnExit] = useState<boolean>(!!(initial as any)?.alert_on_exit);
 
   // Reset on open/initial change
   useEffect(() => {
@@ -269,6 +274,8 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
     setCenterLat(initial?.center_lat ?? null);
     setCenterLng(initial?.center_lng ?? null);
     setRadiusMeters(initial?.radius_meters ?? 500);
+    setAlertOnEntry(!!(initial as any)?.alert_on_entry);
+    setAlertOnExit(!!(initial as any)?.alert_on_exit);
   }, [open, initial]);
 
   const handleMapClick = (lat: number, lng: number) => {
@@ -284,7 +291,9 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
       center_lat: centerLat ?? undefined,
       center_lng: centerLng ?? undefined,
       radius_meters: radiusMeters,
-    });
+      alert_on_entry: alertOnEntry,
+      alert_on_exit: alertOnExit,
+    } as any);
   };
 
   const canSave = name.trim().length > 0 && centerLat !== null && centerLng !== null && radiusMeters > 0;
@@ -318,6 +327,37 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
                 placeholder="Optional notes about this zone"
                 rows={2}
               />
+            </div>
+
+            {/* Alert toggles */}
+            <div className="space-y-2">
+              <Label>Alerts</Label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={alertOnEntry}
+                    onChange={(e) => setAlertOnEntry(e.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <span className="text-sm">
+                    <span className="font-medium">Alert on Entry</span>
+                    <span className="text-muted-foreground ml-1">— Slack + in-app when a car enters this zone</span>
+                  </span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={alertOnExit}
+                    onChange={(e) => setAlertOnExit(e.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <span className="text-sm">
+                    <span className="font-medium">Alert on Exit</span>
+                    <span className="text-muted-foreground ml-1">— Slack + in-app when a car leaves this zone</span>
+                  </span>
+                </label>
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -649,11 +689,21 @@ export default function BouncieGeofencePage() {
                           <Circle className="w-4 h-4" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium text-sm">{zone.name}</span>
                             <Badge variant={zone.active ? "default" : "secondary"} className="text-xs h-4 px-1.5">
                               {zone.active ? "Active" : "Inactive"}
                             </Badge>
+                            {zone.alert_on_entry && (
+                              <Badge className="text-xs h-4 px-1.5 bg-amber-500/15 text-amber-600 border-amber-500/30" variant="outline">
+                                📍 Entry Alert
+                              </Badge>
+                            )}
+                            {zone.alert_on_exit && (
+                              <Badge className="text-xs h-4 px-1.5 bg-blue-500/15 text-blue-600 border-blue-500/30" variant="outline">
+                                🚗 Exit Alert
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
                             <span className="capitalize">{zone.type}</span>
