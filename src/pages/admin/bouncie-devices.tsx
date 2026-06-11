@@ -44,6 +44,11 @@ import {
   RefreshCw,
   Download,
   Home,
+  Battery,
+  BatteryLow,
+  BatteryMedium,
+  BatteryFull,
+  BatteryWarning,
   Navigation,
   Bell,
 } from "lucide-react";
@@ -589,6 +594,7 @@ export default function BouncieDevicesPage() {
                       <TableHead>Assigned Car</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Connection</TableHead>
+                      <TableHead>Battery</TableHead>
                       <TableHead>Added</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -636,6 +642,30 @@ export default function BouncieDevicesPage() {
                               <WifiOff className="w-4 h-4" /> Unknown
                             </div>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          {(() => {
+                            const pct = device.liveData?.batteryLevel != null
+                              ? Number(device.liveData.batteryLevel)
+                              : null;
+                            if (pct === null) return <span className="text-muted-foreground text-sm">—</span>;
+                            const Icon =
+                              pct <= 10 ? BatteryWarning :
+                              pct <= 25 ? BatteryLow :
+                              pct <= 60 ? BatteryMedium :
+                              pct <= 90 ? Battery :
+                              BatteryFull;
+                            const color =
+                              pct <= 10 ? "text-red-500" :
+                              pct <= 25 ? "text-amber-500" :
+                              "text-green-600";
+                            return (
+                              <div className={`flex items-center gap-1 text-sm ${color}`}>
+                                <Icon className="w-4 h-4" />
+                                <span>{Math.round(pct)}%</span>
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {formatDate(device.createdAt)}
