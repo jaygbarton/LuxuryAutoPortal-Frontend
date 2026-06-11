@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -35,46 +34,43 @@ export function RequireRole({
 }: RequireRoleProps) {
   const [, setLocation] = useLocation();
 
-  const { data, isLoading, isFetching } = useQuery<AuthMe>({
-    queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), {
-        credentials: "include",
-      });
-      if (!res.ok) return { user: undefined };
-      return res.json();
-    },
-    retry: false,
-    staleTime: 1000 * 30,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    refetchInterval: 1000 * 60,
-  });
+  const { data, isLoading, isFetching, isFetchedAfterMount } =
+    useQuery<AuthMe>({
+      queryKey: ["/api/auth/me"],
+      queryFn: async () => {
+        const res = await fetch(buildApiUrl("/api/auth/me"), {
+          credentials: "include",
+        });
+        if (!res.ok) return { user: undefined };
+        return res.json();
+      },
+      retry: false,
+      staleTime: 1000 * 30,
+      // Force a fresh fetch on every mount, ignoring staleTime. Without this,
+      // the optimistic login cache (written by login.tsx's setQueryData and
+      // MISSING server-computed role flags like isAdmin) is treated as "fresh"
+      // for 30s, so navigating to an admin page right after login would judge
+      // authorization against role-less data and bounce the user to /dashboard.
+      refetchOnMount: "always",
+      refetchOnWindowFocus: true,
+      refetchInterval: 1000 * 60,
+    });
 
   const user = data?.user;
   const allowed = !!user && roles.some((role) => user[role] === true);
 
-  // Only redirect once the auth state has genuinely settled. Without this,
-  // a background refetch (mount / window-focus / 60s interval) or the
-  // optimistic login cache — which is MISSING server-computed role flags
-  // like isAdmin — flips `allowed` to false for a moment and we'd hard-
-  // redirect the user back to /dashboard a few seconds after they navigate
-  // to an admin page. We wait for fetching to finish, then confirm the
-  // denial after a short debounce so a transient miss can't bounce the user.
-  useEffect(() => {
-    if (isLoading || isFetching) return;
-    if (allowed) return;
+  // Authorization is decided ONLY after a genuine /api/auth/me network
+  // response triggered by THIS mount has landed (isFetchedAfterMount). Until
+  // then `data` may be the partial optimistic login cache, whose missing
+  // isAdmin would wrongly read as "not allowed". Gating on the real fetch —
+  // not a timing debounce — closes the post-login race deterministically:
+  // there is no window in which we redirect based on pre-fetch cache.
+  if (isLoading || isFetching || !isFetchedAfterMount) return null;
 
-    const timer = setTimeout(() => {
-      setLocation(redirectTo);
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [isLoading, isFetching, allowed, redirectTo, setLocation]);
-
-  // While loading, fetching, or in the pre-redirect grace window for an
-  // unauthorized user, render nothing rather than flashing the page.
-  if (isLoading || isFetching) return null;
-  if (!allowed) return null;
+  if (!allowed) {
+    setLocation(redirectTo);
+    return null;
+  }
 
   return <>{children}</>;
 }
