@@ -263,6 +263,8 @@ export default function BouncieDevicesPage() {
       if (!res.ok) throw new Error("Failed to fetch devices");
       return res.json();
     },
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
 
   // Fetch GLA cars for picker
