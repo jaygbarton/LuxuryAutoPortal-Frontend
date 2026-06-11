@@ -2,7 +2,7 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type ItemsPerPage = 10 | 20 | 50;
+export type ItemsPerPage = 5 | 10 | 20 | 50;
 
 interface TablePaginationProps {
   totalItems: number;
@@ -84,7 +84,7 @@ export function TablePagination({
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground hidden sm:inline">Rows per page:</span>
           <div className="flex gap-1">
-            {([10, 20, 50] as ItemsPerPage[]).map((limit) => (
+            {([5, 10, 20, 50] as ItemsPerPage[]).map((limit) => (
               <button
                 key={limit}
                 onClick={() => onItemsPerPageChange(limit)}

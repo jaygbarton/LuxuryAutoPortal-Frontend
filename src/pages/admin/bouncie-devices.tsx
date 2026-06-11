@@ -229,7 +229,7 @@ export default function BouncieDevicesPage() {
     null,
   );
   const [devicesPage, setDevicesPage] = useState(1);
-  const devicesPageSize = 20;
+  const [devicesPageSize, setDevicesPageSize] = useState<import("@/components/ui/table-pagination").ItemsPerPage>(20);
   const [addFormData, setAddFormData] = useState<AddDeviceData>({
     imei: "",
     nickname: "",
@@ -664,13 +664,13 @@ export default function BouncieDevicesPage() {
                 </Table>
               </div>
             )}
-            {devices.length > devicesPageSize && (
+            {devices.length > 0 && (
               <TablePagination
                 totalItems={devices.length}
                 itemsPerPage={devicesPageSize}
                 currentPage={devicesPage}
                 onPageChange={setDevicesPage}
-                onItemsPerPageChange={() => {}}
+                onItemsPerPageChange={(size) => { setDevicesPageSize(size); setDevicesPage(1); }}
                 isLoading={isLoading}
               />
             )}
