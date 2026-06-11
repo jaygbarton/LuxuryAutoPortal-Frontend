@@ -489,6 +489,54 @@ export default function TuroTripsPage() {
     },
   });
 
+  // Fetch-by-reservation-ID: pull a specific trip from Gmail and create/update it.
+  // Used for booking emails the incremental sync missed.
+  const [fetchResId, setFetchResId] = React.useState("");
+  const [fetchResIdOpen, setFetchResIdOpen] = React.useState(false);
+  const fetchByReservationMutation = useMutation({
+    mutationFn: async (reservationId: string) => {
+      const response = await fetch(
+        buildApiUrl("/api/turo-trips/fetch-by-reservation"),
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reservationId }),
+        },
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        const reason = data?.error || data?.message || `HTTP ${response.status}`;
+        throw new Error(reason);
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips/summary"] });
+      const action = data.action as string;
+      const actionLabel =
+        action === "created" ? "Created" :
+        action === "updated" ? "Dates updated" :
+        action === "unchanged" ? "Already up to date" :
+        action === "not_found" ? "Not found in Gmail" :
+        action === "parse_failed" ? "Email found but parse failed" :
+        action;
+      toast({
+        title: `Reservation #${data.data?.reservationId ?? fetchResId}: ${actionLabel}`,
+        description: data.message,
+        duration: 10000,
+      });
+      if (action === "created" || action === "updated") {
+        setFetchResId("");
+        setFetchResIdOpen(false);
+      }
+    },
+    onError: (error: any) => {
+      toast({ title: "Fetch failed", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Refresh-calendar mutation — pushes updated title/description into existing Google Calendar events.
   // Useful after a format change (e.g. adding plate # or year/model to titles).
   const refreshCalendarMutation = useMutation({
@@ -956,6 +1004,54 @@ export default function TuroTripsPage() {
                 </>
               )}
             </Button>
+            {/* Fetch by reservation ID — inline expandable form */}
+            {fetchResIdOpen ? (
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Input
+                  value={fetchResId}
+                  onChange={(e) => setFetchResId(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && fetchResId.trim()) {
+                      fetchByReservationMutation.mutate(fetchResId.trim());
+                    } else if (e.key === "Escape") {
+                      setFetchResIdOpen(false);
+                      setFetchResId("");
+                    }
+                  }}
+                  placeholder="Reservation ID…"
+                  className="h-9 w-[160px] sm:w-[180px]"
+                  autoFocus
+                />
+                <Button
+                  size="sm"
+                  onClick={() => fetchResId.trim() && fetchByReservationMutation.mutate(fetchResId.trim())}
+                  disabled={!fetchResId.trim() || fetchByReservationMutation.isPending}
+                >
+                  {fetchByReservationMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Go"
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setFetchResIdOpen(false); setFetchResId(""); }}
+                >
+                  ✕
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => setFetchResIdOpen(true)}
+                title="Search Gmail for a specific reservation ID and add it to the database if missing"
+              >
+                <User className="w-4 h-4 mr-2" />
+                Fetch by ID
+              </Button>
+            )}
             <Button
               className="w-full sm:w-auto"
               onClick={() => syncMutation.mutate()}
