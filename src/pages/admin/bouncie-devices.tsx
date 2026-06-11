@@ -48,6 +48,7 @@ import {
   Bell,
 } from "lucide-react";
 import { BouncieConnectionBanner } from "@/components/admin/BouncieConnectionBanner";
+import { TablePagination } from "@/components/ui/table-pagination";
 
 interface BouncieDevice {
   id: string;
@@ -227,6 +228,8 @@ export default function BouncieDevicesPage() {
   const [editingDevice, setEditingDevice] = useState<BouncieDevice | null>(
     null,
   );
+  const [devicesPage, setDevicesPage] = useState(1);
+  const devicesPageSize = 20;
   const [addFormData, setAddFormData] = useState<AddDeviceData>({
     imei: "",
     nickname: "",
@@ -459,6 +462,7 @@ export default function BouncieDevicesPage() {
   }
 
   const devices = devicesData?.data ?? [];
+  const pagedDevices = devices.slice((devicesPage - 1) * devicesPageSize, devicesPage * devicesPageSize);
 
   // Auto-sync mutation: registers all Bouncie vehicles that don't have a device yet
   const autoSyncMutation = useMutation({
@@ -590,7 +594,7 @@ export default function BouncieDevicesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {devices.map((device) => (
+                    {pagedDevices.map((device) => (
                       <TableRow key={device.id}>
                         <TableCell className="font-mono text-sm">
                           {device.imei}
@@ -659,6 +663,16 @@ export default function BouncieDevicesPage() {
                   </TableBody>
                 </Table>
               </div>
+            )}
+            {devices.length > devicesPageSize && (
+              <TablePagination
+                totalItems={devices.length}
+                itemsPerPage={devicesPageSize}
+                currentPage={devicesPage}
+                onPageChange={setDevicesPage}
+                onItemsPerPageChange={() => {}}
+                isLoading={isLoading}
+              />
             )}
           </CardContent>
         </Card>
