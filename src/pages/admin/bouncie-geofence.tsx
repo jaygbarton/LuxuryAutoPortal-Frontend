@@ -261,9 +261,9 @@ interface ZoneFormProps {
 function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneFormProps) {
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [centerLat, setCenterLat] = useState<number | null>(initial?.center_lat ?? null);
-  const [centerLng, setCenterLng] = useState<number | null>(initial?.center_lng ?? null);
-  const [radiusMeters, setRadiusMeters] = useState<number>(initial?.radius_meters ?? 500);
+  const [centerLat, setCenterLat] = useState<number | null>(initial?.center_lat != null ? Number(initial.center_lat) : null);
+  const [centerLng, setCenterLng] = useState<number | null>(initial?.center_lng != null ? Number(initial.center_lng) : null);
+  const [radiusMeters, setRadiusMeters] = useState<number>(initial?.radius_meters ? Number(initial.radius_meters) : 500);
   const [alertOnEntry, setAlertOnEntry] = useState<boolean>(!!(initial as any)?.alert_on_entry);
   const [alertOnExit, setAlertOnExit] = useState<boolean>(!!(initial as any)?.alert_on_exit);
 
@@ -271,9 +271,9 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
   useEffect(() => {
     setName(initial?.name ?? "");
     setDescription(initial?.description ?? "");
-    setCenterLat(initial?.center_lat ?? null);
-    setCenterLng(initial?.center_lng ?? null);
-    setRadiusMeters(initial?.radius_meters ?? 500);
+    setCenterLat(initial?.center_lat != null ? Number(initial.center_lat) : null);
+    setCenterLng(initial?.center_lng != null ? Number(initial.center_lng) : null);
+    setRadiusMeters(initial?.radius_meters ? Number(initial.radius_meters) : 500);
     setAlertOnEntry(!!(initial as any)?.alert_on_entry);
     setAlertOnExit(!!(initial as any)?.alert_on_exit);
   }, [open, initial]);
