@@ -608,8 +608,24 @@ export default function BouncieDevicesPage() {
                         </TableCell>
                         <TableCell>
                           {device.liveData ? (
-                            <div className="flex items-center text-green-600 text-sm gap-1">
-                              <Wifi className="w-4 h-4" /> Online
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center text-green-600 text-sm gap-1">
+                                <Wifi className="w-4 h-4" />
+                                <span>{device.liveData.status === "driving" ? "Driving" : "Online"}</span>
+                              </div>
+                              {device.liveData.lastSeen && (
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(device.liveData.lastSeen).toLocaleString("en-US", {
+                                    timeZone: "America/Denver",
+                                    month: "short", day: "numeric",
+                                    hour: "numeric", minute: "2-digit",
+                                  })}
+                                </span>
+                              )}
+                            </div>
+                          ) : device.isActive ? (
+                            <div className="flex items-center text-amber-500 text-sm gap-1">
+                              <WifiOff className="w-4 h-4" /> Offline
                             </div>
                           ) : (
                             <div className="flex items-center text-gray-400 text-sm gap-1">

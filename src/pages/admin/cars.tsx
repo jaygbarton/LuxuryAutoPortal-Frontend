@@ -45,7 +45,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
-import { Plus, Edit, Search, X, ExternalLink, Car as CarIcon } from "lucide-react";
+import { Plus, Edit, Search, X, ExternalLink, Car as CarIcon, Check, ChevronsUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { TableRowSkeleton } from "@/components/ui/skeletons";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -136,6 +138,9 @@ export default function CarsPage() {
   const [page, setPage] = useState(1);
   const [isLastActiveCarDialogOpen, setIsLastActiveCarDialogOpen] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<"ACTIVE" | "INACTIVE" | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [clientComboOpen, setClientComboOpen] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
 
   // Load items per page from localStorage, default to 10
   const [itemsPerPage, setItemsPerPage] = useState<ItemsPerPage>(() => {
@@ -184,6 +189,24 @@ export default function CarsPage() {
       offboardNote: "",
     },
   });
+
+  // Clients list for the "Assign Client" combobox in the Add Car modal
+  const { data: clientsData } = useQuery<{ success: boolean; data: { id: number; firstName: string; lastName: string; email: string }[] }>({
+    queryKey: ["/api/clients", "dropdown"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/clients?limit=500"), { credentials: "include" });
+      if (!res.ok) return { success: false, data: [] };
+      return res.json();
+    },
+    enabled: isAdmin,
+    staleTime: 5 * 60 * 1000,
+  });
+  const allClients = clientsData?.data ?? [];
+  const filteredClients = clientSearch
+    ? allClients.filter(c =>
+        `${c.firstName} ${c.lastName} ${c.email}`.toLowerCase().includes(clientSearch.toLowerCase())
+      )
+    : allClients;
 
   const { data: carsData, isLoading } = useQuery<{
     success: boolean;
@@ -350,6 +373,7 @@ export default function CarsPage() {
       if (data.titleType) formData.append("titleType", data.titleType);
       if (data.turoLink) formData.append("turoLink", data.turoLink);
       if (data.adminTuroLink) formData.append("adminTuroLink", data.adminTuroLink);
+      if (selectedClientId) formData.append("userId", String(selectedClientId));
 
       const response = await fetch(buildApiUrl("/api/cars"), {
         method: "POST",
@@ -370,6 +394,8 @@ export default function CarsPage() {
         description: "Car added successfully",
       });
       setIsAddModalOpen(false);
+      setSelectedClientId(null);
+      setClientSearch("");
       form.reset();
     },
     onError: (error: any) => {
@@ -1018,6 +1044,8 @@ export default function CarsPage() {
               setIsAddModalOpen(false);
               setIsEditModalOpen(false);
               setSelectedCar(null);
+              setSelectedClientId(null);
+              setClientSearch("");
               form.reset();
             }
           }}
@@ -1415,6 +1443,70 @@ export default function CarsPage() {
                   />
                 </div>
 
+                {/* Client selector — only shown when adding a new car */}
+                {!selectedCar && (
+                  <div className="space-y-1">
+                    <label className="text-sm text-muted-foreground">Assign Client (optional)</label>
+                    <Popover open={clientComboOpen} onOpenChange={setClientComboOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={clientComboOpen}
+                          className="w-full justify-between bg-card border-border text-foreground hover:bg-muted"
+                        >
+                          {selectedClientId
+                            ? (() => {
+                                const c = allClients.find(c => c.id === selectedClientId);
+                                return c ? `${c.firstName} ${c.lastName}` : "Select client...";
+                              })()
+                            : "Select client..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0 bg-card border-border" align="start">
+                        <Command>
+                          <CommandInput
+                            placeholder="Search clients..."
+                            value={clientSearch}
+                            onValueChange={setClientSearch}
+                          />
+                          <CommandList>
+                            <CommandEmpty>No clients found.</CommandEmpty>
+                            <CommandGroup>
+                              <CommandItem
+                                value="none"
+                                onSelect={() => {
+                                  setSelectedClientId(null);
+                                  setClientComboOpen(false);
+                                }}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", selectedClientId === null ? "opacity-100" : "opacity-0")} />
+                                No client
+                              </CommandItem>
+                              {filteredClients.slice(0, 50).map(c => (
+                                <CommandItem
+                                  key={c.id}
+                                  value={`${c.firstName} ${c.lastName} ${c.email}`}
+                                  onSelect={() => {
+                                    setSelectedClientId(c.id);
+                                    setClientComboOpen(false);
+                                  }}
+                                >
+                                  <Check className={cn("mr-2 h-4 w-4", selectedClientId === c.id ? "opacity-100" : "opacity-0")} />
+                                  {c.firstName} {c.lastName}
+                                  <span className="ml-2 text-xs text-muted-foreground">{c.email}</span>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+
                 <div className="flex justify-end gap-3 pt-4">
                   <Button
                     type="button"
@@ -1423,6 +1515,8 @@ export default function CarsPage() {
                       setIsAddModalOpen(false);
                       setIsEditModalOpen(false);
                       setSelectedCar(null);
+                      setSelectedClientId(null);
+                      setClientSearch("");
                       form.reset();
                     }}
                     className="text-muted-foreground hover:text-foreground"

@@ -1815,9 +1815,9 @@ export function parseImportedCSV(
       // the percentage embedded in each cell — not the calculated dollar amount.
       if (
         currentSection === 'CO HOSTING ACCESS' &&
-        (firstCell === 'CAR MANAGEMENT SPLIT' || firstCell === 'CAR OWNER SPLIT')
+        (firstCell === 'CAR MANAGEMENT SPLIT' || firstCell === 'CO-HOST SPLIT' || firstCell === 'CAR OWNER SPLIT')
       ) {
-        const field = firstCell === 'CAR MANAGEMENT SPLIT' ? 'carManagementSplit' : 'carOwnerSplit';
+        const field = (firstCell === 'CAR MANAGEMENT SPLIT' || firstCell === 'CO-HOST SPLIT') ? 'carManagementSplit' : 'carOwnerSplit';
         const splitRow: any = { category: field };
         for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
           const cell = cells[monthIdx + 1] || '';
