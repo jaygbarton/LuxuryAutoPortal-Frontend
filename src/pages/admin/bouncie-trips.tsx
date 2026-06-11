@@ -141,6 +141,11 @@ function TripRouteMap({ tripId, startLat, startLng, endLat, endLng }: {
 
       const map = mapInstanceRef.current;
 
+      // Clear all non-tile layers before drawing new route
+      map.eachLayer((layer: any) => {
+        if (!(layer instanceof L.TileLayer)) map.removeLayer(layer);
+      });
+
       // Draw route polyline
       if (locations.length >= 2) {
         const coords: [number, number][] = locations.map(p => [p.latitude, p.longitude]);
@@ -336,9 +341,12 @@ export default function BouncieTripsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-medium text-sm truncate">{vehicleName(trip)}</span>
-                          <Badge variant={trip.status === "active" ? "default" : "secondary"} className="text-xs flex-shrink-0">
-                            {trip.status}
-                          </Badge>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {trip.plate && <span className="text-xs font-mono text-muted-foreground">{trip.plate}</span>}
+                            <Badge variant={trip.status === "active" ? "default" : "secondary"} className="text-xs">
+                              {trip.status}
+                            </Badge>
+                          </div>
                         </div>
                         <div className="flex items-center gap-3 mt-1 flex-wrap">
                           <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -388,6 +396,7 @@ export default function BouncieTripsPage() {
                       <div>
                         <p className="text-muted-foreground text-xs uppercase tracking-wide">Vehicle</p>
                         <p className="font-medium mt-0.5">{vehicleName(selectedTrip)}</p>
+                        {selectedTrip.plate && <p className="text-xs text-muted-foreground font-mono">{selectedTrip.plate}</p>}
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs uppercase tracking-wide">Status</p>
