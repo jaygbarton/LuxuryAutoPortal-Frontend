@@ -246,34 +246,6 @@ export function TripTasksTab() {
     },
   });
 
-  // TEMPORARY — test the gas-not-full Slack alert. Remove once confirmed.
-  const testFuelAlertMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(
-        buildApiUrl("/api/operations/test-fuel-alert"),
-        { method: "POST", credentials: "include" },
-      );
-      const json = await response.json();
-      if (!response.ok)
-        throw new Error(json?.message || "Test fuel alert failed");
-      return json;
-    },
-    onSuccess: (json: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/operations/tasks"] });
-      toast({
-        title: "Fuel alert fired",
-        description: json?.message || "Check the Slack channel.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleClearFilters = () => {
     setFilterType("all");
     setFilterStatus("all");
@@ -293,26 +265,16 @@ export function TripTasksTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <SectionHeader title="Trip Tasks" variant="plain" className="mb-0" />
-        <div className="flex items-center gap-2">
-          {/* TEMPORARY — Slack fuel-alert test button. Remove once confirmed. */}
-          <Button
-            variant="outline"
-            onClick={() => testFuelAlertMutation.mutate()}
-            disabled={testFuelAlertMutation.isPending}
-          >
-            {testFuelAlertMutation.isPending ? "Testing…" : "Test Fuel Alert"}
-          </Button>
-          <Button
-            onClick={() => {
-              setEditingTask(null);
-              setTaskModalOpen(true);
-            }}
-            className="bg-primary text-primary-foreground hover:bg-primary/80"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Task
-          </Button>
-        </div>
+        <Button
+          onClick={() => {
+            setEditingTask(null);
+            setTaskModalOpen(true);
+          }}
+          className="bg-primary text-primary-foreground hover:bg-primary/80"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Task
+        </Button>
       </div>
 
       <div className="bg-card border border-border rounded-lg">
