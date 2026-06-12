@@ -59,13 +59,26 @@ export function RequireRole({
   const user = data?.user;
   const allowed = !!user && roles.some((role) => user[role] === true);
 
-  // Authorization is decided ONLY after a genuine /api/auth/me network
-  // response triggered by THIS mount has landed (isFetchedAfterMount). Until
-  // then `data` may be the partial optimistic login cache, whose missing
-  // isAdmin would wrongly read as "not allowed". Gating on the real fetch —
-  // not a timing debounce — closes the post-login race deterministically:
-  // there is no window in which we redirect based on pre-fetch cache.
-  if (isLoading || isFetching || !isFetchedAfterMount) return null;
+  // Does the cached data already carry server-computed role flags? The
+  // optimistic login cache (login.tsx setQueryData) has a `user` object but
+  // NO role flags, so we can't authorize from it. Once any of the role keys
+  // is present we have real data and can render without waiting on a refetch.
+  const hasRoleData =
+    !!user &&
+    ("isAdmin" in user ||
+      "isClient" in user ||
+      "isEmployee" in user ||
+      "isCoHost" in user);
+
+  // First load only: no usable role data yet AND a fetch is resolving it.
+  // Returning null here is the unavoidable initial blank. Crucially we do NOT
+  // blank during BACKGROUND refetches (window focus, 60s interval, the
+  // refetchOnMount on every navigation) once we already hold real role data —
+  // that was causing a white flicker on every page change. We keep rendering
+  // the page (or redirecting) from the cached role flags instead.
+  if (!hasRoleData && (isLoading || isFetching || !isFetchedAfterMount)) {
+    return null;
+  }
 
   if (!allowed) {
     setLocation(redirectTo);
