@@ -12,6 +12,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { buildApiUrl } from "@/lib/queryClient";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Route,
   Clock,
   MapPin,
@@ -212,6 +219,16 @@ export default function BouncieTripsPage() {
   if (endDate) queryParams.set("endDate", endDate + "T23:59:59" + mtOffset);
   queryParams.set("limit", "100");
 
+  const { data: devicesData } = useQuery<{ success: boolean; data: any[] }>({
+    queryKey: ["/api/bouncie/devices"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/bouncie/devices"), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch devices");
+      return res.json();
+    },
+  });
+  const devices = devicesData?.data ?? [];
+
   const { data, isLoading, refetch, isFetching } = useQuery<{ success: boolean; data: StoredTrip[] }>({
     queryKey: ["/api/bouncie/trips", deviceFilter, startDate, endDate],
     queryFn: async () => {
@@ -272,8 +289,20 @@ export default function BouncieTripsPage() {
                 <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full lg:w-40" />
               </div>
               <div className="col-span-full sm:col-span-2 lg:col-auto lg:flex-1 lg:min-w-48">
-                <Label className="text-xs mb-1 block">Device ID (optional)</Label>
-                <Input placeholder="Filter by device ID…" value={deviceFilter} onChange={e => setDeviceFilter(e.target.value)} className="w-full" />
+                <Label className="text-xs mb-1 block">Vehicle (optional)</Label>
+                <Select value={deviceFilter || "__all__"} onValueChange={v => setDeviceFilter(v === "__all__" ? "" : v)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All vehicles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All vehicles</SelectItem>
+                    {devices.map((d: any) => (
+                      <SelectItem key={d.id} value={String(d.id)}>
+                        {d.nickname || `IMEI ${d.imei}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <Button size="sm" onClick={() => refetch()} className="col-span-full sm:col-auto w-full lg:w-auto">Apply</Button>
             </div>
