@@ -188,9 +188,16 @@ function slideMarkerTo(
 ) {
   // Store the true destination so flyTo can use it even mid-animation
   marker._targetLatLng = { lat: newLat, lng: newLng };
+  // Supersession token: a new slide invalidates any in-flight one. Without
+  // this, SSE-driven refetches (~every 1.5-2s) started a second rAF loop
+  // before the first (1.5s) finished — both loops fought over setLatLng each
+  // frame, thrashing the marker between two paths. Visually: every moving
+  // avatar "flickered" and snapped back toward its old position.
+  const token = (marker._slideToken = (marker._slideToken ?? 0) + 1);
   const start = marker.getLatLng();
   const startTime = performance.now();
   function step(now: number) {
+    if (marker._slideToken !== token) return; // superseded by a newer slide
     const t = Math.min((now - startTime) / durationMs, 1);
     const ease = t * (2 - t);
     marker.setLatLng([

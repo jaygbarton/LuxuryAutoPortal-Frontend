@@ -103,7 +103,7 @@ export default function MyWorkScheduleSection() {
   const { data: tasksData } = useQuery<{
     data?: Array<{
       id: number;
-      task_type: "pickup" | "cleaning" | "delivery";
+      task_type: "pickup" | "cleaning" | "delivery" | "refuel";
       car_name: string | null;
       reservation_id: string | null;
       scheduled_date: string | null;
@@ -291,11 +291,15 @@ export default function MyWorkScheduleSection() {
                                     ? "border-amber-200 bg-amber-50 text-amber-800"
                                     : t.task_type === "delivery"
                                       ? "border-blue-200 bg-blue-50 text-blue-800"
-                                      : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                                      : t.task_type === "refuel"
+                                        ? "border-rose-200 bg-rose-50 text-rose-800"
+                                        : "border-emerald-200 bg-emerald-50 text-emerald-800"
                                 }`}
                               >
                                 <div className="font-semibold capitalize">
-                                  {t.task_type} · {t.time}
+                                  {t.task_type === "refuel"
+                                    ? `⛽ Refuel to full · ${t.time}`
+                                    : `${t.task_type} · ${t.time}`}
                                 </div>
                                 {t.car_name && (
                                   <div className="truncate text-gray-600">{t.car_name}</div>
