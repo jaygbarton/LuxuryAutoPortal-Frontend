@@ -82,7 +82,7 @@ const calculateDaysRented = (
 export function TripTasksTab() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [filterType, setFilterType] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("no-refuel");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const [dateFrom, setDateFrom] = useState<string>("");
@@ -102,7 +102,7 @@ export function TripTasksTab() {
     queryKey: ["/api/operations/tasks", filterType, filterStatus],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (filterType !== "all") params.append("task_type", filterType);
+      if (filterType !== "all" && filterType !== "no-refuel") params.append("task_type", filterType);
       if (filterStatus !== "all") params.append("status", filterStatus);
       const qs = params.toString();
       const response = await fetch(
@@ -135,6 +135,7 @@ export function TripTasksTab() {
       ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1
       : null;
     return tasks.filter((task) => {
+      if (filterType === "no-refuel" && task.task_type === "refuel") return false;
       if (q) {
         const trip = task.turo_trip_id != null ? tripsById.get(task.turo_trip_id) : undefined;
         // Mirror every column the user can see in the table so any visible
@@ -247,7 +248,7 @@ export function TripTasksTab() {
   });
 
   const handleClearFilters = () => {
-    setFilterType("all");
+    setFilterType("no-refuel");
     setFilterStatus("all");
     setSearch("");
     setDateFrom("");
@@ -255,7 +256,7 @@ export function TripTasksTab() {
   };
 
   const hasActiveFilters =
-    filterType !== "all" ||
+    filterType !== "no-refuel" ||
     filterStatus !== "all" ||
     search !== "" ||
     dateFrom !== "" ||
@@ -296,11 +297,12 @@ export function TripTasksTab() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground">
-                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="no-refuel">All (excl. Refuel)</SelectItem>
+                  <SelectItem value="all">All (incl. Refuel)</SelectItem>
                   <SelectItem value="cleaning">Cleaning</SelectItem>
                   <SelectItem value="delivery">Delivery</SelectItem>
                   <SelectItem value="pickup">Pickup</SelectItem>
-                  <SelectItem value="refuel">Refuel</SelectItem>
+                  <SelectItem value="refuel">Refuel Only</SelectItem>
                 </SelectContent>
               </Select>
             </div>
