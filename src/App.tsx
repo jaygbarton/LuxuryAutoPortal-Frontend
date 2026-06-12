@@ -65,6 +65,7 @@ import BouncieBehaviorPage from "@/pages/admin/bouncie-behavior";
 import BouncieGeofencePage from "@/pages/admin/bouncie-geofence";
 import BouncieAnalyticsPage from "@/pages/admin/bouncie-analytics";
 import ClientCarTrackingPage from "@/pages/client/my-car-tracking";
+import ClientGeofenceZonesPage from "@/pages/client/geofence-zones";
 
 // Wrapper component for IncomeExpensesPage to handle Wouter route props
 function IncomeExpensesPageWrapper() {
@@ -204,6 +205,9 @@ function Router() {
             </Route>
             <Route path="/client/offboarding-form">
               <RequireRole roles={["isClient"]}><ClientOffboardingFormPage /></RequireRole>
+            </Route>
+            <Route path="/client/geofence-zones">
+              <RequireRole roles={["isClient"]}><ClientGeofenceZonesPage /></RequireRole>
             </Route>
 
             {/* Admin-only routes */}

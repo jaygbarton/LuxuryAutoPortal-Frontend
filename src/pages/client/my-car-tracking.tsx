@@ -6,8 +6,9 @@ import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import {
   MapPin, Car, Clock, Gauge, Battery,
-  Search, X, Fuel, Activity, Layers, Map as MapIcon, Menu,
+  Search, X, Fuel, Activity, Layers, Map as MapIcon, Menu, Shield,
 } from "lucide-react";
+import { Link } from "wouter";
 
 /* ─── Types ──────────────────────────────────────────────────────── */
 interface VehicleEntry {
@@ -624,6 +625,19 @@ export default function ClientCarTrackingPage() {
                 );
               })
             )}
+          </div>
+
+          {/* Geofence zones link */}
+          <div className="px-3 py-3 border-t border-[#2a2a2a]">
+            <Link href="/client/geofence-zones">
+              <button className="w-full flex items-center gap-2 bg-[#282828] hover:bg-[#313131] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-left transition-colors">
+                <Shield className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-gray-100">Geofence Zones</p>
+                  <p className="text-[10px] text-gray-400">Theft detection alerts</p>
+                </div>
+              </button>
+            </Link>
           </div>
         </div>
 

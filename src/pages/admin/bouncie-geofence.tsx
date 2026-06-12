@@ -55,11 +55,14 @@ import { BouncieConnectionBanner } from "@/components/admin/BouncieConnectionBan
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+type ZoneCategory = "general" | "parking_lot" | "airport" | "client" | "restricted";
+
 interface GeofenceZone {
   id: string;
   name: string;
   description: string | null;
   type: "circle" | "polygon";
+  zone_category: ZoneCategory;
   center_lat: number | null;
   center_lng: number | null;
   radius_meters: number | null;
@@ -109,6 +112,34 @@ const RADIUS_PRESETS = [
   { label: "5 km", value: 5000 },
   { label: "10 km", value: 10000 },
 ];
+
+const ZONE_CATEGORIES: { value: ZoneCategory; label: string; emoji: string; description: string }[] = [
+  { value: "general", label: "General", emoji: "📍", description: "Generic tracking zone" },
+  { value: "parking_lot", label: "GLA Parking Lot", emoji: "🅿️", description: "Alert when a car arrives or leaves without a scheduled trip" },
+  { value: "airport", label: "Airport", emoji: "✈️", description: "Monitor pick-up and drop-off at the airport" },
+  { value: "client", label: "Client Zone", emoji: "🏠", description: "Client home or office — alert if car leaves unexpectedly (theft detection)" },
+  { value: "restricted", label: "Restricted Area", emoji: "🚫", description: "Alert if a car enters a neighborhood where rentals are not permitted" },
+];
+
+function zoneCategoryMeta(cat?: ZoneCategory | string) {
+  return ZONE_CATEGORIES.find((c) => c.value === cat) ?? ZONE_CATEGORIES[0];
+}
+
+function ZoneCategoryBadge({ category }: { category?: ZoneCategory | string }) {
+  const meta = zoneCategoryMeta(category);
+  const colorMap: Record<string, string> = {
+    general: "bg-slate-500/10 text-slate-600 border-slate-500/20",
+    parking_lot: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+    airport: "bg-sky-500/10 text-sky-600 border-sky-500/20",
+    client: "bg-purple-500/10 text-purple-600 border-purple-500/20",
+    restricted: "bg-red-500/10 text-red-600 border-red-500/20",
+  };
+  return (
+    <Badge className={`text-xs h-4 px-1.5 ${colorMap[meta.value] ?? colorMap.general}`} variant="outline">
+      {meta.emoji} {meta.label}
+    </Badge>
+  );
+}
 
 function vehicleName(event: GeofenceEvent): string {
   if (event.year && event.make) return `${event.year} ${event.make} ${event.model || ""}`.trim();
@@ -261,6 +292,7 @@ interface ZoneFormProps {
 function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneFormProps) {
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [category, setCategory] = useState<ZoneCategory>((initial?.zone_category as ZoneCategory) ?? "general");
   const [centerLat, setCenterLat] = useState<number | null>(initial?.center_lat != null ? Number(initial.center_lat) : null);
   const [centerLng, setCenterLng] = useState<number | null>(initial?.center_lng != null ? Number(initial.center_lng) : null);
   const [radiusMeters, setRadiusMeters] = useState<number>(initial?.radius_meters ? Number(initial.radius_meters) : 500);
@@ -271,6 +303,7 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
   useEffect(() => {
     setName(initial?.name ?? "");
     setDescription(initial?.description ?? "");
+    setCategory((initial?.zone_category as ZoneCategory) ?? "general");
     setCenterLat(initial?.center_lat != null ? Number(initial.center_lat) : null);
     setCenterLng(initial?.center_lng != null ? Number(initial.center_lng) : null);
     setRadiusMeters(initial?.radius_meters ? Number(initial.radius_meters) : 500);
@@ -288,6 +321,7 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
       name,
       description: description || undefined,
       type: "circle",
+      zone_category: category,
       center_lat: centerLat ?? undefined,
       center_lng: centerLng ?? undefined,
       radius_meters: radiusMeters,
@@ -318,6 +352,24 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
               />
             </div>
 
+            {/* Zone category */}
+            <div className="space-y-1.5">
+              <Label>Zone Type</Label>
+              <Select value={category} onValueChange={(v) => setCategory(v as ZoneCategory)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ZONE_CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.emoji} {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">{zoneCategoryMeta(category).description}</p>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="zone-desc">Description</Label>
               <Textarea
@@ -342,7 +394,12 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
                   />
                   <span className="text-sm">
                     <span className="font-medium">Alert on Entry</span>
-                    <span className="text-muted-foreground ml-1">— Slack + in-app when a car enters this zone</span>
+                    <span className="text-muted-foreground ml-1">
+                      {category === "parking_lot" && "— flags if no active Turo trip"}
+                      {category === "restricted" && "— flags all entries (restricted area)"}
+                      {category === "airport" && "— logs airport arrivals"}
+                      {(category === "general" || category === "client") && "— Slack + in-app when a car enters"}
+                    </span>
                   </span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer select-none">
@@ -354,7 +411,12 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
                   />
                   <span className="text-sm">
                     <span className="font-medium">Alert on Exit</span>
-                    <span className="text-muted-foreground ml-1">— Slack + in-app when a car leaves this zone</span>
+                    <span className="text-muted-foreground ml-1">
+                      {category === "parking_lot" && "— flags if no active Turo trip"}
+                      {category === "client" && "— theft detection: flags exit with no rental"}
+                      {category === "airport" && "— logs airport departures"}
+                      {(category === "general" || category === "restricted") && "— Slack + in-app when a car leaves"}
+                    </span>
                   </span>
                 </label>
               </div>
@@ -694,6 +756,7 @@ export default function BouncieGeofencePage() {
                             <Badge variant={zone.active ? "default" : "secondary"} className="text-xs h-4 px-1.5">
                               {zone.active ? "Active" : "Inactive"}
                             </Badge>
+                            <ZoneCategoryBadge category={zone.zone_category} />
                             {zone.alert_on_entry && (
                               <Badge className="text-xs h-4 px-1.5 bg-amber-500/15 text-amber-600 border-amber-500/30" variant="outline">
                                 📍 Entry Alert
@@ -702,6 +765,11 @@ export default function BouncieGeofencePage() {
                             {zone.alert_on_exit && (
                               <Badge className="text-xs h-4 px-1.5 bg-blue-500/15 text-blue-600 border-blue-500/30" variant="outline">
                                 🚗 Exit Alert
+                              </Badge>
+                            )}
+                            {zone.created_by_client_id && (
+                              <Badge className="text-xs h-4 px-1.5 bg-purple-500/10 text-purple-600 border-purple-500/20" variant="outline">
+                                Client
                               </Badge>
                             )}
                           </div>

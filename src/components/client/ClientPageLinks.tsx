@@ -28,6 +28,7 @@ import {
   History,
   Map,
   PlusCircle,
+  Shield,
   Star,
   TrendingDown,
   TrendingUp,
@@ -100,8 +101,9 @@ export function ClientPageLinks() {
   //   Row 2: Schedule a Zoom Call | License Registration or Insurance Updates | Turo Guide | (blank)
   //   Row 3: List Another Car  | Refer Somebody | Client Testimonials
   const supportLinks = [
-    { href: "/admin/car-block-off",   icon: CalendarOff,  label: "Car Block Off Form" },
-    { href: "/client/offboarding-form", icon: ClipboardList, label: "Off-boarding Form" },
+    { href: "/admin/car-block-off",      icon: CalendarOff,  label: "Car Block Off Form" },
+    { href: "/client/offboarding-form",  icon: ClipboardList, label: "Off-boarding Form" },
+    { href: "/client/geofence-zones",    icon: Shield,       label: "Geofence Zones" },
     { href: "https://rent.goldenluxuryauto.com/start-block", icon: Car, label: "Book Your Car", external: true },
     { href: "/tutorial",             icon: BookOpen,      label: "Training Manual" },
     { href: "/admin/news-media",     icon: Globe,         label: "News & Media" },
