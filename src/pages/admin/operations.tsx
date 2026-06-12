@@ -9,6 +9,7 @@ import { CarInspectionsTab } from "./operations/CarInspectionsTab";
 import { MaintenanceTab } from "./operations/MaintenanceTab";
 import { NoCarIssuesTab } from "./operations/NoCarIssuesTab";
 import { CarBlockOffTab } from "./operations/CarBlockOffTab";
+import { DayScheduleTab } from "./operations/DayScheduleTab";
 
 export default function OperationsPage() {
   return (
@@ -21,9 +22,12 @@ export default function OperationsPage() {
           </p>
         </div>
 
-        <Tabs defaultValue="trips">
+        <Tabs defaultValue="day-schedule">
           <div className="-mx-2 sm:mx-0 mb-6 overflow-x-auto">
             <TabsList className="bg-muted border border-border h-auto gap-1 p-1 inline-flex w-max min-w-full sm:w-auto sm:min-w-0 sm:flex-wrap">
+              <TabsTrigger value="day-schedule" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
+                Day Schedule
+              </TabsTrigger>
               <TabsTrigger value="trips" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 Trips Overview
               </TabsTrigger>
@@ -48,6 +52,9 @@ export default function OperationsPage() {
             </TabsList>
           </div>
 
+          <TabsContent value="day-schedule">
+            <DayScheduleTab />
+          </TabsContent>
           <TabsContent value="trips">
             <TripsOverviewTab />
           </TabsContent>
