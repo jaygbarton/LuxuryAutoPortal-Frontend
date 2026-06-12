@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ArrowLeft, Plus, Trash2, Edit, FileText, X, Calendar } from "lucide-react";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -128,10 +128,7 @@ export default function PaymentsPage() {
   // Fetch user data to check role
   const { data: userData } = useQuery<{ user?: any }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const response = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-      return response.json();
-    },
+    queryFn: authMeQueryFn,
     staleTime: 5 * 60 * 1000,
   });
   const user = userData?.user;

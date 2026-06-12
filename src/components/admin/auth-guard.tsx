@@ -16,21 +16,19 @@ export function AuthGuard({ children }: AuthGuardProps) {
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
       const { buildApiUrl } = await import("@/lib/queryClient");
-      try {
-        const response = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-        if (!response.ok) {
-          // 401 is expected when not authenticated - don't log as error
-          if (response.status === 401) {
-            return { user: undefined };
-          }
-          // For other errors, still return undefined but don't throw
-          return { user: undefined };
-        }
-        return response.json();
-      } catch (error) {
-        // Silently handle network errors
+      const response = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
+      // Only a real 401 means "logged out". Any other failure (502 during a
+      // deploy, Render cold start, network blip) must THROW so React Query
+      // keeps the previous successful data — otherwise a transient backend
+      // hiccup wipes data.user and AuthGuard bounces the user to /admin/login
+      // (seen as a white flash + unexpected "refresh").
+      if (response.status === 401) {
         return { user: undefined };
       }
+      if (!response.ok) {
+        throw new Error(`auth/me failed: ${response.status}`);
+      }
+      return response.json();
     },
     retry: false,
     // Keep the "fresh" window short so a server-side session invalidation

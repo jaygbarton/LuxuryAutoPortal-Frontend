@@ -34,7 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, buildApiUrl } from "@/lib/queryClient";
+import { apiRequest, authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SwitchableRolesSection } from "@/components/admin/SwitchableRolesSection";
 import { cn } from "@/lib/utils";
@@ -181,17 +181,7 @@ export default function AdminsPage() {
   // Current session admin — used to prevent self-deletion from the UI.
   const { data: currentSession } = useQuery<{ user?: { id?: number } }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      try {
-        const response = await fetch(buildApiUrl("/api/auth/me"), {
-          credentials: "include",
-        });
-        if (!response.ok) return { user: undefined };
-        return response.json();
-      } catch {
-        return { user: undefined };
-      }
-    },
+    queryFn: authMeQueryFn,
     retry: false,
     staleTime: 5 * 60 * 1000,
   });

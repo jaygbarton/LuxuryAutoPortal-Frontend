@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { CalendarOff, Car, Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   AlertDialog,
@@ -219,11 +219,7 @@ export default function CarBlockOffPage() {
   // Pre-fill owner name from session
   const { data: meData } = useQuery<{ user?: { firstName?: string; lastName?: string; isAdmin?: boolean } }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-      if (!res.ok) return null as any;
-      return res.json();
-    },
+    queryFn: authMeQueryFn,
     retry: false,
   });
 

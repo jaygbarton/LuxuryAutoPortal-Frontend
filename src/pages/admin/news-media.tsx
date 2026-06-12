@@ -39,7 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
@@ -103,13 +103,7 @@ export default function NewsMediaPage() {
 
   const { data: meData } = useQuery({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), {
-        credentials: "include",
-      });
-      if (!res.ok) return null;
-      return res.json();
-    },
+    queryFn: authMeQueryFn,
     staleTime: 1000 * 60 * 5,
   });
   const isClient = Boolean(meData?.user?.isClient) && !meData?.user?.isAdmin;

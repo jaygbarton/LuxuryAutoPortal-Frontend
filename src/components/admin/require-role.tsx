@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn } from "@/lib/queryClient";
 
 interface AuthMe {
   user?: {
@@ -37,13 +37,7 @@ export function RequireRole({
   const { data, isLoading, isFetching, isFetchedAfterMount } =
     useQuery<AuthMe>({
       queryKey: ["/api/auth/me"],
-      queryFn: async () => {
-        const res = await fetch(buildApiUrl("/api/auth/me"), {
-          credentials: "include",
-        });
-        if (!res.ok) return { user: undefined };
-        return res.json();
-      },
+      queryFn: authMeQueryFn,
       retry: false,
       staleTime: 1000 * 30,
       // Force a fresh fetch on every mount, ignoring staleTime. Without this,

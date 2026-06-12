@@ -12,7 +12,7 @@ import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 import AdminDashboard from "@/pages/admin/dashboard";
 import ClientDashboardPage from "@/pages/client/dashboard";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn } from "@/lib/queryClient";
 
 interface AuthMe {
   user?: {
@@ -41,11 +41,7 @@ export default function DashboardRouter() {
 
   const { data, isLoading } = useQuery<AuthMe>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-      if (!res.ok) return { user: undefined };
-      return res.json();
-    },
+    queryFn: authMeQueryFn,
     retry: false,
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,

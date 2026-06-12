@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { VideoPlayer } from "@/components/ui/video-player";
 
 // Tutorial module interface
@@ -293,18 +293,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   // with AdminLayout / AuthGuard instead of firing a separate request.
   const { data: userData } = useQuery<{ user?: { isAdmin?: boolean; isClient?: boolean; isEmployee?: boolean } }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      if (isAuthPage) return { user: undefined };
-      try {
-        const response = await fetch(buildApiUrl("/api/auth/me"), {
-          credentials: "include",
-        });
-        if (!response.ok) return { user: undefined };
-        return response.json();
-      } catch {
-        return { user: undefined };
-      }
-    },
+    queryFn: authMeQueryFn,
     retry: false,
     staleTime: 5 * 60 * 1000,
     enabled: !isAuthPage,

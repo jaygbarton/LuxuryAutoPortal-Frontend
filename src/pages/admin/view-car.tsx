@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ArrowLeft, ChevronRight, ChevronLeft, ExternalLink, Pencil, X, Check, ChevronDown } from "lucide-react";
-import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { useState, useRef, useEffect } from "react";
@@ -68,15 +68,7 @@ export default function ViewCarPage() {
   // Get user data to check role
   const { data: userData } = useQuery<{ user?: any }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      try {
-        const response = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-        if (!response.ok) return { user: undefined };
-        return response.json();
-      } catch (error) {
-        return { user: undefined };
-      }
-    },
+    queryFn: authMeQueryFn,
     retry: false,
   });
 

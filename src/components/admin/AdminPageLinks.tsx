@@ -15,7 +15,7 @@
  * stays compact. The "Accounting" section (2 links) spans a single column.
  */
 import { useQuery } from "@tanstack/react-query";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn } from "@/lib/queryClient";
 import {
   Anchor,
   Bell,
@@ -45,13 +45,7 @@ export function AdminPageLinks() {
     user?: { isAdmin?: boolean; isClient?: boolean; isEmployee?: boolean };
   }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), {
-        credentials: "include",
-      });
-      if (!res.ok) return null as any;
-      return res.json();
-    },
+    queryFn: authMeQueryFn,
     retry: false,
   });
 

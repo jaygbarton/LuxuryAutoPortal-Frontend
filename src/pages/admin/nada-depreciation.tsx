@@ -22,7 +22,7 @@ import {
   FileText,
   Upload,
 } from "lucide-react";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import {
   LineChart,
@@ -83,15 +83,7 @@ export default function NADADepreciationPage() {
   // Get user data to check role
   const { data: userData } = useQuery<{ user?: any }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      try {
-        const response = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-        if (!response.ok) return { user: undefined };
-        return response.json();
-      } catch (error) {
-        return { user: undefined };
-      }
-    },
+    queryFn: authMeQueryFn,
     retry: false,
   });
 

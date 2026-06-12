@@ -3,7 +3,7 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Car, Users, DollarSign, MapPin, Mail, Phone } from "lucide-react";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 
 interface CoHostCar {
   id: number;
@@ -92,11 +92,7 @@ function CarTable({ cars }: { cars: CoHostCar[] }) {
 export default function MyCoHostCarsPage() {
   const { data: meData } = useQuery<{ user?: any }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-      if (!res.ok) return { user: undefined };
-      return res.json();
-    },
+    queryFn: authMeQueryFn,
     staleTime: 5 * 60 * 1000,
   });
 

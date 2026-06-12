@@ -5,7 +5,7 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { ArrowLeft, ExternalLink } from "lucide-react";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { GraphsChartsReportSection } from "@/pages/admin/components/GraphsChartsReportSection";
 
@@ -16,11 +16,7 @@ export default function GraphsChartsPage() {
 
   const { data: authData } = useQuery<{ user?: { isClient?: boolean } }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-      if (!res.ok) return { user: undefined };
-      return res.json();
-    },
+    queryFn: authMeQueryFn,
     retry: false,
   });
   const isClient = authData?.user?.isClient === true;

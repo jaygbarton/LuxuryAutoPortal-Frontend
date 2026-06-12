@@ -344,6 +344,29 @@ export const getQueryFn = <T,>({ on401: unauthorizedBehavior }: {
     };
 
 /**
+ * Shared queryFn for the ["/api/auth/me"] query key.
+ *
+ * Every component that reads the current user MUST use this (not a local
+ * copy) because they all share one cache entry. The critical rule: only a
+ * real 401 may produce { user: undefined }. Any other failure — a 502 while
+ * the backend redeploys, a Render cold start, a network blip — must THROW so
+ * React Query keeps the previous successful data. A local queryFn that
+ * swallows errors into { user: undefined } poisons the shared cache and
+ * AuthGuard redirects the user to /admin/login (seen as a white flash /
+ * surprise "refresh" mid-session).
+ */
+export async function authMeQueryFn(): Promise<{ user?: any }> {
+  const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
+  if (res.status === 401) {
+    return { user: undefined };
+  }
+  if (!res.ok) {
+    throw new Error(`auth/me failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+/**
  * Retry failed queries only for transient network errors (e.g. ERR_NETWORK_CHANGED).
  * Do not retry on 4xx/5xx or other application errors.
  */

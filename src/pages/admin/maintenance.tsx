@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, ExternalLink, Plus, Search, Folder } from "lucide-react";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 
 const formatCurrency = (value: number): string => {
@@ -29,15 +29,7 @@ export default function MaintenancePage() {
   // Get user data to check role
   const { data: userData } = useQuery<{ user?: any }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      try {
-        const response = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-        if (!response.ok) return { user: undefined };
-        return response.json();
-      } catch (error) {
-        return { user: undefined };
-      }
-    },
+    queryFn: authMeQueryFn,
     retry: false,
   });
 

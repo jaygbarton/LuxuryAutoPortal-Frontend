@@ -33,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
@@ -524,13 +524,7 @@ export default function AdminHrTaskManagement() {
     user?: { firstName?: string; lastName?: string; email?: string };
   }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), {
-        credentials: "include",
-      });
-      if (!res.ok) return { user: undefined };
-      return res.json();
-    },
+    queryFn: authMeQueryFn,
     retry: false,
     staleTime: 1000 * 60 * 5,
   });

@@ -12,7 +12,7 @@
  * overlaps surrounding content.
  */
 import { useQuery } from "@tanstack/react-query";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import {
   BarChart3,
   BookOpen,
@@ -42,13 +42,7 @@ import { SupportCenter } from "@/pages/client/_components/SupportCenter";
 export function ClientPageLinks() {
   const { data: meData } = useQuery<{ user?: { isClient?: boolean } }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), {
-        credentials: "include",
-      });
-      if (!res.ok) return null as any;
-      return res.json();
-    },
+    queryFn: authMeQueryFn,
     retry: false,
   });
 

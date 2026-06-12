@@ -592,23 +592,20 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
       const { buildApiUrl } = await import("@/lib/queryClient");
-      try {
-        const response = await fetch(buildApiUrl("/api/auth/me"), {
-          credentials: "include",
-        });
-        if (!response.ok) {
-          // 401 is expected when not authenticated - don't log as error
-          if (response.status === 401) {
-            return { user: undefined };
-          }
-          // For other errors, still return undefined but don't throw
-          return { user: undefined };
-        }
-        return response.json();
-      } catch (error) {
-        // Silently handle network errors - AuthGuard will handle redirect
+      const response = await fetch(buildApiUrl("/api/auth/me"), {
+        credentials: "include",
+      });
+      // Same queryKey as AuthGuard — they share one cache entry. Only a real
+      // 401 may produce {user: undefined}; transient errors (502 on deploy,
+      // network blip) must throw so the cached user survives and AuthGuard
+      // doesn't redirect to login over a hiccup.
+      if (response.status === 401) {
         return { user: undefined };
       }
+      if (!response.ok) {
+        throw new Error(`auth/me failed: ${response.status}`);
+      }
+      return response.json();
     },
     retry: false,
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes to prevent unnecessary refetches

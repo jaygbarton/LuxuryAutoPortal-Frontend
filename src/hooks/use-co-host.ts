@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 
 /**
  * Returns the list of car IDs assigned to the active co-host.
@@ -30,11 +30,7 @@ export function useCoHostCarIds(): number[] | null {
 export function useCoHost() {
   const { data } = useQuery<{ user?: any }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-      if (!res.ok) return { user: undefined };
-      return res.json();
-    },
+    queryFn: authMeQueryFn,
     staleTime: 5 * 60 * 1000,
   });
 

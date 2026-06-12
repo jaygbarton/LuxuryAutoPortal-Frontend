@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, buildApiUrl } from "@/lib/queryClient";
+import { queryClient, buildApiUrl, authMeQueryFn } from "@/lib/queryClient";
 import { ArrowLeft, Home } from "lucide-react";
 
 export default function AdminLogin() {
@@ -17,11 +17,7 @@ export default function AdminLogin() {
   // Check if user is already logged in — redirect to dashboard
   const { data: authData } = useQuery<{ user?: any }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-      if (!res.ok) return { user: undefined };
-      return res.json();
-    },
+    queryFn: authMeQueryFn,
     retry: false,
     staleTime: 1000 * 60 * 5,
   });

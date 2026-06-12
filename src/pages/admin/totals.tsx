@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ArrowLeft, ExternalLink, Download, ChevronDown, ChevronRight, ChevronLeft, Loader2, CalendarIcon } from "lucide-react";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { cn } from "@/lib/utils";
 
@@ -293,11 +293,7 @@ export default function TotalsPage() {
 
   const { data: authData } = useQuery<{ user?: { isClient?: boolean } }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-      if (!res.ok) return { user: undefined };
-      return res.json();
-    },
+    queryFn: authMeQueryFn,
     retry: false,
   });
   const isClient = authData?.user?.isClient === true;

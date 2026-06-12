@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Menu, X, Car, Phone, FileText, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn } from "@/lib/queryClient";
 
 const navLinks = [
   { href: "/", label: "Home", icon: Home },
@@ -19,11 +19,7 @@ export function Navbar() {
   // Check if user is already logged in
   const { data: authData } = useQuery<{ user?: any }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-      if (!res.ok) return { user: undefined };
-      return res.json();
-    },
+    queryFn: authMeQueryFn,
     retry: false,
     staleTime: 1000 * 60 * 5,
   });

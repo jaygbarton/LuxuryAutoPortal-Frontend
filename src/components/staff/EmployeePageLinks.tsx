@@ -9,7 +9,7 @@
  * never see a duplicate block alongside AdminPageLinks.
  */
 import { useQuery } from "@tanstack/react-query";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn } from "@/lib/queryClient";
 import {
   Anchor,
   BookOpen,
@@ -29,13 +29,7 @@ export function EmployeePageLinks() {
     user?: { isEmployee?: boolean; isAdmin?: boolean };
   }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), {
-        credentials: "include",
-      });
-      if (!res.ok) return null as any;
-      return res.json();
-    },
+    queryFn: authMeQueryFn,
     retry: false,
   });
 

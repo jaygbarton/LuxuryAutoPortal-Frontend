@@ -19,7 +19,7 @@ import { ArrowLeft, ExternalLink, Plus, Search, Edit, Trash2, List, ChevronLeft,
 import { RecordFilesLogModal } from "@/components/modals/RecordFilesLogModal";
 import { RecordFileViewModal } from "@/components/modals/RecordFileViewModal";
 import { FileViewerModal } from "@/components/modals/FileViewerModal";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { cn } from "@/lib/utils";
 
@@ -166,10 +166,7 @@ export default function ViewRecordFilesPage() {
   // Fetch user data
   const { data: userData } = useQuery<{ user?: any }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const response = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-      return response.json();
-    },
+    queryFn: authMeQueryFn,
     staleTime: 5 * 60 * 1000,
   });
   const user = userData?.user;

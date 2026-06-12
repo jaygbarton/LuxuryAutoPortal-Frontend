@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Eye, LogOut, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface AuthMe {
@@ -59,13 +59,7 @@ export function ViewAsClientBanner() {
 
   const { data } = useQuery<AuthMe>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/auth/me"), {
-        credentials: "include",
-      });
-      if (!res.ok) return { user: undefined };
-      return res.json();
-    },
+    queryFn: authMeQueryFn,
     retry: false,
     staleTime: 5 * 60 * 1000,
   });

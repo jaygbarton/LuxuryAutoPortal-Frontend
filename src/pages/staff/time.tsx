@@ -44,7 +44,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 
 const UTAH_TZ = "America/Denver";
 
@@ -295,11 +295,7 @@ export default function StaffTime() {
   // "Unauthorized - Authentication required" 401 banner from the API.
   const meQuery = useQuery<{ user?: { isAdmin?: boolean; isClient?: boolean; isEmployee?: boolean } }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      const r = await fetch(buildApiUrl("/api/auth/me"), { credentials: "include" });
-      if (!r.ok) return { user: undefined };
-      return r.json();
-    },
+    queryFn: authMeQueryFn,
     retry: false,
     staleTime: 5 * 60 * 1000,
   });

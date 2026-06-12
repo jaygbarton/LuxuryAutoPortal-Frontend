@@ -5,7 +5,7 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { NewsMediaSlot } from "@/pages/client/_components/NewsMediaSlot";
 import { OnboardingTutorial, useTutorial } from "@/components/onboarding/OnboardingTutorial";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 
 // Dashboard section components
 import IncomeExpensesSection from "@/components/admin/dashboard/IncomeExpensesSection";
@@ -126,20 +126,7 @@ export default function AdminDashboard() {
     };
   }>({
     queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      try {
-        const response = await fetch(buildApiUrl("/api/auth/me"), {
-          credentials: "include",
-        });
-        if (!response.ok) {
-          if (response.status === 401) return { user: undefined };
-          return { user: undefined };
-        }
-        return response.json();
-      } catch {
-        return { user: undefined };
-      }
-    },
+    queryFn: authMeQueryFn,
     retry: false,
     staleTime: 5 * 60 * 1000,
   });
