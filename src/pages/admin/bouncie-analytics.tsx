@@ -104,6 +104,8 @@ function formatMiles(miles: any): string {
 }
 
 // Simple bar chart using div widths
+const CHART_HEIGHT_PX = 112; // matches h-28
+
 function MiniBarChart({ data }: { data: DailyMile[] }) {
   const recentDays = data.slice(-14).filter(d => n(d.miles) > 0);
   if (!recentDays.length) return <p className="text-sm text-muted-foreground text-center py-4">No trip data for this period</p>;
@@ -112,22 +114,22 @@ function MiniBarChart({ data }: { data: DailyMile[] }) {
 
   return (
     <div className="space-y-2">
-      {/* Y-axis max label */}
-      <div className="flex justify-end text-xs text-muted-foreground pr-1">
-        {formatMiles(maxMiles)} mi
+      <div className="flex justify-between text-xs text-muted-foreground px-1">
+        <span>{formatMiles(maxMiles)} mi peak</span>
+        <span>{recentDays.length} days</span>
       </div>
-      <div className="flex items-end gap-1 h-28">
+      {/* Use explicit px heights — % heights require a defined parent height in flex */}
+      <div className="flex items-end gap-0.5" style={{ height: CHART_HEIGHT_PX }}>
         {recentDays.map((d) => {
-          const pct = Math.max((n(d.miles) / maxMiles) * 100, 8); // min 8% so bars are always visible
+          const barH = Math.max(Math.round((n(d.miles) / maxMiles) * CHART_HEIGHT_PX), 6);
           const label = new Date(d.day).toLocaleDateString("en-US", { month: "short", day: "numeric" });
           return (
-            <div key={d.day} className="flex-1 flex flex-col items-center gap-1 group relative">
-              <div
-                className="w-full bg-primary/80 rounded-t-sm hover:bg-primary transition-colors cursor-pointer"
-                style={{ height: `${pct}%` }}
-                title={`${label}: ${n(d.miles).toFixed(1)} mi, ${d.trips} trips`}
-              />
-            </div>
+            <div
+              key={d.day}
+              className="flex-1 bg-primary/80 rounded-t-sm hover:bg-primary transition-colors cursor-pointer"
+              style={{ height: barH }}
+              title={`${label}: ${n(d.miles).toFixed(1)} mi, ${d.trips} trips`}
+            />
           );
         })}
       </div>
