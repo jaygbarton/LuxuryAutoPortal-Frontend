@@ -287,12 +287,14 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
           </div>
 
           <div className="rounded-lg overflow-hidden border" style={{ height: 320 }}>
-            <MiniMap
-              zones={zones.filter((z) => z.active && (!initial || z.id !== initial.id))}
-              onClickMap={(lat, lng) => { setCenterLat(lat); setCenterLng(lng); }}
-              pendingCircle={centerLat !== null && centerLng !== null ? { lat: centerLat, lng: centerLng, radiusMeters } : null}
-              height="280px"
-            />
+            {open && (
+              <MiniMap
+                zones={zones.filter((z) => z.active && (!initial || z.id !== initial.id))}
+                onClickMap={(lat, lng) => { setCenterLat(lat); setCenterLng(lng); }}
+                pendingCircle={centerLat !== null && centerLng !== null ? { lat: centerLat, lng: centerLng, radiusMeters } : null}
+                height="280px"
+              />
+            )}
           </div>
         </div>
 

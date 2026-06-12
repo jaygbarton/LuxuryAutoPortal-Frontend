@@ -484,18 +484,20 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
             )}
           </div>
 
-          {/* Right: mini map */}
+          {/* Right: mini map — only mount when dialog is open to avoid double Leaflet init */}
           <div className="rounded-lg overflow-hidden border" style={{ height: 320 }}>
-            <ZoneMap
-              zones={zones.filter((z) => z.active && (!initial || z.id !== initial.id))}
-              onClickMap={handleMapClick}
-              pendingCircle={
-                centerLat !== null && centerLng !== null
-                  ? { lat: centerLat, lng: centerLng, radiusMeters }
-                  : null
-              }
-              height="280px"
-            />
+            {open && (
+              <ZoneMap
+                zones={zones.filter((z) => z.active && (!initial || z.id !== initial.id))}
+                onClickMap={handleMapClick}
+                pendingCircle={
+                  centerLat !== null && centerLng !== null
+                    ? { lat: centerLat, lng: centerLng, radiusMeters }
+                    : null
+                }
+                height="280px"
+              />
+            )}
           </div>
         </div>
 
