@@ -86,6 +86,7 @@ function MiniMap({ zones, onClickMap, pendingCircle, height = "300px" }: MiniMap
   const circleLayersRef = useRef<any[]>([]);
   const pendingLayerRef = useRef<any>(null);
   const roRef = useRef<ResizeObserver | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   const onClickMapRef = useRef(onClickMap);
   onClickMapRef.current = onClickMap;
 
@@ -119,6 +120,8 @@ function MiniMap({ zones, onClickMap, pendingCircle, height = "300px" }: MiniMap
       map.on("click", (e: any) => {
         onClickMapRef.current?.(e.latlng.lat, e.latlng.lng);
       });
+
+      setMapReady(true);
     });
 
     return () => {
@@ -130,6 +133,7 @@ function MiniMap({ zones, onClickMap, pendingCircle, height = "300px" }: MiniMap
   }, []);
 
   // Effect 2: update circles/layers when data changes — never destroys the map.
+  // mapReady in deps ensures this re-runs once after async Leaflet init completes.
   useEffect(() => {
     const L = leafletRef.current;
     const map = mapInstanceRef.current;
@@ -174,7 +178,7 @@ function MiniMap({ zones, onClickMap, pendingCircle, height = "300px" }: MiniMap
       map.setView([pendingCircle.lat, pendingCircle.lng], 14);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zones, pendingCircle]);
+  }, [zones, pendingCircle, mapReady]);
 
   return <div ref={mapRef} style={{ height, width: "100%", borderRadius: "8px", zIndex: 0 }} />;
 }

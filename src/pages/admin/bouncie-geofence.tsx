@@ -180,6 +180,7 @@ function ZoneMap({ zones, onClickMap, pendingCircle, height = "400px" }: ZoneMap
   const circleLayersRef = useRef<any[]>([]);
   const pendingLayerRef = useRef<any>(null);
   const roRef = useRef<ResizeObserver | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   // Keep latest callback in a ref so the map click listener never goes stale
   const onClickMapRef = useRef(onClickMap);
   onClickMapRef.current = onClickMap;
@@ -214,6 +215,9 @@ function ZoneMap({ zones, onClickMap, pendingCircle, height = "400px" }: ZoneMap
       map.on("click", (e: any) => {
         onClickMapRef.current?.(e.latlng.lat, e.latlng.lng);
       });
+
+      // Signal Effect 2 that the map is ready to draw on
+      setMapReady(true);
     });
 
     return () => {
@@ -228,6 +232,7 @@ function ZoneMap({ zones, onClickMap, pendingCircle, height = "400px" }: ZoneMap
   }, []);
 
   // Effect 2: update circles/layers whenever data changes — never destroys the map.
+  // mapReady in deps ensures this re-runs once after async Leaflet init completes.
   useEffect(() => {
     const L = leafletRef.current;
     const map = mapInstanceRef.current;
@@ -279,7 +284,7 @@ function ZoneMap({ zones, onClickMap, pendingCircle, height = "400px" }: ZoneMap
       map.setView([pendingCircle.lat, pendingCircle.lng], 14);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zones, pendingCircle]);
+  }, [zones, pendingCircle, mapReady]);
 
   return <div ref={mapRef} style={{ height, width: "100%", borderRadius: "8px", zIndex: 0 }} />;
 }
