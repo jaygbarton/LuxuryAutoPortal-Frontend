@@ -105,27 +105,35 @@ function formatMiles(miles: any): string {
 
 // Simple bar chart using div widths
 function MiniBarChart({ data }: { data: DailyMile[] }) {
-  if (!data.length) return <p className="text-sm text-muted-foreground text-center py-4">No data</p>;
+  const recentDays = data.slice(-14).filter(d => n(d.miles) > 0);
+  if (!recentDays.length) return <p className="text-sm text-muted-foreground text-center py-4">No trip data for this period</p>;
 
-  const maxMiles = Math.max(...data.map(d => n(d.miles)), 1);
-  const recentDays = data.slice(-14); // Show last 14 days
+  const maxMiles = Math.max(...recentDays.map(d => n(d.miles)));
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
+      {/* Y-axis max label */}
+      <div className="flex justify-end text-xs text-muted-foreground pr-1">
+        {formatMiles(maxMiles)} mi
+      </div>
       <div className="flex items-end gap-1 h-28">
-        {recentDays.map((d) => (
-          <div key={d.day} className="flex-1 flex flex-col items-center gap-1 group relative">
-            <div
-              className="w-full bg-primary/80 rounded-t-sm hover:bg-primary transition-colors cursor-pointer"
-              style={{ height: `${(n(d.miles) / maxMiles) * 100}%`, minHeight: "2px" }}
-              title={`${new Date(d.day).toLocaleDateString("en-US", { month: "short", day: "numeric" })}: ${n(d.miles).toFixed(1)} mi, ${d.trips} trips`}
-            />
-          </div>
-        ))}
+        {recentDays.map((d) => {
+          const pct = Math.max((n(d.miles) / maxMiles) * 100, 8); // min 8% so bars are always visible
+          const label = new Date(d.day).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          return (
+            <div key={d.day} className="flex-1 flex flex-col items-center gap-1 group relative">
+              <div
+                className="w-full bg-primary/80 rounded-t-sm hover:bg-primary transition-colors cursor-pointer"
+                style={{ height: `${pct}%` }}
+                title={`${label}: ${n(d.miles).toFixed(1)} mi, ${d.trips} trips`}
+              />
+            </div>
+          );
+        })}
       </div>
       <div className="flex justify-between text-xs text-muted-foreground">
-        <span>{recentDays[0] ? new Date(recentDays[0].day).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}</span>
-        <span>{recentDays[recentDays.length - 1] ? new Date(recentDays[recentDays.length - 1].day).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}</span>
+        <span>{new Date(recentDays[0].day).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+        <span>{new Date(recentDays[recentDays.length - 1].day).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
       </div>
     </div>
   );
