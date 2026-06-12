@@ -104,7 +104,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [isLoading, isFetching, isError, data, setLocation, hasAuthenticated, initialLoadComplete]);
 
-  if (isLoading || isChecking) {
+  // Only block rendering on the very first load (no cached data yet).
+  // Background refetches (window focus, 60s interval, remounts) set isFetching
+  // but not isLoading — we must NOT show a spinner for those or the page flashes
+  // white every time the user switches tabs or a route change triggers a remount.
+  if (isLoading && !hasAuthenticated) {
     return (
       <div className="min-h-screen bg-card flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
