@@ -24,6 +24,8 @@ import {
   TrendingUp,
   MapPin,
   Activity,
+  AlertTriangle,
+  Zap,
 } from "lucide-react";
 import { Link } from "wouter";
 import { BouncieConnectionBanner } from "@/components/admin/BouncieConnectionBanner";
@@ -380,6 +382,46 @@ export default function BouncieAnalyticsPage() {
             </Card>
           </div>
         </div>
+
+        {/* Driving Events */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-primary" />
+              Driving Events Breakdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-6 gap-2 text-muted-foreground">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              </div>
+            ) : !analytics?.eventCounts?.length ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No driving events recorded in this period</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                {analytics.eventCounts.map((e, i) => {
+                  const severityColor =
+                    e.severity === "high" ? "text-red-500" :
+                    e.severity === "medium" ? "text-amber-500" :
+                    "text-muted-foreground";
+                  return (
+                    <div key={i} className="flex flex-col gap-1 p-3 rounded-lg bg-muted/40 border border-border/50">
+                      <div className="flex items-center gap-1.5">
+                        <Zap className={`w-3.5 h-3.5 flex-shrink-0 ${severityColor}`} />
+                        <span className={`text-xs font-medium capitalize truncate ${severityColor}`}>{e.severity}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground capitalize truncate">
+                        {e.event_type.replace(/_/g, " ")}
+                      </p>
+                      <p className="text-xl font-bold">{n(e.cnt)}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
       <AdminPageLinks />
     </AdminLayout>
