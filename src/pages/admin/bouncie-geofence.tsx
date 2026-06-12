@@ -176,14 +176,21 @@ interface ZoneMapProps {
 function ZoneMap({ zones, onClickMap, pendingCircle, height = "400px" }: ZoneMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const leafletRef = useRef<any>(null);
   const circleLayersRef = useRef<any[]>([]);
   const pendingLayerRef = useRef<any>(null);
   const roRef = useRef<ResizeObserver | null>(null);
+  // Keep latest callback in a ref so the map click listener never goes stale
+  const onClickMapRef = useRef(onClickMap);
+  onClickMapRef.current = onClickMap;
 
+  // Effect 1: initialize the map once, tear it down only on unmount.
   useEffect(() => {
     if (!mapRef.current) return;
 
     import("leaflet").then((L) => {
+      if (mapInstanceRef.current) return; // already initialised
+
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -191,77 +198,22 @@ function ZoneMap({ zones, onClickMap, pendingCircle, height = "400px" }: ZoneMap
         shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
 
-      if (!mapInstanceRef.current) {
-        const map = L.map(mapRef.current!, { zoomControl: true }).setView([40.7608, -111.8910], 11);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-          maxZoom: 19,
-        }).addTo(map);
-        mapInstanceRef.current = map;
+      leafletRef.current = L;
+      const map = L.map(mapRef.current!, { zoomControl: true }).setView([40.7608, -111.8910], 11);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19,
+      }).addTo(map);
+      mapInstanceRef.current = map;
 
-        // ResizeObserver fires each time the container resizes (Dialog animation).
-        // Stored in a ref so the cleanup can disconnect it before map.remove().
-        roRef.current = new ResizeObserver(() => {
-          if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
-        });
-        roRef.current.observe(mapRef.current!);
-
-        if (onClickMap) {
-          map.on("click", (e: any) => {
-            onClickMap(e.latlng.lat, e.latlng.lng);
-          });
-        }
-      }
-
-      const map = mapInstanceRef.current;
-
-      // Remove old zone circles
-      circleLayersRef.current.forEach((l) => map.removeLayer(l));
-      circleLayersRef.current = [];
-
-      // Draw active zones
-      const activeCounts: [number, number][] = [];
-      zones.filter((z) => z.active).forEach((zone) => {
-        if (zone.type === "circle" && zone.center_lat && zone.center_lng && zone.radius_meters) {
-          const circle = L.circle([zone.center_lat, zone.center_lng], {
-            radius: zone.radius_meters,
-            color: "#3b82f6",
-            fillColor: "#3b82f6",
-            fillOpacity: 0.12,
-            weight: 2,
-          })
-            .addTo(map)
-            .bindPopup(`<b>${zone.name}</b><br/>${metersToFeet(zone.radius_meters)} radius`);
-          circleLayersRef.current.push(circle);
-          activeCounts.push([zone.center_lat, zone.center_lng]);
-        }
+      roRef.current = new ResizeObserver(() => {
+        if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
       });
+      roRef.current.observe(mapRef.current!);
 
-      // Fit to zones if any
-      if (activeCounts.length > 0 && !pendingCircle) {
-        try {
-          const group = L.featureGroup(circleLayersRef.current);
-          map.fitBounds(group.getBounds().pad(0.2), { maxZoom: 14 });
-        } catch (_) {}
-      }
-
-      // Draw pending circle (while user is placing a new zone)
-      if (pendingLayerRef.current) {
-        map.removeLayer(pendingLayerRef.current);
-        pendingLayerRef.current = null;
-      }
-      if (pendingCircle) {
-        const pending = L.circle([pendingCircle.lat, pendingCircle.lng], {
-          radius: pendingCircle.radiusMeters,
-          color: "#f59e0b",
-          fillColor: "#f59e0b",
-          fillOpacity: 0.18,
-          weight: 2,
-          dashArray: "6 4",
-        }).addTo(map);
-        pendingLayerRef.current = pending;
-        map.setView([pendingCircle.lat, pendingCircle.lng], 14);
-      }
+      map.on("click", (e: any) => {
+        onClickMapRef.current?.(e.latlng.lat, e.latlng.lng);
+      });
     });
 
     return () => {
@@ -272,7 +224,61 @@ function ZoneMap({ zones, onClickMap, pendingCircle, height = "400px" }: ZoneMap
         mapInstanceRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Effect 2: update circles/layers whenever data changes — never destroys the map.
+  useEffect(() => {
+    const L = leafletRef.current;
+    const map = mapInstanceRef.current;
+    if (!L || !map) return;
+
+    // Redraw saved zones
+    circleLayersRef.current.forEach((l) => map.removeLayer(l));
+    circleLayersRef.current = [];
+
+    const activeLayers: any[] = [];
+    zones.filter((z) => z.active).forEach((zone) => {
+      if (zone.type === "circle" && zone.center_lat && zone.center_lng && zone.radius_meters) {
+        const circle = L.circle([zone.center_lat, zone.center_lng], {
+          radius: zone.radius_meters,
+          color: "#3b82f6",
+          fillColor: "#3b82f6",
+          fillOpacity: 0.12,
+          weight: 2,
+        })
+          .addTo(map)
+          .bindPopup(`<b>${zone.name}</b><br/>${metersToFeet(zone.radius_meters)} radius`);
+        circleLayersRef.current.push(circle);
+        activeLayers.push(circle);
+      }
+    });
+
+    if (activeLayers.length > 0 && !pendingCircle) {
+      try {
+        const group = L.featureGroup(activeLayers);
+        map.fitBounds(group.getBounds().pad(0.2), { maxZoom: 14 });
+      } catch (_) {}
+    }
+
+    // Redraw pending circle
+    if (pendingLayerRef.current) {
+      map.removeLayer(pendingLayerRef.current);
+      pendingLayerRef.current = null;
+    }
+    if (pendingCircle) {
+      const pending = L.circle([pendingCircle.lat, pendingCircle.lng], {
+        radius: pendingCircle.radiusMeters,
+        color: "#f59e0b",
+        fillColor: "#f59e0b",
+        fillOpacity: 0.18,
+        weight: 2,
+        dashArray: "6 4",
+      }).addTo(map);
+      pendingLayerRef.current = pending;
+      map.setView([pendingCircle.lat, pendingCircle.lng], 14);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zones, pendingCircle]);
 
   return <div ref={mapRef} style={{ height, width: "100%", borderRadius: "8px", zIndex: 0 }} />;
