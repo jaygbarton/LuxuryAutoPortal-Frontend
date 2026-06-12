@@ -202,30 +202,6 @@ function slideMarkerTo(
   requestAnimationFrame(step);
 }
 
-// Dead reckoning: nudge a driving marker 1s forward based on speed+heading
-// so the map feels live between 10s GPS polls.
-// heading: degrees clockwise from north (0=N, 90=E, 180=S, 270=W)
-function startDeadReckoning(marker: any, speedMph: number, heading: number) {
-  stopDeadReckoning(marker);
-  const METERS_PER_DEGREE_LAT = 111_320;
-  const headingRad = (heading * Math.PI) / 180;
-  const metersPerSec = speedMph * 0.44704; // mph → m/s
-  marker._drInterval = window.setInterval(() => {
-    const pos = marker.getLatLng();
-    const metersPerDegreeLon = METERS_PER_DEGREE_LAT * Math.cos((pos.lat * Math.PI) / 180);
-    const dLat = (Math.cos(headingRad) * metersPerSec) / METERS_PER_DEGREE_LAT;
-    const dLon = (Math.sin(headingRad) * metersPerSec) / metersPerDegreeLon;
-    marker.setLatLng([pos.lat + dLat, pos.lng + dLon]);
-  }, 1000);
-}
-
-function stopDeadReckoning(marker: any) {
-  if (marker._drInterval != null) {
-    clearInterval(marker._drInterval);
-    marker._drInterval = null;
-  }
-}
-
 function buildIcon(L: any, v: VehicleEntry, selected: boolean) {
   const si = getStatusInfo(v.displayStatus);
   const ring = selected ? "3px solid #f59e0b" : "2.5px solid white";
@@ -551,7 +527,6 @@ function FleetMap({
 
     return () => {
       if (mapInst.current) {
-        Object.values(markerMap.current).forEach(stopDeadReckoning);
         mapInst.current.remove();
         mapInst.current = null;
         markerMap.current = {};
@@ -606,22 +581,26 @@ function FleetMap({
       const speed = Number(v.speed ?? 0);
       const heading = v.heading ?? null;
       const isDriving = v.displayStatus === "driving" && speed > 0;
-      const stateKey = `${v.displayStatus}|${v.car_photo_url || ""}|${speed.toFixed(0)}`;
+      // Icon depends only on status/photo/selection — NOT speed. Including speed
+      // here rebuilt the icon DOM every poll (speed always drifts a little for a
+      // moving car), which made every avatar flash in sync. Speed lives in the
+      // label, which is updated separately via setTooltipContent below.
+      const stateKey = `${v.displayStatus}|${v.car_photo_url || ""}`;
 
       if (markerMap.current[v.device_id]) {
         const m = markerMap.current[v.device_id];
         existing.delete(v.device_id);
 
-        // Real GPS arrived — stop dead reckoning, slide to true position
-        stopDeadReckoning(m);
+        // Smoothly slide from the current position to the new real GPS position.
+        // We rely entirely on real fixes (Bouncie breadcrumbs are 7-25s fresh) —
+        // no dead reckoning. Dead reckoning extrapolated along a heading that
+        // jumped wildly poll-to-poll (e.g. 282°→91°), so the marker drifted the
+        // wrong way and then snapped back when the real fix arrived.
         const old = m._targetLatLng ?? m.getLatLng();
         const moved =
           Math.abs(old.lat - lat) > 0.00001 ||
           Math.abs(old.lng - lng) > 0.00001;
         if (moved) slideMarkerTo(m, lat, lng, isDriving ? 1500 : 400);
-
-        // Restart dead reckoning if driving and heading is known
-        if (isDriving && heading != null) startDeadReckoning(m, speed, heading);
 
         if (prevStateRef.current[v.device_id] !== stateKey) {
           m.setIcon(buildIcon(L, v, false));
@@ -639,14 +618,13 @@ function FleetMap({
             className: "bouncie-label",
           })
           .on("click", () => onSelectRef.current(v));
+        marker._targetLatLng = { lat, lng };
         markerMap.current[v.device_id] = marker;
         prevStateRef.current[v.device_id] = stateKey;
-        if (isDriving && heading != null) startDeadReckoning(marker, speed, heading);
       }
     });
 
     existing.forEach((id) => {
-      stopDeadReckoning(markerMap.current[id]);
       map.removeLayer(markerMap.current[id]);
       delete markerMap.current[id];
       delete prevStateRef.current[id];
