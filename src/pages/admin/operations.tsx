@@ -22,12 +22,9 @@ export default function OperationsPage() {
           </p>
         </div>
 
-        <Tabs defaultValue="day-schedule">
+        <Tabs defaultValue="trips">
           <div className="-mx-2 sm:mx-0 mb-6 overflow-x-auto">
             <TabsList className="bg-muted border border-border h-auto gap-1 p-1 inline-flex w-max min-w-full sm:w-auto sm:min-w-0 sm:flex-wrap">
-              <TabsTrigger value="day-schedule" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                Day Schedule
-              </TabsTrigger>
               <TabsTrigger value="trips" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 Trips Overview
               </TabsTrigger>
@@ -49,12 +46,12 @@ export default function OperationsPage() {
               <TabsTrigger value="car-block-off" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 Car Block Off
               </TabsTrigger>
+              <TabsTrigger value="day-schedule" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
+                Day Schedule
+              </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="day-schedule">
-            <DayScheduleTab />
-          </TabsContent>
           <TabsContent value="trips">
             <TripsOverviewTab />
           </TabsContent>
@@ -75,6 +72,9 @@ export default function OperationsPage() {
           </TabsContent>
           <TabsContent value="completed">
             <NoCarIssuesTab />
+          </TabsContent>
+          <TabsContent value="day-schedule">
+            <DayScheduleTab />
           </TabsContent>
         </Tabs>
       </div>
