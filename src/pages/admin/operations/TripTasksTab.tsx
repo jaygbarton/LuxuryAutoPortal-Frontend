@@ -123,6 +123,7 @@ export function TripTasksTab() {
       if (!response.ok) throw new Error("Failed to fetch trips");
       return response.json();
     },
+    staleTime: 2 * 60 * 1000,
   });
 
   const tasks = data?.data || [];

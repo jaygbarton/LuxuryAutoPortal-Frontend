@@ -396,6 +396,7 @@ export function TripsOverviewTab() {
       if (!response.ok) throw new Error("Failed to fetch tasks");
       return response.json();
     },
+    staleTime: 2 * 60 * 1000,
   });
 
   // `pageTrips` is the current page from the server. `total` is the count of

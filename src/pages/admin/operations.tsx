@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
@@ -11,7 +12,40 @@ import { NoCarIssuesTab } from "./operations/NoCarIssuesTab";
 import { CarBlockOffTab } from "./operations/CarBlockOffTab";
 import { DayScheduleTab } from "./operations/DayScheduleTab";
 
+const TAB_IDS = ["trips", "tasks", "turo-inspection", "inspections", "maintenance", "completed", "car-block-off", "day-schedule"] as const;
+type TabId = typeof TAB_IDS[number];
+
+// Renders a tab's content only after it has been activated for the first time,
+// then keeps it mounted (hidden) so state and cache are preserved on re-visit.
+function LazyTab({ value, activeTab, mountedTabs, children }: {
+  value: TabId;
+  activeTab: TabId;
+  mountedTabs: Set<TabId>;
+  children: React.ReactNode;
+}) {
+  if (!mountedTabs.has(value)) return null;
+  return (
+    <TabsContent value={value} className={value !== activeTab ? "hidden" : ""} forceMount>
+      {children}
+    </TabsContent>
+  );
+}
+
 export default function OperationsPage() {
+  const [activeTab, setActiveTab] = useState<TabId>("trips");
+  const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(new Set(["trips"]));
+
+  const handleTabChange = (value: string) => {
+    const tab = value as TabId;
+    setActiveTab(tab);
+    setMountedTabs(prev => {
+      if (prev.has(tab)) return prev;
+      const next = new Set(prev);
+      next.add(tab);
+      return next;
+    });
+  };
+
   return (
     <AdminLayout>
       <div className="flex flex-col">
@@ -22,7 +56,7 @@ export default function OperationsPage() {
           </p>
         </div>
 
-        <Tabs defaultValue="trips">
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <div className="-mx-2 sm:mx-0 mb-6 overflow-x-auto">
             <TabsList className="bg-muted border border-border h-auto gap-1 p-1 inline-flex w-max min-w-full sm:w-auto sm:min-w-0 sm:flex-wrap">
               <TabsTrigger value="trips" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
@@ -52,30 +86,30 @@ export default function OperationsPage() {
             </TabsList>
           </div>
 
-          <TabsContent value="trips">
+          <LazyTab value="trips" activeTab={activeTab} mountedTabs={mountedTabs}>
             <TripsOverviewTab />
-          </TabsContent>
-          <TabsContent value="tasks">
+          </LazyTab>
+          <LazyTab value="tasks" activeTab={activeTab} mountedTabs={mountedTabs}>
             <TripTasksTab />
-          </TabsContent>
-          <TabsContent value="turo-inspection">
+          </LazyTab>
+          <LazyTab value="turo-inspection" activeTab={activeTab} mountedTabs={mountedTabs}>
             <TuroInspectionTab />
-          </TabsContent>
-          <TabsContent value="inspections">
+          </LazyTab>
+          <LazyTab value="inspections" activeTab={activeTab} mountedTabs={mountedTabs}>
             <CarInspectionsTab />
-          </TabsContent>
-          <TabsContent value="car-block-off">
-            <CarBlockOffTab />
-          </TabsContent>
-          <TabsContent value="maintenance">
+          </LazyTab>
+          <LazyTab value="maintenance" activeTab={activeTab} mountedTabs={mountedTabs}>
             <MaintenanceTab />
-          </TabsContent>
-          <TabsContent value="completed">
+          </LazyTab>
+          <LazyTab value="completed" activeTab={activeTab} mountedTabs={mountedTabs}>
             <NoCarIssuesTab />
-          </TabsContent>
-          <TabsContent value="day-schedule">
+          </LazyTab>
+          <LazyTab value="car-block-off" activeTab={activeTab} mountedTabs={mountedTabs}>
+            <CarBlockOffTab />
+          </LazyTab>
+          <LazyTab value="day-schedule" activeTab={activeTab} mountedTabs={mountedTabs}>
             <DayScheduleTab />
-          </TabsContent>
+          </LazyTab>
         </Tabs>
       </div>
       <ClientPageLinks />

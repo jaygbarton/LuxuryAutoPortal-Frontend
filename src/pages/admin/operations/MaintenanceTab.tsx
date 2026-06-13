@@ -159,6 +159,7 @@ export function MaintenanceTab({
       if (!response.ok) throw new Error("Failed to fetch inspections");
       return response.json();
     },
+    staleTime: 2 * 60 * 1000,
   });
 
   const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
@@ -170,6 +171,7 @@ export function MaintenanceTab({
       if (!response.ok) throw new Error("Failed to fetch trips");
       return response.json();
     },
+    staleTime: 2 * 60 * 1000,
   });
 
   const inspectionsById = new Map((inspectionsData?.data || []).map((i) => [i.id, i]));

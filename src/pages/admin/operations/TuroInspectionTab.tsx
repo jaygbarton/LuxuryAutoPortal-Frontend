@@ -267,6 +267,7 @@ export function TuroInspectionTab() {
       if (!res.ok) throw new Error("Failed to fetch maintenance");
       return res.json();
     },
+    staleTime: 2 * 60 * 1000,
   });
   const maintenanceInspectionIds = new Set(
     (maintenanceData?.data ?? []).map(m => m.inspection_id).filter((id): id is number => id != null)
