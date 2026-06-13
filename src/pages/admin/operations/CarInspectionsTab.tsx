@@ -13,7 +13,7 @@ import { StatusBadge } from "./StatusBadge";
 import { InspectionModal } from "./InspectionModal";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit, Trash2, ArrowRight, Wrench, History, CheckCircle2, RotateCcw } from "lucide-react";
+import { Plus, Edit, Trash2, Wrench, History, CheckCircle2, RotateCcw } from "lucide-react";
 import type { Inspection, MaintenanceRecord, TuroTrip } from "./types";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
@@ -626,7 +626,7 @@ export function CarInspectionsTab() {
                                 className="text-muted-foreground hover:text-blue-400 h-8 px-2"
                                 title="Move to Maintenance"
                               >
-                                <ArrowRight className="w-3.5 h-3.5" />
+                                <Wrench className="w-3.5 h-3.5" />
                               </Button>
                             )}
                             {!movedToMaint && insp.status !== "no_issues" && (
