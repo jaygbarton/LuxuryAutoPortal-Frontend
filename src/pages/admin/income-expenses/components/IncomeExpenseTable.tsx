@@ -2144,7 +2144,7 @@ export default function IncomeExpenseTable({
                   isCoHostActive(i + 1) ? roundToPhp2Dp(calculateCoHostSplit(i + 1)) : 0,
                 )}
                 percentageValues={MONTHS.map((_, i) =>
-                  isCoHostActive(i + 1) ? getCoHostPercent(i + 1) : 0,
+                  getCoHostPercent(i + 1),
                 )}
                 category="income"
                 field="coHostSplit"
@@ -2165,7 +2165,7 @@ export default function IncomeExpenseTable({
                   isCoHostActive(i + 1) ? roundToPhp2Dp(calculateGlaSplit(i + 1)) : 0,
                 )}
                 percentageValues={MONTHS.map((_, i) =>
-                  isCoHostActive(i + 1) ? getGlaSplitPercent(i + 1) : 0,
+                  getGlaSplitPercent(i + 1),
                 )}
                 category="income"
                 field="glaSplit"
