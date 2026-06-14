@@ -156,15 +156,17 @@ export default function ModalEditReimbursedBills() {
             <Label className="text-muted-foreground text-xs">Manual Amount</Label>
             <Input
               type="number"
-              value={editingCell.value}
+              value={editingCell.value === 0 ? "" : editingCell.value}
               onChange={(e) =>
                 setEditingCell({
                   ...editingCell,
-                  value: parseFloat(e.target.value) || 0,
+                  value: e.target.value === "" ? 0 : parseFloat(e.target.value) || 0,
                 })
               }
+              onFocus={(e) => e.target.select()}
               className="bg-card border-border text-foreground text-sm mt-1"
               step="0.01"
+              placeholder="0"
               autoFocus
             />
             <p className="text-[11px] text-muted-foreground mt-1">

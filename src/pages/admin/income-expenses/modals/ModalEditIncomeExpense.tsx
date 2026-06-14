@@ -333,13 +333,15 @@ export default function ModalEditIncomeExpense() {
             </Label>
             <Input
               type="number"
-              value={editingCell.value}
+              value={editingCell.value === 0 ? "" : editingCell.value}
               onChange={(e) =>
                 setEditingCell({
                   ...editingCell,
-                  value: parseFloat(e.target.value) || 0,
+                  value: e.target.value === "" ? 0 : parseFloat(e.target.value) || 0,
                 })
               }
+              onFocus={(e) => e.target.select()}
+              placeholder="0"
               className="bg-card border-border text-foreground text-sm mt-1"
               step={isPercentField ? "1" : "0.01"}
               min={isPercentField ? "0" : undefined}

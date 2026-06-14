@@ -573,14 +573,17 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="income">{CATEGORY_LABELS.income}</SelectItem>
-                <SelectItem value="directDelivery">
-                  {CATEGORY_LABELS.directDelivery}
-                </SelectItem>
-                <SelectItem value="cogs">{CATEGORY_LABELS.cogs}</SelectItem>
-                <SelectItem value="reimbursedBills">
-                  {CATEGORY_LABELS.reimbursedBills}
-                </SelectItem>
+                {/* Only offer categories the server actually returned options
+                    for. Admins get all four; employees get the restricted set
+                    (income omitted), so the dropdown never shows a category
+                    that would have an empty Expense Type list. */}
+                {(["income", "directDelivery", "cogs", "reimbursedBills"] as const)
+                  .filter((cat) => (categoryFields[cat]?.length ?? 0) > 0)
+                  .map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {CATEGORY_LABELS[cat]}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
