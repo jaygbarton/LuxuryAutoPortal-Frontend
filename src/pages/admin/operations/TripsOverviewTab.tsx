@@ -223,8 +223,12 @@ export function TripsOverviewTab() {
     Record<number, { start?: string; end?: string }>
   >({});
   const [milesEdits, setMilesEdits] = useState<Record<number, string>>({});
+  const [gasEdits, setGasEdits] = useState<
+    Record<number, { start?: string; end?: string }>
+  >({});
   const [savingOdoRow, setSavingOdoRow] = useState<number | null>(null);
   const [savingMilesRow, setSavingMilesRow] = useState<number | null>(null);
+  const [savingGasRow, setSavingGasRow] = useState<number | null>(null);
 
   const saveRowOdometers = async (trip: TuroTrip) => {
     const edit = odoEdits[trip.id];
@@ -306,6 +310,40 @@ export function TripsOverviewTab() {
       });
     } finally {
       setSavingMilesRow(null);
+    }
+  };
+
+  const saveRowGasLevels = async (trip: TuroTrip) => {
+    const edit = gasEdits[trip.id];
+    if (!edit) return;
+    const startVal = edit.start !== undefined ? edit.start : (trip.gasLevelTripStart ?? "");
+    const endVal = edit.end !== undefined ? edit.end : (trip.gasLevelTripEnd ?? "");
+    setSavingGasRow(trip.id);
+    try {
+      const res = await fetch(
+        buildApiUrl(`/api/turo-trips/${trip.id}/gas-levels`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            gasLevelTripStart: startVal || null,
+            gasLevelTripEnd: endVal || null,
+          }),
+        },
+      );
+      if (!res.ok) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      setGasEdits((prev) => {
+        const next = { ...prev };
+        delete next[trip.id];
+        return next;
+      });
+      toast({ title: "Gas levels saved", description: `Reservation #${trip.reservationId}` });
+    } catch {
+      toast({ title: "Failed to save gas levels", variant: "destructive" });
+    } finally {
+      setSavingGasRow(null);
     }
   };
 
@@ -644,6 +682,12 @@ export function TripsOverviewTab() {
                     Trip Ends Odometer
                   </TableHead>
                   <TableHead className="text-foreground font-medium whitespace-nowrap">
+                    Gas Level Trip Start
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">
+                    Gas Level Trip End
+                  </TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">
                     Total Miles
                   </TableHead>
                   <TableHead className="text-foreground font-medium whitespace-nowrap">
@@ -664,7 +708,7 @@ export function TripsOverviewTab() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={17}
+                      colSpan={19}
                       className="text-center py-12 text-muted-foreground"
                     >
                       Loading trips...
@@ -673,7 +717,7 @@ export function TripsOverviewTab() {
                 ) : pagedTrips.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={17}
+                      colSpan={19}
                       className="text-center py-12 text-muted-foreground"
                     >
                       No trips found
@@ -853,6 +897,95 @@ export function TripsOverviewTab() {
                                     disabled={savingOdoRow === trip.id}
                                   >
                                     {savingOdoRow === trip.id ? "…" : "Save"}
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
+                        {/* Gas Level Trip Start */}
+                        <TableCell className="text-foreground text-sm whitespace-nowrap">
+                          {(() => {
+                            const edit = gasEdits[trip.id];
+                            const startVal = edit?.start !== undefined ? edit.start : (trip.gasLevelTripStart ?? "");
+                            const endVal = edit?.end !== undefined ? edit.end : (trip.gasLevelTripEnd ?? "");
+                            const dirty = edit !== undefined;
+                            return (
+                              <div className="flex items-center gap-1">
+                                <Select
+                                  value={startVal || "__none__"}
+                                  onValueChange={(v) =>
+                                    setGasEdits((prev) => ({
+                                      ...prev,
+                                      [trip.id]: { ...prev[trip.id], start: v === "__none__" ? "" : v },
+                                    }))
+                                  }
+                                >
+                                  <SelectTrigger className="h-7 w-[110px] text-xs">
+                                    <SelectValue placeholder="--" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">--</SelectItem>
+                                    <SelectItem value="empty">Empty</SelectItem>
+                                    <SelectItem value="quarter">1/4</SelectItem>
+                                    <SelectItem value="half">1/2</SelectItem>
+                                    <SelectItem value="three_quarters">3/4</SelectItem>
+                                    <SelectItem value="full">Full</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                {dirty && (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    className="h-7 px-2"
+                                    onClick={() => saveRowGasLevels(trip)}
+                                    disabled={savingGasRow === trip.id}
+                                  >
+                                    {savingGasRow === trip.id ? "…" : "Save"}
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
+                        {/* Gas Level Trip End */}
+                        <TableCell className="text-foreground text-sm whitespace-nowrap">
+                          {(() => {
+                            const edit = gasEdits[trip.id];
+                            const endVal = edit?.end !== undefined ? edit.end : (trip.gasLevelTripEnd ?? "");
+                            const dirty = edit !== undefined;
+                            return (
+                              <div className="flex items-center gap-1">
+                                <Select
+                                  value={endVal || "__none__"}
+                                  onValueChange={(v) =>
+                                    setGasEdits((prev) => ({
+                                      ...prev,
+                                      [trip.id]: { ...prev[trip.id], end: v === "__none__" ? "" : v },
+                                    }))
+                                  }
+                                >
+                                  <SelectTrigger className="h-7 w-[110px] text-xs">
+                                    <SelectValue placeholder="--" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">--</SelectItem>
+                                    <SelectItem value="empty">Empty</SelectItem>
+                                    <SelectItem value="quarter">1/4</SelectItem>
+                                    <SelectItem value="half">1/2</SelectItem>
+                                    <SelectItem value="three_quarters">3/4</SelectItem>
+                                    <SelectItem value="full">Full</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                {dirty && (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    className="h-7 px-2"
+                                    onClick={() => saveRowGasLevels(trip)}
+                                    disabled={savingGasRow === trip.id}
+                                  >
+                                    {savingGasRow === trip.id ? "…" : "Save"}
                                   </Button>
                                 )}
                               </div>

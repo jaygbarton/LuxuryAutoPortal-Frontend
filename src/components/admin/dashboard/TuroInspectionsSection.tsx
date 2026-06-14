@@ -39,6 +39,8 @@ interface Inspection {
   total_miles?: number | string | null;
   earnings?: number | string | null;
   trip_status?: string | null;
+  gas_level_trip_start?: string | null;
+  gas_level_trip_end?: string | null;
   fuel_returned?: string | null;
   car_issue_types?: unknown;
   created_at: string;
@@ -89,6 +91,18 @@ function fmtDays(v: unknown): string {
   const n = Number(v);
   if (!isFinite(n) || n < 0) return "—";
   return String(n);
+}
+
+const GAS_LABELS: Record<string, string> = {
+  empty: "Empty",
+  quarter: "1/4",
+  half: "1/2",
+  three_quarters: "3/4",
+  full: "Full",
+};
+function fmtGasLevel(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  return GAS_LABELS[String(v)] ?? String(v);
 }
 
 function fmtDateTime(v: unknown): string {
@@ -142,6 +156,8 @@ const HEADERS = [
   "Total Miles",
   "Earnings",
   "Trip Status",
+  "Gas Level Trip Start",
+  "Gas Level Trip End",
   "Assigned To",
   "Fuel Returned",
   "Car Issues Type",
@@ -291,6 +307,8 @@ export default function TuroInspectionsSection() {
                     <td className="px-3 py-2 text-center text-black">{fmtNum(insp.total_miles)}</td>
                     <td className="px-3 py-2 text-center text-black">{fmtMoney(insp.earnings)}</td>
                     <td className="px-3 py-2 text-center text-black">{asStr(insp.trip_status)}</td>
+                    <td className="px-3 py-2 text-center text-black">{fmtGasLevel(insp.gas_level_trip_start)}</td>
+                    <td className="px-3 py-2 text-center text-black">{fmtGasLevel(insp.gas_level_trip_end)}</td>
                     <td className="px-3 py-2 text-center text-black">{asStr(insp.assigned_to)}</td>
                     <td className="px-3 py-2 text-center text-black">
                       <FuelReturnedCell level={(insp.fuel_returned as any) ?? null} />

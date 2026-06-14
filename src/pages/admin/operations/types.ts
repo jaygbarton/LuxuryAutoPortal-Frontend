@@ -24,6 +24,8 @@ export interface TuroTrip {
   milesDriven: string | null;
   tripStartOdometer: number | null;
   tripEndOdometer: number | null;
+  gasLevelTripStart: string | null;
+  gasLevelTripEnd: string | null;
   emailSubject: string | null;
   emailReceivedAt: string | null;
   cancellationReason: string | null;
