@@ -139,6 +139,12 @@ export default function TuroTripsPage() {
   // Inline plate # editing: tripId → string
   const [plateEdits, setPlateEdits] = useState<Record<number, string>>({});
   const [savingPlate, setSavingPlate] = useState<number | null>(null);
+  // Inline CAR Name / VIN # editing (for Turo vehicle-swap trips where the
+  // reservation # stays the same but the car changes). tripId → string.
+  const [carNameEdits, setCarNameEdits] = useState<Record<number, string>>({});
+  const [savingCarName, setSavingCarName] = useState<number | null>(null);
+  const [vinEdits, setVinEdits] = useState<Record<number, string>>({});
+  const [savingVin, setSavingVin] = useState<number | null>(null);
   // Inline location editing: tripId → { pickup, dropoff, miles }
   const [locationEdits, setLocationEdits] = useState<
     Record<number, { pickup: string; dropoff: string; miles: string }>
@@ -717,6 +723,76 @@ export default function TuroTripsPage() {
       toast({ title: "Failed to save plate #", variant: "destructive" });
     } finally {
       setSavingPlate(null);
+    }
+  };
+
+  // Save CAR Name for a trip (inline edit). Needed for Turo vehicle-swap
+  // reservations where the reservation # is reused but the car changes, so the
+  // car name must be entered manually to match the new Turo listing.
+  const saveCarName = async (trip: TuroTrip) => {
+    const edited = carNameEdits[trip.id];
+    if (edited === undefined) return;
+    const trimmed = edited.trim();
+    setSavingCarName(trip.id);
+    try {
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/${trip.id}/car-info`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ carName: trimmed === "" ? null : trimmed }),
+        },
+      );
+      if (!response.ok) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      setCarNameEdits((prev) => {
+        const next = { ...prev };
+        delete next[trip.id];
+        return next;
+      });
+      toast({
+        title: "CAR Name saved",
+        description: `Reservation #${trip.reservationId}`,
+      });
+    } catch {
+      toast({ title: "Failed to save CAR Name", variant: "destructive" });
+    } finally {
+      setSavingCarName(null);
+    }
+  };
+
+  // Save VIN # for a trip (inline edit). Same swap use-case as saveCarName.
+  const saveVin = async (trip: TuroTrip) => {
+    const edited = vinEdits[trip.id];
+    if (edited === undefined) return;
+    const trimmed = edited.trim();
+    setSavingVin(trip.id);
+    try {
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/${trip.id}/car-info`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vinNumber: trimmed === "" ? null : trimmed }),
+        },
+      );
+      if (!response.ok) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      setVinEdits((prev) => {
+        const next = { ...prev };
+        delete next[trip.id];
+        return next;
+      });
+      toast({
+        title: "VIN # saved",
+        description: `Reservation #${trip.reservationId}`,
+      });
+    } catch {
+      toast({ title: "Failed to save VIN #", variant: "destructive" });
+    } finally {
+      setSavingVin(null);
     }
   };
 
@@ -1441,20 +1517,63 @@ export default function TuroTripsPage() {
                               horizontally. Unpinned on mobile (see Reservation
                               # comment above). */}
                           <TableCell
-                            className="md:sticky md:left-[140px] md:z-10 bg-background group-hover:bg-muted/50 cursor-pointer w-[200px] min-w-[200px] border-r"
-                            onClick={() => setSelectedTrip(trip)}
+                            className="md:sticky md:left-[140px] md:z-10 bg-background group-hover:bg-muted/50 w-[200px] min-w-[200px] border-r"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="text-sm whitespace-nowrap">
-                              {(() => {
-                                const display = carNameWithYear(
-                                  trip.carName,
-                                  trip.plateNumber,
-                                );
-                                return debouncedSearchQuery
-                                  ? highlightText(display, debouncedSearchQuery)
-                                  : display;
-                              })()}
-                            </div>
+                            {(() => {
+                              const editing =
+                                carNameEdits[trip.id] !== undefined;
+                              const current = trip.carName ?? "";
+                              const inputValue = editing
+                                ? carNameEdits[trip.id]
+                                : current;
+                              return (
+                                <div className="flex items-center gap-1">
+                                  <Input
+                                    value={inputValue}
+                                    placeholder="Car name"
+                                    title="Enter the car name exactly as it appears on the Turo listing"
+                                    className="h-8 w-[170px] text-sm"
+                                    onChange={(e) =>
+                                      setCarNameEdits((prev) => ({
+                                        ...prev,
+                                        [trip.id]: e.target.value,
+                                      }))
+                                    }
+                                    onBlur={() => {
+                                      if (carNameEdits[trip.id] === undefined)
+                                        return;
+                                      if (
+                                        carNameEdits[trip.id].trim() ===
+                                        current.trim()
+                                      ) {
+                                        setCarNameEdits((prev) => {
+                                          const next = { ...prev };
+                                          delete next[trip.id];
+                                          return next;
+                                        });
+                                        return;
+                                      }
+                                      saveCarName(trip);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter")
+                                        (e.target as HTMLInputElement).blur();
+                                      if (e.key === "Escape") {
+                                        setCarNameEdits((prev) => {
+                                          const next = { ...prev };
+                                          delete next[trip.id];
+                                          return next;
+                                        });
+                                      }
+                                    }}
+                                  />
+                                  {savingCarName === trip.id && (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
 
                           {/* Plate # — inline editable. Turo doesn't expose
@@ -1536,9 +1655,59 @@ export default function TuroTripsPage() {
                             })()}
                           </TableCell>
 
-                          {/* VIN # */}
-                          <TableCell className="text-sm whitespace-nowrap font-mono" onClick={() => setSelectedTrip(trip)}>
-                            {trip.vinNumber || "-"}
+                          {/* VIN # — inline editable for vehicle-swap trips. */}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            {(() => {
+                              const editing = vinEdits[trip.id] !== undefined;
+                              const current = trip.vinNumber ?? "";
+                              const inputValue = editing
+                                ? vinEdits[trip.id]
+                                : current;
+                              return (
+                                <div className="flex items-center gap-1">
+                                  <Input
+                                    value={inputValue}
+                                    placeholder="-"
+                                    className="h-8 w-40 text-sm font-mono"
+                                    onChange={(e) =>
+                                      setVinEdits((prev) => ({
+                                        ...prev,
+                                        [trip.id]: e.target.value,
+                                      }))
+                                    }
+                                    onBlur={() => {
+                                      if (vinEdits[trip.id] === undefined) return;
+                                      if (
+                                        vinEdits[trip.id].trim() ===
+                                        current.trim()
+                                      ) {
+                                        setVinEdits((prev) => {
+                                          const next = { ...prev };
+                                          delete next[trip.id];
+                                          return next;
+                                        });
+                                        return;
+                                      }
+                                      saveVin(trip);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter")
+                                        (e.target as HTMLInputElement).blur();
+                                      if (e.key === "Escape") {
+                                        setVinEdits((prev) => {
+                                          const next = { ...prev };
+                                          delete next[trip.id];
+                                          return next;
+                                        });
+                                      }
+                                    }}
+                                  />
+                                  {savingVin === trip.id && (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
 
                           {/* Booking Date — when the guest reserved the trip
