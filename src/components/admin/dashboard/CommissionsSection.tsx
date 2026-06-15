@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { formatCurrency } from "@/components/admin/dashboard/utils";
+import { useCoHost } from "@/hooks/use-co-host";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -270,11 +271,13 @@ interface EmployeeApiRow {
  * appended alphabetically. Inactive employees are excluded entirely — this is
  * the fix for inactive staff (e.g. Olavo) still showing as a column.
  *
- * Falls back to the full curated list only while the request is in flight or
- * if it fails, so the table never renders with zero columns.
+ * For co-host sessions the backend already scopes /api/employees to their team,
+ * so PREFERRED_ORDER is only used as a loading placeholder for non-co-host
+ * (admin) sessions. A co-host with an empty team sees [] (no columns) rather
+ * than the full GLA employee list.
  */
-function useActiveEmployeeNames(): string[] {
-  const { data } = useQuery<{ success?: boolean; data?: EmployeeApiRow[] }>({
+function useActiveEmployeeNames(isCoHost: boolean): string[] {
+  const { data, isLoading } = useQuery<{ success?: boolean; data?: EmployeeApiRow[] }>({
     queryKey: ["/api/employees", "commission-columns"],
     queryFn: async () => {
       const res = await fetch(buildApiUrl("/api/employees?limit=500"), {
@@ -286,14 +289,18 @@ function useActiveEmployeeNames(): string[] {
     staleTime: 1000 * 60 * 5,
   });
 
-  if (!data?.data) return PREFERRED_ORDER;
+  // While loading, admins show PREFERRED_ORDER as a skeleton placeholder.
+  // Co-hosts show [] to avoid flashing the full GLA employee list.
+  if (isLoading || !data?.data) return isCoHost ? [] : PREFERRED_ORDER;
 
   const activeFirstNames = data.data
     .filter((e) => (e.employee_is_active ?? 1) === 1)
     .map((e) => (e.employee_first_name || "").trim())
     .filter(Boolean);
 
-  if (activeFirstNames.length === 0) return PREFERRED_ORDER;
+  // For co-hosts: return exactly what the (already-scoped) API gave us.
+  // Never fall back to PREFERRED_ORDER — that would leak GLA employee names.
+  if (activeFirstNames.length === 0) return isCoHost ? [] : PREFERRED_ORDER;
 
   // De-dupe case-insensitively while preserving the first-seen casing.
   const seen = new Set<string>();
@@ -323,7 +330,8 @@ function useActiveEmployeeNames(): string[] {
 export default function CommissionsSection() {
   const current = getMonthRange(0);
   const prev = getMonthRange(-1);
-  const employeeNames = useActiveEmployeeNames();
+  const { isCoHost } = useCoHost();
+  const employeeNames = useActiveEmployeeNames(isCoHost);
 
   const currentQuery = useQuery<CommissionsApiResponse>({
     queryKey: ["/api/payroll/commissions", "current-month", current.dateFrom, current.dateTo],
@@ -354,12 +362,15 @@ export default function CommissionsSection() {
   });
 
   const isLoading = currentQuery.isLoading || prevQuery.isLoading;
+  const noTeam = isCoHost && !isLoading && employeeNames.length === 0;
 
   return (
     <div className="mb-8">
       <div className="mt-2">
         {isLoading ? (
           <LoadingSkeleton />
+        ) : noTeam ? (
+          <p className="text-sm text-muted-foreground">No team members linked to your co-host account.</p>
         ) : (
           <div className="flex flex-wrap gap-4">
             <MatrixTable

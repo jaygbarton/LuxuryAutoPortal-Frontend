@@ -449,7 +449,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
 
   const tableColumns = [
     { key: "month", label: "Month and Year", align: "left" as const },
-    { key: "rentalIncome", label: "Rental Income", align: "right" as const },
+    { key: "rentalIncome", label: "Total Income", align: "right" as const },
     { key: "mgmtExpenses", label: "MGMT Expenses", align: "right" as const },
     { key: "mgmtSplit", label: "MGMT Split", align: "right" as const },
     { key: "ownerExpenses", label: "Car Owner Expenses", align: "right" as const },
@@ -457,7 +457,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     { key: "daysRented", label: "Days Rented", align: "right" as const },
     { key: "tripsTaken", label: "Trips Taken", align: "right" as const },
     { key: "availableDays", label: "Available Days", align: "right" as const },
-    { key: "totalMiles", label: "Total Miles", align: "right" as const },
+    { key: "totalMiles", label: "Total Miles", align: "right" as const, tooltip: "Miles driven per month from Turo trips. Priority: odometer delta (end − start) → actual miles driven → pre-trip estimated distance." },
     { key: "fleetUtilization", label: "Fleet Utilization (%)", align: "right" as const },
     { key: "avgEarningsPerTrip", label: "Avg Earnings / Trips Taken", align: "right" as const },
     { key: "avgLeadTime", label: "Avg lead time", align: "right" as const },
@@ -481,7 +481,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
           {formatShortMonth(mc.month)} {year}
         </span>
       ),
-      rentalIncome: formatCurrency(mc.rentalIncome),
+      rentalIncome: formatCurrency(mc.gross),
       mgmtExpenses: formatCurrency(mc.mgmtExpenses),
       mgmtSplit: formatCurrency(mc.mgmtIncome),
       ownerExpenses: formatCurrency(mc.ownerExpenses),
@@ -528,7 +528,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
   const yearAvgLeadTime = yearTripsWithLeadTime > 0 ? yearTotalLeadTime / yearTripsWithLeadTime : 0;
   const yearAvgPerMile = totalMilesAll > 0 ? totalGross / totalMilesAll : 0;
 
-  const totalRentalIncome = monthlyComputed.reduce((s, m) => s + m.rentalIncome, 0);
+  const totalRentalIncome = totalGross;
 
   const tableTotals = {
     month: "TOTAL",
@@ -663,7 +663,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                   Total Management Income and Expenses
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.rentalIncome, 0))} variant="dark" className="h-20" />
+                  <SummaryCard label="Total Income" value={formatCurrency(totalGross)} variant="dark" className="h-20" />
                   <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" className="h-20" />
                   <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" className="h-20" />
                 </div>
@@ -675,12 +675,12 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                   Management Income and Expenses
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.rentalIncome, 0))} variant="dark" className="h-20" />
+                  <SummaryCard label="Total Income" value={formatCurrency(totalGross)} variant="dark" className="h-20" />
                   <SummaryCard label="Total Management Expenses" value={formatCurrency(totalMgmtExpenses)} variant="white" className="h-20" />
                   <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome - totalMgmtExpenses)} variant="gold" className="h-20" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
-                  <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.rentalIncome ?? 0)} variant="dark" className="h-20" />
+                  <SummaryCard label={`${prevMonthLabel} Total Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Mgmt Expenses`} value={formatCurrency(prevMonth?.mgmtExpenses ?? 0)} variant="white" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Mgmt Profit`} value={formatCurrency((prevMonth?.mgmtIncome ?? 0) - (prevMonth?.mgmtExpenses ?? 0))} variant="gold" className="h-20" />
                 </div>
@@ -692,12 +692,12 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                   Car Owner Income and Expenses
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                  <SummaryCard label="Total Rental Income" value={formatCurrency(monthlyComputed.reduce((s, m) => s + m.rentalIncome, 0))} variant="dark" className="h-20" />
+                  <SummaryCard label="Total Income" value={formatCurrency(totalGross)} variant="dark" className="h-20" />
                   <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" className="h-20" />
                   <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" className="h-20" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
-                  <SummaryCard label={`${prevMonthLabel} Rental Income`} value={formatCurrency(prevMonth?.rentalIncome ?? 0)} variant="dark" className="h-20" />
+                  <SummaryCard label={`${prevMonthLabel} Total Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Owner Expenses`} value={formatCurrency(prevMonth?.ownerExpenses ?? 0)} variant="white" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Owner Profit`} value={formatCurrency((prevMonth?.ownerIncome ?? 0) - (prevMonth?.ownerExpenses ?? 0))} variant="gold" className="h-20" />
                 </div>
@@ -717,8 +717,11 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                         <th
                           key={col.key}
                           className="px-3 py-2 text-center text-xs font-bold uppercase text-white whitespace-nowrap"
+                          title={(col as any).tooltip}
                         >
-                          {col.label}
+                          {col.label}{(col as any).tooltip && (
+                            <span className="ml-1 opacity-60 text-[10px] normal-case font-normal">ⓘ</span>
+                          )}
                         </th>
                       ))}
                     </tr>

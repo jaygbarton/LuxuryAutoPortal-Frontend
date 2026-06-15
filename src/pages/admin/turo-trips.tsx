@@ -82,6 +82,8 @@ interface TuroTrip {
   milesDriven: string | null;
   tripStartOdometer: number | null;
   tripEndOdometer: number | null;
+  gasLevelTripStart: string | null;
+  gasLevelTripEnd: string | null;
   emailSubject: string | null;
   emailReceivedAt: string | null;
   cancellationReason: string | null;
@@ -145,6 +147,11 @@ export default function TuroTripsPage() {
   const [savingCarName, setSavingCarName] = useState<number | null>(null);
   const [vinEdits, setVinEdits] = useState<Record<number, string>>({});
   const [savingVin, setSavingVin] = useState<number | null>(null);
+  // Inline gas level editing: tripId → { start, end }
+  const [gasEdits, setGasEdits] = useState<
+    Record<number, { start?: string; end?: string }>
+  >({});
+  const [savingGas, setSavingGas] = useState<number | null>(null);
   // Inline location editing: tripId → { pickup, dropoff, miles }
   const [locationEdits, setLocationEdits] = useState<
     Record<number, { pickup: string; dropoff: string; miles: string }>
@@ -619,6 +626,39 @@ export default function TuroTripsPage() {
       toast({ title: "Failed to save odometer", variant: "destructive" });
     } finally {
       setSavingOdometer(null);
+    }
+  };
+
+  const saveGasLevels = async (trip: TuroTrip) => {
+    const edit = gasEdits[trip.id];
+    const startVal = edit?.start !== undefined ? edit.start : (trip.gasLevelTripStart ?? "");
+    const endVal = edit?.end !== undefined ? edit.end : (trip.gasLevelTripEnd ?? "");
+    setSavingGas(trip.id);
+    try {
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/${trip.id}/gas-levels`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            gasLevelTripStart: startVal || null,
+            gasLevelTripEnd: endVal || null,
+          }),
+        },
+      );
+      if (!response.ok) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      setGasEdits((prev) => {
+        const next = { ...prev };
+        delete next[trip.id];
+        return next;
+      });
+      toast({ title: "Gas level saved", description: `Reservation #${trip.reservationId}` });
+    } catch {
+      toast({ title: "Failed to save gas level", variant: "destructive" });
+    } finally {
+      setSavingGas(null);
     }
   };
 
@@ -1406,6 +1446,12 @@ export default function TuroTripsPage() {
                       Total Miles
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
+                      Gas Level Start
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
+                      Gas Level End
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Earnings
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
@@ -1416,13 +1462,13 @@ export default function TuroTripsPage() {
                 <TableBody>
                   {isLoadingTrips ? (
                     <TableRow>
-                      <TableCell colSpan={18} className="text-center py-8">
+                      <TableCell colSpan={20} className="text-center py-8">
                         <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                       </TableCell>
                     </TableRow>
                   ) : trips.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={18} className="text-center py-12">
+                      <TableCell colSpan={20} className="text-center py-12">
                         <div className="flex flex-col items-center gap-3 text-muted-foreground">
                           {debouncedSearchQuery || statusFilter !== "all" ? (
                             <>
@@ -2108,6 +2154,96 @@ export default function TuroTripsPage() {
                                 ? totalMiles.toLocaleString()
                                 : "-"}
                             </span>
+                          </TableCell>
+
+                          {/* Gas Level Trip Start */}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            {(() => {
+                              const edit = gasEdits[trip.id];
+                              const val = edit?.start !== undefined ? edit.start : (trip.gasLevelTripStart ?? "");
+                              const dirty = edit !== undefined;
+                              return (
+                                <div className="flex items-center gap-1">
+                                  <Select
+                                    value={val || "__none__"}
+                                    onValueChange={(v) =>
+                                      setGasEdits((prev) => ({
+                                        ...prev,
+                                        [trip.id]: { ...prev[trip.id], start: v === "__none__" ? "" : v },
+                                      }))
+                                    }
+                                  >
+                                    <SelectTrigger className="h-7 w-[100px] text-xs">
+                                      <SelectValue placeholder="--" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">--</SelectItem>
+                                      <SelectItem value="empty">Empty</SelectItem>
+                                      <SelectItem value="quarter">1/4</SelectItem>
+                                      <SelectItem value="half">1/2</SelectItem>
+                                      <SelectItem value="three_quarters">3/4</SelectItem>
+                                      <SelectItem value="full">Full</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {dirty && (
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      className="h-7 px-2"
+                                      onClick={() => saveGasLevels(trip)}
+                                      disabled={savingGas === trip.id}
+                                    >
+                                      {savingGas === trip.id ? "…" : "Save"}
+                                    </Button>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </TableCell>
+
+                          {/* Gas Level Trip End */}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            {(() => {
+                              const edit = gasEdits[trip.id];
+                              const val = edit?.end !== undefined ? edit.end : (trip.gasLevelTripEnd ?? "");
+                              const dirty = edit !== undefined;
+                              return (
+                                <div className="flex items-center gap-1">
+                                  <Select
+                                    value={val || "__none__"}
+                                    onValueChange={(v) =>
+                                      setGasEdits((prev) => ({
+                                        ...prev,
+                                        [trip.id]: { ...prev[trip.id], end: v === "__none__" ? "" : v },
+                                      }))
+                                    }
+                                  >
+                                    <SelectTrigger className="h-7 w-[100px] text-xs">
+                                      <SelectValue placeholder="--" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">--</SelectItem>
+                                      <SelectItem value="empty">Empty</SelectItem>
+                                      <SelectItem value="quarter">1/4</SelectItem>
+                                      <SelectItem value="half">1/2</SelectItem>
+                                      <SelectItem value="three_quarters">3/4</SelectItem>
+                                      <SelectItem value="full">Full</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {dirty && (
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      className="h-7 px-2"
+                                      onClick={() => saveGasLevels(trip)}
+                                      disabled={savingGas === trip.id}
+                                    >
+                                      {savingGas === trip.id ? "…" : "Save"}
+                                    </Button>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
 
                           {/* Earnings */}

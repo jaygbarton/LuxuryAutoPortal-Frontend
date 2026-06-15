@@ -465,6 +465,7 @@ const coHostSidebarItems: SidebarItem[] = [
   { href: "/admin/admins", label: "Admins", icon: Users },
   { href: "/admin/my-co-host-cars", label: "My Co-Host Cars", icon: Car },
   { href: "/cars", label: "Cars", icon: Car },
+  { href: "/admin/clients", label: "Clients", icon: Users },
   { href: "/admin/income-expenses", label: "Income and Expenses", icon: DollarSign },
   {
     href: "/admin/payments",

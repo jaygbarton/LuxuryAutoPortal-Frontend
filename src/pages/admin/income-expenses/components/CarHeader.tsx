@@ -1,5 +1,6 @@
 import React from "react";
 import { ExternalLink } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface CarHeaderProps {
   car: any;
@@ -8,9 +9,12 @@ interface CarHeaderProps {
 }
 
 export default function CarHeader({ car, onboarding, onNavigateToClient }: CarHeaderProps) {
+  const [, navigate] = useLocation();
+  const coHost = car?.coHost as { id: number; firstName: string; lastName: string; email: string; turoProfileUrl: string | null } | null | undefined;
+
   return (
     <div className="bg-card border border-border rounded-lg p-3">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${coHost ? "lg:grid-cols-5" : "lg:grid-cols-4"} gap-3`}>
         {/* Car Information */}
         <div>
           <h3 className="text-xs font-medium text-muted-foreground mb-2">Car Information</h3>
@@ -134,6 +138,41 @@ export default function CarHeader({ car, onboarding, onNavigateToClient }: CarHe
             )}
           </div>
         </div>
+
+        {/* Co-Host Information — only shown when this car is co-hosted */}
+        {coHost && (
+          <div>
+            <h3 className="text-xs font-medium text-muted-foreground mb-2">Co-Host</h3>
+            <div className="space-y-1">
+              <div>
+                <span className="text-muted-foreground text-xs">Name: </span>
+                <button
+                  onClick={() => navigate("/admin/co-hosts")}
+                  className="text-[#B8860B] hover:text-[#9A7209] hover:underline transition-colors text-xs cursor-pointer font-semibold"
+                >
+                  {coHost.firstName} {coHost.lastName}
+                </button>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">Email: </span>
+                <span className="text-foreground text-xs break-all">{coHost.email}</span>
+              </div>
+              {coHost.turoProfileUrl && (
+                <div>
+                  <a
+                    href={coHost.turoProfileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-700 hover:underline text-xs flex items-center gap-1"
+                  >
+                    Turo Profile
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

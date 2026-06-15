@@ -15,8 +15,6 @@ import AirportParkingSection from "@/components/admin/dashboard/AirportParkingSe
 import CommissionsSection from "@/components/admin/dashboard/CommissionsSection";
 import TaskManagementSection from "@/components/admin/dashboard/TaskManagementSection";
 import NoticeBoardSection from "@/components/admin/dashboard/NoticeBoardSection";
-import EmployeeStatsSection from "@/components/admin/dashboard/EmployeeStatsSection";
-import MonthlyEmployeeStatsSection from "@/components/admin/dashboard/MonthlyEmployeeStatsSection";
 import TuroInspectionsSection from "@/components/admin/dashboard/TuroInspectionsSection";
 import CarIssuesSection from "@/components/admin/dashboard/CarIssuesSection";
 import CarPerformanceSection from "@/components/admin/dashboard/CarPerformanceSection";
@@ -46,8 +44,6 @@ const ALL_SECTIONS: SectionDef[] = [
   { id: "maintenance", label: "Maintenance" },
   { id: "task-management", label: "Task Management" },
   { id: "notice-board", label: "Notice Board" },
-  { id: "employee-stats", label: "Employee Stats" },
-  { id: "monthly-employee-stats", label: "Monthly Employee Stats" },
   { id: "car-performance", label: "Car Performance Ranking" },
 ];
 
@@ -385,11 +381,6 @@ export default function AdminDashboard() {
 
           {show["notice-board"] && <NoticeBoardSection />}
 
-          {show["employee-stats"] && <EmployeeStatsSection />}
-
-          {show["monthly-employee-stats"] && (
-            <MonthlyEmployeeStatsSection year={selectedYear} />
-          )}
 
           {show["car-performance"] && (
             <CarPerformanceSection year={selectedYear} />

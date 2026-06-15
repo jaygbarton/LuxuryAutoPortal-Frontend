@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { buildApiUrl } from "@/lib/queryClient";
+import { Loader2, ChevronLeft, ChevronRight, Pencil, Check, X } from "lucide-react";
+import { buildApiUrl, authMeQueryFn } from "@/lib/queryClient";
 
 interface Payment {
   payments_aid: number;
@@ -26,6 +26,7 @@ interface Payment {
   client_fname: string;
   client_lname: string;
   fullname: string;
+  co_host_name: string | null;
 }
 
 function formatYearMonth(ym: string): string {
@@ -44,9 +45,96 @@ function fmt(n: number | string): string {
   return `$${Number(n || 0).toFixed(2)}`;
 }
 
+// Inline-editable Paid cell — only rendered for admins.
+function EditablePaidCell({
+  payment,
+  queryKey,
+}: {
+  payment: Payment;
+  queryKey: readonly unknown[];
+}) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(String(Number(payment.payments_amount_payout || 0).toFixed(2)));
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: async (payout: number) => {
+      const res = await fetch(buildApiUrl(`/api/payments/${payment.payments_aid}`), {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentsAmountPayout: payout }),
+      });
+      if (!res.ok) throw new Error("Failed to update paid amount");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKey as string[] });
+      setEditing(false);
+    },
+  });
+
+  if (!editing) {
+    return (
+      <span className="flex items-center justify-end gap-1 group">
+        <span>{fmt(payment.payments_amount_payout)}</span>
+        <button
+          onClick={() => {
+            setValue(String(Number(payment.payments_amount_payout || 0).toFixed(2)));
+            setEditing(true);
+          }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+          title="Edit paid amount"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex items-center justify-end gap-1">
+      <input
+        type="number"
+        step="0.01"
+        min="0"
+        value={value}
+        autoFocus
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") mutate(Number(value));
+          if (e.key === "Escape") setEditing(false);
+        }}
+        className="w-20 text-xs px-1 py-0.5 border border-border rounded bg-background text-right"
+      />
+      {isPending ? (
+        <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+      ) : (
+        <>
+          <button onClick={() => mutate(Number(value))} className="text-green-600 hover:text-green-700">
+            <Check className="w-3 h-3" />
+          </button>
+          <button onClick={() => setEditing(false)} className="text-muted-foreground hover:text-foreground">
+            <X className="w-3 h-3" />
+          </button>
+        </>
+      )}
+    </span>
+  );
+}
+
 export default function CoHostPaymentsPage() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(30);
+
+  const { data: meData } = useQuery<{ user?: { isAdmin?: boolean } }>({
+    queryKey: ["/api/auth/me"],
+    queryFn: authMeQueryFn,
+    staleTime: 5 * 60 * 1000,
+  });
+  const isAdmin = !!(meData?.user as any)?.isAdmin;
+
+  const paymentsQueryKey = ["/api/payments/search", "co-host", page, pageSize] as const;
 
   const { data: paymentsData, isLoading } = useQuery<{
     success: boolean;
@@ -54,7 +142,7 @@ export default function CoHostPaymentsPage() {
     total: number;
     totalPages: number;
   }>({
-    queryKey: ["/api/payments/search", "co-host", page, pageSize],
+    queryKey: paymentsQueryKey,
     queryFn: async () => {
       const res = await fetch(buildApiUrl("/api/payments/search"), {
         method: "POST",
@@ -107,8 +195,11 @@ export default function CoHostPaymentsPage() {
                       <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Date</th>
                       <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Car</th>
                       <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden sm:table-cell">Client</th>
+                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Co-Host</th>
                       <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Co-Host Split</th>
-                      <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden md:table-cell">Paid</th>
+                      <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden md:table-cell">
+                        Paid{isAdmin && <span className="ml-1 text-[10px] text-muted-foreground/60">(editable)</span>}
+                      </th>
                       <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden md:table-cell">Balance</th>
                     </tr>
                   </thead>
@@ -143,11 +234,18 @@ export default function CoHostPaymentsPage() {
                         <td className="px-3 py-2 text-muted-foreground hidden sm:table-cell">
                           {p.fullname || [p.client_fname, p.client_lname].filter(Boolean).join(" ") || "—"}
                         </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {p.co_host_name || "—"}
+                        </td>
                         <td className="px-3 py-2 text-right text-primary font-medium">
                           {fmt(p.payments_amount)}
                         </td>
                         <td className="px-3 py-2 text-right text-muted-foreground hidden md:table-cell">
-                          {fmt(p.payments_amount_payout)}
+                          {isAdmin ? (
+                            <EditablePaidCell payment={p} queryKey={paymentsQueryKey} />
+                          ) : (
+                            fmt(p.payments_amount_payout)
+                          )}
                         </td>
                         <td className="px-3 py-2 text-right hidden md:table-cell">
                           <span className={Number(p.payments_amount_balance) < 0 ? "text-red-500" : "text-muted-foreground"}>
