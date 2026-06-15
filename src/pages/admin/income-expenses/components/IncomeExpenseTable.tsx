@@ -30,6 +30,11 @@ import {
   findStandardCategoryMatch,
   normalizeName,
 } from "../utils/standardCategoryNames";
+import {
+  useIsEmployeeView,
+  isSectionAllowedForEmployee,
+  isRowAllowedForEmployee,
+} from "../utils/employeeView";
 
 interface IncomeExpenseTableProps {
   year: string;
@@ -80,7 +85,11 @@ export default function IncomeExpenseTable({
   isAllCarsView = false,
 }: IncomeExpenseTableProps) {
   const [location] = useLocation();
-  const isReadOnly = location.startsWith("/admin/income-expenses");
+  const isEmployeeView = useIsEmployeeView();
+  // Employees get a fully read-only filtered view (no Add Subcategory / edit /
+  // delete), regardless of which I&E route they're on.
+  const isReadOnly =
+    isEmployeeView || location.startsWith("/admin/income-expenses");
   const { toast } = useToast();
 
   const {
@@ -2529,7 +2538,7 @@ export default function IncomeExpenseTable({
                 )}
               />
               {/* Dynamic Subcategories */}
-              {dynamicSubcategories.directDelivery.filter((s) => findStandardCategoryMatch("directDelivery", s.name) == null).map((subcat) => (
+              {dynamicSubcategories.directDelivery.filter((s) => !isEmployeeView && findStandardCategoryMatch("directDelivery", s.name) == null).map((subcat) => (
                 <DynamicSubcategoryRow
                   key={subcat.id}
                   subcategory={subcat}
@@ -2872,7 +2881,7 @@ export default function IncomeExpenseTable({
                 )}
               />
               {/* Dynamic Subcategories */}
-              {dynamicSubcategories.cogs.filter((s) => findStandardCategoryMatch("cogs", s.name) == null).map((subcat) => (
+              {dynamicSubcategories.cogs.filter((s) => !isEmployeeView && findStandardCategoryMatch("cogs", s.name) == null).map((subcat) => (
                 <DynamicSubcategoryRow
                   key={subcat.id}
                   subcategory={subcat}
@@ -3234,7 +3243,7 @@ export default function IncomeExpenseTable({
                 )}
               />
               {/* Dynamic Subcategories */}
-              {dynamicSubcategories.reimbursedBills.filter((s) => findStandardCategoryMatch("reimbursedBills", s.name) == null).map((subcat) => (
+              {dynamicSubcategories.reimbursedBills.filter((s) => !isEmployeeView && findStandardCategoryMatch("reimbursedBills", s.name) == null).map((subcat) => (
                 <DynamicSubcategoryRow
                   key={subcat.id}
                   subcategory={subcat}
@@ -4565,6 +4574,13 @@ function CategorySection({
   children,
   hasActions = true,
 }: CategorySectionProps) {
+  // Employees only see the three whitelisted sections; everything else
+  // (income, splits, totals, summary, EBITDA, history, office support,
+  // parking/labor) is hidden entirely. Admins are unaffected.
+  const isEmployeeView = useIsEmployeeView();
+  if (isEmployeeView && !isSectionAllowedForEmployee(title)) {
+    return null;
+  }
   return (
     <>
       <tr className="bg-primary">
@@ -4660,15 +4676,23 @@ function CategoryRow({
   onPercentCellClick,
 }: CategoryRowProps) {
   const [location] = useLocation();
+  const isEmployeeView = useIsEmployeeView();
+  // Employees only see the whitelisted rows; any other fixed row (Car Payment,
+  // Car Insurance, Cleaning Supplies, Labor - Detailing, Wipers, the income/
+  // split/total rows, etc.) is hidden. Admins see everything.
+  if (isEmployeeView && !isRowAllowedForEmployee(label)) {
+    return null;
+  }
   // Categories whose data is stored globally at car_id = 0 (not aggregated from
   // per-car rows) — these are manual entries on the All Cars page and should
   // stay editable there, so they bypass the blanket read-only guard.
   const isGlobalManualEntryCategory =
     category === "officeSupport" || category === "parkingAirportQB";
   const isReadOnly =
-    location.startsWith("/admin/income-expenses") &&
-    !alwaysEditable &&
-    !isGlobalManualEntryCategory;
+    isEmployeeView ||
+    (location.startsWith("/admin/income-expenses") &&
+      !alwaysEditable &&
+      !isGlobalManualEntryCategory);
   // Override isEditable if in read-only mode
   const effectiveIsEditable = isReadOnly ? false : isEditable;
 

@@ -573,7 +573,14 @@ export default function RecordsPage() {
                   <List className="w-4 h-4 text-muted-foreground" />
                   <Select
                     value={itemsPerPage.toString()}
-                    onValueChange={(value) => setItemsPerPage(parseInt(value) as 5 | 10 | 20 | 50)}
+                    onValueChange={(value) => {
+                      // Reset to page 1 synchronously so the next fetch never
+                      // fires with a stale currentPage (e.g. page 2 at the old
+                      // size), which produced a non-zero OFFSET and silently
+                      // dropped rows from the first page of the new size.
+                      setCurrentPage(1);
+                      setItemsPerPage(parseInt(value) as 5 | 10 | 20 | 50);
+                    }}
                   >
                     <SelectTrigger className="bg-card border-border text-foreground w-[80px]">
                       <SelectValue />

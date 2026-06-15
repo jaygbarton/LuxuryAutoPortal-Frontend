@@ -373,6 +373,15 @@ const employeeSidebarItems: SidebarItem[] = [
   { href: "/staff/my-info", label: "My Info", icon: User, roles: ["employee"] },
   { href: "/staff/forms", label: "Forms", icon: FileText, roles: ["employee"] },
   {
+    // Employees see a restricted, read-only Income & Expenses table (only the
+    // whitelisted expense rows); admins see the full version. Filtering lives
+    // in IncomeExpenseTable via useIsEmployeeView.
+    href: "/admin/income-expenses",
+    label: "Income and Expenses",
+    icon: DollarSign,
+    roles: ["employee"],
+  },
+  {
     href: "/staff/task-management",
     label: "Task Management",
     icon: Briefcase,
