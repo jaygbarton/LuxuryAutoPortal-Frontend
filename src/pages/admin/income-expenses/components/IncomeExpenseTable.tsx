@@ -2163,6 +2163,7 @@ export default function IncomeExpenseTable({
       {!isAllCars && (
         <div className="flex flex-wrap items-center gap-3 px-3 py-2 border-b border-border">
           <span className="text-sm font-medium">Ownership:</span>
+          <span className="text-xs italic text-muted-foreground">(for Co-Hosting only)</span>
           {([
             { value: "gla", label: "Owned by GLA" },
             { value: "other", label: "Owned by another person" },
