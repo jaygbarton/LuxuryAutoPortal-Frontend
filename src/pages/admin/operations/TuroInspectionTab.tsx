@@ -479,7 +479,19 @@ export function TuroInspectionTab() {
           body: JSON.stringify({ source: "manual" }),
         },
       );
-      if (!response.ok) throw new Error("Failed to move to Car Inspections");
+      if (!response.ok) {
+        // Surface the real server reason — the move path itself is sound, so a
+        // failure here is transient (DB connection drop) or auth. Show what the
+        // server actually said instead of a generic string so it's diagnosable.
+        let detail = `${response.status} ${response.statusText}`;
+        try {
+          const body = await response.json();
+          if (body?.message || body?.error) detail = body.message || body.error;
+        } catch {
+          /* non-JSON response (e.g. HTML error page) — keep the status line */
+        }
+        throw new Error(`Failed to move to Car Inspections: ${detail}`);
+      }
       return response.json();
     },
     onSuccess: () => {
