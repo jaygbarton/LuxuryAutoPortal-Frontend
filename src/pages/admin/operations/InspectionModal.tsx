@@ -181,7 +181,15 @@ export function InspectionModal({
           inspection_date: mtLocalInputToUtcDbString(data.inspection_date),
         }),
       });
-      if (!response.ok) throw new Error("Failed to save inspection");
+      if (!response.ok) {
+        let msg = "Failed to save inspection";
+        try {
+          const errBody = await response.json();
+          if (errBody?.message) msg = errBody.message;
+          else if (errBody?.error) msg = errBody.error;
+        } catch {}
+        throw new Error(msg);
+      }
       return response.json();
     },
     onSuccess: () => {

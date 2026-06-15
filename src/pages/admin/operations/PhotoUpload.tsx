@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { buildUploadApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface PhotoUploadProps {
   photos: string[];
@@ -12,7 +13,17 @@ interface PhotoUploadProps {
   disabled?: boolean;
 }
 
+const IMAGE_TYPES = /^image\/(jpeg|jpg|png|webp|heic|heif|gif)$/i;
+
+function isImageFile(file: File): boolean {
+  if (IMAGE_TYPES.test(file.type)) return true;
+  // HEIC/HEIF often have empty type on Safari/iOS — fall back to extension
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  return ["jpg", "jpeg", "png", "webp", "heic", "heif", "gif"].includes(ext);
+}
+
 export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disabled }: PhotoUploadProps) {
+  const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
@@ -21,10 +32,10 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
   const dragCounter = useRef(0);
 
   const processFiles = useCallback(async (files: FileList | File[]) => {
-    const fileArray = Array.from(files).filter(f => f.type.startsWith("image/"));
+    const fileArray = Array.from(files).filter(isImageFile);
     if (fileArray.length === 0) return;
     if (!entityId) {
-      console.error("PhotoUpload: entityId is required for uploads");
+      toast({ title: "Error", description: "Save the record first before uploading photos.", variant: "destructive" });
       return;
     }
 
@@ -43,17 +54,22 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Upload failed");
+      if (!response.ok) {
+        let errMsg = "Upload failed";
+        try { const b = await response.json(); if (b?.message) errMsg = b.message; } catch {}
+        throw new Error(errMsg);
+      }
       const data = await response.json();
       if (data.data?.photos) {
         onPhotosChange(data.data.photos);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Photo upload failed:", err);
+      toast({ title: "Upload failed", description: err?.message || "Could not upload photo. Please try again.", variant: "destructive" });
     } finally {
       setUploading(false);
     }
-  }, [photos, onPhotosChange, entityType, entityId]);
+  }, [photos, onPhotosChange, entityType, entityId, toast]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
