@@ -19,7 +19,8 @@ interface Payment {
   payments_remarks: string | null;
   payment_status_name: string;
   payment_status_color: string;
-  car_make_model: string;
+  car_make_name: string;
+  car_make_model: string; // fallback alias
   car_plate_number: string;
   car_vin_number: string;
   car_year: number;
@@ -218,11 +219,15 @@ export default function CoHostPaymentsPage() {
                           <Badge
                             variant="outline"
                             className="text-xs font-semibold"
-                            style={{
-                              backgroundColor: `${p.payment_status_color}33`,
-                              color: p.payment_status_color,
-                              borderColor: `${p.payment_status_color}66`,
-                            }}
+                            style={
+                              p.payment_status_color
+                                ? {
+                                    color: p.payment_status_color,
+                                    borderColor: p.payment_status_color,
+                                    backgroundColor: "transparent",
+                                  }
+                                : {}
+                            }
                           >
                             {p.payment_status_name}
                           </Badge>
@@ -230,21 +235,21 @@ export default function CoHostPaymentsPage() {
                         <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
                           {formatYearMonth(p.payments_year_month)}
                         </td>
-                        <td className="px-3 py-2 text-foreground max-w-[200px]">
-                          <div className="truncate font-medium">
-                            {[p.car_year, p.car_make_model].filter(Boolean).join(" ")}
+                        <td className="px-3 py-2 text-foreground max-w-[220px]">
+                          <div className="font-medium leading-tight">
+                            {[p.car_year, p.car_make_name || p.car_make_model].filter(Boolean).join(" ") || "—"}
                           </div>
                           {p.car_plate_number && (
-                            <div className="text-muted-foreground text-[10px] truncate">#{p.car_plate_number}</div>
+                            <div className="text-muted-foreground text-[10px] truncate">Plate: {p.car_plate_number}</div>
                           )}
                           {p.car_vin_number && (
-                            <div className="text-muted-foreground text-[10px] truncate font-mono">{p.car_vin_number}</div>
+                            <div className="text-muted-foreground text-[10px] truncate font-mono">VIN: {p.car_vin_number}</div>
                           )}
                         </td>
                         <td className="px-3 py-2 text-muted-foreground hidden sm:table-cell">
                           {p.client_fname || p.client_lname
                             ? [p.client_fname, p.client_lname].filter(Boolean).join(" ")
-                            : p.fullname || "—"}
+                            : "—"}
                         </td>
                         <td className="px-3 py-2 text-muted-foreground">
                           {p.co_host_name || "—"}
