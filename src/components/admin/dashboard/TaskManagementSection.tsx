@@ -37,7 +37,7 @@ const TABLE_COLUMNS = [
   { key: "status", label: "Status", align: "left" as const },
 ];
 
-const STATUS_SORT_ORDER: Record<number, number> = { 1: 0, 0: 1, 2: 2 };
+const STATUS_SORT_ORDER: Record<number, number> = { 1: 0, 0: 1, 2: 2, 3: 3 };
 
 function parseAssignees(empList: string): string {
   if (!empList) return "Unassigned";
@@ -96,9 +96,10 @@ function StatusBadge({ status }: { status: number }) {
   const labels: Record<number, string> = {
     0: "Not Started",
     1: "In Progress",
-    2: "Completed",
+    2: "On Hold",
+    3: "Completed",
   };
-  return <span className="text-sm text-gray-900">{labels[status] ?? "Pending"}</span>;
+  return <span className="text-sm text-gray-900">{labels[status] ?? "Not Started"}</span>;
 }
 
 function LoadingSkeleton() {
@@ -159,7 +160,7 @@ export default function TaskManagementSection() {
 
   const sortedTasks = useMemo(() => {
     let f = [...tasks].sort(
-      (a, b) => (STATUS_SORT_ORDER[a.task_timer_status] ?? 3) - (STATUS_SORT_ORDER[b.task_timer_status] ?? 3),
+      (a, b) => (STATUS_SORT_ORDER[a.task_timer_status] ?? 4) - (STATUS_SORT_ORDER[b.task_timer_status] ?? 4),
     );
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -167,7 +168,7 @@ export default function TaskManagementSection() {
         .some(v => v && v.toLowerCase().includes(q)));
     }
     if (statusFilter !== "all") {
-      f = f.filter(t => String(Number(t.task_timer_status ?? 0)) === statusFilter);
+      f = f.filter(t => String(t.task_timer_status ?? 0) === statusFilter);
     }
     return f.slice(0, 25);
   }, [tasks, search, statusFilter]);
@@ -195,7 +196,8 @@ export default function TaskManagementSection() {
   const STATUS_FILTER_OPTIONS = [
     { value: "0", label: "Not Started" },
     { value: "1", label: "In Progress" },
-    { value: "2", label: "Completed" },
+    { value: "2", label: "On Hold" },
+    { value: "3", label: "Completed" },
   ];
 
   return (
