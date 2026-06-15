@@ -116,15 +116,14 @@ export function TripTasksTab() {
   });
 
   const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
-    queryKey: ["/api/turo-trips", { limit: 500 }],
+    queryKey: ["/api/turo-trips", "tasks-join"],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl("/api/turo-trips?limit=500"), {
+      const response = await fetch(buildApiUrl("/api/turo-trips?limit=5000"), {
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch trips");
       return response.json();
     },
-    staleTime: 2 * 60 * 1000,
   });
 
   const tasks = data?.data || [];

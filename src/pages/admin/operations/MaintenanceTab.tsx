@@ -164,7 +164,7 @@ export function MaintenanceTab({
   });
 
   const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
-    queryKey: ["/api/turo-trips", { limit: 5000 }],
+    queryKey: ["/api/turo-trips", "maintenance-join"],
     queryFn: async () => {
       const response = await fetch(buildApiUrl("/api/turo-trips?limit=5000"), {
         credentials: "include",
@@ -172,7 +172,6 @@ export function MaintenanceTab({
       if (!response.ok) throw new Error("Failed to fetch trips");
       return response.json();
     },
-    staleTime: 2 * 60 * 1000,
   });
 
   const inspectionsById = new Map((inspectionsData?.data || []).map((i) => [i.id, i]));

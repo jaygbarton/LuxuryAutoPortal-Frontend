@@ -122,7 +122,7 @@ export function CarInspectionsTab() {
   });
 
   const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
-    queryKey: ["/api/turo-trips", { limit: 5000 }],
+    queryKey: ["/api/turo-trips", "inspections-join"],
     queryFn: async () => {
       const response = await fetch(buildApiUrl("/api/turo-trips?limit=5000"), {
         credentials: "include",
@@ -130,7 +130,6 @@ export function CarInspectionsTab() {
       if (!response.ok) throw new Error("Failed to fetch trips");
       return response.json();
     },
-    staleTime: 2 * 60 * 1000,
   });
   const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
 
