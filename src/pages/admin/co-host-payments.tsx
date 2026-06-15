@@ -62,6 +62,7 @@ export default function CoHostPaymentsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           carActiveStatus: "active",
+          coHost: true,
           page,
           limit: pageSize,
           sortOrder: "desc",
@@ -106,7 +107,7 @@ export default function CoHostPaymentsPage() {
                       <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Date</th>
                       <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Car</th>
                       <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden sm:table-cell">Client</th>
-                      <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Car Owner Split</th>
+                      <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Co-Host Split</th>
                       <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden md:table-cell">Paid</th>
                       <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden md:table-cell">Balance</th>
                     </tr>

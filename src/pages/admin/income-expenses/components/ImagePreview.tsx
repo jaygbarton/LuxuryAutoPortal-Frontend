@@ -5,6 +5,93 @@ import { Button } from "@/components/ui/button";
 import { buildApiUrl } from "@/lib/queryClient";
 import type { ExistingImage } from "../utils/useImageUpload";
 
+/**
+ * Renders a receipt image.
+ *
+ * Absolute URLs (e.g. GCS signed URLs on storage.googleapis.com) load directly
+ * via a plain <img> — they need no auth. Relative URLs point at our own backend
+ * proxy (`/api/income-expense/receipt-image`, used for v3-migrated receipts
+ * stored as Drive references). That endpoint is behind requireAuth, and a bare
+ * <img> request does NOT reliably carry the session cookie cross-origin in
+ * production (sameSite=none third-party cookie blocking) — so we fetch it with
+ * credentials and render the result as a blob, the same pattern the working
+ * form-submission receipts use.
+ */
+function CredentialedImg({
+  src,
+  alt,
+  className,
+  onClick,
+  onError,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  onClick?: () => void;
+  onError?: (e: React.SyntheticEvent<HTMLImageElement, Event>) => void;
+}) {
+  const isAbsolute = src.startsWith("http://") || src.startsWith("https://");
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    // Absolute (public) URLs are rendered directly; nothing to fetch.
+    if (isAbsolute) return;
+
+    let revoked = false;
+    let objectUrl: string | null = null;
+    setBlobUrl(null);
+    setFailed(false);
+    fetch(src, { credentials: "include" })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to load (${res.status})`);
+        return res.blob();
+      })
+      .then((blob) => {
+        if (revoked) return;
+        objectUrl = URL.createObjectURL(blob);
+        setBlobUrl(objectUrl);
+      })
+      .catch(() => {
+        if (!revoked) setFailed(true);
+      });
+    return () => {
+      revoked = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [src, isAbsolute]);
+
+  if (failed) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-red-500/20 text-red-700 text-xs p-2 text-center">
+        Failed to load image
+      </div>
+    );
+  }
+
+  const resolvedSrc = isAbsolute ? src : blobUrl;
+  if (!resolvedSrc) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground text-xs">
+        Loading…
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={resolvedSrc}
+      alt={alt}
+      className={className}
+      onClick={onClick}
+      onError={(e) => {
+        if (onError) onError(e);
+        else setFailed(true);
+      }}
+    />
+  );
+}
+
 interface ImagePreviewProps {
   newImages?: File[];
   existingImages?: ExistingImage[];
@@ -68,24 +155,11 @@ export default function ImagePreview({
               key={image.id}
               className="relative group bg-card rounded-lg overflow-hidden border border-border aspect-square shadow-lg hover:border-primary/50 transition-all"
             >
-              <img
+              <CredentialedImg
                 src={imageUrl}
                 alt={image.filename}
                 className="w-full h-full object-cover cursor-pointer"
                 onClick={() => onImageClick ? onImageClick(imageUrl) : handleZoom(imageUrl)}
-                onError={(e) => {
-                  const imgElement = e.target as HTMLImageElement;
-                  imgElement.style.display = 'none';
-                  // Show error placeholder
-                  const parent = imgElement.parentElement;
-                  if (parent) {
-                    parent.innerHTML = `
-                      <div class="w-full h-full flex items-center justify-center bg-red-500/20 text-red-700 text-xs p-2 text-center">
-                        Failed to load image
-                      </div>
-                    `;
-                  }
-                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="absolute bottom-0 left-0 right-0 p-2 flex items-center justify-between">
@@ -198,28 +272,10 @@ export default function ImagePreview({
           </DialogHeader>
           {zoomedImage && (
             <div className="relative">
-              <img
+              <CredentialedImg
                 src={zoomedImage}
                 alt="Zoomed preview"
                 className="w-full h-auto max-h-[85vh] object-contain"
-                onError={(e) => {
-                  const imgElement = e.target as HTMLImageElement;
-                  imgElement.src = "";
-                  imgElement.alt = "Failed to load image";
-                  imgElement.className = "hidden";
-                  // Show error message
-                  const parent = imgElement.parentElement;
-                  if (parent) {
-                    parent.innerHTML = `
-                      <div class="w-full h-[400px] flex items-center justify-center bg-red-500/20 text-red-700">
-                        <div class="text-center">
-                          <p class="text-sm font-medium">Failed to load image</p>
-                          <p class="text-xs mt-2 text-muted-foreground">${zoomedImage}</p>
-                        </div>
-                      </div>
-                    `;
-                  }
-                }}
               />
               <Button
                 type="button"

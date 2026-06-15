@@ -116,28 +116,43 @@ export default function IncomeExpenseTable({
     getCategoryMonthFormTotal,
   } = useIncomeExpense();
 
-  // ── Co-Hosting: "Managed/Owned by GLA" flag (drives the split formula) ──
-  // Seeded from the I&E read (data.isGlaOwned); toggling persists via the
+  // ── Co-Hosting: tri-state ownership selector (drives the split formula) ──
+  // Seeded from the I&E read (data.ownership); persisted via the
   // /api/income-expense/gla-owned endpoint. Admin/co-host view only.
-  const [isGlaOwned, setIsGlaOwned] = useState<boolean>(Boolean((data as any)?.isGlaOwned));
+  //  • 'gla'   → Managed/Owned by GLA      → Co-Host Split active (GLA formula)
+  //  • 'other' → Owned by another person   → Co-Host Split active
+  //  • 'none'  → nothing selected          → Co-Host Split DEACTIVATED (zero).
+  //              Car Management/Owner Split still computes as normal.
+  type Ownership = "none" | "gla" | "other";
+  const seedOwnership = (d: any): Ownership => {
+    const o = String(d?.ownership ?? "").trim();
+    if (o === "gla" || o === "other" || o === "none") return o;
+    // Back-compat: old payloads only had the boolean isGlaOwned.
+    return d?.isGlaOwned ? "gla" : "none";
+  };
+  const [ownership, setOwnership] = useState<Ownership>(seedOwnership(data));
   const [savingGlaOwned, setSavingGlaOwned] = useState(false);
   React.useEffect(() => {
-    setIsGlaOwned(Boolean((data as any)?.isGlaOwned));
-  }, [(data as any)?.isGlaOwned]);
-  const handleToggleGlaOwned = async (next: boolean) => {
+    setOwnership(seedOwnership(data));
+  }, [(data as any)?.ownership, (data as any)?.isGlaOwned]);
+  // GLA-owned drives the existing GLA-owned formula branch + per-month CH/MO
+  // toggle; only the 'gla' selection counts as GLA-owned.
+  const isGlaOwned = ownership === "gla";
+  const handleSetOwnership = async (next: Ownership) => {
     if (isReadOnly || isAllCars) return;
-    setIsGlaOwned(next); // optimistic
+    const prev = ownership;
+    setOwnership(next); // optimistic
     setSavingGlaOwned(true);
     try {
       const res = await fetch(buildApiUrl("/api/income-expense/gla-owned"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ carId, isGlaOwned: next }),
+        body: JSON.stringify({ carId, ownership: next }),
       });
       if (!res.ok) throw new Error("save failed");
     } catch {
-      setIsGlaOwned(!next); // revert on failure
+      setOwnership(prev); // revert on failure
     } finally {
       setSavingGlaOwned(false);
     }
@@ -1869,10 +1884,17 @@ export default function IncomeExpenseTable({
   const getSplitType = (month: number): "coHost" | "mgmtOwner" =>
     (splitTypeByMonth?.[month] as "coHost" | "mgmtOwner") || "mgmtOwner";
   // Is the Co-Hosting Split active (non-zero) for this month?
-  const isCoHostActive = (month: number): boolean =>
-    !isGlaOwned || getSplitType(month) === "coHost";
+  //  • ownership 'none'  → DEACTIVATED (zero) — no ownership selected.
+  //  • ownership 'other' → active (external co-hosting account).
+  //  • ownership 'gla'   → active only when the month is set to "coHost".
+  const isCoHostActive = (month: number): boolean => {
+    if (ownership === "none") return false;
+    if (isGlaOwned) return getSplitType(month) === "coHost";
+    return true; // 'other'
+  };
   // Is the Car Management/Owner Split active (non-zero) for this month?
-  // Always active for non-GLA-owned cars; for GLA-owned only in "mgmtOwner".
+  // Unchanged: always active unless a GLA-owned car's month is set to "coHost".
+  // (For 'none'/'other' there is no per-month toggle, so it stays active.)
   const isMgmtOwnerActive = (month: number): boolean =>
     !isGlaOwned || getSplitType(month) === "mgmtOwner";
 
@@ -1973,27 +1995,51 @@ export default function IncomeExpenseTable({
     // with the content instead of pinning. We let the inner scroll container
     // own both the clipping and the sticky positioning.
     <div className="w-full min-w-0 bg-card border border-border rounded-lg">
-      {/* Co-Hosting: "Managed/Owned by GLA?" checkbox + indicator (per-car only) */}
+      {/* Co-Hosting: tri-state ownership selector (per-car only). The Co-Host
+          Split formula is only active when an ownership option is selected; if
+          NONE is selected the Co-Host Split is deactivated (zero). */}
       {!isAllCars && (
-        <div className="flex items-center gap-3 px-3 py-2 border-b border-border">
-          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={isGlaOwned}
-              disabled={isReadOnly || savingGlaOwned}
-              onChange={(e) => handleToggleGlaOwned(e.target.checked)}
-            />
-            <span className="font-medium">Managed / Owned by GLA</span>
-          </label>
+        <div className="flex flex-wrap items-center gap-3 px-3 py-2 border-b border-border">
+          <span className="text-sm font-medium">Ownership:</span>
+          {([
+            { value: "gla", label: "Owned by GLA" },
+            { value: "other", label: "Owned by another person" },
+            { value: "none", label: "None" },
+          ] as { value: Ownership; label: string }[]).map((opt) => (
+            <label
+              key={opt.value}
+              className={cn(
+                "flex items-center gap-1.5 text-sm select-none",
+                isReadOnly || savingGlaOwned
+                  ? "cursor-not-allowed opacity-60"
+                  : "cursor-pointer",
+              )}
+            >
+              <input
+                type="radio"
+                name={`car-ownership-${carId}`}
+                checked={ownership === opt.value}
+                disabled={isReadOnly || savingGlaOwned}
+                onChange={() => handleSetOwnership(opt.value)}
+              />
+              <span>{opt.label}</span>
+            </label>
+          ))}
           <span
             className={cn(
               "text-xs px-2 py-0.5 rounded-full font-medium",
-              isGlaOwned
+              ownership === "gla"
                 ? "bg-green-100 text-green-700"
-                : "bg-amber-100 text-amber-700",
+                : ownership === "other"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-gray-100 text-gray-600",
             )}
           >
-            {isGlaOwned ? "GLA-Owned" : "Owned by another person"}
+            {ownership === "gla"
+              ? "GLA-Owned"
+              : ownership === "other"
+                ? "Owned by another person"
+                : "Co-Host Split inactive"}
           </span>
           {savingGlaOwned && <span className="text-xs text-muted-foreground">saving…</span>}
         </div>
@@ -2153,7 +2199,7 @@ export default function IncomeExpenseTable({
                   isCoHostActive(i + 1) ? roundToPhp2Dp(calculateCoHostSplit(i + 1)) : 0,
                 )}
                 percentageValues={MONTHS.map((_, i) =>
-                  getCoHostPercent(i + 1),
+                  isCoHostActive(i + 1) ? getCoHostPercent(i + 1) : 0,
                 )}
                 category="income"
                 field="coHostSplit"
@@ -2174,7 +2220,7 @@ export default function IncomeExpenseTable({
                   isCoHostActive(i + 1) ? roundToPhp2Dp(calculateGlaSplit(i + 1)) : 0,
                 )}
                 percentageValues={MONTHS.map((_, i) =>
-                  getGlaSplitPercent(i + 1),
+                  isCoHostActive(i + 1) ? getGlaSplitPercent(i + 1) : 0,
                 )}
                 category="income"
                 field="glaSplit"
