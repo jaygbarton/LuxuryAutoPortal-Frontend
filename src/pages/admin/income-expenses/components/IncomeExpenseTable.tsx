@@ -1104,6 +1104,14 @@ export default function IncomeExpenseTable({
       return 0;
     }
 
+    // January always starts fresh at 0 — the negative balance does NOT carry
+    // across the calendar-year boundary (matches the legacy v3 app, which reset
+    // the carry-over each January rather than rolling the prior December
+    // forward). Within a year it still compounds month-to-month below.
+    if (month === 1) {
+      return 0;
+    }
+
     // Get the CURRENT month's mode (not previous month's mode)
     const currentMonthMode: 50 | 70 = monthModes[month] || 50;
 
