@@ -593,16 +593,21 @@ export function MaintenanceTab({
                           {trip?.extras || "--"}
                         </TableCell>
                         <TableCell className="text-foreground text-sm">
-                          {trip?.milesIncluded || "--"}
+                          {trip?.milesIncluded || (trip?.totalDistance != null ? String(trip.totalDistance) : null) || "--"}
                         </TableCell>
-                        <TableCell className="text-foreground text-sm">
+                        <TableCell className="text-foreground text-sm tabular-nums">
                           {trip?.tripStartOdometer ?? "--"}
                         </TableCell>
-                        <TableCell className="text-foreground text-sm">
+                        <TableCell className="text-foreground text-sm tabular-nums">
                           {trip?.tripEndOdometer ?? "--"}
                         </TableCell>
-                        <TableCell className="text-foreground text-sm">
-                          {trip?.totalDistance || "--"}
+                        <TableCell className="text-foreground text-sm tabular-nums">
+                          {(() => {
+                            if (!trip) return "--";
+                            const s = trip.tripStartOdometer; const e = trip.tripEndOdometer;
+                            if (s != null && e != null && e >= s) return (e - s).toLocaleString();
+                            return "--";
+                          })()}
                         </TableCell>
                         <TableCell className="text-foreground text-sm">
                           {tripEarnings != null ? formatCurrency(tripEarnings) : "--"}

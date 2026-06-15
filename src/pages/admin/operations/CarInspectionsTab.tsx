@@ -87,6 +87,41 @@ export function CarInspectionsTab() {
     "operations.carIssues",
   );
 
+  // Inline odometer editing — mirrors Turo Trips page and other ops tabs.
+  const [odoEdits, setOdoEdits] = useState<
+    Record<number, { start?: string; end?: string }>
+  >({});
+  const [savingOdoRow, setSavingOdoRow] = useState<number | null>(null);
+
+  const saveRowOdometers = async (trip: TuroTrip) => {
+    const edit = odoEdits[trip.id];
+    if (!edit) return;
+    const startVal =
+      edit.start !== undefined ? edit.start : String(trip.tripStartOdometer ?? "");
+    const endVal =
+      edit.end !== undefined ? edit.end : String(trip.tripEndOdometer ?? "");
+    setSavingOdoRow(trip.id);
+    try {
+      const res = await fetch(buildApiUrl(`/api/turo-trips/${trip.id}/odometers`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tripStartOdometer: startVal !== "" ? parseInt(startVal, 10) : null,
+          tripEndOdometer: endVal !== "" ? parseInt(endVal, 10) : null,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      setOdoEdits((prev) => { const next = { ...prev }; delete next[trip.id]; return next; });
+      toast({ title: "Odometer saved", description: `Reservation #${trip.reservationId}` });
+    } catch {
+      toast({ title: "Failed to save odometer", variant: "destructive" });
+    } finally {
+      setSavingOdoRow(null);
+    }
+  };
+
   const { data, isLoading } = useQuery<{ data: Inspection[]; total: number }>({
     queryKey: ["/api/operations/inspections", "car_issues", filterStatus, filterSource],
     queryFn: async () => {
@@ -528,16 +563,53 @@ export function CarInspectionsTab() {
                           {trip?.extras || "--"}
                         </TableCell>
                         <TableCell className="text-foreground text-sm">
-                          {trip?.milesIncluded || "--"}
+                          {trip?.milesIncluded || trip?.totalDistance || "--"}
                         </TableCell>
-                        <TableCell className="text-foreground text-sm">
-                          {trip?.tripStartOdometer ?? "--"}
+                        <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
+                          {!trip ? "--" : (() => {
+                            const edit = odoEdits[trip.id];
+                            const startStr = edit?.start !== undefined ? edit.start : trip.tripStartOdometer != null ? String(trip.tripStartOdometer) : "";
+                            return (
+                              <Input
+                                type="number"
+                                value={startStr}
+                                onChange={(e) => setOdoEdits((prev) => ({ ...prev, [trip.id]: { ...prev[trip.id], start: e.target.value } }))}
+                                placeholder="--"
+                                className="h-7 w-[100px] text-sm"
+                              />
+                            );
+                          })()}
                         </TableCell>
-                        <TableCell className="text-foreground text-sm">
-                          {trip?.tripEndOdometer ?? "--"}
+                        <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
+                          {!trip ? "--" : (() => {
+                            const edit = odoEdits[trip.id];
+                            const endStr = edit?.end !== undefined ? edit.end : trip.tripEndOdometer != null ? String(trip.tripEndOdometer) : "";
+                            const dirty = edit !== undefined;
+                            return (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  value={endStr}
+                                  onChange={(e) => setOdoEdits((prev) => ({ ...prev, [trip.id]: { ...prev[trip.id], end: e.target.value } }))}
+                                  placeholder="--"
+                                  className="h-7 w-[100px] text-sm"
+                                />
+                                {dirty && (
+                                  <Button variant="default" size="sm" className="h-7 px-2" onClick={() => saveRowOdometers(trip)} disabled={savingOdoRow === trip.id}>
+                                    {savingOdoRow === trip.id ? "…" : "Save"}
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </TableCell>
-                        <TableCell className="text-foreground text-sm">
-                          {trip?.totalDistance || "--"}
+                        <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
+                          {(() => {
+                            if (!trip) return "--";
+                            const s = trip.tripStartOdometer; const e = trip.tripEndOdometer;
+                            if (s != null && e != null && e >= s) return (e - s).toLocaleString();
+                            return "--";
+                          })()}
                         </TableCell>
                         <TableCell className="text-foreground text-sm">
                           {earnings != null ? formatCurrency(earnings) : "--"}

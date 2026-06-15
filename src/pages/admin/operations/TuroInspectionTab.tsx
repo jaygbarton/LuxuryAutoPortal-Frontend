@@ -792,7 +792,7 @@ export function TuroInspectionTab() {
                           {trip?.extras || "--"}
                         </TableCell>
                         <TableCell className="text-foreground text-sm">
-                          {trip?.totalDistance || "--"}
+                          {trip?.milesIncluded || trip?.totalDistance || "--"}
                         </TableCell>
                         <TableCell className="text-foreground text-sm tabular-nums">
                           {!trip ? (
