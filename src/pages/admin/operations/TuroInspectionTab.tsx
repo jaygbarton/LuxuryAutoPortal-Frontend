@@ -32,6 +32,7 @@ import { StatusBadge } from "./StatusBadge";
 import { InspectionModal } from "./InspectionModal";
 import { CarIssueTypesCell } from "./CarIssueTypesCell";
 import { FuelReturnedCell } from "./FuelReturnedCell";
+import { GasLevelCells } from "./GasLevelCells";
 import { useToast } from "@/hooks/use-toast";
 import {
   Edit,
@@ -693,6 +694,8 @@ export function TuroInspectionTab() {
                   <TableHead className="text-foreground font-medium">Earnings</TableHead>
                   <TableHead className="text-foreground font-medium">Trip Status</TableHead>
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip Start</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip End</TableHead>
                   <TableHead className="text-foreground font-medium whitespace-nowrap">Fuel Returned</TableHead>
                   <TableHead className="text-foreground font-medium whitespace-nowrap">Car Issues Type</TableHead>
                   <TableHead className="text-foreground font-medium">Inspection Status</TableHead>
@@ -703,7 +706,7 @@ export function TuroInspectionTab() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={20}
+                      colSpan={22}
                       className="text-center py-12 text-muted-foreground"
                     >
                       Loading inspections...
@@ -712,7 +715,7 @@ export function TuroInspectionTab() {
                 ) : filteredInspections.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={20}
+                      colSpan={22}
                       className="text-center py-12 text-muted-foreground"
                     >
                       No Turo return inspections found
@@ -933,6 +936,15 @@ export function TuroInspectionTab() {
                             placeholder="Assign..."
                           />
                         </TableCell>
+                        <GasLevelCells
+                          tripId={insp.turo_trip_id}
+                          start={trip?.gasLevelTripStart ?? insp.gas_level_trip_start}
+                          end={trip?.gasLevelTripEnd ?? insp.gas_level_trip_end}
+                          onSaved={() => {
+                            queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+                            queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });
+                          }}
+                        />
                         <TableCell>
                           <FuelReturnedCell level={insp.fuel_level_returned} />
                         </TableCell>

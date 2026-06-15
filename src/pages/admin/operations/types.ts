@@ -45,6 +45,9 @@ export interface OperationTask {
   due_date: string | null;
   status: "new" | "in_progress" | "completed" | "delivered";
   notes: string | null;
+  // Trip gas levels joined from turo_trips so this tab can show/edit them.
+  gas_level_trip_start?: string | null;
+  gas_level_trip_end?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -93,6 +96,10 @@ export interface Inspection {
   /** Categorized car issues found during inspection. Includes the fixed
    *  CAR_ISSUE_TYPES plus any free-text "Others" values the inspector typed. */
   car_issue_types?: string[] | null;
+  /** Trip gas levels joined from turo_trips (via turo_trip_id). Editable in the
+   *  Car Issues / Turo Messages / No Car Issues tabs; writes back to the trip. */
+  gas_level_trip_start?: string | null;
+  gas_level_trip_end?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -142,6 +149,10 @@ export interface MaintenanceRecord {
   // same Fuel Returned / Car Issues Type columns as the other tabs.
   inspection_fuel_level_returned?: FuelLevelReturned | null;
   inspection_car_issue_types?: string[] | null;
+  /** Trip gas levels joined through inspection_id → inspections → turo_trips.
+   *  Editable in the Maintenance tab; writes back to the trip. */
+  gas_level_trip_start?: string | null;
+  gas_level_trip_end?: string | null;
 }
 
 export type TaskType = "cleaning" | "delivery" | "pickup" | "refuel";

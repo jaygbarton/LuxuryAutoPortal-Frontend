@@ -19,6 +19,7 @@ import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarIssueTypesCell } from "./CarIssueTypesCell";
 import { FuelReturnedCell } from "./FuelReturnedCell";
+import { GasLevelCells } from "./GasLevelCells";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -462,6 +463,8 @@ export function CarInspectionsTab() {
                   <TableHead className="text-foreground font-medium">Earnings</TableHead>
                   <TableHead className="text-foreground font-medium">Trip Status</TableHead>
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip Start</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip End</TableHead>
                   <TableHead className="text-foreground font-medium whitespace-nowrap">Fuel Returned</TableHead>
                   <TableHead className="text-foreground font-medium whitespace-nowrap">Car Issues Type</TableHead>
                   <TableHead className="text-foreground font-medium">Inspection Status</TableHead>
@@ -471,11 +474,11 @@ export function CarInspectionsTab() {
               <TableBody>
                 {isLoading || isMaintLoading ? (
                   <TableRow>
-                    <TableCell colSpan={20} className="text-center py-12 text-muted-foreground">Loading inspections...</TableCell>
+                    <TableCell colSpan={22} className="text-center py-12 text-muted-foreground">Loading inspections...</TableCell>
                   </TableRow>
                 ) : inspections.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={20} className="text-center py-12 text-muted-foreground">No inspections found</TableCell>
+                    <TableCell colSpan={22} className="text-center py-12 text-muted-foreground">No inspections found</TableCell>
                   </TableRow>
                 ) : (
                   pagedInspections.map((insp) => {
@@ -574,6 +577,15 @@ export function CarInspectionsTab() {
                             placeholder="Assign..."
                           />
                         </TableCell>
+                        <GasLevelCells
+                          tripId={insp.turo_trip_id}
+                          start={trip?.gasLevelTripStart ?? insp.gas_level_trip_start}
+                          end={trip?.gasLevelTripEnd ?? insp.gas_level_trip_end}
+                          onSaved={() => {
+                            queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+                            queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });
+                          }}
+                        />
                         <TableCell>
                           <FuelReturnedCell level={insp.fuel_level_returned} />
                         </TableCell>

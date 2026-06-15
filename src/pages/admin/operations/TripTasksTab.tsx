@@ -29,6 +29,7 @@ import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
 import { StatusBadge } from "./StatusBadge";
+import { GasLevelCells } from "./GasLevelCells";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, History } from "lucide-react";
@@ -374,6 +375,8 @@ export function TripTasksTab() {
                   <TableHead className="text-foreground font-medium">Trip Start Odometer</TableHead>
                   <TableHead className="text-foreground font-medium">Trip Ends Odometer</TableHead>
                   <TableHead className="text-foreground font-medium">Total Miles</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip Start</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip End</TableHead>
                   <TableHead className="text-foreground font-medium">Earnings</TableHead>
                   <TableHead className="text-foreground font-medium">Trip Status</TableHead>
                   <TableHead className="text-foreground font-medium">Task Type</TableHead>
@@ -387,7 +390,7 @@ export function TripTasksTab() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={21}
+                      colSpan={23}
                       className="text-center py-12 text-muted-foreground"
                     >
                       Loading tasks...
@@ -396,7 +399,7 @@ export function TripTasksTab() {
                 ) : filteredTasks.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={21}
+                      colSpan={23}
                       className="text-center py-12 text-muted-foreground"
                     >
                       No tasks found
@@ -472,6 +475,15 @@ export function TripTasksTab() {
                         <TableCell className="text-foreground text-sm">
                           {trip?.totalDistance || "--"}
                         </TableCell>
+                        <GasLevelCells
+                          tripId={task.turo_trip_id}
+                          start={trip?.gasLevelTripStart}
+                          end={trip?.gasLevelTripEnd}
+                          onSaved={() => {
+                            queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+                            queryClient.invalidateQueries({ queryKey: ["/api/operations/tasks"] });
+                          }}
+                        />
                         <TableCell className="text-foreground text-sm">
                           {earnings != null ? formatCurrency(earnings) : "--"}
                         </TableCell>

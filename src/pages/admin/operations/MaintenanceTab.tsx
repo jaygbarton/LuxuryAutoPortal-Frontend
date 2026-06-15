@@ -39,6 +39,7 @@ import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarIssueTypesCell } from "./CarIssueTypesCell";
 import { FuelReturnedCell } from "./FuelReturnedCell";
+import { GasLevelCells } from "./GasLevelCells";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -467,6 +468,8 @@ export function MaintenanceTab({
                   <TableHead className="text-foreground font-medium">Total Miles</TableHead>
                   <TableHead className="text-foreground font-medium">Earnings</TableHead>
                   <TableHead className="text-foreground font-medium">Trip Status</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip Start</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip End</TableHead>
                   <TableHead className="text-foreground font-medium whitespace-nowrap">Fuel Returned</TableHead>
                   <TableHead className="text-foreground font-medium whitespace-nowrap">Car Issues Type</TableHead>
                   <TableHead className="text-foreground font-medium">Description</TableHead>
@@ -484,7 +487,7 @@ export function MaintenanceTab({
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={26}
+                      colSpan={28}
                       className="text-center py-12 text-muted-foreground"
                     >
                       Loading maintenance records...
@@ -493,7 +496,7 @@ export function MaintenanceTab({
                 ) : records.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={26}
+                      colSpan={28}
                       className="text-center py-12 text-muted-foreground"
                     >
                       No maintenance records found
@@ -608,6 +611,15 @@ export function MaintenanceTab({
                         <TableCell>
                           {trip?.status ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm italic text-xs">Manual</span>}
                         </TableCell>
+                        <GasLevelCells
+                          tripId={rec.trip_id ?? clientTrip?.id}
+                          start={rec.gas_level_trip_start ?? clientTrip?.gasLevelTripStart}
+                          end={rec.gas_level_trip_end ?? clientTrip?.gasLevelTripEnd}
+                          onSaved={() => {
+                            queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+                            queryClient.invalidateQueries({ queryKey: ["/api/operations/maintenance"] });
+                          }}
+                        />
                         <TableCell>
                           <FuelReturnedCell level={rec.inspection_fuel_level_returned} />
                         </TableCell>

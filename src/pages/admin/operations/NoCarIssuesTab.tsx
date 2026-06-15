@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { StatusBadge } from "./StatusBadge";
+import { GasLevelCells } from "./GasLevelCells";
 import { useToast } from "@/hooks/use-toast";
 import { RotateCcw, ArrowRight, Plus } from "lucide-react";
 import type { Inspection, TuroTrip } from "./types";
@@ -313,6 +314,8 @@ export function NoCarIssuesTab() {
                   <TableHead className="text-foreground font-medium">Earnings</TableHead>
                   <TableHead className="text-foreground font-medium">Trip Status</TableHead>
                   <TableHead className="text-foreground font-medium">Assigned To</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip Start</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip End</TableHead>
                   <TableHead className="text-foreground font-medium">Inspection Status</TableHead>
                   <TableHead className="text-center text-foreground font-medium">Actions</TableHead>
                 </TableRow>
@@ -320,11 +323,11 @@ export function NoCarIssuesTab() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={18} className="text-center py-12 text-muted-foreground">Loading...</TableCell>
+                    <TableCell colSpan={20} className="text-center py-12 text-muted-foreground">Loading...</TableCell>
                   </TableRow>
                 ) : inspections.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={18} className="text-center py-12 text-muted-foreground">No resolved inspections yet</TableCell>
+                    <TableCell colSpan={20} className="text-center py-12 text-muted-foreground">No resolved inspections yet</TableCell>
                   </TableRow>
                 ) : (
                   pagedInspections.map((insp) => {
@@ -390,6 +393,15 @@ export function NoCarIssuesTab() {
                           {trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm">--</span>}
                         </TableCell>
                         <TableCell className="text-foreground">{insp.assigned_to}</TableCell>
+                        <GasLevelCells
+                          tripId={insp.turo_trip_id}
+                          start={trip?.gasLevelTripStart ?? insp.gas_level_trip_start}
+                          end={trip?.gasLevelTripEnd ?? insp.gas_level_trip_end}
+                          onSaved={() => {
+                            queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+                            queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });
+                          }}
+                        />
                         <TableCell><StatusBadge status={insp.status} /></TableCell>
                         <TableCell>
                           <div className="flex items-center justify-center gap-1">
