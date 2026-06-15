@@ -198,7 +198,14 @@ export default function CoHostPaymentsPage() {
                       <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Co-Host</th>
                       <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Co-Host Split</th>
                       <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden md:table-cell">
-                        Paid{isAdmin && <span className="ml-1 text-[10px] text-muted-foreground/60">(editable)</span>}
+                        <span className="flex items-center justify-end gap-1.5">
+                          Paid
+                          {isAdmin && (
+                            <span className="text-[9px] font-semibold uppercase tracking-wide bg-blue-500/15 text-blue-500 border border-blue-500/30 rounded px-1 py-0.5">
+                              Editable
+                            </span>
+                          )}
+                        </span>
                       </th>
                       <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden md:table-cell">Balance</th>
                     </tr>
@@ -210,11 +217,11 @@ export default function CoHostPaymentsPage() {
                         <td className="px-3 py-2">
                           <Badge
                             variant="outline"
-                            className="text-xs"
+                            className="text-xs font-semibold"
                             style={{
-                              backgroundColor: `${p.payment_status_color}22`,
+                              backgroundColor: `${p.payment_status_color}33`,
                               color: p.payment_status_color,
-                              borderColor: `${p.payment_status_color}44`,
+                              borderColor: `${p.payment_status_color}66`,
                             }}
                           >
                             {p.payment_status_name}
@@ -223,16 +230,21 @@ export default function CoHostPaymentsPage() {
                         <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
                           {formatYearMonth(p.payments_year_month)}
                         </td>
-                        <td className="px-3 py-2 text-foreground max-w-[180px]">
-                          <div className="truncate">
+                        <td className="px-3 py-2 text-foreground max-w-[200px]">
+                          <div className="truncate font-medium">
                             {[p.car_year, p.car_make_model].filter(Boolean).join(" ")}
                           </div>
                           {p.car_plate_number && (
                             <div className="text-muted-foreground text-[10px] truncate">#{p.car_plate_number}</div>
                           )}
+                          {p.car_vin_number && (
+                            <div className="text-muted-foreground text-[10px] truncate font-mono">{p.car_vin_number}</div>
+                          )}
                         </td>
                         <td className="px-3 py-2 text-muted-foreground hidden sm:table-cell">
-                          {p.fullname || [p.client_fname, p.client_lname].filter(Boolean).join(" ") || "—"}
+                          {p.client_fname || p.client_lname
+                            ? [p.client_fname, p.client_lname].filter(Boolean).join(" ")
+                            : p.fullname || "—"}
                         </td>
                         <td className="px-3 py-2 text-muted-foreground">
                           {p.co_host_name || "—"}
