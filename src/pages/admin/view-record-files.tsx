@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, ExternalLink, Plus, Search, Edit, Trash2, List, ChevronLeft, ChevronRight, Download, Eye, Grid3x3, Folder, Archive, History } from "lucide-react";
+import { ArrowLeft, ExternalLink, Plus, Search, Edit, Trash2, List, ChevronLeft, ChevronRight, Download, Eye, Grid3x3, Folder, Archive, History, FileText, FileType, File as FileIcon } from "lucide-react";
 import { RecordFilesLogModal } from "@/components/modals/RecordFilesLogModal";
 import { RecordFileViewModal } from "@/components/modals/RecordFileViewModal";
 import { FileViewerModal } from "@/components/modals/FileViewerModal";
@@ -23,18 +23,41 @@ import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { cn } from "@/lib/utils";
 
+const IMAGE_EXTS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "avif"];
+
+function fileExt(name: string): string {
+  return (name.split(".").pop() || "").toLowerCase();
+}
+
 /**
- * LazyRecordImage — fetches a record-file image (authenticated /content endpoint
- * → blob) ONLY when its card scrolls near the viewport, instead of loading all
- * 20+ images up front. This keeps the Records & Files page responsive even with
- * many large images: the browser only pays for what the user actually scrolls to.
+ * Non-image files (PDF, txt, docx, …) can't render in an <img> — doing so shows
+ * the browser's broken-image glyph. Pick a file-type icon + label for those so
+ * the thumbnail reads as "a PDF" instead of looking broken.
  */
-function LazyRecordImage({ fileAid, alt }: { fileAid: number; alt: string }) {
+function fileTypeIcon(ext: string): { Icon: typeof FileIcon; label: string } {
+  if (ext === "pdf") return { Icon: FileType, label: "PDF" };
+  if (["txt", "rtf", "md", "csv"].includes(ext)) return { Icon: FileText, label: ext.toUpperCase() || "TEXT" };
+  if (["doc", "docx"].includes(ext)) return { Icon: FileText, label: "DOC" };
+  if (["xls", "xlsx"].includes(ext)) return { Icon: FileText, label: "XLS" };
+  return { Icon: FileIcon, label: ext ? ext.toUpperCase() : "FILE" };
+}
+
+/**
+ * LazyRecordImage — renders a record-file thumbnail. For actual images it fetches
+ * the authenticated /content endpoint → blob ONLY when the card scrolls near the
+ * viewport (so the browser only pays for what the user scrolls to). For non-image
+ * files (PDF/txt/doc/…) it shows a file-type icon instead of a broken <img>.
+ */
+function LazyRecordImage({ fileAid, alt, fileName }: { fileAid: number; alt: string; fileName: string }) {
+  const ext = fileExt(fileName);
+  const isImage = IMAGE_EXTS.includes(ext);
   const [src, setSrc] = useState<string | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
   const ref = React.useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    // Non-image files never fetch — they show a static type icon.
+    if (!isImage) return;
     const el = ref.current;
     if (!el) return;
     let objectUrl: string | null = null;
@@ -74,7 +97,17 @@ function LazyRecordImage({ fileAid, alt }: { fileAid: number; alt: string }) {
       observer.disconnect();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [fileAid]);
+  }, [fileAid, isImage]);
+
+  if (!isImage) {
+    const { Icon, label } = fileTypeIcon(ext);
+    return (
+      <div ref={ref} className="w-full h-full flex flex-col items-center justify-center gap-2 bg-card text-muted-foreground">
+        <Icon className="w-12 h-12" />
+        <span className="text-xs font-medium">{label}</span>
+      </div>
+    );
+  }
 
   return (
     <div ref={ref} className="w-full h-full">
@@ -794,6 +827,7 @@ export default function ViewRecordFilesPage() {
                             <LazyRecordImage
                               fileAid={file.recordsFileViewAid}
                               alt={file.recordsFileViewName}
+                              fileName={file.recordsFileViewName}
                             />
                           </button>
                           {/* File Number Badge */}
