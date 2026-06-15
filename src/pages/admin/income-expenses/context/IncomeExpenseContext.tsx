@@ -5,6 +5,13 @@ import { useToast } from "@/hooks/use-toast";
 import type { IncomeExpenseData, EditingCell } from "../types";
 import { useFormAmounts, type FormAmountsMap } from "../utils/useFormAmounts";
 
+// Per-car hidden standard rows: category → list of hidden field names.
+type HiddenRowsMap = {
+  directDelivery: string[];
+  cogs: string[];
+  parkingFeeLabor: string[];
+  reimbursedBills: string[];
+};
 
 interface IncomeExpenseContextType {
   data: IncomeExpenseData;
@@ -13,6 +20,12 @@ interface IncomeExpenseContextType {
   setEditingCell: (cell: EditingCell | null) => void;
   updateCell: (category: string, field: string, month: number, value: number) => void;
   saveChanges: (immediateChange?: { category: string; field: string; month: number; value: number; remarks?: string }) => void;
+  clearCategoryRow: (category: string, field: string) => Promise<void>;
+  // Hidden standard rows (per-car). Hiding is blocked when the row has data.
+  hiddenRows: HiddenRowsMap;
+  isStandardRowHidden: (category: string, field: string) => boolean;
+  hideStandardRow: (category: string, field: string, force?: boolean) => Promise<void>;
+  unhideStandardRow: (category: string, field: string) => Promise<void>;
   isSaving: boolean;
   monthModes: { [month: number]: 50 | 70 };
   toggleMonthMode: (month: number) => Promise<void>;
@@ -240,6 +253,15 @@ export function IncomeExpenseProvider({
     reimbursedBills: [] as any[],
   });
 
+  // Per-car hidden standard rows (Labor - Cleaning, Battery, ...). Keyed by
+  // category → list of hidden field names. Empty in "All Cars" mode.
+  const [hiddenRows, setHiddenRows] = useState<HiddenRowsMap>({
+    directDelivery: [],
+    cogs: [],
+    parkingFeeLabor: [],
+    reimbursedBills: [],
+  });
+
   // Fetch income/expense data (aggregated for all cars, or per car)
   const { data: incomeExpenseData, isLoading } = useQuery<{
     success: boolean;
@@ -318,6 +340,94 @@ export function IncomeExpenseProvider({
       fetchDynamicSubcategories();
     }
   }, [carId, year, isAllCars]);
+
+  // ---- Hidden standard rows (per-car) ----
+  const fetchHiddenRows = async () => {
+    if (isAllCars || !carId) {
+      setHiddenRows({ directDelivery: [], cogs: [], parkingFeeLabor: [], reimbursedBills: [] });
+      return;
+    }
+    try {
+      const response = await fetch(
+        buildApiUrl(`/api/income-expense/hidden-rows/${carId}/${year}`),
+        { credentials: "include" },
+      );
+      if (response.ok) {
+        const result = await response.json();
+        setHiddenRows(
+          result.data || { directDelivery: [], cogs: [], parkingFeeLabor: [], reimbursedBills: [] },
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching hidden rows:", error);
+    }
+  };
+
+  React.useEffect(() => {
+    if (year && carId && !isAllCars) {
+      fetchHiddenRows();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carId, year, isAllCars]);
+
+  const isStandardRowHidden = (category: string, field: string): boolean =>
+    ((hiddenRows as any)?.[category] || []).includes(field);
+
+  // Hide a standard row. On 409 (recorded data) the error is rethrown with
+  // .status/.totalValue so the caller can offer a force-hide prompt.
+  const hideStandardRow = async (category: string, field: string, force = false) => {
+    try {
+      const response = await fetch(buildApiUrl("/api/income-expense/hidden-rows/hide"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ carId, year: parseInt(year), category, field, force }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        if (response.status === 409) {
+          const err: any = new Error(body?.error || "Cannot hide a row with recorded data");
+          err.status = 409;
+          err.totalValue = body?.totalValue;
+          throw err;
+        }
+        throw new Error(body?.error || "Failed to hide row");
+      }
+      await fetchHiddenRows();
+    } catch (error: any) {
+      if (!force && error?.status !== 409) {
+        toast({
+          title: "Cannot hide sub-category",
+          description: error?.message || "Failed to hide row",
+          variant: "destructive",
+        });
+      }
+      throw error;
+    }
+  };
+
+  const unhideStandardRow = async (category: string, field: string) => {
+    try {
+      const response = await fetch(buildApiUrl("/api/income-expense/hidden-rows/unhide"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ carId, year: parseInt(year), category, field }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error || "Failed to restore row");
+      }
+      await fetchHiddenRows();
+      toast({ title: "Sub-category restored" });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to restore row",
+        variant: "destructive",
+      });
+    }
+  };
 
   const refreshDynamicSubcategories = async () => {
     await fetchDynamicSubcategories();
@@ -910,6 +1020,60 @@ export function IncomeExpenseProvider({
     saveMutation.mutate();
   };
 
+  // Reset all 12 months of a single standard (fixed) category row to $0.
+  // The old approach looped saveChanges() 12×, which raced on the
+  // pendingChanges state (every call read the same stale closure) and fired
+  // 12 toasts + 12 invalidations — unreliable enough that the 🗑️ button
+  // looked broken. This sends all 12 month POSTs directly, awaits them all,
+  // then invalidates once.
+  const clearCategoryRow = async (category: string, field: string) => {
+    const endpoint = getCategoryEndpoint(category);
+    if (!endpoint) {
+      toast({
+        title: "Error",
+        description: `Cannot clear "${category}" — no endpoint for this category.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      await Promise.all(
+        Array.from({ length: 12 }, (_, i) =>
+          fetch(buildApiUrl(endpoint), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              carId,
+              year: parseInt(year),
+              month: i + 1,
+              [field]: 0,
+            }),
+          }).then((res) => {
+            if (!res.ok) throw new Error(`Failed to clear ${category}`);
+            return res.json();
+          }),
+        ),
+      );
+      queryClient.invalidateQueries({
+        queryKey: isAllCars
+          ? ["/api/income-expense/all-cars", year]
+          : ["/api/income-expense", carId, year],
+      });
+      setEditingCell(null);
+      toast({
+        title: "Row cleared",
+        description: "All 12 monthly values were reset to $0.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to clear row",
+        variant: "destructive",
+      });
+    }
+  };
+
   function getCategoryEndpoint(category: string): string | null {
     const endpoints: { [key: string]: string } = {
       income: "/api/income-expense/income",
@@ -933,6 +1097,11 @@ export function IncomeExpenseProvider({
         setEditingCell,
         updateCell,
         saveChanges,
+        clearCategoryRow,
+        hiddenRows,
+        isStandardRowHidden,
+        hideStandardRow,
+        unhideStandardRow,
         isSaving: saveMutation.isPending,
         monthModes,
         toggleMonthMode,

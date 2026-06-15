@@ -407,7 +407,7 @@ export default function RecordsPage() {
 
   return (
     <AdminLayout>
-      <div className="flex flex-col h-full overflow-x-hidden">
+      <div className="flex flex-col overflow-x-hidden">
         {/* Header */}
         <div className="mb-4 sm:mb-6">
             <button

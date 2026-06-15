@@ -78,6 +78,44 @@ const roundToPhp2Dp = (value: number): number => {
   return (sign * Math.round(Math.abs(value) * 100 + 1e-9)) / 100;
 };
 
+// ── Legacy I&E rows (pending client approval to remove) ─────────────────────
+// Cathy asked to drop these standard rows from Direct Delivery / COGS /
+// Reimbursed Bills but hasn't gotten client sign-off, so this is fully
+// recoverable: flip SHOW_LEGACY_IE_ROWS back to `true` and they reappear
+// exactly as before. The underlying DB columns are NEVER touched — values
+// stay in the database. While hidden, these fields are also excluded from
+// every total (section TOTAL rows AND the getTotal*ForMonth helpers that feed
+// Car Management/Owner Split, Net Income, EBITDA) so the page stays
+// internally consistent: visible rows always sum to the displayed total.
+const SHOW_LEGACY_IE_ROWS = false;
+
+// Fields hidden (and excluded from totals) when SHOW_LEGACY_IE_ROWS is false.
+const LEGACY_HIDDEN_FIELDS: {
+  directDelivery: string[];
+  cogs: string[];
+  reimbursedBills: string[];
+} = {
+  directDelivery: ["laborCarCleaning"],
+  cogs: [
+    "carPayment",
+    "carInsurance",
+    "cleaningSuppliesTools",
+    "laborCleaning", // "Labor - Detailing"
+    "wipers",
+    "uberLyftLime",
+    "tiredAirStation",
+  ],
+  reimbursedBills: ["electricReimbursed", "electricNotReimbursed"],
+};
+
+// True when a given section/field is a legacy row that should currently be
+// hidden + excluded from totals.
+const isLegacyHidden = (
+  section: keyof typeof LEGACY_HIDDEN_FIELDS,
+  field: string,
+): boolean =>
+  !SHOW_LEGACY_IE_ROWS && (LEGACY_HIDDEN_FIELDS[section] || []).includes(field);
+
 export default function IncomeExpenseTable({
   year,
   isFromRoute = false,
@@ -109,7 +147,11 @@ export default function IncomeExpenseTable({
     deleteDynamicSubcategory,
     updateDynamicSubcategoryValue,
     refreshDynamicSubcategories,
-    saveChanges,
+    clearCategoryRow,
+    isStandardRowHidden,
+    hideStandardRow,
+    unhideStandardRow,
+    hiddenRows,
     setEditingCell,
     carId,
     isAllCars,
@@ -135,6 +177,39 @@ export default function IncomeExpenseTable({
   React.useEffect(() => {
     setOwnership(seedOwnership(data));
   }, [(data as any)?.ownership, (data as any)?.isGlaOwned]);
+
+  // ── Co-Hosting note (free-text, per-car). Shown next to the Ownership
+  // selector; for co-hosting context only — does not affect any formula. ──
+  const [coHostNote, setCoHostNote] = useState<string>(
+    String((data as any)?.coHostNote ?? ""),
+  );
+  const [savingCoHostNote, setSavingCoHostNote] = useState(false);
+  const lastSavedNote = React.useRef<string>(String((data as any)?.coHostNote ?? ""));
+  React.useEffect(() => {
+    const next = String((data as any)?.coHostNote ?? "");
+    setCoHostNote(next);
+    lastSavedNote.current = next;
+  }, [(data as any)?.coHostNote]);
+  const saveCoHostNote = async () => {
+    if (isReadOnly || isAllCars) return;
+    if (coHostNote === lastSavedNote.current) return; // no change
+    const prev = lastSavedNote.current;
+    setSavingCoHostNote(true);
+    try {
+      const res = await fetch(buildApiUrl("/api/income-expense/cohost-note"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ carId, note: coHostNote }),
+      });
+      if (!res.ok) throw new Error("save failed");
+      lastSavedNote.current = coHostNote;
+    } catch {
+      setCoHostNote(prev); // revert on failure
+    } finally {
+      setSavingCoHostNote(false);
+    }
+  };
   // GLA-owned drives the existing GLA-owned formula branch + per-month CH/MO
   // toggle; only the 'gla' selection counts as GLA-owned.
   const isGlaOwned = ownership === "gla";
@@ -328,21 +403,52 @@ export default function IncomeExpenseTable({
     setEditingCell({ category, field, month: 1, value: firstValue });
   };
 
-  // Called by the 🗑️ icon → resets all 12 months to $0 after confirmation.
-  const handleClearRow = (category: string, field: string, label: string) => {
+  // Called by the 🗑️ icon → hides the standard sub-category row for this car.
+  // The backend blocks hiding when the row has recorded data (409); we then
+  // offer to clear the row's values so it can be hidden.
+  const handleHideRow = async (
+    category: string,
+    field: string,
+    label: string,
+  ) => {
     if (isReadOnly) return;
     if (
       !window.confirm(
-        `Reset all 12 monthly values for "${label}" to $0?\n\nThis cannot be undone.`,
+        `Hide the "${label}" sub-category for this car?\n\nYou can restore it later from "Show hidden sub-categories".`,
       )
     )
       return;
-    for (let m = 1; m <= 12; m++) {
-      saveChanges({ category, field, month: m, value: 0 });
+    try {
+      await hideStandardRow(category, field);
+    } catch (err: any) {
+      if (err?.status === 409) {
+        const formatted =
+          err.totalValue != null
+            ? new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: "USD",
+              }).format(err.totalValue)
+            : "non-zero";
+        const ok = window.confirm(
+          `"${label}" has recorded data totaling ${formatted} this year.\n\nA sub-category with data can't be hidden. Reset all its monthly values to $0 and hide it now?`,
+        );
+        if (ok) {
+          await clearCategoryRow(category, field);
+          try {
+            await hideStandardRow(category, field, true);
+          } catch (e: any) {
+            toast({
+              title: "Hide failed",
+              description: e?.message || "Failed to hide row",
+              variant: "destructive",
+            });
+          }
+        }
+      }
     }
   };
 
-  // Convenience factory: returns onEdit + onClear props for a standard
+  // Convenience factory: returns onEdit + onHide props for a standard
   // CategoryRow so each row doesn't need to repeat the full handler inline.
   // Only produces handlers when NOT in read-only mode.
   type AffordedSection =
@@ -355,6 +461,7 @@ export default function IncomeExpenseTable({
     field: string,
     label: string,
   ) => ({
+    hidden: isStandardRowHidden(section, field),
     onEdit: isReadOnly
       ? undefined
       : () =>
@@ -363,10 +470,41 @@ export default function IncomeExpenseTable({
             field,
             getMonthValue((data as any)[section], 1, field),
           ),
-    onClear: isReadOnly
-      ? undefined
-      : () => handleClearRow(section, field, label),
+    onHide: isReadOnly ? undefined : () => handleHideRow(section, field, label),
   });
+
+  // Humanize a camelCase field key for the "hidden sub-categories" restore
+  // chips, e.g. "autoBodyShopWreck" → "Auto Body Shop Wreck".
+  const humanizeField = (field: string): string =>
+    field
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (c) => c.toUpperCase())
+      .trim();
+
+  // Renders a "Show hidden" toolbar entry for a section: one restore chip per
+  // hidden standard row. Empty (renders nothing) when the section has none.
+  const HiddenRowsRestore = ({ section }: { section: AffordedSection }) => {
+    const fields: string[] = (hiddenRows as any)?.[section] || [];
+    if (isReadOnly || fields.length === 0) return null;
+    return (
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs text-muted-foreground">
+          Hidden sub-categories:
+        </span>
+        {fields.map((field) => (
+          <button
+            key={field}
+            onClick={() => unhideStandardRow(section, field)}
+            className="flex items-center gap-1 text-xs text-[#B8860B] hover:text-[#9A7209] border border-[#B8860B]/40 rounded px-2 py-0.5 transition-colors"
+            title="Restore this sub-category"
+          >
+            <Plus className="w-3 h-3" />
+            {humanizeField(field)}
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   // ---- Duplicate cleanup helpers ----
   // Find dynamic subcategories whose names duplicate a standard row in the
@@ -490,14 +628,26 @@ export default function IncomeExpenseTable({
     );
   };
 
+  // True when a standard row is hidden — either a build-time legacy row
+  // (SHOW_LEGACY_IE_ROWS) or one an admin hid for this car via the 🗑️ icon.
+  // Hidden rows are excluded from rendering AND from every total below so the
+  // visible rows always sum to the displayed total.
+  const isRowHidden = (section: string, field: string): boolean =>
+    isLegacyHidden(section as any, field) || isStandardRowHidden(section, field);
+
   // Helper to get total operating expense (Direct Delivery) for a month (including dynamic subcategories)
   const getTotalDirectDeliveryForMonth = (month: number): number => {
+    // Hidden legacy rows are excluded from the total (see SHOW_LEGACY_IE_ROWS).
+    const dd = (field: string) =>
+      isRowHidden("directDelivery", field)
+        ? 0
+        : getMonthValue(data.directDelivery, month, field);
     const fixedTotal =
-      getMonthValue(data.directDelivery, month, "laborCarCleaning") +
-      getMonthValue(data.directDelivery, month, "laborDelivery") +
-      getMonthValue(data.directDelivery, month, "parkingAirport") +
-      getMonthValue(data.directDelivery, month, "parkingLot") +
-      getMonthValue(data.directDelivery, month, "uberLyftLime");
+      dd("laborCarCleaning") +
+      dd("laborDelivery") +
+      dd("parkingAirport") +
+      dd("parkingLot") +
+      dd("uberLyftLime");
     const dynamicTotal = dynamicSubcategories.directDelivery.reduce(
       (sum, subcat) => {
         const monthValue = subcat.values.find((v: any) => v.month === month);
@@ -514,31 +664,36 @@ export default function IncomeExpenseTable({
 
   // Helper to get total operating expense (COGS) for a month (including dynamic subcategories)
   const getTotalCogsForMonth = (month: number): number => {
+    // Hidden legacy rows are excluded from the total (see SHOW_LEGACY_IE_ROWS).
+    const cg = (field: string) =>
+      isRowHidden("cogs", field)
+        ? 0
+        : getMonthValue(data.cogs, month, field);
     const fixedTotal =
-      getMonthValue(data.cogs, month, "autoBodyShopWreck") +
-      getMonthValue(data.cogs, month, "alignment") +
-      getMonthValue(data.cogs, month, "battery") +
-      getMonthValue(data.cogs, month, "brakes") +
-      getMonthValue(data.cogs, month, "carPayment") +
-      getMonthValue(data.cogs, month, "carInsurance") +
-      getMonthValue(data.cogs, month, "carSeats") +
-      getMonthValue(data.cogs, month, "cleaningSuppliesTools") +
-      getMonthValue(data.cogs, month, "emissions") +
-      getMonthValue(data.cogs, month, "gpsSystem") +
-      getMonthValue(data.cogs, month, "keyFob") +
-      getMonthValue(data.cogs, month, "laborCleaning") +
-      getMonthValue(data.cogs, month, "licenseRegistration") +
-      getMonthValue(data.cogs, month, "mechanic") +
-      getMonthValue(data.cogs, month, "oilLube") +
-      getMonthValue(data.cogs, month, "parts") +
-      getMonthValue(data.cogs, month, "skiRacks") +
-      getMonthValue(data.cogs, month, "tickets") +
-      getMonthValue(data.cogs, month, "tiredAirStation") +
-      getMonthValue(data.cogs, month, "tires") +
-      getMonthValue(data.cogs, month, "towingImpoundFees") +
-      getMonthValue(data.cogs, month, "uberLyftLime") +
-      getMonthValue(data.cogs, month, "windshield") +
-      getMonthValue(data.cogs, month, "wipers");
+      cg("autoBodyShopWreck") +
+      cg("alignment") +
+      cg("battery") +
+      cg("brakes") +
+      cg("carPayment") +
+      cg("carInsurance") +
+      cg("carSeats") +
+      cg("cleaningSuppliesTools") +
+      cg("emissions") +
+      cg("gpsSystem") +
+      cg("keyFob") +
+      cg("laborCleaning") +
+      cg("licenseRegistration") +
+      cg("mechanic") +
+      cg("oilLube") +
+      cg("parts") +
+      cg("skiRacks") +
+      cg("tickets") +
+      cg("tiredAirStation") +
+      cg("tires") +
+      cg("towingImpoundFees") +
+      cg("uberLyftLime") +
+      cg("windshield") +
+      cg("wipers");
     const dynamicTotal = dynamicSubcategories.cogs.reduce((sum, subcat) => {
       const monthValue = subcat.values.find((v: any) => v.month === month);
       return sum + (monthValue?.value || 0);
@@ -548,15 +703,20 @@ export default function IncomeExpenseTable({
 
   // Helper to get total reimbursed bills for a month (including dynamic subcategories)
   const getTotalReimbursedBillsForMonth = (month: number): number => {
+    // Hidden legacy rows are excluded from the total (see SHOW_LEGACY_IE_ROWS).
+    const rb = (field: string) =>
+      isRowHidden("reimbursedBills", field)
+        ? 0
+        : getMonthValue(data.reimbursedBills, month, field);
     const fixedTotal =
-      getMonthValue(data.reimbursedBills, month, "electricReimbursed") +
-      getMonthValue(data.reimbursedBills, month, "electricNotReimbursed") +
-      getMonthValue(data.reimbursedBills, month, "gasReimbursed") +
-      getMonthValue(data.reimbursedBills, month, "gasNotReimbursed") +
-      getMonthValue(data.reimbursedBills, month, "gasServiceRun") +
-      getMonthValue(data.reimbursedBills, month, "parkingAirport") +
-      getMonthValue(data.reimbursedBills, month, "uberLyftLimeNotReimbursed") +
-      getMonthValue(data.reimbursedBills, month, "uberLyftLimeReimbursed");
+      rb("electricReimbursed") +
+      rb("electricNotReimbursed") +
+      rb("gasReimbursed") +
+      rb("gasNotReimbursed") +
+      rb("gasServiceRun") +
+      rb("parkingAirport") +
+      rb("uberLyftLimeNotReimbursed") +
+      rb("uberLyftLimeReimbursed");
     const dynamicTotal = dynamicSubcategories.reimbursedBills.reduce(
       (sum, subcat) => {
         const monthValue = subcat.values.find((v: any) => v.month === month);
@@ -573,9 +733,11 @@ export default function IncomeExpenseTable({
 
   // Helper to get total parking fee & labor cleaning for a month (including dynamic subcategories)
   const getTotalParkingFeeLaborForMonth = (month: number): number => {
-    const fixedTotal =
-      getMonthValue(data.parkingFeeLabor, month, "glaParkingFee") +
-      getMonthValue(data.parkingFeeLabor, month, "laborCleaning");
+    const pf = (field: string) =>
+      isRowHidden("parkingFeeLabor", field)
+        ? 0
+        : getMonthValue(data.parkingFeeLabor, month, field);
+    const fixedTotal = pf("glaParkingFee") + pf("laborCleaning");
     const dynamicTotal = dynamicSubcategories.parkingFeeLabor.reduce(
       (sum, subcat) => {
         const monthValue = subcat.values.find((v: any) => v.month === month);
@@ -2042,6 +2204,32 @@ export default function IncomeExpenseTable({
                 : "Co-Host Split inactive"}
           </span>
           {savingGlaOwned && <span className="text-xs text-muted-foreground">saving…</span>}
+          {/* Co-Hosting note — free-text, for co-hosting context only. Saves on
+              blur / Enter; does not affect any split formula. */}
+          <div className="flex items-center gap-1.5 ml-auto min-w-0">
+            <span className="text-sm font-medium whitespace-nowrap">Co-Host Note:</span>
+            <input
+              type="text"
+              value={coHostNote}
+              disabled={isReadOnly || savingCoHostNote}
+              onChange={(e) => setCoHostNote(e.target.value)}
+              onBlur={saveCoHostNote}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              }}
+              placeholder="Add a note for co-hosting…"
+              className={cn(
+                "text-sm px-2 py-1 rounded border border-border bg-background",
+                "w-64 max-w-full",
+                isReadOnly || savingCoHostNote
+                  ? "cursor-not-allowed opacity-60"
+                  : "",
+              )}
+            />
+            {savingCoHostNote && (
+              <span className="text-xs text-muted-foreground">saving…</span>
+            )}
+          </div>
         </div>
       )}
       {/*
@@ -2522,19 +2710,25 @@ export default function IncomeExpenseTable({
               isExpanded={expandedSections.directDelivery}
               onToggle={() => toggleSection("directDelivery")}
             >
-              <CategoryRow
-                label="Labor - Cleaning"
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(data.directDelivery, i + 1, "laborCarCleaning"),
-                )}
-                category="directDelivery"
-                field="laborCarCleaning"
-                {...rowActions(
-                  "directDelivery",
-                  "laborCarCleaning",
-                  "Labor - Cleaning",
-                )}
-              />
+              {SHOW_LEGACY_IE_ROWS && (
+                <CategoryRow
+                  label="Labor - Cleaning"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(
+                      data.directDelivery,
+                      i + 1,
+                      "laborCarCleaning",
+                    ),
+                  )}
+                  category="directDelivery"
+                  field="laborCarCleaning"
+                  {...rowActions(
+                    "directDelivery",
+                    "laborCarCleaning",
+                    "Labor - Cleaning",
+                  )}
+                />
+              )}
               <CategoryRow
                 label="Labor - Delivery"
                 values={MONTHS.map((_, i) =>
@@ -2641,6 +2835,7 @@ export default function IncomeExpenseTable({
                             : "s"}
                         </button>
                       )}
+                      <HiddenRowsRestore section="directDelivery" />
                     </div>
                   </td>
                 </tr>
@@ -2649,28 +2844,17 @@ export default function IncomeExpenseTable({
                 label="TOTAL OPERATING EXPENSE (Direct Delivery)"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
+                  // Hidden legacy rows excluded (see SHOW_LEGACY_IE_ROWS).
+                  const dd = (field: string) =>
+                    isRowHidden("directDelivery", field)
+                      ? 0
+                      : getMonthValue(data.directDelivery, monthNum, field);
                   const fixedTotal =
-                    getMonthValue(
-                      data.directDelivery,
-                      monthNum,
-                      "laborCarCleaning",
-                    ) +
-                    getMonthValue(
-                      data.directDelivery,
-                      monthNum,
-                      "laborDelivery",
-                    ) +
-                    getMonthValue(
-                      data.directDelivery,
-                      monthNum,
-                      "parkingAirport",
-                    ) +
-                    getMonthValue(data.directDelivery, monthNum, "parkingLot") +
-                    getMonthValue(
-                      data.directDelivery,
-                      monthNum,
-                      "uberLyftLime",
-                    );
+                    dd("laborCarCleaning") +
+                    dd("laborDelivery") +
+                    dd("parkingAirport") +
+                    dd("parkingLot") +
+                    dd("uberLyftLime");
                   const dynamicTotal =
                     dynamicSubcategories.directDelivery.reduce(
                       (sum, subcat) => {
@@ -2734,24 +2918,28 @@ export default function IncomeExpenseTable({
                 field="brakes"
                 {...rowActions("cogs", "brakes", "Brakes")}
               />
-              <CategoryRow
-                label="Car Payment"
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(data.cogs, i + 1, "carPayment"),
-                )}
-                category="cogs"
-                field="carPayment"
-                {...rowActions("cogs", "carPayment", "Car Payment")}
-              />
-              <CategoryRow
-                label="Car Insurance"
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(data.cogs, i + 1, "carInsurance"),
-                )}
-                category="cogs"
-                field="carInsurance"
-                {...rowActions("cogs", "carInsurance", "Car Insurance")}
-              />
+              {SHOW_LEGACY_IE_ROWS && (
+                <CategoryRow
+                  label="Car Payment"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.cogs, i + 1, "carPayment"),
+                  )}
+                  category="cogs"
+                  field="carPayment"
+                  {...rowActions("cogs", "carPayment", "Car Payment")}
+                />
+              )}
+              {SHOW_LEGACY_IE_ROWS && (
+                <CategoryRow
+                  label="Car Insurance"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.cogs, i + 1, "carInsurance"),
+                  )}
+                  category="cogs"
+                  field="carInsurance"
+                  {...rowActions("cogs", "carInsurance", "Car Insurance")}
+                />
+              )}
               <CategoryRow
                 label="Car Seats"
                 values={MONTHS.map((_, i) =>
@@ -2761,19 +2949,21 @@ export default function IncomeExpenseTable({
                 field="carSeats"
                 {...rowActions("cogs", "carSeats", "Car Seats")}
               />
-              <CategoryRow
-                label="Cleaning Supplies / Tools"
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(data.cogs, i + 1, "cleaningSuppliesTools"),
-                )}
-                category="cogs"
-                field="cleaningSuppliesTools"
-                {...rowActions(
-                  "cogs",
-                  "cleaningSuppliesTools",
-                  "Cleaning Supplies / Tools",
-                )}
-              />
+              {SHOW_LEGACY_IE_ROWS && (
+                <CategoryRow
+                  label="Cleaning Supplies / Tools"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.cogs, i + 1, "cleaningSuppliesTools"),
+                  )}
+                  category="cogs"
+                  field="cleaningSuppliesTools"
+                  {...rowActions(
+                    "cogs",
+                    "cleaningSuppliesTools",
+                    "Cleaning Supplies / Tools",
+                  )}
+                />
+              )}
               <CategoryRow
                 label="Emissions"
                 values={MONTHS.map((_, i) =>
@@ -2801,15 +2991,17 @@ export default function IncomeExpenseTable({
                 field="keyFob"
                 {...rowActions("cogs", "keyFob", "Keys & Fob")}
               />
-              <CategoryRow
-                label="Labor - Detailing"
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(data.cogs, i + 1, "laborCleaning"),
-                )}
-                category="cogs"
-                field="laborCleaning"
-                {...rowActions("cogs", "laborCleaning", "Labor - Detailing")}
-              />
+              {SHOW_LEGACY_IE_ROWS && (
+                <CategoryRow
+                  label="Labor - Detailing"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.cogs, i + 1, "laborCleaning"),
+                  )}
+                  category="cogs"
+                  field="laborCleaning"
+                  {...rowActions("cogs", "laborCleaning", "Labor - Detailing")}
+                />
+              )}
               <CategoryRow
                 label="Windshield"
                 values={MONTHS.map((_, i) =>
@@ -2819,24 +3011,28 @@ export default function IncomeExpenseTable({
                 field="windshield"
                 {...rowActions("cogs", "windshield", "Windshield")}
               />
-              <CategoryRow
-                label="Wipers"
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(data.cogs, i + 1, "wipers"),
-                )}
-                category="cogs"
-                field="wipers"
-                {...rowActions("cogs", "wipers", "Wipers")}
-              />
-              <CategoryRow
-                label="Uber/Lyft/Lime"
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(data.cogs, i + 1, "uberLyftLime"),
-                )}
-                category="cogs"
-                field="uberLyftLime"
-                {...rowActions("cogs", "uberLyftLime", "Uber/Lyft/Lime")}
-              />
+              {SHOW_LEGACY_IE_ROWS && (
+                <CategoryRow
+                  label="Wipers"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.cogs, i + 1, "wipers"),
+                  )}
+                  category="cogs"
+                  field="wipers"
+                  {...rowActions("cogs", "wipers", "Wipers")}
+                />
+              )}
+              {SHOW_LEGACY_IE_ROWS && (
+                <CategoryRow
+                  label="Uber/Lyft/Lime"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.cogs, i + 1, "uberLyftLime"),
+                  )}
+                  category="cogs"
+                  field="uberLyftLime"
+                  {...rowActions("cogs", "uberLyftLime", "Uber/Lyft/Lime")}
+                />
+              )}
               <CategoryRow
                 label="Towing / Impound Fees"
                 values={MONTHS.map((_, i) =>
@@ -2850,15 +3046,21 @@ export default function IncomeExpenseTable({
                   "Towing / Impound Fees",
                 )}
               />
-              <CategoryRow
-                label="Tired Air Station"
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(data.cogs, i + 1, "tiredAirStation"),
-                )}
-                category="cogs"
-                field="tiredAirStation"
-                {...rowActions("cogs", "tiredAirStation", "Tired Air Station")}
-              />
+              {SHOW_LEGACY_IE_ROWS && (
+                <CategoryRow
+                  label="Tired Air Station"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(data.cogs, i + 1, "tiredAirStation"),
+                  )}
+                  category="cogs"
+                  field="tiredAirStation"
+                  {...rowActions(
+                    "cogs",
+                    "tiredAirStation",
+                    "Tired Air Station",
+                  )}
+                />
+              )}
               <CategoryRow
                 label="Tires"
                 values={MONTHS.map((_, i) =>
@@ -2978,6 +3180,7 @@ export default function IncomeExpenseTable({
                             : "s"}
                         </button>
                       )}
+                      <HiddenRowsRestore section="cogs" />
                     </div>
                   </td>
                 </tr>
@@ -2986,35 +3189,36 @@ export default function IncomeExpenseTable({
                 label="TOTAL OPERATING EXPENSE (COGS - Per Vehicle)"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
+                  // Hidden legacy rows excluded (see SHOW_LEGACY_IE_ROWS).
+                  const cg = (field: string) =>
+                    isRowHidden("cogs", field)
+                      ? 0
+                      : getMonthValue(data.cogs, monthNum, field);
                   const fixedTotal =
-                    getMonthValue(data.cogs, monthNum, "autoBodyShopWreck") +
-                    getMonthValue(data.cogs, monthNum, "alignment") +
-                    getMonthValue(data.cogs, monthNum, "battery") +
-                    getMonthValue(data.cogs, monthNum, "brakes") +
-                    getMonthValue(data.cogs, monthNum, "carPayment") +
-                    getMonthValue(data.cogs, monthNum, "carInsurance") +
-                    getMonthValue(data.cogs, monthNum, "carSeats") +
-                    getMonthValue(
-                      data.cogs,
-                      monthNum,
-                      "cleaningSuppliesTools",
-                    ) +
-                    getMonthValue(data.cogs, monthNum, "emissions") +
-                    getMonthValue(data.cogs, monthNum, "gpsSystem") +
-                    getMonthValue(data.cogs, monthNum, "keyFob") +
-                    getMonthValue(data.cogs, monthNum, "laborCleaning") +
-                    getMonthValue(data.cogs, monthNum, "licenseRegistration") +
-                    getMonthValue(data.cogs, monthNum, "mechanic") +
-                    getMonthValue(data.cogs, monthNum, "oilLube") +
-                    getMonthValue(data.cogs, monthNum, "parts") +
-                    getMonthValue(data.cogs, monthNum, "skiRacks") +
-                    getMonthValue(data.cogs, monthNum, "tickets") +
-                    getMonthValue(data.cogs, monthNum, "tiredAirStation") +
-                    getMonthValue(data.cogs, monthNum, "tires") +
-                    getMonthValue(data.cogs, monthNum, "towingImpoundFees") +
-                    getMonthValue(data.cogs, monthNum, "uberLyftLime") +
-                    getMonthValue(data.cogs, monthNum, "windshield") +
-                    getMonthValue(data.cogs, monthNum, "wipers");
+                    cg("autoBodyShopWreck") +
+                    cg("alignment") +
+                    cg("battery") +
+                    cg("brakes") +
+                    cg("carPayment") +
+                    cg("carInsurance") +
+                    cg("carSeats") +
+                    cg("cleaningSuppliesTools") +
+                    cg("emissions") +
+                    cg("gpsSystem") +
+                    cg("keyFob") +
+                    cg("laborCleaning") +
+                    cg("licenseRegistration") +
+                    cg("mechanic") +
+                    cg("oilLube") +
+                    cg("parts") +
+                    cg("skiRacks") +
+                    cg("tickets") +
+                    cg("tiredAirStation") +
+                    cg("tires") +
+                    cg("towingImpoundFees") +
+                    cg("uberLyftLime") +
+                    cg("windshield") +
+                    cg("wipers");
                   const dynamicTotal = dynamicSubcategories.cogs.reduce(
                     (sum, subcat) => {
                       const monthValue = subcat.values.find(
@@ -3122,6 +3326,7 @@ export default function IncomeExpenseTable({
                             : "s"}
                         </button>
                       )}
+                      <HiddenRowsRestore section="parkingFeeLabor" />
                     </div>
                   </td>
                 </tr>
@@ -3164,40 +3369,44 @@ export default function IncomeExpenseTable({
               isExpanded={expandedSections.reimbursedBills}
               onToggle={() => toggleSection("reimbursedBills")}
             >
-              <CategoryRow
-                label="Electric - Reimbursed"
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(
-                    data.reimbursedBills,
-                    i + 1,
+              {SHOW_LEGACY_IE_ROWS && (
+                <CategoryRow
+                  label="Electric - Reimbursed"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(
+                      data.reimbursedBills,
+                      i + 1,
+                      "electricReimbursed",
+                    ),
+                  )}
+                  category="reimbursedBills"
+                  field="electricReimbursed"
+                  {...rowActions(
+                    "reimbursedBills",
                     "electricReimbursed",
-                  ),
-                )}
-                category="reimbursedBills"
-                field="electricReimbursed"
-                {...rowActions(
-                  "reimbursedBills",
-                  "electricReimbursed",
-                  "Electric - Reimbursed",
-                )}
-              />
-              <CategoryRow
-                label="Electric - Not Reimbursed"
-                values={MONTHS.map((_, i) =>
-                  getMonthValue(
-                    data.reimbursedBills,
-                    i + 1,
+                    "Electric - Reimbursed",
+                  )}
+                />
+              )}
+              {SHOW_LEGACY_IE_ROWS && (
+                <CategoryRow
+                  label="Electric - Not Reimbursed"
+                  values={MONTHS.map((_, i) =>
+                    getMonthValue(
+                      data.reimbursedBills,
+                      i + 1,
+                      "electricNotReimbursed",
+                    ),
+                  )}
+                  category="reimbursedBills"
+                  field="electricNotReimbursed"
+                  {...rowActions(
+                    "reimbursedBills",
                     "electricNotReimbursed",
-                  ),
-                )}
-                category="reimbursedBills"
-                field="electricNotReimbursed"
-                {...rowActions(
-                  "reimbursedBills",
-                  "electricNotReimbursed",
-                  "Electric - Not Reimbursed",
-                )}
-              />
+                    "Electric - Not Reimbursed",
+                  )}
+                />
+              )}
               <CategoryRow
                 label="Gas - Reimbursed"
                 values={MONTHS.map((_, i) =>
@@ -3347,6 +3556,7 @@ export default function IncomeExpenseTable({
                             : "s"}
                         </button>
                       )}
+                      <HiddenRowsRestore section="reimbursedBills" />
                     </div>
                   </td>
                 </tr>
@@ -4692,9 +4902,12 @@ interface CategoryRowProps {
   alwaysEditable?: boolean;
   /** When true, show ✏️ and 🗑️ icons next to the label. The icons are only
    *  visible in edit mode (never on the read-only /admin/income-expenses page).
-   *  ✏️ focuses month-1 for editing; 🗑️ resets all 12 months to $0. */
+   *  ✏️ focuses month-1 for editing; 🗑️ hides the sub-category for this car. */
   onEdit?: () => void;
-  onClear?: () => void;
+  onHide?: () => void;
+  /** When true this standard row is hidden for the current car — the row is
+   *  not rendered at all (and is excluded from totals by the caller). */
+  hidden?: boolean;
   /** Called when a non-editable percentage cell is clicked. Receives the 1-based month number. */
   onPercentCellClick?: (month: number) => void;
 }
@@ -4718,11 +4931,16 @@ function CategoryRow({
   totalOverride,
   alwaysEditable = false,
   onEdit,
-  onClear,
+  onHide,
+  hidden = false,
   onPercentCellClick,
 }: CategoryRowProps) {
   const [location] = useLocation();
   const isEmployeeView = useIsEmployeeView();
+  // Hidden standard rows are removed entirely from this car's table. They are
+  // also excluded from section totals by the caller (see isRowHidden).
+  // (Placed after hooks to respect the rules of hooks.)
+  if (hidden) return null;
   // Employees only see the whitelisted rows; any other fixed row (Car Payment,
   // Car Insurance, Cleaning Supplies, Labor - Detailing, Wipers, the income/
   // split/total rows, etc.) is hidden. Admins see everything.
@@ -4840,7 +5058,7 @@ function CategoryRow({
         className="md:sticky md:left-0 md:z-20 bg-card px-2 py-1 text-left text-muted-foreground border-r border-border text-xs"
         title={label}
       >
-        {onEdit || onClear ? (
+        {onEdit || onHide ? (
           <div className="flex items-center gap-1.5">
             <span className="truncate">{label}</span>
             {onEdit && !isReadOnly && (
@@ -4852,11 +5070,11 @@ function CategoryRow({
                 <Pencil className="w-3 h-3" />
               </button>
             )}
-            {onClear && !isReadOnly && (
+            {onHide && !isReadOnly && (
               <button
-                onClick={onClear}
+                onClick={onHide}
                 className="text-red-700 hover:text-red-800 transition-colors shrink-0"
-                title="Reset all months to $0"
+                title="Hide this sub-category"
               >
                 <Trash2 className="w-3 h-3" />
               </button>
