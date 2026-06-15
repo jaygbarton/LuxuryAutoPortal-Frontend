@@ -226,16 +226,15 @@ export default function CoHostPaymentsPage() {
                         <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
                           {formatYearMonth(p.payments_year_month)}
                         </td>
-                        <td className="px-3 py-2 text-foreground max-w-[220px]">
-                          <div className="font-medium leading-tight">
-                            {[p.car_year, p.car_make_name || p.car_make_model].filter(Boolean).join(" ") || "—"}
+                        <td className="px-3 py-2 text-foreground">
+                          <div className="font-medium leading-tight whitespace-nowrap">
+                            {[
+                              p.car_make_name || p.car_make_model,
+                              p.car_year,
+                              p.car_vin_number ? `- ${p.car_vin_number}` : null,
+                              p.car_plate_number ? `- #${p.car_plate_number}` : null,
+                            ].filter(Boolean).join(" ") || "—"}
                           </div>
-                          {p.car_plate_number && (
-                            <div className="text-muted-foreground text-[10px] truncate">Plate: {p.car_plate_number}</div>
-                          )}
-                          {p.car_vin_number && (
-                            <div className="text-muted-foreground text-[10px] truncate font-mono">VIN: {p.car_vin_number}</div>
-                          )}
                         </td>
                         <td className="px-3 py-2 text-muted-foreground hidden sm:table-cell">
                           {p.client_fname || p.client_lname
