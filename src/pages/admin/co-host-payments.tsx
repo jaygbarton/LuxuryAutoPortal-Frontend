@@ -218,16 +218,7 @@ export default function CoHostPaymentsPage() {
                         <td className="px-3 py-2">
                           <Badge
                             variant="outline"
-                            className="text-xs font-semibold"
-                            style={
-                              p.payment_status_color
-                                ? {
-                                    color: p.payment_status_color,
-                                    borderColor: p.payment_status_color,
-                                    backgroundColor: "transparent",
-                                  }
-                                : {}
-                            }
+                            className="text-xs font-semibold text-foreground border-border bg-muted/40"
                           >
                             {p.payment_status_name}
                           </Badge>
