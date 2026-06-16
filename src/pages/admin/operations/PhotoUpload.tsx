@@ -11,6 +11,7 @@ interface PhotoUploadProps {
   entityType: "inspection" | "maintenance";
   entityId?: number;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 const IMAGE_TYPES = /^image\/(jpeg|jpg|png|webp|heic|heif|gif)$/i;
@@ -22,7 +23,7 @@ function isImageFile(file: File): boolean {
   return ["jpg", "jpeg", "png", "webp", "heic", "heif", "gif"].includes(ext);
 }
 
-export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disabled }: PhotoUploadProps) {
+export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disabled, compact }: PhotoUploadProps) {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -116,6 +117,51 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
   const removePhoto = (index: number) => {
     onPhotosChange(photos.filter((_, i) => i !== index));
   };
+
+  if (compact && photos.length > 0) {
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <div
+          className="w-14 h-14 rounded border border-border overflow-hidden cursor-pointer shrink-0"
+          onClick={() => { setSelectedPhoto(photos[0]); setGalleryOpen(true); }}
+        >
+          <img src={getProxiedImageUrl(photos[0])} alt="Photo 1" className="w-full h-full object-cover" />
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setGalleryOpen(true)}
+          className="text-muted-foreground hover:text-primary h-auto p-0 text-xs"
+        >
+          <ImageIcon className="w-3 h-3 mr-1" />
+          View all ({photos.length})
+        </Button>
+        <Dialog open={galleryOpen} onOpenChange={setGalleryOpen}>
+          <DialogContent className="bg-card border-border text-foreground max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Photos ({photos.length})</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto">
+              {photos.map((url, index) => (
+                <div
+                  key={index}
+                  className={`relative rounded border overflow-hidden cursor-pointer ${selectedPhoto === url ? "border-primary border-2" : "border-border"}`}
+                  onClick={() => setSelectedPhoto(url)}
+                >
+                  <img src={getProxiedImageUrl(url)} alt={`Photo ${index + 1}`} className="w-full aspect-square object-cover" />
+                </div>
+              ))}
+            </div>
+            {selectedPhoto && (
+              <div className="mt-3 flex justify-center">
+                <img src={getProxiedImageUrl(selectedPhoto)} alt="Selected" className="max-h-[40vh] rounded object-contain" />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
 
   return (
     <div>

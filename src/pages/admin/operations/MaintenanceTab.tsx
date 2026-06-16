@@ -734,6 +734,7 @@ export function MaintenanceTab({
                               entityType="maintenance"
                               entityId={rec.id}
                               disabled
+                              compact
                             />
                           ) : (
                             <span className="text-muted-foreground text-sm">
