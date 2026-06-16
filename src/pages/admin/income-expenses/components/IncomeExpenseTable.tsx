@@ -2090,6 +2090,10 @@ export default function IncomeExpenseTable({
   // In 30:70 mode: "TOTAL REIMBURSE AND NON-REIMBURSE BILLS" only
   // In 50:50 mode: "TOTAL REIMBURSE AND NON-REIMBURSE BILLS" + ("TOTAL OPERATING EXPENSE (Direct Delivery)" + "TOTAL OPERATING EXPENSE (COGS - Per Vehicle)") * "Car Management Split %"
   const calculateCarManagementTotalExpenses = (month: number): number => {
+    // Use manually-entered override when present (matches v3 behaviour)
+    const override = Number(getMonthValue(data.incomeExpenses, month, "mgmtTotalOverride"));
+    if (override > 0) return override;
+
     const totalReimbursedBills = getTotalReimbursedBillsForMonth(month);
 
     // Get the mode for this month
@@ -2117,6 +2121,10 @@ export default function IncomeExpenseTable({
   // In 30:70 mode: "TOTAL OPERATING EXPENSE (Direct Delivery)" + "TOTAL OPERATING EXPENSE (COGS - Per Vehicle)" + "Total Parking Fee & Labor Cleaning"
   // In 50:50 mode: ("TOTAL OPERATING EXPENSE (Direct Delivery)" + "TOTAL OPERATING EXPENSE (COGS - Per Vehicle)") * "Car Owner Split %"
   const calculateCarOwnerTotalExpenses = (month: number): number => {
+    // Use manually-entered override when present (matches v3 behaviour)
+    const override = Number(getMonthValue(data.incomeExpenses, month, "ownerTotalOverride"));
+    if (override > 0) return override;
+
     const totalDirectDelivery = getTotalDirectDeliveryForMonth(month);
     const totalCogs = getTotalCogsForMonth(month);
 
