@@ -12,23 +12,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
+import ReceiptUploadZone from "../components/ReceiptUploadZone";
+import { useImageUpload } from "../utils/useImageUpload";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export default function ModalEditParkingAirportQB() {
-  const { editingCell, setEditingCell, updateCell, saveChanges, isSaving, year } = useIncomeExpense();
+  const { editingCell, setEditingCell, updateCell, saveChanges, isSaving, year, carId } = useIncomeExpense();
 
   const monthName = editingCell ? MONTHS[editingCell.month - 1] : "";
   const isOpen = !!editingCell && editingCell.category === "parkingAirportQB";
 
+  const {
+    imageFiles, existingImages, isUploading, isLoadingImages,
+    fileInputRef, handleFileChange, handleFilesDropped,
+    handleRemoveImage, handleRemoveExistingImage, uploadImages, resetImages,
+  } = useImageUpload(carId, year, editingCell?.category || "", editingCell?.field || "", editingCell?.month || 1);
+
   const handleClose = () => {
     setEditingCell(null);
+    resetImages();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingCell) return;
-    
-    // Save the change immediately, passing it directly to saveChanges
+    if (imageFiles.length > 0) await uploadImages();
     saveChanges({
       category: editingCell.category,
       field: editingCell.field,
@@ -86,6 +94,18 @@ export default function ModalEditParkingAirportQB() {
               autoFocus
             />
           </div>
+
+          <ReceiptUploadZone
+            inputId="receipt-upload-parkingairportqb"
+            imageFiles={imageFiles}
+            existingImages={existingImages}
+            isLoadingImages={isLoadingImages}
+            fileInputRef={fileInputRef}
+            onFileChange={handleFileChange}
+            onFilesDropped={handleFilesDropped}
+            onRemoveNew={handleRemoveImage}
+            onRemoveExisting={handleRemoveExistingImage}
+          />
         </div>
 
         <DialogFooter className="flex gap-2">
@@ -98,10 +118,10 @@ export default function ModalEditParkingAirportQB() {
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || isUploading}
             className="flex-1 bg-primary text-primary-foreground hover:bg-primary/80"
           >
-            {isSaving ? "Saving..." : "Save"}
+            {isSaving || isUploading ? "Saving..." : imageFiles.length > 0 ? `Save & Upload ${imageFiles.length} Image${imageFiles.length > 1 ? "s" : ""}` : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
