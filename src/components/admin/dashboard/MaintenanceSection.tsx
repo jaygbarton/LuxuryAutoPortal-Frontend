@@ -22,6 +22,23 @@ interface MaintenanceTask {
   car_model?: string | null;
   car_year?: number | null;
   car_plate?: string | null;
+  // Trip context fields from backend join
+  trip_id?: number | null;
+  trip_reservation_id?: string | null;
+  trip_start?: string | null;
+  trip_end?: string | null;
+  trip_pickup_location?: string | null;
+  trip_delivery_location?: string | null;
+  trip_return_location?: string | null;
+  trip_extras?: string | null;
+  trip_miles_included?: string | null;
+  trip_total_distance?: string | number | null;
+  trip_start_odometer?: number | null;
+  trip_end_odometer?: number | null;
+  trip_earnings?: number | null;
+  trip_cancelled_earnings?: number | null;
+  trip_status?: string | null;
+  trip_plate_number?: string | null;
 }
 
 interface MaintenanceResponse {
@@ -35,8 +52,18 @@ interface MaintenanceSectionProps {
 }
 
 const TABLE_COLUMNS = [
+  { key: "reservationId", label: "Reservation #", align: "center" as const },
   { key: "car", label: "Car", align: "center" as const },
   { key: "plateNumber", label: "Plate #", align: "center" as const },
+  { key: "tripStart", label: "Trip Start", align: "center" as const },
+  { key: "pickupLocation", label: "Pick Up Location", align: "center" as const },
+  { key: "tripEnd", label: "Trip Ends", align: "center" as const },
+  { key: "daysRented", label: "Days Rented", align: "center" as const },
+  { key: "dropOffLocation", label: "Drop Off Location", align: "center" as const },
+  { key: "extras", label: "Extras", align: "center" as const },
+  { key: "milesIncluded", label: "Miles Included", align: "center" as const },
+  { key: "earnings", label: "Earnings", align: "center" as const },
+  { key: "tripStatus", label: "Trip Status", align: "center" as const },
   { key: "taskDescription", label: "Task Description", align: "center" as const },
   { key: "assignedTo", label: "Assigned To", align: "center" as const },
   { key: "scheduledDate", label: "Scheduled Date", align: "center" as const },
@@ -44,7 +71,7 @@ const TABLE_COLUMNS = [
   { key: "repairShop", label: "Repair Shop", align: "center" as const },
   { key: "photos", label: "Photos", align: "center" as const },
   { key: "notes", label: "Notes", align: "center" as const },
-  { key: "status", label: "Status", align: "center" as const },
+  { key: "status", label: "Maint. Status", align: "center" as const },
 ];
 
 function truncate(text: string, max: number): string {
@@ -58,6 +85,18 @@ function formatDate(dateStr: string | null | undefined): string {
   return format(d, "MMM d, yyyy");
 }
 
+function formatDateTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "—";
+  return format(d, "MMM d, yyyy h:mm a");
+}
+
+function formatCurrency(val: number | null | undefined): string {
+  if (val == null) return "—";
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
+}
+
 function statusLabel(status: string): string {
   const labels: Record<string, string> = {
     new: "New",
@@ -68,12 +107,32 @@ function statusLabel(status: string): string {
   return labels[status] ?? status.charAt(0).toUpperCase() + status.slice(1);
 }
 
+function tripStatusLabel(status: string | null | undefined): string {
+  if (!status) return "—";
+  const labels: Record<string, string> = {
+    booked: "Booked",
+    ended: "Ended",
+    returned: "Returned",
+    cancelled: "Cancelled",
+  };
+  return labels[status] ?? status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 function carLabel(task: MaintenanceTask): string {
   if (task.car_make || task.car_model) {
     const parts = [task.car_make, task.car_model, task.car_year].filter(Boolean);
     return parts.join(" ") || task.car_name || "—";
   }
   return task.car_name || "—";
+}
+
+function calculateDaysRented(start: string | null | undefined, end: string | null | undefined): number | null {
+  if (!start || !end) return null;
+  const s = new Date(start);
+  const e = new Date(end);
+  if (isNaN(s.getTime()) || isNaN(e.getTime())) return null;
+  const diff = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
+  return diff >= 0 ? diff : null;
 }
 
 function LoadingSkeleton() {
@@ -108,20 +167,41 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
     })
     .slice(0, 20);
 
-  const rows = displayTasks.map((task) => ({
-    car: carLabel(task),
-    plateNumber: task.car_plate || "—",
-    taskDescription: task.task_description ? truncate(task.task_description, 50) : "—",
-    assignedTo: task.assigned_to || "—",
-    scheduledDate: formatDate(task.scheduled_date),
-    dueDate: formatDate(task.due_date),
-    repairShop: task.repair_shop || "—",
-    photos: task.photos && task.photos.length > 0
-      ? `${task.photos.length} photo${task.photos.length > 1 ? "s" : ""}`
-      : "—",
-    notes: task.notes ? truncate(task.notes, 50) : "—",
-    status: statusLabel(task.status),
-  }));
+  const rows = displayTasks.map((task) => {
+    const hasTrip = !!(task.trip_id || task.trip_reservation_id || task.trip_start);
+    const pickupLocation = task.trip_pickup_location || task.trip_delivery_location || "—";
+    const dropOffLocation = task.trip_return_location || task.trip_delivery_location || "—";
+    const daysRented = calculateDaysRented(task.trip_start, task.trip_end);
+    const earnings = task.trip_status?.toLowerCase() === "cancelled"
+      ? task.trip_cancelled_earnings
+      : task.trip_earnings;
+    const plateNumber = task.car_plate || task.trip_plate_number || "—";
+
+    return {
+      reservationId: task.trip_reservation_id || "—",
+      car: carLabel(task),
+      plateNumber,
+      tripStart: hasTrip ? formatDateTime(task.trip_start) : "—",
+      pickupLocation: hasTrip ? pickupLocation : "—",
+      tripEnd: hasTrip ? formatDateTime(task.trip_end) : "—",
+      daysRented: daysRented != null ? daysRented : "—",
+      dropOffLocation: hasTrip ? dropOffLocation : "—",
+      extras: task.trip_extras || "—",
+      milesIncluded: task.trip_miles_included || (task.trip_total_distance != null ? String(task.trip_total_distance) : null) || "—",
+      earnings: earnings != null ? formatCurrency(earnings) : "—",
+      tripStatus: tripStatusLabel(task.trip_status),
+      taskDescription: task.task_description ? truncate(task.task_description, 50) : "—",
+      assignedTo: task.assigned_to || "—",
+      scheduledDate: formatDate(task.scheduled_date),
+      dueDate: formatDate(task.due_date),
+      repairShop: task.repair_shop || "—",
+      photos: task.photos && task.photos.length > 0
+        ? `${task.photos.length} photo${task.photos.length > 1 ? "s" : ""}`
+        : "—",
+      notes: task.notes ? truncate(task.notes, 50) : "—",
+      status: statusLabel(task.status),
+    };
+  });
 
   return (
     <div className="mb-8">
