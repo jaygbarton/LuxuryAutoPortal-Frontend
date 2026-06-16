@@ -27,6 +27,7 @@ import {
   Layers,
   Map as MapIcon,
   Menu,
+  Bell,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -973,6 +974,26 @@ export default function BouncieFleetPage() {
     window.location.href = buildApiUrl("/api/bouncie/connect");
   }, []);
 
+  const testSlackMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(buildApiUrl("/api/bouncie/alerts/test-slack"), {
+        method: "POST",
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to send");
+      return json;
+    },
+    onSuccess: () => {
+      toast({ title: "Test sent!", description: "Check your Bouncie Slack channel for the notification." });
+    },
+    onError: (e: any) => {
+      toast({ title: "Slack test failed", description: e.message, variant: "destructive" });
+    },
+  });
+  const testSlackPending = testSlackMutation.isPending;
+  const handleTestSlack = useCallback(() => testSlackMutation.mutate(), [testSlackMutation]);
+
   const handleMapSelect = useCallback((v: VehicleEntry) => {
     setSelectedId((prev) => (prev === v.device_id ? null : v.device_id));
   }, []);
@@ -1048,17 +1069,28 @@ export default function BouncieFleetPage() {
                   </span>{" "}
                   vehicle(s)
                 </p>
-                {isConnected && (
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() =>
-                      confirm("Disconnect Bouncie?") &&
-                      disconnectMutation.mutate()
-                    }
-                    className="text-[11px] text-gray-500 hover:text-red-400 transition-colors"
+                    onClick={handleTestSlack}
+                    disabled={testSlackPending}
+                    title="Send test Slack notification"
+                    className="text-[11px] text-gray-500 hover:text-green-400 transition-colors flex items-center gap-1 disabled:opacity-50"
                   >
-                    Disconnect
+                    <Bell className="w-3 h-3" />
+                    {testSlackPending ? "Sending…" : "Test Slack"}
                   </button>
-                )}
+                  {isConnected && (
+                    <button
+                      onClick={() =>
+                        confirm("Disconnect Bouncie?") &&
+                        disconnectMutation.mutate()
+                      }
+                      className="text-[11px] text-gray-500 hover:text-red-400 transition-colors"
+                    >
+                      Disconnect
+                    </button>
+                  )}
+                </div>
               </div>
               {isError && !isLoading && (
                 <p className="text-[11px] text-red-400 mt-1">
