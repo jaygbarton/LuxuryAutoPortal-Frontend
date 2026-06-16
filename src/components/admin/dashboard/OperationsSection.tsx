@@ -19,7 +19,7 @@ interface OperationTask {
   car_name: string | null;
   plate?: string | null;
   guest_name: string | null;
-  task_type: "cleaning" | "delivery" | "pickup";
+  task_type: "cleaning" | "delivery" | "pickup" | "refuel";
   assigned_to: string | null;
   scheduled_date: string | null;
   scheduled_location: string | null;
@@ -208,7 +208,9 @@ export default function OperationsSection() {
   }, [allTasks]);
 
   const tasks = useMemo(() => {
-    let f = allTasks;
+    // This section is "Pick Up and Drop Off" — refuel tasks are standalone
+    // Bouncie-triggered reminders, not related to guest pickups/deliveries.
+    let f = allTasks.filter(t => t.task_type !== "refuel");
     if (search.trim()) { const q = search.toLowerCase(); f = f.filter(t => Object.values(t).some(v => v != null && String(v).toLowerCase().includes(q))); }
     if (statusFilter !== "all") f = f.filter(t => t.status === statusFilter);
     if (assignedToFilter !== "all") f = f.filter(t => (t.assigned_to ?? "").trim() === assignedToFilter);

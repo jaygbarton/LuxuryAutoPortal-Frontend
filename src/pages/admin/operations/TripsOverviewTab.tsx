@@ -958,9 +958,9 @@ export function TripsOverviewTab() {
                         </TableCell>
                         <TableCell
                           className="text-muted-foreground text-sm max-w-[160px] truncate"
-                          title={trip.returnLocation || trip.deliveryLocation || ""}
+                          title={trip.returnLocation || trip.deliveryLocation || trip.pickupLocation || ""}
                         >
-                          {trip.returnLocation || trip.deliveryLocation || "--"}
+                          {trip.returnLocation || trip.deliveryLocation || trip.pickupLocation || "--"}
                         </TableCell>
                         <TableCell
                           className="text-muted-foreground text-sm max-w-[140px] truncate"

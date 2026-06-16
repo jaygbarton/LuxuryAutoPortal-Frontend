@@ -473,7 +473,7 @@ export function TripTasksTab() {
                         ? tripsById.get(task.turo_trip_id)
                         : undefined;
                     const pickupLocation = trip?.pickupLocation || trip?.deliveryLocation || "--";
-                    const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? "--";
+                    const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? trip?.pickupLocation ?? "--";
                     const daysRented = trip ? calculateDaysRented(trip.tripStart, trip.tripEnd) : null;
                     const earnings = trip
                       ? (trip.status?.toLowerCase() === "cancelled"

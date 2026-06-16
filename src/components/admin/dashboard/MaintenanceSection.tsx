@@ -196,7 +196,7 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
   const rows = displayTasks.map((task) => {
     const hasTrip = !!(task.trip_id || task.trip_reservation_id || task.trip_start);
     const pickupLocation = task.trip_pickup_location || task.trip_delivery_location || "—";
-    const dropOffLocation = task.trip_return_location || task.trip_delivery_location || "—";
+    const dropOffLocation = task.trip_return_location || task.trip_delivery_location || task.trip_pickup_location || "—";
     const daysRented = calculateDaysRented(task.trip_start, task.trip_end);
     const earnings = task.trip_status?.toLowerCase() === "cancelled"
       ? task.trip_cancelled_earnings

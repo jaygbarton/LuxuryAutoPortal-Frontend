@@ -1807,6 +1807,7 @@ export default function TuroTripsPage() {
                                           ? prev[trip.id].dropoff
                                           : (trip.returnLocation ??
                                             trip.deliveryLocation ??
+                                            trip.pickupLocation ??
                                             ""),
                                       miles:
                                         prev[trip.id]?.miles !== undefined
@@ -1866,10 +1867,11 @@ export default function TuroTripsPage() {
                                     ? locationEdits[trip.id].dropoff
                                     : (trip.returnLocation ??
                                       trip.deliveryLocation ??
+                                      trip.pickupLocation ??
                                       "")
                                 }
                                 placeholder={
-                                  trip.deliveryLocation && !trip.returnLocation
+                                  (trip.deliveryLocation || trip.pickupLocation) && !trip.returnLocation
                                     ? "(delivery fallback)"
                                     : "-"
                                 }
@@ -2046,6 +2048,7 @@ export default function TuroTripsPage() {
                                           ? prev[trip.id].dropoff
                                           : (trip.returnLocation ??
                                           trip.deliveryLocation ??
+                                          trip.pickupLocation ??
                                           ""),
                                       miles: e.target.value,
                                     },
@@ -2486,12 +2489,14 @@ export default function TuroTripsPage() {
                     </div>
                   )}
                   {(selectedTrip.returnLocation ||
-                    selectedTrip.deliveryLocation) && (
+                    selectedTrip.deliveryLocation ||
+                    selectedTrip.pickupLocation) && (
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-muted-foreground" />
                       <span className="font-medium">Return:</span>
                       {selectedTrip.returnLocation ||
-                        selectedTrip.deliveryLocation}
+                        selectedTrip.deliveryLocation ||
+                        selectedTrip.pickupLocation}
                     </div>
                   )}
                   {selectedTrip.totalDistance && (

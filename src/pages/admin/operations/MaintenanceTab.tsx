@@ -536,7 +536,7 @@ export function MaintenanceTab({
                         }
                       : clientTrip;
                     const pickupLocation = trip?.pickupLocation || trip?.deliveryLocation || "--";
-                    const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? "--";
+                    const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? trip?.pickupLocation ?? "--";
                     const daysRented = trip ? calculateDaysRented(trip.tripStart, trip.tripEnd) : null;
                     const tripEarnings = trip
                       ? (trip.status?.toLowerCase() === "cancelled"
