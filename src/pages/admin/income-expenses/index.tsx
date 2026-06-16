@@ -615,12 +615,6 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
             </div>
           </div>
 
-          {/* Form Submissions & Receipts - separated from manual I&E entries */}
-          <FormSubmissionsAndReceipts carId={activeCarId!} year={selectedYear} />
-
-          {/* Turo earnings screenshots (ported from gla-v3) */}
-          <TuroEarningsPanel carId={activeCarId!} year={selectedYear} />
-
           {/* Main Content Area */}
           {/*
             `min-w-0` keeps this flex child from growing to the table's intrinsic
@@ -631,6 +625,12 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
           <div className="w-full min-w-0">
             <IncomeExpenseTable year={selectedYear} isFromRoute={isFromRoute} showParkingAirportQB={false} />
           </div>
+
+          {/* Turo earnings screenshots (ported from gla-v3) */}
+          <TuroEarningsPanel carId={activeCarId!} year={selectedYear} />
+
+          {/* Form Submissions & Receipts - separated from manual I&E entries */}
+          <FormSubmissionsAndReceipts carId={activeCarId!} year={selectedYear} />
 
           {/* Category-specific Edit Modals */}
           <ModalEditManagementSplit />
