@@ -39,9 +39,8 @@ interface Inspection {
   total_miles?: number | string | null;
   earnings?: number | string | null;
   trip_status?: string | null;
-  fuel_returned?: string | null;
+  fuel_level_returned?: string | null;
   car_issue_types?: unknown;
-  car_issues?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -295,12 +294,12 @@ export default function CarIssuesSection() {
                     <td className="px-3 py-2 text-center text-black">{asStr(insp.trip_status)}</td>
                     <td className="px-3 py-2 text-center text-black">{asStr(insp.assigned_to)}</td>
                     <td className="px-3 py-2 text-center text-black">
-                      <FuelReturnedCell level={(insp.fuel_returned as any) ?? null} />
+                      <FuelReturnedCell level={(insp.fuel_level_returned as any) ?? null} />
                     </td>
                     <td className="px-3 py-2 text-center text-black">
                       <CarIssueTypesCell types={parseIssueTypes(insp.car_issue_types)} />
                     </td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(insp.car_issues)}</td>
+                    <td className="px-3 py-2 text-center text-black">{asStr(insp.notes)}</td>
                     <td className="px-3 py-2 text-center text-black">
                       {photoCount > 0 ? `${photoCount} photo${photoCount > 1 ? "s" : ""}` : "—"}
                     </td>
