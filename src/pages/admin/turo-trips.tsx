@@ -1285,8 +1285,9 @@ export default function TuroTripsPage() {
             <CardDescription>View and manage all Turo trips</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-row gap-3 mb-6">
-              <div className="relative col-span-full lg:flex-1">
+            {/* Row 1: search + status + clear */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-3">
+              <div className="relative flex-1">
                 <Input
                   placeholder="Search any column — guest, car, plate, location... (Ctrl+K)"
                   value={searchQuery}
@@ -1304,55 +1305,11 @@ export default function TuroTripsPage() {
                   </button>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-muted-foreground whitespace-nowrap">
-                  Trip Start From:
-                </label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="flex-1 lg:w-[160px] lg:flex-none"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-muted-foreground whitespace-nowrap">
-                  To:
-                </label>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="flex-1 lg:w-[160px] lg:flex-none"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-muted-foreground whitespace-nowrap">
-                  Trip Ends From:
-                </label>
-                <Input
-                  type="date"
-                  value={tripEndFrom}
-                  onChange={(e) => setTripEndFrom(e.target.value)}
-                  className="flex-1 lg:w-[160px] lg:flex-none"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-muted-foreground whitespace-nowrap">
-                  To:
-                </label>
-                <Input
-                  type="date"
-                  value={tripEndTo}
-                  onChange={(e) => setTripEndTo(e.target.value)}
-                  className="flex-1 lg:w-[160px] lg:flex-none"
-                />
-              </div>
               <Select
                 value={statusFilter}
                 onValueChange={(value: any) => setStatusFilter(value)}
               >
-                <SelectTrigger className="w-full lg:w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1380,11 +1337,50 @@ export default function TuroTripsPage() {
                     setTripEndFrom("");
                     setTripEndTo("");
                   }}
-                  className="whitespace-nowrap col-span-full lg:col-auto w-full lg:w-auto"
+                  className="whitespace-nowrap w-full sm:w-auto"
                 >
                   Clear All
                 </Button>
               )}
+            </div>
+            {/* Row 2: date filters — Trip Start range + Trip Ends range */}
+            <div className="flex flex-wrap gap-3 mb-6">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-muted-foreground whitespace-nowrap font-medium">
+                  Trip Start:
+                </label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-[150px]"
+                />
+                <span className="text-sm text-muted-foreground">–</span>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-[150px]"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-muted-foreground whitespace-nowrap font-medium">
+                  Trip Ends:
+                </label>
+                <Input
+                  type="date"
+                  value={tripEndFrom}
+                  onChange={(e) => setTripEndFrom(e.target.value)}
+                  className="w-[150px]"
+                />
+                <span className="text-sm text-muted-foreground">–</span>
+                <Input
+                  type="date"
+                  value={tripEndTo}
+                  onChange={(e) => setTripEndTo(e.target.value)}
+                  className="w-[150px]"
+                />
+              </div>
             </div>
 
             {/* Search Results Info */}
