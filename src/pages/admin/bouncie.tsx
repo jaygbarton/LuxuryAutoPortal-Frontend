@@ -981,14 +981,18 @@ export default function BouncieFleetPage() {
         credentials: "include",
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to send");
-      return json;
+      if (!res.ok) throw new Error(json.error || "Failed");
+      return json as { success: boolean; steps: { step: string; ok: boolean; detail: string }[]; vehicleCount?: number };
     },
-    onSuccess: () => {
-      toast({ title: "Test sent!", description: "Check your Bouncie Slack channel for the notification." });
+    onSuccess: (data) => {
+      const lines = data.steps.map((s) => `${s.ok ? "✅" : "❌"} ${s.step}: ${s.detail}`).join("\n");
+      toast({
+        title: `E2E Test Passed — ${data.vehicleCount ?? 0} vehicle(s) live`,
+        description: lines,
+      });
     },
     onError: (e: any) => {
-      toast({ title: "Slack test failed", description: e.message, variant: "destructive" });
+      toast({ title: "E2E test failed", description: e.message, variant: "destructive" });
     },
   });
   const testSlackPending = testSlackMutation.isPending;
