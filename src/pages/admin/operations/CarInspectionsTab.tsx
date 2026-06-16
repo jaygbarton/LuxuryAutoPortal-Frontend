@@ -73,8 +73,11 @@ export function CarInspectionsTab() {
   const [filterSource, setFilterSource] = useState<string>("manual");
   const [search, setSearch] = useState<string>("");
   const [taskModalOpen, setTaskModalOpen] = useState(false);
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  // Single-day operations filters: Trip Start = cars going out that day,
+  // Trip Ends = cars coming back that day. Each is one exact MT calendar date,
+  // usable independently — the daily-ops model, not a booking date range.
+  const [tripStartOn, setTripStartOn] = useState<string>("");
+  const [tripEndOn, setTripEndOn] = useState<string>("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingInspection, setEditingInspection] = useState<Inspection | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -228,32 +231,36 @@ export function CarInspectionsTab() {
         if (!hay.includes(q)) return false;
       }
       if (filterSource !== "all" && insp.source !== filterSource) return false;
-      // Skip date filter when searching — a reservation ID or car name search
-      // should find the record regardless of date range. The "Trip Start"
-      // column falls back to inspection_date for manual rows with no trip, so
-      // the filter mirrors that same fallback to stay consistent with the
-      // displayed value. Compare in Mountain Time so day boundaries align.
-      if (!q && (dateFrom || dateTo)) {
+      // Skip date filters when searching — a reservation ID or car name search
+      // should find the record regardless of date. Trip Start and Trip Ends are
+      // independent single-day filters (cars going out vs coming back) matched
+      // on the exact Mountain-Time day. The Trip Start column falls back to
+      // inspection_date for manual rows with no trip, so the Trip Start filter
+      // mirrors that fallback to stay consistent with the displayed value.
+      if (!q && tripStartOn) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
-        const day = toMtDate(trip?.tripStart ?? insp.inspection_date);
-        if (!day) return false;
-        if (dateFrom && day < dateFrom) return false;
-        if (dateTo && day > dateTo) return false;
+        const startDay = toMtDate(trip?.tripStart ?? insp.inspection_date);
+        if (startDay !== tripStartOn) return false;
+      }
+      if (!q && tripEndOn) {
+        const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+        const endDay = toMtDate(trip?.tripEnd);
+        if (endDay !== tripEndOn) return false;
       }
       return true;
     });
-  }, [rawInspections, maintenanceRecords, tripsById, search, filterSource, dateFrom, dateTo]);
+  }, [rawInspections, maintenanceRecords, tripsById, search, filterSource, tripStartOn, tripEndOn]);
 
   const hasActiveFilters =
     filterStatus !== "all" ||
     filterSource !== "all" ||
     search !== "" ||
-    dateFrom !== "" ||
-    dateTo !== "";
+    tripStartOn !== "" ||
+    tripEndOn !== "";
 
   useEffect(() => {
     setPage(1);
-  }, [filterStatus, filterSource, search, dateFrom, dateTo, pageSize]);
+  }, [filterStatus, filterSource, search, tripStartOn, tripEndOn, pageSize]);
 
   const pagedInspections = useMemo(
     () => inspections.slice((page - 1) * pageSize, page * pageSize),
@@ -448,20 +455,22 @@ export function CarInspectionsTab() {
               </Select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">Trip Start From</label>
+              <label className="text-muted-foreground text-xs">Trip Start</label>
               <Input
                 type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
+                value={tripStartOn}
+                onChange={(e) => setTripStartOn(e.target.value)}
+                title="Show inspections whose trip starts on this day (cars going out)"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">Trip Start To</label>
+              <label className="text-muted-foreground text-xs">Trip Ends</label>
               <Input
                 type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
+                value={tripEndOn}
+                onChange={(e) => setTripEndOn(e.target.value)}
+                title="Show inspections whose trip ends on this day (cars coming back)"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
@@ -472,8 +481,8 @@ export function CarInspectionsTab() {
                   setFilterStatus("all");
                   setFilterSource("all");
                   setSearch("");
-                  setDateFrom("");
-                  setDateTo("");
+                  setTripStartOn("");
+                  setTripEndOn("");
                 }}
                 className="text-red-700 hover:text-red-700 hover:bg-red-900/20 h-9 sm:col-span-2 lg:col-span-1 w-full lg:w-auto"
               >

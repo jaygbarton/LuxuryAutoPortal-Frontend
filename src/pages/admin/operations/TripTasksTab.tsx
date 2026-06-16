@@ -86,8 +86,12 @@ export function TripTasksTab() {
   const [filterType, setFilterType] = useState<string>("no-refuel");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  // Single-day operations filters: Trip Start = cars going out that day,
+  // Trip Ends = cars coming back that day. Each is one exact MT calendar date
+  // and works independently (set either alone). This is the daily-ops model the
+  // team uses for assigning cleaners/delivery/pickup — not a booking date range.
+  const [tripStartOn, setTripStartOn] = useState<string>("");
+  const [tripEndOn, setTripEndOn] = useState<string>("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = usePersistentPageSize(
     "operations.tripTasks",
@@ -177,12 +181,17 @@ export function TripTasksTab() {
   const tasks = data?.data || [];
   const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
 
+  // UTC ISO → YYYY-MM-DD calendar day in Mountain Time, so a single-day filter
+  // matches the same day the Trip Start / Trip Ends columns display.
+  const toMtDate = (iso: string | null | undefined): string | null => {
+    if (!iso) return null;
+    try {
+      return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso));
+    } catch { return null; }
+  };
+
   const filteredTasks = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const from = dateFrom ? new Date(dateFrom).getTime() : null;
-    const to = dateTo
-      ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1
-      : null;
     return tasks.filter((task) => {
       if (filterType === "no-refuel" && task.task_type === "refuel") return false;
       if (q) {
@@ -222,26 +231,29 @@ export function TripTasksTab() {
           .toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      // Skip date filter when the user is actively searching — a reservation
-      // ID or guest name search should find the row regardless of date range.
-      if (!q && (from != null || to != null)) {
+      // Skip date filters when searching — a reservation ID or guest name
+      // search should find the row regardless of date. Trip Start and Trip Ends
+      // are independent single-day filters: a task matches if its trip starts
+      // (resp. ends) on exactly that Mountain-Time day. Fall back to the task's
+      // own scheduled_date for trip-less tasks so the Trip Start filter still
+      // works for standalone (e.g. refuel) tasks.
+      if (!q && tripStartOn) {
         const trip = task.turo_trip_id != null ? tripsById.get(task.turo_trip_id) : undefined;
-        const d = trip?.tripStart
-          ? new Date(trip.tripStart).getTime()
-          : task.scheduled_date
-            ? new Date(task.scheduled_date).getTime()
-            : null;
-        if (d == null) return false;
-        if (from != null && d < from) return false;
-        if (to != null && d > to) return false;
+        const startDay = toMtDate(trip?.tripStart ?? task.scheduled_date);
+        if (startDay !== tripStartOn) return false;
+      }
+      if (!q && tripEndOn) {
+        const trip = task.turo_trip_id != null ? tripsById.get(task.turo_trip_id) : undefined;
+        const endDay = toMtDate(trip?.tripEnd);
+        if (endDay !== tripEndOn) return false;
       }
       return true;
     });
-  }, [tasks, tripsById, search, dateFrom, dateTo]);
+  }, [tasks, tripsById, search, tripStartOn, tripEndOn]);
 
   useEffect(() => {
     setPage(1);
-  }, [search, dateFrom, dateTo, filterType, filterStatus, pageSize]);
+  }, [search, tripStartOn, tripEndOn, filterType, filterStatus, pageSize]);
 
   const pagedTasks = useMemo(
     () => filteredTasks.slice((page - 1) * pageSize, page * pageSize),
@@ -300,16 +312,16 @@ export function TripTasksTab() {
     setFilterType("no-refuel");
     setFilterStatus("all");
     setSearch("");
-    setDateFrom("");
-    setDateTo("");
+    setTripStartOn("");
+    setTripEndOn("");
   };
 
   const hasActiveFilters =
     filterType !== "no-refuel" ||
     filterStatus !== "all" ||
     search !== "" ||
-    dateFrom !== "" ||
-    dateTo !== "";
+    tripStartOn !== "" ||
+    tripEndOn !== "";
 
   return (
     <div className="space-y-6">
@@ -371,20 +383,22 @@ export function TripTasksTab() {
               </Select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">Trip Start From</label>
+              <label className="text-muted-foreground text-xs">Trip Start</label>
               <Input
                 type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
+                value={tripStartOn}
+                onChange={(e) => setTripStartOn(e.target.value)}
+                title="Show trips starting on this day (cars going out)"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">Trip Start To</label>
+              <label className="text-muted-foreground text-xs">Trip Ends</label>
               <Input
                 type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
+                value={tripEndOn}
+                onChange={(e) => setTripEndOn(e.target.value)}
+                title="Show trips ending on this day (cars coming back)"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>

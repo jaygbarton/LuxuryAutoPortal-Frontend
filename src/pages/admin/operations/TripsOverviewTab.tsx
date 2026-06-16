@@ -188,10 +188,12 @@ export function TripsOverviewTab() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterAssigned, setFilterAssigned] = useState<string>("all");
-  // Two independent date filters (per design): "Trip Start" lower-bounds the
-  // trip_start column, "Trip Ends" upper-bounds the trip_end column. Both can
-  // be set independently — leave either blank to skip that side of the range.
-  const [tripStartFrom, setTripStartFrom] = useState<string>("");
+  // Two independent single-day operations filters: "Trip Start" = trips
+  // starting on that exact day (cars going out), "Trip Ends" = trips ending on
+  // that exact day (cars coming back). Each works alone — leave either blank to
+  // skip it. This is the daily-ops model (assign cleaners/delivery/pickup for a
+  // given day), not a booking-style From/To date range.
+  const [tripStartOn, setTripStartOn] = useState<string>("");
   const [tripEndOn, setTripEndOn] = useState<string>("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = usePersistentPageSize(
@@ -425,7 +427,7 @@ export function TripsOverviewTab() {
       "operations-tab",
       debouncedSearch,
       filterStatus,
-      tripStartFrom,
+      tripStartOn,
       tripEndOn,
       page,
       pageSize,
@@ -439,10 +441,18 @@ export function TripsOverviewTab() {
       if (filterStatus !== "all") params.set("status", filterStatus);
       // When the user types a search term, skip date filters so a reservation
       // ID / guest name / plate search always finds the trip regardless of
-      // which date range the filters happen to be set to.
+      // which day the filters happen to be set to. Each date filter is a single
+      // day: Trip Start uses startDate==endDate (trip_start ON that day),
+      // Trip Ends uses tripEndFrom==tripEndOn (trip_end ON that day).
       if (!debouncedSearch.trim()) {
-        if (tripStartFrom) params.set("startDate", tripStartFrom);
-        if (tripEndOn) params.set("tripEndOn", tripEndOn);
+        if (tripStartOn) {
+          params.set("startDate", tripStartOn);
+          params.set("endDate", tripStartOn);
+        }
+        if (tripEndOn) {
+          params.set("tripEndFrom", tripEndOn);
+          params.set("tripEndOn", tripEndOn);
+        }
       }
       const response = await fetch(
         buildApiUrl(`/api/turo-trips?${params.toString()}`),
@@ -458,11 +468,20 @@ export function TripsOverviewTab() {
   const { data: summaryData } = useQuery<{
     data: { totalTrips: number; bookedTrips: number; completedTrips: number; cancelledTrips: number };
   }>({
-    queryKey: ["/api/turo-trips/summary", "operations-tab-cards", tripStartFrom, tripEndOn],
+    queryKey: ["/api/turo-trips/summary", "operations-tab-cards", tripStartOn, tripEndOn],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (tripStartFrom) params.set("startDate", tripStartFrom);
-      if (tripEndOn) params.set("endDate", tripEndOn);
+      // Single-day filters: Trip Start = trip_start ON that day
+      // (startDate==endDate); Trip Ends = trip_end ON that day
+      // (tripEndFrom==tripEndOn). Keeps the cards in sync with the table.
+      if (tripStartOn) {
+        params.set("startDate", tripStartOn);
+        params.set("endDate", tripStartOn);
+      }
+      if (tripEndOn) {
+        params.set("tripEndFrom", tripEndOn);
+        params.set("tripEndOn", tripEndOn);
+      }
       const qs = params.toString();
       const response = await fetch(
         buildApiUrl(`/api/turo-trips/summary${qs ? `?${qs}` : ""}`),
@@ -542,7 +561,7 @@ export function TripsOverviewTab() {
   }, [
     debouncedSearch,
     filterStatus,
-    tripStartFrom,
+    tripStartOn,
     tripEndOn,
     pageSize,
   ]);
@@ -557,14 +576,14 @@ export function TripsOverviewTab() {
     search !== "" ||
     filterStatus !== "all" ||
     filterAssigned !== "all" ||
-    tripStartFrom !== "" ||
+    tripStartOn !== "" ||
     tripEndOn !== "";
 
   const clearFilters = () => {
     setSearch("");
     setFilterStatus("all");
     setFilterAssigned("all");
-    setTripStartFrom("");
+    setTripStartOn("");
     setTripEndOn("");
   };
 
@@ -654,25 +673,25 @@ export function TripsOverviewTab() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-muted-foreground text-xs">
-                Trip Start From
+                Trip Start
               </label>
               <Input
                 type="date"
-                value={tripStartFrom}
-                onChange={(e) => setTripStartFrom(e.target.value)}
-                title="Show trips whose trip_start is on or after this date"
+                value={tripStartOn}
+                onChange={(e) => setTripStartOn(e.target.value)}
+                title="Show trips starting on this day (cars going out)"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-muted-foreground text-xs">
-                Trip Ends To
+                Trip Ends
               </label>
               <Input
                 type="date"
                 value={tripEndOn}
                 onChange={(e) => setTripEndOn(e.target.value)}
-                title="Show trips whose trip_end is on or before this date"
+                title="Show trips ending on this day (cars coming back)"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>

@@ -70,8 +70,11 @@ export function NoCarIssuesTab() {
   const [search, setSearch] = useState<string>("");
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [filterSource, setFilterSource] = useState<string>("all");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  // Single-day operations filters: Trip Start = cars going out that day,
+  // Trip Ends = cars coming back that day. Each is one exact MT calendar date,
+  // usable independently — the daily-ops model, not a booking date range.
+  const [tripStartOn, setTripStartOn] = useState<string>("");
+  const [tripEndOn, setTripEndOn] = useState<string>("");
 
   const { data, isLoading } = useQuery<{ data: Inspection[]; total: number }>({
     queryKey: ["/api/operations/inspections", "no_issues"],
@@ -139,27 +142,31 @@ export function NoCarIssuesTab() {
         if (!hay.includes(q)) return false;
       }
       if (filterSource !== "all" && insp.source !== filterSource) return false;
-      // Filter on the joined trip's start — the same value the Trip Start column
-      // displays. The column shows "--" (not inspection_date) when there's no
-      // trip, so don't fall back to inspection_date here either, and compare in
-      // Mountain Time so the filtered day matches the displayed day.
-      if (dateFrom || dateTo) {
+      // Trip Start and Trip Ends are independent single-day filters (cars going
+      // out vs coming back), matched on the joined trip's exact Mountain-Time
+      // day — the same values the Trip Start / Trip Ends columns display. The
+      // columns show "--" (not inspection_date) when there's no trip, so don't
+      // fall back to inspection_date here either.
+      if (tripStartOn) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
-        const day = toMtDate(trip?.tripStart);
-        if (!day) return false;
-        if (dateFrom && day < dateFrom) return false;
-        if (dateTo && day > dateTo) return false;
+        const startDay = toMtDate(trip?.tripStart);
+        if (startDay !== tripStartOn) return false;
+      }
+      if (tripEndOn) {
+        const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+        const endDay = toMtDate(trip?.tripEnd);
+        if (endDay !== tripEndOn) return false;
       }
       return true;
     });
-  }, [rawInspections, tripsById, search, filterSource, dateFrom, dateTo]);
+  }, [rawInspections, tripsById, search, filterSource, tripStartOn, tripEndOn]);
 
   const hasActiveFilters =
-    search !== "" || filterSource !== "all" || dateFrom !== "" || dateTo !== "";
+    search !== "" || filterSource !== "all" || tripStartOn !== "" || tripEndOn !== "";
 
   useEffect(() => {
     setPage(1);
-  }, [search, filterSource, dateFrom, dateTo, pageSize]);
+  }, [search, filterSource, tripStartOn, tripEndOn, pageSize]);
 
   const pagedInspections = useMemo(
     () => inspections.slice((page - 1) * pageSize, page * pageSize),
@@ -262,20 +269,22 @@ export function NoCarIssuesTab() {
               </Select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">Trip Start From</label>
+              <label className="text-muted-foreground text-xs">Trip Start</label>
               <Input
                 type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
+                value={tripStartOn}
+                onChange={(e) => setTripStartOn(e.target.value)}
+                title="Show records whose trip starts on this day (cars going out)"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">Trip Start To</label>
+              <label className="text-muted-foreground text-xs">Trip Ends</label>
               <Input
                 type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
+                value={tripEndOn}
+                onChange={(e) => setTripEndOn(e.target.value)}
+                title="Show records whose trip ends on this day (cars coming back)"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
@@ -285,8 +294,8 @@ export function NoCarIssuesTab() {
                 onClick={() => {
                   setSearch("");
                   setFilterSource("all");
-                  setDateFrom("");
-                  setDateTo("");
+                  setTripStartOn("");
+                  setTripEndOn("");
                 }}
                 className="text-red-700 hover:text-red-700 hover:bg-red-900/20 h-9 sm:col-span-2 lg:col-span-1 w-full lg:w-auto"
               >

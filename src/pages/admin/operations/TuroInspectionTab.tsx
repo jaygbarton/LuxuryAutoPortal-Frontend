@@ -104,11 +104,11 @@ export function TuroInspectionTab() {
   const [search, setSearch] = useState<string>("");
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [taskPrefill, setTaskPrefill] = useState<Record<string, any>>({});
-  // Two independent date filters (mirrors the Trips Overview tab):
-  //   Trip Start ⟶ trip.tripStart ≥ X
-  //   Trip Ends  ⟶ trip.tripEnd   ≤ Y
+  // Two independent single-day filters (mirrors the Trips Overview tab):
+  //   Trip Start ⟶ trip.tripStart ON that exact MT day (cars going out)
+  //   Trip Ends  ⟶ trip.tripEnd   ON that exact MT day (cars coming back)
   // Either can be set alone. Leave both blank to disable.
-  const [tripStartFrom, setTripStartFrom] = useState<string>("");
+  const [tripStartOn, setTripStartOn] = useState<string>("");
   const [tripEndOn, setTripEndOn] = useState<string>("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = usePersistentPageSize(
@@ -278,12 +278,16 @@ export function TuroInspectionTab() {
   // join is accurate. When no date filter is set, fetch a large page to cover
   // the full fleet. Keyed on the date filters so a filter change refreshes it.
   const { data: tripsData } = useQuery<{ data: TuroTrip[] }>({
-    queryKey: ["/api/turo-trips", "turo-messages-join", tripStartFrom, tripEndOn],
+    queryKey: ["/api/turo-trips", "turo-messages-join", tripStartOn, tripEndOn],
     queryFn: async () => {
       const params = new URLSearchParams({ limit: "2000" });
-      if (tripStartFrom) params.set("startDate", tripStartFrom);
-      // tripEndOn is an exact-date filter — fetch trips ending on that specific
-      // day by using it as both the lower and upper bound on trip_end.
+      // Both date filters are exact single days. Trip Start fetches trips
+      // starting on that day (startDate==endDate); Trip Ends fetches trips
+      // ending on that day (tripEndFrom==tripEndOn).
+      if (tripStartOn) {
+        params.set("startDate", tripStartOn);
+        params.set("endDate", tripStartOn);
+      }
       if (tripEndOn) {
         params.set("tripEndFrom", tripEndOn);
         params.set("tripEndOn", tripEndOn);
@@ -347,22 +351,22 @@ export function TuroInspectionTab() {
       // filter while displaying a different Trip Start/Ends than Trips Overview
       // shows for that same filter. A row with no joined trip simply can't
       // satisfy a trip-date filter, which mirrors the trip-only Trips Overview.
-      if (!q && tripStartFrom) {
+      if (!q && tripStartOn) {
         const startDate = toMtDate(trip?.tripStart);
-        if (!startDate || startDate < tripStartFrom) return false;
+        if (startDate !== tripStartOn) return false;
       }
       if (!q && tripEndOn) {
         const endDate = toMtDate(trip?.tripEnd);
-        if (!endDate || endDate !== tripEndOn) return false;
+        if (endDate !== tripEndOn) return false;
       }
 
       return true;
     });
-  }, [inspections, maintenanceInspectionIds, tripsById, search, tripStartFrom, tripEndOn, filterStatus]);
+  }, [inspections, maintenanceInspectionIds, tripsById, search, tripStartOn, tripEndOn, filterStatus]);
 
   useEffect(() => {
     setPage(1);
-  }, [search, tripStartFrom, tripEndOn, filterStatus, pageSize]);
+  }, [search, tripStartOn, tripEndOn, filterStatus, pageSize]);
 
   const pagedInspections = useMemo(
     () => filteredInspections.slice((page - 1) * pageSize, page * pageSize),
@@ -372,7 +376,7 @@ export function TuroInspectionTab() {
   const hasActiveFilters =
     filterStatus !== "all" ||
     search !== "" ||
-    tripStartFrom !== "" ||
+    tripStartOn !== "" ||
     tripEndOn !== "";
 
   const statusUpdateMutation = useMutation({
@@ -655,9 +659,9 @@ export function TuroInspectionTab() {
               <label className="text-muted-foreground text-xs">Trip Start</label>
               <Input
                 type="date"
-                value={tripStartFrom}
-                onChange={(e) => setTripStartFrom(e.target.value)}
-                title="Show inspections whose trip_start is on or after this date"
+                value={tripStartOn}
+                onChange={(e) => setTripStartOn(e.target.value)}
+                title="Show inspections whose trip starts on this day (cars going out)"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
@@ -667,7 +671,7 @@ export function TuroInspectionTab() {
                 type="date"
                 value={tripEndOn}
                 onChange={(e) => setTripEndOn(e.target.value)}
-                title="Show inspections whose trip_end is on or before this date"
+                title="Show inspections whose trip ends on this day (cars coming back)"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
@@ -677,7 +681,7 @@ export function TuroInspectionTab() {
                 onClick={() => {
                   setFilterStatus("all");
                   setSearch("");
-                  setTripStartFrom("");
+                  setTripStartOn("");
                   setTripEndOn("");
                 }}
                 className="text-red-700 hover:text-red-700 hover:bg-red-900/20 h-9 sm:col-span-2 lg:col-span-1 w-full lg:w-auto"
