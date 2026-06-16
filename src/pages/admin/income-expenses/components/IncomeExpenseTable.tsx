@@ -95,16 +95,11 @@ const LEGACY_HIDDEN_FIELDS: {
   cogs: string[];
   reimbursedBills: string[];
 } = {
-  directDelivery: ["laborCarCleaning"],
+  directDelivery: [],
   cogs: [
-    "carPayment",
-    "cleaningSuppliesTools",
-    "laborCleaning", // "Labor - Detailing"
-    "wipers",
-    "uberLyftLime",
-    "tiredAirStation",
+    "laborCleaning", // "Labor - Detailing" — no data in DB
   ],
-  reimbursedBills: ["electricReimbursed", "electricNotReimbursed"],
+  reimbursedBills: [],
 };
 
 // True when a given section/field is a legacy row that should currently be
@@ -2718,25 +2713,23 @@ export default function IncomeExpenseTable({
               isExpanded={expandedSections.directDelivery}
               onToggle={() => toggleSection("directDelivery")}
             >
-              {SHOW_LEGACY_IE_ROWS && (
-                <CategoryRow
-                  label="Labor - Cleaning"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(
-                      data.directDelivery,
-                      i + 1,
-                      "laborCarCleaning",
-                    ),
-                  )}
-                  category="directDelivery"
-                  field="laborCarCleaning"
-                  {...rowActions(
-                    "directDelivery",
+              <CategoryRow
+                label="Labor - Cleaning"
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(
+                    data.directDelivery,
+                    i + 1,
                     "laborCarCleaning",
-                    "Labor - Cleaning",
-                  )}
-                />
-              )}
+                  ),
+                )}
+                category="directDelivery"
+                field="laborCarCleaning"
+                {...rowActions(
+                  "directDelivery",
+                  "laborCarCleaning",
+                  "Labor - Cleaning",
+                )}
+              />
               <CategoryRow
                 label="Labor - Delivery"
                 values={MONTHS.map((_, i) =>
@@ -2926,17 +2919,15 @@ export default function IncomeExpenseTable({
                 field="brakes"
                 {...rowActions("cogs", "brakes", "Brakes")}
               />
-              {SHOW_LEGACY_IE_ROWS && (
-                <CategoryRow
-                  label="Car Payment"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.cogs, i + 1, "carPayment"),
-                  )}
-                  category="cogs"
-                  field="carPayment"
-                  {...rowActions("cogs", "carPayment", "Car Payment")}
-                />
-              )}
+              <CategoryRow
+                label="Car Payment"
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.cogs, i + 1, "carPayment"),
+                )}
+                category="cogs"
+                field="carPayment"
+                {...rowActions("cogs", "carPayment", "Car Payment")}
+              />
               <CategoryRow
                 label="Car Insurance"
                 values={MONTHS.map((_, i) =>
@@ -2955,21 +2946,19 @@ export default function IncomeExpenseTable({
                 field="carSeats"
                 {...rowActions("cogs", "carSeats", "Car Seats")}
               />
-              {SHOW_LEGACY_IE_ROWS && (
-                <CategoryRow
-                  label="Cleaning Supplies / Tools"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.cogs, i + 1, "cleaningSuppliesTools"),
-                  )}
-                  category="cogs"
-                  field="cleaningSuppliesTools"
-                  {...rowActions(
-                    "cogs",
-                    "cleaningSuppliesTools",
-                    "Cleaning Supplies / Tools",
-                  )}
-                />
-              )}
+              <CategoryRow
+                label="Cleaning Supplies / Tools"
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.cogs, i + 1, "cleaningSuppliesTools"),
+                )}
+                category="cogs"
+                field="cleaningSuppliesTools"
+                {...rowActions(
+                  "cogs",
+                  "cleaningSuppliesTools",
+                  "Cleaning Supplies / Tools",
+                )}
+              />
               <CategoryRow
                 label="Emissions"
                 values={MONTHS.map((_, i) =>
@@ -3017,28 +3006,24 @@ export default function IncomeExpenseTable({
                 field="windshield"
                 {...rowActions("cogs", "windshield", "Windshield")}
               />
-              {SHOW_LEGACY_IE_ROWS && (
-                <CategoryRow
-                  label="Wipers"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.cogs, i + 1, "wipers"),
-                  )}
-                  category="cogs"
-                  field="wipers"
-                  {...rowActions("cogs", "wipers", "Wipers")}
-                />
-              )}
-              {SHOW_LEGACY_IE_ROWS && (
-                <CategoryRow
-                  label="Uber/Lyft/Lime"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.cogs, i + 1, "uberLyftLime"),
-                  )}
-                  category="cogs"
-                  field="uberLyftLime"
-                  {...rowActions("cogs", "uberLyftLime", "Uber/Lyft/Lime")}
-                />
-              )}
+              <CategoryRow
+                label="Wipers"
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.cogs, i + 1, "wipers"),
+                )}
+                category="cogs"
+                field="wipers"
+                {...rowActions("cogs", "wipers", "Wipers")}
+              />
+              <CategoryRow
+                label="Uber/Lyft/Lime"
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.cogs, i + 1, "uberLyftLime"),
+                )}
+                category="cogs"
+                field="uberLyftLime"
+                {...rowActions("cogs", "uberLyftLime", "Uber/Lyft/Lime")}
+              />
               <CategoryRow
                 label="Towing / Impound Fees"
                 values={MONTHS.map((_, i) =>
@@ -3052,21 +3037,19 @@ export default function IncomeExpenseTable({
                   "Towing / Impound Fees",
                 )}
               />
-              {SHOW_LEGACY_IE_ROWS && (
-                <CategoryRow
-                  label="Tired Air Station"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.cogs, i + 1, "tiredAirStation"),
-                  )}
-                  category="cogs"
-                  field="tiredAirStation"
-                  {...rowActions(
-                    "cogs",
-                    "tiredAirStation",
-                    "Tired Air Station",
-                  )}
-                />
-              )}
+              <CategoryRow
+                label="Tired Air Station"
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.cogs, i + 1, "tiredAirStation"),
+                )}
+                category="cogs"
+                field="tiredAirStation"
+                {...rowActions(
+                  "cogs",
+                  "tiredAirStation",
+                  "Tired Air Station",
+                )}
+              />
               <CategoryRow
                 label="Tires"
                 values={MONTHS.map((_, i) =>
@@ -3375,44 +3358,40 @@ export default function IncomeExpenseTable({
               isExpanded={expandedSections.reimbursedBills}
               onToggle={() => toggleSection("reimbursedBills")}
             >
-              {SHOW_LEGACY_IE_ROWS && (
-                <CategoryRow
-                  label="Electric - Reimbursed"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(
-                      data.reimbursedBills,
-                      i + 1,
-                      "electricReimbursed",
-                    ),
-                  )}
-                  category="reimbursedBills"
-                  field="electricReimbursed"
-                  {...rowActions(
-                    "reimbursedBills",
+              <CategoryRow
+                label="Electric - Reimbursed"
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(
+                    data.reimbursedBills,
+                    i + 1,
                     "electricReimbursed",
-                    "Electric - Reimbursed",
-                  )}
-                />
-              )}
-              {SHOW_LEGACY_IE_ROWS && (
-                <CategoryRow
-                  label="Electric - Not Reimbursed"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(
-                      data.reimbursedBills,
-                      i + 1,
-                      "electricNotReimbursed",
-                    ),
-                  )}
-                  category="reimbursedBills"
-                  field="electricNotReimbursed"
-                  {...rowActions(
-                    "reimbursedBills",
+                  ),
+                )}
+                category="reimbursedBills"
+                field="electricReimbursed"
+                {...rowActions(
+                  "reimbursedBills",
+                  "electricReimbursed",
+                  "Electric - Reimbursed",
+                )}
+              />
+              <CategoryRow
+                label="Electric - Not Reimbursed"
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(
+                    data.reimbursedBills,
+                    i + 1,
                     "electricNotReimbursed",
-                    "Electric - Not Reimbursed",
-                  )}
-                />
-              )}
+                  ),
+                )}
+                category="reimbursedBills"
+                field="electricNotReimbursed"
+                {...rowActions(
+                  "reimbursedBills",
+                  "electricNotReimbursed",
+                  "Electric - Not Reimbursed",
+                )}
+              />
               <CategoryRow
                 label="Gas - Reimbursed"
                 values={MONTHS.map((_, i) =>
