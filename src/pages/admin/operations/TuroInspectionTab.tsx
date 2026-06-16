@@ -321,10 +321,12 @@ export function TuroInspectionTab() {
 
       const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
 
-      // Booked / Ended / Returned filter on the joined trip's status (the
-      // inspection-status values are filtered server-side in the query above).
-      if (TRIP_STATUSES.has(filterStatus)) {
-        if ((trip?.status ?? "").toLowerCase() !== filterStatus) return false;
+      // Default ("all") shows only ended trips. Explicit filter overrides.
+      const tripStatus = (trip?.status ?? "").toLowerCase();
+      if (filterStatus === "all") {
+        if (tripStatus !== "ended") return false;
+      } else if (TRIP_STATUSES.has(filterStatus)) {
+        if (tripStatus !== filterStatus) return false;
       }
 
       if (q) {
