@@ -101,7 +101,7 @@ interface FormSubmissionsAndReceiptsProps {
 }
 
 export default function FormSubmissionsAndReceipts({ carId, year, className }: FormSubmissionsAndReceiptsProps) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<any | null>(null);
   const [viewReceiptsOpen, setViewReceiptsOpen] = useState(false);
 
