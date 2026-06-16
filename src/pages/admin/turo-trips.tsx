@@ -126,10 +126,18 @@ export default function TuroTripsPage() {
   const [statusFilter, setStatusFilter] = useState<
     "all" | "booked" | "cancelled" | "ended" | "returned"
   >("all");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [tripEndFrom, setTripEndFrom] = useState("");
-  const [tripEndTo, setTripEndTo] = useState("");
+  // Unified date filter: pick ONE date column (Trip Start / Trip Ends /
+  // Booking Date), then a From–To range applied to it. This replaces the old
+  // four separate boxes (Trip Start range AND Trip Ends range) which silently
+  // AND-ed together — e.g. a trip ending 6/17 but starting 6/15 disappeared the
+  // moment a Trip Start filter was set. One column at a time is unambiguous:
+  // "show everything ending 6/17" = field=Trip Ends, from=to=6/17.
+  const [dateField, setDateField] = useState<"tripStart" | "tripEnd" | "booking">("tripStart");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  // Sorting on the date columns (click a header to toggle asc/desc).
+  const [sortBy, setSortBy] = useState<"tripStart" | "tripEnd" | "booking">("tripStart");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   // Inline odometer editing: tripId → { start, end }
@@ -187,10 +195,11 @@ export default function TuroTripsPage() {
       debouncedSearchQuery,
       currentPage,
       itemsPerPage,
-      startDate,
-      endDate,
-      tripEndFrom,
-      tripEndTo,
+      dateField,
+      dateFrom,
+      dateTo,
+      sortBy,
+      sortDir,
     ],
     queryFn: async () => {
       const offset = (currentPage - 1) * itemsPerPage;
@@ -205,12 +214,12 @@ export default function TuroTripsPage() {
       }
       // Skip date filters when a search term is active so a reservation ID
       // or guest name search always finds the trip regardless of date range.
-      if (!debouncedSearchQuery) {
-        if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
-        if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
-        if (tripEndFrom) url += `&tripEndFrom=${encodeURIComponent(tripEndFrom)}`;
-        if (tripEndTo) url += `&tripEndOn=${encodeURIComponent(tripEndTo)}`;
+      if (!debouncedSearchQuery && (dateFrom || dateTo)) {
+        url += `&dateField=${dateField}`;
+        if (dateFrom) url += `&dateFrom=${encodeURIComponent(dateFrom)}`;
+        if (dateTo) url += `&dateTo=${encodeURIComponent(dateTo)}`;
       }
+      url += `&sortBy=${sortBy}&sortDir=${sortDir}`;
       const response = await fetch(url, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch trips");
       return response.json();
@@ -224,14 +233,15 @@ export default function TuroTripsPage() {
     success: boolean;
     data: TripsSummary;
   }>({
-    queryKey: ["/api/turo-trips/summary", startDate, endDate, tripEndFrom, tripEndTo, statusFilter],
+    queryKey: ["/api/turo-trips/summary", dateField, dateFrom, dateTo, statusFilter],
     queryFn: async () => {
       let url = buildApiUrl("/api/turo-trips/summary");
       const params = new URLSearchParams();
-      if (startDate) params.set("startDate", startDate);
-      if (endDate) params.set("endDate", endDate);
-      if (tripEndFrom) params.set("tripEndFrom", tripEndFrom);
-      if (tripEndTo) params.set("tripEndOn", tripEndTo);
+      if (dateFrom || dateTo) {
+        params.set("dateField", dateField);
+        if (dateFrom) params.set("dateFrom", dateFrom);
+        if (dateTo) params.set("dateTo", dateTo);
+      }
       if (statusFilter) params.set("status", statusFilter);
       if (params.toString()) url += `?${params.toString()}`;
       const response = await fetch(url, { credentials: "include" });
@@ -348,8 +358,12 @@ export default function TuroTripsPage() {
   const backfillLocationsMutation = useMutation({
     mutationFn: async () => {
       const params = new URLSearchParams();
-      if (startDate) params.set("startDate", startDate);
-      if (endDate) params.set("endDate", endDate);
+      // These endpoints scope by trip_start only, so pass the range through
+      // just when the active filter column is Trip Start.
+      if (dateField === "tripStart") {
+        if (dateFrom) params.set("startDate", dateFrom);
+        if (dateTo) params.set("endDate", dateTo);
+      }
       const qs = params.toString();
       const response = await fetch(
         buildApiUrl(`/api/turo-trips/backfill-locations${qs ? `?${qs}` : ""}`),
@@ -389,8 +403,12 @@ export default function TuroTripsPage() {
   const repairDatesMutation = useMutation({
     mutationFn: async () => {
       const params = new URLSearchParams();
-      if (startDate) params.set("startDate", startDate);
-      if (endDate) params.set("endDate", endDate);
+      // These endpoints scope by trip_start only, so pass the range through
+      // just when the active filter column is Trip Start.
+      if (dateField === "tripStart") {
+        if (dateFrom) params.set("startDate", dateFrom);
+        if (dateTo) params.set("endDate", dateTo);
+      }
       const qs = params.toString();
       const response = await fetch(
         buildApiUrl(`/api/turo-trips/repair-dates${qs ? `?${qs}` : ""}`),
@@ -928,7 +946,7 @@ export default function TuroTripsPage() {
   // Reset to page 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, debouncedSearchQuery, startDate, endDate, tripEndFrom, tripEndTo]);
+  }, [statusFilter, debouncedSearchQuery, dateField, dateFrom, dateTo, sortBy, sortDir]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -1029,6 +1047,20 @@ export default function TuroTripsPage() {
         return <Badge>{status}</Badge>;
     }
   };
+
+  // Click a date-column header to sort by it. Clicking the active column flips
+  // asc/desc; clicking a new column starts at desc (newest first — the usual
+  // default for trip tables).
+  const toggleSort = (col: "tripStart" | "tripEnd" | "booking") => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(col);
+      setSortDir("desc");
+    }
+  };
+  const sortArrow = (col: "tripStart" | "tripEnd" | "booking") =>
+    sortBy === col ? (sortDir === "asc" ? " ▲" : " ▼") : "";
 
   return (
     <AdminLayout>
@@ -1322,20 +1354,17 @@ export default function TuroTripsPage() {
               </Select>
               {(searchQuery ||
                 statusFilter !== "all" ||
-                startDate ||
-                endDate ||
-                tripEndFrom ||
-                tripEndTo) && (
+                dateFrom ||
+                dateTo) && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
                     setSearchQuery("");
                     setStatusFilter("all");
-                    setStartDate("");
-                    setEndDate("");
-                    setTripEndFrom("");
-                    setTripEndTo("");
+                    setDateFrom("");
+                    setDateTo("");
+                    setDateField("tripStart");
                   }}
                   className="whitespace-nowrap w-full sm:w-auto"
                 >
@@ -1343,44 +1372,57 @@ export default function TuroTripsPage() {
                 </Button>
               )}
             </div>
-            {/* Row 2: date filters — Trip Start range + Trip Ends range */}
-            <div className="flex flex-wrap gap-3 mb-6">
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-muted-foreground whitespace-nowrap font-medium">
-                  Trip Start:
-                </label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-[150px]"
-                />
-                <span className="text-sm text-muted-foreground">–</span>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-[150px]"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-muted-foreground whitespace-nowrap font-medium">
-                  Trip Ends:
-                </label>
-                <Input
-                  type="date"
-                  value={tripEndFrom}
-                  onChange={(e) => setTripEndFrom(e.target.value)}
-                  className="w-[150px]"
-                />
-                <span className="text-sm text-muted-foreground">–</span>
-                <Input
-                  type="date"
-                  value={tripEndTo}
-                  onChange={(e) => setTripEndTo(e.target.value)}
-                  className="w-[150px]"
-                />
-              </div>
+            {/* Row 2: unified date filter — pick ONE column, then a From–To
+                range. Replaces the old two-range (Trip Start AND Trip Ends)
+                layout so "everything ending 6/17" is a single unambiguous query. */}
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              <label className="text-sm text-muted-foreground whitespace-nowrap font-medium">
+                Filter by:
+              </label>
+              <Select
+                value={dateField}
+                onValueChange={(v: "tripStart" | "tripEnd" | "booking") => setDateField(v)}
+              >
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tripStart">Trip Start</SelectItem>
+                  <SelectItem value="tripEnd">Trip Ends</SelectItem>
+                  <SelectItem value="booking">Booking Date</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-[150px]"
+                aria-label="From date"
+              />
+              <span className="text-sm text-muted-foreground">–</span>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-[150px]"
+                aria-label="To date"
+              />
+              {/* Quick "today" shortcut — answers "how many <field> today". */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  // Today in Mountain Time (filters bucket by MT calendar day).
+                  const today = new Intl.DateTimeFormat("en-CA", {
+                    timeZone: "America/Denver",
+                  }).format(new Date()); // en-CA → YYYY-MM-DD
+                  setDateFrom(today);
+                  setDateTo(today);
+                }}
+                className="whitespace-nowrap"
+              >
+                Today
+              </Button>
             </div>
 
             {/* Search Results Info */}
@@ -1431,19 +1473,29 @@ export default function TuroTripsPage() {
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       VIN #
                     </TableHead>
-                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
-                      <span title="Date the booking email was received — not necessarily the exact moment the guest booked on Turo">
-                        Booking Date
-                      </span>
+                    <TableHead
+                      className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold cursor-pointer select-none hover:bg-muted/70"
+                      onClick={() => toggleSort("booking")}
+                      title="Date the booking email was received — not necessarily the exact moment the guest booked on Turo. Click to sort."
+                    >
+                      Booking Date{sortArrow("booking")}
                     </TableHead>
-                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
-                      Trip Start
+                    <TableHead
+                      className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold cursor-pointer select-none hover:bg-muted/70"
+                      onClick={() => toggleSort("tripStart")}
+                      title="Click to sort by Trip Start"
+                    >
+                      Trip Start{sortArrow("tripStart")}
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Pick Up Location
                     </TableHead>
-                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
-                      Trip Ends
+                    <TableHead
+                      className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold cursor-pointer select-none hover:bg-muted/70"
+                      onClick={() => toggleSort("tripEnd")}
+                      title="Click to sort by Trip Ends"
+                    >
+                      Trip Ends{sortArrow("tripEnd")}
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Drop Off Location
