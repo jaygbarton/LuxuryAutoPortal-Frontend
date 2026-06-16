@@ -339,13 +339,20 @@ export function TuroInspectionTab() {
       }
 
       // Date filters compare YYYY-MM-DD strings in Mountain Time so they match
-      // the displayed Trip Start / Trip Ends values exactly.
+      // the displayed Trip Start / Trip Ends values exactly. Filter ONLY on the
+      // joined trip's dates — the same values the Trip Start / Trip Ends columns
+      // render — never on insp.inspection_date. The inspection date can land on
+      // a different calendar day than the trip (it's when the return was logged,
+      // not the trip window), so falling back to it made a row match a date
+      // filter while displaying a different Trip Start/Ends than Trips Overview
+      // shows for that same filter. A row with no joined trip simply can't
+      // satisfy a trip-date filter, which mirrors the trip-only Trips Overview.
       if (!q && tripStartFrom) {
-        const startDate = toMtDate(trip?.tripStart ?? insp.inspection_date);
+        const startDate = toMtDate(trip?.tripStart);
         if (!startDate || startDate < tripStartFrom) return false;
       }
       if (!q && tripEndOn) {
-        const endDate = toMtDate(trip?.tripEnd ?? insp.inspection_date);
+        const endDate = toMtDate(trip?.tripEnd);
         if (!endDate || endDate !== tripEndOn) return false;
       }
 

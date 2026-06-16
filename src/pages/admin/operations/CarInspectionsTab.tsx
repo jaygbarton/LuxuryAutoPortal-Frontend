@@ -175,12 +175,21 @@ export function CarInspectionsTab() {
     return maintenanceRecords.some(m => m.inspection_id === inspectionId);
   };
 
+  // Convert a UTC ISO string to its YYYY-MM-DD calendar day in Mountain Time so
+  // the date filter buckets a trip into the same day the Trip Start column
+  // shows. Comparing raw getTime() against a date-input parsed as UTC midnight
+  // mis-buckets trips near midnight MT (the displayed day and the filtered day
+  // disagree) — this matches the server-side America/Denver filter the
+  // /admin/turo-trips page uses and the client-side filter on Turo Messages.
+  const toMtDate = (iso: string | null | undefined): string | null => {
+    if (!iso) return null;
+    try {
+      return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso));
+    } catch { return null; }
+  };
+
   const inspections = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const from = dateFrom ? new Date(dateFrom).getTime() : null;
-    const to = dateTo
-      ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1
-      : null;
     return rawInspections.filter((insp) => {
       // Hide inspections moved to maintenance or marked no issues
       if (isMovedToMaintenance(insp.id)) return false;
@@ -220,17 +229,16 @@ export function CarInspectionsTab() {
       }
       if (filterSource !== "all" && insp.source !== filterSource) return false;
       // Skip date filter when searching — a reservation ID or car name search
-      // should find the record regardless of date range.
-      if (!q && (from != null || to != null)) {
+      // should find the record regardless of date range. The "Trip Start"
+      // column falls back to inspection_date for manual rows with no trip, so
+      // the filter mirrors that same fallback to stay consistent with the
+      // displayed value. Compare in Mountain Time so day boundaries align.
+      if (!q && (dateFrom || dateTo)) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
-        const d = trip?.tripStart
-          ? new Date(trip.tripStart).getTime()
-          : insp.inspection_date
-            ? new Date(insp.inspection_date).getTime()
-            : null;
-        if (d == null) return false;
-        if (from != null && d < from) return false;
-        if (to != null && d > to) return false;
+        const day = toMtDate(trip?.tripStart ?? insp.inspection_date);
+        if (!day) return false;
+        if (dateFrom && day < dateFrom) return false;
+        if (dateTo && day > dateTo) return false;
       }
       return true;
     });

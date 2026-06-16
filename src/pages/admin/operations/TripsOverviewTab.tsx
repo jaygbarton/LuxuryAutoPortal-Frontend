@@ -456,7 +456,7 @@ export function TripsOverviewTab() {
   // Summary counts (Active / Completed / Cancelled cards). Respects the same
   // date filters as the table so the cards stay in sync with what's visible.
   const { data: summaryData } = useQuery<{
-    data: { totalTrips: number; bookedTrips: number; cancelledTrips: number };
+    data: { totalTrips: number; bookedTrips: number; completedTrips: number; cancelledTrips: number };
   }>({
     queryKey: ["/api/turo-trips/summary", "operations-tab-cards", tripStartFrom, tripEndOn],
     queryFn: async () => {
@@ -494,11 +494,13 @@ export function TripsOverviewTab() {
   const totalServerMatches = data?.total ?? pageTrips.length;
   const allTasks = tasksData?.data || [];
   const summary = summaryData?.data;
-  // The DB schema uses statuses 'booked' and 'cancelled' only — there's no
-  // 'completed'. We expose Completed = 0 to preserve the existing UI layout
-  // (and match the value the old client-side count was returning).
+  // Statuses are booked / ended / returned / cancelled. "Completed" = ended +
+  // returned, which the /summary endpoint already aggregates as completedTrips
+  // (this is the majority of trips). Use it directly — the old code hardcoded
+  // 0 here, hiding hundreds of completed trips and disagreeing with the
+  // /admin/turo-trips page, which reads the same field.
   const activeTripCount = summary?.bookedTrips ?? 0;
-  const completedTripCount = 0;
+  const completedTripCount = summary?.completedTrips ?? 0;
   const cancelledTripCount = summary?.cancelledTrips ?? 0;
 
   const getTasksForTrip = (tripId: number) => {
@@ -545,9 +547,11 @@ export function TripsOverviewTab() {
     pageSize,
   ]);
 
-  // Status dropdown options. The DB only has 'booked' and 'cancelled'; expose
-  // both unconditionally so the filter is usable even on an empty page.
-  const statusOptions = ["booked", "cancelled"];
+  // Status dropdown options. turo_trips.status is booked / ended / returned /
+  // cancelled (ended is actually the majority). Expose all four — matching the
+  // /admin/turo-trips filter — so admins can isolate completed/returned trips
+  // here too; the old list left 'ended'/'returned' rows unfilterable.
+  const statusOptions = ["booked", "ended", "returned", "cancelled"];
 
   const hasActiveFilters =
     search !== "" ||
@@ -1150,8 +1154,17 @@ export function TripsOverviewTab() {
                             ? totalMiles.toLocaleString()
                             : "--"}
                         </TableCell>
+                        {/* Earnings — mirror /admin/turo-trips: cancelled trips
+                            show their lost earnings in red parentheses, not a
+                            misleading $0 from the (empty) `earnings` field. */}
                         <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
-                          {formatCurrency(trip.earnings)}
+                          {trip.status === "cancelled" ? (
+                            <span className="text-destructive">
+                              ({formatCurrency(trip.cancelledEarnings)})
+                            </span>
+                          ) : (
+                            formatCurrency(trip.earnings)
+                          )}
                         </TableCell>
                         <TableCell>
                           <StatusBadge status={trip.status} />

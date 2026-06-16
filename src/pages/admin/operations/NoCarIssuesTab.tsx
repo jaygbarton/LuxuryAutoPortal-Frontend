@@ -94,12 +94,17 @@ export function NoCarIssuesTab() {
 
   const rawInspections = data?.data || [];
 
+  // UTC ISO → YYYY-MM-DD calendar day in Mountain Time, so the Trip Start
+  // filter buckets a trip into the same day the Trip Start column shows.
+  const toMtDate = (iso: string | null | undefined): string | null => {
+    if (!iso) return null;
+    try {
+      return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso));
+    } catch { return null; }
+  };
+
   const inspections = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const from = dateFrom ? new Date(dateFrom).getTime() : null;
-    const to = dateTo
-      ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1
-      : null;
     return rawInspections.filter((insp) => {
       if (q) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
@@ -134,16 +139,16 @@ export function NoCarIssuesTab() {
         if (!hay.includes(q)) return false;
       }
       if (filterSource !== "all" && insp.source !== filterSource) return false;
-      if (from != null || to != null) {
+      // Filter on the joined trip's start — the same value the Trip Start column
+      // displays. The column shows "--" (not inspection_date) when there's no
+      // trip, so don't fall back to inspection_date here either, and compare in
+      // Mountain Time so the filtered day matches the displayed day.
+      if (dateFrom || dateTo) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
-        const d = trip?.tripStart
-          ? new Date(trip.tripStart).getTime()
-          : insp.inspection_date
-            ? new Date(insp.inspection_date).getTime()
-            : null;
-        if (d == null) return false;
-        if (from != null && d < from) return false;
-        if (to != null && d > to) return false;
+        const day = toMtDate(trip?.tripStart);
+        if (!day) return false;
+        if (dateFrom && day < dateFrom) return false;
+        if (dateTo && day > dateTo) return false;
       }
       return true;
     });

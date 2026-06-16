@@ -179,12 +179,19 @@ export function MaintenanceTab({
 
   const rawRecords = data?.data || [];
 
+  // UTC ISO → YYYY-MM-DD calendar day in Mountain Time, so the Scheduled
+  // From/To filter buckets a record into the same day the Scheduled Date
+  // column shows (a naive getTime() compare against a UTC-midnight date input
+  // mis-buckets records scheduled near midnight MT).
+  const toMtDate = (iso: string | null | undefined): string | null => {
+    if (!iso) return null;
+    try {
+      return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso));
+    } catch { return null; }
+  };
+
   const records = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const from = dateFrom ? new Date(dateFrom).getTime() : null;
-    const to = dateTo
-      ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 - 1
-      : null;
     return rawRecords.filter((rec) => {
       if (q) {
         const insp = rec.inspection_id != null ? inspectionsById.get(rec.inspection_id) : undefined;
@@ -227,13 +234,11 @@ export function MaintenanceTab({
           .toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      if (from != null || to != null) {
-        const d = rec.scheduled_date
-          ? new Date(rec.scheduled_date).getTime()
-          : null;
-        if (d == null) return false;
-        if (from != null && d < from) return false;
-        if (to != null && d > to) return false;
+      if (dateFrom || dateTo) {
+        const day = toMtDate(rec.scheduled_date);
+        if (!day) return false;
+        if (dateFrom && day < dateFrom) return false;
+        if (dateTo && day > dateTo) return false;
       }
       return true;
     });
