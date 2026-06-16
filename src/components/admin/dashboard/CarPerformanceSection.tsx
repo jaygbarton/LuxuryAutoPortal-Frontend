@@ -110,6 +110,7 @@ export default function CarPerformanceSection({ year }: Props) {
           <table className="w-full border-collapse text-xs">
             <thead>
               <tr className="bg-black text-white">
+                <th className="px-3 py-2 text-center font-semibold whitespace-nowrap">#</th>
                 <th className="px-3 py-2 text-left font-semibold whitespace-nowrap">Make</th>
                 <th className="px-3 py-2 text-left font-semibold whitespace-nowrap">Model</th>
                 <th className="px-3 py-2 text-center font-semibold whitespace-nowrap">Yr</th>
@@ -134,6 +135,7 @@ export default function CarPerformanceSection({ year }: Props) {
                   key={r.carId}
                   className={`border-b border-[#D3BC8D] ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
                 >
+                  <td className="px-3 py-1.5 text-center font-semibold text-[#D3BC8D]">{idx + 1}</td>
                   <td className="px-3 py-1.5 text-left">{r.make || "—"}</td>
                   <td className="px-3 py-1.5 text-left">{r.model || "—"}</td>
                   <td className="px-3 py-1.5 text-center">{r.year ?? "—"}</td>

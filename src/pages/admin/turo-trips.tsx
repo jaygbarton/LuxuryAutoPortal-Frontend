@@ -128,6 +128,8 @@ export default function TuroTripsPage() {
   >("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [tripEndFrom, setTripEndFrom] = useState("");
+  const [tripEndTo, setTripEndTo] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   // Inline odometer editing: tripId → { start, end }
@@ -187,6 +189,8 @@ export default function TuroTripsPage() {
       itemsPerPage,
       startDate,
       endDate,
+      tripEndFrom,
+      tripEndTo,
     ],
     queryFn: async () => {
       const offset = (currentPage - 1) * itemsPerPage;
@@ -202,12 +206,10 @@ export default function TuroTripsPage() {
       // Skip date filters when a search term is active so a reservation ID
       // or guest name search always finds the trip regardless of date range.
       if (!debouncedSearchQuery) {
-        if (startDate) {
-          url += `&startDate=${encodeURIComponent(startDate)}`;
-        }
-        if (endDate) {
-          url += `&endDate=${encodeURIComponent(endDate)}`;
-        }
+        if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+        if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
+        if (tripEndFrom) url += `&tripEndFrom=${encodeURIComponent(tripEndFrom)}`;
+        if (tripEndTo) url += `&tripEndOn=${encodeURIComponent(tripEndTo)}`;
       }
       const response = await fetch(url, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch trips");
@@ -222,12 +224,14 @@ export default function TuroTripsPage() {
     success: boolean;
     data: TripsSummary;
   }>({
-    queryKey: ["/api/turo-trips/summary", startDate, endDate, statusFilter],
+    queryKey: ["/api/turo-trips/summary", startDate, endDate, tripEndFrom, tripEndTo, statusFilter],
     queryFn: async () => {
       let url = buildApiUrl("/api/turo-trips/summary");
       const params = new URLSearchParams();
       if (startDate) params.set("startDate", startDate);
       if (endDate) params.set("endDate", endDate);
+      if (tripEndFrom) params.set("tripEndFrom", tripEndFrom);
+      if (tripEndTo) params.set("tripEndOn", tripEndTo);
       if (statusFilter) params.set("status", statusFilter);
       if (params.toString()) url += `?${params.toString()}`;
       const response = await fetch(url, { credentials: "include" });
@@ -924,7 +928,7 @@ export default function TuroTripsPage() {
   // Reset to page 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, debouncedSearchQuery, startDate, endDate]);
+  }, [statusFilter, debouncedSearchQuery, startDate, endDate, tripEndFrom, tripEndTo]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -1302,7 +1306,7 @@ export default function TuroTripsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-sm text-muted-foreground whitespace-nowrap">
-                  From:
+                  Trip Start From:
                 </label>
                 <Input
                   type="date"
@@ -1319,6 +1323,28 @@ export default function TuroTripsPage() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
+                  className="flex-1 lg:w-[160px] lg:flex-none"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-muted-foreground whitespace-nowrap">
+                  Trip Ends From:
+                </label>
+                <Input
+                  type="date"
+                  value={tripEndFrom}
+                  onChange={(e) => setTripEndFrom(e.target.value)}
+                  className="flex-1 lg:w-[160px] lg:flex-none"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-muted-foreground whitespace-nowrap">
+                  To:
+                </label>
+                <Input
+                  type="date"
+                  value={tripEndTo}
+                  onChange={(e) => setTripEndTo(e.target.value)}
                   className="flex-1 lg:w-[160px] lg:flex-none"
                 />
               </div>
@@ -1340,7 +1366,9 @@ export default function TuroTripsPage() {
               {(searchQuery ||
                 statusFilter !== "all" ||
                 startDate ||
-                endDate) && (
+                endDate ||
+                tripEndFrom ||
+                tripEndTo) && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -1349,6 +1377,8 @@ export default function TuroTripsPage() {
                     setStatusFilter("all");
                     setStartDate("");
                     setEndDate("");
+                    setTripEndFrom("");
+                    setTripEndTo("");
                   }}
                   className="whitespace-nowrap col-span-full lg:col-auto w-full lg:w-auto"
                 >

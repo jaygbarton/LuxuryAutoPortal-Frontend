@@ -188,8 +188,18 @@ export default function OperationsSection() {
 
   const allTasks = useMemo(() =>
     [...(data?.data ?? [])].sort((a, b) => {
-      const aTime = a.scheduled_date ? new Date(a.scheduled_date).getTime() : 0;
-      const bTime = b.scheduled_date ? new Date(b.scheduled_date).getTime() : 0;
+      // Sort by trip_start DESC so today's trips appear at the top.
+      // Fall back to scheduled_date then created_at for tasks without a trip.
+      const aTime = a.trip_start
+        ? new Date(a.trip_start).getTime()
+        : a.scheduled_date
+          ? new Date(a.scheduled_date).getTime()
+          : new Date(a.created_at).getTime();
+      const bTime = b.trip_start
+        ? new Date(b.trip_start).getTime()
+        : b.scheduled_date
+          ? new Date(b.scheduled_date).getTime()
+          : new Date(b.created_at).getTime();
       return bTime - aTime;
     }),
     [data]
