@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Search, X } from "lucide-react";
-import { buildApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
 import { FuelReturnedCell } from "@/pages/admin/operations/FuelReturnedCell";
 import { CarIssueTypesCell } from "@/pages/admin/operations/CarIssueTypesCell";
@@ -43,6 +43,7 @@ interface Inspection {
   gas_level_trip_end?: string | null;
   fuel_returned?: string | null;
   car_issue_types?: unknown;
+  car_photo?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -127,6 +128,21 @@ function fmtDateTime(v: unknown): string {
   } catch {
     return String(v);
   }
+}
+
+function parseCarPhotoUrl(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr) && arr.length > 0) {
+      const first = arr[0];
+      const url = typeof first === "object" ? (first.url ?? first.path ?? null) : String(first);
+      if (url && typeof url === "string" && url.trim()) return url.trim();
+    }
+  } catch {
+    if (typeof raw === "string" && raw.trim()) return raw.trim();
+  }
+  return null;
 }
 
 function parseIssueTypes(v: unknown): string[] {
@@ -309,7 +325,9 @@ export default function TuroInspectionsSection() {
                     <td className="px-3 py-2 text-center text-black">{asStr(insp.trip_status)}</td>
                     <td className="px-3 py-2 text-center text-black">{fmtGasLevel(insp.gas_level_trip_start)}</td>
                     <td className="px-3 py-2 text-center text-black">{fmtGasLevel(insp.gas_level_trip_end)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(insp.assigned_to)}</td>
+                    <td className="px-3 py-2 text-center text-black whitespace-nowrap">
+                      {insp.assigned_to ? insp.assigned_to : "—"}
+                    </td>
                     <td className="px-3 py-2 text-center text-black">
                       <FuelReturnedCell level={(insp.fuel_returned as any) ?? null} />
                     </td>
@@ -317,7 +335,25 @@ export default function TuroInspectionsSection() {
                       <CarIssueTypesCell types={parseIssueTypes(insp.car_issue_types)} />
                     </td>
                     <td className="px-3 py-2 text-center text-black">
-                      {photoCount > 0 ? `${photoCount} photo${photoCount > 1 ? "s" : ""}` : "—"}
+                      {(() => {
+                        const carPhotoUrl = parseCarPhotoUrl(insp.car_photo);
+                        if (carPhotoUrl) {
+                          const proxied = getProxiedImageUrl(carPhotoUrl);
+                          const src = proxied.includes("/api/gcs-image-proxy")
+                            ? proxied + (proxied.includes("?") ? "&" : "?") + "size=128"
+                            : proxied;
+                          return (
+                            <img
+                              src={src}
+                              alt={insp.car_name ?? "Car"}
+                              className="h-10 w-16 object-cover rounded mx-auto"
+                            />
+                          );
+                        }
+                        return photoCount > 0
+                          ? `${photoCount} photo${photoCount > 1 ? "s" : ""}`
+                          : "—";
+                      })()}
                     </td>
                     <td className="px-3 py-2 text-center text-black">{asStr(insp.notes)}</td>
                     <td className="px-3 py-2 text-center text-black">
