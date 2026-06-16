@@ -1,6 +1,7 @@
+import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { buildApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { SectionHeader, DashboardTable } from "@/components/admin/dashboard";
 
 interface MaintenanceTask {
@@ -95,6 +96,31 @@ function formatDateTime(dateStr: string | null | undefined): string {
 function formatCurrency(val: number | null | undefined): string {
   if (val == null) return "—";
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
+}
+
+/** Render the Photos cell as a thumbnail of the first photo (with a count badge
+ *  when there's more than one) instead of plain "N photos" text. Matches the
+ *  thumbnail style used in TuroInspectionsSection. */
+function renderPhotosCell(photos: string[] | null): ReactNode {
+  if (!photos || photos.length === 0) return "—";
+  const proxied = getProxiedImageUrl(photos[0]);
+  const src = proxied.includes("/api/gcs-image-proxy")
+    ? proxied + (proxied.includes("?") ? "&" : "?") + "size=128"
+    : proxied;
+  return (
+    <div className="relative inline-block">
+      <img
+        src={src}
+        alt="Maintenance photo"
+        className="h-10 w-16 object-cover rounded mx-auto"
+      />
+      {photos.length > 1 && (
+        <span className="absolute -top-1 -right-1 rounded-full bg-black px-1.5 text-[10px] font-bold leading-4 text-white">
+          {photos.length}
+        </span>
+      )}
+    </div>
+  );
 }
 
 function statusLabel(status: string): string {
@@ -195,9 +221,7 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
       scheduledDate: formatDate(task.scheduled_date),
       dueDate: formatDate(task.due_date),
       repairShop: task.repair_shop || "—",
-      photos: task.photos && task.photos.length > 0
-        ? `${task.photos.length} photo${task.photos.length > 1 ? "s" : ""}`
-        : "—",
+      photos: renderPhotosCell(task.photos),
       notes: task.notes ? truncate(task.notes, 50) : "—",
       status: statusLabel(task.status),
     };
