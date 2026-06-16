@@ -98,7 +98,6 @@ const LEGACY_HIDDEN_FIELDS: {
   directDelivery: ["laborCarCleaning"],
   cogs: [
     "carPayment",
-    "carInsurance",
     "cleaningSuppliesTools",
     "laborCleaning", // "Labor - Detailing"
     "wipers",
@@ -2938,17 +2937,15 @@ export default function IncomeExpenseTable({
                   {...rowActions("cogs", "carPayment", "Car Payment")}
                 />
               )}
-              {SHOW_LEGACY_IE_ROWS && (
-                <CategoryRow
-                  label="Car Insurance"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.cogs, i + 1, "carInsurance"),
-                  )}
-                  category="cogs"
-                  field="carInsurance"
-                  {...rowActions("cogs", "carInsurance", "Car Insurance")}
-                />
-              )}
+              <CategoryRow
+                label="Car Insurance"
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.cogs, i + 1, "carInsurance"),
+                )}
+                category="cogs"
+                field="carInsurance"
+                {...rowActions("cogs", "carInsurance", "Car Insurance")}
+              />
               <CategoryRow
                 label="Car Seats"
                 values={MONTHS.map((_, i) =>
