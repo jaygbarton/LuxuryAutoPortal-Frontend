@@ -122,7 +122,7 @@ export default function CarPerformanceSection({ year }: Props) {
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Car Owner Split</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Days Rented</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Trips Taken</th>
-                <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Available Days</th>
+                <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Cars Available</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Fleet Utilization (%)</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Ave Earnings</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Avg Days Rented</th>

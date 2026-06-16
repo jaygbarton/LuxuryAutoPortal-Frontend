@@ -41,7 +41,7 @@ export default function ModalEditHistory() {
 
   const fieldNames: { [key: string]: string } = {
     daysRented: "Days Rented",
-    carsAvailableForRent: "Cars Available For Rent",
+    carsAvailableForRent: "Cars Available",
     tripsTaken: "Trips Taken",
   };
 

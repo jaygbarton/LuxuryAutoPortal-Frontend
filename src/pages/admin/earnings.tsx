@@ -1677,7 +1677,7 @@ export default function EarningsPage() {
                   />
                   {isAdmin && (
                     <TableRow
-                      label="Cars Available For Rent"
+                      label="Cars Available"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "carsAvailableForRent"))}
                       isInteger
                     />

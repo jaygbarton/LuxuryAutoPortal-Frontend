@@ -867,7 +867,7 @@ export default function TotalsPage() {
               totalIsCurrency={false}
             >
               <TotalRow label="Days Rented" value={totals?.history?.daysRented} isCurrency={false} />
-              <TotalRow label="Cars Available For Rent" value={totals?.history?.carsAvailableForRent} isCurrency={false} />
+              {!isClient && <TotalRow label="Cars Available" value={totals?.history?.carsAvailableForRent} isCurrency={false} />}
               <TotalRow label="Trips Taken" value={totals?.history?.tripsTaken} isCurrency={false} />
             </Section>
           </div>
