@@ -48,8 +48,15 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Fragment, useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import TaskCommentsDialog from "@/components/tasks/TaskCommentsDialog";
@@ -116,9 +123,12 @@ function EmployeePicker({
   value,
   onChange,
 }: {
-  value: string;
-  onChange: (id: string, name: string) => void;
+  // Currently-selected assignees.
+  value: { id: string; name: string }[];
+  // Receives the full updated list of assignees.
+  onChange: (assignees: { id: string; name: string }[]) => void;
 }) {
+  const [open, setOpen] = useState(false);
   const { data } = useQuery<{ success: boolean; data: any[] }>({
     queryKey: ["/api/employees", "task-picker"],
     queryFn: async () => {
@@ -135,39 +145,74 @@ function EmployeePicker({
     (e: any) => (e.employee_is_active ?? 1) === 1,
   );
 
+  const empName = (e: any) =>
+    `${e.employee_first_name || ""} ${e.employee_last_name || ""}`.trim() ||
+    e.employee_email ||
+    `Employee #${e.employee_aid}`;
+
+  const selectedIds = new Set(value.map((v) => v.id));
+
+  function toggle(id: string, name: string) {
+    if (selectedIds.has(id)) {
+      onChange(value.filter((v) => v.id !== id));
+    } else {
+      onChange([...value, { id, name }]);
+    }
+  }
+
+  const triggerLabel =
+    value.length === 0
+      ? "Select employees…"
+      : value.length === 1
+        ? value[0].name
+        : `${value.length} employees selected`;
+
   return (
-    <Select
-      value={value || "__none__"}
-      onValueChange={(v) => {
-        if (v === "__none__") {
-          onChange("", "");
-          return;
-        }
-        const emp = employees.find((e: any) => String(e.employee_aid) === v);
-        const name = emp
-          ? `${emp.employee_first_name || ""} ${emp.employee_last_name || ""}`.trim()
-          : v;
-        onChange(v, name);
-      }}
-    >
-      <SelectTrigger className="mt-1">
-        <SelectValue placeholder="Select employee…" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__none__">— Unassigned —</SelectItem>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="mt-1 flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        >
+          <span className={value.length === 0 ? "text-muted-foreground" : ""}>
+            {triggerLabel}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] max-h-72 overflow-y-auto p-1"
+        align="start"
+      >
+        {value.length > 0 && (
+          <button
+            type="button"
+            onClick={() => onChange([])}
+            className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent"
+          >
+            — Clear all —
+          </button>
+        )}
         {employees.map((e: any) => {
-          const name =
-            `${e.employee_first_name || ""} ${e.employee_last_name || ""}`.trim() ||
-            e.employee_email ||
-            `Employee #${e.employee_aid}`;
+          const id = String(e.employee_aid);
+          const name = empName(e);
+          const checked = selectedIds.has(id);
           return (
-            <SelectItem key={e.employee_aid} value={String(e.employee_aid)}>
+            <button
+              type="button"
+              key={e.employee_aid}
+              onClick={() => toggle(id, name)}
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+            >
+              <span className="flex h-4 w-4 items-center justify-center">
+                {checked && <Check className="h-4 w-4 text-primary" />}
+              </span>
               {name}
-            </SelectItem>
+            </button>
           );
         })}
-      </SelectContent>
-    </Select>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -233,8 +278,10 @@ const EMPTY_FORM = {
   task_timer_date_end: "", // due date
   task_timer_description: "",
   task_timer_status: "0", // "new"
-  task_timer_emp_id: "", // assigned employee ID
-  assignedToName: "", // display name (not sent to backend)
+  // One or more assigned employees. The first is treated as the primary
+  // (written to task_timer_emp_id); the full list is written to
+  // task_timer_emp_list as a JSON array.
+  assignedEmployees: [] as { id: string; name: string }[],
   assigneeName: "", // user who created / assigned (free text)
 };
 
@@ -547,18 +594,29 @@ export default function AdminHrTaskManagement() {
     setEditingTask(task);
     setPhotos([]);
     setExistingPhotos(getTaskPhotos(task));
-    // Parse assigned employee id AND name from task_timer_emp_list
-    let empId = task.task_timer_emp_id || "";
-    let empName = "";
+    // Parse all assigned employees from task_timer_emp_list (JSON array).
+    // Fall back to the single task_timer_emp_id for legacy rows.
+    let assignedEmployees: { id: string; name: string }[] = [];
     if (task.task_timer_emp_list) {
       try {
         const parsed = JSON.parse(task.task_timer_emp_list);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const first = parsed[0];
-          if (!empId) empId = String(first?.id ?? first ?? "");
-          empName = String(first?.name ?? "").trim();
+        if (Array.isArray(parsed)) {
+          assignedEmployees = parsed
+            .map((x: any) => ({
+              id: String(x?.id ?? x ?? "").trim(),
+              name: String(x?.name ?? "").trim(),
+            }))
+            .filter((x) => x.id);
         }
       } catch {}
+    }
+    if (assignedEmployees.length === 0 && task.task_timer_emp_id) {
+      assignedEmployees = [
+        {
+          id: String(task.task_timer_emp_id),
+          name: employeeMap.get(String(task.task_timer_emp_id)) || "",
+        },
+      ];
     }
     // Parse existing recurrence settings so the edit modal reflects them
     let rec = { ...EMPTY_RECURRENCE };
@@ -581,8 +639,7 @@ export default function AdminHrTaskManagement() {
       task_timer_date_end: task.task_timer_date_end || "",
       task_timer_description: task.task_timer_description || "",
       task_timer_status: String(task.task_timer_status ?? 0),
-      task_timer_emp_id: empId,
-      assignedToName: empName,
+      assignedEmployees,
       assigneeName: task.task_timer_goal || "", // reuse goal field for assignee name
     });
     setModalOpen(true);
@@ -633,12 +690,15 @@ export default function AdminHrTaskManagement() {
       task_timer_date_start: form.task_timer_date_end, // same for compat
       task_timer_description: form.task_timer_description.trim(),
       task_timer_status: parseInt(form.task_timer_status, 10),
-      task_timer_emp_id: form.task_timer_emp_id,
-      task_timer_emp_list: form.task_timer_emp_id
-        ? JSON.stringify([
-            { id: form.task_timer_emp_id, name: form.assignedToName },
-          ])
-        : "[]",
+      // Primary assignee = first selected (keeps the indexed emp_id filter
+      // working); full set goes to emp_list as a JSON array.
+      task_timer_emp_id: form.assignedEmployees[0]?.id || "",
+      task_timer_emp_list:
+        form.assignedEmployees.length > 0
+          ? JSON.stringify(
+              form.assignedEmployees.map((e) => ({ id: e.id, name: e.name })),
+            )
+          : "[]",
       task_timer_goal: form.assigneeName,
     };
     if (recurrence.type !== "none") {
@@ -1099,19 +1159,41 @@ export default function AdminHrTaskManagement() {
               />
             </div>
 
-            {/* Assigned To (Employee) */}
+            {/* Assigned To (Employee) — supports multiple */}
             <div>
               <Label>Assigned To (Employee)</Label>
               <EmployeePicker
-                value={form.task_timer_emp_id}
-                onChange={(id, name) =>
-                  setForm((f) => ({
-                    ...f,
-                    task_timer_emp_id: id,
-                    assignedToName: name,
-                  }))
+                value={form.assignedEmployees}
+                onChange={(assignedEmployees) =>
+                  setForm((f) => ({ ...f, assignedEmployees }))
                 }
               />
+              {form.assignedEmployees.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {form.assignedEmployees.map((emp) => (
+                    <span
+                      key={emp.id}
+                      className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs"
+                    >
+                      {emp.name || `#${emp.id}`}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            assignedEmployees: f.assignedEmployees.filter(
+                              (e) => e.id !== emp.id,
+                            ),
+                          }))
+                        }
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Due Date */}

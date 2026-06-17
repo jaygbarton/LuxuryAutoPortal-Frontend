@@ -37,8 +37,6 @@ const TABLE_COLUMNS = [
   { key: "status", label: "Status", align: "left" as const },
 ];
 
-const STATUS_SORT_ORDER: Record<number, number> = { 1: 0, 0: 1, 2: 2, 3: 3 };
-
 function parseAssignees(empList: string): string {
   if (!empList) return "Unassigned";
   try {
@@ -157,11 +155,16 @@ export default function TaskManagementSection() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   const sortedTasks = useMemo(() => {
-    let f = [...tasks].sort(
-      (a, b) => (STATUS_SORT_ORDER[a.task_timer_status] ?? 4) - (STATUS_SORT_ORDER[b.task_timer_status] ?? 4),
-    );
+    // Default sort: by task date, newest first (descending).
+    const ts = (t: TaskTimer) => {
+      const v = new Date(t.task_timer_date_start).getTime();
+      return isNaN(v) ? -Infinity : v;
+    };
+    let f = [...tasks].sort((a, b) => ts(b) - ts(a));
     if (search.trim()) {
       const q = search.toLowerCase();
       f = f.filter(t => [t.task_timer_name, t.task_timer_description, t.task_timer_goal, t.task_timer_car_name]
@@ -170,10 +173,21 @@ export default function TaskManagementSection() {
     if (statusFilter !== "all") {
       f = f.filter(t => String(t.task_timer_status ?? 0) === statusFilter);
     }
+    // Date range filter on the task date (inclusive). Compare on the
+    // YYYY-MM-DD prefix so timezone offsets don't drop boundary rows.
+    if (fromDate || toDate) {
+      f = f.filter(t => {
+        const d = (t.task_timer_date_start || "").slice(0, 10);
+        if (!d) return false;
+        if (fromDate && d < fromDate) return false;
+        if (toDate && d > toDate) return false;
+        return true;
+      });
+    }
     return f.slice(0, 25);
-  }, [tasks, search, statusFilter]);
+  }, [tasks, search, statusFilter, fromDate, toDate]);
 
-  const isFiltered = search || statusFilter !== "all";
+  const isFiltered = search || statusFilter !== "all" || fromDate || toDate;
 
   const rows = sortedTasks.map((task) => {
     const name = task.task_timer_name || "";
@@ -218,10 +232,20 @@ export default function TaskManagementSection() {
           <option value="all">All Statuses</option>
           {STATUS_FILTER_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-500">From</span>
+          <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
+            className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-500">To</span>
+          <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
+            className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+        </div>
         {isFiltered && (
           <>
             <span className="text-xs text-gray-500">{rows.length} result{rows.length !== 1 ? "s" : ""}</span>
-            <button onClick={() => { setSearch(""); setStatusFilter("all"); }} className="text-xs text-[#B8860B] hover:underline">Clear all</button>
+            <button onClick={() => { setSearch(""); setStatusFilter("all"); setFromDate(""); setToDate(""); }} className="text-xs text-[#B8860B] hover:underline">Clear all</button>
           </>
         )}
       </div>
