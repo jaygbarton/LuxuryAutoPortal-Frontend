@@ -274,21 +274,20 @@ export default function ReservationsTableSection({
     if (assignedToFilter !== "all" && hasAssignedTo) {
       filtered = filtered.filter((row) => String(row["assigned_to"] ?? "").trim() === assignedToFilter);
     }
+    // Match each date field against its own exact Mountain-Time calendar day,
+    // AND-ed together: "Trip Start on 6/17 AND Trip Ends on 6/17". Compare
+    // MT YYYY-MM-DD strings (not raw UTC timestamps) so the filter agrees with
+    // the Trip Start / Trip Ends columns, which render in America/Denver.
+    const toMtDate = (iso: unknown): string | null => {
+      if (!iso) return null;
+      try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(String(iso))); }
+      catch { return null; }
+    };
     if (tripStartFrom && hasTripStart) {
-      const from = new Date(tripStartFrom).getTime();
-      filtered = filtered.filter((row) => {
-        const v = row["trip_start"];
-        if (!v) return false;
-        return new Date(String(v)).getTime() >= from;
-      });
+      filtered = filtered.filter((row) => toMtDate(row["trip_start"]) === tripStartFrom);
     }
     if (tripEndTo && hasTripEnd) {
-      const to = new Date(tripEndTo).getTime() + 86400000 - 1; // inclusive end of day
-      filtered = filtered.filter((row) => {
-        const v = row["trip_end"];
-        if (!v) return false;
-        return new Date(String(v)).getTime() <= to;
-      });
+      filtered = filtered.filter((row) => toMtDate(row["trip_end"]) === tripEndTo);
     }
     return filtered.slice(0, maxRows);
   }, [allRows, search, statusFilter, assignedToFilter, tripStartFrom, tripEndTo, statusEdit, hasAssignedTo, hasTripStart, hasTripEnd, maxRows]);
@@ -340,20 +339,20 @@ export default function ReservationsTableSection({
           </select>
         )}
 
-        {/* Trip Start From */}
+        {/* Trip Start */}
         {hasTripStart && (
           <div className="flex items-center gap-1">
-            <label className="text-xs text-gray-500 whitespace-nowrap">Trip Start From</label>
+            <label className="text-xs text-gray-500 whitespace-nowrap">Trip Start</label>
             <input type="date" value={tripStartFrom} onChange={(e) => setTripStartFrom(e.target.value)}
               className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
             {tripStartFrom && <button onClick={() => setTripStartFrom("")} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
           </div>
         )}
 
-        {/* Trip End To */}
+        {/* Trip Ends */}
         {hasTripEnd && (
           <div className="flex items-center gap-1">
-            <label className="text-xs text-gray-500 whitespace-nowrap">Trip Ends To</label>
+            <label className="text-xs text-gray-500 whitespace-nowrap">Trip Ends</label>
             <input type="date" value={tripEndTo} onChange={(e) => setTripEndTo(e.target.value)}
               className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
             {tripEndTo && <button onClick={() => setTripEndTo("")} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
