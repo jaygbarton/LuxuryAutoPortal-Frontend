@@ -280,13 +280,13 @@ export function PaymentReceiptModal({
 
   const handleDownload = () => {
     if (!currentFile) return;
-    
-    // For Google Drive files, use webContentLink for direct download, or webViewLink as fallback
     const downloadUrl = currentFile.webContentLink || currentFile.webViewLink || currentFile.previewUrl;
-    
     if (downloadUrl) {
-      // Open in new tab for download/view
-      window.open(downloadUrl, "_blank");
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.click();
     }
   };
 
@@ -524,15 +524,15 @@ export function PaymentReceiptModal({
                                 <Copy className="w-3 h-3" />
                               </Button>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => window.open(openUrl, "_blank")}
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                            <a
+                              href={openUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                               title="Open in new tab"
                             >
                               <ExternalLink className="w-3 h-3" />
-                            </Button>
+                            </a>
                           </div>
                         </div>
                       );

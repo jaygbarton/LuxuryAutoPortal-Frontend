@@ -1220,10 +1220,10 @@ export default function ExpenseFormApprovalDashboard({
                   <TableHead className="text-foreground font-semibold w-[80px] text-xs whitespace-nowrap py-2 px-2 h-auto">
                     Year/Month
                   </TableHead>
-                  <TableHead className="text-foreground font-semibold w-[100px] text-xs whitespace-nowrap py-2 px-2 h-auto">
+                  <TableHead className="text-foreground font-semibold w-[140px] min-w-[140px] text-xs whitespace-nowrap py-2 px-2 h-auto">
                     Category
                   </TableHead>
-                  <TableHead className="text-foreground font-semibold min-w-0 text-xs whitespace-nowrap py-2 px-2 h-auto">
+                  <TableHead className="text-foreground font-semibold w-[140px] min-w-[140px] text-xs whitespace-nowrap py-2 px-2 h-auto">
                     Type
                   </TableHead>
                   <TableHead className="text-foreground font-semibold w-[80px] text-xs whitespace-nowrap py-2 px-2 h-auto">
@@ -1296,10 +1296,10 @@ export default function ExpenseFormApprovalDashboard({
                     <TableCell className="text-foreground text-xs whitespace-nowrap py-2 px-2">
                       {sub.year} / {MONTHS[sub.month - 1]}
                     </TableCell>
-                    <TableCell className="text-foreground text-xs truncate whitespace-nowrap py-2 px-2">
+                    <TableCell className="text-foreground text-xs whitespace-nowrap py-2 px-2" title={CATEGORY_LABELS[sub.category] || sub.category}>
                       {CATEGORY_LABELS[sub.category] || sub.category}
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-xs truncate min-w-0 whitespace-nowrap py-2 px-2">
+                    <TableCell className="text-muted-foreground text-xs whitespace-nowrap py-2 px-2" title={formatFieldLabel(sub.field)}>
                       {formatFieldLabel(sub.field)}
                     </TableCell>
                     <TableCell className="text-green-700 font-semibold text-xs whitespace-nowrap py-2 px-2">

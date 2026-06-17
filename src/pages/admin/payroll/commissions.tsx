@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
+import { COMMISSION_TYPES } from "@/lib/commissionTypes";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2, Search, ChevronDown, X } from "lucide-react";
 import { useRef, useEffect } from "react";
@@ -51,6 +52,130 @@ interface CommissionRow {
 
 function isInsuranceType(type: string): boolean {
   return type.trim().toLowerCase() === "insurance";
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function fmtMoney(n: number): string {
+  return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+const CURRENT_YEAR = new Date().getFullYear();
+const MATRIX_YEAR_OPTIONS = Array.from(
+  { length: CURRENT_YEAR + 1 - 2023 + 1 },
+  (_, i) => String(2023 + i),
+);
+
+interface MatrixRow {
+  type: string;
+  monthly: number[];
+  total: number;
+}
+
+/**
+ * Fleet-wide "Total Commissions by month" matrix — same grid an employee sees
+ * under My Info → Commissions, but summed across all (co-host-scoped)
+ * employees. Driven by its own year selector and the dedicated
+ * /api/payroll/commissions/matrix endpoint.
+ */
+function CommissionsMatrix() {
+  const [year, setYear] = useState(String(CURRENT_YEAR));
+
+  const { data, isLoading } = useQuery<{ success: boolean; data: { rows: MatrixRow[] } }>({
+    queryKey: ["/api/payroll/commissions/matrix", year],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl(`/api/payroll/commissions/matrix?year=${year}`), {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to load commissions matrix");
+      return res.json();
+    },
+  });
+
+  const apiRows = data?.data?.rows ?? [];
+
+  // Render the canonical type rows in order, zero-filling months with no data,
+  // then append any extra (legacy/free-text) types the data contains.
+  const knownLower = new Set(COMMISSION_TYPES.map((t) => t.toLowerCase()));
+  const baseRows: MatrixRow[] = COMMISSION_TYPES.map((type) => {
+    const api = apiRows.find((r) => r.type.toLowerCase() === type.toLowerCase());
+    const monthly = api ? api.monthly.slice(0, 12) : Array(12).fill(0);
+    while (monthly.length < 12) monthly.push(0);
+    return { type, monthly, total: monthly.reduce((s, v) => s + v, 0) };
+  });
+  const extraRows: MatrixRow[] = apiRows
+    .filter((r) => !knownLower.has(r.type.toLowerCase()))
+    .map((r) => ({ type: r.type, monthly: r.monthly, total: r.monthly.reduce((s, v) => s + v, 0) }));
+  const rows = [...baseRows, ...extraRows];
+
+  const grandMonthly = Array(12).fill(0);
+  for (const row of rows) for (let i = 0; i < 12; i++) grandMonthly[i] += row.monthly[i] || 0;
+  const grandTotal = grandMonthly.reduce((s, v) => s + v, 0);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold leading-tight">Total Commissions by Month</h2>
+            <p className="text-muted-foreground text-sm">All employees, summed by commission type.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Year</span>
+            <Select value={year} onValueChange={setYear}>
+              <SelectTrigger className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MATRIX_YEAR_OPTIONS.map((y) => (
+                  <SelectItem key={y} value={y}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="w-full max-w-full overflow-x-auto">
+            <table className="min-w-[900px] border-collapse text-xs">
+              <thead>
+                <tr className="bg-muted/50">
+                  <th className="md:sticky md:left-0 z-10 bg-muted/50 min-w-[200px] px-3 py-2 text-left font-medium text-muted-foreground">Type</th>
+                  {MONTHS.map((m) => (
+                    <th key={m} className="min-w-[80px] px-2 py-2 text-right font-medium text-muted-foreground">{m} {year}</th>
+                  ))}
+                  <th className="min-w-[90px] px-2 py-2 text-right font-semibold">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {rows.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-muted/20">
+                    <td className="md:sticky md:left-0 z-10 bg-card min-w-[200px] px-3 py-1.5 font-medium">{row.type}</td>
+                    {row.monthly.map((val, mIdx) => (
+                      <td key={mIdx} className="px-2 py-1.5 text-right font-mono">{fmtMoney(val || 0)}</td>
+                    ))}
+                    <td className="px-2 py-1.5 text-right font-mono font-semibold">{fmtMoney(row.total)}</td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 bg-muted/40 font-semibold">
+                  <td className="md:sticky md:left-0 z-10 bg-muted/40 min-w-[200px] px-3 py-2">TOTAL</td>
+                  {grandMonthly.map((val, mIdx) => (
+                    <td key={mIdx} className="px-2 py-2 text-right font-mono">{fmtMoney(val)}</td>
+                  ))}
+                  <td className="px-2 py-2 text-right font-mono">{fmtMoney(grandTotal)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function PayrollCommissionsPage() {
@@ -165,23 +290,6 @@ export default function PayrollCommissionsPage() {
     onError: (e: Error) => toast({ variant: "destructive", title: "Error", description: e.message }),
   });
 
-  const billedGlaMutation = useMutation({
-    mutationFn: async ({ id, billed }: { id: number; billed: number }) => {
-      const res = await fetch(buildApiUrl(`/api/payroll/commissions/${id}`), {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ commissions_billed_gla_client: billed }),
-      });
-      if (!res.ok) throw new Error("Failed to update");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/payroll/commissions"] });
-      toast({ title: "Billed GLA Client updated" });
-    },
-    onError: (e: Error) => toast({ variant: "destructive", title: "Error", description: e.message }),
-  });
-
   const markPaidMutation = useMutation({
     mutationFn: async ({ id, paid }: { id: number; paid: number }) => {
       const res = await fetch(buildApiUrl(`/api/payroll/commissions/${id}/paid`), {
@@ -246,6 +354,8 @@ export default function PayrollCommissionsPage() {
           </Button>
         </div>
 
+        <CommissionsMatrix />
+
         <Card>
           <CardHeader className="pb-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end gap-3">
@@ -301,7 +411,7 @@ export default function PayrollCommissionsPage() {
                     <TableHead>Date</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                     <TableHead>Paid</TableHead>
-                    <TableHead>Billed GLA Client</TableHead>
+                    <TableHead>Remarks</TableHead>
                     <TableHead className="w-28">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -313,26 +423,8 @@ export default function PayrollCommissionsPage() {
                       <TableCell>{r.commissions_date}</TableCell>
                       <TableCell className="text-right">${Number(r.commissions_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</TableCell>
                       <TableCell>{r.commissions_is_paid ? "Yes" : "No"}</TableCell>
-                      <TableCell>
-                        {isInsuranceType(r.commissions_type) ? (
-                          <label className="inline-flex items-center gap-2 cursor-pointer text-sm">
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4"
-                              checked={!!r.commissions_billed_gla_client}
-                              disabled={billedGlaMutation.isPending}
-                              onChange={(e) =>
-                                billedGlaMutation.mutate({
-                                  id: r.commissions_aid,
-                                  billed: e.target.checked ? 1 : 0,
-                                })
-                              }
-                            />
-                            <span>{r.commissions_billed_gla_client ? "Billed" : "Not billed"}</span>
-                          </label>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
+                      <TableCell className="max-w-[240px] truncate text-muted-foreground" title={r.commissions_remarks ?? ""}>
+                        {r.commissions_remarks?.trim() || "—"}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
@@ -492,11 +584,29 @@ export default function PayrollCommissionsPage() {
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Input
-                  value={form.commissions_type}
-                  onChange={(e) => setForm((f) => ({ ...f, commissions_type: e.target.value }))}
-                  placeholder="e.g. Referral"
-                />
+                <Select
+                  value={form.commissions_type || undefined}
+                  onValueChange={(v) => setForm((f) => ({ ...f, commissions_type: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {/* Preserve a legacy/free-text value (e.g. when editing an
+                        older row) that isn't in the canonical list. */}
+                    {form.commissions_type &&
+                      !COMMISSION_TYPES.includes(form.commissions_type as (typeof COMMISSION_TYPES)[number]) && (
+                        <SelectItem value={form.commissions_type}>
+                          {form.commissions_type}
+                        </SelectItem>
+                      )}
+                    {COMMISSION_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Amount</Label>

@@ -209,8 +209,8 @@ export default function CoHostPaymentsPage() {
                         </span>
                       </th>
                       <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden md:table-cell">Balance</th>
-                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden lg:table-cell">Payment Date</th>
-                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden lg:table-cell">Reference #</th>
+                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Payment Date</th>
+                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Reference #</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -261,7 +261,7 @@ export default function CoHostPaymentsPage() {
                             {fmt(p.payments_amount_balance)}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-muted-foreground whitespace-nowrap hidden lg:table-cell">
+                        <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
                           {p.payments_invoice_date
                             ? new Date(p.payments_invoice_date).toLocaleDateString("en-US", {
                                 timeZone: "America/Denver",
@@ -271,7 +271,7 @@ export default function CoHostPaymentsPage() {
                               })
                             : "—"}
                         </td>
-                        <td className="px-3 py-2 text-muted-foreground font-mono text-xs hidden lg:table-cell">
+                        <td className="px-3 py-2 text-muted-foreground font-mono text-xs">
                           {p.payments_reference_number || "—"}
                         </td>
                       </tr>

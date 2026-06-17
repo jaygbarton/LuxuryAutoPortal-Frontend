@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { COMMISSION_TYPES as SHARED_COMMISSION_TYPES } from "@/lib/commissionTypes";
 import {
   LineChart,
   Line,
@@ -35,25 +36,7 @@ interface CommissionsResponse {
   data: { rows: CommissionRow[] };
 }
 
-const COMMISSION_TYPES = [
-  "Parking Airport",
-  "Uber & Lyft",
-  "Electric, Gas, Uber - Reimbursed",
-  "Ski Rack's",
-  "New Car 1%",
-  "New Car - Onboard",
-  "Relist Car",
-  "Annual Inspections",
-  "Insurance",
-  "Car Registrations",
-  "Car Swap",
-  "Zero Parking Fee",
-  "Invoice",
-  "Bouncie",
-  "Maintenance",
-  "Exit Parking Ticket",
-  "Last Minute Commissions",
-];
+const COMMISSION_TYPES = SHARED_COMMISSION_TYPES;
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 

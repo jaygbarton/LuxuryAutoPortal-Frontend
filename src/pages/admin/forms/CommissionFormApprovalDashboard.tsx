@@ -162,7 +162,13 @@ export default function CommissionFormApprovalDashboard() {
 
   const rows: CommissionFormRow[] = data?.data ?? [];
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["/api/admin/commission-forms"] });
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/commission-forms"] });
+    // The employee-facing "My Submissions" list reads a different endpoint;
+    // invalidate it too so deleting/approving here doesn't leave it showing
+    // stale (e.g. already-deleted) rows until a manual refresh.
+    queryClient.invalidateQueries({ queryKey: ["/api/commission-forms/my"] });
+  };
 
   const approveMutation = useMutation({
     mutationFn: async (id: number) => {
