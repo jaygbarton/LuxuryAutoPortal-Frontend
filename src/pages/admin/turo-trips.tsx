@@ -126,15 +126,14 @@ export default function TuroTripsPage() {
   const [statusFilter, setStatusFilter] = useState<
     "all" | "booked" | "cancelled" | "ended" | "returned"
   >("all");
-  // Unified date filter: pick ONE date column (Trip Start / Trip Ends /
-  // Booking Date), then a From–To range applied to it. This replaces the old
-  // four separate boxes (Trip Start range AND Trip Ends range) which silently
-  // AND-ed together — e.g. a trip ending 6/17 but starting 6/15 disappeared the
-  // moment a Trip Start filter was set. One column at a time is unambiguous:
-  // "show everything ending 6/17" = field=Trip Ends, from=to=6/17.
-  const [dateField, setDateField] = useState<"tripStart" | "tripEnd" | "booking">("tripStart");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  // Three independent date range filters — one per date column.
+  // Each can be set independently; all active constraints are AND-ed.
+  const [startFrom, setStartFrom] = useState("");
+  const [startTo, setStartTo] = useState("");
+  const [endFrom, setEndFrom] = useState("");
+  const [endTo, setEndTo] = useState("");
+  const [bookingFrom, setBookingFrom] = useState("");
+  const [bookingTo, setBookingTo] = useState("");
   // Sorting on the date columns (click a header to toggle asc/desc).
   const [sortBy, setSortBy] = useState<"tripStart" | "tripEnd" | "booking">("tripStart");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -195,9 +194,9 @@ export default function TuroTripsPage() {
       debouncedSearchQuery,
       currentPage,
       itemsPerPage,
-      dateField,
-      dateFrom,
-      dateTo,
+      startFrom, startTo,
+      endFrom, endTo,
+      bookingFrom, bookingTo,
       sortBy,
       sortDir,
     ],
@@ -214,10 +213,13 @@ export default function TuroTripsPage() {
       }
       // Skip date filters when a search term is active so a reservation ID
       // or guest name search always finds the trip regardless of date range.
-      if (!debouncedSearchQuery && (dateFrom || dateTo)) {
-        url += `&dateField=${dateField}`;
-        if (dateFrom) url += `&dateFrom=${encodeURIComponent(dateFrom)}`;
-        if (dateTo) url += `&dateTo=${encodeURIComponent(dateTo)}`;
+      if (!debouncedSearchQuery) {
+        if (startFrom) url += `&startFrom=${encodeURIComponent(startFrom)}`;
+        if (startTo) url += `&startTo=${encodeURIComponent(startTo)}`;
+        if (endFrom) url += `&endFrom=${encodeURIComponent(endFrom)}`;
+        if (endTo) url += `&endTo=${encodeURIComponent(endTo)}`;
+        if (bookingFrom) url += `&bookingFrom=${encodeURIComponent(bookingFrom)}`;
+        if (bookingTo) url += `&bookingTo=${encodeURIComponent(bookingTo)}`;
       }
       url += `&sortBy=${sortBy}&sortDir=${sortDir}`;
       const response = await fetch(url, { credentials: "include" });
@@ -233,15 +235,16 @@ export default function TuroTripsPage() {
     success: boolean;
     data: TripsSummary;
   }>({
-    queryKey: ["/api/turo-trips/summary", dateField, dateFrom, dateTo, statusFilter],
+    queryKey: ["/api/turo-trips/summary", startFrom, startTo, endFrom, endTo, bookingFrom, bookingTo, statusFilter],
     queryFn: async () => {
       let url = buildApiUrl("/api/turo-trips/summary");
       const params = new URLSearchParams();
-      if (dateFrom || dateTo) {
-        params.set("dateField", dateField);
-        if (dateFrom) params.set("dateFrom", dateFrom);
-        if (dateTo) params.set("dateTo", dateTo);
-      }
+      if (startFrom) params.set("startFrom", startFrom);
+      if (startTo) params.set("startTo", startTo);
+      if (endFrom) params.set("endFrom", endFrom);
+      if (endTo) params.set("endTo", endTo);
+      if (bookingFrom) params.set("bookingFrom", bookingFrom);
+      if (bookingTo) params.set("bookingTo", bookingTo);
       if (statusFilter) params.set("status", statusFilter);
       if (params.toString()) url += `?${params.toString()}`;
       const response = await fetch(url, { credentials: "include" });
@@ -358,12 +361,9 @@ export default function TuroTripsPage() {
   const backfillLocationsMutation = useMutation({
     mutationFn: async () => {
       const params = new URLSearchParams();
-      // These endpoints scope by trip_start only, so pass the range through
-      // just when the active filter column is Trip Start.
-      if (dateField === "tripStart") {
-        if (dateFrom) params.set("startDate", dateFrom);
-        if (dateTo) params.set("endDate", dateTo);
-      }
+      // Pass the trip start range through to scope the backfill.
+      if (startFrom) params.set("startDate", startFrom);
+      if (startTo) params.set("endDate", startTo);
       const qs = params.toString();
       const response = await fetch(
         buildApiUrl(`/api/turo-trips/backfill-locations${qs ? `?${qs}` : ""}`),
@@ -403,12 +403,9 @@ export default function TuroTripsPage() {
   const repairDatesMutation = useMutation({
     mutationFn: async () => {
       const params = new URLSearchParams();
-      // These endpoints scope by trip_start only, so pass the range through
-      // just when the active filter column is Trip Start.
-      if (dateField === "tripStart") {
-        if (dateFrom) params.set("startDate", dateFrom);
-        if (dateTo) params.set("endDate", dateTo);
-      }
+      // Pass the trip start range through to scope the repair.
+      if (startFrom) params.set("startDate", startFrom);
+      if (startTo) params.set("endDate", startTo);
       const qs = params.toString();
       const response = await fetch(
         buildApiUrl(`/api/turo-trips/repair-dates${qs ? `?${qs}` : ""}`),
@@ -946,7 +943,7 @@ export default function TuroTripsPage() {
   // Reset to page 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, debouncedSearchQuery, dateField, dateFrom, dateTo, sortBy, sortDir]);
+  }, [statusFilter, debouncedSearchQuery, startFrom, startTo, endFrom, endTo, bookingFrom, bookingTo, sortBy, sortDir]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -1354,17 +1351,18 @@ export default function TuroTripsPage() {
               </Select>
               {(searchQuery ||
                 statusFilter !== "all" ||
-                dateFrom ||
-                dateTo) && (
+                startFrom || startTo ||
+                endFrom || endTo ||
+                bookingFrom || bookingTo) && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
                     setSearchQuery("");
                     setStatusFilter("all");
-                    setDateFrom("");
-                    setDateTo("");
-                    setDateField("tripStart");
+                    setStartFrom(""); setStartTo("");
+                    setEndFrom(""); setEndTo("");
+                    setBookingFrom(""); setBookingTo("");
                   }}
                   className="whitespace-nowrap w-full sm:w-auto"
                 >
@@ -1372,52 +1370,76 @@ export default function TuroTripsPage() {
                 </Button>
               )}
             </div>
-            {/* Row 2: unified date filter — pick ONE column, then a From–To
-                range. Replaces the old two-range (Trip Start AND Trip Ends)
-                layout so "everything ending 6/17" is a single unambiguous query. */}
-            <div className="flex flex-wrap items-center gap-3 mb-6">
-              <label className="text-sm text-muted-foreground whitespace-nowrap font-medium">
-                Filter by:
-              </label>
-              <Select
-                value={dateField}
-                onValueChange={(v: "tripStart" | "tripEnd" | "booking") => setDateField(v)}
-              >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tripStart">Trip Start</SelectItem>
-                  <SelectItem value="tripEnd">Trip Ends</SelectItem>
-                  <SelectItem value="booking">Booking Date</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-[150px]"
-                aria-label="From date"
-              />
-              <span className="text-sm text-muted-foreground">–</span>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-[150px]"
-                aria-label="To date"
-              />
-              {/* Quick "today" shortcut — answers "how many <field> today". */}
+            {/* Row 2: three independent date range filters — Trip Start, Trip Ends, Booking Date */}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6">
+              {/* Trip Start */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium whitespace-nowrap w-[90px]">Trip Start:</label>
+                <Input
+                  type="date"
+                  value={startFrom}
+                  onChange={(e) => setStartFrom(e.target.value)}
+                  className="w-[145px]"
+                  aria-label="Trip Start from"
+                />
+                <span className="text-sm text-muted-foreground">–</span>
+                <Input
+                  type="date"
+                  value={startTo}
+                  onChange={(e) => setStartTo(e.target.value)}
+                  className="w-[145px]"
+                  aria-label="Trip Start to"
+                />
+              </div>
+              {/* Trip Ends */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium whitespace-nowrap w-[90px]">Trip Ends:</label>
+                <Input
+                  type="date"
+                  value={endFrom}
+                  onChange={(e) => setEndFrom(e.target.value)}
+                  className="w-[145px]"
+                  aria-label="Trip Ends from"
+                />
+                <span className="text-sm text-muted-foreground">–</span>
+                <Input
+                  type="date"
+                  value={endTo}
+                  onChange={(e) => setEndTo(e.target.value)}
+                  className="w-[145px]"
+                  aria-label="Trip Ends to"
+                />
+              </div>
+              {/* Booking Date */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium whitespace-nowrap w-[90px]">Booking:</label>
+                <Input
+                  type="date"
+                  value={bookingFrom}
+                  onChange={(e) => setBookingFrom(e.target.value)}
+                  className="w-[145px]"
+                  aria-label="Booking Date from"
+                />
+                <span className="text-sm text-muted-foreground">–</span>
+                <Input
+                  type="date"
+                  value={bookingTo}
+                  onChange={(e) => setBookingTo(e.target.value)}
+                  className="w-[145px]"
+                  aria-label="Booking Date to"
+                />
+              </div>
+              {/* Today shortcut — fills all three ranges to today */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  // Today in Mountain Time (filters bucket by MT calendar day).
                   const today = new Intl.DateTimeFormat("en-CA", {
                     timeZone: "America/Denver",
-                  }).format(new Date()); // en-CA → YYYY-MM-DD
-                  setDateFrom(today);
-                  setDateTo(today);
+                  }).format(new Date());
+                  setStartFrom(today); setStartTo(today);
+                  setEndFrom(today); setEndTo(today);
+                  setBookingFrom(""); setBookingTo("");
                 }}
                 className="whitespace-nowrap"
               >
