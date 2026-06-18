@@ -264,9 +264,6 @@ export default function LoggedHoursSection() {
               <thead className="bg-black border-y border-[#D3BC8D]">
                 <tr>
                   <th className="px-3 py-2 text-center font-bold uppercase text-white">Time in</th>
-                  <th className="px-3 py-2 text-center font-bold uppercase text-white">Break Out</th>
-                  <th className="px-3 py-2 text-center font-bold uppercase text-white">Break In</th>
-                  <th className="px-3 py-2 text-center font-bold uppercase text-white">Total Break</th>
                   <th className="px-3 py-2 text-center font-bold uppercase text-white">Time Out</th>
                   <th className="px-3 py-2 text-center font-bold uppercase text-white">Rate</th>
                   <th className="px-3 py-2 text-center font-bold uppercase text-white">Amount</th>
@@ -280,29 +277,6 @@ export default function LoggedHoursSection() {
                       <td className="px-3 py-2 text-center">
                         <div className="font-medium text-black">{utahDate(r.timeIn)}</div>
                         <div className="text-black">{utahTime(r.timeIn)}</div>
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {r.breakOut ? (
-                          <>
-                            <div className="text-black">{utahDate(r.breakOut)}</div>
-                            <div className="text-black">{utahTime(r.breakOut)}</div>
-                          </>
-                        ) : (
-                          <span className="text-black">—</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {r.breakIn ? (
-                          <>
-                            <div className="text-black">{utahDate(r.breakIn)}</div>
-                            <div className="text-black">{utahTime(r.breakIn)}</div>
-                          </>
-                        ) : (
-                          <span className="text-black">—</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-center font-mono text-black">
-                        {formatHM(r.totalBreakHours)}
                       </td>
                       <td className="px-3 py-2 text-center">
                         {r.timeOut ? (
