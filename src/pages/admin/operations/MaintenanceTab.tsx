@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -565,7 +566,11 @@ export function MaintenanceTab({
                           {reservationId}
                         </TableCell>
                         <TableCell className="text-foreground whitespace-nowrap">
-                          {carDisplayName}
+                          {rec.car_id ? (
+                            <Link href={`/admin/cars/${rec.car_id}/maintenance`} className="text-[#D3BC8D] hover:underline">
+                              {carDisplayName}
+                            </Link>
+                          ) : carDisplayName}
                         </TableCell>
                         <TableCell className="text-foreground font-mono text-sm">
                           {plateNumber}
