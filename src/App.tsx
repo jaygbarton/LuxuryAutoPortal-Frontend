@@ -311,16 +311,16 @@ function Router() {
               <RequireRole roles={["isAdmin", "isEmployee"]}><OperationsPage /></RequireRole>
             </Route>
             <Route path="/admin/car-block-off">
-              <RequireRole roles={["isAdmin", "isClient"]}><CarBlockOffPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient", "isCoHost"]}><CarBlockOffPage /></RequireRole>
             </Route>
             <Route path="/admin/bouncie">
-              <RequireRole roles={["isAdmin", "isEmployee"]}><BouncieFleetPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isEmployee", "isCoHost"]}><BouncieFleetPage /></RequireRole>
             </Route>
             <Route path="/admin/bouncie-devices">
               <RequireRole roles={["isAdmin"]}><BouncieDevicesPage /></RequireRole>
             </Route>
             <Route path="/admin/bouncie-trips">
-              <RequireRole roles={["isAdmin", "isEmployee"]}><BouncieTripsPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isEmployee", "isCoHost"]}><BouncieTripsPage /></RequireRole>
             </Route>
             <Route path="/admin/bouncie-behavior">
               <RequireRole roles={["isAdmin"]}><BouncieBehaviorPage /></RequireRole>
