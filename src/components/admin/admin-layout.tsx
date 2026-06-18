@@ -394,12 +394,6 @@ const employeeSidebarItems: SidebarItem[] = [
     roles: ["employee"],
   },
   {
-    href: "/admin/car-block-off",
-    label: "Car Block Off",
-    icon: CalendarOff,
-    roles: ["employee"],
-  },
-  {
     href: "/admin/bouncie",
     label: "BOUNCIE",
     icon: Navigation,
