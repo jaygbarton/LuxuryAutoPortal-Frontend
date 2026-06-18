@@ -31,9 +31,23 @@ interface CommissionRow {
   total: number;
 }
 
+interface CommissionRecord {
+  id: number;
+  type: string;
+  amount: number;
+  date: string;
+  remarks: string;
+  isPaid: number;
+}
+
 interface CommissionsResponse {
   success: boolean;
   data: { rows: CommissionRow[] };
+}
+
+interface CommissionsListResponse {
+  success: boolean;
+  data: { records: CommissionRecord[] };
 }
 
 const COMMISSION_TYPES = SHARED_COMMISSION_TYPES;
@@ -61,6 +75,19 @@ export default function CommissionsSection() {
       });
       if (r.status === 404 || r.status === 501) return { success: true, data: { rows: [] } };
       if (!r.ok) throw new Error("Failed to load commissions");
+      return r.json();
+    },
+    retry: false,
+  });
+
+  const { data: listData, isLoading: listLoading } = useQuery<CommissionsListResponse>({
+    queryKey: ["/api/me/commissions/list", year],
+    queryFn: async () => {
+      const r = await fetch(buildApiUrl(`/api/me/commissions/list?year=${year}`), {
+        credentials: "include",
+      });
+      if (r.status === 404 || r.status === 501) return { success: true, data: { records: [] } };
+      if (!r.ok) throw new Error("Failed to load commission records");
       return r.json();
     },
     retry: false,
@@ -183,6 +210,49 @@ export default function CommissionsSection() {
                   />
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+
+            {/* Individual commission records */}
+            <div className="mt-8">
+              <h3 className="text-sm font-semibold text-black mb-3">Commission Records</h3>
+              {listLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-[#d3bc8d]" />
+                </div>
+              ) : (listData?.data?.records ?? []).length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-6">No commission records for {year}.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-y border-[#D3BC8D] border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-black border-y border-[#D3BC8D]">
+                        <th className="px-3 py-2 text-left font-semibold text-white">Date</th>
+                        <th className="px-3 py-2 text-left font-semibold text-white">Type</th>
+                        <th className="px-3 py-2 text-right font-semibold text-white">Amount</th>
+                        <th className="px-3 py-2 text-center font-semibold text-white">Status</th>
+                        <th className="px-3 py-2 text-left font-semibold text-white">Remarks</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(listData?.data?.records ?? []).map((rec) => (
+                        <tr key={rec.id} className="bg-white border-y border-[#D3BC8D]">
+                          <td className="px-3 py-1.5 text-black">
+                            {rec.date ? new Date(rec.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                          </td>
+                          <td className="px-3 py-1.5 text-black">{rec.type || "—"}</td>
+                          <td className="px-3 py-1.5 text-right font-mono text-black">{fmt$(rec.amount)}</td>
+                          <td className="px-3 py-1.5 text-center">
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${rec.isPaid ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
+                              {rec.isPaid ? "Paid" : "Pending"}
+                            </span>
+                          </td>
+                          <td className="px-3 py-1.5 text-gray-600">{rec.remarks || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </>
         )}
