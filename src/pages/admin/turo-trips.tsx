@@ -35,6 +35,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
@@ -53,6 +59,8 @@ import {
   XCircle,
   Loader2,
   Upload,
+  ChevronDown,
+  Gauge,
 } from "lucide-react";
 import { differenceInHours } from "date-fns";
 
@@ -98,6 +106,7 @@ interface TripsSummary {
   cancelledTrips: number;
   totalEarnings: number;
   cancelledEarnings: number;
+  totalMiles: number;
 }
 
 function calculateDaysRented(
@@ -123,9 +132,7 @@ function calculateDaysRented(
 export default function TuroTripsPage() {
   const [selectedTrip, setSelectedTrip] = useState<TuroTrip | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "booked" | "cancelled" | "ended" | "returned"
-  >("all");
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
   // "Active between" date range — shows every trip in progress during the
   // range (trip_start <= activeTo AND trip_end >= activeFrom), i.e. overlap.
   // This is what "show me the 6/18 trips" means: a multi-day rental that
@@ -193,7 +200,7 @@ export default function TuroTripsPage() {
   }>({
     queryKey: [
       "/api/turo-trips",
-      statusFilter,
+      statusFilters,
       debouncedSearchQuery,
       currentPage,
       itemsPerPage,
@@ -207,8 +214,8 @@ export default function TuroTripsPage() {
       let url = buildApiUrl(
         `/api/turo-trips?limit=${itemsPerPage}&offset=${offset}`,
       );
-      if (statusFilter !== "all") {
-        url += `&status=${statusFilter}`;
+      if (statusFilters.length > 0) {
+        url += `&status=${statusFilters.join(",")}`;
       }
       if (debouncedSearchQuery) {
         url += `&q=${encodeURIComponent(debouncedSearchQuery)}`;
@@ -235,7 +242,7 @@ export default function TuroTripsPage() {
     success: boolean;
     data: TripsSummary;
   }>({
-    queryKey: ["/api/turo-trips/summary", activeFrom, activeTo, bookingFrom, bookingTo, statusFilter],
+    queryKey: ["/api/turo-trips/summary", activeFrom, activeTo, bookingFrom, bookingTo, statusFilters],
     queryFn: async () => {
       let url = buildApiUrl("/api/turo-trips/summary");
       const params = new URLSearchParams();
@@ -243,7 +250,7 @@ export default function TuroTripsPage() {
       if (activeTo) params.set("activeTo", activeTo);
       if (bookingFrom) params.set("bookingFrom", bookingFrom);
       if (bookingTo) params.set("bookingTo", bookingTo);
-      if (statusFilter) params.set("status", statusFilter);
+      if (statusFilters.length > 0) params.set("status", statusFilters.join(","));
       if (params.toString()) url += `?${params.toString()}`;
       const response = await fetch(url, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch summary");
@@ -976,7 +983,6 @@ export default function TuroTripsPage() {
   // the admin's browser timezone.
   const MT_DATETIME_FMT = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Denver",
-    weekday: "short",
     month: "short",
     day: "numeric",
     hour: "numeric",
@@ -985,7 +991,6 @@ export default function TuroTripsPage() {
   });
   const MT_DATE_FMT = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Denver",
-    weekday: "short",
     month: "short",
     day: "numeric",
   });
@@ -1221,7 +1226,7 @@ export default function TuroTripsPage() {
 
         {/* Summary Cards */}
         {summary && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-7 gap-2 sm:gap-3 lg:gap-4">
             <Card>
               <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-2">
                 <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
@@ -1302,6 +1307,20 @@ export default function TuroTripsPage() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5 sm:gap-2">
+                  <Gauge className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-foreground flex-shrink-0" />
+                  <span className="truncate">Total Miles</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+                <div className="text-lg sm:text-2xl font-bold text-foreground truncate">
+                  {summary.totalMiles > 0 ? summary.totalMiles.toLocaleString() : "—"}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 
@@ -1332,23 +1351,37 @@ export default function TuroTripsPage() {
                   </button>
                 )}
               </div>
-              <Select
-                value={statusFilter}
-                onValueChange={(value: any) => setStatusFilter(value)}
-              >
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="booked">Booked</SelectItem>
-                  <SelectItem value="ended">Ended</SelectItem>
-                  <SelectItem value="returned">Returned</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full sm:w-[180px] justify-between font-normal">
+                    <span>
+                      {statusFilters.length === 0
+                        ? "All Status"
+                        : statusFilters.length <= 2
+                          ? statusFilters.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" + ")
+                          : `${statusFilters.length} selected`}
+                    </span>
+                    <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[180px]">
+                  {(["booked", "ended", "returned", "cancelled"] as const).map((status) => (
+                    <DropdownMenuCheckboxItem
+                      key={status}
+                      checked={statusFilters.includes(status)}
+                      onCheckedChange={(checked) => {
+                        setStatusFilters(prev =>
+                          checked ? [...prev, status] : prev.filter(s => s !== status)
+                        );
+                      }}
+                    >
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
               {(searchQuery ||
-                statusFilter !== "all" ||
+                statusFilters.length > 0 ||
                 activeFrom || activeTo ||
                 bookingFrom || bookingTo) && (
                 <Button
@@ -1356,7 +1389,7 @@ export default function TuroTripsPage() {
                   size="sm"
                   onClick={() => {
                     setSearchQuery("");
-                    setStatusFilter("all");
+                    setStatusFilters([]);
                     setActiveFrom(""); setActiveTo("");
                     setBookingFrom(""); setBookingTo("");
                   }}
