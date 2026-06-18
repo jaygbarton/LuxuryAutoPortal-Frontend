@@ -173,11 +173,15 @@ export default function TaskManagementSection() {
     if (statusFilter !== "all") {
       f = f.filter(t => String(t.task_timer_status ?? 0) === statusFilter);
     }
-    // Date range filter on the task date (inclusive). Compare on the
-    // YYYY-MM-DD prefix so timezone offsets don't drop boundary rows.
     if (fromDate || toDate) {
       f = f.filter(t => {
-        const d = (t.task_timer_date_start || "").slice(0, 10);
+        if (!t.task_timer_date_start) return false;
+        let d: string;
+        try {
+          d = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(t.task_timer_date_start));
+        } catch {
+          d = (t.task_timer_date_start || "").slice(0, 10);
+        }
         if (!d) return false;
         if (fromDate && d < fromDate) return false;
         if (toDate && d > toDate) return false;

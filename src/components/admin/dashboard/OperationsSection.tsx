@@ -209,6 +209,8 @@ export default function OperationsSection() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [assignedToFilter, setAssignedToFilter] = useState("all");
   const [tripStartFrom, setTripStartFrom] = useState("");
+  const [tripStartTo, setTripStartTo] = useState("");
+  const [tripEndFrom, setTripEndFrom] = useState("");
   const [tripEndTo, setTripEndTo] = useState("");
 
   const assignedToOptions = useMemo(() => {
@@ -233,13 +235,29 @@ export default function OperationsSection() {
       try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso)); }
       catch { return null; }
     };
-    if (tripStartFrom) f = f.filter(t => toMtDate(t.trip_start) === tripStartFrom);
-    if (tripEndTo) f = f.filter(t => toMtDate(t.trip_end) === tripEndTo);
+    if (tripStartFrom || tripStartTo) {
+      f = f.filter(t => {
+        const d = toMtDate(t.trip_start);
+        if (!d) return false;
+        if (tripStartFrom && d < tripStartFrom) return false;
+        if (tripStartTo && d > tripStartTo) return false;
+        return true;
+      });
+    }
+    if (tripEndFrom || tripEndTo) {
+      f = f.filter(t => {
+        const d = toMtDate(t.trip_end);
+        if (!d) return false;
+        if (tripEndFrom && d < tripEndFrom) return false;
+        if (tripEndTo && d > tripEndTo) return false;
+        return true;
+      });
+    }
     return f.slice(0, 20);
-  }, [allTasks, search, statusFilter, assignedToFilter, tripStartFrom, tripEndTo]);
+  }, [allTasks, search, statusFilter, assignedToFilter, tripStartFrom, tripStartTo, tripEndFrom, tripEndTo]);
 
-  const isFiltered = search || statusFilter !== "all" || assignedToFilter !== "all" || tripStartFrom || tripEndTo;
-  function clearAll() { setSearch(""); setStatusFilter("all"); setAssignedToFilter("all"); setTripStartFrom(""); setTripEndTo(""); }
+  const isFiltered = search || statusFilter !== "all" || assignedToFilter !== "all" || tripStartFrom || tripStartTo || tripEndFrom || tripEndTo;
+  function clearAll() { setSearch(""); setStatusFilter("all"); setAssignedToFilter("all"); setTripStartFrom(""); setTripStartTo(""); setTripEndFrom(""); setTripEndTo(""); }
 
   return (
     <div className="mb-8">
@@ -266,12 +284,16 @@ export default function OperationsSection() {
         <div className="flex items-center gap-1">
           <label className="text-xs text-gray-500 whitespace-nowrap">Trip Start</label>
           <input type="date" value={tripStartFrom} onChange={e => setTripStartFrom(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
-          {tripStartFrom && <button onClick={() => setTripStartFrom("")} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
+          <span className="text-xs text-gray-400">–</span>
+          <input type="date" value={tripStartTo} onChange={e => setTripStartTo(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+          {(tripStartFrom || tripStartTo) && <button onClick={() => { setTripStartFrom(""); setTripStartTo(""); }} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
         </div>
         <div className="flex items-center gap-1">
           <label className="text-xs text-gray-500 whitespace-nowrap">Trip Ends</label>
+          <input type="date" value={tripEndFrom} onChange={e => setTripEndFrom(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+          <span className="text-xs text-gray-400">–</span>
           <input type="date" value={tripEndTo} onChange={e => setTripEndTo(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
-          {tripEndTo && <button onClick={() => setTripEndTo("")} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
+          {(tripEndFrom || tripEndTo) && <button onClick={() => { setTripEndFrom(""); setTripEndTo(""); }} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
         </div>
         {isFiltered && <><span className="text-xs text-gray-500">{tasks.length} result{tasks.length !== 1 ? "s" : ""}</span><button onClick={clearAll} className="text-xs text-[#B8860B] hover:underline">Clear all</button></>}
       </div>

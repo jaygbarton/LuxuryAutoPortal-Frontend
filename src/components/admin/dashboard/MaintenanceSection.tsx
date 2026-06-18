@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { Search, X } from "lucide-react";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { SectionHeader, DashboardTable } from "@/components/admin/dashboard";
 
@@ -171,6 +173,13 @@ function LoadingSkeleton() {
   );
 }
 
+const MAINT_STATUS_OPTIONS = [
+  { value: "new", label: "New" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "completed", label: "Completed" },
+  { value: "delivered", label: "Delivered" },
+];
+
 export default function MaintenanceSection(_props: MaintenanceSectionProps) {
   const { data, isLoading } = useQuery<MaintenanceResponse>({
     queryKey: ["/api/operations/maintenance"],
@@ -184,14 +193,43 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
     staleTime: 1000 * 60 * 5,
   });
 
-  const tasks = data?.data ?? [];
-  const displayTasks = [...tasks]
-    .sort((a, b) => {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const allTasks = useMemo(() =>
+    [...(data?.data ?? [])].sort((a, b) => {
       const aTime = a.scheduled_date ? new Date(a.scheduled_date).getTime() : 0;
       const bTime = b.scheduled_date ? new Date(b.scheduled_date).getTime() : 0;
       return bTime - aTime;
-    })
-    .slice(0, 20);
+    }),
+    [data]
+  );
+
+  const displayTasks = useMemo(() => {
+    let f = allTasks;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      f = f.filter(t => [t.car_name, t.task_description, t.assigned_to, t.repair_shop, t.notes]
+        .some(v => v && v.toLowerCase().includes(q)));
+    }
+    if (statusFilter !== "all") {
+      f = f.filter(t => t.status === statusFilter);
+    }
+    if (fromDate || toDate) {
+      f = f.filter(t => {
+        const d = (t.scheduled_date || "").slice(0, 10);
+        if (!d) return false;
+        if (fromDate && d < fromDate) return false;
+        if (toDate && d > toDate) return false;
+        return true;
+      });
+    }
+    return f.slice(0, 20);
+  }, [allTasks, search, statusFilter, fromDate, toDate]);
+
+  const isFiltered = search || statusFilter !== "all" || fromDate || toDate;
 
   const rows = displayTasks.map((task) => {
     const hasTrip = !!(task.trip_id || task.trip_reservation_id || task.trip_start);
@@ -231,13 +269,44 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
     <div className="mb-8">
       <SectionHeader title="MAINTENANCE" />
 
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2 mb-3 mt-2">
+        <div className="relative min-w-[180px] max-w-xs flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search car, description, assigned to…"
+            className="w-full pl-8 pr-7 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+          {search && <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
+        </div>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+          className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]">
+          <option value="all">All Statuses</option>
+          {MAINT_STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+        </select>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-500">Scheduled</span>
+          <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
+            className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+          <span className="text-xs text-gray-400">–</span>
+          <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
+            className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+          {(fromDate || toDate) && <button onClick={() => { setFromDate(""); setToDate(""); }} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
+        </div>
+        {isFiltered && (
+          <>
+            <span className="text-xs text-gray-500">{displayTasks.length} result{displayTasks.length !== 1 ? "s" : ""}</span>
+            <button onClick={() => { setSearch(""); setStatusFilter("all"); setFromDate(""); setToDate(""); }} className="text-xs text-[#B8860B] hover:underline">Clear all</button>
+          </>
+        )}
+      </div>
+
       {isLoading ? (
         <LoadingSkeleton />
       ) : (
         <div className="mt-4">
           {rows.length === 0 ? (
             <div className="rounded-md bg-gray-50 border border-gray-200 px-6 py-8 text-center">
-              <p className="text-sm text-gray-500">No maintenance tasks found</p>
+              <p className="text-sm text-gray-500">{isFiltered ? "No matching results." : "No maintenance tasks found"}</p>
             </div>
           ) : (
             <DashboardTable columns={TABLE_COLUMNS} rows={rows} />
