@@ -948,7 +948,7 @@ export default function TuroTripsPage() {
   // Reset to page 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, debouncedSearchQuery, activeFrom, activeTo, bookingFrom, bookingTo, sortBy, sortDir]);
+  }, [statusFilters, debouncedSearchQuery, activeFrom, activeTo, bookingFrom, bookingTo, sortBy, sortDir]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -1477,12 +1477,12 @@ export default function TuroTripsPage() {
                   <span className="font-semibold text-foreground">
                     "{debouncedSearchQuery}"
                   </span>
-                  {statusFilter !== "all" && (
+                  {statusFilters.length > 0 && (
                     <>
                       {" "}
                       in{" "}
                       <span className="font-semibold text-foreground">
-                        {statusFilter}
+                        {statusFilters.join(" + ")}
                       </span>{" "}
                       trips
                     </>
@@ -1588,7 +1588,7 @@ export default function TuroTripsPage() {
                     <TableRow>
                       <TableCell colSpan={20} className="text-center py-12">
                         <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                          {debouncedSearchQuery || statusFilter !== "all" ? (
+                          {debouncedSearchQuery || statusFilters.length > 0 ? (
                             <>
                               <Calendar className="w-12 h-12 opacity-20" />
                               <div>
