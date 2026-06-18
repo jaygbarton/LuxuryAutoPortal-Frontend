@@ -157,7 +157,7 @@ export default function CarPerformanceSection({ year }: Props) {
             </tbody>
             <tfoot>
               <tr className="bg-[#D3BC8D] font-bold border-t-2 border-[#D3BC8D]">
-                <td colSpan={5} className="px-3 py-2 text-center text-black">TOTAL</td>
+                <td colSpan={6} className="px-3 py-2 text-center text-black">TOTAL</td>
                 <td className="px-3 py-2 text-right text-black">{fmt(totals.rentalIncome)}</td>
                 <td className="px-3 py-2 text-right text-black">{fmt(totals.mgmtExpenses)}</td>
                 <td className="px-3 py-2 text-right text-black">{fmt(totals.mgmtSplit)}</td>
