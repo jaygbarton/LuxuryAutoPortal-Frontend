@@ -1196,7 +1196,7 @@ export default function FormsPage() {
         <div className="mb-4">
           <h1 className="text-2xl font-semibold text-primary">Forms</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage client onboarding, employee onboarding, and expense forms
+            Access and submit important forms for client onboarding, referrals, and document updates. This section allows you to add new vehicle, request vehicle block-offs, submit referrals, upload updated licenses, registrations, or insurance documents, and track the status of your submissions.
           </p>
         </div>
         <Card className="bg-card border-primary/20 max-w-full overflow-hidden">

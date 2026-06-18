@@ -627,19 +627,28 @@ export default function TrainingManualPage() {
     setVideoError(null);
     setVideoValid(null);
     try {
-      const formData = new FormData();
-      formData.append("video", file);
-      const response = await fetch(buildApiUrl("/api/admin/tutorial/upload-video"), {
-        method: "POST",
+      // Step 1: get a signed upload URL from the backend
+      const params = new URLSearchParams({ filename: file.name, contentType: file.type });
+      const urlRes = await fetch(buildApiUrl(`/api/admin/tutorial/upload-video-url?${params}`), {
         credentials: "include",
-        body: formData,
       });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Upload failed");
+      const urlData = await urlRes.json();
+      if (!urlRes.ok || !urlData.success) {
+        throw new Error(urlData.error || "Failed to get upload URL");
       }
-      form.setValue("videoUrl", data.url);
-      setVideoPreviewUrl(data.url);
+
+      // Step 2: PUT the file directly to GCS (no backend roundtrip)
+      const putRes = await fetch(urlData.signedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!putRes.ok) {
+        throw new Error(`GCS upload failed: ${putRes.status} ${putRes.statusText}`);
+      }
+
+      form.setValue("videoUrl", urlData.publicUrl);
+      setVideoPreviewUrl(urlData.publicUrl);
       setVideoValid(true);
       toast({ title: "Video uploaded", description: "Video uploaded successfully." });
     } catch (err: any) {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { format } from "date-fns";
@@ -90,14 +90,42 @@ function formatDate(dateStr: string): string {
   }
 }
 
-function StatusBadge({ status }: { status: number }) {
-  const labels: Record<number, string> = {
-    0: "Not Started",
-    1: "In Progress",
-    2: "On Hold",
-    3: "Completed",
-  };
-  return <span className="text-sm text-gray-900">{labels[status] ?? "Not Started"}</span>;
+const TASK_STATUS_OPTIONS = [
+  { value: 0, label: "Not Started" },
+  { value: 1, label: "In Progress" },
+  { value: 2, label: "On Hold" },
+  { value: 3, label: "Completed" },
+];
+
+function TaskStatusSelect({ id, status }: { id: number; status: number }) {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: async (newStatus: number) => {
+      const res = await fetch(buildApiUrl(`/api/admin/hr/task-timers/${id}`), {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task_timer_status: newStatus }),
+      });
+      if (!res.ok) throw new Error("Failed to update status");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/hr/task-timers"] });
+    },
+  });
+
+  return (
+    <select
+      value={status}
+      onChange={(e) => mutation.mutate(Number(e.target.value))}
+      disabled={mutation.isPending}
+      className="text-xs border border-gray-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D] bg-white cursor-pointer"
+    >
+      {TASK_STATUS_OPTIONS.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </select>
+  );
 }
 
 function LoadingSkeleton() {
@@ -207,7 +235,7 @@ export default function TaskManagementSection() {
         ? formatRecurrence(task.task_timer_recurrence)
         : inferSeriesRecurrence(task.task_timer_series_id),
       assignedBy: task.task_timer_goal || "—",
-      status: <StatusBadge status={task.task_timer_status} />,
+      status: <TaskStatusSelect id={task.task_timer_aid} status={task.task_timer_status} />,
     };
   });
 

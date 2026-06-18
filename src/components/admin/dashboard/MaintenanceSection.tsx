@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Search, X } from "lucide-react";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
@@ -180,6 +180,37 @@ const MAINT_STATUS_OPTIONS = [
   { value: "delivered", label: "Delivered" },
 ];
 
+function StatusSelect({ id, value }: { id: number; value: string }) {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: async (status: string) => {
+      const res = await fetch(buildApiUrl(`/api/operations/maintenance/${id}`), {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error("Failed to update status");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/operations/maintenance"] });
+    },
+  });
+
+  return (
+    <select
+      value={value}
+      onChange={(e) => mutation.mutate(e.target.value)}
+      disabled={mutation.isPending}
+      className="text-xs border border-gray-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D] bg-white cursor-pointer"
+    >
+      {MAINT_STATUS_OPTIONS.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </select>
+  );
+}
+
 export default function MaintenanceSection(_props: MaintenanceSectionProps) {
   const { data, isLoading } = useQuery<MaintenanceResponse>({
     queryKey: ["/api/operations/maintenance"],
@@ -261,7 +292,7 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
       repairShop: task.repair_shop || "—",
       photos: renderPhotosCell(task.photos),
       notes: task.notes ? truncate(task.notes, 50) : "—",
-      status: statusLabel(task.status),
+      status: <StatusSelect id={task.id} value={task.status} />,
     };
   });
 
