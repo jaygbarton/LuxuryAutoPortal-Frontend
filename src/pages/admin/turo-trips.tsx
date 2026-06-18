@@ -126,12 +126,15 @@ export default function TuroTripsPage() {
   const [statusFilter, setStatusFilter] = useState<
     "all" | "booked" | "cancelled" | "ended" | "returned"
   >("all");
-  // Three independent date range filters — one per date column.
-  // Each can be set independently; all active constraints are AND-ed.
-  const [startFrom, setStartFrom] = useState("");
-  const [startTo, setStartTo] = useState("");
-  const [endFrom, setEndFrom] = useState("");
-  const [endTo, setEndTo] = useState("");
+  // "Active between" date range — shows every trip in progress during the
+  // range (trip_start <= activeTo AND trip_end >= activeFrom), i.e. overlap.
+  // This is what "show me the 6/18 trips" means: a multi-day rental that
+  // started 6/17 and ends 6/21 is active on 6/18 and must appear. The old
+  // model AND-ed a Trip Start range with a Trip Ends range, which silently
+  // dropped every multi-day trip and showed 0 results for a single day.
+  const [activeFrom, setActiveFrom] = useState("");
+  const [activeTo, setActiveTo] = useState("");
+  // Booking Date keeps its own independent range.
   const [bookingFrom, setBookingFrom] = useState("");
   const [bookingTo, setBookingTo] = useState("");
   // Sorting on the date columns (click a header to toggle asc/desc).
@@ -194,8 +197,7 @@ export default function TuroTripsPage() {
       debouncedSearchQuery,
       currentPage,
       itemsPerPage,
-      startFrom, startTo,
-      endFrom, endTo,
+      activeFrom, activeTo,
       bookingFrom, bookingTo,
       sortBy,
       sortDir,
@@ -214,10 +216,8 @@ export default function TuroTripsPage() {
       // Skip date filters when a search term is active so a reservation ID
       // or guest name search always finds the trip regardless of date range.
       if (!debouncedSearchQuery) {
-        if (startFrom) url += `&startFrom=${encodeURIComponent(startFrom)}`;
-        if (startTo) url += `&startTo=${encodeURIComponent(startTo)}`;
-        if (endFrom) url += `&endFrom=${encodeURIComponent(endFrom)}`;
-        if (endTo) url += `&endTo=${encodeURIComponent(endTo)}`;
+        if (activeFrom) url += `&activeFrom=${encodeURIComponent(activeFrom)}`;
+        if (activeTo) url += `&activeTo=${encodeURIComponent(activeTo)}`;
         if (bookingFrom) url += `&bookingFrom=${encodeURIComponent(bookingFrom)}`;
         if (bookingTo) url += `&bookingTo=${encodeURIComponent(bookingTo)}`;
       }
@@ -235,14 +235,12 @@ export default function TuroTripsPage() {
     success: boolean;
     data: TripsSummary;
   }>({
-    queryKey: ["/api/turo-trips/summary", startFrom, startTo, endFrom, endTo, bookingFrom, bookingTo, statusFilter],
+    queryKey: ["/api/turo-trips/summary", activeFrom, activeTo, bookingFrom, bookingTo, statusFilter],
     queryFn: async () => {
       let url = buildApiUrl("/api/turo-trips/summary");
       const params = new URLSearchParams();
-      if (startFrom) params.set("startFrom", startFrom);
-      if (startTo) params.set("startTo", startTo);
-      if (endFrom) params.set("endFrom", endFrom);
-      if (endTo) params.set("endTo", endTo);
+      if (activeFrom) params.set("activeFrom", activeFrom);
+      if (activeTo) params.set("activeTo", activeTo);
       if (bookingFrom) params.set("bookingFrom", bookingFrom);
       if (bookingTo) params.set("bookingTo", bookingTo);
       if (statusFilter) params.set("status", statusFilter);
@@ -361,9 +359,9 @@ export default function TuroTripsPage() {
   const backfillLocationsMutation = useMutation({
     mutationFn: async () => {
       const params = new URLSearchParams();
-      // Pass the trip start range through to scope the backfill.
-      if (startFrom) params.set("startDate", startFrom);
-      if (startTo) params.set("endDate", startTo);
+      // Scope the backfill to the active-date range when one is set.
+      if (activeFrom) params.set("startDate", activeFrom);
+      if (activeTo) params.set("endDate", activeTo);
       const qs = params.toString();
       const response = await fetch(
         buildApiUrl(`/api/turo-trips/backfill-locations${qs ? `?${qs}` : ""}`),
@@ -403,9 +401,9 @@ export default function TuroTripsPage() {
   const repairDatesMutation = useMutation({
     mutationFn: async () => {
       const params = new URLSearchParams();
-      // Pass the trip start range through to scope the repair.
-      if (startFrom) params.set("startDate", startFrom);
-      if (startTo) params.set("endDate", startTo);
+      // Scope the repair to the active-date range when one is set.
+      if (activeFrom) params.set("startDate", activeFrom);
+      if (activeTo) params.set("endDate", activeTo);
       const qs = params.toString();
       const response = await fetch(
         buildApiUrl(`/api/turo-trips/repair-dates${qs ? `?${qs}` : ""}`),
@@ -943,7 +941,7 @@ export default function TuroTripsPage() {
   // Reset to page 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, debouncedSearchQuery, startFrom, startTo, endFrom, endTo, bookingFrom, bookingTo, sortBy, sortDir]);
+  }, [statusFilter, debouncedSearchQuery, activeFrom, activeTo, bookingFrom, bookingTo, sortBy, sortDir]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -1351,8 +1349,7 @@ export default function TuroTripsPage() {
               </Select>
               {(searchQuery ||
                 statusFilter !== "all" ||
-                startFrom || startTo ||
-                endFrom || endTo ||
+                activeFrom || activeTo ||
                 bookingFrom || bookingTo) && (
                 <Button
                   variant="outline"
@@ -1360,8 +1357,7 @@ export default function TuroTripsPage() {
                   onClick={() => {
                     setSearchQuery("");
                     setStatusFilter("all");
-                    setStartFrom(""); setStartTo("");
-                    setEndFrom(""); setEndTo("");
+                    setActiveFrom(""); setActiveTo("");
                     setBookingFrom(""); setBookingTo("");
                   }}
                   className="whitespace-nowrap w-full sm:w-auto"
@@ -1370,44 +1366,34 @@ export default function TuroTripsPage() {
                 </Button>
               )}
             </div>
-            {/* Row 2: three independent date range filters — Trip Start, Trip Ends, Booking Date */}
+            {/* Row 2: "Active between" overlap filter + Booking Date.
+                "Active between" shows every trip in progress during the range
+                (started on/before the end AND ending on/after the start), so a
+                single day like 6/18 surfaces all rentals running that day —
+                including multi-day trips that started earlier or end later. */}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6">
-              {/* Trip Start */}
+              {/* Active between (overlap) */}
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium whitespace-nowrap w-[90px]">Trip Start:</label>
+                <label
+                  className="text-sm font-medium whitespace-nowrap w-[110px]"
+                  title="Show every trip in progress during this range — a trip that started before the range and ends after it still counts."
+                >
+                  Active between:
+                </label>
                 <Input
                   type="date"
-                  value={startFrom}
-                  onChange={(e) => setStartFrom(e.target.value)}
+                  value={activeFrom}
+                  onChange={(e) => setActiveFrom(e.target.value)}
                   className="w-[145px]"
-                  aria-label="Trip Start from"
+                  aria-label="Active from"
                 />
                 <span className="text-sm text-muted-foreground">–</span>
                 <Input
                   type="date"
-                  value={startTo}
-                  onChange={(e) => setStartTo(e.target.value)}
+                  value={activeTo}
+                  onChange={(e) => setActiveTo(e.target.value)}
                   className="w-[145px]"
-                  aria-label="Trip Start to"
-                />
-              </div>
-              {/* Trip Ends */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium whitespace-nowrap w-[90px]">Trip Ends:</label>
-                <Input
-                  type="date"
-                  value={endFrom}
-                  onChange={(e) => setEndFrom(e.target.value)}
-                  className="w-[145px]"
-                  aria-label="Trip Ends from"
-                />
-                <span className="text-sm text-muted-foreground">–</span>
-                <Input
-                  type="date"
-                  value={endTo}
-                  onChange={(e) => setEndTo(e.target.value)}
-                  className="w-[145px]"
-                  aria-label="Trip Ends to"
+                  aria-label="Active to"
                 />
               </div>
               {/* Booking Date */}
@@ -1429,7 +1415,7 @@ export default function TuroTripsPage() {
                   aria-label="Booking Date to"
                 />
               </div>
-              {/* Today shortcut — fills all three ranges to today */}
+              {/* Today shortcut — show every trip active today */}
               <Button
                 variant="outline"
                 size="sm"
@@ -1437,8 +1423,7 @@ export default function TuroTripsPage() {
                   const today = new Intl.DateTimeFormat("en-CA", {
                     timeZone: "America/Denver",
                   }).format(new Date());
-                  setStartFrom(today); setStartTo(today);
-                  setEndFrom(today); setEndTo(today);
+                  setActiveFrom(today); setActiveTo(today);
                   setBookingFrom(""); setBookingTo("");
                 }}
                 className="whitespace-nowrap"
