@@ -59,7 +59,9 @@ export function FileViewerModal({
           credentials: "include",
         });
         if (!response.ok) {
-          throw new Error(`Failed to load image: ${response.status}`);
+          const body = await response.json().catch(() => ({}));
+          const detail = body?.driveError || body?.message || response.statusText;
+          throw new Error(`Failed to load image: ${response.status} — ${detail}`);
         }
         const blob = await response.blob();
         if (revoked) return;

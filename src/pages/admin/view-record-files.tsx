@@ -69,7 +69,11 @@ function LazyRecordImage({ fileAid, alt, fileName }: { fileAid: number; alt: str
         const res = await fetch(buildApiUrl(`/api/record-file-views/${fileAid}/content`), {
           credentials: "include",
         });
-        if (!res.ok) throw new Error(String(res.status));
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          const detail = body?.driveError || body?.message || res.statusText;
+          throw new Error(`${res.status}: ${detail}`);
+        }
         const blob = await res.blob();
         if (cancelled) return;
         objectUrl = URL.createObjectURL(blob);
