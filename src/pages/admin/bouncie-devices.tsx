@@ -33,6 +33,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl } from "@/lib/queryClient";
+import { useCoHost } from "@/hooks/use-co-host";
 import React, { useEffect } from "react";
 import {
   Plus,
@@ -243,6 +244,7 @@ export default function BouncieDevicesPage() {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isCoHost } = useCoHost();
 
   // Fetch devices
   const {
@@ -540,19 +542,21 @@ export default function BouncieDevicesPage() {
               the edit icon to assign a device to a specific GLA car.
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => autoSyncMutation.mutate()}
-            disabled={autoSyncMutation.isPending}
-            className="w-full sm:w-auto flex-shrink-0"
-          >
-            {autoSyncMutation.isPending ? (
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4 mr-2" />
-            )}
-            Sync from Bouncie
-          </Button>
+          {!isCoHost && (
+            <Button
+              variant="outline"
+              onClick={() => autoSyncMutation.mutate()}
+              disabled={autoSyncMutation.isPending}
+              className="w-full sm:w-auto flex-shrink-0"
+            >
+              {autoSyncMutation.isPending ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              Sync from Bouncie
+            </Button>
+          )}
         </div>
 
         <Card>
@@ -574,10 +578,12 @@ export default function BouncieDevicesPage() {
                 <p className="text-muted-foreground mb-4">
                   Add your first GPS tracking device to monitor your fleet.
                 </p>
-                <Button onClick={() => setShowAddDialog(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Your First Device
-                </Button>
+                {!isCoHost && (
+                  <Button onClick={() => setShowAddDialog(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Your First Device
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -590,7 +596,7 @@ export default function BouncieDevicesPage() {
                       <TableHead>Status</TableHead>
                       <TableHead>Connection</TableHead>
                       <TableHead>Added</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      {!isCoHost && <TableHead className="text-right">Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -640,24 +646,26 @@ export default function BouncieDevicesPage() {
                         <TableCell className="text-sm text-muted-foreground">
                           {formatDate(device.createdAt)}
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditDevice(device)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteDevice(device.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                        {!isCoHost && (
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditDevice(device)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteDevice(device.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -677,7 +685,7 @@ export default function BouncieDevicesPage() {
           </CardContent>
         </Card>
 
-        <HomeLocationManager cars={cars} />
+        {!isCoHost && <HomeLocationManager cars={cars} />}
 
         {/* Add Device Dialog */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
