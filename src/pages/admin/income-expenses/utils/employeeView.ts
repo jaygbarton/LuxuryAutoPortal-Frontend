@@ -85,6 +85,7 @@ interface AuthMe {
   user?: {
     isAdmin?: boolean;
     isEmployee?: boolean;
+    impersonatorIsAdmin?: boolean;
   };
 }
 
@@ -95,6 +96,9 @@ interface AuthMe {
  * while role data is still loading (so the full table never flashes a partially
  * filtered state — it renders full until we know the user is an employee, which
  * is the safe default since employees can't reach this page without the role).
+ *
+ * Admins impersonating an employee (impersonatorIsAdmin=true) bypass the filter
+ * so they always see the full table regardless of the impersonated role.
  */
 export function useIsEmployeeView(): boolean {
   const { data } = useQuery<AuthMe>({
@@ -104,5 +108,7 @@ export function useIsEmployeeView(): boolean {
     staleTime: 1000 * 30,
   });
   const user = data?.user;
-  return !!user && user.isAdmin !== true && user.isEmployee === true;
+  if (!user) return false;
+  if (user.impersonatorIsAdmin) return false;
+  return user.isAdmin !== true && user.isEmployee === true;
 }
