@@ -474,19 +474,6 @@ const coHostSidebarItems: SidebarItem[] = [
   { href: "/admin/totals", label: "Totals", icon: Calculator },
   { href: "/admin/turo-trips", label: "Turo Trips", icon: Mail },
   {
-    href: "/admin/bouncie",
-    label: "BOUNCIE",
-    icon: MapPin,
-    children: [
-      { href: "/admin/bouncie", label: "Fleet Tracking", icon: Navigation },
-      { href: "/admin/bouncie-devices", label: "Devices", icon: Cpu },
-      { href: "/admin/bouncie-trips", label: "Trip History", icon: Route },
-      { href: "/admin/bouncie-behavior", label: "Driving Behavior", icon: ShieldAlert },
-      { href: "/admin/bouncie-geofence", label: "Geofence", icon: MapPin },
-      { href: "/admin/bouncie-analytics", label: "Analytics", icon: BarChart3 },
-    ],
-  },
-  {
     href: "/admin/operations",
     label: "Operations",
     icon: Cog,
