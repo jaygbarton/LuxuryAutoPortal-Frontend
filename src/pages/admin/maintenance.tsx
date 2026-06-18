@@ -1,19 +1,45 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ExternalLink, Plus, Search, Folder } from "lucide-react";
-import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
+import { ArrowLeft, ExternalLink, Search, Folder } from "lucide-react";
+import { authMeQueryFn, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 
-const formatCurrency = (value: number): string => {
-  return `$ ${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function formatDate(d: string | null | undefined): string {
+  if (!d) return "—";
+  try {
+    return new Date(d).toLocaleDateString("en-US", {
+      timeZone: "America/Denver", month: "short", day: "numeric", year: "numeric",
+    });
+  } catch { return d; }
+}
+
+function PhotoThumb({ urls }: { urls: string[] }) {
+  if (!urls || urls.length === 0) return <span className="text-muted-foreground text-xs">—</span>;
+  const proxied = getProxiedImageUrl(urls[0]);
+  const src = proxied.includes("/api/gcs-image-proxy")
+    ? proxied + (proxied.includes("?") ? "&" : "?") + "size=128"
+    : proxied;
+  return (
+    <div className="relative inline-block">
+      <img src={src} alt="photo" className="h-10 w-16 object-cover rounded" />
+      {urls.length > 1 && (
+        <span className="absolute -top-1 -right-1 rounded-full bg-black px-1.5 text-[10px] font-bold leading-4 text-white">
+          {urls.length}
+        </span>
+      )}
+    </div>
+  );
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  new: "New", in_progress: "In Progress", completed: "Completed", delivered: "Delivered",
 };
 
 export default function MaintenancePage() {
@@ -21,9 +47,7 @@ export default function MaintenancePage() {
   const [, setLocation] = useLocation();
   const carId = params?.id ? parseInt(params.id, 10) : null;
 
-  const [selectedType, setSelectedType] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [dateFilter, setDateFilter] = useState<string>("none");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Get user data to check role
@@ -43,15 +67,31 @@ export default function MaintenancePage() {
     queryKey: ["/api/cars", carId],
     queryFn: async () => {
       if (!carId) throw new Error("Invalid car ID");
-      const url = buildApiUrl(`/api/cars/${carId}`);
-      const response = await fetch(url, {
-        credentials: "include",
-      });
+      const response = await fetch(buildApiUrl(`/api/cars/${carId}`), { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch car");
       return response.json();
     },
     enabled: !!carId,
     retry: false,
+  });
+
+  const { data: maintData, isLoading: maintLoading } = useQuery<{
+    success: boolean;
+    data: any[];
+    total: number;
+  }>({
+    queryKey: ["/api/operations/maintenance", carId],
+    queryFn: async () => {
+      if (!carId) throw new Error("Invalid car ID");
+      const response = await fetch(
+        buildApiUrl(`/api/operations/maintenance?carId=${carId}&limit=200`),
+        { credentials: "include" }
+      );
+      if (!response.ok) throw new Error("Failed to fetch maintenance");
+      return response.json();
+    },
+    enabled: !!carId,
+    staleTime: 1000 * 60 * 2,
   });
 
   const car = data?.data;
@@ -116,8 +156,20 @@ export default function MaintenancePage() {
   const tireSize = onboarding?.tireSize || car.tireSize || "N/A";
   const oilType = onboarding?.oilType || car.oilType || "N/A";
 
-  // Maintenance records (currently empty)
-  const maintenanceRecords: any[] = [];
+  const allRecords: any[] = maintData?.data ?? [];
+
+  const maintenanceRecords = useMemo(() => {
+    let f = allRecords;
+    if (statusFilter !== "all") f = f.filter((r) => r.status === statusFilter);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      f = f.filter((r) =>
+        [r.task_description, r.assigned_to, r.repair_shop, r.notes, r.car_name]
+          .some((v) => v && String(v).toLowerCase().includes(q))
+      );
+    }
+    return f;
+  }, [allRecords, statusFilter, searchQuery]);
 
   return (
     <AdminLayout>
@@ -131,20 +183,12 @@ export default function MaintenancePage() {
             <ArrowLeft className="w-4 h-4" />
             <span>Back to View Car</span>
           </button>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-primary">Car Maintenance</h1>
-              {car && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Car: {car.makeModel || "Unknown Car"}
-                </p>
-              )}
-            </div>
-            {!isClient && (
-              <Button className="bg-primary text-primary-foreground hover:bg-primary/80">
-                <Plus className="w-4 h-4 mr-2" />
-                Add
-              </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-primary">Car Maintenance</h1>
+            {car && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Car: {car.makeModel || "Unknown Car"}
+              </p>
             )}
           </div>
         </div>
@@ -257,116 +301,113 @@ export default function MaintenancePage() {
         {/* Maintenance Section */}
         <div className="mb-6">
           <h1 className="text-3xl font-serif text-primary italic mb-6">Maintenance</h1>
-          
-          {/* Filtering and Search Section */}
-          <div className="bg-card border border-border rounded-lg p-6 mb-6">
-            <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
-              <div className="flex-1">
-                <Label className="text-sm text-muted-foreground mb-2 block">Select a Type</Label>
-                <Select value={selectedType} onValueChange={setSelectedType}>
-                  <SelectTrigger className="bg-card border-border text-foreground focus:border-primary">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border text-foreground">
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="oil-change">Oil Change</SelectItem>
-                    <SelectItem value="tire-rotation">Tire Rotation</SelectItem>
-                    <SelectItem value="inspection">Inspection</SelectItem>
-                    <SelectItem value="repair">Repair</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex-1">
-                <Label className="text-sm text-muted-foreground mb-2 block">Status</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="bg-card border-border text-foreground focus:border-primary">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border text-foreground">
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="overdue">Overdue</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex-1">
-                <Label className="text-sm text-muted-foreground mb-2 block">Date to Filter</Label>
-                <div className="flex items-center gap-2">
-                  <Select value={dateFilter} onValueChange={setDateFilter}>
-                    <SelectTrigger className="bg-card border-border text-foreground focus:border-primary">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border text-foreground">
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="this-month">This Month</SelectItem>
-                      <SelectItem value="last-month">Last Month</SelectItem>
-                      <SelectItem value="this-year">This Year</SelectItem>
-                      <SelectItem value="last-year">Last Year</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <span className="text-sm text-muted-foreground">≡ {maintenanceRecords.length}</span>
-                </div>
-              </div>
-              
-              <div className="flex-1">
-                <Label className="text-sm text-muted-foreground mb-2 block">Search</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Q Search here.."
-                    className="bg-card border-border text-foreground pl-10 focus:border-primary"
-                  />
-                </div>
+
+          {/* Filter bar */}
+          <div className="flex flex-wrap gap-3 items-end mb-4">
+            <div className="flex-1 min-w-[160px] max-w-xs">
+              <Label className="text-xs text-muted-foreground mb-1 block">Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="bg-card border-border text-foreground focus:border-primary text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground">
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex-1 min-w-[220px]">
+              <Label className="text-xs text-muted-foreground mb-1 block">Search</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Description, assigned to, repair shop…"
+                  className="bg-card border-border text-foreground pl-10 focus:border-primary text-sm"
+                />
               </div>
             </div>
+
+            <span className="text-sm text-muted-foreground self-end pb-2">
+              Total: {maintenanceRecords.length}
+            </span>
           </div>
 
           {/* Maintenance Records Table */}
           <div className="bg-card border border-border rounded-lg overflow-hidden">
             <div className="w-full overflow-x-auto">
-              <table className="border-collapse w-full" style={{ minWidth: '1000px' }}>
-                <thead className="bg-card">
+              <table className="border-collapse w-full text-sm" style={{ minWidth: "900px" }}>
+                <thead className="bg-muted/40">
                   <tr className="border-b border-border">
-                    <th className="text-left px-4 py-3 text-sm font-medium text-foreground">#</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-foreground">Maintenance Type</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-foreground">Status</th>
-                    <th className="text-right px-4 py-3 text-sm font-medium text-muted-foreground">Oil Miles</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-foreground">Schedule Date</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-foreground">Date Completed</th>
-                    <th className="text-right px-4 py-3 text-sm font-medium text-muted-foreground">Price</th>
-                    <th className="text-left px-4 py-3 text-sm font-medium text-foreground">Remarks</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">#</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Task Description</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Assigned To</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Scheduled Date</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Due Date</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Repair Shop</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Photos</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Notes</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {maintenanceRecords.length === 0 ? (
+                  {maintLoading ? (
                     <tr>
-                      <td colSpan={8} className="py-12 text-center">
+                      <td colSpan={9} className="py-12 text-center text-muted-foreground text-sm">
+                        Loading…
+                      </td>
+                    </tr>
+                  ) : maintenanceRecords.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-12 text-center">
                         <div className="flex flex-col items-center justify-center gap-3">
-                          <Folder className="w-12 h-12 text-gray-600" />
+                          <Folder className="w-12 h-12 text-gray-400" />
                           <span className="text-muted-foreground text-sm">No data</span>
                         </div>
                       </td>
                     </tr>
                   ) : (
                     maintenanceRecords.map((record, index) => (
-                      <tr
-                        key={index}
-                        className="border-b border-border transition-colors"
-                      >
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{index + 1}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{record.type}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{record.status}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground text-right">{record.oilMiles?.toLocaleString() || "N/A"}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{record.scheduleDate || "N/A"}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{record.dateCompleted || "N/A"}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground text-right">{formatCurrency(record.price || 0)}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{record.remarks || "N/A"}</td>
+                      <tr key={record.id ?? index} className="border-b border-border hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-3 text-muted-foreground">{index + 1}</td>
+                        <td className="px-4 py-3 text-foreground max-w-[220px] whitespace-pre-wrap break-words">
+                          {record.task_description || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                          {record.assigned_to || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                          {formatDate(record.scheduled_date)}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                          {formatDate(record.due_date)}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {record.repair_shop || "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <PhotoThumb urls={Array.isArray(record.photos) ? record.photos : []} />
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground max-w-[200px] whitespace-pre-wrap break-words">
+                          {record.notes || "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
+                            record.status === "completed" || record.status === "delivered"
+                              ? "bg-green-100 text-green-700"
+                              : record.status === "in_progress"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-gray-100 text-gray-700"
+                          }`}>
+                            {STATUS_LABELS[record.status] ?? record.status}
+                          </span>
+                        </td>
                       </tr>
                     ))
                   )}
