@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
@@ -27,7 +27,7 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { PlayCircle, Edit, Trash2, Plus, Loader2, Save, X, Video, CheckCircle2, AlertCircle, RotateCcw, Archive } from "lucide-react";
+import { PlayCircle, Edit, Trash2, Plus, Loader2, Save, X, Video, CheckCircle2, AlertCircle, RotateCcw, Archive, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { OnboardingTutorial, useTutorial, TutorialStep, TutorialModule } from "@/components/onboarding/OnboardingTutorial";
@@ -97,6 +97,8 @@ export default function TrainingManualPage() {
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [videoValid, setVideoValid] = useState<boolean | null>(null);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
   const [selectedRole, setSelectedRole] = useState<'admin' | 'client' | 'employee'>('admin');
 
   // Video state for each step (for inline video display)
@@ -618,6 +620,35 @@ export default function TrainingManualPage() {
         );
       }
     }, 5000);
+  };
+
+  const handleVideoFileUpload = async (file: File) => {
+    setVideoUploading(true);
+    setVideoError(null);
+    setVideoValid(null);
+    try {
+      const formData = new FormData();
+      formData.append("video", file);
+      const response = await fetch(buildApiUrl("/api/admin/tutorial/upload-video"), {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Upload failed");
+      }
+      form.setValue("videoUrl", data.url);
+      setVideoPreviewUrl(data.url);
+      setVideoValid(true);
+      toast({ title: "Video uploaded", description: "Video uploaded successfully." });
+    } catch (err: any) {
+      setVideoError(err.message || "Failed to upload video");
+      toast({ title: "Upload failed", description: err.message || "Failed to upload video", variant: "destructive" });
+    } finally {
+      setVideoUploading(false);
+      if (videoFileInputRef.current) videoFileInputRef.current.value = "";
+    }
   };
 
   const handleEditClick = (step: TutorialStep & { role?: string; moduleId?: number }) => {
@@ -1526,6 +1557,7 @@ export default function TrainingManualPage() {
             setVideoPreviewUrl(null);
             setVideoValid(null);
             setVideoError(null);
+            setVideoUploading(false);
             setInstructionInput("");
             form.reset({
               role: selectedRole,
@@ -1655,6 +1687,18 @@ export default function TrainingManualPage() {
                     <Label className="text-primary font-semibold">Video Management</Label>
                   </div>
 
+                  {/* Hidden file input for video upload */}
+                  <input
+                    ref={videoFileInputRef}
+                    type="file"
+                    accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-msvideo,.mp4,.webm,.ogg,.mov,.avi"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleVideoFileUpload(file);
+                    }}
+                  />
+
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -1675,27 +1719,44 @@ export default function TrainingManualPage() {
                           </FormDescription>
                           <FormControl>
                             <div className="space-y-2">
-                              <Input
-                                {...field}
-                                type="url"
-                                className="bg-card border-border text-foreground focus:border-primary"
-                                placeholder="https://example.com/video.mp4"
-                                onChange={(e) => {
-                                  field.onChange(e);
-                                  const url = e.target.value;
-                                  if (url && url.trim()) {
-                                    setVideoPreviewUrl(url.trim());
-                                    setVideoValid(null);
-                                    setVideoError(null);
-                                    // Test video URL
-                                    testVideoUrl(url.trim());
-                                  } else {
-                                    setVideoPreviewUrl(null);
-                                    setVideoValid(null);
-                                    setVideoError(null);
-                                  }
-                                }}
-                              />
+                              <div className="flex gap-2">
+                                <Input
+                                  {...field}
+                                  type="url"
+                                  className="bg-card border-border text-foreground focus:border-primary flex-1"
+                                  placeholder="https://example.com/video.mp4"
+                                  onChange={(e) => {
+                                    field.onChange(e);
+                                    const url = e.target.value;
+                                    if (url && url.trim()) {
+                                      setVideoPreviewUrl(url.trim());
+                                      setVideoValid(null);
+                                      setVideoError(null);
+                                      testVideoUrl(url.trim());
+                                    } else {
+                                      setVideoPreviewUrl(null);
+                                      setVideoValid(null);
+                                      setVideoError(null);
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={videoUploading}
+                                  onClick={() => videoFileInputRef.current?.click()}
+                                  className="border-primary text-primary hover:bg-primary/10 whitespace-nowrap flex-shrink-0"
+                                  title="Upload a video file (mp4, webm, mov, avi)"
+                                >
+                                  {videoUploading ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <Upload className="w-4 h-4 mr-2" />
+                                  )}
+                                  {videoUploading ? "Uploading..." : "Upload"}
+                                </Button>
+                              </div>
                               {videoError && (
                                 <p className="text-xs text-red-700 flex items-center gap-1">
                                   <AlertCircle className="w-3 h-3" />
