@@ -46,6 +46,24 @@ function fmt(n: number | string): string {
   return `$${Number(n || 0).toFixed(2)}`;
 }
 
+// Shared mutation helper — sends a partial update to PUT /api/payments/:id
+function usePaymentUpdate(paymentId: number, queryKey: readonly unknown[]) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) => {
+      const res = await fetch(buildApiUrl(`/api/payments/${paymentId}`), {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error("Failed to update payment");
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey as string[] }),
+  });
+}
+
 // Inline-editable Paid cell — only rendered for admins.
 function EditablePaidCell({
   payment,
@@ -54,26 +72,11 @@ function EditablePaidCell({
   payment: Payment;
   queryKey: readonly unknown[];
 }) {
-  const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(String(Number(payment.payments_amount_payout || 0).toFixed(2)));
+  const { mutate, isPending } = usePaymentUpdate(payment.payments_aid, queryKey);
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: async (payout: number) => {
-      const res = await fetch(buildApiUrl(`/api/payments/${payment.payments_aid}`), {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentsAmountPayout: payout }),
-      });
-      if (!res.ok) throw new Error("Failed to update paid amount");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKey as string[] });
-      setEditing(false);
-    },
-  });
+  const save = () => mutate({ paymentsAmountPayout: Number(value) });
 
   if (!editing) {
     return (
@@ -103,7 +106,7 @@ function EditablePaidCell({
         autoFocus
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") mutate(Number(value));
+          if (e.key === "Enter") { save(); setEditing(false); }
           if (e.key === "Escape") setEditing(false);
         }}
         className="w-20 text-xs px-1 py-0.5 border border-border rounded bg-background text-right"
@@ -112,7 +115,142 @@ function EditablePaidCell({
         <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
       ) : (
         <>
-          <button onClick={() => mutate(Number(value))} className="text-green-600 hover:text-green-700">
+          <button onClick={() => { save(); setEditing(false); }} className="text-green-600 hover:text-green-700">
+            <Check className="w-3 h-3" />
+          </button>
+          <button onClick={() => setEditing(false)} className="text-muted-foreground hover:text-foreground">
+            <X className="w-3 h-3" />
+          </button>
+        </>
+      )}
+    </span>
+  );
+}
+
+// Inline-editable Payment Date cell.
+function EditableDateCell({
+  payment,
+  queryKey,
+}: {
+  payment: Payment;
+  queryKey: readonly unknown[];
+}) {
+  const [editing, setEditing] = useState(false);
+  // Convert stored UTC date to YYYY-MM-DD for the date input
+  const toInputValue = (d: string | null): string => {
+    if (!d) return "";
+    try {
+      return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(d));
+    } catch {
+      return d.slice(0, 10);
+    }
+  };
+  const [value, setValue] = useState(toInputValue(payment.payments_invoice_date));
+  const { mutate, isPending } = usePaymentUpdate(payment.payments_aid, queryKey);
+
+  const save = () => mutate({ paymentsInvoiceDate: value || null });
+
+  const displayDate = payment.payments_invoice_date
+    ? new Date(payment.payments_invoice_date).toLocaleDateString("en-US", {
+        timeZone: "America/Denver",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "—";
+
+  if (!editing) {
+    return (
+      <span className="flex items-center gap-1 group whitespace-nowrap">
+        <span>{displayDate}</span>
+        <button
+          onClick={() => { setValue(toInputValue(payment.payments_invoice_date)); setEditing(true); }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+          title="Edit payment date"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex items-center gap-1">
+      <input
+        type="date"
+        value={value}
+        autoFocus
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { save(); setEditing(false); }
+          if (e.key === "Escape") setEditing(false);
+        }}
+        className="text-xs px-1 py-0.5 border border-border rounded bg-background"
+      />
+      {isPending ? (
+        <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+      ) : (
+        <>
+          <button onClick={() => { save(); setEditing(false); }} className="text-green-600 hover:text-green-700">
+            <Check className="w-3 h-3" />
+          </button>
+          <button onClick={() => setEditing(false)} className="text-muted-foreground hover:text-foreground">
+            <X className="w-3 h-3" />
+          </button>
+        </>
+      )}
+    </span>
+  );
+}
+
+// Inline-editable Reference # cell.
+function EditableRefCell({
+  payment,
+  queryKey,
+}: {
+  payment: Payment;
+  queryKey: readonly unknown[];
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(payment.payments_reference_number || "");
+  const { mutate, isPending } = usePaymentUpdate(payment.payments_aid, queryKey);
+
+  const save = () => mutate({ paymentsReferenceNumber: value });
+
+  if (!editing) {
+    return (
+      <span className="flex items-center gap-1 group font-mono">
+        <span>{payment.payments_reference_number || "—"}</span>
+        <button
+          onClick={() => { setValue(payment.payments_reference_number || ""); setEditing(true); }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+          title="Edit reference #"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex items-center gap-1">
+      <input
+        type="text"
+        value={value}
+        autoFocus
+        placeholder="Ref #"
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { save(); setEditing(false); }
+          if (e.key === "Escape") setEditing(false);
+        }}
+        className="w-28 text-xs px-1 py-0.5 border border-border rounded bg-background font-mono"
+      />
+      {isPending ? (
+        <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+      ) : (
+        <>
+          <button onClick={() => { save(); setEditing(false); }} className="text-green-600 hover:text-green-700">
             <Check className="w-3 h-3" />
           </button>
           <button onClick={() => setEditing(false)} className="text-muted-foreground hover:text-foreground">
@@ -209,8 +347,26 @@ export default function CoHostPaymentsPage() {
                         </span>
                       </th>
                       <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden md:table-cell">Balance</th>
-                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Payment Date</th>
-                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Reference #</th>
+                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">
+                        <span className="flex items-center gap-1.5">
+                          Payment Date
+                          {isAdmin && (
+                            <span className="text-[9px] font-semibold uppercase tracking-wide bg-blue-500/15 text-blue-500 border border-blue-500/30 rounded px-1 py-0.5">
+                              Editable
+                            </span>
+                          )}
+                        </span>
+                      </th>
+                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">
+                        <span className="flex items-center gap-1.5">
+                          Reference #
+                          {isAdmin && (
+                            <span className="text-[9px] font-semibold uppercase tracking-wide bg-blue-500/15 text-blue-500 border border-blue-500/30 rounded px-1 py-0.5">
+                              Editable
+                            </span>
+                          )}
+                        </span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -262,17 +418,25 @@ export default function CoHostPaymentsPage() {
                           </span>
                         </td>
                         <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
-                          {p.payments_invoice_date
-                            ? new Date(p.payments_invoice_date).toLocaleDateString("en-US", {
-                                timeZone: "America/Denver",
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })
-                            : "—"}
+                          {isAdmin ? (
+                            <EditableDateCell payment={p} queryKey={paymentsQueryKey} />
+                          ) : (
+                            p.payments_invoice_date
+                              ? new Date(p.payments_invoice_date).toLocaleDateString("en-US", {
+                                  timeZone: "America/Denver",
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })
+                              : "—"
+                          )}
                         </td>
-                        <td className="px-3 py-2 text-muted-foreground font-mono text-xs">
-                          {p.payments_reference_number || "—"}
+                        <td className="px-3 py-2 text-muted-foreground text-xs">
+                          {isAdmin ? (
+                            <EditableRefCell payment={p} queryKey={paymentsQueryKey} />
+                          ) : (
+                            <span className="font-mono">{p.payments_reference_number || "—"}</span>
+                          )}
                         </td>
                       </tr>
                     ))}
