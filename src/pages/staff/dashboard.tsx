@@ -35,8 +35,6 @@ import {
   MyTasksSection,
   MyCarBlockOffSection,
   MyWorkScheduleSection,
-  MyEmployeeStatsSection,
-  MyMonthlyStatsSection,
   EmployeeNoticeBoardSection,
 } from "@/components/staff/dashboard";
 import { SectionHeader } from "@/components/admin/dashboard";
@@ -56,8 +54,6 @@ const ALL_SECTIONS = [
   { id: "tasks",         label: "Task Management" },
   { id: "carblockoff",   label: "Car Block Off" },
   { id: "noticeboard",   label: "Notice Board" },
-  { id: "stats-daily",   label: "Employee Stats — Daily" },
-  { id: "stats-monthly", label: "Employee Stats — Monthly" },
 ] as const;
 
 type SectionId = typeof ALL_SECTIONS[number]["id"];
@@ -180,8 +176,6 @@ export default function StaffDashboard() {
             {show("tasks")       && <MyTasksSection />}
             {show("carblockoff") && <MyCarBlockOffSection />}
             {show("noticeboard") && <EmployeeNoticeBoardSection />}
-            {show("stats-daily") && <MyEmployeeStatsSection />}
-            {show("stats-monthly") && <MyMonthlyStatsSection />}
 
             {visible.size === 0 && (
               <div className="py-20 text-center text-muted-foreground">

@@ -28,7 +28,6 @@ import {
   History,
   Map,
   PlusCircle,
-  Shield,
   Star,
   TrendingDown,
   TrendingUp,
@@ -97,7 +96,6 @@ export function ClientPageLinks() {
   const supportLinks = [
     { href: "/admin/car-block-off",      icon: CalendarOff,  label: "Car Block Off Form" },
     { href: "/client/offboarding-form",  icon: ClipboardList, label: "Off-boarding Form" },
-    { href: "/client/geofence-zones",    icon: Shield,       label: "Geofence Zones" },
     { href: "https://rent.goldenluxuryauto.com/start-block", icon: Car, label: "Book Your Car", external: true },
     { href: "/tutorial",             icon: BookOpen,      label: "Training Manual" },
     { href: "/admin/news-media",     icon: Globe,         label: "News & Media" },
