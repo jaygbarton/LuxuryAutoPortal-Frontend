@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OnboardingTutorial, useTutorial } from "@/components/onboarding/OnboardingTutorial";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
-import { PlayCircle, Video, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { PlayCircle, Video, Loader2, ChevronDown, ChevronRight, Image as ImageIcon } from "lucide-react";
 import { useState } from "react";
 import { VideoPlayer } from "@/components/ui/video-player";
 
@@ -13,6 +13,7 @@ interface TutorialStep {
   title: string;
   description: string;
   videoUrl?: string;
+  imageUrl?: string;
   videoPlaceholder?: string;
   instructions?: string[];
   actionButton?: { label: string; href?: string };
@@ -174,6 +175,19 @@ export default function ClientTrainingManual() {
                                 <h3 className="font-semibold">{step.title}</h3>
                               </div>
                               <p className="text-sm text-muted-foreground whitespace-pre-line">{step.description}</p>
+                              {step.imageUrl && !step.videoUrl && (
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                                    <ImageIcon className="h-4 w-4" />
+                                    Photo
+                                  </div>
+                                  <img
+                                    src={step.imageUrl}
+                                    alt={step.title}
+                                    className="w-full max-h-80 rounded-lg border border-border object-contain bg-card"
+                                  />
+                                </div>
+                              )}
                               {(step.videoUrl || step.videoPlaceholder) && (
                                 <div className="space-y-2">
                                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">

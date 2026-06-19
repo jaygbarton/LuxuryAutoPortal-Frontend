@@ -27,7 +27,7 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { PlayCircle, Edit, Trash2, Plus, Loader2, Save, X, Video, CheckCircle2, AlertCircle, RotateCcw, Archive, Upload } from "lucide-react";
+import { PlayCircle, Edit, Trash2, Plus, Loader2, Save, X, Video, CheckCircle2, AlertCircle, RotateCcw, Archive, Upload, Image as ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { OnboardingTutorial, useTutorial, TutorialStep, TutorialModule } from "@/components/onboarding/OnboardingTutorial";
@@ -56,6 +56,7 @@ const tutorialStepSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   videoUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  imageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   videoPlaceholder: z.string().optional(),
   instructions: z.array(z.string().min(1, "Instruction cannot be empty")).min(1, "At least one instruction is required"),
   actionButtonLabel: z.string().optional(),
@@ -99,6 +100,10 @@ export default function TrainingManualPage() {
   const [videoValid, setVideoValid] = useState<boolean | null>(null);
   const [videoUploading, setVideoUploading] = useState(false);
   const videoFileInputRef = useRef<HTMLInputElement>(null);
+  // Photo upload state — a step carries either a video or a photo, never both.
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const imageFileInputRef = useRef<HTMLInputElement>(null);
   const [selectedRole, setSelectedRole] = useState<'admin' | 'client' | 'employee'>('admin');
 
   // Video state for each step (for inline video display)
@@ -180,6 +185,7 @@ export default function TrainingManualPage() {
           title: data.title,
           description: data.description,
           videoUrl: data.videoUrl || undefined,
+          imageUrl: data.imageUrl || undefined,
           videoPlaceholder: data.videoPlaceholder || undefined,
           instructions: data.instructions,
           actionButton: data.actionButtonLabel ? {
@@ -260,6 +266,7 @@ export default function TrainingManualPage() {
           title: data.title,
           description: data.description,
           videoUrl: data.videoUrl || undefined,
+          imageUrl: data.imageUrl || undefined,
           videoPlaceholder: data.videoPlaceholder || undefined,
           instructions: data.instructions,
           actionButton: data.actionButtonLabel ? {
@@ -527,6 +534,7 @@ export default function TrainingManualPage() {
       title: "",
       description: "",
       videoUrl: "",
+      imageUrl: "",
       videoPlaceholder: "",
       instructions: [],
       actionButtonLabel: "",
@@ -660,6 +668,52 @@ export default function TrainingManualPage() {
     }
   };
 
+  // Upload a step photo to GCS via a signed URL, mirroring the video flow.
+  // A step shows a video if it has one, otherwise this photo — so uploading a
+  // photo clears any video URL on the step.
+  const handleImageFileUpload = async (file: File) => {
+    setImageUploading(true);
+    try {
+      const params = new URLSearchParams({ filename: file.name, contentType: file.type });
+      const urlRes = await fetch(buildApiUrl(`/api/admin/tutorial/upload-image-url?${params}`), {
+        credentials: "include",
+      });
+      const urlData = await urlRes.json();
+      if (!urlRes.ok || !urlData.success) {
+        throw new Error(urlData.error || "Failed to get upload URL");
+      }
+
+      const putRes = await fetch(urlData.signedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!putRes.ok) {
+        throw new Error(`GCS upload failed: ${putRes.status} ${putRes.statusText}`);
+      }
+
+      form.setValue("imageUrl", urlData.publicUrl);
+      setImagePreviewUrl(urlData.publicUrl);
+      // A step is video OR photo — clear the video side when a photo is set.
+      form.setValue("videoUrl", "");
+      setVideoPreviewUrl(null);
+      setVideoValid(null);
+      setVideoError(null);
+      toast({ title: "Photo uploaded", description: "Photo uploaded successfully." });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message || "Failed to upload photo", variant: "destructive" });
+    } finally {
+      setImageUploading(false);
+      if (imageFileInputRef.current) imageFileInputRef.current.value = "";
+    }
+  };
+
+  const handleClearImage = () => {
+    form.setValue("imageUrl", "");
+    setImagePreviewUrl(null);
+    if (imageFileInputRef.current) imageFileInputRef.current.value = "";
+  };
+
   const handleEditClick = (step: TutorialStep & { role?: string; moduleId?: number }) => {
     setEditingStep(step);
     setIsAddingStep(false);
@@ -670,6 +724,7 @@ export default function TrainingManualPage() {
       title: step.title,
       description: step.description,
       videoUrl: videoUrl,
+      imageUrl: (step as any).imageUrl || "",
       videoPlaceholder: step.videoPlaceholder || "",
       instructions: step.instructions || [],
       actionButtonLabel: step.actionButton?.label || "",
@@ -684,6 +739,7 @@ export default function TrainingManualPage() {
       setVideoValid(null);
       setVideoError(null);
     }
+    setImagePreviewUrl((step as any).imageUrl || null);
     setIsEditDialogOpen(true);
   };
 
@@ -768,6 +824,7 @@ export default function TrainingManualPage() {
       title: "",
       description: "",
       videoUrl: "",
+      imageUrl: "",
       videoPlaceholder: "",
       instructions: [],
       actionButtonLabel: "",
@@ -777,6 +834,7 @@ export default function TrainingManualPage() {
     setVideoPreviewUrl(null);
     setVideoValid(null);
     setVideoError(null);
+    setImagePreviewUrl(null);
     setIsEditDialogOpen(true);
   };
 
@@ -1032,6 +1090,21 @@ export default function TrainingManualPage() {
                               <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-line">{step.description}</p>
                             </div>
 
+                                          {/* Photo Display — shown when the step has a photo and no video */}
+                            {step.imageUrl && !step.videoUrl && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <ImageIcon className="w-4 h-4 text-primary" />
+                                  <p className="text-sm font-medium text-muted-foreground">Photo:</p>
+                                </div>
+                                <img
+                                  src={step.imageUrl}
+                                  alt={step.title}
+                                  className="max-h-64 rounded-lg border border-border object-contain bg-card"
+                                />
+                              </div>
+                            )}
+
                                           {/* Video Display */}
                             {(step.videoUrl || step.videoPlaceholder) && (
                               <div className="space-y-3">
@@ -1195,6 +1268,21 @@ export default function TrainingManualPage() {
                                       <p className="text-sm font-medium text-muted-foreground mb-1">Description:</p>
                                       <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-line">{step.description}</p>
                                     </div>
+
+                                    {/* Photo Display — shown when the step has a photo and no video */}
+                                    {step.imageUrl && !step.videoUrl && (
+                                      <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                          <ImageIcon className="w-4 h-4 text-primary" />
+                                          <p className="text-sm font-medium text-muted-foreground">Photo:</p>
+                                        </div>
+                                        <img
+                                          src={step.imageUrl}
+                                          alt={step.title}
+                                          className="max-h-64 rounded-lg border border-border object-contain bg-card"
+                                        />
+                                      </div>
+                                    )}
 
                                     {/* Video Display */}
                                     {(step.videoUrl || step.videoPlaceholder) && (
@@ -1567,6 +1655,8 @@ export default function TrainingManualPage() {
             setVideoValid(null);
             setVideoError(null);
             setVideoUploading(false);
+            setImagePreviewUrl(null);
+            setImageUploading(false);
             setInstructionInput("");
             form.reset({
               role: selectedRole,
@@ -1574,6 +1664,7 @@ export default function TrainingManualPage() {
               title: "",
               description: "",
               videoUrl: "",
+              imageUrl: "",
               videoPlaceholder: "",
               instructions: [],
               actionButtonLabel: "",
@@ -1809,6 +1900,96 @@ export default function TrainingManualPage() {
                     <div className="mt-4 space-y-2">
                       <Label className="text-muted-foreground text-sm">Video Preview</Label>
                       <VideoPlayer url={videoPreviewUrl} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Photo Management Section — a step shows a video if it has
+                    one, otherwise this photo, otherwise the placeholder text. */}
+                <div className="space-y-4 p-4 bg-background rounded-lg border border-border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ImageIcon className="w-5 h-5 text-primary" />
+                    <Label className="text-primary font-semibold">Photo Management</Label>
+                  </div>
+                  <FormDescription className="text-xs">
+                    Optional. Shown only when this step has no video. Use for a screenshot or diagram instead of a walkthrough video.
+                  </FormDescription>
+
+                  {/* Hidden file input for image upload */}
+                  <input
+                    ref={imageFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageFileUpload(file);
+                    }}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="imageUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-muted-foreground">Photo URL</FormLabel>
+                        <FormControl>
+                          <div className="flex gap-2">
+                            <Input
+                              {...field}
+                              type="url"
+                              className="bg-card border-border text-foreground focus:border-primary flex-1"
+                              placeholder="https://example.com/screenshot.png"
+                              onChange={(e) => {
+                                field.onChange(e);
+                                const url = e.target.value.trim();
+                                setImagePreviewUrl(url || null);
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={imageUploading}
+                              onClick={() => imageFileInputRef.current?.click()}
+                              className="border-primary text-primary hover:bg-primary/10 whitespace-nowrap flex-shrink-0"
+                              title="Upload a photo (JPEG, PNG, WebP, GIF)"
+                            >
+                              {imageUploading ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              ) : (
+                                <Upload className="w-4 h-4 mr-2" />
+                              )}
+                              {imageUploading ? "Uploading..." : "Upload"}
+                            </Button>
+                            {field.value && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleClearImage}
+                                className="text-red-700 hover:text-red-500 whitespace-nowrap flex-shrink-0"
+                                title="Remove photo"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Photo Preview */}
+                  {imagePreviewUrl && (
+                    <div className="mt-2 space-y-2">
+                      <Label className="text-muted-foreground text-sm">Photo Preview</Label>
+                      <img
+                        src={imagePreviewUrl}
+                        alt="Step photo preview"
+                        className="max-h-64 rounded-lg border border-border object-contain bg-card"
+                      />
                     </div>
                   )}
                 </div>

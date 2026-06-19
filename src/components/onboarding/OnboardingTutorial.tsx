@@ -45,6 +45,7 @@ export interface TutorialStep {
   title: string;
   description: string;
   videoUrl?: string;
+  imageUrl?: string;
   videoPlaceholder?: string;
   instructions: string[];
   actionButton?: {
@@ -824,22 +825,32 @@ export function OnboardingTutorial({
 
         {/* Current Step Content */}
         <div className="space-y-4 py-2 flex-1 overflow-hidden flex flex-col min-h-0">
-           {/* Video Section */}
+           {/* Media Section — show the video if the step has one, otherwise
+               the uploaded photo, otherwise the text placeholder. A step
+               carries either a video or a photo (never both). */}
            <div className="h-[400px] flex-shrink-0">
-             <VideoPlayer
-               key={`${currentStep}-${currentStepData.videoUrl}`}
-               url={currentStepData.videoUrl}
-               placeholder={currentStepData.videoPlaceholder || "Video will be available soon"}
-               autoPlay={autoPlay}
-               muted
-               loop
-               className="h-full aspect-auto"
-               onStatusChange={({ loading, error }) => {
-                 if (error) handleVideoError();
-                 else if (loading) handleVideoLoadStart();
-                 else handleVideoLoad();
-               }}
-             />
+             {!currentStepData.videoUrl && currentStepData.imageUrl ? (
+               <img
+                 src={currentStepData.imageUrl}
+                 alt={currentStepData.title}
+                 className="w-full h-full object-contain rounded-lg border border-gray-800 bg-gray-900"
+               />
+             ) : (
+               <VideoPlayer
+                 key={`${currentStep}-${currentStepData.videoUrl}`}
+                 url={currentStepData.videoUrl}
+                 placeholder={currentStepData.videoPlaceholder || "Video will be available soon"}
+                 autoPlay={autoPlay}
+                 muted
+                 loop
+                 className="h-full aspect-auto"
+                 onStatusChange={({ loading, error }) => {
+                   if (error) handleVideoError();
+                   else if (loading) handleVideoLoadStart();
+                   else handleVideoLoad();
+                 }}
+               />
+             )}
            </div>
 
           {/* Scrollable Description + Instructions */}
