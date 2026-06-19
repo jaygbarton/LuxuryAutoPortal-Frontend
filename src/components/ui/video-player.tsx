@@ -41,6 +41,40 @@ export function VideoPlayer({
     setLoading(source?.type === "direct");
   }, [url, source?.type]);
 
+  // Detect deleted / private / embedding-disabled YouTube & Vimeo videos.
+  // The iframe's onLoad fires successfully even when YouTube serves its own
+  // "Video unavailable" page inside the frame (the embed loaded; the content
+  // didn't), so onError never trips and the user sees YouTube's raw error
+  // screen instead of our placeholder. The oEmbed endpoint returns 401/404 for
+  // unavailable videos, so we probe it and flip to the error state on failure.
+  useEffect(() => {
+    if (!source || (source.type !== "youtube" && source.type !== "vimeo")) return;
+    let cancelled = false;
+    const oembed =
+      source.type === "youtube"
+        ? `https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${source.videoId}`)}&format=json`
+        : `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(`https://vimeo.com/${source.videoId}`)}`;
+    setLoading(true);
+    fetch(oembed)
+      .then((res) => {
+        if (cancelled) return;
+        if (!res.ok) {
+          // 401/403/404 → video removed, private, or embedding disabled.
+          setError(true);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        // Network/CORS failure probing availability — don't block playback,
+        // let the iframe try to render so a transient probe failure never
+        // hides a working video.
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [source]);
+
   const onStatusChangeRef = useRef(onStatusChange);
   useEffect(() => {
     onStatusChangeRef.current = onStatusChange;
