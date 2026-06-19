@@ -179,6 +179,22 @@ export function TuroInspectionTab() {
     }
   };
 
+  // Flush any unsaved inline odometer / miles edits for a row BEFORE a tab-move
+  // (Maintenance / No Car Issues / Car Inspections) fires. The odometer field is
+  // a manual-Save input held in local state, so a fast click on a move button
+  // would otherwise discard the typed value — the row leaves the tab without the
+  // odometer ever reaching the server. Awaiting these guarantees the data is
+  // persisted first. Returns once all pending writes for the trip have settled.
+  const flushRowEdits = async (tripId: number | null | undefined) => {
+    if (tripId == null) return;
+    const trip = tripsById.get(tripId);
+    if (!trip) return;
+    const pending: Promise<void>[] = [];
+    if (odoEdits[tripId] !== undefined) pending.push(saveRowOdometers(trip));
+    if (milesEdits[tripId] !== undefined) pending.push(saveRowMiles(trip));
+    if (pending.length) await Promise.all(pending);
+  };
+
   const saveRowMiles = async (trip: TuroTrip) => {
     const edited = milesEdits[trip.id];
     if (edited === undefined) return;
@@ -1039,9 +1055,10 @@ export function TuroInspectionTab() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() =>
-                                moveToInspectionsMutation.mutate(insp.id)
-                              }
+                              onClick={async () => {
+                                await flushRowEdits(insp.turo_trip_id);
+                                moveToInspectionsMutation.mutate(insp.id);
+                              }}
                               className="text-muted-foreground hover:text-primary h-8 px-2"
                               title="Move to Car Inspections"
                             >
@@ -1050,9 +1067,10 @@ export function TuroInspectionTab() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() =>
-                                moveToMaintenanceMutation.mutate(insp.id)
-                              }
+                              onClick={async () => {
+                                await flushRowEdits(insp.turo_trip_id);
+                                moveToMaintenanceMutation.mutate(insp.id);
+                              }}
                               className="text-muted-foreground hover:text-blue-400 h-8 px-2"
                               title="Move to Maintenance"
                             >
@@ -1061,7 +1079,10 @@ export function TuroInspectionTab() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => moveToNoIssuesMutation.mutate(insp.id)}
+                              onClick={async () => {
+                                await flushRowEdits(insp.turo_trip_id);
+                                moveToNoIssuesMutation.mutate(insp.id);
+                              }}
                               className="text-muted-foreground hover:text-emerald-400 h-8 px-2"
                               title="Move to No Car Issues"
                             >
