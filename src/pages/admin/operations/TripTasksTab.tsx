@@ -152,11 +152,17 @@ export function TripTasksTab() {
   };
 
   const { data, isLoading } = useQuery<{ data: OperationTask[]; total: number }>({
-    queryKey: ["/api/operations/tasks", filterType, filterStatus],
+    queryKey: ["/api/operations/tasks", filterType, filterStatus, tripStartOn, tripEndOn, search],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filterType !== "all" && filterType !== "no-refuel") params.append("task_type", filterType);
       if (filterStatus !== "all") params.append("status", filterStatus);
+      // Skip date filters when search is active so a reservation ID or name
+      // search finds rows regardless of which date filters are set.
+      if (!search.trim()) {
+        if (tripStartOn) params.append("tripStartOn", tripStartOn);
+        if (tripEndOn) params.append("tripEndOn", tripEndOn);
+      }
       const qs = params.toString();
       const response = await fetch(
         buildApiUrl(`/api/operations/tasks${qs ? `?${qs}` : ""}`),
@@ -181,17 +187,9 @@ export function TripTasksTab() {
   const tasks = data?.data || [];
   const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
 
-  // UTC ISO → YYYY-MM-DD calendar day in Mountain Time, so a single-day filter
-  // matches the same day the Trip Start / Trip Ends columns display.
-  const toMtDate = (iso: string | null | undefined): string | null => {
-    if (!iso) return null;
-    try {
-      return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso));
-    } catch { return null; }
-  };
-
   const filteredTasks = useMemo(() => {
     const q = search.trim().toLowerCase();
+    if (!q && filterType !== "no-refuel") return tasks;
     return tasks.filter((task) => {
       if (filterType === "no-refuel" && task.task_type === "refuel") return false;
       if (q) {
@@ -231,25 +229,9 @@ export function TripTasksTab() {
           .toLowerCase();
         if (!hay.includes(q)) return false;
       }
-      // Skip date filters when searching — a reservation ID or guest name
-      // search should find the row regardless of date. Trip Start and Trip Ends
-      // are independent single-day filters: a task matches if its trip starts
-      // (resp. ends) on exactly that Mountain-Time day. Fall back to the task's
-      // own scheduled_date for trip-less tasks so the Trip Start filter still
-      // works for standalone (e.g. refuel) tasks.
-      if (!q && tripStartOn) {
-        const trip = task.turo_trip_id != null ? tripsById.get(task.turo_trip_id) : undefined;
-        const startDay = toMtDate(trip?.tripStart ?? task.scheduled_date);
-        if (startDay !== tripStartOn) return false;
-      }
-      if (!q && tripEndOn) {
-        const trip = task.turo_trip_id != null ? tripsById.get(task.turo_trip_id) : undefined;
-        const endDay = toMtDate(trip?.tripEnd);
-        if (endDay !== tripEndOn) return false;
-      }
       return true;
     });
-  }, [tasks, tripsById, search, tripStartOn, tripEndOn]);
+  }, [tasks, tripsById, search, filterType]);
 
   useEffect(() => {
     setPage(1);
