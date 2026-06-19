@@ -207,6 +207,8 @@ export default function CarIssuesSection() {
 
   const inspections = useMemo(() => {
     let f = allInspections;
+    // Never show inspections whose linked trip is cancelled
+    f = f.filter(t => (t.trip_status ?? "").toLowerCase() !== "cancelled");
     if (search.trim()) { const q = search.toLowerCase(); f = f.filter(t => Object.values(t).some(v => v != null && String(v).toLowerCase().includes(q))); }
     if (statusFilter !== "all") f = f.filter(t => t.status === statusFilter);
     if (assignedToFilter !== "all") f = f.filter(t => (t.assigned_to ?? "").trim() === assignedToFilter);
