@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { buildApiUrl } from "@/lib/queryClient";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -57,10 +56,9 @@ export function GasLevelCells({
 
   const startVal = draftStart !== undefined ? draftStart : (start ?? "");
   const endVal = draftEnd !== undefined ? draftEnd : (end ?? "");
-  const dirty = draftStart !== undefined || draftEnd !== undefined;
   const noTrip = tripId == null;
 
-  const save = async () => {
+  const saveWith = async (newStart: string, newEnd: string) => {
     if (tripId == null) return;
     setSaving(true);
     try {
@@ -69,8 +67,8 @@ export function GasLevelCells({
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          gasLevelTripStart: startVal || null,
-          gasLevelTripEnd: endVal || null,
+          gasLevelTripStart: newStart || null,
+          gasLevelTripEnd: newEnd || null,
         }),
       });
       if (!res.ok) throw new Error("Failed to save");
@@ -112,18 +110,10 @@ export function GasLevelCells({
           <span className="text-muted-foreground text-xs">--</span>
         ) : (
           <div className="flex items-center gap-1">
-            {renderSelect(startVal, setDraftStart)}
-            {dirty && (
-              <Button
-                variant="default"
-                size="sm"
-                className="h-7 px-2"
-                onClick={save}
-                disabled={saving}
-              >
-                {saving ? "…" : "Save"}
-              </Button>
-            )}
+            {renderSelect(startVal, (newVal) => {
+              setDraftStart(newVal);
+              saveWith(newVal, endVal);
+            })}
           </div>
         )}
       </TableCell>
@@ -132,7 +122,10 @@ export function GasLevelCells({
           <span className="text-muted-foreground text-xs">--</span>
         ) : (
           <div className="flex items-center gap-1">
-            {renderSelect(endVal, setDraftEnd)}
+            {renderSelect(endVal, (newVal) => {
+              setDraftEnd(newVal);
+              saveWith(startVal, newVal);
+            })}
           </div>
         )}
       </TableCell>

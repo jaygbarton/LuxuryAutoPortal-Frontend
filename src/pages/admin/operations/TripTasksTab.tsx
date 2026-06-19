@@ -549,6 +549,7 @@ export function TripTasksTab() {
                                       [trip.id]: { ...prev[trip.id], start: e.target.value },
                                     }))
                                   }
+                                  onBlur={() => saveRowOdometers(trip)}
                                   placeholder="--"
                                   className="h-7 w-[100px] text-sm"
                                 />
@@ -580,6 +581,7 @@ export function TripTasksTab() {
                                         [trip.id]: { ...prev[trip.id], end: e.target.value },
                                       }))
                                     }
+                                    onBlur={() => saveRowOdometers(trip)}
                                     placeholder="--"
                                     className="h-7 w-[100px] text-sm"
                                   />

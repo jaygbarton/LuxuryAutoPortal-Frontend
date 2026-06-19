@@ -364,11 +364,11 @@ export function TripsOverviewTab() {
     }
   };
 
-  const saveRowGasLevels = async (trip: TuroTrip) => {
+  const saveRowGasLevels = async (trip: TuroTrip, overrides?: { start?: string; end?: string }) => {
     const edit = gasEdits[trip.id];
-    if (!edit) return;
-    const startVal = edit.start !== undefined ? edit.start : (trip.gasLevelTripStart ?? "");
-    const endVal = edit.end !== undefined ? edit.end : (trip.gasLevelTripEnd ?? "");
+    if (!edit && !overrides) return;
+    const startVal = overrides?.start !== undefined ? overrides.start : (edit?.start !== undefined ? edit.start : (trip.gasLevelTripStart ?? ""));
+    const endVal = overrides?.end !== undefined ? overrides.end : (edit?.end !== undefined ? edit.end : (trip.gasLevelTripEnd ?? ""));
     setSavingGasRow(trip.id);
     try {
       const res = await fetch(
@@ -1028,6 +1028,7 @@ export function TripsOverviewTab() {
                                     },
                                   }))
                                 }
+                                onBlur={() => saveRowOdometers(trip)}
                                 placeholder="--"
                                 className="h-7 w-[100px] text-sm"
                               />
@@ -1058,12 +1059,10 @@ export function TripsOverviewTab() {
                                       },
                                     }))
                                   }
+                                  onBlur={() => saveRowOdometers(trip)}
                                   placeholder="--"
                                   className="h-7 w-[100px] text-sm"
                                 />
-                                {/* Save button on the end cell saves BOTH
-                                    odometer fields in one PATCH — same UX as
-                                    /admin/turo-trips. */}
                                 {dirty && (
                                   <Button
                                     variant="default"
@@ -1090,12 +1089,14 @@ export function TripsOverviewTab() {
                               <div className="flex items-center gap-1">
                                 <Select
                                   value={startVal || "__none__"}
-                                  onValueChange={(v) =>
+                                  onValueChange={(v) => {
+                                    const newVal = v === "__none__" ? "" : v;
                                     setGasEdits((prev) => ({
                                       ...prev,
-                                      [trip.id]: { ...prev[trip.id], start: v === "__none__" ? "" : v },
-                                    }))
-                                  }
+                                      [trip.id]: { ...prev[trip.id], start: newVal },
+                                    }));
+                                    saveRowGasLevels(trip, { start: newVal, end: endVal });
+                                  }}
                                 >
                                   <SelectTrigger className="h-7 w-[110px] text-xs">
                                     <SelectValue placeholder="--" />
@@ -1128,18 +1129,21 @@ export function TripsOverviewTab() {
                         <TableCell className="text-foreground text-sm whitespace-nowrap">
                           {(() => {
                             const edit = gasEdits[trip.id];
+                            const startVal = edit?.start !== undefined ? edit.start : (trip.gasLevelTripStart ?? "");
                             const endVal = edit?.end !== undefined ? edit.end : (trip.gasLevelTripEnd ?? "");
                             const dirty = edit !== undefined;
                             return (
                               <div className="flex items-center gap-1">
                                 <Select
                                   value={endVal || "__none__"}
-                                  onValueChange={(v) =>
+                                  onValueChange={(v) => {
+                                    const newVal = v === "__none__" ? "" : v;
                                     setGasEdits((prev) => ({
                                       ...prev,
-                                      [trip.id]: { ...prev[trip.id], end: v === "__none__" ? "" : v },
-                                    }))
-                                  }
+                                      [trip.id]: { ...prev[trip.id], end: newVal },
+                                    }));
+                                    saveRowGasLevels(trip, { start: startVal, end: newVal });
+                                  }}
                                 >
                                   <SelectTrigger className="h-7 w-[110px] text-xs">
                                     <SelectValue placeholder="--" />

@@ -1604,7 +1604,7 @@ export default function TuroTripsPage() {
                                 size="sm"
                                 onClick={() => {
                                   setSearchQuery("");
-                                  setStatusFilter("all");
+                                  setStatusFilters([]);
                                 }}
                               >
                                 Clear all filters
