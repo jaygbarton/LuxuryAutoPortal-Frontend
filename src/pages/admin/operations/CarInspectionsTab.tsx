@@ -197,6 +197,11 @@ export function CarInspectionsTab() {
       // Hide inspections moved to maintenance or marked no issues
       if (isMovedToMaintenance(insp.id)) return false;
       if (insp.status === "no_issues") return false;
+      // Hide inspections whose Turo trip was cancelled — a cancelled trip never
+      // happened, so there is nothing to inspect. (Manual inspections have no
+      // trip and are unaffected.)
+      const linkedTrip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+      if (linkedTrip?.status?.toLowerCase() === "cancelled") return false;
       if (q) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
         // Mirror every visible column so the search box matches anything the

@@ -482,15 +482,8 @@ const coHostSidebarItems: SidebarItem[] = [
       { href: "/admin/bouncie-trips", label: "Trip History", icon: Navigation },
     ],
   },
-  {
-    href: "/admin/operations",
-    label: "Operations",
-    icon: Cog,
-    children: [
-      { href: "/admin/operations", label: "Operations", icon: Cog },
-      { href: "/admin/car-block-off", label: "Car Block Off", icon: CalendarOff },
-    ],
-  },
+  { href: "/admin/operations", label: "Operations", icon: Cog },
+  { href: "/admin/car-block-off", label: "Car Block Off", icon: CalendarOff },
   { href: "/admin/forms", label: "Forms", icon: ClipboardList },
   {
     href: "https://turo.com/us/en/host/4325673",
