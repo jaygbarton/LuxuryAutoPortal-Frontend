@@ -664,8 +664,8 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                   <SummaryCard label="Total Income" value={formatCurrency(totalGross)} variant="dark" className="h-20" />
-                  <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" className="h-20" />
-                  <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" className="h-20" />
+                  <SummaryCard label="Total Management Expenses" value={formatCurrency(totalMgmtExpenses)} variant="white" className="h-20" />
+                  <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome - totalMgmtExpenses)} variant="gold" className="h-20" />
                 </div>
               </div>
 
@@ -768,8 +768,8 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
               />
               <DonutChart
                 data={[
-                  { name: "Total Car Mngmt Profit", value: Math.max(0, displayMgmtIncome - displayMgmtExpenses) },
                   { name: "Total Car Mngmt Expenses", value: displayMgmtExpenses },
+                  { name: "Total Car Mngmt Profit", value: Math.max(0, displayMgmtIncome - displayMgmtExpenses) },
                 ]}
               />
             </div>
@@ -796,8 +796,8 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
               />
               <DonutChart
                 data={[
-                  { name: "Total Car Owner Profit", value: Math.max(0, displayOwnerIncome - displayOwnerExpenses) },
                   { name: "Total Car Owner Expenses", value: displayOwnerExpenses },
+                  { name: "Total Car Owner Profit", value: Math.max(0, displayOwnerIncome - displayOwnerExpenses) },
                 ]}
               />
             </div>
