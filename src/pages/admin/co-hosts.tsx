@@ -282,7 +282,15 @@ export default function CoHostsPage() {
                         </td>
                         <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">{ch.email}</td>
                         <td className="px-4 py-3 text-sm text-muted-foreground hidden lg:table-cell">
-                          {[ch.vehicle_year, ch.vehicle_make, ch.vehicle_model].filter(Boolean).join(" ") || "—"}
+                          <div className="text-foreground">
+                            {[ch.vehicle_year, ch.vehicle_make, ch.vehicle_model].filter(Boolean).join(" ") || "—"}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            Plate: {ch.vehicle_license_plate || "—"}
+                          </div>
+                          <div className="text-xs text-muted-foreground font-mono">
+                            VIN: {ch.vehicle_vin || "—"}
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <Badge variant="outline" className={cn(statusBadge(ch.status), "text-xs capitalize")}>
