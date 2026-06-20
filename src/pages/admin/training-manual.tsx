@@ -51,7 +51,7 @@ function useIsAdmin() {
 
 // Form schema for tutorial step
 const tutorialStepSchema = z.object({
-  role: z.enum(['admin', 'client', 'employee']),
+  role: z.enum(['admin', 'client', 'employee', 'cohost']),
   moduleId: z.number().optional(),
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
@@ -65,7 +65,7 @@ const tutorialStepSchema = z.object({
 
 // Form schema for tutorial module
 const tutorialModuleSchema = z.object({
-  role: z.enum(['admin', 'client', 'employee']),
+  role: z.enum(['admin', 'client', 'employee', 'cohost']),
   moduleOrder: z.number().min(1, "Module order is required"),
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -79,12 +79,12 @@ export default function TrainingManualPage() {
   
   // Handler for the global "Start Tutorial" button — always previews the currently selected role
   const handleStartTutorial = () => {
-    void startTutorialForRole(selectedRole as 'admin' | 'client' | 'employee');
+    void startTutorialForRole(selectedRole as 'admin' | 'client' | 'employee' | 'cohost');
   };
 
   // Start tutorial from a specific module, scoped to the currently selected role
   const handleStartModuleTutorial = (moduleId: number) => {
-    void startTutorialForRole(selectedRole as 'admin' | 'client' | 'employee', moduleId);
+    void startTutorialForRole(selectedRole as 'admin' | 'client' | 'employee' | 'cohost', moduleId);
   };
   const isAdmin = useIsAdmin();
   const { toast } = useToast();
@@ -104,7 +104,7 @@ export default function TrainingManualPage() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
   const imageFileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'client' | 'employee'>('admin');
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'client' | 'employee' | 'cohost'>('admin');
 
   // Video state for each step (for inline video display)
   const [stepVideoStates, setStepVideoStates] = useState<Record<number, { loading: boolean; error: boolean }>>({});
@@ -905,7 +905,7 @@ export default function TrainingManualPage() {
                 <CardTitle className="text-primary text-xl leading-tight">Tutorial Configuration</CardTitle>
                 <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 w-full lg:w-auto">
                   <span className="text-sm text-muted-foreground">Manage tutorial (modules, steps, videos) by role:</span>
-                  <Select value={selectedRole} onValueChange={(value: 'admin' | 'client' | 'employee') => {
+                  <Select value={selectedRole} onValueChange={(value: 'admin' | 'client' | 'employee' | 'cohost') => {
                     setSelectedRole(value);
                     setExpandedModules(new Set()); // Reset expanded modules when role changes
                   }}>
@@ -916,6 +916,7 @@ export default function TrainingManualPage() {
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="client">Client</SelectItem>
                       <SelectItem value="employee">Employee</SelectItem>
+                      <SelectItem value="cohost">Co-Host</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
@@ -1006,9 +1007,8 @@ export default function TrainingManualPage() {
                               <Button
                                 size="sm"
                                 onClick={() => handleStartModuleTutorial(module.id)}
-                                disabled={moduleSteps.length === 0}
                                 className="bg-primary text-primary-foreground hover:bg-primary/80 font-medium flex-1 sm:flex-none lg:flex-none"
-                                title={moduleSteps.length === 0 ? "Add a step before starting this module" : `Start tutorial from Module ${module.moduleOrder}`}
+                                title={`Start tutorial from Module ${module.moduleOrder}`}
                               >
                                 <PlayCircle className="w-4 h-4 mr-2" />
                                 <span className="sm:inline">Start Tutorial</span>
@@ -1550,6 +1550,7 @@ export default function TrainingManualPage() {
                           <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="client">Client</SelectItem>
                           <SelectItem value="employee">Employee</SelectItem>
+                      <SelectItem value="cohost">Co-Host</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -1705,6 +1706,7 @@ export default function TrainingManualPage() {
                           <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="client">Client</SelectItem>
                           <SelectItem value="employee">Employee</SelectItem>
+                      <SelectItem value="cohost">Co-Host</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

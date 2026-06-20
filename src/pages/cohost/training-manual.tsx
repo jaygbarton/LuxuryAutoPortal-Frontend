@@ -1,5 +1,4 @@
 import { AdminLayout } from "@/components/admin/admin-layout";
-import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OnboardingTutorial, useTutorial } from "@/components/onboarding/OnboardingTutorial";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -27,15 +26,15 @@ interface TutorialModule {
   steps?: TutorialStep[];
 }
 
-export default function ClientTrainingManual() {
-  const { resetTutorial, startTutorialFromModule } = useTutorial();
+export default function CoHostTrainingManual() {
+  const { resetTutorial, startTutorialForRole } = useTutorial();
   const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
   const [stepVideoState, setStepVideoState] = useState<Record<number, { loading: boolean; error: boolean }>>({});
 
   const { data: modulesData, isLoading: modulesLoading } = useQuery<{ success: boolean; data: TutorialModule[] }>({
-    queryKey: ["/api/tutorial/modules", "client"],
+    queryKey: ["/api/tutorial/modules", "cohost"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/tutorial/modules?role=client"), { credentials: "include" });
+      const res = await fetch(buildApiUrl("/api/tutorial/modules?role=cohost"), { credentials: "include" });
       if (!res.ok) return { success: false, data: [] };
       return res.json();
     },
@@ -46,10 +45,10 @@ export default function ClientTrainingManual() {
     success: boolean;
     data: { modules: (TutorialModule & { steps: TutorialStep[] })[] };
   }>({
-    queryKey: ["/api/tutorial/steps", "client", "with-modules"],
+    queryKey: ["/api/tutorial/steps", "cohost", "with-modules"],
     queryFn: async () => {
       const res = await fetch(
-        buildApiUrl("/api/tutorial/steps?role=client&includeModules=true"),
+        buildApiUrl("/api/tutorial/steps?role=cohost&includeModules=true"),
         { credentials: "include" }
       );
       if (!res.ok) return { success: false, data: { modules: [] } };
@@ -58,6 +57,7 @@ export default function ClientTrainingManual() {
     retry: false,
   });
 
+  void modulesData;
   const modules = (stepsData?.data?.modules ?? []) as (TutorialModule & { steps: TutorialStep[] })[];
   const isLoading = modulesLoading || stepsLoading;
 
@@ -70,12 +70,17 @@ export default function ClientTrainingManual() {
     });
   };
 
+  // Co-hosts always preview the co-host tutorial (role=cohost), launched from
+  // the start or from a specific module. startTutorialForRole synthesizes a
+  // placeholder step for modules that have none, so the button works even on
+  // an empty module.
   const handleStartTutorial = () => {
     resetTutorial();
+    void startTutorialForRole("cohost");
   };
 
   const handleStartModuleTutorial = (moduleId: number) => {
-    void startTutorialFromModule(moduleId);
+    void startTutorialForRole("cohost", moduleId);
   };
 
   return (
@@ -83,7 +88,7 @@ export default function ClientTrainingManual() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">System Tutorial</h1>
-          <p className="text-muted-foreground">Client onboarding and how to use the GLA portal—guided tutorial and step-by-step videos.</p>
+          <p className="text-muted-foreground">Co-Host onboarding and how to use the GLA portal—guided tutorial and step-by-step videos.</p>
         </div>
 
         <Card className="bg-card border-border">
@@ -92,7 +97,7 @@ export default function ClientTrainingManual() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground text-sm">
-              Complete your client onboarding and learn portal procedures. Start the guided walkthrough or browse modules and videos below.
+              Learn the co-host portal procedures. Start the guided walkthrough or browse modules and videos below.
             </p>
             <button
               type="button"
@@ -112,7 +117,7 @@ export default function ClientTrainingManual() {
         ) : modules.length === 0 ? (
           <Card className="bg-card border-border">
             <CardContent className="py-12 text-center text-muted-foreground">
-              No client tutorial modules yet. Your admin can add them from the Admin System Tutorial page.
+              No co-host tutorial modules yet. Your admin can add them from the Admin System Tutorial page (Co-Host role).
             </CardContent>
           </Card>
         ) : (
@@ -187,7 +192,10 @@ export default function ClientTrainingManual() {
                                   />
                                 </div>
                               )}
-                              {(step.videoUrl || step.videoPlaceholder) && (
+                              {/* Show the video block only when there's an actual
+                                  video — hide entirely (no empty placeholder)
+                                  when the step has no media. */}
+                              {step.videoUrl && (
                                 <div className="space-y-2">
                                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                                     <Video className="h-4 w-4" />
@@ -237,8 +245,6 @@ export default function ClientTrainingManual() {
         )}
 
         <OnboardingTutorial autoPlay={false} />
-
-        <ClientPageLinks />
       </div>
     </AdminLayout>
   );

@@ -515,7 +515,7 @@ const coHostSidebarItems: SidebarItem[] = [
   },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/turo-guide", label: "Turo Guide", icon: BookOpen },
-  { href: "/admin/training-manual", label: "System Tutorial", icon: GraduationCap },
+  { href: "/cohost/training-manual", label: "System Tutorial", icon: GraduationCap },
   { href: "/admin/testimonials", label: "Client Testimonials", icon: Star },
   { href: "/admin/news-media", label: "News & Media", icon: Newspaper },
   { href: "/admin/notice-board", label: "Notice Board", icon: ClipboardList },

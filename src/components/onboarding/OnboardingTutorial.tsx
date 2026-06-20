@@ -68,7 +68,7 @@ interface TutorialContextType {
   goToStep: (step: number) => void;
   goToModule: (moduleId: number) => void;
   startTutorialFromModule: (moduleId: number) => Promise<void> | void;
-  startTutorialForRole: (role: 'admin' | 'client' | 'employee', moduleId?: number) => Promise<void>;
+  startTutorialForRole: (role: 'admin' | 'client' | 'employee' | 'cohost', moduleId?: number) => Promise<void>;
   markStepComplete: (step: number) => void;
   resetTutorial: () => void;
   hasCompletedTutorial: boolean;
@@ -488,7 +488,26 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         : DEFAULT_TUTORIAL_STEPS;
 
     const moduleSteps = safeLatestSteps.filter(s => s.moduleId === moduleId);
-    const firstStep = moduleSteps.length > 0 ? moduleSteps[0].id : safeLatestSteps[0].id;
+    let firstStep: number;
+    if (moduleSteps.length > 0) {
+      firstStep = moduleSteps[0].id;
+    } else {
+      // Module has no steps — synthesize a placeholder so the tutorial still
+      // opens on this module (instead of jumping to an unrelated module's step).
+      const latestModules =
+        queryClient.getQueryData<TutorialModule[]>(["/api/tutorial/modules", userRole]) || [];
+      const mod = latestModules.find(m => m.id === moduleId);
+      const placeholderId = -1 * moduleId;
+      const placeholderStep = {
+        id: placeholderId,
+        moduleId,
+        title: mod?.title ?? "Tutorial",
+        description: mod?.description ?? "Content for this module is coming soon.",
+        instructions: [] as string[],
+      } as TutorialStep;
+      setOverrideSteps([...safeLatestSteps, placeholderStep]);
+      firstStep = placeholderId;
+    }
 
     setCurrentModule(moduleId);
     setCurrentStep(firstStep);
@@ -497,7 +516,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   };
 
   // Preview a tutorial for an explicit role (used by the admin training-manual page)
-  const startTutorialForRole = async (role: 'admin' | 'client' | 'employee', moduleId?: number) => {
+  const startTutorialForRole = async (role: 'admin' | 'client' | 'employee' | 'cohost', moduleId?: number) => {
     // Fetch steps & modules for the requested role directly
     let steps: TutorialStep[] = [];
     let modules: TutorialModule[] = [];
@@ -526,20 +545,37 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       console.warn("⚠️ [TUTORIAL] Failed to fetch steps for role preview:", e);
     }
 
-    const safeSteps = steps.length > 0 ? steps : DEFAULT_TUTORIAL_STEPS;
-
-    setOverrideSteps(safeSteps);
-    setOverrideModules(modules);
+    let safeSteps = steps.length > 0 ? steps : DEFAULT_TUTORIAL_STEPS;
 
     let firstStep = safeSteps[0]?.id ?? 1;
     if (moduleId !== undefined) {
       const moduleSteps = safeSteps.filter(s => s.moduleId === moduleId);
-      if (moduleSteps.length > 0) firstStep = moduleSteps[0].id;
+      if (moduleSteps.length > 0) {
+        firstStep = moduleSteps[0].id;
+      } else {
+        // Module has no steps yet, but the user clicked "Start Tutorial" on it.
+        // Synthesize a single placeholder step from the module so the tutorial
+        // still opens and shows the module's title/description instead of
+        // silently doing nothing (or jumping to an unrelated module's step).
+        const mod = modules.find(m => m.id === moduleId);
+        const placeholderId = -1 * moduleId; // negative id avoids colliding with real step ids
+        const placeholderStep = {
+          id: placeholderId,
+          moduleId,
+          title: mod?.title ?? "Tutorial",
+          description: mod?.description ?? "Content for this module is coming soon.",
+          instructions: [] as string[],
+        } as TutorialStep;
+        safeSteps = [...safeSteps, placeholderStep];
+        firstStep = placeholderId;
+      }
       setCurrentModule(moduleId);
     } else {
       setCurrentModule(null);
     }
 
+    setOverrideSteps(safeSteps);
+    setOverrideModules(modules);
     setCurrentStep(firstStep);
     setIsOpen(true);
   };
@@ -825,33 +861,36 @@ export function OnboardingTutorial({
 
         {/* Current Step Content */}
         <div className="space-y-4 py-2 flex-1 overflow-hidden flex flex-col min-h-0">
-           {/* Media Section — show the video if the step has one, otherwise
-               the uploaded photo, otherwise the text placeholder. A step
+           {/* Media Section — show the video if the step has one, otherwise the
+               uploaded photo. If the step has NEITHER, the whole box is hidden
+               (no empty "Video will be available soon" placeholder). A step
                carries either a video or a photo (never both). */}
-           <div className="h-[400px] flex-shrink-0">
-             {!currentStepData.videoUrl && currentStepData.imageUrl ? (
-               <img
-                 src={currentStepData.imageUrl}
-                 alt={currentStepData.title}
-                 className="w-full h-full object-contain rounded-lg border border-gray-800 bg-gray-900"
-               />
-             ) : (
-               <VideoPlayer
-                 key={`${currentStep}-${currentStepData.videoUrl}`}
-                 url={currentStepData.videoUrl}
-                 placeholder={currentStepData.videoPlaceholder || "Video will be available soon"}
-                 autoPlay={autoPlay}
-                 muted
-                 loop
-                 className="h-full aspect-auto"
-                 onStatusChange={({ loading, error }) => {
-                   if (error) handleVideoError();
-                   else if (loading) handleVideoLoadStart();
-                   else handleVideoLoad();
-                 }}
-               />
-             )}
-           </div>
+           {(currentStepData.videoUrl || currentStepData.imageUrl) && (
+             <div className="h-[400px] flex-shrink-0">
+               {!currentStepData.videoUrl && currentStepData.imageUrl ? (
+                 <img
+                   src={currentStepData.imageUrl}
+                   alt={currentStepData.title}
+                   className="w-full h-full object-contain rounded-lg border border-gray-800 bg-gray-900"
+                 />
+               ) : (
+                 <VideoPlayer
+                   key={`${currentStep}-${currentStepData.videoUrl}`}
+                   url={currentStepData.videoUrl}
+                   placeholder={currentStepData.videoPlaceholder || "Video will be available soon"}
+                   autoPlay={autoPlay}
+                   muted
+                   loop
+                   className="h-full aspect-auto"
+                   onStatusChange={({ loading, error }) => {
+                     if (error) handleVideoError();
+                     else if (loading) handleVideoLoadStart();
+                     else handleVideoLoad();
+                   }}
+                 />
+               )}
+             </div>
+           )}
 
           {/* Scrollable Description + Instructions */}
           <div className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-4">
