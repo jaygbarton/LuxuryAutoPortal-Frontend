@@ -9,7 +9,8 @@ import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User } fro
 
 type DayEventType =
   | "pickup" | "delivery" | "cleaning" | "refuel"
-  | "maintenance" | "inspection" | "block_off";
+  | "maintenance" | "inspection" | "block_off"
+  | "trip_start" | "trip_end";
 
 interface DayEvent {
   id: number;
@@ -45,6 +46,8 @@ interface DayScheduleResult {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  "Trip Start":           { bg: "bg-emerald-600", text: "text-white", border: "border-emerald-700" },
+  "Trip End":             { bg: "bg-rose-600",    text: "text-white", border: "border-rose-700" },
   "Airport / Pickup Run": { bg: "bg-blue-500",    text: "text-white", border: "border-blue-600" },
   "Delivery Run":         { bg: "bg-indigo-500",  text: "text-white", border: "border-indigo-600" },
   "Cleaning":             { bg: "bg-teal-500",    text: "text-white", border: "border-teal-600" },
