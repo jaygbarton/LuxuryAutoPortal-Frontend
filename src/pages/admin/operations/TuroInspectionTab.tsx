@@ -43,6 +43,7 @@ import {
   ClipboardList,
   History,
   Plus,
+  RotateCcw,
 } from "lucide-react";
 import type { Inspection, TuroTrip } from "./types";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
@@ -626,6 +627,49 @@ export function TuroInspectionTab() {
     },
   });
 
+  // ── Deleted / Restore ──────────────────────────────────────────────────────
+  // Deleting a Turo Message is a soft-delete (dismissed_at). This dialog lists
+  // those hidden records (scoped to turo_return) so the user can bring one back.
+  const [restoreModalOpen, setRestoreModalOpen] = useState(false);
+  const { data: dismissedData, isLoading: dismissedLoading } = useQuery<{
+    data: Inspection[];
+  }>({
+    queryKey: ["/api/operations/inspections/dismissed", "turo_return"],
+    queryFn: async () => {
+      const response = await fetch(
+        buildApiUrl("/api/operations/inspections/dismissed?source=turo_return"),
+        { credentials: "include" },
+      );
+      if (!response.ok) throw new Error("Failed to fetch deleted records");
+      return response.json();
+    },
+    enabled: restoreModalOpen,
+  });
+  const dismissedInspections = dismissedData?.data || [];
+
+  const restoreMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(
+        buildApiUrl(`/api/operations/inspections/${id}/restore`),
+        { method: "POST", credentials: "include" },
+      );
+      if (!response.ok) throw new Error("Failed to restore");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/operations/inspections"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/operations/inspections/dismissed"],
+      });
+      toast({ title: "Restored", description: "Trip is back in Turo Messages" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -635,13 +679,23 @@ export function TuroInspectionTab() {
           variant="plain"
           className="mb-0"
         />
-        <Button
-          onClick={() => { setTaskPrefill({}); setTaskModalOpen(true); }}
-          className="bg-primary text-primary-foreground hover:bg-primary/80 shrink-0"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Task
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <Button
+            variant="outline"
+            onClick={() => setRestoreModalOpen(true)}
+            className="border-border text-foreground hover:bg-card"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Deleted
+          </Button>
+          <Button
+            onClick={() => { setTaskPrefill({}); setTaskModalOpen(true); }}
+            className="bg-primary text-primary-foreground hover:bg-primary/80"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Task
+          </Button>
+        </div>
       </div>
 
       <div className="bg-card border border-border rounded-lg">
@@ -1128,6 +1182,76 @@ export function TuroInspectionTab() {
         }}
         inspection={editingInspection}
       />
+
+      {restoreModalOpen && (
+        <Dialog open={restoreModalOpen} onOpenChange={setRestoreModalOpen}>
+          <DialogContent className="bg-card border-border text-foreground max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">
+                Deleted Turo Messages
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Restore a deleted trip to bring it back into Turo Messages.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[60vh] overflow-auto">
+              {dismissedLoading ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">
+                  Loading deleted records...
+                </p>
+              ) : dismissedInspections.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">
+                  No deleted Turo Messages to restore.
+                </p>
+              ) : (
+                <div className="divide-y divide-border">
+                  {dismissedInspections.map((insp) => (
+                    <div
+                      key={insp.id}
+                      className="flex items-center justify-between gap-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm text-foreground truncate">
+                          {insp.car_name || "—"}
+                          {insp.reservation_id ? (
+                            <span className="text-muted-foreground font-mono text-xs ml-2">
+                              #{insp.reservation_id}
+                            </span>
+                          ) : null}
+                        </div>
+                        {(insp as any).dismissed_at && (
+                          <div className="text-xs text-muted-foreground">
+                            Deleted {formatDate((insp as any).dismissed_at)}
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={restoreMutation.isPending}
+                        onClick={() => restoreMutation.mutate(insp.id)}
+                        className="border-primary text-primary hover:bg-primary/10 shrink-0"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                        Restore
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end mt-2">
+              <Button
+                variant="outline"
+                onClick={() => setRestoreModalOpen(false)}
+                className="bg-card text-foreground border-border"
+              >
+                Close
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {deleteModalOpen && deletingInspection && (
         <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
