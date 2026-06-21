@@ -60,14 +60,23 @@ function parseAssignees(empList: string): string {
   return "Unassigned";
 }
 
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 function formatRecurrence(raw: string | null | undefined): string {
   if (!raw) return "None";
   try {
-    const r = JSON.parse(raw) as { type?: string; days?: string[]; dayOfMonth?: number };
+    // `days` is stored as numbers (0=Sun…6=Sat) by the backend, but legacy/
+    // hand-entered values may be strings — handle both.
+    const r = JSON.parse(raw) as { type?: string; days?: (string | number)[]; dayOfMonth?: number };
     if (!r?.type || r.type === "none") return "None";
     if (r.type === "daily") return "Daily";
     if (r.type === "weekly") {
-      return r.days && r.days.length > 0 ? `Weekly (${r.days.join(", ")})` : "Weekly";
+      if (!r.days || r.days.length === 0) return "Weekly";
+      const labels = r.days.map((d) => {
+        const n = typeof d === "number" ? d : parseInt(d, 10);
+        return Number.isInteger(n) && n >= 0 && n <= 6 ? WEEKDAY_NAMES[n] : String(d);
+      });
+      return `Weekly (${labels.join(", ")})`;
     }
     if (r.type === "monthly") {
       return r.dayOfMonth ? `Monthly (day ${r.dayOfMonth})` : "Monthly";

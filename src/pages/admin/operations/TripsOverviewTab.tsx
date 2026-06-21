@@ -439,20 +439,21 @@ export function TripsOverviewTab() {
       params.set("offset", String(offset));
       if (debouncedSearch.trim()) params.set("q", debouncedSearch.trim());
       if (filterStatus !== "all") params.set("status", filterStatus);
-      // When the user types a search term, skip date filters so a reservation
-      // ID / guest name / plate search always finds the trip regardless of
-      // which day the filters happen to be set to. Each date filter is a single
-      // day: Trip Start uses startDate==endDate (trip_start ON that day),
-      // Trip Ends uses tripEndFrom==tripEndOn (trip_end ON that day).
-      if (!debouncedSearch.trim()) {
-        if (tripStartOn) {
-          params.set("startDate", tripStartOn);
-          params.set("endDate", tripStartOn);
-        }
-        if (tripEndOn) {
-          params.set("tripEndFrom", tripEndOn);
-          params.set("tripEndOn", tripEndOn);
-        }
+      // Search and the date filters COMPOSE: a search term narrows within the
+      // applied date filter rather than discarding it. (Previously the date
+      // params were dropped whenever a search term was present, so typing in the
+      // search box silently ignored the date filter — it looked like "search
+      // doesn't work when a date is set." The backend AND-s `q` with the date
+      // ranges, so sending both is correct.) Each date filter is a single day:
+      // Trip Start uses startDate==endDate (trip_start ON that day), Trip Ends
+      // uses tripEndFrom==tripEndOn (trip_end ON that day).
+      if (tripStartOn) {
+        params.set("startDate", tripStartOn);
+        params.set("endDate", tripStartOn);
+      }
+      if (tripEndOn) {
+        params.set("tripEndFrom", tripEndOn);
+        params.set("tripEndOn", tripEndOn);
       }
       const response = await fetch(
         buildApiUrl(`/api/turo-trips?${params.toString()}`),

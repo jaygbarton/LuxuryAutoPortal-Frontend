@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -139,6 +139,101 @@ export function TuroInspectionTab() {
   const [savingOdoRow, setSavingOdoRow] = useState<number | null>(null);
   const [savingMilesRow, setSavingMilesRow] = useState<number | null>(null);
 
+  // ── Inline CAR Name / VIN # editing for vehicle-swap trips. On a swap the
+  // reservation # is reused but the car changes, so the auto-filled name/VIN is
+  // wrong and must be corrected by hand — same affordance as the Trips Overview
+  // tab. CAR Name is keyed by INSPECTION id (the cell shows insp.car_name, and a
+  // manual inspection may have no trip); VIN is keyed by trip id (it lives on
+  // the trip). undefined = no pending edit; '' = cleared.
+  const [carNameEdits, setCarNameEdits] = useState<Record<number, string>>({});
+  const [vinEdits, setVinEdits] = useState<Record<number, string>>({});
+  const [savingCarName, setSavingCarName] = useState<number | null>(null);
+  const [savingVin, setSavingVin] = useState<number | null>(null);
+
+  // Save a corrected CAR Name. Writes to BOTH the inspection (so this tab's cell
+  // updates — it renders insp.car_name) and, when the inspection is linked to a
+  // trip, the trip's car_name (so Trips Overview and every trip-derived view
+  // agree). For a manual inspection with no trip, only the inspection is updated.
+  const saveCarName = async (insp: Inspection) => {
+    const edited = carNameEdits[insp.id];
+    if (edited === undefined) return;
+    const trimmed = edited.trim();
+    if (trimmed === (insp.car_name ?? "").trim()) {
+      setCarNameEdits((prev) => {
+        const next = { ...prev };
+        delete next[insp.id];
+        return next;
+      });
+      return;
+    }
+    setSavingCarName(insp.id);
+    try {
+      const requests: Promise<Response>[] = [
+        fetch(buildApiUrl(`/api/operations/inspections/${insp.id}`), {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ car_name: trimmed === "" ? null : trimmed }),
+        }),
+      ];
+      if (insp.turo_trip_id != null) {
+        requests.push(
+          fetch(buildApiUrl(`/api/turo-trips/${insp.turo_trip_id}/car-info`), {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ carName: trimmed === "" ? null : trimmed }),
+          }),
+        );
+      }
+      const results = await Promise.all(requests);
+      if (results.some((r) => !r.ok)) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      setCarNameEdits((prev) => {
+        const next = { ...prev };
+        delete next[insp.id];
+        return next;
+      });
+      toast({ title: "CAR Name saved", description: `Reservation #${insp.reservation_id ?? ""}` });
+    } catch {
+      toast({ title: "Failed to save CAR Name", variant: "destructive" });
+    } finally {
+      setSavingCarName(null);
+    }
+  };
+
+  // Save a corrected VIN #. VIN lives on the trip, so this requires a linked
+  // trip; the cell is read-only ("--") for trip-less manual inspections.
+  const saveVin = async (insp: Inspection) => {
+    const tripId = insp.turo_trip_id;
+    if (tripId == null) return;
+    const edited = vinEdits[tripId];
+    if (edited === undefined) return;
+    const trimmed = edited.trim();
+    setSavingVin(tripId);
+    try {
+      const res = await fetch(buildApiUrl(`/api/turo-trips/${tripId}/car-info`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vinNumber: trimmed === "" ? null : trimmed }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      setVinEdits((prev) => {
+        const next = { ...prev };
+        delete next[tripId];
+        return next;
+      });
+      toast({ title: "VIN # saved", description: `Reservation #${insp.reservation_id ?? ""}` });
+    } catch {
+      toast({ title: "Failed to save VIN #", variant: "destructive" });
+    } finally {
+      setSavingVin(null);
+    }
+  };
+
   const saveRowOdometers = async (trip: TuroTrip) => {
     const edit = odoEdits[trip.id];
     if (!edit) return;
@@ -180,12 +275,28 @@ export function TuroInspectionTab() {
     }
   };
 
-  // Flush any unsaved inline odometer / miles edits for a row BEFORE a tab-move
-  // (Maintenance / No Car Issues / Car Inspections) fires. The odometer field is
-  // a manual-Save input held in local state, so a fast click on a move button
-  // would otherwise discard the typed value — the row leaves the tab without the
-  // odometer ever reaching the server. Awaiting these guarantees the data is
-  // persisted first. Returns once all pending writes for the trip have settled.
+  // In-flight gas-level saves, keyed by tripId. GasLevelCells auto-saves on
+  // dropdown change; it registers that save promise here so flushRowEdits can
+  // await it before a tab-move. Without this, a fast move click races the gas
+  // PATCH and the trip leaves with a blank gas level on the destination tab.
+  const gasInFlight = useRef<Map<number, Promise<void>>>(new Map());
+  const registerGasPending = (tripId: number, promise: Promise<void>) => {
+    gasInFlight.current.set(tripId, promise);
+    // Clear once settled so the map doesn't grow unbounded.
+    promise.finally(() => {
+      if (gasInFlight.current.get(tripId) === promise) {
+        gasInFlight.current.delete(tripId);
+      }
+    });
+  };
+
+  // Flush any unsaved / in-flight inline edits for a row BEFORE a tab-move
+  // (Maintenance / No Car Issues / Car Inspections) fires. The odometer & miles
+  // fields are manual-Save inputs held in local state, and gas auto-saves async;
+  // a fast click on a move button would otherwise let the row leave this tab
+  // before those values reach the server, so they'd show blank on the
+  // destination until the next refresh. Awaiting all of them guarantees the
+  // data is persisted first. Returns once every pending write has settled.
   const flushRowEdits = async (tripId: number | null | undefined) => {
     if (tripId == null) return;
     const trip = tripsById.get(tripId);
@@ -193,6 +304,8 @@ export function TuroInspectionTab() {
     const pending: Promise<void>[] = [];
     if (odoEdits[tripId] !== undefined) pending.push(saveRowOdometers(trip));
     if (milesEdits[tripId] !== undefined) pending.push(saveRowMiles(trip));
+    const gas = gasInFlight.current.get(tripId);
+    if (gas) pending.push(gas);
     if (pending.length) await Promise.all(pending);
   };
 
@@ -839,13 +952,99 @@ export function TuroInspectionTab() {
                           {insp.reservation_id || trip?.reservationId || "--"}
                         </TableCell>
                         <TableCell className="text-foreground whitespace-nowrap">
-                          {insp.car_name || "--"}
+                          {(() => {
+                            const editing = carNameEdits[insp.id] !== undefined;
+                            const current = insp.car_name ?? "";
+                            const value = editing ? carNameEdits[insp.id] : current;
+                            return (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  value={value}
+                                  placeholder="Car name"
+                                  title="Enter the car name exactly as it appears on the Turo listing (for vehicle-swap trips)"
+                                  className="h-7 w-[160px] text-sm"
+                                  onChange={(e) =>
+                                    setCarNameEdits((prev) => ({
+                                      ...prev,
+                                      [insp.id]: e.target.value,
+                                    }))
+                                  }
+                                  onBlur={() => {
+                                    if (carNameEdits[insp.id] === undefined) return;
+                                    saveCarName(insp);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter")
+                                      (e.target as HTMLInputElement).blur();
+                                    if (e.key === "Escape")
+                                      setCarNameEdits((prev) => {
+                                        const next = { ...prev };
+                                        delete next[insp.id];
+                                        return next;
+                                      });
+                                  }}
+                                />
+                                {savingCarName === insp.id && (
+                                  <span className="text-xs text-muted-foreground">…</span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="text-foreground font-mono text-sm">
                           {trip?.plateNumber || "--"}
                         </TableCell>
                         <TableCell className="text-foreground font-mono text-sm whitespace-nowrap">
-                          {trip?.vinNumber || "--"}
+                          {insp.turo_trip_id == null ? (
+                            "--"
+                          ) : (
+                            (() => {
+                              const tripId = insp.turo_trip_id;
+                              const editing = vinEdits[tripId] !== undefined;
+                              const current = trip?.vinNumber ?? "";
+                              const value = editing ? vinEdits[tripId] : current;
+                              return (
+                                <div className="flex items-center gap-1">
+                                  <Input
+                                    value={value}
+                                    placeholder="--"
+                                    className="h-7 w-[150px] text-sm font-mono"
+                                    onChange={(e) =>
+                                      setVinEdits((prev) => ({
+                                        ...prev,
+                                        [tripId]: e.target.value,
+                                      }))
+                                    }
+                                    onBlur={() => {
+                                      if (vinEdits[tripId] === undefined) return;
+                                      if (vinEdits[tripId].trim() === current.trim()) {
+                                        setVinEdits((prev) => {
+                                          const next = { ...prev };
+                                          delete next[tripId];
+                                          return next;
+                                        });
+                                        return;
+                                      }
+                                      saveVin(insp);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter")
+                                        (e.target as HTMLInputElement).blur();
+                                      if (e.key === "Escape")
+                                        setVinEdits((prev) => {
+                                          const next = { ...prev };
+                                          delete next[tripId];
+                                          return next;
+                                        });
+                                    }}
+                                  />
+                                  {savingVin === tripId && (
+                                    <span className="text-xs text-muted-foreground">…</span>
+                                  )}
+                                </div>
+                              );
+                            })()
+                          )}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                           {trip ? formatDate(trip.tripStart) : "--"}
@@ -1035,6 +1234,7 @@ export function TuroInspectionTab() {
                           tripId={insp.turo_trip_id}
                           start={trip?.gasLevelTripStart ?? insp.gas_level_trip_start}
                           end={trip?.gasLevelTripEnd ?? insp.gas_level_trip_end}
+                          registerPending={registerGasPending}
                           onSaved={() => {
                             queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
                             queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });

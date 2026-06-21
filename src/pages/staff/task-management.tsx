@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { buildApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Briefcase, MessageCircle, Info, Loader2, Search } from "lucide-react";
@@ -401,7 +401,7 @@ export default function StaffTaskManagement() {
                                     title="View photo"
                                   >
                                     <img
-                                      src={buildApiUrl(src)}
+                                      src={getProxiedImageUrl(src)}
                                       alt={`Photo ${i + 1}`}
                                       className="w-10 h-10 object-cover rounded border border-border hover:opacity-80 transition-opacity"
                                     />
@@ -521,7 +521,7 @@ export default function StaffTaskManagement() {
             </DialogHeader>
             <div className="relative flex items-center justify-center min-h-[400px]">
               <img
-                src={buildApiUrl(lightboxPhotos[lightboxIndex])}
+                src={getProxiedImageUrl(lightboxPhotos[lightboxIndex])}
                 alt={`Photo ${lightboxIndex + 1} of ${lightboxPhotos.length}`}
                 className="max-h-[70vh] max-w-full object-contain rounded"
               />

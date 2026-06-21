@@ -218,20 +218,22 @@ export default function TuroTripsPage() {
       if (debouncedSearchQuery) {
         url += `&q=${encodeURIComponent(debouncedSearchQuery)}`;
       }
-      // Skip date filters when a search term is active so a reservation ID
-      // or guest name search always finds the trip regardless of date range.
-      if (!debouncedSearchQuery) {
-        // Exact-day match per box: start ON tripStartOn (from==to) AND end ON
-        // tripEndOn (from==to). The backend AND-s startFrom/startTo/endFrom/endTo.
-        if (tripStartOn) {
-          url += `&startFrom=${encodeURIComponent(tripStartOn)}&startTo=${encodeURIComponent(tripStartOn)}`;
-        }
-        if (tripEndOn) {
-          url += `&endFrom=${encodeURIComponent(tripEndOn)}&endTo=${encodeURIComponent(tripEndOn)}`;
-        }
-        if (bookingFrom) url += `&bookingFrom=${encodeURIComponent(bookingFrom)}`;
-        if (bookingTo) url += `&bookingTo=${encodeURIComponent(bookingTo)}`;
+      // Search and date filters COMPOSE: a search term narrows within the
+      // applied date range rather than discarding it. (Previously the date
+      // params were skipped whenever a search term was present, so typing in the
+      // search box silently ignored the date filter — it looked like "search
+      // doesn't work when a date is set." The backend AND-s `q` with the date
+      // ranges, so sending both is correct.)
+      // Exact-day match per box: start ON tripStartOn (from==to) AND end ON
+      // tripEndOn (from==to). The backend AND-s startFrom/startTo/endFrom/endTo.
+      if (tripStartOn) {
+        url += `&startFrom=${encodeURIComponent(tripStartOn)}&startTo=${encodeURIComponent(tripStartOn)}`;
       }
+      if (tripEndOn) {
+        url += `&endFrom=${encodeURIComponent(tripEndOn)}&endTo=${encodeURIComponent(tripEndOn)}`;
+      }
+      if (bookingFrom) url += `&bookingFrom=${encodeURIComponent(bookingFrom)}`;
+      if (bookingTo) url += `&bookingTo=${encodeURIComponent(bookingTo)}`;
       url += `&sortBy=${sortBy}&sortDir=${sortDir}`;
       const response = await fetch(url, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch trips");

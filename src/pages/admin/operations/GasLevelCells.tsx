@@ -41,12 +41,21 @@ export function GasLevelCells({
   start,
   end,
   onSaved,
+  registerPending,
 }: {
   tripId: number | null | undefined;
   start: string | null | undefined;
   end: string | null | undefined;
   /** Called after a successful save so the caller can invalidate its queries. */
   onSaved?: () => void;
+  /**
+   * Lets the parent await an in-flight gas-level save before it acts on this
+   * row (e.g. moving the trip to another tab). The dropdown auto-saves on
+   * change, so without this a fast "move" click can race the PATCH and the
+   * destination renders before gas is persisted. We hand the parent the save
+   * promise keyed by tripId; the parent awaits it in its pre-move flush.
+   */
+  registerPending?: (tripId: number, promise: Promise<void>) => void;
 }) {
   const { toast } = useToast();
   // Local pending edits; undefined means "not edited, show the prop value".
@@ -58,29 +67,34 @@ export function GasLevelCells({
   const endVal = draftEnd !== undefined ? draftEnd : (end ?? "");
   const noTrip = tripId == null;
 
-  const saveWith = async (newStart: string, newEnd: string) => {
-    if (tripId == null) return;
+  const saveWith = (newStart: string, newEnd: string): Promise<void> => {
+    if (tripId == null) return Promise.resolve();
     setSaving(true);
-    try {
-      const res = await fetch(buildApiUrl(`/api/turo-trips/${tripId}/gas-levels`), {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          gasLevelTripStart: newStart || null,
-          gasLevelTripEnd: newEnd || null,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to save");
-      setDraftStart(undefined);
-      setDraftEnd(undefined);
-      toast({ title: "Gas levels saved" });
-      onSaved?.();
-    } catch {
-      toast({ title: "Failed to save gas levels", variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
+    const p = (async () => {
+      try {
+        const res = await fetch(buildApiUrl(`/api/turo-trips/${tripId}/gas-levels`), {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            gasLevelTripStart: newStart || null,
+            gasLevelTripEnd: newEnd || null,
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to save");
+        setDraftStart(undefined);
+        setDraftEnd(undefined);
+        toast({ title: "Gas levels saved" });
+        onSaved?.();
+      } catch {
+        toast({ title: "Failed to save gas levels", variant: "destructive" });
+      } finally {
+        setSaving(false);
+      }
+    })();
+    // Expose the in-flight save so a parent can await it before moving the row.
+    registerPending?.(tripId, p);
+    return p;
   };
 
   const renderSelect = (value: string, onChange: (v: string) => void) => (

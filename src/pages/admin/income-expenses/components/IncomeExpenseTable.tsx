@@ -1098,12 +1098,22 @@ export default function IncomeExpenseTable({
       return 0;
     }
 
-    // January always starts fresh at 0 — the negative balance does NOT carry
-    // across the calendar-year boundary (matches the legacy v3 app, which reset
-    // the carry-over each January rather than rolling the prior December
-    // forward). Within a year it still compounds month-to-month below.
+    // January year-boundary rule (mode-gated):
+    //   • If the PRIOR December was a 30/70 (mode-70) month, the negative balance
+    //     DOES carry across the year boundary — prior-December rolls into January
+    //     (matches legacy v3 for 30/70 cars, e.g. Audi WA1G2AFY3L2048638).
+    //   • Otherwise (50/50, or no prior-year data) January resets to $0, so a
+    //     50/50 car's within-year balance does NOT roll into the next year
+    //     (e.g. GMC 1GKS2KE73CR155280 must show $0 in January, not −$110).
+    // Within a year it always compounds month-to-month below.
     if (month === 1) {
-      return 0;
+      const prevDecMode: 50 | 70 =
+        (prevYearDecData?.formulaSetting?.monthModes?.[12] as 50 | 70) || 50;
+      if (!prevYearDecData || prevDecMode !== 70) {
+        return 0;
+      }
+      // 30/70 December → fall through to the January branch below, which pulls
+      // prior-year December and rolls its balance into January.
     }
 
     // Get the CURRENT month's mode (not previous month's mode)

@@ -44,6 +44,7 @@ import {
   X,
   History as HistoryIcon,
   MessageCircle,
+  Info,
   CalendarX,
   ArrowUp,
   ArrowDown,
@@ -313,6 +314,7 @@ export default function AdminHrTaskManagement() {
   const [editingTask, setEditingTask] = useState<any | null>(null);
   const [historyTask, setHistoryTask] = useState<any | null>(null);
   const [commentTask, setCommentTask] = useState<any | null>(null);
+  const [viewTask, setViewTask] = useState<any | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [recurrence, setRecurrence] = useState({ ...EMPTY_RECURRENCE });
   const [photos, setPhotos] = useState<File[]>([]);
@@ -1048,6 +1050,15 @@ export default function AdminHrTaskManagement() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-muted-foreground hover:text-primary"
+                              onClick={() => setViewTask(r)}
+                              title="View details"
+                            >
+                              <Info className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
                               onClick={() => openEdit(r)}
                               title="Edit"
                             >
@@ -1420,6 +1431,80 @@ export default function AdminHrTaskManagement() {
         taskName={commentTask?.task_timer_name}
         onClose={() => setCommentTask(null)}
       />
+
+      {/* View details modal */}
+      <Dialog open={!!viewTask} onOpenChange={(o) => !o && setViewTask(null)}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Task details</DialogTitle>
+          </DialogHeader>
+          {viewTask && (
+            <div className="space-y-3 text-sm">
+              <p>
+                <span className="font-medium">Task created:</span>{" "}
+                {formatCreatedAt(viewTask.task_timer_created)}
+              </p>
+              <p>
+                <span className="font-medium">Task name:</span>{" "}
+                {viewTask.task_timer_name ?? "--"}
+              </p>
+              <p>
+                <span className="font-medium">Assigned to:</span>{" "}
+                {getAssignedName(viewTask)}
+              </p>
+              <p>
+                <span className="font-medium">Due date:</span>{" "}
+                {viewTask.task_timer_date_end || "--"}
+              </p>
+              <p>
+                <span className="font-medium">Status:</span>{" "}
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${statusColor(viewTask.task_timer_status ?? 0)}`}
+                >
+                  {statusLabel(viewTask.task_timer_status ?? 0)}
+                </Badge>
+              </p>
+              <p>
+                <span className="font-medium">Description:</span>{" "}
+                {viewTask.task_timer_description ?? "--"}
+              </p>
+              {viewTask.task_timer_goal && (
+                <p>
+                  <span className="font-medium">Goal:</span>{" "}
+                  {viewTask.task_timer_goal}
+                </p>
+              )}
+              {(() => {
+                const taskPhotos = getTaskPhotos(viewTask);
+                if (taskPhotos.length === 0) return null;
+                return (
+                  <div>
+                    <span className="font-medium">Photos:</span>
+                    <div className="flex items-center gap-1 flex-wrap mt-1">
+                      {taskPhotos.map((src, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => openLightbox(taskPhotos, i)}
+                          className="focus:outline-none"
+                          title="View photo"
+                        >
+                          <img
+                            src={getProxiedImageUrl(src)}
+                            alt={`Photo ${i + 1}`}
+                            className="w-12 h-12 object-cover rounded border border-border hover:opacity-80 transition-opacity"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Photo lightbox */}
       {lightboxPhotos.length > 0 && (

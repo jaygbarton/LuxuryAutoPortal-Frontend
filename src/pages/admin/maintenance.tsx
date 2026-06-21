@@ -122,6 +122,24 @@ export default function MaintenancePage() {
 
   const onboarding = onboardingData?.data;
 
+  const allRecords: any[] = maintData?.data ?? [];
+
+  // NOTE: This hook MUST run on every render — keep it above the early returns
+  // below. Placing it after the `isLoading`/`error` guards changed the number of
+  // hooks between renders and crashed the page with React error #310.
+  const maintenanceRecords = useMemo(() => {
+    let f = allRecords;
+    if (statusFilter !== "all") f = f.filter((r) => r.status === statusFilter);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      f = f.filter((r) =>
+        [r.task_description, r.assigned_to, r.repair_shop, r.notes, r.car_name]
+          .some((v) => v && String(v).toLowerCase().includes(q))
+      );
+    }
+    return f;
+  }, [allRecords, statusFilter, searchQuery]);
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -155,21 +173,6 @@ export default function MaintenancePage() {
   const fuelType = onboarding?.fuelType || car.fuelType || "N/A";
   const tireSize = onboarding?.tireSize || car.tireSize || "N/A";
   const oilType = onboarding?.oilType || car.oilType || "N/A";
-
-  const allRecords: any[] = maintData?.data ?? [];
-
-  const maintenanceRecords = useMemo(() => {
-    let f = allRecords;
-    if (statusFilter !== "all") f = f.filter((r) => r.status === statusFilter);
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      f = f.filter((r) =>
-        [r.task_description, r.assigned_to, r.repair_shop, r.notes, r.car_name]
-          .some((v) => v && String(v).toLowerCase().includes(q))
-      );
-    }
-    return f;
-  }, [allRecords, statusFilter, searchQuery]);
 
   return (
     <AdminLayout>
