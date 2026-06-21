@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
@@ -87,6 +88,22 @@ export default function TrainingManualPage() {
     void startTutorialForRole(selectedRole as 'admin' | 'client' | 'employee' | 'cohost', moduleId);
   };
   const isAdmin = useIsAdmin();
+
+  // Co-Hosts can VIEW the tutorial but never edit it. Their sidebar already
+  // points at the read-only /cohost/training-manual page; if a co-host reaches
+  // this editable admin page directly (they retain isAdmin=true on the
+  // backend, so the route guard lets them in), send them to the read-only
+  // Co-Host page instead. `isAdmin` here is already false for co-hosts.
+  const [, setLocation] = useLocation();
+  const { data: meData } = useQuery<{ user?: { isCoHost?: boolean; viewAsCoHost?: { coHostId?: number } } }>({
+    queryKey: ["/api/auth/me"],
+    retry: false,
+  });
+  const isCoHost = !!(meData?.user?.isCoHost || meData?.user?.viewAsCoHost?.coHostId);
+  useEffect(() => {
+    if (isCoHost) setLocation("/cohost/training-manual");
+  }, [isCoHost, setLocation]);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editingStep, setEditingStep] = useState<TutorialStep | null>(null);

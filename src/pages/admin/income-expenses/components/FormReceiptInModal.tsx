@@ -123,19 +123,36 @@ export default function FormReceiptInModal({ carId, year, editingCell, isOpen }:
               <div key={i} className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">{label}</span>
                 {embedded ? (
-                  <img
-                    src={embedded}
-                    alt={label}
-                    className="max-h-32 w-auto rounded border border-border object-contain bg-background"
-                  />
+                  <>
+                    <a
+                      href={displayUrl || embedded}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`View ${label} full size`}
+                    >
+                      <img
+                        src={embedded}
+                        alt={label}
+                        className="max-h-32 w-auto rounded border border-border object-contain bg-background cursor-pointer transition-opacity hover:opacity-80"
+                      />
+                    </a>
+                    <a
+                      href={displayUrl || embedded}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" /> View full size
+                    </a>
+                  </>
                 ) : (
                   <a
                     href={displayUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-primary hover:underline"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                   >
-                    View {label}
+                    <ExternalLink className="h-3 w-3" /> View {label}
                   </a>
                 )}
               </div>

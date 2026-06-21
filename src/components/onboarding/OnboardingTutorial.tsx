@@ -466,8 +466,12 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
   const goToModule = (moduleId: number) => {
     setCurrentModule(moduleId);
-    // Find the first step in the module using the flat steps list
-    const steps = Array.isArray(tutorialSteps) ? tutorialSteps : DEFAULT_TUTORIAL_STEPS;
+    // Find the first step in the module using the ACTIVE steps list (override-aware).
+    // Using the provider's own-role `tutorialSteps` here would jump to the wrong
+    // role's step when an admin is previewing another role via overrideSteps.
+    const steps = Array.isArray(safeTutorialSteps) && safeTutorialSteps.length > 0
+      ? safeTutorialSteps
+      : DEFAULT_TUTORIAL_STEPS;
     const moduleSteps = steps.filter(s => s.moduleId === moduleId);
     if (moduleSteps.length > 0) {
       setCurrentStep(moduleSteps[0].id);
@@ -715,8 +719,14 @@ export function OnboardingTutorial({
   const tutorialSteps = Array.isArray(contextTutorialSteps) ? contextTutorialSteps : DEFAULT_TUTORIAL_STEPS;
   const tutorialModules = Array.isArray(contextTutorialModules) ? contextTutorialModules : [];
   
-  // Find current step data by matching step id with currentStep
-  const currentStepData = tutorialSteps.find(step => step.id === currentStep) || tutorialSteps[currentStep - 1] || tutorialSteps[0];
+  // Find current step data by matching step id with currentStep.
+  // NOTE: a step's `id` is its DB step_order, which is NOT a contiguous 1..N
+  // array index (e.g. a role's steps can be ordered 3,4,5,19,20,10,...). The
+  // old `tutorialSteps[currentStep - 1]` fallback treated step_order as an
+  // index, which silently jumped to the wrong step (the "it skips some"
+  // symptom) whenever the primary match transiently failed. Fall back to the
+  // first step instead so we never land on an unrelated module's step.
+  const currentStepData = tutorialSteps.find(step => step.id === currentStep) || tutorialSteps[0];
   
   // Find current module based on current step
   const currentModuleData = currentStepData?.moduleId 
