@@ -71,6 +71,31 @@ function fmtDays(v: unknown): string {
   return String(n);
 }
 
+function fmtScheduled(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  try {
+    const d = new Date(String(v));
+    if (isNaN(d.getTime())) return String(v);
+    return (
+      d.toLocaleDateString("en-US", {
+        timeZone: "America/Denver",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }) +
+      " " +
+      d.toLocaleTimeString("en-US", {
+        timeZone: "America/Denver",
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+    );
+  } catch {
+    return String(v);
+  }
+}
+
 function fmtDateTime(v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
   try {
@@ -346,7 +371,7 @@ export default function MyPickupDropoffSection() {
                       </span>
                     </td>
                     <td className="px-3 py-2 text-center text-black">{asString(row.assigned_to)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.scheduled_date)}</td>
+                    <td className="px-3 py-2 text-center text-black">{fmtScheduled(row.scheduled_date)}</td>
                     <td className="px-3 py-2 text-center text-black">
                       {row.id != null ? (
                         <Select
