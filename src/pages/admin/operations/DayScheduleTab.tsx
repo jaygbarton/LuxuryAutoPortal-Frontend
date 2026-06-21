@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,6 +28,10 @@ interface DayEvent {
   status: string | null;
   notes: string | null;
   detail: string | null;
+  trip_start: string | null;
+  trip_end: string | null;
+  pickup_location: string | null;
+  dropoff_location: string | null;
 }
 
 interface WorkShift {
@@ -116,6 +121,31 @@ function assigneeKey(e: DayEvent): string | null {
   return null;
 }
 
+// ─── Drag-and-drop ──────────────────────────────────────────────────────────
+// Events with their assignee on a row we can update are draggable: drag onto an
+// employee to assign, or onto "Needs Assignment" to unassign. Trip Start / End
+// are assignable only when their pickup/delivery task already exists — the
+// backend rejects otherwise with a helpful message.
+const DRAG_MIME = "application/x-gla-day-event";
+
+interface DragPayload {
+  type: DayEventType;
+  id: number;
+  category: string;
+}
+
+function setDragData(e: React.DragEvent, event: DayEvent) {
+  const payload: DragPayload = { type: event.type, id: event.id, category: event.category };
+  e.dataTransfer.setData(DRAG_MIME, JSON.stringify(payload));
+  e.dataTransfer.effectAllowed = "move";
+}
+
+function readDragData(e: React.DragEvent): DragPayload | null {
+  const raw = e.dataTransfer.getData(DRAG_MIME);
+  if (!raw) return null;
+  try { return JSON.parse(raw) as DragPayload; } catch { return null; }
+}
+
 // ─── Event card ───────────────────────────────────────────────────────────────
 
 function EventCard({ event }: { event: DayEvent }) {
@@ -123,7 +153,11 @@ function EventCard({ event }: { event: DayEvent }) {
   const badgeClass = STATUS_BADGE[event.status ?? ""] ?? "bg-gray-100 text-gray-700 border-gray-300";
 
   return (
-    <div className={`flex items-stretch rounded-lg overflow-hidden border ${c.border} shadow-sm`}>
+    <div
+      draggable
+      onDragStart={(e) => setDragData(e, event)}
+      className={`group/event flex items-stretch rounded-lg overflow-hidden border ${c.border} shadow-sm cursor-grab active:cursor-grabbing`}
+    >
       {/* Color bar */}
       <div className={`w-1.5 flex-shrink-0 ${c.bg}`} />
 
@@ -142,6 +176,7 @@ function EventCard({ event }: { event: DayEvent }) {
       {/* Content */}
       <div className="flex-1 min-w-0 px-2 py-2 space-y-0.5">
         <div className="flex items-center gap-2 flex-wrap">
+          <GripVertical className="w-3 h-3 flex-shrink-0 text-muted-foreground/40 group-hover/event:text-muted-foreground" />
           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${c.bg} ${c.text}`}>
             {event.category}
           </span>
@@ -161,7 +196,33 @@ function EventCard({ event }: { event: DayEvent }) {
         {event.guest_name && (
           <div className="text-xs text-muted-foreground">{event.guest_name}</div>
         )}
-        {event.location && (
+
+        {/* Trip window: trip start → trip end */}
+        {(event.trip_start || event.trip_end) && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="w-3 h-3 flex-shrink-0" />
+            <span className="text-foreground font-medium">{fmt12(event.trip_start) || "—"}</span>
+            <ArrowRight className="w-3 h-3 flex-shrink-0" />
+            <span className="text-foreground font-medium">{fmt12(event.trip_end) || "—"}</span>
+          </div>
+        )}
+
+        {/* Pick up & drop off locations */}
+        {event.pickup_location && (
+          <div className="flex items-start gap-1 text-xs text-muted-foreground">
+            <ArrowUpFromLine className="w-3 h-3 flex-shrink-0 mt-0.5 text-emerald-600" />
+            <span className="break-words"><span className="font-medium text-foreground">Pick Up:</span> {event.pickup_location}</span>
+          </div>
+        )}
+        {event.dropoff_location && (
+          <div className="flex items-start gap-1 text-xs text-muted-foreground">
+            <ArrowDownToLine className="w-3 h-3 flex-shrink-0 mt-0.5 text-rose-600" />
+            <span className="break-words"><span className="font-medium text-foreground">Drop Off:</span> {event.dropoff_location}</span>
+          </div>
+        )}
+
+        {/* Generic location (non-trip events: e.g. cleaning's own scheduled location, repair shop) — only when no trip endpoints shown */}
+        {event.location && !event.pickup_location && !event.dropoff_location && (
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <MapPin className="w-3 h-3 flex-shrink-0" />
             <span className="truncate">{event.location}</span>
@@ -186,11 +247,45 @@ interface EmpInfo {
   shiftEnd: string;
 }
 
-function EmployeeSection({ empKey, emp, events }: { empKey: string; emp: EmpInfo; events: DayEvent[] }) {
+function EmployeeSection({
+  empKey,
+  emp,
+  events,
+  onAssign,
+}: {
+  empKey: string;
+  emp: EmpInfo;
+  events: DayEvent[];
+  onAssign: (payload: DragPayload, employeeId: number, fullname: string) => void;
+}) {
   const sorted = [...events].sort((a, b) => timeKey(a.start_time).localeCompare(timeKey(b.start_time)));
+  const [dragOver, setDragOver] = useState(false);
+
+  // Only employees identified by a real employee_id can receive assignments.
+  const employeeId = empKey.startsWith("id:") ? Number(empKey.slice(3)) : null;
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    if (employeeId == null) return;
+    const payload = readDragData(e);
+    if (payload) onAssign(payload, employeeId, emp.fullname);
+  }
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
+    <div
+      onDragOver={(e) => {
+        if (employeeId == null) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={handleDrop}
+      className={`border rounded-lg overflow-hidden transition-colors ${
+        dragOver ? "border-primary ring-2 ring-primary/40 bg-primary/5" : "border-border"
+      }`}
+    >
       {/* Employee header */}
       <div className="flex items-center gap-3 px-3 py-2 bg-muted border-b border-border">
         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -229,7 +324,11 @@ function EmployeeSection({ empKey, emp, events }: { empKey: string; emp: EmpInfo
 function UnassignedCard({ event }: { event: DayEvent }) {
   const c = colorFor(event.category);
   return (
-    <div className={`flex items-stretch rounded overflow-hidden border ${c.border} text-xs`}>
+    <div
+      draggable
+      onDragStart={(e) => setDragData(e, event)}
+      className={`flex items-stretch rounded overflow-hidden border ${c.border} text-xs cursor-grab active:cursor-grabbing`}
+    >
       <div className={`w-1 flex-shrink-0 ${c.bg}`} />
       <div className="flex-1 min-w-0 px-2 py-1.5 space-y-0.5">
         <div className={`font-semibold`}>{event.category}</div>
@@ -239,12 +338,31 @@ function UnassignedCard({ event }: { event: DayEvent }) {
           </div>
         )}
         {event.car_name && (
-          <div className="text-muted-foreground flex items-center gap-1 truncate">
-            <Car className="w-3 h-3 flex-shrink-0" />
-            {event.car_name}{event.plate ? ` (${event.plate})` : ""}
+          <div className="text-muted-foreground flex items-start gap-1">
+            <Car className="w-3 h-3 flex-shrink-0 mt-0.5" />
+            <span className="break-words">{event.car_name}{event.plate ? ` (${event.plate})` : ""}</span>
           </div>
         )}
-        {event.detail && <div className="text-muted-foreground italic truncate">{event.detail}</div>}
+        {(event.trip_start || event.trip_end) && (
+          <div className="text-muted-foreground flex items-center gap-1">
+            <span className="font-medium text-foreground">{fmt12(event.trip_start) || "—"}</span>
+            <ArrowRight className="w-3 h-3 flex-shrink-0" />
+            <span className="font-medium text-foreground">{fmt12(event.trip_end) || "—"}</span>
+          </div>
+        )}
+        {event.pickup_location && (
+          <div className="text-muted-foreground flex items-start gap-1">
+            <ArrowUpFromLine className="w-3 h-3 flex-shrink-0 mt-0.5 text-emerald-600" />
+            <span className="break-words">{event.pickup_location}</span>
+          </div>
+        )}
+        {event.dropoff_location && (
+          <div className="text-muted-foreground flex items-start gap-1">
+            <ArrowDownToLine className="w-3 h-3 flex-shrink-0 mt-0.5 text-rose-600" />
+            <span className="break-words">{event.dropoff_location}</span>
+          </div>
+        )}
+        {event.detail && <div className="text-muted-foreground italic break-words">{event.detail}</div>}
       </div>
     </div>
   );
@@ -254,6 +372,9 @@ function UnassignedCard({ event }: { event: DayEvent }) {
 
 export function DayScheduleTab() {
   const [date, setDate] = useState(todayMTDate);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [unassignOver, setUnassignOver] = useState(false);
 
   const { data, isLoading, error } = useQuery<DayScheduleResult>({
     queryKey: ["/api/operations/day-schedule", date],
@@ -265,6 +386,40 @@ export function DayScheduleTab() {
       return res.json();
     },
   });
+
+  // Drag-and-drop assign / unassign. employeeId === null means unassign.
+  const assignMutation = useMutation({
+    mutationFn: async (body: {
+      type: DayEventType;
+      eventId: number;
+      employeeId: number | null;
+      fullname: string | null;
+    }) => {
+      const res = await fetch(buildApiUrl(`/api/operations/day-schedule/assign`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to update assignment");
+      }
+      return res.json();
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
+      toast({ title: vars.employeeId == null ? "Moved to Needs Assignment" : `Assigned to ${vars.fullname}` });
+    },
+    onError: (e: Error) => toast({ variant: "destructive", title: "Couldn't reassign", description: e.message }),
+  });
+
+  function assignTo(payload: DragPayload, employeeId: number, fullname: string) {
+    assignMutation.mutate({ type: payload.type, eventId: payload.id, employeeId, fullname });
+  }
+  function unassign(payload: DragPayload) {
+    assignMutation.mutate({ type: payload.type, eventId: payload.id, employeeId: null, fullname: null });
+  }
 
   const events = data?.events ?? [];
   const shifts = data?.work_shifts ?? [];
@@ -371,16 +526,33 @@ export function DayScheduleTab() {
                   empKey={key}
                   emp={emp}
                   events={assignedMap.get(key) ?? []}
+                  onAssign={assignTo}
                 />
               ))
             )}
           </div>
 
           {/* Sidebar */}
-          <div className="w-full lg:w-56 space-y-4 flex-shrink-0">
+          <div className="w-full lg:w-72 space-y-4 flex-shrink-0">
 
-            {/* Needs assignment */}
-            <div className="border border-border rounded-lg overflow-hidden bg-background">
+            {/* Needs assignment — drop here to unassign */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                setUnassignOver(true);
+              }}
+              onDragLeave={() => setUnassignOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setUnassignOver(false);
+                const payload = readDragData(e);
+                if (payload) unassign(payload);
+              }}
+              className={`border rounded-lg overflow-hidden bg-background transition-colors ${
+                unassignOver ? "border-primary ring-2 ring-primary/40 bg-primary/5" : "border-border"
+              }`}
+            >
               <div className="px-3 py-2 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center justify-between">
                 <span>Needs Assignment</span>
                 {unassigned.length > 0 && (
@@ -389,7 +561,9 @@ export function DayScheduleTab() {
               </div>
               <div className="p-2 space-y-1.5 max-h-80 overflow-y-auto">
                 {unassigned.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-3">All events assigned ✓</p>
+                  <p className="text-xs text-muted-foreground text-center py-3">
+                    {unassignOver ? "Drop to unassign" : "All events assigned ✓ — drag a task here to unassign"}
+                  </p>
                 ) : (
                   unassigned.map((e) => <UnassignedCard key={`${e.type}-${e.id}`} event={e} />)
                 )}

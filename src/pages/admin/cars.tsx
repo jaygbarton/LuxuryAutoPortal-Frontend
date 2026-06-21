@@ -45,7 +45,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
-import { Plus, Edit, Search, X, ExternalLink, Car as CarIcon, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Edit, Search, X, ExternalLink, Car as CarIcon, Check, ChevronsUpDown, Download } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { TableRowSkeleton } from "@/components/ui/skeletons";
@@ -141,6 +141,7 @@ export default function CarsPage() {
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [clientComboOpen, setClientComboOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   // Load items per page from localStorage, default to 10
   const [itemsPerPage, setItemsPerPage] = useState<ItemsPerPage>(() => {
@@ -352,6 +353,64 @@ export default function CarsPage() {
     enabled: !!userData?.user,
     retry: false,
   });
+
+  // Export the full (filtered) fleet to CSV so admins can scan for duplicate VINs
+  // in a spreadsheet. Pulls all matching rows in one shot (limit 1000, the API cap)
+  // honoring the current search + status filters — not just the visible page.
+  const handleExportCsv = async () => {
+    setIsExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.append("status", statusFilter);
+      if (searchQuery) params.append("search", searchQuery);
+      params.append("page", "1");
+      params.append("limit", "1000");
+      const res = await fetch(buildApiUrl(`/api/cars?${params.toString()}`), {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch cars for export");
+      const json = await res.json();
+      const list: Car[] = json?.cars ?? [];
+
+      const headers = [
+        "VIN", "Plate", "Year", "Make", "Model/Specs",
+        "Status", "Management", "Owner", "Owner Email", "Contact",
+        "Gas", "Tire Size", "Oil Type", "Turo Link", "Admin Turo Link",
+      ];
+      const esc = (v: unknown): string => {
+        const s = v === null || v === undefined ? "" : String(v);
+        // Quote and escape any field that could break CSV structure.
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const ownerName = (c: Car) =>
+        c.owner ? `${c.owner.firstName ?? ""} ${c.owner.lastName ?? ""}`.trim() : "";
+      const rows = list.map((c) => [
+        c.vin, c.licensePlate, c.year, c.make, c.model,
+        c.status, c.managementStatus, ownerName(c), c.owner?.email,
+        c.contactPhone ?? c.owner?.phone, c.fuelType, c.tireSize, c.oilType,
+        c.turoLink, c.adminTuroLink,
+      ].map(esc).join(","));
+
+      const csv = [headers.join(","), ...rows].join("\n");
+      // BOM so Excel reads UTF-8 correctly.
+      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `cars-export-${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({ title: "Export ready", description: `Exported ${list.length} car${list.length === 1 ? "" : "s"} to CSV.` });
+    } catch (err: any) {
+      toast({ title: "Export failed", description: err?.message ?? "Could not export cars.", variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: CarFormData) => {
@@ -681,6 +740,18 @@ export default function CarsPage() {
             <h1 className="text-2xl font-bold text-primary">Cars</h1>
             <p className="text-muted-foreground text-xs sm:text-sm">{isAdmin ? "Manage your vehicle fleet" : "View your vehicles"}</p>
           </div>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportCsv}
+              disabled={isExporting}
+              className="gap-2 self-start sm:self-auto"
+            >
+              <Download className="w-4 h-4" />
+              {isExporting ? "Exporting…" : "Export CSV"}
+            </Button>
+          )}
         </div>
 
         {/* Search and Filter */}
