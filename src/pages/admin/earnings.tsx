@@ -14,6 +14,7 @@ import { GraphsChartsReportSection } from "@/pages/admin/components/GraphsCharts
 import type { IncomeExpenseData } from "@/pages/admin/income-expenses/types";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { ReceiptEditHistory } from "@/components/admin/ReceiptEditHistory";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -1303,7 +1304,9 @@ export default function EarningsPage() {
         {/* Earnings Header with Year Filter */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
           <h1 className="text-xl sm:text-3xl font-serif text-primary italic leading-tight">Earnings</h1>
-          <div className="w-full sm:w-[150px]">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {carId && <ReceiptEditHistory carId={carId} year={selectedYear} />}
+            <div className="w-full sm:w-[150px]">
             <Select value={selectedYear} onValueChange={setSelectedYear}>
               <SelectTrigger className="bg-card border-border text-foreground focus:border-primary w-full">
                 <SelectValue placeholder="Select year" />
@@ -1317,6 +1320,7 @@ export default function EarningsPage() {
                 <SelectItem value="2021">2021</SelectItem>
               </SelectContent>
             </Select>
+            </div>
           </div>
         </div>
 

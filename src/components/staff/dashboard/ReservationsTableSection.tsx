@@ -64,8 +64,18 @@ interface Props {
   statusEdit?: StatusEditConfig;
 }
 
+// ISO 8601 datetime detector (e.g. "2026-06-19T15:34:00.000Z"). Any column that
+// falls through to asString without an explicit `render` and holds a raw ISO
+// timestamp gets formatted in Mountain Time, so a date column can never leak the
+// raw UTC string into the table (the "please fix" ISO columns in the screenshot).
+const ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+
 function asString(v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
+  if (typeof v === "string" && ISO_DATETIME_RE.test(v)) {
+    const formatted = fmtDateTime(v);
+    if (formatted !== "—") return formatted;
+  }
   return String(v);
 }
 

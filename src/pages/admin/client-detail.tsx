@@ -696,6 +696,35 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
     },
   });
 
+  // Retire (soft-delete) a car from this client's assigned cars.
+  // Reversible — sets car_is_active=0 server-side, no data is destroyed.
+  const retireCarMutation = useMutation({
+    mutationFn: async (carId: number) => {
+      const response = await fetch(buildApiUrl(`/api/cars/${carId}/retire`), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "removed from client assigned cars" }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to remove car");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/clients", clientId] });
+      toast({ title: "Removed", description: "Car removed from this client." });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove car",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Delete banking info mutation
   const deleteBankingInfoMutation = useMutation({
     mutationFn: async (bankingInfoId: number) => {
@@ -1593,6 +1622,7 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                             <TableHead className="text-center text-foreground font-medium px-4 py-3">Oil Type</TableHead>
                             <TableHead className="text-center text-foreground font-medium px-4 py-3">Turo Link</TableHead>
                             <TableHead className="text-center text-foreground font-medium px-4 py-3">Admin Turo Link</TableHead>
+                            <TableHead className="text-center text-foreground font-medium px-4 py-3">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1686,6 +1716,26 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                                 >
                                   <ExternalLink className="w-4 h-4" />
                                 </a>
+                              </TableCell>
+                              <TableCell className="text-center px-4 py-3 align-middle">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                  title="Remove this car from the client"
+                                  disabled={retireCarMutation.isPending}
+                                  onClick={() => {
+                                    if (
+                                      confirm(
+                                        `Remove this car (VIN ${car.vin ?? ""}) from ${client.firstName ?? "this client"}?\n\nIt will be hidden from the list. This does not delete its financial history and can be reversed.`,
+                                      )
+                                    ) {
+                                      retireCarMutation.mutate(car.id);
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </TableCell>
                             </TableRow>
                             );

@@ -479,6 +479,68 @@ export default function TuroTripsPage() {
     },
   });
 
+  // TEMPORARY — Fix Location Masking. Trips where a guest changed the RETURN
+  // location mid-trip (ingested before the change-email parser read the HTML
+  // Delivery block) lost the original Pick Up: pickup+return went NULL with only
+  // the new drop-off in delivery_location, so the table shows the new address for
+  // BOTH columns. This runs server-side (needs Gmail + OpenAI), audits the
+  // candidates, and — with apply:true — freezes Pick Up to the original delivered
+  // location and moves only Drop Off. Two-step: audit first, then confirm apply.
+  const fixMaskingMutation = useMutation({
+    mutationFn: async (apply: boolean) => {
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/fix-location-masking`),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ apply }),
+        },
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error || `HTTP ${response.status}`);
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      const confirmed = data?.confirmed?.length ?? 0;
+      if (!data?.apply) {
+        // Audit run — show what would be fixed, then ask to apply.
+        const list = (data?.confirmed ?? [])
+          .map((c: any) => `${c.rid}: Pick Up "${c.originalPickup}" / Drop Off "${c.changedDropoff}"`)
+          .join("\n");
+        toast({
+          title: `Audit: ${confirmed} masked trip(s) found`,
+          description:
+            confirmed === 0
+              ? `No masked trips. (${data?.candidates ?? 0} candidates checked, ${data?.okSameLocation?.length ?? 0} legit same-location.)`
+              : `Click "Apply Masking Fix" to fix them.`,
+        });
+        if (confirmed > 0) {
+          // eslint-disable-next-line no-console
+          console.log("[fix-location-masking] confirmed:\n" + list);
+        }
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+        const verified = (data?.fixes ?? []).filter((f: any) => f.verified).length;
+        toast({
+          title: "Masking fix applied",
+          description: `Fixed ${verified} of ${data?.fixes?.length ?? 0} trip(s). See console for before/after.`,
+        });
+        // eslint-disable-next-line no-console
+        console.log("[fix-location-masking] fixes:", data?.fixes);
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Masking fix failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Per-trip re-parse — re-fetches the original Turo email for ONE trip by
   // reservation ID and rewrites its trip_start/trip_end. Used as the fallback
   // when the bulk Repair Dates pass left a single row wrong (its email used a
@@ -1157,6 +1219,54 @@ export default function TuroTripsPage() {
                 <>
                   <Clock className="w-4 h-4 mr-2" />
                   Repair Dates
+                </>
+              )}
+            </Button>
+            {/* TEMPORARY — Fix Location Masking (audit + apply). Remove once
+                historical mid-trip relocation rows are cleaned up. */}
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto border-amber-400 text-amber-700 hover:bg-amber-50"
+              onClick={() => fixMaskingMutation.mutate(false)}
+              disabled={fixMaskingMutation.isPending}
+              title="AUDIT (read-only): find trips where a mid-trip Drop Off change masked the original Pick Up. Shows the list, writes nothing."
+            >
+              {fixMaskingMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Working...
+                </>
+              ) : (
+                <>
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Audit Masking
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto border-amber-500 text-amber-800 hover:bg-amber-100"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "Apply the location-masking fix? This freezes Pick Up to the original delivered location and moves only Drop Off for trips where a guest changed the return location mid-trip. Run Audit Masking first to review the list.",
+                  )
+                ) {
+                  fixMaskingMutation.mutate(true);
+                }
+              }}
+              disabled={fixMaskingMutation.isPending}
+              title="APPLY: fix the masked trips found by the audit. Freezes Pick Up, moves only Drop Off. Verifies each row after writing."
+            >
+              {fixMaskingMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Working...
+                </>
+              ) : (
+                <>
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Apply Masking Fix
                 </>
               )}
             </Button>

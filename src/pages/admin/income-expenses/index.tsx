@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import CarHeader from "./components/CarHeader";
+import { ReceiptEditHistory } from "@/components/admin/ReceiptEditHistory";
 import IncomeExpenseTable from "./components/IncomeExpenseTable";
 import TableActions from "./components/TableActions";
 import FormSubmissionsAndReceipts from "./components/FormSubmissionsAndReceipts";
@@ -527,6 +528,7 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
           <div className="flex items-center justify-between mb-2 flex-shrink-0">
             <h1 className="text-2xl font-bold text-primary">INCOME AND EXPENSES</h1>
             <div className="flex items-center gap-2">
+              {activeCarId && <ReceiptEditHistory carId={activeCarId} year={selectedYear} />}
               {/* Show car selector only in admin all-cars view */}
               {!isFromRoute && (
                 <div className="w-[300px]">

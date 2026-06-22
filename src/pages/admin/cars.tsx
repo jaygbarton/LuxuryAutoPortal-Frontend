@@ -370,7 +370,7 @@ export default function CarsPage() {
       });
       if (!res.ok) throw new Error("Failed to fetch cars for export");
       const json = await res.json();
-      const list: Car[] = json?.cars ?? [];
+      const list: Car[] = json?.data ?? [];
 
       const headers = [
         "VIN", "Plate", "Year", "Make", "Model/Specs",

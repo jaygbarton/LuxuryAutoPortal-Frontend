@@ -212,20 +212,18 @@ export default function CarIssuesSection() {
     if (search.trim()) { const q = search.toLowerCase(); f = f.filter(t => Object.values(t).some(v => v != null && String(v).toLowerCase().includes(q))); }
     if (statusFilter !== "all") f = f.filter(t => t.status === statusFilter);
     if (assignedToFilter !== "all") f = f.filter(t => (t.assigned_to ?? "").trim() === assignedToFilter);
-    // Range filter: "Trip Start From" keeps trips that START on or after the
-    // chosen day; "Trip Ends To" keeps trips that END on or before the chosen
-    // day. (Previously this was an exact-day equality match, so setting both to
-    // the same date returned 0 results for any multi-day trip — the "date is
-    // inaccurate" bug.) Compare MT YYYY-MM-DD strings (not raw UTC timestamps)
-    // so the filter agrees with the Trip Start / Trip Ends columns, which render
-    // in America/Denver. Lexical comparison of YYYY-MM-DD == chronological.
+    // Exact-match filter: "Trip Start From" keeps only trips whose START day
+    // equals the chosen day; "Trip Ends To" keeps only trips whose END day
+    // equals the chosen day. Both are ANDed. Compare MT YYYY-MM-DD strings (not
+    // raw UTC timestamps) so the filter agrees with the Trip Start / Trip Ends
+    // columns, which render in America/Denver.
     const toMtDate = (iso: string | null | undefined): string | null => {
       if (!iso) return null;
       try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso)); }
       catch { return null; }
     };
-    if (tripStartFrom) f = f.filter(t => { const d = toMtDate(t.tt_trip_start); return d != null && d >= tripStartFrom; });
-    if (tripEndTo) f = f.filter(t => { const d = toMtDate(t.tt_trip_end); return d != null && d <= tripEndTo; });
+    if (tripStartFrom) f = f.filter(t => { const d = toMtDate(t.tt_trip_start); return d != null && d === tripStartFrom; });
+    if (tripEndTo) f = f.filter(t => { const d = toMtDate(t.tt_trip_end); return d != null && d === tripEndTo; });
     return f.slice(0, 20);
   }, [allInspections, search, statusFilter, assignedToFilter, tripStartFrom, tripEndTo]);
 

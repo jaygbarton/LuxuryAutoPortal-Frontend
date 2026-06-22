@@ -70,6 +70,18 @@ interface CoHost {
   vehicle_registration_file_id?: string;
   notes?: string;
   created_at: string;
+  // The GLA fleet vehicles actually assigned to this co-host (co_host_vehicles).
+  // This is the real co-hosted car — distinct from the self-reported
+  // vehicle_make/model captured on the onboarding application.
+  assigned_vehicles?: Array<{
+    carAid: number;
+    year?: string;
+    make?: string;
+    model?: string;
+    licensePlate?: string;
+    vin?: string;
+    label?: string;
+  }>;
 }
 
 interface FleetCar {
@@ -282,15 +294,39 @@ export default function CoHostsPage() {
                         </td>
                         <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">{ch.email}</td>
                         <td className="px-4 py-3 text-sm text-muted-foreground hidden lg:table-cell">
-                          <div className="text-foreground">
-                            {[ch.vehicle_year, ch.vehicle_make, ch.vehicle_model].filter(Boolean).join(" ") || "—"}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            Plate: {ch.vehicle_license_plate || "—"}
-                          </div>
-                          <div className="text-xs text-muted-foreground font-mono">
-                            VIN: {ch.vehicle_vin || "—"}
-                          </div>
+                          {/* Show the ACTUAL co-hosted GLA fleet vehicle(s) assigned to
+                              this co-host. Fall back to the self-reported onboarding
+                              vehicle only when nothing is assigned yet. */}
+                          {ch.assigned_vehicles && ch.assigned_vehicles.length > 0 ? (
+                            ch.assigned_vehicles.map((v) => (
+                              <div key={v.carAid} className="mb-1 last:mb-0">
+                                <div className="text-foreground">
+                                  {v.label || [v.year, v.make, v.model].filter(Boolean).join(" ") || "—"}
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  Plate: {v.licensePlate || "—"}
+                                </div>
+                                <div className="text-xs text-muted-foreground font-mono">
+                                  VIN: {v.vin || "—"}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <>
+                              <div className="text-foreground">
+                                {[ch.vehicle_year, ch.vehicle_make, ch.vehicle_model].filter(Boolean).join(" ") || "—"}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                Plate: {ch.vehicle_license_plate || "—"}
+                              </div>
+                              <div className="text-xs text-muted-foreground font-mono">
+                                VIN: {ch.vehicle_vin || "—"}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground/70 italic mt-0.5">
+                                No GLA car assigned yet
+                              </div>
+                            </>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <Badge variant="outline" className={cn(statusBadge(ch.status), "text-xs capitalize")}>
