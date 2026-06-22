@@ -243,8 +243,8 @@ function EventCard({ event }: { event: DayEvent }) {
 
 interface EmpInfo {
   fullname: string;
-  shiftStart: string;
-  shiftEnd: string;
+  // An employee can have more than one shift on the same day.
+  shifts: { start: string; end: string }[];
 }
 
 function EmployeeSection({
@@ -293,10 +293,15 @@ function EmployeeSection({
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-foreground">{emp.fullname}</div>
-          {emp.shiftStart && emp.shiftEnd ? (
-            <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+          {emp.shifts.length > 0 ? (
+            <div className="text-[10px] text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5">
               <Clock className="w-3 h-3" />
-              Shift: {fmt12(emp.shiftStart)} – {fmt12(emp.shiftEnd)}
+              <span>Shift{emp.shifts.length > 1 ? "s" : ""}:</span>
+              {emp.shifts.map((sh, i) => (
+                <span key={`${sh.start}-${sh.end}-${i}`}>
+                  {fmt12(sh.start)} – {fmt12(sh.end)}{i < emp.shifts.length - 1 ? "," : ""}
+                </span>
+              ))}
             </div>
           ) : (
             <div className="text-[10px] text-muted-foreground italic">No shift on record</div>
@@ -424,14 +429,18 @@ export function DayScheduleTab() {
   const events = data?.events ?? [];
   const shifts = data?.work_shifts ?? [];
 
-  // Build employee map from work_sched
+  // Build employee map from work_sched. An employee can have multiple shifts
+  // in a day, so accumulate them rather than overwriting on employee_id.
   const empById = new Map<string, EmpInfo>();
   for (const s of shifts) {
-    empById.set(`id:${s.employee_id}`, {
-      fullname: s.fullname,
-      shiftStart: s.start_time.slice(0, 5),
-      shiftEnd: s.end_time.slice(0, 5),
-    });
+    const key = `id:${s.employee_id}`;
+    const existing = empById.get(key);
+    const shift = { start: s.start_time.slice(0, 5), end: s.end_time.slice(0, 5) };
+    if (existing) {
+      existing.shifts.push(shift);
+    } else {
+      empById.set(key, { fullname: s.fullname, shifts: [shift] });
+    }
   }
 
   // Group events by assignee key
@@ -444,7 +453,7 @@ export function DayScheduleTab() {
     if (!assignedMap.has(key)) assignedMap.set(key, []);
     assignedMap.get(key)!.push(e);
     if (!empById.has(key)) {
-      empById.set(key, { fullname: e.assigned_to ?? key, shiftStart: "", shiftEnd: "" });
+      empById.set(key, { fullname: e.assigned_to ?? key, shifts: [] });
     }
   }
 
@@ -456,7 +465,7 @@ export function DayScheduleTab() {
 
   // Sort: shift employees first, then alphabetically
   const sortedEmployees = [...empById.entries()].sort(([, a], [, b]) => {
-    const aHas = !!a.shiftStart, bHas = !!b.shiftStart;
+    const aHas = a.shifts.length > 0, bHas = b.shifts.length > 0;
     if (aHas && !bHas) return -1;
     if (!aHas && bHas) return 1;
     return a.fullname.localeCompare(b.fullname);
@@ -592,8 +601,8 @@ export function DayScheduleTab() {
                   <User className="w-3 h-3 inline mr-1" />Shift Roster
                 </div>
                 <div className="p-2 space-y-1">
-                  {shifts.map((s) => (
-                    <div key={s.employee_id} className="flex items-center justify-between text-xs">
+                  {shifts.map((s, i) => (
+                    <div key={`${s.employee_id}-${s.start_time}-${i}`} className="flex items-center justify-between text-xs">
                       <span className="text-foreground font-medium truncate">{s.fullname}</span>
                       <span className="text-muted-foreground flex-shrink-0 ml-1">
                         {fmt12(s.start_time.slice(0, 5))}–{fmt12(s.end_time.slice(0, 5))}
