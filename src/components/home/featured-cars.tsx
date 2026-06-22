@@ -127,7 +127,7 @@ function CarCard({ car }: { car: Partial<Car> }) {
           </div>
         </div>
 
-        <Link href={`/fleet/${car.id}`}>
+        <Link href="/fleet">
           <button
             className="w-full py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold transition-all duration-300 group/btn"
             style={{

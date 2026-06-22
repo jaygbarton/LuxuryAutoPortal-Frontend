@@ -178,9 +178,9 @@ function CarCard({ car }: { car: Partial<Car> }) {
           </div>
         </div>
 
-        <Link href={`/fleet/${car.id}`}>
+        <Link href="/contact">
           <Button variant="outline" className="w-full group/btn border-gray-300 text-foreground hover:bg-gray-50" data-testid={`button-view-${car.id}`}>
-            View Details
+            Inquire
             <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
           </Button>
         </Link>
