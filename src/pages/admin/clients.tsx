@@ -40,7 +40,7 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Search, Eye, ChevronLeft, ChevronRight, X, Plus, Upload, FileSpreadsheet, Loader2, UserCheck, UserX, Ban, Lock, Download, RefreshCw } from "lucide-react";
+import { Search, Eye, ChevronLeft, ChevronRight, X, Plus, Upload, FileSpreadsheet, Loader2, UserCheck, UserX, Ban, Lock, Download, RefreshCw, Trash2 } from "lucide-react";
 import { TableRowSkeleton } from "@/components/ui/skeletons";
 import { buildApiUrl } from "@/lib/queryClient";
 import { TablePagination, ItemsPerPage } from "@/components/ui/table-pagination";
@@ -1054,6 +1054,28 @@ export default function ClientsPage() {
                                   <Ban className="w-4 h-4" />
                                 </Button>
                               )}
+
+                              {/* Delete Account - Trash icon - permanently removes client + user */}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 w-9 p-0 text-red-700 hover:text-red-800 hover:bg-red-500/10 rounded-full"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteUser(client.id, client.email);
+                                }}
+                                disabled={
+                                  deleteUserMutation.isPending &&
+                                  deleteClientId === client.id
+                                }
+                                title="Delete Client Account (Permanent)"
+                              >
+                                {deleteUserMutation.isPending && deleteClientId === client.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>

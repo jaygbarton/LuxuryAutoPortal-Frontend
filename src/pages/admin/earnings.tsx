@@ -1058,6 +1058,63 @@ export default function EarningsPage() {
   const rentalIncomeImages = rentalIncomeImagesData || {};
   const [previewRentalImage, setPreviewRentalImage] = useState<string | null>(null);
 
+  // Receipt-presence map across all rows: which (month, category, field) cells
+  // have at least one uploaded receipt. One request per car/year (not per cell)
+  // so we can make only the cells that have receipts clickable. View-only;
+  // clients can fetch this for their own cars (backend VIEW guard).
+  const { data: receiptSummaryData } = useQuery<{ cells: Record<string, number> }>({
+    queryKey: ["/api/income-expense/images/summary", carId, selectedYear],
+    queryFn: async () => {
+      if (!carId) throw new Error("Invalid car ID");
+      const res = await fetch(
+        buildApiUrl(`/api/income-expense/images/summary?carId=${carId}&year=${selectedYear}`),
+        { credentials: "include" },
+      );
+      if (!res.ok) return { cells: {} };
+      const data = await res.json();
+      return { cells: data.cells || {} };
+    },
+    enabled: !!carId && !!selectedYear,
+    retry: false,
+  });
+  const receiptCells = receiptSummaryData?.cells || {};
+
+  // Receipt viewer modal: which cell's receipts are open, and the loaded images.
+  const [receiptViewer, setReceiptViewer] = useState<{
+    month: number; category: string; field: string; label: string;
+  } | null>(null);
+  const { data: viewerImagesData, isLoading: viewerLoading } = useQuery<
+    { id: string; url: string; filename: string }[]
+  >({
+    queryKey: [
+      "/api/income-expense/images",
+      carId,
+      selectedYear,
+      receiptViewer?.month,
+      receiptViewer?.category,
+      receiptViewer?.field,
+    ],
+    queryFn: async () => {
+      if (!carId || !receiptViewer) return [];
+      const { month, category, field } = receiptViewer;
+      const res = await fetch(
+        buildApiUrl(
+          `/api/income-expense/images?carId=${carId}&year=${selectedYear}&month=${month}&category=${encodeURIComponent(category)}&field=${encodeURIComponent(field)}`,
+        ),
+        { credentials: "include" },
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.images || data.data?.images || [];
+    },
+    enabled: !!carId && !!receiptViewer,
+    retry: false,
+  });
+  const viewerImages = viewerImagesData || [];
+
+  const openReceipts = (month: number, category: string, field: string, label: string) =>
+    setReceiptViewer({ month, category, field, label });
+
   // Handle chart image upload
   const handleChartUpload = async (month: number, file: File) => {
     if (!carId) return;
@@ -1416,46 +1473,57 @@ export default function EarningsPage() {
                   <TableRow
                     label="Rental Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "rentalIncome"))}
+                    category="income" field="rentalIncome" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Delivery Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "deliveryIncome"))}
+                    category="income" field="deliveryIncome" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Electric Prepaid Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "electricPrepaidIncome"))}
+                    category="income" field="electricPrepaidIncome" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Smoking Fines"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "smokingFines"))}
+                    category="income" field="smokingFines" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Gas Prepaid Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "gasPrepaidIncome"))}
+                    category="income" field="gasPrepaidIncome" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Ski Racks Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "skiRacksIncome"))}
+                    category="income" field="skiRacksIncome" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Miles Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "milesIncome"))}
+                    category="income" field="milesIncome" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Child Seat Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "childSeatIncome"))}
+                    category="income" field="childSeatIncome" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Coolers Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "coolersIncome"))}
+                    category="income" field="coolersIncome" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Income Insurance and Client Wrecks"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "insuranceWreckIncome"))}
+                    category="income" field="insuranceWreckIncome" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Other Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "otherIncome"))}
+                    category="income" field="otherIncome" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Negative Balance Carry Over"
@@ -1472,22 +1540,27 @@ export default function EarningsPage() {
                   <TableRow
                     label="Labor - Cleaning"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "laborCarCleaning"))}
+                    category="directDelivery" field="laborCarCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Labor - Delivery"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "laborDelivery"))}
+                    category="directDelivery" field="laborDelivery" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Parking - Airport"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "parkingAirport"))}
+                    category="directDelivery" field="parkingAirport" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Parking - Lot"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "parkingLot"))}
+                    category="directDelivery" field="parkingLot" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Uber/Lyft/Lime"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "uberLyftLime"))}
+                    category="directDelivery" field="uberLyftLime" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="TOTAL OPERATING EXPENSE (Direct Delivery)"
@@ -1505,98 +1578,122 @@ export default function EarningsPage() {
                   <TableRow
                     label="Auto Body Shop / Wreck"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "autoBodyShopWreck"))}
+                    category="cogs" field="autoBodyShopWreck" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Alignment"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "alignment"))}
+                    category="cogs" field="alignment" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Battery"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "battery"))}
+                    category="cogs" field="battery" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Brakes"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "brakes"))}
+                    category="cogs" field="brakes" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Car Payment"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "carPayment"))}
+                    category="cogs" field="carPayment" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Car Insurance"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "carInsurance"))}
+                    category="cogs" field="carInsurance" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Car Seats"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "carSeats"))}
+                    category="cogs" field="carSeats" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Cleaning Supplies / Tools"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "cleaningSuppliesTools"))}
+                    category="cogs" field="cleaningSuppliesTools" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Emissions"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "emissions"))}
+                    category="cogs" field="emissions" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="GPS System"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "gpsSystem"))}
+                    category="cogs" field="gpsSystem" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Key & Fob"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "keyFob"))}
+                    category="cogs" field="keyFob" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Labor - Cleaning"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "laborCleaning"))}
+                    category="cogs" field="laborCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="License & Registration"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "licenseRegistration"))}
+                    category="cogs" field="licenseRegistration" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Mechanic"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "mechanic"))}
+                    category="cogs" field="mechanic" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Oil/Lube"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "oilLube"))}
+                    category="cogs" field="oilLube" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Parts"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "parts"))}
+                    category="cogs" field="parts" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Ski Racks"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "skiRacks"))}
+                    category="cogs" field="skiRacks" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Tickets & Tolls"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "tickets"))}
+                    category="cogs" field="tickets" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Tired Air Station"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "tiredAirStation"))}
+                    category="cogs" field="tiredAirStation" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Tires"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "tires"))}
+                    category="cogs" field="tires" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Towing / Impound Fees"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "towingImpoundFees"))}
+                    category="cogs" field="towingImpoundFees" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Uber/Lyft/Lime"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "uberLyftLime"))}
+                    category="cogs" field="uberLyftLime" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Windshield"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "windshield"))}
+                    category="cogs" field="windshield" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="Wipers"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "wipers"))}
+                    category="cogs" field="wipers" receiptCells={receiptCells} onViewReceipts={openReceipts}
                   />
                   <TableRow
                     label="TOTAL OPERATING EXPENSE (COGS - Per Vehicle)"
@@ -1605,21 +1702,25 @@ export default function EarningsPage() {
                   />
                 </CategorySection>
 
-                {/* GLA PARKING FEE & LABOR CLEANING */}
-                <CategorySection
-                  title="GLA PARKING FEE & LABOR CLEANING"
-                  isExpanded={expandedSections.parkingFeeLabor}
-                  onToggle={() => toggleSection("parkingFeeLabor")}
-                >
-                  <TableRow
-                    label="GLA Parking Fee"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.parkingFeeLabor || [], i + 1, "glaParkingFee"))}
-                  />
-                  <TableRow
-                    label="Labor - Cleaning"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.parkingFeeLabor || [], i + 1, "laborCleaning"))}
-                  />
-                </CategorySection>
+                {/* GLA PARKING FEE & LABOR CLEANING - Only visible to admin */}
+                {isAdmin && (
+                  <CategorySection
+                    title="GLA PARKING FEE & LABOR CLEANING"
+                    isExpanded={expandedSections.parkingFeeLabor}
+                    onToggle={() => toggleSection("parkingFeeLabor")}
+                  >
+                    <TableRow
+                      label="GLA Parking Fee"
+                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.parkingFeeLabor || [], i + 1, "glaParkingFee"))}
+                      category="parkingFeeLabor" field="glaParkingFee" receiptCells={receiptCells} onViewReceipts={openReceipts}
+                    />
+                    <TableRow
+                      label="Labor - Cleaning"
+                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.parkingFeeLabor || [], i + 1, "laborCleaning"))}
+                      category="parkingFeeLabor" field="laborCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts}
+                    />
+                  </CategorySection>
+                )}
 
                 {/* REIMBURSED AND NON-REIMBURSED BILLS - Only visible to admin */}
                 {isAdmin && (
@@ -1631,34 +1732,42 @@ export default function EarningsPage() {
                     <TableRow
                       label="Electric - Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "electricReimbursed"))}
+                      category="reimbursedBills" field="electricReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts}
                     />
                     <TableRow
                       label="Electric - Not Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "electricNotReimbursed"))}
+                      category="reimbursedBills" field="electricNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts}
                     />
                     <TableRow
                       label="Gas - Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasReimbursed"))}
+                      category="reimbursedBills" field="gasReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts}
                     />
                     <TableRow
                       label="Gas - Not Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasNotReimbursed"))}
+                      category="reimbursedBills" field="gasNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts}
                     />
                     <TableRow
                       label="Gas - Service Run"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasServiceRun"))}
+                      category="reimbursedBills" field="gasServiceRun" receiptCells={receiptCells} onViewReceipts={openReceipts}
                     />
                     <TableRow
                       label="Parking Airport"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "parkingAirport"))}
+                      category="reimbursedBills" field="parkingAirport" receiptCells={receiptCells} onViewReceipts={openReceipts}
                     />
                     <TableRow
                       label="Uber/Lyft/Lime - Not Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "uberLyftLimeNotReimbursed"))}
+                      category="reimbursedBills" field="uberLyftLimeNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts}
                     />
                     <TableRow
                       label="Uber/Lyft/Lime - Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "uberLyftLimeReimbursed"))}
+                      category="reimbursedBills" field="uberLyftLimeReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts}
                     />
                     <TableRow
                       label="TOTAL REIMBURSED AND NON-REIMBURSED BILLS"
@@ -1994,6 +2103,75 @@ export default function EarningsPage() {
           </div>
         )}
 
+        {/* Receipt viewer — opened by clicking a value cell that has receipts.
+            View-only: clients can open/download but the page never exposes
+            upload/delete here (those live in the I&E editor, admin/co-host). */}
+        {receiptViewer && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            onClick={() => setReceiptViewer(null)}
+          >
+            <div
+              className="relative bg-card border border-border rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-foreground">
+                  Receipts — {receiptViewer.label} · {MONTHS[receiptViewer.month - 1]} {selectedYear}
+                </h3>
+                <button
+                  onClick={() => setReceiptViewer(null)}
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              {viewerLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading receipts…
+                </div>
+              ) : viewerImages.length === 0 ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  No receipts found for this cell.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {viewerImages.map((img) => {
+                    const src = img.url.startsWith("/") ? buildApiUrl(img.url) : img.url;
+                    const isPdf = (img.filename || "").toLowerCase().endsWith(".pdf");
+                    return (
+                      <a
+                        key={img.id}
+                        href={src}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block border border-border rounded-lg overflow-hidden hover:border-primary transition-colors"
+                        title={`Open ${img.filename}`}
+                      >
+                        {isPdf ? (
+                          <div className="flex items-center justify-center h-40 bg-background text-sm text-muted-foreground">
+                            <ImageIcon className="w-5 h-5 mr-2" /> {img.filename || "PDF receipt"}
+                          </div>
+                        ) : (
+                          <img
+                            src={src}
+                            alt={img.filename || "Receipt"}
+                            className="w-full h-40 object-cover bg-background"
+                            loading="lazy"
+                          />
+                        )}
+                        <div className="px-2 py-1 text-xs text-muted-foreground truncate">
+                          {img.filename || "Receipt"}
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Graphs and Charts Report Section (moved from Graphs and Charts Report page) */}
         <GraphsChartsReportSection
           className="mb-6"
@@ -2041,13 +2219,28 @@ interface TableRowProps {
   values: number[];
   isInteger?: boolean;
   isTotal?: boolean;
+  // Receipt linking: when category+field are set, any month cell that has
+  // uploaded receipts (per receiptCells) becomes clickable to open the viewer.
+  category?: string;
+  field?: string;
+  receiptCells?: Record<string, number>;
+  onViewReceipts?: (month: number, category: string, field: string, label: string) => void;
 }
 
-function TableRow({ label, values, isInteger = false, isTotal = false }: TableRowProps) {
+function TableRow({
+  label,
+  values,
+  isInteger = false,
+  isTotal = false,
+  category,
+  field,
+  receiptCells,
+  onViewReceipts,
+}: TableRowProps) {
   const total = calculateTotal(values);
   // For Negative Balance Carry Over, display absolute value (remove minus sign)
   const isNegativeBalance = label === "Negative Balance Carry Over";
-  
+
   return (
     <tr className={cn(
       "border-b border-border transition-colors",
@@ -2071,6 +2264,9 @@ function TableRow({ label, values, isInteger = false, isTotal = false }: TableRo
         } else {
           displayText = formatCurrency(cellValue);
         }
+        const month = i + 1;
+        const hasReceipts =
+          !!category && !!field && (receiptCells?.[`${month}:${category}:${field}`] ?? 0) > 0;
         return (
           <td
             key={i}
@@ -2081,7 +2277,19 @@ function TableRow({ label, values, isInteger = false, isTotal = false }: TableRo
                 : "text-muted-foreground"
             )}
           >
-            {displayText}
+            {hasReceipts ? (
+              <button
+                type="button"
+                onClick={() => onViewReceipts?.(month, category!, field!, label)}
+                title="View uploaded receipts"
+                className="inline-flex items-center gap-1 underline decoration-dotted underline-offset-2 hover:text-primary cursor-pointer"
+              >
+                {displayText}
+                <ImageIcon className="w-3 h-3 shrink-0 opacity-70" />
+              </button>
+            ) : (
+              displayText
+            )}
           </td>
         );
       })}
