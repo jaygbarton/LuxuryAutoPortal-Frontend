@@ -1070,12 +1070,19 @@ export default function EarningsPage() {
         buildApiUrl(`/api/income-expense/images/summary?carId=${carId}&year=${selectedYear}`),
         { credentials: "include" },
       );
-      if (!res.ok) return { cells: {} };
+      // THROW on failure (don't swallow into {cells:{}}). The backend runs on a
+      // Render Hobby instance that spins down when idle; the first request after
+      // a cold start can time out (~30-60s). Returning empty here would leave
+      // every receipt cell permanently un-clickable. Throwing lets React Query
+      // retry so the cells light up once the backend is awake.
+      if (!res.ok) throw new Error(`summary HTTP ${res.status}`);
       const data = await res.json();
       return { cells: data.cells || {} };
     },
     enabled: !!carId && !!selectedYear,
-    retry: false,
+    // Retry with backoff to ride out a cold-start; cap the wait so we don't hang.
+    retry: 4,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
   });
   const receiptCells = receiptSummaryData?.cells || {};
 
@@ -1103,12 +1110,15 @@ export default function EarningsPage() {
         ),
         { credentials: "include" },
       );
-      if (!res.ok) return [];
+      // Throw (don't return []) so a cold-start failure retries instead of
+      // showing a misleading "No receipts found" while the backend wakes.
+      if (!res.ok) throw new Error(`images HTTP ${res.status}`);
       const data = await res.json();
       return data.images || data.data?.images || [];
     },
     enabled: !!carId && !!receiptViewer,
-    retry: false,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
   const viewerImages = viewerImagesData || [];
 
