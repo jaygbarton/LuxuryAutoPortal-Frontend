@@ -9,6 +9,7 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import ContractManagement from "./ContractManagement";
@@ -29,6 +30,9 @@ import ReferralFormApprovalDashboard from "./forms/ReferralFormApprovalDashboard
 import DocumentUpdateSubmission from "./forms/DocumentUpdateSubmission";
 import DocumentUpdateMySubmissions from "./forms/DocumentUpdateMySubmissions";
 import DocumentUpdateApprovalDashboard from "./forms/DocumentUpdateApprovalDashboard";
+import ParkingTicketSubmission from "./forms/ParkingTicketSubmission";
+import ParkingTicketMySubmissions from "./forms/ParkingTicketMySubmissions";
+import ParkingTicketApprovalDashboard from "./forms/ParkingTicketApprovalDashboard";
 import {
   EmployeeOnboardingFormContent,
   EmployeeContract1099Content,
@@ -64,6 +68,7 @@ import {
   Upload,
   DollarSign,
   Users,
+  ParkingCircle,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { cn } from "@/lib/utils";
@@ -313,13 +318,10 @@ function QRCodeSection() {
 }
 
 export default function FormsPage() {
-  const [expandedSections, setExpandedSections] = useState<string[]>([
-    "client-onboarding",
-    "employee-onboarding-process",
-    "employee-forms",
-    "commissions-forms",
-  ]);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  // Which top-level form category tab is active (sections are rendered as tabs,
+  // mirroring the Operations page layout).
+  const [activeSection, setActiveSection] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubmission, setSelectedSubmission] =
     useState<OnboardingSubmission | null>(null);
@@ -390,16 +392,8 @@ export default function FormsPage() {
     const params = new URLSearchParams(window.location.search);
     const targetSection = params.get("section");
     if (!targetSection) return;
-    setExpandedSections((prev) =>
-      prev.includes(targetSection) ? prev : [...prev, targetSection],
-    );
-    // Give the DOM a tick to render the expanded section before scrolling.
-    setTimeout(() => {
-      const el = document.querySelector(
-        `[data-testid="button-section-${targetSection}"]`,
-      );
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 150);
+    // Open the matching tab when deep-linked (e.g. ?section=document-updates).
+    setActiveSection(targetSection);
   }, []);
 
   // Auto-expand Approval Dashboard for admins so data is visible immediately
@@ -412,14 +406,6 @@ export default function FormsPage() {
       );
     }
   }, [formVisibilityData?.isAdmin]);
-
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections((prev) =>
-      prev.includes(sectionId)
-        ? prev.filter((id) => id !== sectionId)
-        : [...prev, sectionId],
-    );
-  };
 
   const toggleItem = (itemId: string) => {
     if (
@@ -441,7 +427,9 @@ export default function FormsPage() {
       itemId === "document-update-submit" ||
       itemId === "document-update-my-submissions" ||
       itemId === "document-update-approval" ||
-      itemId === "car-issue-submit"
+      itemId === "car-issue-submit" ||
+      itemId === "parking-ticket-submit" ||
+      itemId === "parking-ticket-approval"
     ) {
       setExpandedItems((prev) =>
         prev.includes(itemId)
@@ -1004,6 +992,17 @@ export default function FormsPage() {
       externalUrl: "/admin/car-block-off",
     };
 
+    const parkingTicketSubmitItem: FormItem = {
+      id: "parking-ticket-submit",
+      title: "Submit a Parking Ticket",
+      icon: ParkingCircle,
+    };
+    const parkingTicketApprovalItem: FormItem = {
+      id: "parking-ticket-approval",
+      title: "Parking Ticket Approval Dashboard",
+      icon: FileCheck,
+    };
+
     if (formVisibilityData?.isAdmin) {
       return [
         {
@@ -1065,6 +1064,12 @@ export default function FormsPage() {
           title: "Car Block Off Form",
           icon: Car,
           items: [carBlockOffStartItem, carBlockOffEndItem],
+        },
+        {
+          id: "parking-ticket-forms",
+          title: "Parking Ticket",
+          icon: ParkingCircle,
+          items: [parkingTicketSubmitItem, parkingTicketApprovalItem],
         },
       ];
     }
@@ -1143,6 +1148,12 @@ export default function FormsPage() {
           items: [carBlockOffStartItem, carBlockOffEndItem],
         },
         {
+          id: "parking-ticket-forms",
+          title: "Parking Ticket",
+          icon: ParkingCircle,
+          items: [parkingTicketSubmitItem],
+        },
+        {
           id: "referral-forms",
           title: "Referral Form",
           icon: Users,
@@ -1190,6 +1201,18 @@ export default function FormsPage() {
 
   const formSections = getFormSections();
 
+  // Default the active tab to the first available section once visibility loads,
+  // and keep it valid if the section list changes.
+  useEffect(() => {
+    if (formSections.length === 0) return;
+    if (!formSections.some((s) => s.id === activeSection)) {
+      setActiveSection(formSections[0].id);
+    }
+  }, [formSections, activeSection]);
+
+  const selectedSection =
+    formSections.find((s) => s.id === activeSection) ?? formSections[0];
+
   return (
     <AdminLayout>
       <div className="space-y-6 max-w-full">
@@ -1199,13 +1222,35 @@ export default function FormsPage() {
             Access and submit important forms for client onboarding, referrals, and document updates. This section allows you to add new vehicle, request vehicle block-offs, submit referrals, upload updated licenses, registrations, or insurance documents, and track the status of your submissions.
           </p>
         </div>
+        {/* Section tabs (mirrors the Operations page layout) */}
+        <Tabs value={activeSection} onValueChange={setActiveSection}>
+          <div className="-mx-2 sm:mx-0 mb-4 overflow-x-auto">
+            <TabsList className="bg-muted border border-border h-auto gap-1 p-1 inline-flex w-max min-w-full sm:w-auto sm:min-w-0 sm:flex-wrap">
+              {formSections.map((section) => {
+                const SectionIcon = section.icon;
+                return (
+                  <TabsTrigger
+                    key={section.id}
+                    value={section.id}
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap gap-2"
+                    data-testid={`button-section-${section.id}`}
+                  >
+                    <SectionIcon className="w-4 h-4" />
+                    {section.title}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </div>
+        </Tabs>
+
         <Card className="bg-card border-primary/20 max-w-full overflow-hidden">
           <CardContent className="p-0 max-w-full overflow-hidden">
-            {formSections.map((section) => {
-              const SectionIcon = section.icon;
-              const isExpanded = expandedSections.includes(section.id);
+            {(() => {
+              const section = selectedSection;
+              if (!section) return null;
 
-              // For client users, clicking "Client Onboarding Form" header redirects to /onboarding
+              // For client users, the "Client Onboarding Form" tab links out to /onboarding
               const isClientOnboardingRedirect =
                 formVisibilityData?.isClient &&
                 section.id === "client-onboarding";
@@ -1216,44 +1261,25 @@ export default function FormsPage() {
 
               return (
                 <div key={section.id}>
-                  {isClientOnboardingRedirect ? (
+                  {isClientOnboardingRedirect && (
                     <a
                       href={onboardingRedirectUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full flex items-center justify-between px-5 py-4 hover:bg-card transition-colors"
-                      data-testid={`button-section-${section.id}`}
+                      className="w-full flex items-center justify-between px-5 py-4 hover:bg-card transition-colors border-b border-border"
+                      data-testid={`link-section-${section.id}`}
                     >
                       <div className="flex items-center gap-3">
-                        <SectionIcon className="w-5 h-5 text-primary" />
                         <span className="text-primary font-semibold text-base">
-                          {section.title}
+                          Open Client Onboarding Form
                         </span>
                         <ExternalLink className="w-4 h-4 text-muted-foreground" />
                       </div>
                       <ChevronRight className="w-5 h-5 text-muted-foreground" />
                     </a>
-                  ) : (
-                    <button
-                      onClick={() => toggleSection(section.id)}
-                      className="w-full flex items-center justify-between px-5 py-4 hover:bg-card transition-colors"
-                      data-testid={`button-section-${section.id}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <SectionIcon className="w-5 h-5 text-primary" />
-                        <span className="text-primary font-semibold text-base">
-                          {section.title}
-                        </span>
-                      </div>
-                      {isExpanded ? (
-                        <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                      )}
-                    </button>
                   )}
 
-                  {(isExpanded || isClientOnboardingRedirect) && (
+                  {(
                     <div className="bg-card max-w-full">
                       {section.items.map((item) => {
                         const ItemIcon = item.icon;
@@ -1277,7 +1303,9 @@ export default function FormsPage() {
                             item.id === "document-update-submit" ||
                             item.id === "document-update-my-submissions" ||
                             item.id === "document-update-approval" ||
-                            item.id === "car-issue-submit") &&
+                            item.id === "car-issue-submit" ||
+                            item.id === "parking-ticket-submit" ||
+                            item.id === "parking-ticket-approval") &&
                           !item.comingSoon;
 
                         return (
@@ -1525,6 +1553,23 @@ export default function FormsPage() {
                                     </a>
                                   </div>
                                   <CarIssueFormSubmission />
+                                </div>
+                              )}
+
+                            {/* Expanded content for Parking Ticket submission (car owner submits + sees own responses) */}
+                            {isItemExpanded &&
+                              item.id === "parking-ticket-submit" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
+                                  <ParkingTicketSubmission />
+                                  <ParkingTicketMySubmissions />
+                                </div>
+                              )}
+
+                            {/* Expanded content for Parking Ticket Approval Dashboard (admins only) */}
+                            {isItemExpanded &&
+                              item.id === "parking-ticket-approval" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 min-w-0 max-w-full overflow-hidden">
+                                  <ParkingTicketApprovalDashboard />
                                 </div>
                               )}
 
@@ -1943,7 +1988,7 @@ export default function FormsPage() {
                   )}
                 </div>
               );
-            })}
+            })()}
           </CardContent>
         </Card>
 
