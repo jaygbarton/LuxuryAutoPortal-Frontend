@@ -464,6 +464,9 @@ export function TuroInspectionTab() {
           insp.car_name, insp.reservation_id, insp.assigned_to, insp.status,
           insp.source, insp.notes, insp.inspection_date, insp.due_date,
           insp.car_issue_types?.join(" "),
+          // Joined-trip reservation # is shown when insp.reservation_id is null,
+          // so it must be searchable too (insp.reservation_id alone misses it).
+          trip?.reservationId,
           trip?.plateNumber, trip?.pickupLocation, trip?.deliveryLocation,
           trip?.returnLocation, trip?.extras, trip?.milesIncluded,
           trip?.totalDistance, trip?.status, trip?.tripStart, trip?.tripEnd,

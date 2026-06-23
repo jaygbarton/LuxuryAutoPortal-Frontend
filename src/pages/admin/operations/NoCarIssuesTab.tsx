@@ -122,6 +122,9 @@ export function NoCarIssuesTab() {
           insp.notes,
           insp.inspection_date,
           insp.due_date,
+          // Joined-trip reservation # is shown when insp.reservation_id is null,
+          // so it must be searchable too (insp.reservation_id alone misses it).
+          trip?.reservationId,
           trip?.plateNumber,
           trip?.pickupLocation,
           trip?.deliveryLocation,

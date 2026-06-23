@@ -210,6 +210,9 @@ export function TripTasksTab() {
           task.scheduled_date,
           task.due_date,
           // Joined trip fields
+          // Joined-trip reservation # is shown when task.reservation_id is null,
+          // so it must be searchable too (task.reservation_id alone misses it).
+          trip?.reservationId,
           trip?.plateNumber,
           trip?.pickupLocation,
           trip?.deliveryLocation,

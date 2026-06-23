@@ -242,7 +242,21 @@ export function MaintenanceTab({
           rec.inspection_car_issue_types?.join(" "),
           rec.scheduled_date,
           rec.due_date,
-          // Joined inspection / trip fields
+          // Backend-joined trip fields (rec.trip_*) — these are what the row
+          // actually renders (e.g. Reservation #), attached to every row
+          // regardless of the client's limited trips fetch window. Must be in
+          // the haystack or searching a visible reservation id matches nothing.
+          rec.trip_reservation_id,
+          rec.trip_plate_number,
+          rec.trip_pickup_location,
+          rec.trip_delivery_location,
+          rec.trip_return_location,
+          rec.trip_extras,
+          rec.trip_miles_included,
+          rec.trip_status,
+          rec.trip_start,
+          rec.trip_end,
+          // Joined inspection / client-side trip fields (fallback context)
           insp?.reservation_id,
           insp?.notes,
           trip?.plateNumber,
