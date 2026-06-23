@@ -153,6 +153,11 @@ export interface MaintenanceRecord {
    *  Editable in the Maintenance tab; writes back to the trip. */
   gas_level_trip_start?: string | null;
   gas_level_trip_end?: string | null;
+  /** Car-owner approval workflow (set when status becomes "Maintenance Reported"). */
+  owner_approval_status?: "not_sent" | "email_sent" | "approved" | "declined" | null;
+  owner_decline_reason?: string | null;
+  owner_wants_pickup?: 0 | 1 | boolean | null;
+  owner_responded_at?: string | null;
 }
 
 export type TaskType = "cleaning" | "delivery" | "pickup" | "refuel";

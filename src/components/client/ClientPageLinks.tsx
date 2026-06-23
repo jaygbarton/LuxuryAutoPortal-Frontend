@@ -84,6 +84,7 @@ export function ClientPageLinks() {
 
     { href: carPath("graphs"),         icon: TrendingUp,   label: "Graphs and Charts Report" },
     { href: carPath("maintenance"),    icon: Wrench,       label: "Maintenance" },
+    { href: "/client/maintenance-history", icon: Wrench,   label: "Maintenance History" },
     { href: carPath("income-expense"), icon: Calendar,     label: "Car Rental Value Per Month" },
     { href: carPath("depreciation"),   icon: TrendingDown, label: "NADA Depreciation Schedule" },
 

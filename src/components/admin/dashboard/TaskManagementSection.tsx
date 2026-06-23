@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { format } from "date-fns";
-import { SectionHeader, DashboardTable } from "@/components/admin/dashboard";
+import { SectionHeader, DashboardRecordCard } from "@/components/admin/dashboard";
 
 interface TaskTimer {
   task_timer_aid: number;
@@ -26,16 +26,6 @@ interface TaskTimerResponse {
   data: TaskTimer[];
   total: number;
 }
-
-const TABLE_COLUMNS = [
-  { key: "assignedTo", label: "Assigned To", align: "left" as const },
-  { key: "date", label: "Date", align: "left" as const },
-  { key: "taskDescription", label: "Task Description", align: "left" as const },
-  { key: "dueDate", label: "Due Date", align: "left" as const },
-  { key: "repeat", label: "Repeat", align: "left" as const },
-  { key: "assignedBy", label: "Assigned By", align: "left" as const },
-  { key: "status", label: "Status", align: "left" as const },
-];
 
 function parseAssignees(empList: string): string {
   if (!empList) return "Unassigned";
@@ -230,24 +220,6 @@ export default function TaskManagementSection() {
 
   const isFiltered = search || statusFilter !== "all" || fromDate || toDate;
 
-  const rows = sortedTasks.map((task) => {
-    const name = task.task_timer_name || "";
-    const desc = task.task_timer_description || "";
-    const combined = name && desc ? `${name} — ${truncate(desc, 60)}` : name || truncate(desc, 60) || "—";
-
-    return {
-      assignedTo: parseAssignees(task.task_timer_emp_list),
-      date: formatDate(task.task_timer_date_start),
-      taskDescription: combined,
-      dueDate: formatDate(task.task_timer_date_end),
-      repeat: task.task_timer_recurrence
-        ? formatRecurrence(task.task_timer_recurrence)
-        : inferSeriesRecurrence(task.task_timer_series_id),
-      assignedBy: task.task_timer_goal || "—",
-      status: <TaskStatusSelect id={task.task_timer_aid} status={task.task_timer_status} />,
-    };
-  });
-
   const STATUS_FILTER_OPTIONS = [
     { value: "0", label: "Not Started" },
     { value: "1", label: "In Progress" },
@@ -285,7 +257,7 @@ export default function TaskManagementSection() {
         </div>
         {isFiltered && (
           <>
-            <span className="text-xs text-gray-500">{rows.length} result{rows.length !== 1 ? "s" : ""}</span>
+            <span className="text-xs text-gray-500">{sortedTasks.length} result{sortedTasks.length !== 1 ? "s" : ""}</span>
             <button onClick={() => { setSearch(""); setStatusFilter("all"); setFromDate(""); setToDate(""); }} className="text-xs text-[#B8860B] hover:underline">Clear all</button>
           </>
         )}
@@ -294,17 +266,42 @@ export default function TaskManagementSection() {
       {isLoading ? (
         <LoadingSkeleton />
       ) : (
-        <>
-          <div className="mt-4">
-            {rows.length === 0 ? (
-              <div className="rounded-md bg-[#111111] px-6 py-8 text-center">
-                <p className="text-sm text-white/60">{isFiltered ? "No matching results." : "No tasks found"}</p>
-              </div>
-            ) : (
-              <DashboardTable columns={TABLE_COLUMNS} rows={rows} />
-            )}
-          </div>
-        </>
+        <div className="mt-4">
+          {sortedTasks.length === 0 ? (
+            <div className="rounded-md bg-[#111111] px-6 py-8 text-center">
+              <p className="text-sm text-white/60">{isFiltered ? "No matching results." : "No tasks found"}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {sortedTasks.map((task) => {
+                const name = task.task_timer_name || "";
+                const desc = task.task_timer_description || "";
+                const repeat = task.task_timer_recurrence
+                  ? formatRecurrence(task.task_timer_recurrence)
+                  : inferSeriesRecurrence(task.task_timer_series_id);
+                return (
+                  <DashboardRecordCard
+                    key={task.task_timer_aid}
+                    accentBg="bg-blue-500"
+                    accentBorder="border-blue-300"
+                    typeLabel="Task"
+                    carName={name || "—"}
+                    assignedTo={parseAssignees(task.task_timer_emp_list)}
+                    details={[
+                      { label: "Date", value: formatDate(task.task_timer_date_start) },
+                      { label: "Due Date", value: formatDate(task.task_timer_date_end) },
+                      { label: "Repeat", value: repeat },
+                      { label: "Assigned By", value: task.task_timer_goal || "—" },
+                      { label: "Car", value: task.task_timer_car_name || "—" },
+                    ]}
+                    notes={desc ? truncate(desc, 120) : "—"}
+                    statusControl={<TaskStatusSelect id={task.task_timer_aid} status={task.task_timer_status} />}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

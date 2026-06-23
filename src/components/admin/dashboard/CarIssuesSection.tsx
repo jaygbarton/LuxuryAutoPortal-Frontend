@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Search, X } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
-import { SectionHeader } from "@/components/admin/dashboard";
+import { SectionHeader, DashboardRecordCard } from "@/components/admin/dashboard";
 import { FuelReturnedCell } from "@/pages/admin/operations/FuelReturnedCell";
 import { CarIssueTypesCell } from "@/pages/admin/operations/CarIssueTypesCell";
 import {
@@ -126,31 +126,6 @@ function parseIssueTypes(v: unknown): string[] {
   }
 }
 
-const HEADERS = [
-  "Reservation #",
-  "CAR Name",
-  "Plate #",
-  "Trip Start",
-  "Pick Up Location",
-  "Trip Ends",
-  "Days Rented",
-  "Drop Off Location",
-  "Extras",
-  "Miles Included",
-  "Trip Start Odometer",
-  "Trip Ends Odometer",
-  "Total Miles",
-  "Earnings",
-  "Trip Status",
-  "Assigned To",
-  "Fuel Returned",
-  "Car Issues Type",
-  "Car Issues",
-  "Photos",
-  "Remarks",
-  "Inspection Status",
-];
-
 export default function CarIssuesSection() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -272,71 +247,57 @@ export default function CarIssuesSection() {
       ) : inspections.length === 0 ? (
         <p className="py-8 text-center text-sm text-gray-500">{isFiltered ? "No matching results." : "No inspections found."}</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-y border-[#D3BC8D] border-collapse text-xs">
-            <thead>
-              <tr className="bg-black border-y border-[#D3BC8D]">
-                {HEADERS.map((h) => (
-                  <th key={h} className="px-3 py-2 text-center font-bold uppercase text-white whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {inspections.map((insp, i) => {
-                const sm = statusMeta(insp.status);
-                const photoCount = insp.photos?.length ?? 0;
-                return (
-                  <tr key={insp.id ?? i} className="bg-white border-y border-[#D3BC8D]">
-                    <td className="px-3 py-2 text-center text-black">{asStr(insp.reservation_id)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(insp.car_name)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(insp.plate)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtDateTime(insp.tt_trip_start)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(insp.pickup_location)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtDateTime(insp.tt_trip_end)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtDays(insp.days_rented)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(insp.dropoff_location)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(insp.extras)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtNum(insp.miles_included)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtNum(insp.trip_start_odometer)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtNum(insp.trip_end_odometer)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtNum(insp.total_miles)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtMoney(insp.earnings)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(insp.trip_status)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(insp.assigned_to)}</td>
-                    <td className="px-3 py-2 text-center text-black">
-                      <FuelReturnedCell level={(insp.fuel_level_returned as any) ?? null} />
-                    </td>
-                    <td className="px-3 py-2 text-center text-black">
-                      <CarIssueTypesCell types={parseIssueTypes(insp.car_issue_types)} />
-                    </td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(insp.notes)}</td>
-                    <td className="px-3 py-2 text-center text-black">
-                      {photoCount > 0 ? `${photoCount} photo${photoCount > 1 ? "s" : ""}` : "—"}
-                    </td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(insp.notes)}</td>
-                    <td className="px-3 py-2 text-center text-black">
-                      <Select
-                        value={sm.value}
-                        onValueChange={(v) => updateStatus.mutate({ id: insp.id, status: v })}
-                        disabled={updateStatus.isPending}
-                      >
-                        <SelectTrigger className={`h-8 w-[140px] mx-auto text-xs ${sm.className}`}>
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {STATUS_OPTIONS.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {inspections.map((insp, i) => {
+            const sm = statusMeta(insp.status);
+            const photoCount = insp.photos?.length ?? 0;
+            return (
+              <DashboardRecordCard
+                key={insp.id ?? i}
+                accentBg="bg-red-500"
+                accentBorder="border-red-300"
+                typeLabel="Car Issue"
+                reservationId={insp.reservation_id}
+                carName={insp.car_name}
+                plate={insp.plate}
+                assignedTo={insp.assigned_to}
+                tripStart={fmtDateTime(insp.tt_trip_start)}
+                tripEnd={fmtDateTime(insp.tt_trip_end)}
+                pickupLocation={asStr(insp.pickup_location)}
+                dropoffLocation={asStr(insp.dropoff_location)}
+                details={[
+                  { label: "Days Rented", value: fmtDays(insp.days_rented) },
+                  { label: "Extras", value: asStr(insp.extras) },
+                  { label: "Miles Included", value: fmtNum(insp.miles_included) },
+                  { label: "Trip Start Odometer", value: fmtNum(insp.trip_start_odometer) },
+                  { label: "Trip Ends Odometer", value: fmtNum(insp.trip_end_odometer) },
+                  { label: "Total Miles", value: fmtNum(insp.total_miles) },
+                  { label: "Earnings", value: fmtMoney(insp.earnings) },
+                  { label: "Trip Status", value: asStr(insp.trip_status) },
+                  { label: "Fuel Returned", value: <FuelReturnedCell level={(insp.fuel_level_returned as any) ?? null} /> },
+                  { label: "Car Issues Type", value: <CarIssueTypesCell types={parseIssueTypes(insp.car_issue_types)} /> },
+                  { label: "Photos", value: photoCount > 0 ? `${photoCount} photo${photoCount > 1 ? "s" : ""}` : "—" },
+                ]}
+                notes={asStr(insp.notes)}
+                statusControl={
+                  <Select
+                    value={sm.value}
+                    onValueChange={(v) => updateStatus.mutate({ id: insp.id, status: v })}
+                    disabled={updateStatus.isPending}
+                  >
+                    <SelectTrigger className={`h-7 w-[130px] text-xs ${sm.className}`}>
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                }
+              />
+            );
+          })}
         </div>
       )}
     </div>

@@ -47,7 +47,7 @@ interface IncomeExpenseContextType {
     reimbursedBills: any[];
   };
   refreshDynamicSubcategories: () => Promise<void>;
-  addDynamicSubcategory: (categoryType: string, name: string) => Promise<void>;
+  addDynamicSubcategory: (categoryType: string, name: string) => Promise<number | undefined>;
   updateDynamicSubcategoryName: (categoryType: string, metadataId: number, newName: string) => Promise<void>;
   deleteDynamicSubcategory: (categoryType: string, metadataId: number, force?: boolean) => Promise<void>;
   updateDynamicSubcategoryValue: (categoryType: string, metadataId: number, month: number, value: number, subcategoryName: string) => Promise<void>;
@@ -330,8 +330,11 @@ export function IncomeExpenseProvider({
     results.forEach(({ categoryType, data }) => {
       newSubcategories[categoryType] = data;
     });
-    
+
     setDynamicSubcategories(newSubcategories);
+    // Return the freshly-fetched map so callers (e.g. addDynamicSubcategory)
+    // can read it immediately without waiting for the state update to flush.
+    return newSubcategories;
   };
 
   // Fetch dynamic subcategories when carId or year changes (including "All Cars" mode)
@@ -449,12 +452,21 @@ export function IncomeExpenseProvider({
       });
       
       if (!response.ok) throw new Error("Failed to add subcategory");
-      
-      await fetchDynamicSubcategories();
+
+      const refreshed = await fetchDynamicSubcategories();
       toast({
         title: "Success",
         description: "Subcategory added globally (applies to all cars)",
       });
+
+      // Resolve the new sub-category's id from the freshly-fetched list so the
+      // caller can build its form link without a stale-state race. Names are
+      // unique per section (duplicates are blocked before calling this).
+      const norm = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+      const created = (refreshed as any)?.[categoryType]?.find(
+        (s: any) => norm(String(s.name)) === norm(name),
+      );
+      return created?.id as number | undefined;
     } catch (error: any) {
       toast({
         title: "Error",

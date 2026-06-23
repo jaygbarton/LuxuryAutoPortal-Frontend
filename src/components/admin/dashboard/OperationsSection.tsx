@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Search, X } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
-import { SectionHeader } from "@/components/admin/dashboard";
+import { SectionHeader, DashboardRecordCard } from "@/components/admin/dashboard";
 import {
   Select,
   SelectContent,
@@ -127,27 +127,13 @@ function fmtDateTime(v: unknown): string {
   }
 }
 
-const HEADERS = [
-  "Reservation #",
-  "CAR Name",
-  "Plate #",
-  "Trip Start",
-  "Pick Up Location",
-  "Trip Ends",
-  "Days Rented",
-  "Drop Off Location",
-  "Extras",
-  "Miles Included",
-  "Trip Start Odometer",
-  "Trip Ends Odometer",
-  "Total Miles",
-  "Earnings",
-  "Trip Status",
-  "Task Type",
-  "Assigned To",
-  "Scheduled Date/Time",
-  "Task Status",
-];
+// Accent colors per task type, mirroring the Day Schedule category palette so
+// the dashboard cards read the same way as the daily schedule.
+const TASK_TYPE_ACCENT: Record<string, { bg: string; border: string }> = {
+  pickup: { bg: "bg-blue-500", border: "border-blue-300" },
+  delivery: { bg: "bg-indigo-500", border: "border-indigo-300" },
+  cleaning: { bg: "bg-teal-500", border: "border-teal-300" },
+};
 
 export default function OperationsSection() {
   const queryClient = useQueryClient();
@@ -305,66 +291,55 @@ export default function OperationsSection() {
       ) : tasks.length === 0 ? (
         <p className="py-8 text-center text-sm text-gray-500">{isFiltered ? "No matching results." : "No tasks found."}</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-y border-[#D3BC8D] border-collapse text-xs">
-            <thead>
-              <tr className="bg-black border-y border-[#D3BC8D]">
-                {HEADERS.map((h) => (
-                  <th key={h} className="px-3 py-2 text-center font-bold uppercase text-white whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.map((task, i) => {
-                const type = taskTypeMeta(task.task_type);
-                const sm = statusMeta(task.status);
-                return (
-                  <tr key={task.id ?? i} className="bg-white border-y border-[#D3BC8D]">
-                    <td className="px-3 py-2 text-center text-black">{asStr(task.reservation_id)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(task.car_name)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(task.plate)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtDateTime(task.trip_start)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(task.pickup_location ?? task.scheduled_location)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtDateTime(task.trip_end)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtDays(task.days_rented)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(task.dropoff_location)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(task.extras)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtNum(task.miles_included)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtNum(task.trip_start_odometer)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtNum(task.trip_end_odometer)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtNum(task.total_miles)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtMoney(task.earnings)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(task.trip_status)}</td>
-                    <td className="px-3 py-2 text-center text-black">
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${type.className}`}>
-                        {type.label}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-center text-black">{asStr(task.assigned_to)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtDateTime(task.scheduled_date)}</td>
-                    <td className="px-3 py-2 text-center text-black">
-                      <Select
-                        value={sm.value}
-                        onValueChange={(v) => updateStatus.mutate({ id: task.id, status: v })}
-                        disabled={updateStatus.isPending}
-                      >
-                        <SelectTrigger className={`h-8 w-[140px] mx-auto text-xs ${sm.className}`}>
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {STATUS_OPTIONS.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {tasks.map((task, i) => {
+            const type = taskTypeMeta(task.task_type);
+            const sm = statusMeta(task.status);
+            return (
+              <DashboardRecordCard
+                key={task.id ?? i}
+                accentBg={TASK_TYPE_ACCENT[String(task.task_type ?? "").toLowerCase()]?.bg ?? "bg-slate-500"}
+                accentBorder={TASK_TYPE_ACCENT[String(task.task_type ?? "").toLowerCase()]?.border ?? "border-slate-300"}
+                typeLabel={type.label}
+                reservationId={task.reservation_id}
+                carName={task.car_name}
+                plate={task.plate}
+                guestName={task.guest_name}
+                assignedTo={task.assigned_to}
+                tripStart={fmtDateTime(task.trip_start)}
+                tripEnd={fmtDateTime(task.trip_end)}
+                pickupLocation={asStr(task.pickup_location ?? task.scheduled_location)}
+                dropoffLocation={asStr(task.dropoff_location)}
+                details={[
+                  { label: "Days Rented", value: fmtDays(task.days_rented) },
+                  { label: "Extras", value: asStr(task.extras) },
+                  { label: "Miles Included", value: fmtNum(task.miles_included) },
+                  { label: "Trip Start Odometer", value: fmtNum(task.trip_start_odometer) },
+                  { label: "Trip Ends Odometer", value: fmtNum(task.trip_end_odometer) },
+                  { label: "Total Miles", value: fmtNum(task.total_miles) },
+                  { label: "Earnings", value: fmtMoney(task.earnings) },
+                  { label: "Trip Status", value: asStr(task.trip_status) },
+                  { label: "Scheduled Date/Time", value: fmtDateTime(task.scheduled_date) },
+                ]}
+                statusControl={
+                  <Select
+                    value={sm.value}
+                    onValueChange={(v) => updateStatus.mutate({ id: task.id, status: v })}
+                    disabled={updateStatus.isPending}
+                  >
+                    <SelectTrigger className={`h-7 w-[130px] text-xs ${sm.className}`}>
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                }
+              />
+            );
+          })}
         </div>
       )}
     </div>

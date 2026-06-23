@@ -30,6 +30,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
 import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
 import { StatusBadge } from "./StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import { MaintenanceModal } from "./MaintenanceModal";
 import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
@@ -102,6 +103,34 @@ const calculateDaysRented = (
     return null;
   }
 };
+
+/** Car Owner Approval Status chip for the Maintenance table. Shows
+ *  Email Sent / Approved / Declined (with reason + self-pickup on hover). */
+function OwnerApprovalBadge({ rec }: { rec: MaintenanceRecord }) {
+  const s = rec.owner_approval_status || "not_sent";
+  if (s === "not_sent") {
+    return <span className="text-xs text-muted-foreground">--</span>;
+  }
+  const map: Record<string, { label: string; cls: string }> = {
+    email_sent: { label: "Email Sent", cls: "bg-blue-500/20 text-blue-400" },
+    approved: { label: "Approved", cls: "bg-green-500/20 text-green-500" },
+    declined: { label: "Declined", cls: "bg-red-500/20 text-red-500" },
+  };
+  const m = map[s] || map.email_sent;
+  const wantsPickup = rec.owner_wants_pickup === 1 || rec.owner_wants_pickup === true;
+  const title =
+    s === "declined"
+      ? `Reason: ${rec.owner_decline_reason || "—"}${wantsPickup ? "\nOwner will pick up the vehicle to self-manage (block-off forms required)." : ""}`
+      : undefined;
+  return (
+    <span className="inline-flex flex-col items-start gap-0.5" title={title}>
+      <Badge className={`${m.cls} border-0 text-xs font-medium`}>{m.label}</Badge>
+      {s === "declined" && wantsPickup && (
+        <span className="text-[10px] text-amber-500">Self-pickup</span>
+      )}
+    </span>
+  );
+}
 
 interface MaintenanceTabProps {
   defaultStatus?: string;
@@ -400,7 +429,7 @@ export function MaintenanceTab({
                     <SelectItem value="all">All</SelectItem>
                     <SelectItem value="new">New</SelectItem>
                     <SelectItem value="damage_reported">
-                      Damage Reported
+                      Maintenance Reported
                     </SelectItem>
                     <SelectItem value="in_review">In Review</SelectItem>
                     <SelectItem value="in_progress">In Progress</SelectItem>
@@ -482,6 +511,7 @@ export function MaintenanceTab({
                   <TableHead className="text-foreground font-medium">Scheduled Date</TableHead>
                   <TableHead className="text-foreground font-medium">Due Date</TableHead>
                   <TableHead className="text-foreground font-medium">Maint. Status</TableHead>
+                  <TableHead className="text-foreground font-medium whitespace-nowrap">Owner Approval</TableHead>
                   <TableHead className="text-foreground font-medium">Repair Shop</TableHead>
                   <TableHead className="text-foreground font-medium">Notes</TableHead>
                   <TableHead className="text-foreground font-medium">Photos</TableHead>
@@ -492,7 +522,7 @@ export function MaintenanceTab({
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={28}
+                      colSpan={29}
                       className="text-center py-12 text-muted-foreground"
                     >
                       Loading maintenance records...
@@ -501,7 +531,7 @@ export function MaintenanceTab({
                 ) : records.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={28}
+                      colSpan={29}
                       className="text-center py-12 text-muted-foreground"
                     >
                       No maintenance records found
@@ -699,7 +729,7 @@ export function MaintenanceTab({
                             <SelectContent className="bg-card border-border text-foreground">
                               <SelectItem value="new">New</SelectItem>
                               <SelectItem value="damage_reported">
-                                Damage Reported
+                                Maintenance Reported
                               </SelectItem>
                               <SelectItem value="in_review">
                                 In Review
@@ -718,6 +748,9 @@ export function MaintenanceTab({
                               </SelectItem>
                             </SelectContent>
                           </Select>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <OwnerApprovalBadge rec={rec} />
                         </TableCell>
                         <TableCell
                           className="text-muted-foreground text-sm max-w-[160px] truncate"

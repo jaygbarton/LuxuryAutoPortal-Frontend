@@ -140,13 +140,12 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
     if (
       !formData.car_name ||
       !formData.task_description ||
-      !formData.assigned_to ||
-      !formData.scheduled_date
+      !formData.assigned_to
     ) {
       toast({
         title: "Missing required fields",
         description:
-          "Car, Description, Assigned To, and Scheduled Date are all required.",
+          "Car, Description, and Assigned To are all required.",
         variant: "destructive",
       });
       return;
@@ -203,14 +202,13 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground">Scheduled Date/Time *</label>
+            <label className="text-sm text-muted-foreground">Scheduled Date/Time</label>
             <Input
               type="datetime-local"
               value={formData.scheduled_date}
               onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
               className="bg-card border-border text-foreground mt-1"
               style={{ colorScheme: "dark" }}
-              required
             />
             <p className="text-xs text-muted-foreground mt-1">
               Setting a scheduled date adds this maintenance to the Google Calendar.

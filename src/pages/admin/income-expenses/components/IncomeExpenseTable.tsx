@@ -6,6 +6,7 @@ import {
   Pencil,
   Trash2,
   Sparkles,
+  Link2,
 } from "lucide-react";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
 import EditableCell from "./EditableCell";
@@ -35,6 +36,16 @@ import {
   isSectionAllowedForEmployee,
   isRowAllowedForEmployee,
 } from "../utils/employeeView";
+import {
+  buildExpenseFormUrl,
+  dynamicFieldValue,
+  type ExpenseFormCategory,
+} from "../utils/expenseFormLink";
+
+/** I&E category types that have a matching Expense Receipt form. parkingFeeLabor
+ *  has no form submission target (the expense_form_submission table only accepts
+ *  these three + income), so we don't offer a form link for it. */
+const FORM_BACKED_CATEGORIES = new Set(["directDelivery", "cogs", "reimbursedBills"]);
 
 interface IncomeExpenseTableProps {
   year: string;
@@ -322,7 +333,11 @@ export default function IncomeExpenseTable({
     open: boolean;
     categoryType: string;
     name: string;
-  }>({ open: false, categoryType: "", name: "" });
+    /** Set after a successful add for a form-backed category: the shareable
+     *  receipt-form link for the brand-new sub-category, shown with a copy
+     *  button so the user can hand it out right away. */
+    createdLink?: { name: string; url: string } | null;
+  }>({ open: false, categoryType: "", name: "", createdLink: null });
 
   const [editSubcategoryModal, setEditSubcategoryModal] = useState<{
     open: boolean;
@@ -4528,16 +4543,64 @@ export default function IncomeExpenseTable({
       <Dialog
         open={addSubcategoryModal.open}
         onOpenChange={(open) =>
-          setAddSubcategoryModal({ ...addSubcategoryModal, open })
+          setAddSubcategoryModal(
+            open
+              ? { ...addSubcategoryModal, open }
+              : { open: false, categoryType: "", name: "", createdLink: null },
+          )
         }
       >
         <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle>Add Subcategory</DialogTitle>
+            <DialogTitle>
+              {addSubcategoryModal.createdLink ? "Subcategory added" : "Add Subcategory"}
+            </DialogTitle>
             <DialogDescription>
-              Enter a name for the new subcategory
+              {addSubcategoryModal.createdLink
+                ? "Share this link to file receipts straight into the new subcategory."
+                : "Enter a name for the new subcategory"}
             </DialogDescription>
           </DialogHeader>
+          {addSubcategoryModal.createdLink ? (
+            <div className="space-y-4 py-4">
+              <div>
+                <Label className="text-muted-foreground text-xs">Subcategory</Label>
+                <div className="text-foreground text-sm font-medium mt-1">
+                  {addSubcategoryModal.createdLink.name}
+                </div>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">Receipt form link</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    readOnly
+                    value={addSubcategoryModal.createdLink.url}
+                    className="bg-muted border-border text-foreground text-xs"
+                    onFocus={(e) => e.currentTarget.select()}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-border shrink-0"
+                    onClick={async () => {
+                      const url = addSubcategoryModal.createdLink!.url;
+                      try {
+                        await navigator.clipboard.writeText(url);
+                        toast({ title: "Form link copied" });
+                      } catch {
+                        toast({ title: "Copy this form link", description: url });
+                      }
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-muted-foreground text-xs mt-1">
+                  Opens the Income &amp; Expense Receipt form pre-set to this subcategory.
+                </p>
+              </div>
+            </div>
+          ) : (
           <div className="space-y-4 py-4">
             <div>
               <Label>Subcategory Name</Label>
@@ -4554,6 +4617,26 @@ export default function IncomeExpenseTable({
               />
             </div>
           </div>
+          )}
+          {addSubcategoryModal.createdLink ? (
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setAddSubcategoryModal({ open: false, categoryType: "", name: "", createdLink: null })
+              }
+              className="border-border text-muted-foreground hover:text-foreground"
+            >
+              Done
+            </Button>
+            <Button
+              onClick={() => window.open(addSubcategoryModal.createdLink!.url, "_blank")}
+              className="bg-primary text-primary-foreground hover:bg-primary/80"
+            >
+              Open form
+            </Button>
+          </DialogFooter>
+          ) : (
           <DialogFooter>
             <Button
               variant="outline"
@@ -4606,14 +4689,32 @@ export default function IncomeExpenseTable({
                   return;
                 }
 
-                await addDynamicSubcategory(
-                  addSubcategoryModal.categoryType,
-                  trimmedName,
-                );
+                const categoryType = addSubcategoryModal.categoryType;
+                const newId = await addDynamicSubcategory(categoryType, trimmedName);
+
+                // For form-backed categories, surface the new sub-category's
+                // shareable receipt-form link instead of closing immediately.
+                if (FORM_BACKED_CATEGORIES.has(categoryType) && newId != null) {
+                  setAddSubcategoryModal({
+                    open: true,
+                    categoryType,
+                    name: "",
+                    createdLink: {
+                      name: trimmedName,
+                      url: buildExpenseFormUrl(
+                        categoryType as ExpenseFormCategory,
+                        dynamicFieldValue(newId),
+                      ),
+                    },
+                  });
+                  return;
+                }
+
                 setAddSubcategoryModal({
                   open: false,
                   categoryType: "",
                   name: "",
+                  createdLink: null,
                 });
               }}
               className="bg-primary text-primary-foreground hover:bg-primary/80"
@@ -4622,6 +4723,7 @@ export default function IncomeExpenseTable({
               Add
             </Button>
           </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -4739,11 +4841,27 @@ function DynamicSubcategoryRow({
     "Dec",
   ];
   const { setEditingCell } = useIncomeExpense();
+  const { toast } = useToast();
 
   const total = subcategory.values.reduce(
     (sum: number, val: any) => sum + (val.value || 0),
     0,
   );
+
+  const hasFormLink = FORM_BACKED_CATEGORIES.has(categoryType);
+  const copyFormLink = async () => {
+    const url = buildExpenseFormUrl(
+      categoryType as ExpenseFormCategory,
+      dynamicFieldValue(subcategory.id),
+    );
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({ title: "Form link copied", description: `Opens the receipt form for "${subcategory.name}".` });
+    } catch {
+      // Clipboard can be blocked (e.g. insecure context) — show the URL so it can be copied manually.
+      toast({ title: "Copy this form link", description: url });
+    }
+  };
 
   const handleCellClick = (month: number, currentValue: number) => {
     if (isReadOnly) return;
@@ -4760,6 +4878,15 @@ function DynamicSubcategoryRow({
       <td className="md:sticky md:left-0 md:z-20 bg-card px-2 py-1 text-left text-muted-foreground border-r border-border text-xs">
         <div className="flex items-center gap-2">
           <span className="truncate">{subcategory.name}</span>
+          {hasFormLink && (
+            <button
+              onClick={copyFormLink}
+              className="text-[#B8860B] hover:text-[#9A7209] transition-colors"
+              title="Copy receipt-form link for this subcategory"
+            >
+              <Link2 className="w-3 h-3" />
+            </button>
+          )}
           {!isReadOnly && (
             <>
               <button

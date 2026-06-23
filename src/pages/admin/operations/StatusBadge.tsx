@@ -27,7 +27,7 @@ const statusLabels: Record<string, string> = {
   returned: "Returned",
   cancelled: "Cancelled",
   active: "Active",
-  damage_reported: "Damage Reported",
+  damage_reported: "Maintenance Reported",
   in_review: "In Review",
   in_repair: "In Repair",
   charged_customer: "Charged Customer",

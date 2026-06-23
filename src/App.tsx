@@ -76,9 +76,11 @@ import TrainingManualPage from "@/pages/admin/training-manual";
 import ClientTrainingManualPage from "@/pages/client/training-manual";
 import ClientDashboardPage from "@/pages/client/dashboard";
 import ClientTripHistoryPage from "@/pages/client/trip-history";
+import ClientMaintenanceHistoryPage from "@/pages/client/maintenance-history";
 import ClientOffboardingFormPage from "@/pages/client/offboarding-form";
 import DashboardRouter from "@/pages/dashboard-router";
 import SignContract from "@/pages/sign-contract";
+import MaintenanceApproval from "@/pages/maintenance-approval";
 import Signup from "@/pages/signup";
 import ResetPasswordPage from "@/pages/reset-password";
 import StaffDashboard from "@/pages/staff/dashboard";
@@ -120,6 +122,7 @@ function Router() {
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/contact" component={Contact} />
       <Route path="/sign-contract/:token" component={SignContract} />
+      <Route path="/maintenance-approval/:token" component={MaintenanceApproval} />
       <Route path="/signup" component={Signup} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/reset-password" component={ResetPasswordPage} />
@@ -203,6 +206,9 @@ function Router() {
             </Route>
             <Route path="/client/trip-history">
               <RequireRole roles={["isClient"]}><ClientTripHistoryPage /></RequireRole>
+            </Route>
+            <Route path="/client/maintenance-history">
+              <RequireRole roles={["isClient"]}><ClientMaintenanceHistoryPage /></RequireRole>
             </Route>
             <Route path="/client/offboarding-form">
               <RequireRole roles={["isClient"]}><ClientOffboardingFormPage /></RequireRole>

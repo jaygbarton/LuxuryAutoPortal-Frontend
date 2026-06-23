@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Search, X } from "lucide-react";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
-import { SectionHeader, DashboardTable } from "@/components/admin/dashboard";
+import { SectionHeader, DashboardRecordCard } from "@/components/admin/dashboard";
 
 interface MaintenanceTask {
   id: number;
@@ -54,29 +54,6 @@ interface MaintenanceSectionProps {
   year: string;
 }
 
-const TABLE_COLUMNS = [
-  { key: "reservationId", label: "Reservation #", align: "center" as const },
-  { key: "car", label: "Car", align: "center" as const },
-  { key: "plateNumber", label: "Plate #", align: "center" as const },
-  { key: "tripStart", label: "Trip Start", align: "center" as const },
-  { key: "pickupLocation", label: "Pick Up Location", align: "center" as const },
-  { key: "tripEnd", label: "Trip Ends", align: "center" as const },
-  { key: "daysRented", label: "Days Rented", align: "center" as const },
-  { key: "dropOffLocation", label: "Drop Off Location", align: "center" as const },
-  { key: "extras", label: "Extras", align: "center" as const },
-  { key: "milesIncluded", label: "Miles Included", align: "center" as const },
-  { key: "earnings", label: "Earnings", align: "center" as const },
-  { key: "tripStatus", label: "Trip Status", align: "center" as const },
-  { key: "taskDescription", label: "Task Description", align: "center" as const },
-  { key: "assignedTo", label: "Assigned To", align: "center" as const },
-  { key: "scheduledDate", label: "Scheduled Date", align: "center" as const },
-  { key: "dueDate", label: "Due Date", align: "center" as const },
-  { key: "repairShop", label: "Repair Shop", align: "center" as const },
-  { key: "photos", label: "Photos", align: "center" as const },
-  { key: "notes", label: "Notes", align: "center" as const },
-  { key: "status", label: "Maint. Status", align: "center" as const },
-];
-
 function truncate(text: string, max: number): string {
   return text.length > max ? text.slice(0, max) + "…" : text;
 }
@@ -104,7 +81,7 @@ function formatCurrency(val: number | null | undefined): string {
  *  when there's more than one) instead of plain "N photos" text. Matches the
  *  thumbnail style used in TuroInspectionsSection. */
 function renderPhotosCell(photos: string[] | null): ReactNode {
-  if (!photos || photos.length === 0) return "—";
+  if (!photos || photos.length === 0) return null;
   const proxied = getProxiedImageUrl(photos[0]);
   const src = proxied.includes("/api/gcs-image-proxy")
     ? proxied + (proxied.includes("?") ? "&" : "?") + "size=128"
@@ -262,40 +239,6 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
 
   const isFiltered = search || statusFilter !== "all" || fromDate || toDate;
 
-  const rows = displayTasks.map((task) => {
-    const hasTrip = !!(task.trip_id || task.trip_reservation_id || task.trip_start);
-    const pickupLocation = task.trip_pickup_location || task.trip_delivery_location || "—";
-    const dropOffLocation = task.trip_return_location || task.trip_delivery_location || task.trip_pickup_location || "—";
-    const daysRented = calculateDaysRented(task.trip_start, task.trip_end);
-    const earnings = task.trip_status?.toLowerCase() === "cancelled"
-      ? task.trip_cancelled_earnings
-      : task.trip_earnings;
-    const plateNumber = task.car_plate || task.trip_plate_number || "—";
-
-    return {
-      reservationId: task.trip_reservation_id || "—",
-      car: carLabel(task),
-      plateNumber,
-      tripStart: hasTrip ? formatDateTime(task.trip_start) : "—",
-      pickupLocation: hasTrip ? pickupLocation : "—",
-      tripEnd: hasTrip ? formatDateTime(task.trip_end) : "—",
-      daysRented: daysRented != null ? daysRented : "—",
-      dropOffLocation: hasTrip ? dropOffLocation : "—",
-      extras: task.trip_extras || "—",
-      milesIncluded: task.trip_miles_included || (task.trip_total_distance != null ? String(task.trip_total_distance) : null) || "—",
-      earnings: earnings != null ? formatCurrency(earnings) : "—",
-      tripStatus: tripStatusLabel(task.trip_status),
-      taskDescription: task.task_description ? truncate(task.task_description, 50) : "—",
-      assignedTo: task.assigned_to || "—",
-      scheduledDate: formatDate(task.scheduled_date),
-      dueDate: formatDate(task.due_date),
-      repairShop: task.repair_shop || "—",
-      photos: renderPhotosCell(task.photos),
-      notes: task.notes ? truncate(task.notes, 50) : "—",
-      status: <StatusSelect id={task.id} value={task.status} />,
-    };
-  });
-
   return (
     <div className="mb-8">
       <SectionHeader title="MAINTENANCE" />
@@ -335,12 +278,53 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
         <LoadingSkeleton />
       ) : (
         <div className="mt-4">
-          {rows.length === 0 ? (
+          {displayTasks.length === 0 ? (
             <div className="rounded-md bg-gray-50 border border-gray-200 px-6 py-8 text-center">
               <p className="text-sm text-gray-500">{isFiltered ? "No matching results." : "No maintenance tasks found"}</p>
             </div>
           ) : (
-            <DashboardTable columns={TABLE_COLUMNS} rows={rows} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {displayTasks.map((task) => {
+                const hasTrip = !!(task.trip_id || task.trip_reservation_id || task.trip_start);
+                const pickupLocation = task.trip_pickup_location || task.trip_delivery_location || "—";
+                const dropOffLocation = task.trip_return_location || task.trip_delivery_location || task.trip_pickup_location || "—";
+                const daysRented = calculateDaysRented(task.trip_start, task.trip_end);
+                const earnings = task.trip_status?.toLowerCase() === "cancelled"
+                  ? task.trip_cancelled_earnings
+                  : task.trip_earnings;
+                const plateNumber = task.car_plate || task.trip_plate_number || "—";
+                return (
+                  <DashboardRecordCard
+                    key={task.id}
+                    accentBg="bg-orange-500"
+                    accentBorder="border-orange-300"
+                    typeLabel="Maintenance"
+                    reservationId={task.trip_reservation_id}
+                    carName={carLabel(task)}
+                    plate={plateNumber}
+                    assignedTo={task.assigned_to}
+                    tripStart={hasTrip ? formatDateTime(task.trip_start) : "—"}
+                    tripEnd={hasTrip ? formatDateTime(task.trip_end) : "—"}
+                    pickupLocation={hasTrip ? pickupLocation : "—"}
+                    dropoffLocation={hasTrip ? dropOffLocation : "—"}
+                    media={renderPhotosCell(task.photos)}
+                    details={[
+                      { label: "Task Description", value: task.task_description ? truncate(task.task_description, 80) : "—" },
+                      { label: "Days Rented", value: daysRented != null ? daysRented : "—" },
+                      { label: "Extras", value: task.trip_extras || "—" },
+                      { label: "Miles Included", value: task.trip_miles_included || (task.trip_total_distance != null ? String(task.trip_total_distance) : null) || "—" },
+                      { label: "Earnings", value: earnings != null ? formatCurrency(earnings) : "—" },
+                      { label: "Trip Status", value: tripStatusLabel(task.trip_status) },
+                      { label: "Scheduled Date", value: formatDate(task.scheduled_date) },
+                      { label: "Due Date", value: formatDate(task.due_date) },
+                      { label: "Repair Shop", value: task.repair_shop || "—" },
+                    ]}
+                    notes={task.notes ? truncate(task.notes, 80) : "—"}
+                    statusControl={<StatusSelect id={task.id} value={task.status} />}
+                  />
+                );
+              })}
+            </div>
           )}
         </div>
       )}

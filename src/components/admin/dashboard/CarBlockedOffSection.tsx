@@ -3,7 +3,15 @@ import { Loader2, CalendarOff } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { SectionHeader } from "./SectionHeader";
+import { DashboardRecordCard } from "./DashboardRecordCard";
 import { useLocation } from "wouter";
+
+// Accent color per block-off reason so the cards are scannable at a glance.
+const REASON_ACCENT: Record<string, { bg: string; border: string }> = {
+  personal_use: { bg: "bg-purple-500", border: "border-purple-300" },
+  maintenance: { bg: "bg-red-500", border: "border-red-300" },
+  others: { bg: "bg-slate-500", border: "border-slate-300" },
+};
 
 interface CarBlockOff {
   id: number;
@@ -91,42 +99,34 @@ export default function CarBlockedOffSection() {
           <p className="text-sm">No car block-off records.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                {["Car", "Owner", "Reason", "Pick Up Date", "Drop Off Date", "Status"].map((h) => (
-                  <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {records.map((r) => {
-                const sm = STATUS_META[r.status] ?? STATUS_META["new"];
-                return (
-                  <tr
-                    key={r.id}
-                    className="border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
-                    onClick={() => setLocation("/admin/car-block-off")}
-                  >
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      <span className="font-medium text-foreground">{r.car_name}</span>
-                      {r.plate_number && <span className="text-xs text-muted-foreground ml-1">({r.plate_number})</span>}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-foreground">{r.owner_name}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-foreground">
-                      {REASON_LABELS[r.reason] ?? r.reason}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-foreground text-xs">{fmtDate(r.pickup_date)}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-foreground text-xs">{fmtDate(r.dropoff_date)}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      <Badge variant="outline" className={`text-xs ${sm.className}`}>{sm.label}</Badge>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {records.map((r) => {
+            const sm = STATUS_META[r.status] ?? STATUS_META["new"];
+            const accent = REASON_ACCENT[r.reason] ?? REASON_ACCENT["others"];
+            const reasonLabel = (REASON_LABELS[r.reason] ?? r.reason) +
+              (r.reason === "others" && r.reason_other ? `: ${r.reason_other}` : "");
+            return (
+              <DashboardRecordCard
+                key={r.id}
+                accentBg={accent.bg}
+                accentBorder={accent.border}
+                typeLabel={REASON_LABELS[r.reason] ?? r.reason}
+                carName={r.car_name}
+                plate={r.plate_number}
+                guestName={r.owner_name ? `Owner: ${r.owner_name}` : null}
+                pickupLocation={r.pickup_location}
+                details={[
+                  { label: "Reason", value: reasonLabel },
+                  { label: "Pick Up Date", value: fmtDate(r.pickup_date) },
+                  { label: "Drop Off Date", value: fmtDate(r.dropoff_date) },
+                ]}
+                statusControl={
+                  <Badge variant="outline" className={`text-xs ${sm.className}`}>{sm.label}</Badge>
+                }
+                onClick={() => setLocation("/admin/car-block-off")}
+              />
+            );
+          })}
         </div>
       )}
     </div>

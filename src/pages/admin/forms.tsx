@@ -19,6 +19,7 @@ import CarIssueFormSubmission from "./forms/CarIssueFormSubmission";
 import CarOnboardingForm from "@/components/forms/CarOnboardingForm";
 import CarOffboardingForm from "@/components/forms/CarOffboardingForm";
 import ExpenseFormSubmission from "./forms/ExpenseFormSubmission";
+import ExpenseSubcategoryLinks from "./forms/ExpenseSubcategoryLinks";
 import ExpenseFormMySubmissions from "./forms/ExpenseFormMySubmissions";
 import ExpenseFormApprovalDashboard from "./forms/ExpenseFormApprovalDashboard";
 import CommissionFormSubmission from "./forms/CommissionFormSubmission";
@@ -33,6 +34,7 @@ import DocumentUpdateApprovalDashboard from "./forms/DocumentUpdateApprovalDashb
 import ParkingTicketSubmission from "./forms/ParkingTicketSubmission";
 import ParkingTicketMySubmissions from "./forms/ParkingTicketMySubmissions";
 import ParkingTicketApprovalDashboard from "./forms/ParkingTicketApprovalDashboard";
+import CarOnOffboardingReport from "./forms/CarOnOffboardingReport";
 import {
   EmployeeOnboardingFormContent,
   EmployeeContract1099Content,
@@ -388,12 +390,29 @@ export default function FormsPage() {
   // If the URL has ?section=<id>, auto-expand that section and scroll to it.
   // Used so links like /admin/forms?section=document-updates land directly
   // on the right accordion panel (e.g. "License & Registration or Insurance Updates").
+  // ?category=<cat>&field=<field> additionally pre-target the Income & Expense
+  // Receipt form at a specific sub-category — this is the per-sub-category
+  // "form link" generated from the I&E page (see expenseFormLink.ts).
+  const expenseFormInitial = (() => {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      category: params.get("category") ?? undefined,
+      field: params.get("field") ?? undefined,
+    };
+  })();
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const targetSection = params.get("section");
     if (!targetSection) return;
     // Open the matching tab when deep-linked (e.g. ?section=document-updates).
     setActiveSection(targetSection);
+    // When a category is also passed, open the expense-receipt form so the
+    // pre-selected sub-category is visible immediately.
+    if (params.get("category")) {
+      setExpandedItems((prev) =>
+        prev.includes("expense-receipt") ? prev : [...prev, "expense-receipt"],
+      );
+    }
   }, []);
 
   // Auto-expand Approval Dashboard for admins so data is visible immediately
@@ -1279,6 +1298,15 @@ export default function FormsPage() {
                     </a>
                   )}
 
+                  {/* Car Onboarding & Offboarding submission report — shown
+                      above the Car Block Off section for admins. */}
+                  {formVisibilityData?.isAdmin &&
+                    section.id === "car-block-off-forms" && (
+                      <div className="bg-card border-b border-border px-3 sm:px-5 py-4 max-w-full">
+                        <CarOnOffboardingReport />
+                      </div>
+                    )}
+
                   {(
                     <div className="bg-card max-w-full">
                       {section.items.map((item) => {
@@ -1428,7 +1456,11 @@ export default function FormsPage() {
                             {isItemExpanded &&
                               item.id === "expense-receipt" && (
                                 <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
-                                  <ExpenseFormSubmission />
+                                  <ExpenseFormSubmission
+                                    initialCategory={expenseFormInitial.category}
+                                    initialField={expenseFormInitial.field}
+                                  />
+                                  <ExpenseSubcategoryLinks />
                                   <ExpenseFormMySubmissions />
                                 </div>
                               )}
