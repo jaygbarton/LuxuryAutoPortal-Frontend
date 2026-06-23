@@ -27,7 +27,6 @@ import {
   Layers,
   Map as MapIcon,
   Menu,
-  Bell,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -974,29 +973,6 @@ export default function BouncieFleetPage() {
     window.location.href = buildApiUrl("/api/bouncie/connect");
   }, []);
 
-  const testSlackMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(buildApiUrl("/api/bouncie/alerts/test-slack"), {
-        method: "POST",
-        credentials: "include",
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed");
-      return json as { success: boolean; steps: { step: string; ok: boolean; detail: string }[]; vehicleCount?: number };
-    },
-    onSuccess: (data) => {
-      const lines = data.steps.map((s) => `${s.ok ? "✅" : "❌"} ${s.step}: ${s.detail}`).join("\n");
-      toast({
-        title: `E2E Test Passed — ${data.vehicleCount ?? 0} vehicle(s) live`,
-        description: lines,
-      });
-    },
-    onError: (e: any) => {
-      toast({ title: "E2E test failed", description: e.message, variant: "destructive" });
-    },
-  });
-  const testSlackPending = testSlackMutation.isPending;
-  const handleTestSlack = useCallback(() => testSlackMutation.mutate(), [testSlackMutation]);
 
   const handleMapSelect = useCallback((v: VehicleEntry) => {
     setSelectedId((prev) => (prev === v.device_id ? null : v.device_id));
@@ -1074,15 +1050,6 @@ export default function BouncieFleetPage() {
                   vehicle(s)
                 </p>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleTestSlack}
-                    disabled={testSlackPending}
-                    title="Send test Slack notification"
-                    className="text-[11px] text-gray-500 hover:text-green-400 transition-colors flex items-center gap-1 disabled:opacity-50"
-                  >
-                    <Bell className="w-3 h-3" />
-                    {testSlackPending ? "Sending…" : "Test Slack"}
-                  </button>
                   {isConnected && (
                     <button
                       onClick={() =>

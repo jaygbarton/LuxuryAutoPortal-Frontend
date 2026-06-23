@@ -2136,36 +2136,9 @@ export default function EarningsPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {viewerImages.map((img) => {
-                    const src = img.url.startsWith("/") ? buildApiUrl(img.url) : img.url;
-                    const isPdf = (img.filename || "").toLowerCase().endsWith(".pdf");
-                    return (
-                      <a
-                        key={img.id}
-                        href={src}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block border border-border rounded-lg overflow-hidden hover:border-primary transition-colors"
-                        title={`Open ${img.filename}`}
-                      >
-                        {isPdf ? (
-                          <div className="flex items-center justify-center h-40 bg-background text-sm text-muted-foreground">
-                            <ImageIcon className="w-5 h-5 mr-2" /> {img.filename || "PDF receipt"}
-                          </div>
-                        ) : (
-                          <img
-                            src={src}
-                            alt={img.filename || "Receipt"}
-                            className="w-full h-40 object-cover bg-background"
-                            loading="lazy"
-                          />
-                        )}
-                        <div className="px-2 py-1 text-xs text-muted-foreground truncate">
-                          {img.filename || "Receipt"}
-                        </div>
-                      </a>
-                    );
-                  })}
+                  {viewerImages.map((img) => (
+                    <ReceiptThumb key={img.id} url={img.url} filename={img.filename} />
+                  ))}
                 </div>
               )}
             </div>
@@ -2187,6 +2160,78 @@ export default function EarningsPage() {
       <ClientPageLinks />
       <AdminPageLinks />
     </AdminLayout>
+  );
+}
+
+// Receipt thumbnail. The receipt-image endpoint is auth-protected (session
+// cookie), so a plain <img src> fails with 401 when the API is a different
+// origin than the app (preview/staging builds where VITE_API_URL points at the
+// backend) — a cross-origin <img> doesn't send cookies, so the receipt comes up
+// blank. We instead fetch the bytes with credentials and render an object URL,
+// which works same- or cross-origin, and show an explicit fallback on error.
+function ReceiptThumb({ url, filename }: { url: string; filename: string }) {
+  const fullUrl = url.startsWith("/") ? buildApiUrl(url) : url;
+  const isPdf = (filename || "").toLowerCase().endsWith(".pdf");
+  const [objectUrl, setObjectUrl] = React.useState<string | null>(null);
+  const [failed, setFailed] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isPdf) return; // PDFs open in a new tab; no inline preview to fetch.
+    let revoked = false;
+    let created: string | null = null;
+    setFailed(false);
+    setObjectUrl(null);
+    (async () => {
+      try {
+        const res = await fetch(fullUrl, { credentials: "include" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        if (revoked) return;
+        created = URL.createObjectURL(blob);
+        setObjectUrl(created);
+      } catch {
+        if (!revoked) setFailed(true);
+      }
+    })();
+    return () => {
+      revoked = true;
+      if (created) URL.revokeObjectURL(created);
+    };
+  }, [fullUrl, isPdf]);
+
+  return (
+    <a
+      href={fullUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block border border-border rounded-lg overflow-hidden hover:border-primary transition-colors"
+      title={`Open ${filename}`}
+    >
+      {isPdf ? (
+        <div className="flex items-center justify-center h-40 bg-background text-sm text-muted-foreground">
+          <ImageIcon className="w-5 h-5 mr-2" /> {filename || "PDF receipt"}
+        </div>
+      ) : failed ? (
+        <div className="flex flex-col items-center justify-center h-40 bg-background text-xs text-muted-foreground gap-1 px-2 text-center">
+          <ExternalLink className="w-5 h-5" />
+          <span>Couldn't load preview.</span>
+          <span className="text-primary underline">Open in new tab</span>
+        </div>
+      ) : objectUrl ? (
+        <img
+          src={objectUrl}
+          alt={filename || "Receipt"}
+          className="w-full h-40 object-cover bg-background"
+        />
+      ) : (
+        <div className="flex items-center justify-center h-40 bg-background text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+        </div>
+      )}
+      <div className="px-2 py-1 text-xs text-muted-foreground truncate">
+        {filename || "Receipt"}
+      </div>
+    </a>
   );
 }
 
