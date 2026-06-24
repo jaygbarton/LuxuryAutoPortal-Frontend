@@ -162,6 +162,8 @@ export function TripTasksTab() {
       if (!search.trim()) {
         if (tripStartOn) params.append("tripStartOn", tripStartOn);
         if (tripEndOn) params.append("tripEndOn", tripEndOn);
+        // Both set → OR them (trip starts on Start day OR ends on Ends day).
+        if (tripStartOn && tripEndOn) params.append("startOrEnd", "true");
       }
       const qs = params.toString();
       const response = await fetch(

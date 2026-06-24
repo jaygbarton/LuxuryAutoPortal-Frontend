@@ -245,15 +245,17 @@ export function CarInspectionsTab() {
       // on the exact Mountain-Time day. The Trip Start column falls back to
       // inspection_date for manual rows with no trip, so the Trip Start filter
       // mirrors that fallback to stay consistent with the displayed value.
-      if (!q && tripStartOn) {
+      // Trip Start + Trip Ends combine with OR when BOTH are set: show records
+      // that start on the Start day OR end on the Ends day (cars going out that
+      // day + cars coming back that day), not just the intersection. A single
+      // filter behaves as a plain single-day match.
+      if (!q && (tripStartOn || tripEndOn)) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
         const startDay = toMtDate(trip?.tripStart ?? insp.inspection_date);
-        if (startDay !== tripStartOn) return false;
-      }
-      if (!q && tripEndOn) {
-        const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
         const endDay = toMtDate(trip?.tripEnd);
-        if (endDay !== tripEndOn) return false;
+        const matchesStart = tripStartOn ? startDay === tripStartOn : false;
+        const matchesEnd = tripEndOn ? endDay === tripEndOn : false;
+        if (!matchesStart && !matchesEnd) return false;
       }
       return true;
     });

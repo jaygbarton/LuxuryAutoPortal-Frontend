@@ -422,6 +422,12 @@ export function TuroInspectionTab() {
         params.set("tripEndFrom", tripEndOn);
         params.set("tripEndOn", tripEndOn);
       }
+      // OR the two day filters when both are set so the join contains trips that
+      // start on the Start day OR end on the Ends day (matches the client filter
+      // below and the Trips Overview tab).
+      if (tripStartOn && tripEndOn) {
+        params.set("startOrEnd", "true");
+      }
       const res = await fetch(buildApiUrl(`/api/turo-trips?${params}`), {
         credentials: "include",
       });
@@ -486,13 +492,14 @@ export function TuroInspectionTab() {
       // filter while displaying a different Trip Start/Ends than Trips Overview
       // shows for that same filter. A row with no joined trip simply can't
       // satisfy a trip-date filter, which mirrors the trip-only Trips Overview.
-      if (!q && tripStartOn) {
+      // Trip Start + Trip Ends combine with OR when BOTH are set: trips starting
+      // on the Start day OR ending on the Ends day. Single filter = day match.
+      if (!q && (tripStartOn || tripEndOn)) {
         const startDate = toMtDate(trip?.tripStart);
-        if (startDate !== tripStartOn) return false;
-      }
-      if (!q && tripEndOn) {
         const endDate = toMtDate(trip?.tripEnd);
-        if (endDate !== tripEndOn) return false;
+        const matchesStart = tripStartOn ? startDate === tripStartOn : false;
+        const matchesEnd = tripEndOn ? endDate === tripEndOn : false;
+        if (!matchesStart && !matchesEnd) return false;
       }
 
       return true;

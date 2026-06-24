@@ -150,15 +150,15 @@ export function NoCarIssuesTab() {
       // day — the same values the Trip Start / Trip Ends columns display. The
       // columns show "--" (not inspection_date) when there's no trip, so don't
       // fall back to inspection_date here either.
-      if (tripStartOn) {
+      // Trip Start + Trip Ends combine with OR when BOTH are set: cars going out
+      // that day OR coming back that day. A single filter is a plain day match.
+      if (tripStartOn || tripEndOn) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
         const startDay = toMtDate(trip?.tripStart);
-        if (startDay !== tripStartOn) return false;
-      }
-      if (tripEndOn) {
-        const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
         const endDay = toMtDate(trip?.tripEnd);
-        if (endDay !== tripEndOn) return false;
+        const matchesStart = tripStartOn ? startDay === tripStartOn : false;
+        const matchesEnd = tripEndOn ? endDay === tripEndOn : false;
+        if (!matchesStart && !matchesEnd) return false;
       }
       return true;
     });
