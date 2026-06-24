@@ -115,6 +115,7 @@ function OwnerApprovalBadge({ rec }: { rec: MaintenanceRecord }) {
     email_sent: { label: "Email Sent", cls: "bg-blue-500/20 text-blue-400" },
     approved: { label: "Approved", cls: "bg-green-500/20 text-green-500" },
     declined: { label: "Declined", cls: "bg-red-500/20 text-red-500" },
+    auto_approved: { label: "Auto-Approved", cls: "bg-amber-500/20 text-amber-500" },
   };
   const m = map[s] || map.email_sent;
   const wantsPickup = rec.owner_wants_pickup === 1 || rec.owner_wants_pickup === true;

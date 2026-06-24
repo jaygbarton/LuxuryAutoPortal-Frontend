@@ -24,7 +24,7 @@ interface ApprovalData {
   return_location: string | null;
   delivery_location: string | null;
   guest_name: string | null;
-  owner_approval_status: "not_sent" | "email_sent" | "approved" | "declined";
+  owner_approval_status: "not_sent" | "email_sent" | "approved" | "declined" | "auto_approved";
   owner_decline_reason: string | null;
   owner_wants_pickup: 0 | 1 | null;
 }
@@ -176,10 +176,17 @@ export default function MaintenanceApproval() {
   const alreadyResolved =
     done ||
     data.owner_approval_status === "approved" ||
-    data.owner_approval_status === "declined";
+    data.owner_approval_status === "declined" ||
+    data.owner_approval_status === "auto_approved";
 
-  const resolvedStatus =
-    done ?? (data.owner_approval_status as "approved" | "declined");
+  // auto_approved (no response within 5 days → GLA proceeded) presents like an
+  // approval for the resolved view's check icon / green styling.
+  const resolvedStatus: "approved" | "declined" =
+    done ??
+    (data.owner_approval_status === "declined" ? "declined" : "approved");
+
+  const autoApproved =
+    !done && data.owner_approval_status === "auto_approved";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a1a1a] via-[#2d2d2d] to-[#1a1a1a] py-10 px-4">
@@ -203,14 +210,18 @@ export default function MaintenanceApproval() {
                 <X className="h-16 w-16 text-red-500 mx-auto mb-4" />
               )}
               <h2 className="text-xl font-bold text-white mb-2">
-                {resolvedStatus === "approved"
-                  ? "Maintenance Approved"
-                  : "Maintenance Declined"}
+                {autoApproved
+                  ? "Maintenance Proceeding"
+                  : resolvedStatus === "approved"
+                    ? "Maintenance Approved"
+                    : "Maintenance Declined"}
               </h2>
               <p className="text-gray-400">
-                {resolvedStatus === "approved"
-                  ? "Thank you. The GLA team will schedule and manage this maintenance."
-                  : "Your response has been recorded. The GLA team has been notified."}
+                {autoApproved
+                  ? "No response was received within 5 days, so the GLA team is proceeding with this maintenance as noted in the original email. Contact us if you have any questions."
+                  : resolvedStatus === "approved"
+                    ? "Thank you. The GLA team will schedule and manage this maintenance."
+                    : "Your response has been recorded. The GLA team has been notified."}
               </p>
               <Button
                 onClick={() => setLocation("/")}

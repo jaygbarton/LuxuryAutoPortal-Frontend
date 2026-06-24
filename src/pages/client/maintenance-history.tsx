@@ -29,7 +29,7 @@ interface ClientMaintenance {
   notes: string | null;
   photos: string[];
   reservation_id: string | null;
-  owner_approval_status: "not_sent" | "email_sent" | "approved" | "declined" | null;
+  owner_approval_status: "not_sent" | "email_sent" | "approved" | "declined" | "auto_approved" | null;
   owner_decline_reason: string | null;
   owner_wants_pickup: 0 | 1 | null;
   owner_responded_at: string | null;
@@ -75,6 +75,10 @@ function approvalBadge(rec: ClientMaintenance) {
     declined: {
       label: "Declined",
       cls: "bg-red-500/10 text-red-700 border-red-500/30",
+    },
+    auto_approved: {
+      label: "Auto-Approved (no response in 5 days)",
+      cls: "bg-amber-500/10 text-amber-700 border-amber-500/30",
     },
   };
   const m = map[s] || map.email_sent;
