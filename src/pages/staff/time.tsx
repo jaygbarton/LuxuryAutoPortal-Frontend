@@ -100,6 +100,7 @@ interface SessionRow {
   time_in: string | null;
   time_out: string | null;
   time_total_hours: string | null;
+  time_lunch_hours?: string | number | null;
   time_end_reason: "break" | "shift_end" | null;
   time_form_details?: string | null;
 }
@@ -245,11 +246,19 @@ function utahDateKey(d: string | null | undefined): string {
  */
 function computeTotals(sessions: SessionRow[]): { workedSec: number; breakSec: number } {
   let workedSec = 0;
-  for (const s of sessions) workedSec += secondsBetween(s.time_in, s.time_out);
+  let lunchSec = 0;
+  for (const s of sessions) {
+    // Manual lunch (employee stayed clocked in through lunch) is stored in
+    // time_lunch_hours; it counts as break, not worked time — matching the
+    // backend day-summary used in the Slack notification.
+    const lunch = Math.max(0, Number(s.time_lunch_hours ?? 0) || 0) * 3600;
+    workedSec += Math.max(0, secondsBetween(s.time_in, s.time_out) - lunch);
+    lunchSec += lunch;
+  }
 
   // Sessions arrive newest-first; iterate chronologically to find break gaps.
   const chrono = [...sessions].reverse();
-  let breakSec = 0;
+  let breakSec = lunchSec;
   for (let i = 0; i < chrono.length; i++) {
     const cur = chrono[i];
     if (cur.time_end_reason !== "break" || !cur.time_out) continue;
@@ -274,6 +283,7 @@ export default function StaffTime() {
   const [actionLoading, setActionLoading] = useState(false);
   const [clockOutOpen, setClockOutOpen] = useState(false);
   const [endNotes, setEndNotes] = useState("");
+  const [lunchMinutes, setLunchMinutes] = useState("");
   const [shiftStep, setShiftStep] = useState<"choose" | "questionnaire">("choose");
   const [answers, setAnswers] = useState<Record<string, string>>(buildEmptyAnswers);
   const [statsSession, setStatsSession] = useState<SessionRow | null>(null);
@@ -386,7 +396,8 @@ export default function StaffTime() {
       name: string;
       value?: string | number;
       description?: string;
-    }>
+    }>,
+    lunchMin?: number
   ) => {
     setActionLoading(true);
     try {
@@ -397,6 +408,7 @@ export default function StaffTime() {
         body: JSON.stringify({
           endReason,
           time_form_details: JSON.stringify(detailsArray),
+          ...(lunchMin && lunchMin > 0 ? { lunchMinutes: lunchMin } : {}),
         }),
       });
       const json = await r.json().catch(() => ({}));
@@ -420,6 +432,7 @@ export default function StaffTime() {
       setShiftStep("choose");
       setAnswers(buildEmptyAnswers());
       setEndNotes("");
+      setLunchMinutes("");
       qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/last"] });
       qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/sessions"] });
     } finally {
@@ -462,7 +475,16 @@ export default function StaffTime() {
     if (notes) {
       details.push({ key: "notes", name: "Notes", value: notes, description: notes });
     }
-    void submitClockOut("shift_end", details);
+    const lunchMin = Math.max(0, Math.round(Number(lunchMinutes) || 0));
+    if (lunchMin > 0) {
+      details.push({
+        key: "lunch_minutes",
+        name: "Lunch Break (minutes)",
+        value: lunchMin,
+        description: `${lunchMin} min`,
+      });
+    }
+    void submitClockOut("shift_end", details, lunchMin);
   };
 
   const setAnswer = (id: string, value: string) => {
@@ -933,6 +955,24 @@ export default function StaffTime() {
                     </div>
                   );
                 })}
+
+                <div className="space-y-1">
+                  <Label htmlFor="lunch-minutes">Lunch break (minutes)</Label>
+                  <input
+                    id="lunch-minutes"
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={lunchMinutes}
+                    onChange={(e) => setLunchMinutes(e.target.value)}
+                    placeholder="e.g. 30 — leave blank if no lunch"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    If you took a lunch without clocking out for break, enter the minutes here.
+                    It's subtracted from your worked time and shown as break time.
+                  </p>
+                </div>
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t">
