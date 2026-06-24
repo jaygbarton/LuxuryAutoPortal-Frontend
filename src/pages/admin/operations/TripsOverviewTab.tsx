@@ -455,6 +455,12 @@ export function TripsOverviewTab() {
         params.set("tripEndFrom", tripEndOn);
         params.set("tripEndOn", tripEndOn);
       }
+      // When BOTH a Trip Start day and a Trip Ends day are set, OR them: show
+      // trips that start on the Start day OR end on the Ends day (cars going out
+      // that day + cars coming back that day), not just same-day trips.
+      if (tripStartOn && tripEndOn) {
+        params.set("startOrEnd", "true");
+      }
       const response = await fetch(
         buildApiUrl(`/api/turo-trips?${params.toString()}`),
         { credentials: "include" },
@@ -482,6 +488,10 @@ export function TripsOverviewTab() {
       if (tripEndOn) {
         params.set("tripEndFrom", tripEndOn);
         params.set("tripEndOn", tripEndOn);
+      }
+      // Match the table's OR behavior so the count cards stay in sync.
+      if (tripStartOn && tripEndOn) {
+        params.set("startOrEnd", "true");
       }
       const qs = params.toString();
       const response = await fetch(
