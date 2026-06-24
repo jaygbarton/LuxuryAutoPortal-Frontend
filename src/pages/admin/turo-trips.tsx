@@ -61,6 +61,7 @@ import {
   Upload,
   ChevronDown,
   Gauge,
+  Repeat,
 } from "lucide-react";
 import { differenceInHours } from "date-fns";
 
@@ -80,6 +81,7 @@ interface TuroTrip {
   earnings: number;
   cancelledEarnings: number;
   status: "booked" | "cancelled" | "ended" | "returned";
+  vehicleSwap: boolean;
   calendarEventId: string | null;
   pickupLocation: string | null;
   returnLocation: string | null;
@@ -133,6 +135,8 @@ export default function TuroTripsPage() {
   const [selectedTrip, setSelectedTrip] = useState<TuroTrip | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  // When true, show only reservations flagged as a vehicle swap.
+  const [vehicleSwapOnly, setVehicleSwapOnly] = useState(false);
   // Two exact-day filters, AND-ed: "Trip Start" = trip_start falls on that
   // Mountain-Time day, "Trip Ends" = trip_end falls on that day. Setting both
   // to the same date shows only trips that start AND end that day. Each box can
@@ -199,6 +203,7 @@ export default function TuroTripsPage() {
     queryKey: [
       "/api/turo-trips",
       statusFilters,
+      vehicleSwapOnly,
       debouncedSearchQuery,
       currentPage,
       itemsPerPage,
@@ -214,6 +219,9 @@ export default function TuroTripsPage() {
       );
       if (statusFilters.length > 0) {
         url += `&status=${statusFilters.join(",")}`;
+      }
+      if (vehicleSwapOnly) {
+        url += `&vehicleSwap=true`;
       }
       if (debouncedSearchQuery) {
         url += `&q=${encodeURIComponent(debouncedSearchQuery)}`;
@@ -926,6 +934,35 @@ export default function TuroTripsPage() {
     }
   };
 
+  // Flag/unflag a reservation as a vehicle swap (same reservation #, the guest
+  // was moved to a different car). Display-only flag.
+  const [savingSwap, setSavingSwap] = useState<number | null>(null);
+  const toggleVehicleSwap = async (trip: TuroTrip) => {
+    const next = !trip.vehicleSwap;
+    setSavingSwap(trip.id);
+    try {
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/${trip.id}/vehicle-swap`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vehicleSwap: next }),
+        },
+      );
+      if (!response.ok) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      toast({
+        title: next ? "Flagged as Vehicle Swap" : "Vehicle Swap flag removed",
+        description: `Reservation #${trip.reservationId}`,
+      });
+    } catch {
+      toast({ title: "Failed to update Vehicle Swap", variant: "destructive" });
+    } finally {
+      setSavingSwap(null);
+    }
+  };
+
   // Parse the user's paste (tab or multi-space separated rows from Excel) and
   // POST it to the bulk-import endpoint. We accept either a header row or none
   // — column order is fixed: Reservation ID, Plate#, VIN#, Trip Start Odometer,
@@ -1014,7 +1051,7 @@ export default function TuroTripsPage() {
   // Reset to page 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilters, debouncedSearchQuery, tripStartOn, tripEndOn, bookingFrom, bookingTo, sortBy, sortDir]);
+  }, [statusFilters, vehicleSwapOnly, debouncedSearchQuery, tripStartOn, tripEndOn, bookingFrom, bookingTo, sortBy, sortDir]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -1494,8 +1531,19 @@ export default function TuroTripsPage() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+              {/* Vehicle Swap filter — show only flagged reservations. */}
+              <Button
+                variant={vehicleSwapOnly ? "default" : "outline"}
+                onClick={() => setVehicleSwapOnly((v) => !v)}
+                className="whitespace-nowrap w-full sm:w-auto"
+                title="Show only reservations flagged as a vehicle swap"
+              >
+                <Repeat className="mr-2 h-4 w-4" />
+                Vehicle Swap
+              </Button>
               {(searchQuery ||
                 statusFilters.length > 0 ||
+                vehicleSwapOnly ||
                 tripStartOn || tripEndOn ||
                 bookingFrom || bookingTo) && (
                 <Button
@@ -1504,6 +1552,7 @@ export default function TuroTripsPage() {
                   onClick={() => {
                     setSearchQuery("");
                     setStatusFilters([]);
+                    setVehicleSwapOnly(false);
                     setTripStartOn(""); setTripEndOn("");
                     setBookingFrom(""); setBookingTo("");
                   }}
@@ -1694,18 +1743,21 @@ export default function TuroTripsPage() {
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Status
                     </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
+                      Vehicle Swap
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoadingTrips ? (
                     <TableRow>
-                      <TableCell colSpan={20} className="text-center py-8">
+                      <TableCell colSpan={21} className="text-center py-8">
                         <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                       </TableCell>
                     </TableRow>
                   ) : trips.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={20} className="text-center py-12">
+                      <TableCell colSpan={21} className="text-center py-12">
                         <div className="flex flex-col items-center gap-3 text-muted-foreground">
                           {debouncedSearchQuery || statusFilters.length > 0 ? (
                             <>
@@ -1793,6 +1845,12 @@ export default function TuroTripsPage() {
                                   debouncedSearchQuery,
                                 )
                               : trip.reservationId}
+                            {trip.vehicleSwap && (
+                              <Badge className="mt-1 block w-fit bg-amber-500 hover:bg-amber-500 text-[10px] font-semibold">
+                                <Repeat className="mr-1 h-3 w-3" />
+                                VEHICLE SWAP
+                              </Badge>
+                            )}
                           </TableCell>
 
                           {/* CAR — also pinned to the left on md+ so admins
@@ -2509,6 +2567,28 @@ export default function TuroTripsPage() {
                           >
                             {getStatusBadge(trip.status)}
                           </TableCell>
+
+                          {/* Vehicle Swap toggle — flag this reservation as a
+                              vehicle swap (same reservation #, different car). */}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant={trip.vehicleSwap ? "default" : "outline"}
+                              size="sm"
+                              disabled={savingSwap === trip.id}
+                              onClick={() => toggleVehicleSwap(trip)}
+                              className={`whitespace-nowrap text-xs ${trip.vehicleSwap ? "bg-amber-500 hover:bg-amber-600" : ""}`}
+                              title={trip.vehicleSwap ? "Remove Vehicle Swap flag" : "Flag as Vehicle Swap"}
+                            >
+                              {savingSwap === trip.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <>
+                                  <Repeat className="mr-1 h-3.5 w-3.5" />
+                                  {trip.vehicleSwap ? "Swap" : "Mark Swap"}
+                                </>
+                              )}
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       );
                     })
@@ -2615,7 +2695,15 @@ export default function TuroTripsPage() {
           {selectedTrip && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                {getStatusBadge(selectedTrip.status)}
+                <div className="flex items-center gap-2">
+                  {getStatusBadge(selectedTrip.status)}
+                  {selectedTrip.vehicleSwap && (
+                    <Badge className="bg-amber-500 hover:bg-amber-500 text-[10px] font-semibold">
+                      <Repeat className="mr-1 h-3 w-3" />
+                      VEHICLE SWAP
+                    </Badge>
+                  )}
+                </div>
                 {selectedTrip.calendarEventId && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="w-4 h-4" />

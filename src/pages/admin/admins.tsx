@@ -846,11 +846,17 @@ export default function AdminsPage() {
           <DialogContent className="bg-card border-border text-foreground max-w-[95vw] sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="text-lg sm:text-xl font-semibold">
-                {editingUser ? "Edit Admin" : "Add New Admin"}
+                {editingUser
+                  ? editingUser.isCoHost
+                    ? "Edit Co-Host"
+                    : "Edit Admin"
+                  : "Add New Admin"}
               </DialogTitle>
               <DialogDescription className="text-muted-foreground">
                 {editingUser
-                  ? "Update admin user information"
+                  ? editingUser.isCoHost
+                    ? "Update co-host user information"
+                    : "Update admin user information"
                   : "Create a new administrator account"}
               </DialogDescription>
             </DialogHeader>
@@ -943,40 +949,55 @@ export default function AdminsPage() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="roleId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-muted-foreground">Role</FormLabel>
-                      <Select
-                        onValueChange={(value) =>
-                          field.onChange(parseInt(value, 10))
-                        }
-                        value={field.value?.toString() || ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="bg-card border-border text-foreground focus:border-primary">
-                            <SelectValue placeholder="Select a role" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="bg-card border-border text-foreground">
-                          {roles
-                            ?.filter((role) => role.isAdmin || role.isEmployee)
-                            .map((role) => (
-                              <SelectItem
-                                key={role.id}
-                                value={role.id.toString()}
-                              >
-                                {role.name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {editingUser?.isCoHost ? (
+                  // Co-hosts share the Admin role under the hood; show the role
+                  // read-only as "Co-Host" so it isn't accidentally re-assigned
+                  // (which would break their fleet scoping) and isn't mislabeled.
+                  <FormItem>
+                    <FormLabel className="text-muted-foreground">Role</FormLabel>
+                    <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-foreground">
+                      Co-Host
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Co-hosts are managed from the Co-Hosts page.
+                    </p>
+                  </FormItem>
+                ) : (
+                  <FormField
+                    control={form.control}
+                    name="roleId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-muted-foreground">Role</FormLabel>
+                        <Select
+                          onValueChange={(value) =>
+                            field.onChange(parseInt(value, 10))
+                          }
+                          value={field.value?.toString() || ""}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="bg-card border-border text-foreground focus:border-primary">
+                              <SelectValue placeholder="Select a role" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-card border-border text-foreground">
+                            {roles
+                              ?.filter((role) => role.isAdmin || role.isEmployee)
+                              .map((role) => (
+                                <SelectItem
+                                  key={role.id}
+                                  value={role.id.toString()}
+                                >
+                                  {role.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 {editingUser && (
                   <SwitchableRolesSection
