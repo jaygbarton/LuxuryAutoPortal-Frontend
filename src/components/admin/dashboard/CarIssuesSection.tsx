@@ -133,7 +133,10 @@ export default function CarIssuesSection() {
   const { data, isLoading } = useQuery<InspectionsResponse>({
     queryKey: ["/api/operations/inspections", "car-issues"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/operations/inspections?limit=50"), {
+      // Fetch manual inspections server-side: there are hundreds of turo_return
+      // stubs, so an unfiltered ?limit=50 page would be almost entirely Turo
+      // rows and the manual Car Issues would be starved out of the page.
+      const res = await fetch(buildApiUrl("/api/operations/inspections?source=manual&limit=200"), {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch inspections");
@@ -182,6 +185,12 @@ export default function CarIssuesSection() {
 
   const inspections = useMemo(() => {
     let f = allInspections;
+    // Car Issues = manually-logged inspections only. Auto-created turo_return
+    // stubs (one per ended Turo trip) belong to the Turo Messages / Inspections
+    // section, not here — matching the Operations → Car Issues tab, which also
+    // excludes turo_return. Without this, every ended trip showed up as a
+    // "Car Issue" and the count never matched the Operations tab.
+    f = f.filter(t => t.source === "manual");
     // Never show inspections whose linked trip is cancelled
     f = f.filter(t => (t.trip_status ?? "").toLowerCase() !== "cancelled");
     if (search.trim()) { const q = search.toLowerCase(); f = f.filter(t => Object.values(t).some(v => v != null && String(v).toLowerCase().includes(q))); }

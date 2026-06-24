@@ -163,7 +163,9 @@ export default function TuroInspectionsSection() {
   const { data, isLoading } = useQuery<InspectionsResponse>({
     queryKey: ["/api/operations/inspections", "turo"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/operations/inspections?limit=50"), {
+      // Fetch turo_return stubs server-side so this section is scoped to Turo
+      // returns (the Car Issues section handles manual inspections).
+      const res = await fetch(buildApiUrl("/api/operations/inspections?source=turo_return&limit=200"), {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch inspections");
@@ -212,6 +214,11 @@ export default function TuroInspectionsSection() {
 
   const inspections = useMemo(() => {
     let f = allInspections;
+    // Turo Messages / Inspections = auto-created turo_return stubs only.
+    // Manually-logged inspections belong to the Car Issues section. This mirrors
+    // the Operations tabs (Turo Messages = turo_return, Car Issues = manual) so
+    // the two dashboard sections don't show the same rows twice.
+    f = f.filter(t => t.source === "turo_return");
     if (search.trim()) { const q = search.toLowerCase(); f = f.filter(t => Object.values(t).some(v => v != null && String(v).toLowerCase().includes(q))); }
     if (statusFilter !== "all") f = f.filter(t => t.status === statusFilter);
     if (assignedToFilter !== "all") f = f.filter(t => (t.assigned_to ?? "").trim() === assignedToFilter);

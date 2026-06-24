@@ -114,63 +114,72 @@ export function DashboardRecordCard({
           {statusControl}
         </div>
 
-        {/* Car + plate */}
-        {!isEmpty(carName) && (
-          <div className="flex items-center gap-1.5 text-sm text-foreground">
-            <Car className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
-            <span className="font-semibold">{carName}</span>
-            {!isEmpty(plate) && <span className="text-muted-foreground text-xs">· {plate}</span>}
-          </div>
-        )}
-
-        {/* Guest */}
-        {!isEmpty(guestName) && (
-          <div className="text-xs text-muted-foreground">{guestName}</div>
-        )}
-
-        {/* Assigned to */}
-        {!isEmpty(assignedTo) && (
-          <div className="flex items-center gap-1.5 text-xs text-foreground">
-            <User className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
-            <span><span className="text-muted-foreground">Assigned:</span> {assignedTo}</span>
-          </div>
-        )}
-
-        {/* Trip window */}
-        {hasWindow && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
-            <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="text-foreground font-medium">{isEmpty(tripStart) ? "—" : tripStart}</span>
-            <ArrowRight className="w-3 h-3 flex-shrink-0" />
-            <span className="text-foreground font-medium">{isEmpty(tripEnd) ? "—" : tripEnd}</span>
-          </div>
-        )}
-
-        {/* Pickup / drop off */}
-        {!isEmpty(pickupLocation) && (
-          <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
-            <ArrowUpFromLine className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-emerald-600" />
-            <span className="break-words"><span className="font-medium text-foreground">Pick Up:</span> {pickupLocation}</span>
-          </div>
-        )}
-        {!isEmpty(dropoffLocation) && (
-          <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
-            <ArrowDownToLine className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-rose-600" />
-            <span className="break-words"><span className="font-medium text-foreground">Drop Off:</span> {dropoffLocation}</span>
-          </div>
-        )}
-
-        {/* Details grid — everything else, label over value, wraps responsively */}
-        {shownDetails.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 pt-1 mt-1 border-t border-border/60">
-            {shownDetails.map((d) => (
-              <div key={d.label} className="min-w-0">
-                <div className="text-[10px] uppercase tracking-wide text-muted-foreground/70 leading-tight">{d.label}</div>
-                <div className="text-xs text-foreground break-words">{d.value}</div>
+        {/* Body: trip identity on the left, details grid on the right so the
+            empty horizontal space beside the trip info gets used. Stacks on
+            small screens, splits into two columns from lg up. */}
+        <div className="flex flex-col lg:flex-row lg:gap-6 lg:items-start">
+          {/* Left column: car / guest / window / locations */}
+          <div className="space-y-1.5 lg:flex-1 lg:min-w-0">
+            {/* Car + plate */}
+            {!isEmpty(carName) && (
+              <div className="flex items-center gap-1.5 text-sm text-foreground">
+                <Car className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
+                <span className="font-semibold">{carName}</span>
+                {!isEmpty(plate) && <span className="text-muted-foreground text-xs">· {plate}</span>}
               </div>
-            ))}
+            )}
+
+            {/* Guest */}
+            {!isEmpty(guestName) && (
+              <div className="text-xs text-muted-foreground">{guestName}</div>
+            )}
+
+            {/* Assigned to */}
+            {!isEmpty(assignedTo) && (
+              <div className="flex items-center gap-1.5 text-xs text-foreground">
+                <User className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
+                <span><span className="text-muted-foreground">Assigned:</span> {assignedTo}</span>
+              </div>
+            )}
+
+            {/* Trip window */}
+            {hasWindow && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+                <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="text-foreground font-medium">{isEmpty(tripStart) ? "—" : tripStart}</span>
+                <ArrowRight className="w-3 h-3 flex-shrink-0" />
+                <span className="text-foreground font-medium">{isEmpty(tripEnd) ? "—" : tripEnd}</span>
+              </div>
+            )}
+
+            {/* Pickup / drop off */}
+            {!isEmpty(pickupLocation) && (
+              <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <ArrowUpFromLine className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-emerald-600" />
+                <span className="break-words"><span className="font-medium text-foreground">Pick Up:</span> {pickupLocation}</span>
+              </div>
+            )}
+            {!isEmpty(dropoffLocation) && (
+              <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <ArrowDownToLine className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-rose-600" />
+                <span className="break-words"><span className="font-medium text-foreground">Drop Off:</span> {dropoffLocation}</span>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Right column: details grid — moved up to fill the empty space
+              beside the trip info instead of sitting below it. */}
+          {shownDetails.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 pt-1 mt-1 border-t border-border/60 lg:pt-0 lg:mt-0 lg:border-t-0 lg:flex-[2] lg:min-w-0 lg:self-stretch">
+              {shownDetails.map((d) => (
+                <div key={d.label} className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground/70 leading-tight">{d.label}</div>
+                  <div className="text-xs text-foreground break-words">{d.value}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Remarks */}
         {!isEmpty(notes) && (
