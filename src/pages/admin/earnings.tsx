@@ -2210,22 +2210,35 @@ export default function EarningsPage() {
 // which works same- or cross-origin, and show an explicit fallback on error.
 function ReceiptThumb({ url, filename }: { url: string; filename: string }) {
   const fullUrl = url.startsWith("/") ? buildApiUrl(url) : url;
-  const isPdf = (filename || "").toLowerCase().endsWith(".pdf");
+  // Form-submission receipts carry no real filename ("Form receipt #123"), so
+  // we can't rely on a ".pdf" suffix to know it's a PDF. We fetch the bytes and
+  // detect PDF vs image from the response's content-type instead. Start by
+  // treating only an explicit .pdf name as a known PDF.
+  const [isPdf, setIsPdf] = React.useState(() => (filename || "").toLowerCase().endsWith(".pdf"));
   const [objectUrl, setObjectUrl] = React.useState<string | null>(null);
   const [failed, setFailed] = React.useState(false);
 
+  const nameIsPdf = (filename || "").toLowerCase().endsWith(".pdf");
+
   React.useEffect(() => {
-    if (isPdf) return; // PDFs open in a new tab; no inline preview to fetch.
     let revoked = false;
     let created: string | null = null;
     setFailed(false);
     setObjectUrl(null);
+    setIsPdf(nameIsPdf);
     (async () => {
       try {
         const res = await fetch(fullUrl, { credentials: "include" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const blob = await res.blob();
         if (revoked) return;
+        // Trust the served content-type: a PDF gets the open-in-tab tile, an
+        // image gets an inline preview. This fixes extension-less receipts.
+        if ((blob.type || "").toLowerCase().includes("pdf")) {
+          setIsPdf(true);
+          return;
+        }
+        setIsPdf(false);
         created = URL.createObjectURL(blob);
         setObjectUrl(created);
       } catch {
@@ -2236,7 +2249,7 @@ function ReceiptThumb({ url, filename }: { url: string; filename: string }) {
       revoked = true;
       if (created) URL.revokeObjectURL(created);
     };
-  }, [fullUrl, isPdf]);
+  }, [fullUrl, nameIsPdf]);
 
   return (
     <a
@@ -2261,6 +2274,7 @@ function ReceiptThumb({ url, filename }: { url: string; filename: string }) {
           src={objectUrl}
           alt={filename || "Receipt"}
           className="w-full h-40 object-cover bg-background"
+          onError={() => setFailed(true)}
         />
       ) : (
         <div className="flex items-center justify-center h-40 bg-background text-muted-foreground">

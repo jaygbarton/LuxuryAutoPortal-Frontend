@@ -1,14 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +15,7 @@ import {
 import { Loader2, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
+import { DashboardRecordCard } from "@/components/admin/dashboard";
 
 interface ClientTrip {
   id: number;
@@ -36,6 +29,11 @@ interface ClientTrip {
   earnings: number | null;
   status: string | null;
   delivery_location: string | null;
+}
+
+interface CarOption {
+  name: string;
+  plate: string;
 }
 
 function fmt(dateStr: string | null): string {
@@ -53,11 +51,30 @@ function fmt(dateStr: string | null): string {
 }
 
 function statusBadgeClass(status: string | null) {
-  if (status === "completed") return "bg-green-500/10 text-green-700 border-green-500/30";
+  if (status === "completed" || status === "ended")
+    return "bg-green-500/10 text-green-700 border-green-500/30";
   if (status === "booked") return "bg-blue-500/10 text-blue-700 border-blue-500/30";
   if (status === "cancelled") return "bg-red-500/10 text-red-700 border-red-500/30";
   return "bg-gray-500/10 text-gray-600 border-gray-500/30";
 }
+
+/** Left accent bar color per trip status, mirroring the dashboard record cards. */
+function accentFor(status: string | null): { bg: string; border: string } {
+  if (status === "cancelled") return { bg: "bg-red-500", border: "border-red-300" };
+  if (status === "booked") return { bg: "bg-blue-500", border: "border-blue-300" };
+  if (status === "completed" || status === "ended")
+    return { bg: "bg-green-500", border: "border-green-300" };
+  return { bg: "bg-slate-400", border: "border-slate-300" };
+}
+
+// Quick-filter status tabs shown above the list (in addition to the dropdown).
+const STATUS_TABS = [
+  { value: "all", label: "All" },
+  { value: "booked", label: "Booked" },
+  { value: "ended", label: "Ended" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+];
 
 const LIMIT = 20;
 
@@ -66,6 +83,7 @@ export default function ClientTripHistory() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [carFilter, setCarFilter] = useState("all");
   const [tripFrom, setTripFrom] = useState("");
   const [tripTo, setTripTo] = useState("");
 
@@ -77,21 +95,27 @@ export default function ClientTripHistory() {
     (handleSearchChange as any)._timer = setTimeout(() => setDebouncedSearch(val), 300);
   };
 
-  const hasFilters = debouncedSearch || statusFilter !== "all" || tripFrom || tripTo;
+  const hasFilters =
+    debouncedSearch || statusFilter !== "all" || carFilter !== "all" || tripFrom || tripTo;
 
   const params = new URLSearchParams({ page: String(page), limit: String(LIMIT) });
   if (debouncedSearch) params.set("q", debouncedSearch);
   if (statusFilter !== "all") params.set("status", statusFilter);
+  if (carFilter !== "all") params.set("car", carFilter);
   if (tripFrom) params.set("tripFrom", tripFrom);
   if (tripTo) params.set("tripTo", tripTo);
 
-  const { data, isLoading } = useQuery<{ success: boolean; data: ClientTrip[]; total: number }>({
-    queryKey: ["/api/client/trips", page, debouncedSearch, statusFilter, tripFrom, tripTo],
+  const { data, isLoading } = useQuery<{
+    success: boolean;
+    data: ClientTrip[];
+    total: number;
+    cars?: CarOption[];
+  }>({
+    queryKey: ["/api/client/trips", page, debouncedSearch, statusFilter, carFilter, tripFrom, tripTo],
     queryFn: async () => {
-      const res = await fetch(
-        buildApiUrl(`/api/client/trips?${params}`),
-        { credentials: "include" },
-      );
+      const res = await fetch(buildApiUrl(`/api/client/trips?${params}`), {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch trips");
       return res.json();
     },
@@ -99,12 +123,14 @@ export default function ClientTripHistory() {
 
   const trips = data?.data ?? [];
   const total = data?.total ?? 0;
+  const cars = data?.cars ?? [];
   const totalPages = Math.max(1, Math.ceil(total / LIMIT));
 
   function clearFilters() {
     setSearch("");
     setDebouncedSearch("");
     setStatusFilter("all");
+    setCarFilter("all");
     setTripFrom("");
     setTripTo("");
     setPage(1);
@@ -123,7 +149,7 @@ export default function ClientTripHistory() {
         </div>
 
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <CardTitle className="text-base shrink-0">
                 {total > 0 ? `${total} trip${total !== 1 ? "s" : ""}` : "Trips"}
@@ -148,16 +174,47 @@ export default function ClientTripHistory() {
                 )}
               </div>
 
+              {/* Car filter */}
+              {cars.length > 1 && (
+                <Select
+                  value={carFilter}
+                  onValueChange={(v) => {
+                    setCarFilter(v);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-44 text-sm">
+                    <SelectValue placeholder="All Cars" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Cars</SelectItem>
+                    {cars.map((c) => (
+                      <SelectItem key={c.plate} value={c.plate}>
+                        {c.name}
+                        {c.plate ? ` (${c.plate})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
               {/* Status filter */}
-              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => {
+                  setStatusFilter(v);
+                  setPage(1);
+                }}
+              >
                 <SelectTrigger className="h-8 w-36 text-sm">
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="booked">Booked</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  {STATUS_TABS.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.value === "all" ? "All Status" : s.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -167,7 +224,10 @@ export default function ClientTripHistory() {
                 <Input
                   type="date"
                   value={tripFrom}
-                  onChange={(e) => { setTripFrom(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setTripFrom(e.target.value);
+                    setPage(1);
+                  }}
                   className="h-8 w-36 text-sm"
                 />
               </div>
@@ -176,16 +236,49 @@ export default function ClientTripHistory() {
                 <Input
                   type="date"
                   value={tripTo}
-                  onChange={(e) => { setTripTo(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setTripTo(e.target.value);
+                    setPage(1);
+                  }}
                   className="h-8 w-36 text-sm"
                 />
               </div>
 
               {hasFilters && (
-                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-red-600 hover:text-red-700 h-8 px-2 text-xs">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="text-red-600 hover:text-red-700 h-8 px-2 text-xs"
+                >
                   Clear
                 </Button>
               )}
+            </div>
+
+            {/* Quick status tabs */}
+            <div className="flex flex-wrap gap-1.5">
+              {STATUS_TABS.map((s) => {
+                const active = statusFilter === s.value;
+                return (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter(s.value);
+                      setPage(1);
+                    }}
+                    className={
+                      "px-3 py-1 text-xs font-medium rounded-full border transition-colors " +
+                      (active
+                        ? "bg-[#B8860B] text-white border-[#B8860B]"
+                        : "bg-transparent text-muted-foreground border-border hover:text-foreground")
+                    }
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
             </div>
           </CardHeader>
           <CardContent>
@@ -199,57 +292,45 @@ export default function ClientTripHistory() {
               </p>
             ) : (
               <>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-border hover:bg-transparent">
-                        <TableHead className="whitespace-nowrap">Reservation</TableHead>
-                        <TableHead>Car</TableHead>
-                        <TableHead className="whitespace-nowrap">VIN #</TableHead>
-                        <TableHead>Guest</TableHead>
-                        <TableHead className="whitespace-nowrap">Trip Start</TableHead>
-                        <TableHead className="whitespace-nowrap">Trip End</TableHead>
-                        <TableHead>Earnings</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {trips.map((t) => (
-                        <TableRow key={t.id} className="border-border">
-                          <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                            {t.reservation_id || "—"}
-                          </TableCell>
-                          <TableCell className="font-medium text-sm whitespace-nowrap">
-                            {t.car_name || "—"}
-                            {t.plate_number && (
-                              <span className="ml-1 text-xs text-muted-foreground">
-                                ({t.plate_number})
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                            {t.vin_number || "—"}
-                          </TableCell>
-                          <TableCell className="text-sm">{t.guest_name || "—"}</TableCell>
-                          <TableCell className="text-sm whitespace-nowrap">{fmt(t.trip_start)}</TableCell>
-                          <TableCell className="text-sm whitespace-nowrap">{fmt(t.trip_end)}</TableCell>
-                          <TableCell className="text-sm font-medium whitespace-nowrap">
-                            {t.earnings != null ? `$${Number(t.earnings).toFixed(2)}` : "—"}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={statusBadgeClass(t.status)}>
-                              {t.status ?? "—"}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="flex flex-col gap-3">
+                  {trips.map((t) => {
+                    const accent = accentFor(t.status);
+                    return (
+                      <DashboardRecordCard
+                        key={t.id}
+                        accentBg={accent.bg}
+                        accentBorder={accent.border}
+                        typeLabel="Trip"
+                        reservationId={t.reservation_id}
+                        carName={t.car_name}
+                        plate={t.plate_number}
+                        guestName={t.guest_name}
+                        tripStart={fmt(t.trip_start)}
+                        tripEnd={fmt(t.trip_end)}
+                        details={[
+                          { label: "VIN #", value: t.vin_number || "—" },
+                          {
+                            label: "Earnings",
+                            value:
+                              t.earnings != null ? `$${Number(t.earnings).toFixed(2)}` : "—",
+                          },
+                          { label: "Delivery", value: t.delivery_location || "—" },
+                        ]}
+                        statusControl={
+                          <Badge variant="outline" className={statusBadgeClass(t.status)}>
+                            {t.status ?? "—"}
+                          </Badge>
+                        }
+                      />
+                    );
+                  })}
                 </div>
 
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-                    <span>Page {page} of {totalPages} ({total} trips)</span>
+                    <span>
+                      Page {page} of {totalPages} ({total} trips)
+                    </span>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"

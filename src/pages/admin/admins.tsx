@@ -58,6 +58,9 @@ interface AdminUser {
   role: string;
   roleId: number;
   isActive: boolean;
+  /** True when this user is a co-host (no dedicated role; flagged by the API
+   *  via email match against co_hosts). Display-only — the role stays Admin. */
+  isCoHost: boolean;
   createdAt: string;
 }
 
@@ -99,6 +102,7 @@ function normalizeUser(raw: any): AdminUser {
     role: raw.role ?? raw.roleName ?? "",
     roleId: Number(raw.roleId ?? 0),
     isActive: Boolean(raw.isActive),
+    isCoHost: Boolean(raw.isCoHost),
     createdAt: raw.createdAt
       ? typeof raw.createdAt === "string"
         ? raw.createdAt
@@ -604,7 +608,14 @@ export default function AdminsPage() {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
+  // Co-hosts share the Admin role (no dedicated role exists), so show their
+  // role as "Co-Host" in the UI. The underlying role/permissions are unchanged.
+  const displayRole = (user: AdminUser) => (user.isCoHost ? "Co-Host" : user.role);
+
   const getRoleBadgeColor = (role: string) => {
+    if (role.toLowerCase().includes("co-host") || role.toLowerCase().includes("co_host")) {
+      return "bg-purple-500/20 text-purple-700 border-purple-500/30 font-semibold";
+    }
     if (role.toLowerCase().includes("admin")) {
       return "bg-[#D3BC8D]/40 text-black border-[#D3BC8D]/60 font-semibold";
     }
@@ -704,9 +715,9 @@ export default function AdminsPage() {
                         <td className="px-3 sm:px-6 py-3 sm:py-4">
                           <Badge
                             variant="outline"
-                            className={cn(getRoleBadgeColor(user.role), "text-[10px] sm:text-xs")}
+                            className={cn(getRoleBadgeColor(displayRole(user)), "text-[10px] sm:text-xs")}
                           >
-                            {user.role}
+                            {displayRole(user)}
                           </Badge>
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4">

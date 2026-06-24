@@ -311,7 +311,17 @@ export default function CarsPage() {
           return car.status === statusFilter;
         };
 
-        const filteredCars = normalizedCars.filter((car) => matchesSearch(car) && matchesStatus(car));
+        const filteredCars = normalizedCars
+          .filter((car) => matchesSearch(car) && matchesStatus(car))
+          // Sort A–Z by Model/Specs to match the admin list; blanks sort last.
+          .sort((a, b) => {
+            const am = (a.model || "").trim();
+            const bm = (b.model || "").trim();
+            if (!am && !bm) return 0;
+            if (!am) return 1;
+            if (!bm) return -1;
+            return am.localeCompare(bm, undefined, { sensitivity: "base" });
+          });
         const total = filteredCars.length;
         const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
         const startIndex = (page - 1) * itemsPerPage;

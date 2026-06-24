@@ -185,6 +185,15 @@ export function NotificationBell() {
               ))
             )}
           </div>
+          <button
+            onClick={() => {
+              setOpen(false);
+              setLocation("/admin/notifications");
+            }}
+            className="w-full text-center px-4 py-2.5 border-t border-border text-sm text-[#D3BC8D] hover:bg-card transition-colors"
+          >
+            View all notifications
+          </button>
         </div>
       )}
     </div>
