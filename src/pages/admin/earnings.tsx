@@ -2380,7 +2380,6 @@ function TableRow({
                 )}
               >
                 {displayText}
-                {hasReceipts && <ImageIcon className="w-3 h-3 shrink-0 opacity-70" />}
               </button>
             ) : hasReceipts ? (
               // Client (view-only): click to view receipts when present.
@@ -2391,7 +2390,6 @@ function TableRow({
                 className="inline-flex items-center gap-1 underline decoration-dotted underline-offset-2 hover:text-primary cursor-pointer"
               >
                 {displayText}
-                <ImageIcon className="w-3 h-3 shrink-0 opacity-70" />
               </button>
             ) : (
               displayText
