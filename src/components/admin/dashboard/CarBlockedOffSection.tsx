@@ -99,7 +99,7 @@ export default function CarBlockedOffSection() {
           <p className="text-sm">No car block-off records.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="flex flex-col gap-3">
           {records.map((r) => {
             const sm = STATUS_META[r.status] ?? STATUS_META["new"];
             const accent = REASON_ACCENT[r.reason] ?? REASON_ACCENT["others"];

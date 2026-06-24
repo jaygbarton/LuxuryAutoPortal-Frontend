@@ -291,7 +291,7 @@ export default function OperationsSection() {
       ) : tasks.length === 0 ? (
         <p className="py-8 text-center text-sm text-gray-500">{isFiltered ? "No matching results." : "No tasks found."}</p>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="flex flex-col gap-3">
           {tasks.map((task, i) => {
             const type = taskTypeMeta(task.task_type);
             const sm = statusMeta(task.status);

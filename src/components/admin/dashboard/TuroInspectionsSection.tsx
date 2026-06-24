@@ -274,7 +274,7 @@ export default function TuroInspectionsSection() {
       ) : inspections.length === 0 ? (
         <p className="py-8 text-center text-sm text-gray-500">{isFiltered ? "No matching results." : "No inspections found."}</p>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="flex flex-col gap-3">
           {inspections.map((insp, i) => {
             const sm = statusMeta(insp.status);
             const photoCount = insp.photos?.length ?? 0;

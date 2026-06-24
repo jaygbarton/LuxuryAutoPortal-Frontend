@@ -272,7 +272,7 @@ export default function TaskManagementSection() {
               <p className="text-sm text-white/60">{isFiltered ? "No matching results." : "No tasks found"}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-3">
               {sortedTasks.map((task) => {
                 const name = task.task_timer_name || "";
                 const desc = task.task_timer_description || "";

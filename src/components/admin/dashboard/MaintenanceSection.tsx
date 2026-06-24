@@ -283,7 +283,7 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
               <p className="text-sm text-gray-500">{isFiltered ? "No matching results." : "No maintenance tasks found"}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-3">
               {displayTasks.map((task) => {
                 const hasTrip = !!(task.trip_id || task.trip_reservation_id || task.trip_start);
                 const pickupLocation = task.trip_pickup_location || task.trip_delivery_location || "—";
