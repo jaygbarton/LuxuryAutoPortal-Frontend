@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "wouter";
-import { Search, Filter, ArrowRight, Gauge, Calendar, Fuel, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Search, Filter, ArrowRight, Gauge, Calendar, Fuel, X, Loader2, ExternalLink } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
@@ -21,199 +21,114 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import type { Car } from "@/types/car";
+import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 
-const allCars: Partial<Car>[] = [
-  {
-    id: "1",
-    make: "Porsche",
-    model: "911 GT3 RS",
-    year: 2024,
-    price: "249950.00",
-    mileage: 1200,
-    exteriorColor: "GT Silver Metallic",
-    engine: "4.0L Flat-6",
-    transmission: "7-Speed PDK",
-    fuelType: "Gasoline",
-    featured: true,
-    status: "available",
-    images: ["https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"],
-  },
-  {
-    id: "2",
-    make: "Ferrari",
-    model: "SF90 Stradale",
-    year: 2023,
-    price: "625000.00",
-    mileage: 850,
-    exteriorColor: "Rosso Corsa",
-    engine: "4.0L Twin-Turbo V8 Hybrid",
-    transmission: "8-Speed Dual-Clutch",
-    fuelType: "Hybrid",
-    featured: true,
-    status: "available",
-    images: ["https://images.unsplash.com/photo-1583121274602-3e2820c69888?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"],
-  },
-  {
-    id: "3",
-    make: "Lamborghini",
-    model: "Huracán Tecnica",
-    year: 2024,
-    price: "335000.00",
-    mileage: 500,
-    exteriorColor: "Verde Mantis",
-    engine: "5.2L V10",
-    transmission: "7-Speed Dual-Clutch",
-    fuelType: "Gasoline",
-    featured: true,
-    status: "available",
-    images: ["https://images.unsplash.com/photo-1544636331-e26879cd4d9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"],
-  },
-  {
-    id: "4",
-    make: "McLaren",
-    model: "720S Spider",
-    year: 2023,
-    price: "345000.00",
-    mileage: 2100,
-    exteriorColor: "Papaya Spark",
-    engine: "4.0L Twin-Turbo V8",
-    transmission: "7-Speed SSG",
-    fuelType: "Gasoline",
-    featured: false,
-    status: "available",
-    images: ["https://images.unsplash.com/photo-1621135802920-133df287f89c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"],
-  },
-  {
-    id: "5",
-    make: "Bentley",
-    model: "Continental GT",
-    year: 2024,
-    price: "275000.00",
-    mileage: 300,
-    exteriorColor: "Midnight Sapphire",
-    engine: "6.0L W12",
-    transmission: "8-Speed Dual-Clutch",
-    fuelType: "Gasoline",
-    featured: false,
-    status: "available",
-    images: ["https://images.unsplash.com/photo-1580273916550-e323be2ae537?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"],
-  },
-  {
-    id: "6",
-    make: "Rolls-Royce",
-    model: "Cullinan",
-    year: 2024,
-    price: "395000.00",
-    mileage: 1500,
-    exteriorColor: "English White",
-    engine: "6.75L Twin-Turbo V12",
-    transmission: "8-Speed Automatic",
-    fuelType: "Gasoline",
-    featured: false,
-    status: "available",
-    images: ["https://images.unsplash.com/photo-1563720223185-11003d516935?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"],
-  },
-];
-
-const makes = ["All Makes", "Porsche", "Ferrari", "Lamborghini", "McLaren", "Bentley", "Rolls-Royce"];
-const priceRanges = [
-  { label: "All Prices", value: "all" },
-  { label: "Under $250,000", value: "0-250000" },
-  { label: "$250,000 - $400,000", value: "250000-400000" },
-  { label: "Over $400,000", value: "400000-999999999" },
-];
-const years = ["All Years", "2024", "2023", "2022"];
-
-function formatPrice(price: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(parseFloat(price));
+// Public fleet vehicle shape returned by GET /api/public/fleet — only the
+// non-sensitive display fields plus the public Turo link.
+interface FleetCar {
+  id: number;
+  make: string | null;
+  model: string | null;
+  year: number | null;
+  makeModel: string;
+  color: string | null;
+  mileage: number | null;
+  fuelType: string | null;
+  numberOfSeats: number | null;
+  numberOfDoors: number | null;
+  vehicleTrim: string | null;
+  photo: string | null;
+  turoLink: string | null;
 }
 
-function CarCard({ car }: { car: Partial<Car> }) {
+const PLACEHOLDER_IMG =
+  "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
+
+function CarCard({ car }: { car: FleetCar }) {
+  const imgSrc = car.photo ? getProxiedImageUrl(car.photo) : PLACEHOLDER_IMG;
   return (
     <Card className="group overflow-hidden bg-card border-border hover-elevate">
       <div className="relative aspect-[16/10] overflow-hidden">
         <img
-          src={car.images?.[0] || "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"}
-          alt={`${car.make} ${car.model}`}
+          src={imgSrc}
+          alt={car.makeModel}
+          loading="lazy"
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          onError={(e) => {
+            if (e.currentTarget.src !== PLACEHOLDER_IMG) e.currentTarget.src = PLACEHOLDER_IMG;
+          }}
         />
-        {car.featured && (
-          <Badge className="absolute top-4 left-4 bg-primary text-primary-foreground">
-            Featured
-          </Badge>
-        )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
       <CardContent className="p-6">
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <div>
-            <h3 className="text-xl font-semibold text-foreground">
-              {car.make} {car.model}
-            </h3>
-            <p className="text-sm text-gray-500">{car.exteriorColor}</p>
-          </div>
-          <p className="text-xl font-semibold text-green-700 whitespace-nowrap">
-            {formatPrice(String(car.price || "0"))}
-          </p>
+        <div className="mb-4">
+          <h3 className="text-xl font-semibold text-foreground">{car.makeModel}</h3>
+          {(car.vehicleTrim || car.color) && (
+            <p className="text-sm text-gray-500">{[car.vehicleTrim, car.color].filter(Boolean).join(" · ")}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Calendar className="w-4 h-4 text-gray-700" />
-            <span>{car.year}</span>
+            <span>{car.year ?? "—"}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Gauge className="w-4 h-4 text-gray-700" />
-            <span>{car.mileage?.toLocaleString()} mi</span>
+            <span>{car.mileage != null ? `${car.mileage.toLocaleString()} mi` : "—"}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Fuel className="w-4 h-4 text-gray-700" />
-            <span>{car.fuelType}</span>
+            <span>{car.fuelType || "—"}</span>
           </div>
         </div>
 
-        <Link href="/contact">
-          <Button variant="outline" className="w-full group/btn border-gray-300 text-foreground hover:bg-gray-50" data-testid={`button-view-${car.id}`}>
-            Inquire
-            <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-          </Button>
-        </Link>
+        {car.turoLink ? (
+          // Book Now → the car's OWN public Turo link (not the admin Turo link).
+          <a href={car.turoLink} target="_blank" rel="noopener noreferrer">
+            <Button className="w-full group/btn bg-primary text-primary-foreground hover:bg-primary/90">
+              Book Now
+              <ExternalLink className="ml-2 w-4 h-4 transition-transform group-hover/btn:translate-x-0.5" />
+            </Button>
+          </a>
+        ) : (
+          // No Turo link on file → fall back to the inquiry/contact flow.
+          <Link href="/contact">
+            <Button variant="outline" className="w-full group/btn border-gray-300 text-foreground hover:bg-gray-50">
+              Inquire
+              <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+            </Button>
+          </Link>
+        )}
       </CardContent>
     </Card>
   );
 }
 
 function FilterSidebar({
+  makes,
+  years,
   make,
   setMake,
-  priceRange,
-  setPriceRange,
   year,
   setYear,
   onClear,
 }: {
+  makes: string[];
+  years: string[];
   make: string;
   setMake: (value: string) => void;
-  priceRange: string;
-  setPriceRange: (value: string) => void;
   year: string;
   setYear: (value: string) => void;
   onClear: () => void;
 }) {
-  const hasFilters = make !== "All Makes" || priceRange !== "all" || year !== "All Years";
-
+  const hasFilters = make !== "All Makes" || year !== "All Years";
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-foreground">Filters</h3>
         {hasFilters && (
-          <Button variant="ghost" size="sm" onClick={onClear} data-testid="button-clear-filters">
+          <Button variant="ghost" size="sm" onClick={onClear}>
             <X className="w-4 h-4 mr-1" />
             Clear
           </Button>
@@ -224,7 +139,7 @@ function FilterSidebar({
         <div>
           <label className="text-sm font-medium text-muted-foreground mb-2 block">Make</label>
           <Select value={make} onValueChange={setMake}>
-            <SelectTrigger data-testid="select-make">
+            <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -236,23 +151,9 @@ function FilterSidebar({
         </div>
 
         <div>
-          <label className="text-sm font-medium text-muted-foreground mb-2 block">Price Range</label>
-          <Select value={priceRange} onValueChange={setPriceRange}>
-            <SelectTrigger data-testid="select-price">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {priceRanges.map((p) => (
-                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
           <label className="text-sm font-medium text-muted-foreground mb-2 block">Year</label>
           <Select value={year} onValueChange={setYear}>
-            <SelectTrigger data-testid="select-year">
+            <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -270,31 +171,49 @@ function FilterSidebar({
 export default function Fleet() {
   const [search, setSearch] = useState("");
   const [make, setMake] = useState("All Makes");
-  const [priceRange, setPriceRange] = useState("all");
   const [year, setYear] = useState("All Years");
+
+  const { data, isLoading } = useQuery<{ success: boolean; data: FleetCar[] }>({
+    queryKey: ["/api/public/fleet"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/public/fleet"));
+      if (!res.ok) throw new Error("Failed to load fleet");
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const cars = useMemo(() => data?.data ?? [], [data]);
+
+  // Filter options derived live from the active fleet.
+  const makes = useMemo(
+    () => ["All Makes", ...Array.from(new Set(cars.map((c) => c.make).filter(Boolean) as string[])).sort()],
+    [cars],
+  );
+  const years = useMemo(
+    () => [
+      "All Years",
+      ...Array.from(new Set(cars.map((c) => c.year).filter((y): y is number => y != null)))
+        .sort((a, b) => b - a)
+        .map(String),
+    ],
+    [cars],
+  );
 
   const clearFilters = () => {
     setMake("All Makes");
-    setPriceRange("all");
     setYear("All Years");
     setSearch("");
   };
 
-  const filteredCars = allCars.filter((car) => {
+  const filteredCars = cars.filter((car) => {
     const matchesSearch =
       search === "" ||
-      `${car.make} ${car.model}`.toLowerCase().includes(search.toLowerCase());
+      car.makeModel.toLowerCase().includes(search.toLowerCase()) ||
+      (car.vehicleTrim ?? "").toLowerCase().includes(search.toLowerCase());
     const matchesMake = make === "All Makes" || car.make === make;
-    const matchesYear = year === "All Years" || car.year?.toString() === year;
-
-    let matchesPrice = true;
-    if (priceRange !== "all") {
-      const [min, max] = priceRange.split("-").map(Number);
-      const price = parseFloat(String(car.price || "0"));
-      matchesPrice = price >= min && price <= max;
-    }
-
-    return matchesSearch && matchesMake && matchesYear && matchesPrice;
+    const matchesYear = year === "All Years" || String(car.year) === year;
+    return matchesSearch && matchesMake && matchesYear;
   });
 
   return (
@@ -318,10 +237,10 @@ export default function Fleet() {
             <aside className="hidden lg:block w-64 shrink-0">
               <div className="sticky top-24 p-6 rounded-lg bg-card border border-border">
                 <FilterSidebar
+                  makes={makes}
+                  years={years}
                   make={make}
                   setMake={setMake}
-                  priceRange={priceRange}
-                  setPriceRange={setPriceRange}
                   year={year}
                   setYear={setYear}
                   onClear={clearFilters}
@@ -338,13 +257,12 @@ export default function Fleet() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="pl-10 bg-card border-border"
-                    data-testid="input-search"
                   />
                 </div>
 
                 <Sheet>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="lg:hidden border-white/20" data-testid="button-mobile-filter">
+                    <Button variant="outline" className="lg:hidden border-white/20">
                       <Filter className="w-4 h-4 mr-2" />
                       Filters
                     </Button>
@@ -355,10 +273,10 @@ export default function Fleet() {
                     </SheetHeader>
                     <div className="mt-6">
                       <FilterSidebar
+                        makes={makes}
+                        years={years}
                         make={make}
                         setMake={setMake}
-                        priceRange={priceRange}
-                        setPriceRange={setPriceRange}
                         year={year}
                         setYear={setYear}
                         onClear={clearFilters}
@@ -374,7 +292,11 @@ export default function Fleet() {
                 </p>
               </div>
 
-              {filteredCars.length > 0 ? (
+              {isLoading ? (
+                <div className="flex justify-center py-24">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : filteredCars.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {filteredCars.map((car) => (
                     <CarCard key={car.id} car={car} />
@@ -383,11 +305,15 @@ export default function Fleet() {
               ) : (
                 <div className="text-center py-16">
                   <p className="text-lg text-muted-foreground mb-4">
-                    No vehicles match your criteria
+                    {cars.length === 0
+                      ? "No vehicles are available right now. Please check back soon."
+                      : "No vehicles match your criteria"}
                   </p>
-                  <Button variant="outline" onClick={clearFilters} className="border-white/20" data-testid="button-clear-all">
-                    Clear All Filters
-                  </Button>
+                  {cars.length > 0 && (
+                    <Button variant="outline" onClick={clearFilters} className="border-white/20">
+                      Clear All Filters
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

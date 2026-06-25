@@ -53,6 +53,8 @@ import PayrollPage from "@/pages/admin/payroll";
 import PayrollByRunPage from "@/pages/admin/payroll/payroll-by-run";
 import PayslipPage from "@/pages/admin/payroll/payslip";
 import PayrollCommissionsPage from "@/pages/admin/payroll/commissions";
+import CommissionPayrunsPage from "@/pages/admin/payroll/commission-payruns";
+import CommissionPayrunByRunPage from "@/pages/admin/payroll/commission-payrun-by-run";
 import EmployeeFormPage from "@/pages/employee-form";
 import CoHostFormPage from "@/pages/co-host-form";
 import CoHostsPage from "@/pages/admin/co-hosts";
@@ -371,6 +373,12 @@ function Router() {
             </Route>
             <Route path="/admin/payroll/commissions">
               <RequireRole roles={["isAdmin"]}><PayrollCommissionsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/payroll/commission-payruns/:id">
+              <RequireRole roles={["isAdmin"]}><CommissionPayrunByRunPage /></RequireRole>
+            </Route>
+            <Route path="/admin/payroll/commission-payruns">
+              <RequireRole roles={["isAdmin"]}><CommissionPayrunsPage /></RequireRole>
             </Route>
             <Route path="/admin/payroll/:payrunId/payslip/:employeeId">
               <RequireRole roles={["isAdmin"]}><PayslipPage /></RequireRole>

@@ -35,8 +35,9 @@ import {
 import { buildApiUrl } from "@/lib/queryClient";
 import { COMMISSION_TYPES } from "@/lib/commissionTypes";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Pencil, Trash2, Search, ChevronDown, X } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Search, ChevronDown, X, HandCoins } from "lucide-react";
 import { useRef, useEffect } from "react";
+import { useLocation } from "wouter";
 
 interface CommissionRow {
   commissions_aid: number;
@@ -181,6 +182,7 @@ function CommissionsMatrix() {
 export default function PayrollCommissionsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -340,18 +342,27 @@ export default function PayrollCommissionsPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl sm:text-2xl font-semibold leading-tight">Commissions</h1>
-            <p className="text-muted-foreground text-sm">Manage employee commissions. Mark as paid when processed.</p>
+            <p className="text-muted-foreground text-sm">Manage employee commissions. Generate a pay run to process them like payroll.</p>
           </div>
-          <Button
-            onClick={() => {
-              setEditingId(null);
-              resetForm();
-              setModalOpen(true);
-            }}
-            className="gap-2 w-full sm:w-auto"
-          >
-            <Plus className="h-4 w-4" /> Add Commission
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              onClick={() => setLocation("/admin/payroll/commission-payruns")}
+              className="gap-2 w-full sm:w-auto"
+            >
+              <HandCoins className="h-4 w-4" /> Pay Runs
+            </Button>
+            <Button
+              onClick={() => {
+                setEditingId(null);
+                resetForm();
+                setModalOpen(true);
+              }}
+              className="gap-2 w-full sm:w-auto"
+            >
+              <Plus className="h-4 w-4" /> Add Commission
+            </Button>
+          </div>
         </div>
 
         <CommissionsMatrix />

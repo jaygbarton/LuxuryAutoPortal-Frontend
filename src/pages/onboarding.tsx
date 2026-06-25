@@ -127,75 +127,6 @@ const steps = [
   { id: 7, title: "CAR LOGIN INFORMATION" },
 ];
 
-function generateRandomData(): OnboardingFormData {
-  const firstNames = ["John", "Sarah", "Michael", "Emma", "David"];
-  const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones"];
-  const rng = () => Math.floor(Math.random() * 1000000);
-
-  return {
-    date: new Date().toISOString().split("T")[0],
-    tshirtSize: ["S", "M", "L", "XL"][Math.floor(Math.random() * 4)],
-    firstNameOwner: firstNames[Math.floor(Math.random() * firstNames.length)],
-    lastNameOwner: lastNames[Math.floor(Math.random() * lastNames.length)],
-    phoneOwner: `555-${Math.floor(Math.random() * 9000000) + 1000000}`,
-    emailOwner: `user${rng()}@example.com`,
-    representative: "John Smith",
-    heardAboutUs: "Friend",
-    streetAddress: "123 Main Street",
-    city: "Los Angeles",
-    state: "CA",
-    zipCode: "90001",
-    birthday: "1990-01-15",
-    emergencyContactName: "Jane Doe",
-    emergencyContactPhone: "555-9876543",
-    vehicleYear: "2023",
-    vehicleMake: "Mercedes-Benz",
-    vehicleModel: "C-Class",
-    vehicleTrim: "Premium",
-    vehicleMiles: "15000",
-    exteriorColor: "Black",
-    interiorColor: "Tan",
-    titleType: "Clean",
-    vinNumber: "1HGCV41JXMN109186",
-    licensePlate: "ABC1234",
-    registrationExpiration: "2025-12-31",
-    vehicleRecall: "No",
-    numberOfSeats: "5",
-    numberOfDoors: "4",
-    skiRacks: "No",
-    skiCrossBars: "No",
-    roofRails: "Yes",
-    lastOilChange: "2024-01-15",
-    oilType: "5W-30",
-    freeDealershipOilChanges: "Yes",
-    oilPackageDetails: "2 years / Premium oil package",
-    dealershipAddress: "456 Oak Street",
-    fuelType: "Gasoline",
-    tireSize: "225/45R17",
-    vehicleFeatures: ["Bluetooth", "GPS", "Back Up Camera"],
-    insuranceProvider: "State Farm",
-    insurancePhone: "555-9876543",
-    policyNumber: "POL123456",
-    insuranceExpiration: "2025-12-31",
-    purchasePrice: "50000",
-    interestRate: "3.5",
-    monthlyPayment: "750",
-    downPayment: "10000",
-    transportCityToCity: "Yes",
-    ultimateGoal: "Personal use and potential rental income",
-    bankName: "Wells Fargo",
-    taxClassification: "Individual",
-    routingNumber: "021000021",
-    accountNumber: "123456789",
-    businessName: "My Business",
-    ein: "12-3456789",
-    ssn: "123-45-6789",
-    carManufacturerWebsite: "https://www.mercedes-benz.com",
-    carManufacturerUsername: "testuser",
-    password: "TestPassword123",
-    confirmAgreement: true,
-  };
-}
 
 export default function Onboarding() {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -282,14 +213,6 @@ export default function Onboarding() {
       form.setValue("oilPackageDetails", "");
     }
   }, [freeOilChanges, form]);
-
-  const fillWithRandomData = () => {
-    form.reset(generateRandomData());
-    toast({
-      title: "Form Filled",
-      description: "All fields filled with random test data.",
-    });
-  };
 
   const toggleStep = (stepId: number) => {
     setExpandedSteps((prev) =>
@@ -2102,16 +2025,6 @@ export default function Onboarding() {
               ))}
 
               <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-primary/20">
-                <Button
-                  type="button"
-                  onClick={fillWithRandomData}
-                  variant="outline"
-                  className="bg-[#D3BC8D]/10 border-primary/30 text-primary hover:bg-primary/20"
-                  disabled={isSubmitting}
-                  data-testid="button-fill-random"
-                >
-                  Fill Out All Fields With Random Data (For Testing)
-                </Button>
                 <Button
                   type="submit"
                   className="bg-primary text-primary-foreground hover:bg-primary/80 font-bold w-full sm:w-auto sm:ml-auto"

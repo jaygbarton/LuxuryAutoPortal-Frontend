@@ -1,5 +1,6 @@
 import { Link } from "wouter";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin, Clock, Facebook, Instagram, Youtube, Music2 } from "lucide-react";
+import { SITE_CONTACT, SITE_TAGLINE, LEGAL_LINKS, SOCIAL_LINKS } from "@/lib/site-config";
 
 const quickLinks = [
   { href: "/fleet", label: "Our Fleet" },
@@ -8,9 +9,16 @@ const quickLinks = [
 ];
 
 const legalLinks = [
-  { href: "/privacy", label: "Privacy Policy" },
-  { href: "/terms", label: "Terms of Service" },
+  { href: LEGAL_LINKS.privacy, label: "Privacy Policy" },
+  { href: LEGAL_LINKS.terms, label: "Terms of Service" },
 ];
+
+const SOCIAL_ICONS: Record<string, typeof Facebook> = {
+  Facebook,
+  Instagram,
+  YouTube: Youtube,
+  TikTok: Music2,
+};
 
 export function Footer() {
   return (
@@ -40,8 +48,31 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-sm leading-relaxed" style={{ color: "#4A4A4A" }}>
-              Curating the world's finest automobiles for discerning collectors and enthusiasts.
+              {SITE_TAGLINE}
             </p>
+
+            {/* Social media */}
+            <div className="flex items-center gap-3 mt-5">
+              {SOCIAL_LINKS.map((s) => {
+                const Icon = SOCIAL_ICONS[s.name] ?? Facebook;
+                return (
+                  <a
+                    key={s.name}
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={s.name}
+                    title={s.name}
+                    className="inline-flex items-center justify-center w-9 h-9 rounded-full transition-colors"
+                    style={{ border: "1px solid #E8D4A0", color: "#C49000" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#C49000"; (e.currentTarget as HTMLAnchorElement).style.color = "#FFFDF8"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.color = "#C49000"; }}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </a>
+                );
+              })}
+            </div>
           </div>
 
           {/* Quick Links */}
@@ -82,35 +113,36 @@ export function Footer() {
               <li className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 mt-0.5 shrink-0" style={{ stroke: "#C49000" }} />
                 <span className="text-sm" style={{ color: "#4A4A4A" }}>
-                  123 Luxury Lane<br />Beverly Hills, CA 90210
+                  {SITE_CONTACT.address[0]}<br />{SITE_CONTACT.address[1]}
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-4 h-4 shrink-0" style={{ stroke: "#C49000" }} />
                 <a
-                  href="tel:+1234567890"
+                  href={SITE_CONTACT.phoneHref}
                   className="text-sm transition-colors"
                   style={{ color: "#4A4A4A" }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#C49000"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#4A4A4A"; }}
                   data-testid="link-footer-phone"
                 >
-                  +1 (234) 567-890
+                  {SITE_CONTACT.phone}
                 </a>
               </li>
-              <li className="flex items-center gap-3">
-                <Mail className="w-4 h-4 shrink-0" style={{ stroke: "#C49000" }} />
-                <a
-                  href="mailto:info@luxuryauto.com"
-                  className="text-sm transition-colors"
-                  style={{ color: "#4A4A4A" }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#C49000"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#4A4A4A"; }}
-                  data-testid="link-footer-email"
-                >
-                  info@luxuryauto.com
-                </a>
-              </li>
+              {SITE_CONTACT.emails.map((email) => (
+                <li key={email} className="flex items-center gap-3">
+                  <Mail className="w-4 h-4 shrink-0" style={{ stroke: "#C49000" }} />
+                  <a
+                    href={`mailto:${email}`}
+                    className="text-sm transition-colors break-all"
+                    style={{ color: "#4A4A4A" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#C49000"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#4A4A4A"; }}
+                  >
+                    {email}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -122,20 +154,10 @@ export function Footer() {
             >
               Hours
             </h3>
-            <ul className="space-y-2 text-sm" style={{ color: "#4A4A4A" }}>
-              <li className="flex justify-between gap-4">
-                <span>Monday – Friday</span>
-                <span>9am – 7pm</span>
-              </li>
-              <li className="flex justify-between gap-4">
-                <span>Saturday</span>
-                <span>10am – 5pm</span>
-              </li>
-              <li className="flex justify-between gap-4">
-                <span>Sunday</span>
-                <span>By Appointment</span>
-              </li>
-            </ul>
+            <div className="flex items-center gap-3 text-sm" style={{ color: "#4A4A4A" }}>
+              <Clock className="w-4 h-4 shrink-0" style={{ stroke: "#C49000" }} />
+              <span>{SITE_CONTACT.hours}</span>
+            </div>
           </div>
         </div>
 
@@ -145,13 +167,15 @@ export function Footer() {
           style={{ borderTop: "1px solid #E8D4A0" }}
         >
           <p className="text-xs" style={{ color: "#808080" }}>
-            &copy; {new Date().getFullYear()} Luxury Auto Gallery. All rights reserved.
+            &copy; {new Date().getFullYear()} Golden Luxury Auto. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             {legalLinks.map((link) => (
-              <Link
+              <a
                 key={link.href}
                 href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-xs transition-colors"
                 style={{ color: "#808080" }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#C49000"; }}
@@ -159,7 +183,7 @@ export function Footer() {
                 data-testid={`link-footer-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
               >
                 {link.label}
-              </Link>
+              </a>
             ))}
           </div>
         </div>

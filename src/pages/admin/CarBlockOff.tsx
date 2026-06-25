@@ -57,6 +57,7 @@ interface CarBlockOff {
   pickup_date: string;
   pickup_location: string;
   pickup_submitted_at: string | null;
+  block_off_end_date: string | null;
   dropoff_date: string | null;
   dropoff_location: string | null;
   dropoff_submitted_at: string | null;
@@ -201,6 +202,7 @@ export default function CarBlockOffPage() {
   const [reason, setReason] = useState<"personal_use" | "maintenance" | "others">("personal_use");
   const [reasonOther, setReasonOther] = useState("");
   const [pickupDate, setPickupDate] = useState("");
+  const [blockOffEndDate, setBlockOffEndDate] = useState("");
   const [pickupLocation, setPickupLocation] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -271,6 +273,7 @@ export default function CarBlockOffPage() {
           reasonOther: reason === "others" ? reasonOther : null,
           pickupDate,
           pickupLocation,
+          blockOffEndDate,
           notes: notes || null,
         }),
       });
@@ -282,7 +285,7 @@ export default function CarBlockOffPage() {
       toast({ title: "Submitted", description: "Car block-off pick-up request submitted." });
       queryClient.invalidateQueries({ queryKey: ["/api/car-block-off/submissions"] });
       setCarIdStr(""); setCarName(""); setPlateNumber(""); setReason("personal_use");
-      setReasonOther(""); setPickupDate(""); setPickupLocation(""); setNotes("");
+      setReasonOther(""); setPickupDate(""); setBlockOffEndDate(""); setPickupLocation(""); setNotes("");
     },
     onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
@@ -331,8 +334,12 @@ export default function CarBlockOffPage() {
 
   const handlePickupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!carName || !ownerName || !reason || !pickupDate || !pickupLocation) {
+    if (!carName || !ownerName || !reason || !pickupDate || !blockOffEndDate || !pickupLocation) {
       toast({ title: "Missing fields", description: "Please fill in all required fields.", variant: "destructive" });
+      return;
+    }
+    if (new Date(blockOffEndDate) <= new Date(pickupDate)) {
+      toast({ title: "Invalid dates", description: "Block Off End must be after the Pick Up date/time.", variant: "destructive" });
       return;
     }
     submitPickup.mutate();
@@ -442,15 +449,25 @@ export default function CarBlockOffPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-muted-foreground text-sm">Pick Up Date & Time *</Label>
+                    <Label className="text-muted-foreground text-sm">Block Off Start (Pick Up) Date & Time *</Label>
                     <Input type="datetime-local" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)}
                       className="bg-card border-border text-foreground" />
                   </div>
                   <div>
-                    <Label className="text-muted-foreground text-sm">Pick Up Location *</Label>
-                    <Input value={pickupLocation} onChange={(e) => setPickupLocation(e.target.value)}
-                      className="bg-card border-border text-foreground" placeholder="Address or description" />
+                    <Label className="text-muted-foreground text-sm">Block Off End Date & Time *</Label>
+                    <Input type="datetime-local" value={blockOffEndDate} min={pickupDate || undefined}
+                      onChange={(e) => setBlockOffEndDate(e.target.value)}
+                      className="bg-card border-border text-foreground" />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      When the car becomes available again, so we know how long it's blocked off.
+                    </p>
                   </div>
+                </div>
+
+                <div>
+                  <Label className="text-muted-foreground text-sm">Pick Up Location *</Label>
+                  <Input value={pickupLocation} onChange={(e) => setPickupLocation(e.target.value)}
+                    className="bg-card border-border text-foreground" placeholder="Address or description" />
                 </div>
 
                 <div>
@@ -565,16 +582,16 @@ export default function CarBlockOffPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
-                  {["Car", "Owner", "Reason", "Pick Up Date", "Pick Up Location", "Drop Off Date", "Drop Off Location", "Status", "Actions"].map((h) => (
+                  {["Car", "Owner", "Reason", "Pick Up Date", "Block Off End", "Pick Up Location", "Drop Off Date", "Drop Off Location", "Status", "Actions"].map((h) => (
                     <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">Loading...</td></tr>
+                  <tr><td colSpan={10} className="px-3 py-8 text-center text-muted-foreground">Loading...</td></tr>
                 ) : submissions.length === 0 ? (
-                  <tr><td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">No submissions found.</td></tr>
+                  <tr><td colSpan={10} className="px-3 py-8 text-center text-muted-foreground">No submissions found.</td></tr>
                 ) : submissions.map((s) => (
                   <tr key={s.id} className="border-b border-border hover:bg-muted/30 transition-colors">
                     <td className="px-3 py-2 whitespace-nowrap">
@@ -589,6 +606,7 @@ export default function CarBlockOffPage() {
                       )}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-foreground text-xs">{fmtDateTime(s.pickup_date)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap text-foreground text-xs">{s.block_off_end_date ? fmtDateTime(s.block_off_end_date) : "—"}</td>
                     <td className="px-3 py-2 text-foreground">{s.pickup_location}</td>
                     <td className="px-3 py-2 whitespace-nowrap text-foreground text-xs">{s.dropoff_date ? fmtDateTime(s.dropoff_date) : "—"}</td>
                     <td className="px-3 py-2 text-foreground">{s.dropoff_location ?? "—"}</td>
