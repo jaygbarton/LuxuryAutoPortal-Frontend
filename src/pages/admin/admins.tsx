@@ -45,6 +45,8 @@ import {
   Loader2,
   Trash2,
   ExternalLink,
+  Search,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { CardHeader, CardTitle } from "@/components/ui/card";
@@ -218,6 +220,35 @@ export default function AdminsPage() {
     const name = (u.role || "").toLowerCase();
     return name.includes("admin") || name.includes("employee") || name.includes("staff");
   });
+
+  // Filter bar: search (name/email) + role + status. `displayRole` resolves the
+  // shown role (Admin / Employee / Co-Host), so the role filter matches it.
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const filteredUsers = users.filter((u) => {
+    const q = searchTerm.trim().toLowerCase();
+    if (q) {
+      const hay = `${u.firstName ?? ""} ${u.lastName ?? ""} ${u.email ?? ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (roleFilter !== "all") {
+      if (roleFilter === "co-host") {
+        if (!u.isCoHost) return false;
+      } else {
+        // Admin / Employee: exclude co-hosts (shown as their own role) and
+        // match the underlying role name.
+        if (u.isCoHost) return false;
+        if (!(u.role || "").toLowerCase().includes(roleFilter)) return false;
+      }
+    }
+    if (statusFilter !== "all") {
+      if (statusFilter === "active" && !u.isActive) return false;
+      if (statusFilter === "inactive" && u.isActive) return false;
+    }
+    return true;
+  });
+  const isFiltered = searchTerm.trim() !== "" || roleFilter !== "all" || statusFilter !== "all";
 
   const { data: quickLinks } = useQuery<QuickLink[]>({
     queryKey: ["/api/admin/quick-links"],
@@ -646,6 +677,41 @@ export default function AdminsPage() {
           </Button>
         </div>
 
+        {/* Filter bar */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[200px] max-w-xs flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search name or email…"
+              className="pl-8 h-9 bg-card border-border text-sm"
+            />
+          </div>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-[140px] h-9 bg-card border-border text-sm"><SelectValue placeholder="Role" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="employee">Employee</SelectItem>
+              <SelectItem value="co-host">Co-Host</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px] h-9 bg-card border-border text-sm"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+          {isFiltered && (
+            <Button variant="ghost" size="sm" onClick={() => { setSearchTerm(""); setRoleFilter("all"); setStatusFilter("all"); }} className="text-xs text-[#B8860B]">
+              <X className="w-3.5 h-3.5 mr-1" /> Clear
+            </Button>
+          )}
+        </div>
+
         <Card className="bg-card border-border overflow-hidden">
           <CardContent className="p-0">
             <div className="w-full max-w-full overflow-x-auto">
@@ -682,8 +748,8 @@ export default function AdminsPage() {
                         Loading administrators...
                       </td>
                     </tr>
-                  ) : users && users.length > 0 ? (
-                    users.map((user) => (
+                  ) : filteredUsers && filteredUsers.length > 0 ? (
+                    filteredUsers.map((user) => (
                       <tr
                         key={user.id}
                         className="hover:bg-muted/50 transition-colors"
@@ -831,7 +897,7 @@ export default function AdminsPage() {
                         colSpan={6}
                         className="px-6 py-8 text-center text-muted-foreground"
                       >
-                        No administrators found
+                        {isFiltered ? "No administrators match your filters." : "No administrators found"}
                       </td>
                     </tr>
                   )}

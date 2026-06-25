@@ -118,7 +118,7 @@ export default function NotificationsPage() {
 
   return (
     <AdminLayout>
-      <div className="p-4 sm:p-6 max-w-3xl mx-auto w-full">
+      <div className="p-4 sm:p-6 pb-24 sm:pb-32 max-w-3xl mx-auto w-full">
         <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Bell className="w-5 h-5 text-[#D3BC8D]" />

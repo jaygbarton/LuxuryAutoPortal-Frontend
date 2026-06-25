@@ -72,6 +72,9 @@ interface GeofenceZone {
   alert_on_exit: boolean;
   created_by_client_id: number | null;
   created_by: string | null;
+  /** Server-set: admins can edit all zones; co-hosts only zones they created.
+   *  Absent/true for admins; false on zones a co-host doesn't own. */
+  editable?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -785,6 +788,11 @@ export default function BouncieGeofencePage() {
                                 Client
                               </Badge>
                             )}
+                            {zone.editable === false && (
+                              <Badge className="text-xs h-4 px-1.5 bg-slate-500/10 text-slate-600 border-slate-500/20" variant="outline">
+                                Shared · view only
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
                             <span className="capitalize">{zone.type}</span>
@@ -800,36 +808,44 @@ export default function BouncieGeofencePage() {
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0"
-                            title={zone.active ? "Deactivate zone" : "Activate zone"}
-                            onClick={() => toggleActiveMutation.mutate({ id: zone.id, active: !zone.active })}
-                          >
-                            {zone.active
-                              ? <CheckCircle2 className="w-4 h-4 text-green-600" />
-                              : <XCircle className="w-4 h-4 text-muted-foreground" />
-                            }
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0"
-                            title="Edit zone"
-                            onClick={() => { setEditZone(zone); setShowForm(true); }}
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                            title="Delete zone"
-                            onClick={() => setDeleteZone(zone)}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          {zone.editable === false ? (
+                            // Another owner's zone (co-host viewing admin / other
+                            // co-host zones): visible but not editable.
+                            <span className="text-xs text-muted-foreground italic pr-1">View only</span>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                title={zone.active ? "Deactivate zone" : "Activate zone"}
+                                onClick={() => toggleActiveMutation.mutate({ id: zone.id, active: !zone.active })}
+                              >
+                                {zone.active
+                                  ? <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                  : <XCircle className="w-4 h-4 text-muted-foreground" />
+                                }
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                title="Edit zone"
+                                onClick={() => { setEditZone(zone); setShowForm(true); }}
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                title="Delete zone"
+                                onClick={() => setDeleteZone(zone)}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}

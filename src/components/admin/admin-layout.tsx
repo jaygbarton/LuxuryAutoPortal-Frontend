@@ -480,6 +480,7 @@ const coHostSidebarItems: SidebarItem[] = [
     children: [
       { href: "/admin/bouncie", label: "Fleet Tracking", icon: Navigation },
       { href: "/admin/bouncie-trips", label: "Trip History", icon: Navigation },
+      { href: "/admin/bouncie-geofence", label: "Geofence", icon: MapPin },
     ],
   },
   { href: "/admin/operations", label: "Operations", icon: Cog },
