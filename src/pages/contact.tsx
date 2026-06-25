@@ -18,6 +18,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Phone, MapPin, Clock, Send } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
+import { SITE_CONTACT } from "@/lib/site-config";
 
 const contactSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -33,22 +34,22 @@ const contactInfo = [
   {
     icon: MapPin,
     title: "Visit Us",
-    details: ["123 Luxury Lane", "Beverly Hills, CA 90210"],
+    details: SITE_CONTACT.address,
   },
   {
     icon: Phone,
     title: "Call Us",
-    details: ["+1 (234) 567-890", "+1 (234) 567-891"],
+    details: [SITE_CONTACT.phone],
   },
   {
     icon: Mail,
     title: "Email Us",
-    details: ["info@luxuryauto.com", "sales@luxuryauto.com"],
+    details: SITE_CONTACT.emails,
   },
   {
     icon: Clock,
     title: "Hours",
-    details: ["Mon-Fri: 9am - 7pm", "Sat: 10am - 5pm", "Sun: By Appointment"],
+    details: [SITE_CONTACT.hours],
   },
 ];
 
@@ -86,10 +87,10 @@ export default function Contact() {
       }
     } catch {
       toast({
-        title: "Message Sent",
-        description: "We'll get back to you as soon as possible.",
+        title: "Couldn't send message",
+        description: "Please try again, or email us directly at " + SITE_CONTACT.emails[0] + ".",
+        variant: "destructive",
       });
-      form.reset();
     }
   };
 
