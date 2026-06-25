@@ -5,7 +5,7 @@
  * (only their own cars appear), the date of the receipt, and the amount.
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, CheckCircle, ParkingCircle } from "lucide-react";
+import { Loader2, CheckCircle, ParkingCircle, UploadCloud, X, FileText } from "lucide-react";
 
 interface CarOption {
   id: number;
@@ -36,7 +36,24 @@ export default function ParkingTicketSubmission() {
     pt_receipt_date: new Date().toISOString().slice(0, 10),
     pt_amount: "",
   });
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [submitted, setSubmitted] = useState(false);
+
+  const acceptReceipt = (file: File | undefined | null) => {
+    if (!file) return;
+    const okType = /\.(jpe?g|png|pdf)$/i.test(file.name);
+    if (!okType) {
+      toast({ title: "Only JPEG, PNG, or PDF files are allowed", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File too large (max 10MB)", variant: "destructive" });
+      return;
+    }
+    setReceiptFile(file);
+  };
 
   const { data: currentUserData } = useQuery({
     queryKey: ["/api/auth/me"],
@@ -58,15 +75,15 @@ export default function ParkingTicketSubmission() {
 
   const submitMutation = useMutation({
     mutationFn: async () => {
+      const fd = new FormData();
+      fd.append("pt_car_id", String(Number(form.pt_car_id)));
+      fd.append("pt_receipt_date", form.pt_receipt_date);
+      fd.append("pt_amount", form.pt_amount);
+      if (receiptFile) fd.append("receipt", receiptFile);
       const res = await fetch(buildApiUrl("/api/parking-tickets"), {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pt_car_id: Number(form.pt_car_id),
-          pt_receipt_date: form.pt_receipt_date,
-          pt_amount: form.pt_amount,
-        }),
+        body: fd,
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -108,6 +125,8 @@ export default function ParkingTicketSubmission() {
       pt_receipt_date: new Date().toISOString().slice(0, 10),
       pt_amount: "",
     });
+    setReceiptFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setSubmitted(false);
   };
 
@@ -235,6 +254,67 @@ export default function ParkingTicketSubmission() {
                 required
               />
             </div>
+          </div>
+
+          {/* Receipt upload / drag */}
+          <div className="space-y-1.5">
+            <Label>Receipt</Label>
+            {receiptFile ? (
+              <div className="flex items-center justify-between rounded-md border border-primary/30 bg-muted/40 px-3 py-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-sm truncate">{receiptFile.name}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    ({(receiptFile.size / 1024).toFixed(0)} KB)
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => {
+                    setReceiptFile(null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragActive(true);
+                }}
+                onDragLeave={() => setDragActive(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragActive(false);
+                  acceptReceipt(e.dataTransfer.files?.[0]);
+                }}
+                className={`flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed px-4 py-8 text-center cursor-pointer transition-colors ${
+                  dragActive ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:border-primary/50"
+                }`}
+              >
+                <UploadCloud className="h-7 w-7 text-muted-foreground" />
+                <p className="text-sm font-medium">Upload / Drag a receipt</p>
+                <p className="text-xs text-muted-foreground">JPEG, PNG, or PDF (max 10MB)</p>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+              className="hidden"
+              onChange={(e) => acceptReceipt(e.target.files?.[0])}
+            />
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2">

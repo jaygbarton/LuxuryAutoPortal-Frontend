@@ -246,7 +246,12 @@ function Router() {
               <RequireRole roles={["isAdmin"]}><ViewAsCoHostPage /></RequireRole>
             </Route>
             <Route path="/admin/forms">
-              <RequireRole roles={["isAdmin", "isClient"]}><FormsPage /></RequireRole>
+              {/* Employees and co-hosts also use this page (the page + the
+                  /options endpoint scope the visible tabs/subcategories per
+                  role). Without isEmployee/isCoHost here, a subcategory form
+                  link (?section=employee-forms&category=…&field=…) shared with
+                  an employee hit RequireRole and showed nothing. */}
+              <RequireRole roles={["isAdmin", "isClient", "isEmployee", "isCoHost"]}><FormsPage /></RequireRole>
             </Route>
             <Route path="/cars">
               <RequireRole roles={["isAdmin", "isClient"]}><CarsPage /></RequireRole>

@@ -58,6 +58,7 @@ interface ParkingTicketRow {
   pt_car_label: string;
   pt_receipt_date: string;
   pt_amount: number | string;
+  pt_receipt_url: string | null;
   pt_status: "new" | "approved" | "declined";
   pt_decline_reason: string | null;
   pt_decision_date: string | null;
@@ -446,6 +447,21 @@ export default function ParkingTicketApprovalDashboard() {
                 <div>
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Submitted</p>
                   <p className="font-medium">{formatDate(viewRow.pt_date_submitted)}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Receipt</p>
+                  {viewRow.pt_receipt_url ? (
+                    <a
+                      href={viewRow.pt_receipt_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline font-medium"
+                    >
+                      View receipt
+                    </a>
+                  ) : (
+                    <p className="text-muted-foreground">No receipt attached</p>
+                  )}
                 </div>
                 {viewRow.pt_decision_date && (
                   <div>

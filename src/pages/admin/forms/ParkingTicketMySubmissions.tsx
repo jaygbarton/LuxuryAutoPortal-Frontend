@@ -31,6 +31,7 @@ interface ParkingTicketRow {
   pt_car_label: string;
   pt_receipt_date: string;
   pt_amount: number | string;
+  pt_receipt_url: string | null;
   pt_status: "new" | "approved" | "declined";
   pt_decline_reason: string | null;
   pt_decision_date: string | null;
@@ -178,6 +179,21 @@ export default function ParkingTicketMySubmissions() {
                 <div>
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Amount</p>
                   <p className="font-medium font-mono">{formatCurrency(selectedRow.pt_amount)}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Receipt</p>
+                  {selectedRow.pt_receipt_url ? (
+                    <a
+                      href={selectedRow.pt_receipt_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline font-medium"
+                    >
+                      View receipt
+                    </a>
+                  ) : (
+                    <p className="text-muted-foreground">No receipt attached</p>
+                  )}
                 </div>
                 {selectedRow.pt_decision_date && (
                   <div>
