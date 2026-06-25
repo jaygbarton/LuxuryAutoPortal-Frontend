@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Filter, ArrowRight, Gauge, Calendar, Fuel, X, Loader2, ExternalLink } from "lucide-react";
+import { Search, ArrowRight, Gauge, Calendar, Fuel, X, Loader2, ExternalLink } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 
 // Public fleet vehicle shape returned by GET /api/public/fleet — only the
@@ -105,69 +98,6 @@ function CarCard({ car }: { car: FleetCar }) {
   );
 }
 
-function FilterSidebar({
-  makes,
-  years,
-  make,
-  setMake,
-  year,
-  setYear,
-  onClear,
-}: {
-  makes: string[];
-  years: string[];
-  make: string;
-  setMake: (value: string) => void;
-  year: string;
-  setYear: (value: string) => void;
-  onClear: () => void;
-}) {
-  const hasFilters = make !== "All Makes" || year !== "All Years";
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-foreground">Filters</h3>
-        {hasFilters && (
-          <Button variant="ghost" size="sm" onClick={onClear}>
-            <X className="w-4 h-4 mr-1" />
-            Clear
-          </Button>
-        )}
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <label className="text-sm font-medium text-muted-foreground mb-2 block">Make</label>
-          <Select value={make} onValueChange={setMake}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {makes.map((m) => (
-                <SelectItem key={m} value={m}>{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-muted-foreground mb-2 block">Year</label>
-          <Select value={year} onValueChange={setYear}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map((y) => (
-                <SelectItem key={y} value={y}>{y}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function Fleet() {
   const [search, setSearch] = useState("");
   const [make, setMake] = useState("All Makes");
@@ -233,90 +163,85 @@ export default function Fleet() {
             </p>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-8">
-            <aside className="hidden lg:block w-64 shrink-0">
-              <div className="sticky top-24 p-6 rounded-lg bg-card border border-border">
-                <FilterSidebar
-                  makes={makes}
-                  years={years}
-                  make={make}
-                  setMake={setMake}
-                  year={year}
-                  setYear={setYear}
-                  onClear={clearFilters}
+          <div>
+            {/* Top filter bar: search on the left, Make / Year on the right. */}
+            <div className="flex flex-col md:flex-row md:items-end gap-4 mb-8">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  placeholder="Search vehicles..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10 bg-card border-border"
                 />
               </div>
-            </aside>
 
-            <div className="flex-1">
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    placeholder="Search vehicles..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10 bg-card border-border"
-                  />
-                </div>
-
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" className="lg:hidden border-white/20">
-                      <Filter className="w-4 h-4 mr-2" />
-                      Filters
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="bg-background border-border">
-                    <SheetHeader>
-                      <SheetTitle className="text-foreground">Filters</SheetTitle>
-                    </SheetHeader>
-                    <div className="mt-6">
-                      <FilterSidebar
-                        makes={makes}
-                        years={years}
-                        make={make}
-                        setMake={setMake}
-                        year={year}
-                        setYear={setYear}
-                        onClear={clearFilters}
-                      />
-                    </div>
-                  </SheetContent>
-                </Sheet>
+              <div className="w-full md:w-44">
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Make</label>
+                <Select value={make} onValueChange={setMake}>
+                  <SelectTrigger className="bg-card border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {makes.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="flex items-center justify-between mb-6">
-                <p className="text-sm text-muted-foreground">
-                  Showing <span className="text-foreground font-medium">{filteredCars.length}</span> vehicles
-                </p>
+              <div className="w-full md:w-36">
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Year</label>
+                <Select value={year} onValueChange={setYear}>
+                  <SelectTrigger className="bg-card border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((y) => (
+                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              {isLoading ? (
-                <div className="flex justify-center py-24">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                </div>
-              ) : filteredCars.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {filteredCars.map((car) => (
-                    <CarCard key={car.id} car={car} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-16">
-                  <p className="text-lg text-muted-foreground mb-4">
-                    {cars.length === 0
-                      ? "No vehicles are available right now. Please check back soon."
-                      : "No vehicles match your criteria"}
-                  </p>
-                  {cars.length > 0 && (
-                    <Button variant="outline" onClick={clearFilters} className="border-white/20">
-                      Clear All Filters
-                    </Button>
-                  )}
-                </div>
+              {(make !== "All Makes" || year !== "All Years") && (
+                <Button variant="ghost" onClick={clearFilters} className="md:mb-0">
+                  <X className="w-4 h-4 mr-1" />
+                  Clear
+                </Button>
               )}
             </div>
+
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-sm text-muted-foreground">
+                Showing <span className="text-foreground font-medium">{filteredCars.length}</span> vehicles
+              </p>
+            </div>
+
+            {isLoading ? (
+              <div className="flex justify-center py-24">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : filteredCars.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredCars.map((car) => (
+                  <CarCard key={car.id} car={car} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <p className="text-lg text-muted-foreground mb-4">
+                  {cars.length === 0
+                    ? "No vehicles are available right now. Please check back soon."
+                    : "No vehicles match your criteria"}
+                </p>
+                {cars.length > 0 && (
+                  <Button variant="outline" onClick={clearFilters} className="border-white/20">
+                    Clear All Filters
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </main>

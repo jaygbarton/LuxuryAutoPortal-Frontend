@@ -306,17 +306,12 @@ export default function ClientDashboard() {
 
   const maintenanceRecords = useMemo<MaintenanceRecord[]>(() => {
     if (!activeCar) return [];
+    // Only show REAL maintenance — actual records from the operations
+    // Maintenance tab (maintenance_tasks) for this car. We intentionally do NOT
+    // synthesize rows from car onboarding fields (last oil change / registration
+    // expiration): the registration date is an EXPIRATION, not a completed
+    // maintenance, so showing it under "Date Completed" was misleading.
     const records: MaintenanceRecord[] = [];
-    if (activeCar.lastOilChange)
-      records.push({
-        maintenanceType: "Oil Change",
-        dateCompleted: activeCar.lastOilChange,
-      });
-    if (activeCar.registrationExpiration)
-      records.push({
-        maintenanceType: "License Registration",
-        dateCompleted: activeCar.registrationExpiration,
-      });
     const tasks = maintenanceTasksData?.data ?? [];
     for (const t of tasks) {
       if (carId != null && t.car_id !== carId) continue;

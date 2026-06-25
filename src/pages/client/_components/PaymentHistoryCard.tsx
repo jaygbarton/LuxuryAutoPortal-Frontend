@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { PaymentReceiptModal } from "@/components/modals/PaymentReceiptModal";
-import { fmt, getMonthLabel } from "./utils";
+import { fmt, fmtDate, getMonthLabel } from "./utils";
 import type { Payment } from "./types";
 
 interface PaymentHistoryCardProps {
@@ -51,7 +51,7 @@ export function PaymentHistoryCard({ payments, isLoading }: PaymentHistoryCardPr
                     {fmt(p.payments_amount_balance)}
                   </TableCell>
                   <TableCell className="text-sm py-2 text-black">
-                    {p.payments_invoice_date || "—"}
+                    {fmtDate(p.payments_invoice_date)}
                   </TableCell>
                   <TableCell className="text-center py-2">
                     {p.payments_attachment ? (

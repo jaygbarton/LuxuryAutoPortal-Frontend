@@ -188,13 +188,16 @@ export function TripsOverviewTab() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterAssigned, setFilterAssigned] = useState<string>("all");
-  // Two independent single-day operations filters: "Trip Start" = trips
-  // starting on that exact day (cars going out), "Trip Ends" = trips ending on
+  // Single date RANGE filter (Cathy's rule): show every trip whose Trip Start
+  // OR Trip End falls within [rangeFrom, rangeTo]. A single day = set both to the
+  // same date. Sent to the backend's startOrEnd path as a start-range OR an
+  // end-range. (Legacy two-single-day comment retained below for context.)
+  // "Trip Start" = trips starting on that exact day (cars going out), "Trip Ends" = trips ending on
   // that exact day (cars coming back). Each works alone — leave either blank to
   // skip it. This is the daily-ops model (assign cleaners/delivery/pickup for a
   // given day), not a booking-style From/To date range.
-  const [tripStartOn, setTripStartOn] = useState<string>("");
-  const [tripEndOn, setTripEndOn] = useState<string>("");
+  const [rangeFrom, setRangeFrom] = useState<string>("");
+  const [rangeTo, setRangeTo] = useState<string>("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = usePersistentPageSize(
     "operations.tripsOverview",
@@ -427,8 +430,8 @@ export function TripsOverviewTab() {
       "operations-tab",
       debouncedSearch,
       filterStatus,
-      tripStartOn,
-      tripEndOn,
+      rangeFrom,
+      rangeTo,
       page,
       pageSize,
     ],
@@ -444,21 +447,15 @@ export function TripsOverviewTab() {
       // params were dropped whenever a search term was present, so typing in the
       // search box silently ignored the date filter — it looked like "search
       // doesn't work when a date is set." The backend AND-s `q` with the date
-      // ranges, so sending both is correct.) Each date filter is a single day:
-      // Trip Start uses startDate==endDate (trip_start ON that day), Trip Ends
-      // uses tripEndFrom==tripEndOn (trip_end ON that day).
-      if (tripStartOn) {
-        params.set("startDate", tripStartOn);
-        params.set("endDate", tripStartOn);
-      }
-      if (tripEndOn) {
-        params.set("tripEndFrom", tripEndOn);
-        params.set("tripEndOn", tripEndOn);
-      }
-      // When BOTH a Trip Start day and a Trip Ends day are set, OR them: show
-      // trips that start on the Start day OR end on the Ends day (cars going out
-      // that day + cars coming back that day), not just same-day trips.
-      if (tripStartOn && tripEndOn) {
+      // ranges, so sending both is correct.)
+      //
+      // ONE date RANGE → trips whose Trip Start OR Trip End falls in
+      // [rangeFrom, rangeTo]. The range is applied to BOTH trip_start
+      // (startDate/endDate) and trip_end (tripEndFrom/tripEndOn), then OR-ed via
+      // startOrEnd. A single day = rangeFrom == rangeTo.
+      if (rangeFrom || rangeTo) {
+        if (rangeFrom) { params.set("startDate", rangeFrom); params.set("tripEndFrom", rangeFrom); }
+        if (rangeTo) { params.set("endDate", rangeTo); params.set("tripEndOn", rangeTo); }
         params.set("startOrEnd", "true");
       }
       const response = await fetch(
@@ -475,22 +472,14 @@ export function TripsOverviewTab() {
   const { data: summaryData } = useQuery<{
     data: { totalTrips: number; bookedTrips: number; completedTrips: number; cancelledTrips: number };
   }>({
-    queryKey: ["/api/turo-trips/summary", "operations-tab-cards", tripStartOn, tripEndOn],
+    queryKey: ["/api/turo-trips/summary", "operations-tab-cards", rangeFrom, rangeTo],
     queryFn: async () => {
       const params = new URLSearchParams();
-      // Single-day filters: Trip Start = trip_start ON that day
-      // (startDate==endDate); Trip Ends = trip_end ON that day
-      // (tripEndFrom==tripEndOn). Keeps the cards in sync with the table.
-      if (tripStartOn) {
-        params.set("startDate", tripStartOn);
-        params.set("endDate", tripStartOn);
-      }
-      if (tripEndOn) {
-        params.set("tripEndFrom", tripEndOn);
-        params.set("tripEndOn", tripEndOn);
-      }
-      // Match the table's OR behavior so the count cards stay in sync.
-      if (tripStartOn && tripEndOn) {
+      // Same single-range OR logic as the table so the count cards stay in sync:
+      // trips whose Trip Start OR Trip End falls in [rangeFrom, rangeTo].
+      if (rangeFrom || rangeTo) {
+        if (rangeFrom) { params.set("startDate", rangeFrom); params.set("tripEndFrom", rangeFrom); }
+        if (rangeTo) { params.set("endDate", rangeTo); params.set("tripEndOn", rangeTo); }
         params.set("startOrEnd", "true");
       }
       const qs = params.toString();

@@ -3,6 +3,7 @@ import { AlertCircle } from "lucide-react";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { fmtDate } from "./utils";
 import type { ClientCar, MaintenanceRecord } from "./types";
 
 interface MaintenanceCardProps {
@@ -32,7 +33,7 @@ export function MaintenanceCard({ maintenanceRecords, activeCar }: MaintenanceCa
                 <TableRow key={i} className="border-border hover:bg-muted/30">
                   <TableCell className="text-sm py-2 text-black">{record.maintenanceType ?? record.type ?? "—"}</TableCell>
                   <TableCell className="text-sm py-2 text-black">
-                    {record.dateCompleted ?? record.date_completed ?? "—"}
+                    {fmtDate(record.dateCompleted ?? record.date_completed)}
                   </TableCell>
                 </TableRow>
               ))}
