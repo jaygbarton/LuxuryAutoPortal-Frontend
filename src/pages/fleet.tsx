@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Search, ArrowRight, Calendar, X, Loader2, ExternalLink } from "lucide-react";
+import { Search, ArrowRight, X, Loader2, ExternalLink } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
@@ -54,18 +54,16 @@ function CarCard({ car }: { car: FleetCar }) {
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
       <CardContent className="p-6">
-        <div className="mb-4">
-          <h3 className="text-xl font-semibold text-foreground">{car.makeModel}</h3>
+        <div className="mb-6">
+          {/* Name format matches the booking car picker: "<make/model/trim> <year>"
+              (e.g. "Acura MDX Base - AWD 2020"). Mileage and fuel removed since
+              our mileage data isn't kept up to date (often showed "0 mi"). */}
+          <h3 className="text-xl font-semibold text-foreground">
+            {[car.makeModel, car.year].filter(Boolean).join(" ")}
+          </h3>
           {(car.vehicleTrim || car.color) && (
             <p className="text-sm text-gray-500">{[car.vehicleTrim, car.color].filter(Boolean).join(" · ")}</p>
           )}
-        </div>
-
-        {/* Mileage and fuel removed: our mileage data isn't kept up to date,
-            so showing it (often "0 mi") is misleading. Year only. */}
-        <div className="flex items-center gap-2 text-sm text-gray-600 mb-6">
-          <Calendar className="w-4 h-4 text-gray-700" />
-          <span>{car.year ?? "—"}</span>
         </div>
 
         {car.turoLink ? (
