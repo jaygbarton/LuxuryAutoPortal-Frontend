@@ -534,12 +534,20 @@ export default function CoHostsPage() {
                       </p>
                       <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-md p-2">
                         {carsData.cars.map((car) => {
-                          // Make Model Year — Plate # — VIN# so cars sharing a
-                          // year/model (e.g. multiple 4Runners) are distinguishable.
-                          const label = [car.make, car.model, car.year].filter(Boolean).join(" ");
+                          // Format: "Make Model Year - Plate# Vin#" (Cathy's spec).
+                          // Some car rows store the literal string "null"/"undefined"
+                          // for make — treat those (and blanks) as missing so the
+                          // label never prints "null".
+                          const clean = (v: unknown) => {
+                            const s = String(v ?? "").trim();
+                            return s && s.toLowerCase() !== "null" && s.toLowerCase() !== "undefined" ? s : "";
+                          };
+                          const label = [clean(car.make), clean(car.model), clean(car.year)]
+                            .filter(Boolean)
+                            .join(" ");
                           const sub = [
-                            car.licensePlate ? `Plate ${car.licensePlate}` : null,
-                            car.vin ? `VIN ${car.vin}` : null,
+                            clean(car.licensePlate) ? `Plate ${clean(car.licensePlate)}` : null,
+                            clean(car.vin) ? `VIN ${clean(car.vin)}` : null,
                           ].filter(Boolean).join(" · ");
                           return (
                             <label

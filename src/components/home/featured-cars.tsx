@@ -24,6 +24,13 @@ interface FeaturedCar {
 const PLACEHOLDER_IMG =
   "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
 
+/** Hide placeholder/junk values ("No Data", "N/A", etc.) instead of printing them. */
+function cleanVal(v: string | null | undefined): string {
+  const s = (v ?? "").trim();
+  if (!s) return "";
+  return /^(no data|n\/a|na|--|-|none|null|undefined)$/i.test(s) ? "" : s;
+}
+
 function CarCard({ car }: { car: FeaturedCar }) {
   const imgSrc = car.photo ? getProxiedImageUrl(car.photo) : PLACEHOLDER_IMG;
   return (
@@ -55,11 +62,10 @@ function CarCard({ car }: { car: FeaturedCar }) {
           <h3 className="text-xl font-semibold" style={{ color: "#1C1C1C", fontFamily: "'Playfair Display', Georgia, serif" }}>
             {car.makeModel}
           </h3>
-          {(car.vehicleTrim || car.color) && (
-            <p className="text-sm" style={{ color: "#808080" }}>
-              {[car.vehicleTrim, car.color].filter(Boolean).join(" · ")}
-            </p>
-          )}
+          {(() => {
+            const sub = [car.vehicleTrim, car.color].map(cleanVal).filter(Boolean).join(" · ");
+            return sub ? <p className="text-sm" style={{ color: "#808080" }}>{sub}</p> : null;
+          })()}
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-6">

@@ -148,7 +148,8 @@ export default function TuroTripsPage() {
   const [bookingTo, setBookingTo] = useState("");
   // Sorting on the date columns (click a header to toggle asc/desc).
   const [sortBy, setSortBy] = useState<"tripStart" | "tripEnd" | "booking">("tripStart");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  // Default earliest→latest by trip time (chronological), per Cathy's request.
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   // Inline odometer editing: tripId → { start, end }
