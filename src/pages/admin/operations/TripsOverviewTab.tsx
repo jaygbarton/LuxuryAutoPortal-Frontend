@@ -458,6 +458,10 @@ export function TripsOverviewTab() {
         if (rangeTo) { params.set("endDate", rangeTo); params.set("tripEndOn", rangeTo); }
         params.set("startOrEnd", "true");
       }
+      // Order by soonest Trip Start first (upcoming at the top), matching the
+      // Day Schedule's chronological ordering for daily operations.
+      params.set("sortBy", "tripStart");
+      params.set("sortDir", "asc");
       const response = await fetch(
         buildApiUrl(`/api/turo-trips?${params.toString()}`),
         { credentials: "include" },

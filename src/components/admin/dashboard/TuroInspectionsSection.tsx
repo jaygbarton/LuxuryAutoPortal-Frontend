@@ -196,7 +196,13 @@ export default function TuroInspectionsSection() {
   });
 
   const allInspections = useMemo(() =>
-    [...(data?.data ?? [])].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    // Sort by Trip Start ASC (soonest upcoming first), matching the Day
+    // Schedule's chronological order; fall back to created_at when no trip.
+    [...(data?.data ?? [])].sort((a, b) => {
+      const at = a.tt_trip_start ? new Date(a.tt_trip_start).getTime() : new Date(a.created_at).getTime();
+      const bt = b.tt_trip_start ? new Date(b.tt_trip_start).getTime() : new Date(b.created_at).getTime();
+      return at - bt;
+    }),
     [data]
   );
 
