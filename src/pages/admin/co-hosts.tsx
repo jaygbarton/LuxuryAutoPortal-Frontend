@@ -534,8 +534,13 @@ export default function CoHostsPage() {
                       </p>
                       <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-md p-2">
                         {carsData.cars.map((car) => {
-                          const label = [car.year, car.make, car.model].filter(Boolean).join(" ");
-                          const sub = [car.licensePlate, car.color].filter(Boolean).join(" · ");
+                          // Make Model Year — Plate # — VIN# so cars sharing a
+                          // year/model (e.g. multiple 4Runners) are distinguishable.
+                          const label = [car.make, car.model, car.year].filter(Boolean).join(" ");
+                          const sub = [
+                            car.licensePlate ? `Plate ${car.licensePlate}` : null,
+                            car.vin ? `VIN ${car.vin}` : null,
+                          ].filter(Boolean).join(" · ");
                           return (
                             <label
                               key={car.id}
