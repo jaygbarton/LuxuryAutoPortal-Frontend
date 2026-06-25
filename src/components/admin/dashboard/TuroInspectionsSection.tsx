@@ -203,8 +203,8 @@ export default function TuroInspectionsSection() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [assignedToFilter, setAssignedToFilter] = useState("all");
-  const [tripStartFrom, setTripStartFrom] = useState("");
-  const [tripEndTo, setTripEndTo] = useState("");
+  const [rangeFrom, setRangeFrom] = useState("");
+  const [rangeTo, setRangeTo] = useState("");
 
   const assignedToOptions = useMemo(() => {
     const names = new Set<string>();
@@ -222,22 +222,28 @@ export default function TuroInspectionsSection() {
     if (search.trim()) { const q = search.toLowerCase(); f = f.filter(t => Object.values(t).some(v => v != null && String(v).toLowerCase().includes(q))); }
     if (statusFilter !== "all") f = f.filter(t => t.status === statusFilter);
     if (assignedToFilter !== "all") f = f.filter(t => (t.assigned_to ?? "").trim() === assignedToFilter);
-    // Exact-match filter: "Trip Start From" keeps only trips whose START day
-    // equals the chosen day; "Trip Ends To" keeps only trips whose END day
-    // equals the chosen day. Both are ANDed. Compare MT YYYY-MM-DD strings so
-    // the filter agrees with the columns rendered in America/Denver.
+    // Single date RANGE [From, To]: keep inspections whose trip START OR trip
+    // END falls within the range (single day = From==To). Compare MT
+    // YYYY-MM-DD strings so the filter agrees with the columns rendered in
+    // America/Denver.
     const toMtDate = (iso: string | null | undefined): string | null => {
       if (!iso) return null;
       try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso)); }
       catch { return null; }
     };
-    if (tripStartFrom) f = f.filter(t => { const d = toMtDate(t.tt_trip_start); return d != null && d === tripStartFrom; });
-    if (tripEndTo) f = f.filter(t => { const d = toMtDate(t.tt_trip_end); return d != null && d === tripEndTo; });
+    if (rangeFrom || rangeTo) {
+      f = f.filter(t => {
+        const sd = toMtDate(t.tt_trip_start);
+        const ed = toMtDate(t.tt_trip_end);
+        const inRange = (day: string | null) => day != null && (!rangeFrom || day >= rangeFrom) && (!rangeTo || day <= rangeTo);
+        return inRange(sd) || inRange(ed);
+      });
+    }
     return f.slice(0, 30);
-  }, [allInspections, search, statusFilter, assignedToFilter, tripStartFrom, tripEndTo]);
+  }, [allInspections, search, statusFilter, assignedToFilter, rangeFrom, rangeTo]);
 
-  const isFiltered = search || statusFilter !== "all" || assignedToFilter !== "all" || tripStartFrom || tripEndTo;
-  function clearAll() { setSearch(""); setStatusFilter("all"); setAssignedToFilter("all"); setTripStartFrom(""); setTripEndTo(""); }
+  const isFiltered = search || statusFilter !== "all" || assignedToFilter !== "all" || rangeFrom || rangeTo;
+  function clearAll() { setSearch(""); setStatusFilter("all"); setAssignedToFilter("all"); setRangeFrom(""); setRangeTo(""); }
 
   return (
     <div className="mb-8">
@@ -262,14 +268,12 @@ export default function TuroInspectionsSection() {
           </select>
         )}
         <div className="flex items-center gap-1">
-          <label className="text-xs text-gray-500 whitespace-nowrap">Trip Start From</label>
-          <input type="date" value={tripStartFrom} onChange={e => setTripStartFrom(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
-          {tripStartFrom && <button onClick={() => setTripStartFrom("")} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
-        </div>
-        <div className="flex items-center gap-1">
-          <label className="text-xs text-gray-500 whitespace-nowrap">Trip Ends To</label>
-          <input type="date" value={tripEndTo} onChange={e => setTripEndTo(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
-          {tripEndTo && <button onClick={() => setTripEndTo("")} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
+          <label className="text-xs text-gray-500 whitespace-nowrap">Trip Start/End From</label>
+          <input type="date" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+          <span className="text-xs text-gray-400">–</span>
+          <label className="text-xs text-gray-500 whitespace-nowrap">To</label>
+          <input type="date" value={rangeTo} onChange={e => setRangeTo(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+          {(rangeFrom || rangeTo) && <button onClick={() => { setRangeFrom(""); setRangeTo(""); }} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
         </div>
         {isFiltered && <><span className="text-xs text-gray-500">{inspections.length} result{inspections.length !== 1 ? "s" : ""}</span><button onClick={clearAll} className="text-xs text-[#B8860B] hover:underline">Clear all</button></>}
       </div>

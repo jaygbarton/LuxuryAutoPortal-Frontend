@@ -86,12 +86,11 @@ export function TripTasksTab() {
   const [filterType, setFilterType] = useState<string>("no-refuel");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
-  // Single-day operations filters: Trip Start = cars going out that day,
-  // Trip Ends = cars coming back that day. Each is one exact MT calendar date
-  // and works independently (set either alone). This is the daily-ops model the
-  // team uses for assigning cleaners/delivery/pickup — not a booking date range.
-  const [tripStartOn, setTripStartOn] = useState<string>("");
-  const [tripEndOn, setTripEndOn] = useState<string>("");
+  // Single date RANGE filter: show every task whose trip's Trip Start OR Trip
+  // End falls within [rangeFrom, rangeTo]. A single day = set both to the same
+  // date. Sent to the backend's startOrEnd path as a start-range OR end-range.
+  const [rangeFrom, setRangeFrom] = useState<string>("");
+  const [rangeTo, setRangeTo] = useState<string>("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = usePersistentPageSize(
     "operations.tripTasks",
@@ -152,18 +151,21 @@ export function TripTasksTab() {
   };
 
   const { data, isLoading } = useQuery<{ data: OperationTask[]; total: number }>({
-    queryKey: ["/api/operations/tasks", filterType, filterStatus, tripStartOn, tripEndOn, search],
+    queryKey: ["/api/operations/tasks", filterType, filterStatus, rangeFrom, rangeTo, search],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filterType !== "all" && filterType !== "no-refuel") params.append("task_type", filterType);
       if (filterStatus !== "all") params.append("status", filterStatus);
       // Skip date filters when search is active so a reservation ID or name
-      // search finds rows regardless of which date filters are set.
-      if (!search.trim()) {
-        if (tripStartOn) params.append("tripStartOn", tripStartOn);
-        if (tripEndOn) params.append("tripEndOn", tripEndOn);
-        // Both set → OR them (trip starts on Start day OR ends on Ends day).
-        if (tripStartOn && tripEndOn) params.append("startOrEnd", "true");
+      // search finds rows regardless of the date range.
+      // ONE date RANGE → tasks whose trip's Trip Start OR Trip End falls in
+      // [rangeFrom, rangeTo]. Applied to BOTH trip_start (startDate/endDate) and
+      // trip_end (tripEndFrom/tripEndOn), then OR-ed via startOrEnd. A single
+      // day = rangeFrom == rangeTo.
+      if (!search.trim() && (rangeFrom || rangeTo)) {
+        if (rangeFrom) { params.set("startDate", rangeFrom); params.set("tripEndFrom", rangeFrom); }
+        if (rangeTo) { params.set("endDate", rangeTo); params.set("tripEndOn", rangeTo); }
+        params.set("startOrEnd", "true");
       }
       const qs = params.toString();
       const response = await fetch(
@@ -240,7 +242,7 @@ export function TripTasksTab() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, tripStartOn, tripEndOn, filterType, filterStatus, pageSize]);
+  }, [search, rangeFrom, rangeTo, filterType, filterStatus, pageSize]);
 
   const pagedTasks = useMemo(
     () => filteredTasks.slice((page - 1) * pageSize, page * pageSize),
@@ -299,16 +301,16 @@ export function TripTasksTab() {
     setFilterType("no-refuel");
     setFilterStatus("all");
     setSearch("");
-    setTripStartOn("");
-    setTripEndOn("");
+    setRangeFrom("");
+    setRangeTo("");
   };
 
   const hasActiveFilters =
     filterType !== "no-refuel" ||
     filterStatus !== "all" ||
     search !== "" ||
-    tripStartOn !== "" ||
-    tripEndOn !== "";
+    rangeFrom !== "" ||
+    rangeTo !== "";
 
   return (
     <div className="space-y-6">
@@ -370,22 +372,22 @@ export function TripTasksTab() {
               </Select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">Trip Start</label>
+              <label className="text-muted-foreground text-xs">Trip Start/End From</label>
               <Input
                 type="date"
-                value={tripStartOn}
-                onChange={(e) => setTripStartOn(e.target.value)}
-                title="Show trips starting on this day (cars going out)"
+                value={rangeFrom}
+                onChange={(e) => setRangeFrom(e.target.value)}
+                title="Show trips whose Trip Start OR Trip End is on/after this day"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">Trip Ends</label>
+              <label className="text-muted-foreground text-xs">To</label>
               <Input
                 type="date"
-                value={tripEndOn}
-                onChange={(e) => setTripEndOn(e.target.value)}
-                title="Show trips ending on this day (cars coming back)"
+                value={rangeTo}
+                onChange={(e) => setRangeTo(e.target.value)}
+                title="Show trips whose Trip Start OR Trip End is on/before this day"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>

@@ -194,10 +194,8 @@ export default function OperationsSection() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [assignedToFilter, setAssignedToFilter] = useState("all");
-  const [tripStartFrom, setTripStartFrom] = useState("");
-  const [tripStartTo, setTripStartTo] = useState("");
-  const [tripEndFrom, setTripEndFrom] = useState("");
-  const [tripEndTo, setTripEndTo] = useState("");
+  const [rangeFrom, setRangeFrom] = useState("");
+  const [rangeTo, setRangeTo] = useState("");
 
   const assignedToOptions = useMemo(() => {
     const names = new Set<string>();
@@ -212,38 +210,28 @@ export default function OperationsSection() {
     if (search.trim()) { const q = search.toLowerCase(); f = f.filter(t => Object.values(t).some(v => v != null && String(v).toLowerCase().includes(q))); }
     if (statusFilter !== "all") f = f.filter(t => t.status === statusFilter);
     if (assignedToFilter !== "all") f = f.filter(t => (t.assigned_to ?? "").trim() === assignedToFilter);
-    // Match each date field against its own exact Mountain-Time calendar day,
-    // AND-ed together: "Trip Start on 6/17 AND Trip Ends on 6/17". Compare
-    // MT YYYY-MM-DD strings (not raw UTC timestamps) so the filter agrees with
-    // the Trip Start / Trip Ends columns, which render in America/Denver.
+    // Single date RANGE [From, To]: keep trips whose trip_start OR trip_end
+    // falls within the range (single day = From==To). Compare MT YYYY-MM-DD
+    // strings (not raw UTC timestamps) so the filter agrees with the Trip Start
+    // / Trip Ends columns, which render in America/Denver.
     const toMtDate = (iso: string | null | undefined): string | null => {
       if (!iso) return null;
       try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso)); }
       catch { return null; }
     };
-    if (tripStartFrom || tripStartTo) {
+    if (rangeFrom || rangeTo) {
       f = f.filter(t => {
-        const d = toMtDate(t.trip_start);
-        if (!d) return false;
-        if (tripStartFrom && d < tripStartFrom) return false;
-        if (tripStartTo && d > tripStartTo) return false;
-        return true;
-      });
-    }
-    if (tripEndFrom || tripEndTo) {
-      f = f.filter(t => {
-        const d = toMtDate(t.trip_end);
-        if (!d) return false;
-        if (tripEndFrom && d < tripEndFrom) return false;
-        if (tripEndTo && d > tripEndTo) return false;
-        return true;
+        const sd = toMtDate(t.trip_start);
+        const ed = toMtDate(t.trip_end);
+        const inRange = (day: string | null) => day != null && (!rangeFrom || day >= rangeFrom) && (!rangeTo || day <= rangeTo);
+        return inRange(sd) || inRange(ed);
       });
     }
     return f.slice(0, 20);
-  }, [allTasks, search, statusFilter, assignedToFilter, tripStartFrom, tripStartTo, tripEndFrom, tripEndTo]);
+  }, [allTasks, search, statusFilter, assignedToFilter, rangeFrom, rangeTo]);
 
-  const isFiltered = search || statusFilter !== "all" || assignedToFilter !== "all" || tripStartFrom || tripStartTo || tripEndFrom || tripEndTo;
-  function clearAll() { setSearch(""); setStatusFilter("all"); setAssignedToFilter("all"); setTripStartFrom(""); setTripStartTo(""); setTripEndFrom(""); setTripEndTo(""); }
+  const isFiltered = search || statusFilter !== "all" || assignedToFilter !== "all" || rangeFrom || rangeTo;
+  function clearAll() { setSearch(""); setStatusFilter("all"); setAssignedToFilter("all"); setRangeFrom(""); setRangeTo(""); }
 
   return (
     <div className="mb-8">
@@ -268,18 +256,12 @@ export default function OperationsSection() {
           </select>
         )}
         <div className="flex items-center gap-1">
-          <label className="text-xs text-gray-500 whitespace-nowrap">Trip Start</label>
-          <input type="date" value={tripStartFrom} onChange={e => setTripStartFrom(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+          <label className="text-xs text-gray-500 whitespace-nowrap">Trip Start/End From</label>
+          <input type="date" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
           <span className="text-xs text-gray-400">–</span>
-          <input type="date" value={tripStartTo} onChange={e => setTripStartTo(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
-          {(tripStartFrom || tripStartTo) && <button onClick={() => { setTripStartFrom(""); setTripStartTo(""); }} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
-        </div>
-        <div className="flex items-center gap-1">
-          <label className="text-xs text-gray-500 whitespace-nowrap">Trip Ends</label>
-          <input type="date" value={tripEndFrom} onChange={e => setTripEndFrom(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
-          <span className="text-xs text-gray-400">–</span>
-          <input type="date" value={tripEndTo} onChange={e => setTripEndTo(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
-          {(tripEndFrom || tripEndTo) && <button onClick={() => { setTripEndFrom(""); setTripEndTo(""); }} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
+          <label className="text-xs text-gray-500 whitespace-nowrap">To</label>
+          <input type="date" value={rangeTo} onChange={e => setRangeTo(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
+          {(rangeFrom || rangeTo) && <button onClick={() => { setRangeFrom(""); setRangeTo(""); }} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
         </div>
         {isFiltered && <><span className="text-xs text-gray-500">{tasks.length} result{tasks.length !== 1 ? "s" : ""}</span><button onClick={clearAll} className="text-xs text-[#B8860B] hover:underline">Clear all</button></>}
       </div>

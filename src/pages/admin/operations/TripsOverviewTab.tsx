@@ -561,8 +561,8 @@ export function TripsOverviewTab() {
   }, [
     debouncedSearch,
     filterStatus,
-    tripStartOn,
-    tripEndOn,
+    rangeFrom,
+    rangeTo,
     pageSize,
   ]);
 
@@ -576,15 +576,15 @@ export function TripsOverviewTab() {
     search !== "" ||
     filterStatus !== "all" ||
     filterAssigned !== "all" ||
-    tripStartOn !== "" ||
-    tripEndOn !== "";
+    rangeFrom !== "" ||
+    rangeTo !== "";
 
   const clearFilters = () => {
     setSearch("");
     setFilterStatus("all");
     setFilterAssigned("all");
-    setTripStartOn("");
-    setTripEndOn("");
+    setRangeFrom("");
+    setRangeTo("");
   };
 
   const openTaskModal = (trip: TuroTrip, taskType: TaskType) => {
@@ -673,25 +673,25 @@ export function TripsOverviewTab() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-muted-foreground text-xs">
-                Trip Start
+                Trip Start/End From
               </label>
               <Input
                 type="date"
-                value={tripStartOn}
-                onChange={(e) => setTripStartOn(e.target.value)}
-                title="Show trips starting on this day (cars going out)"
+                value={rangeFrom}
+                onChange={(e) => setRangeFrom(e.target.value)}
+                title="Show trips whose Trip Start OR Trip End is on/after this day"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-muted-foreground text-xs">
-                Trip Ends
+                To
               </label>
               <Input
                 type="date"
-                value={tripEndOn}
-                onChange={(e) => setTripEndOn(e.target.value)}
-                title="Show trips ending on this day (cars coming back)"
+                value={rangeTo}
+                onChange={(e) => setRangeTo(e.target.value)}
+                title="Show trips whose Trip Start OR Trip End is on/before this day"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
