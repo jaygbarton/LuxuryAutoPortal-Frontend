@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Search, ArrowRight, Gauge, Calendar, Fuel, X, Loader2, ExternalLink } from "lucide-react";
+import { Search, ArrowRight, Calendar, X, Loader2, ExternalLink } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
@@ -61,19 +61,11 @@ function CarCard({ car }: { car: FleetCar }) {
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Calendar className="w-4 h-4 text-gray-700" />
-            <span>{car.year ?? "—"}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Gauge className="w-4 h-4 text-gray-700" />
-            <span>{car.mileage != null ? `${car.mileage.toLocaleString()} mi` : "—"}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Fuel className="w-4 h-4 text-gray-700" />
-            <span>{car.fuelType || "—"}</span>
-          </div>
+        {/* Mileage and fuel removed: our mileage data isn't kept up to date,
+            so showing it (often "0 mi") is misleading. Year only. */}
+        <div className="flex items-center gap-2 text-sm text-gray-600 mb-6">
+          <Calendar className="w-4 h-4 text-gray-700" />
+          <span>{car.year ?? "—"}</span>
         </div>
 
         {car.turoLink ? (
