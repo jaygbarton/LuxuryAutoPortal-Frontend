@@ -400,20 +400,34 @@ export default function FormsPage() {
       field: params.get("field") ?? undefined,
     };
   })();
+  // Read the deep-link target ONCE from the URL (e.g. a subcategory form link:
+  // ?section=employee-forms&category=reimbursedBills&field=db_2316). Kept in a
+  // ref so the "default to first tab" effect below knows not to clobber it.
+  const deepLinkRef = useRef<{ section: string | null; category: string | null }>(
+    (() => {
+      const params = new URLSearchParams(window.location.search);
+      return { section: params.get("section"), category: params.get("category") };
+    })(),
+  );
+  // Apply the deep link AFTER form visibility (and therefore the tab list) has
+  // loaded. The previous version ran only on mount, before formVisibilityData
+  // resolved, so the section list was still empty and the default-tab effect
+  // then reset the tab back to the first one ("Client Onboarding Form") — which
+  // is exactly why a subcategory link opened the wrong tab. Gating on
+  // formVisibilityData makes setActiveSection stick.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const targetSection = params.get("section");
+    if (!formVisibilityData) return;
+    const targetSection = deepLinkRef.current.section;
     if (!targetSection) return;
-    // Open the matching tab when deep-linked (e.g. ?section=document-updates).
     setActiveSection(targetSection);
     // When a category is also passed, open the expense-receipt form so the
     // pre-selected sub-category is visible immediately.
-    if (params.get("category")) {
+    if (deepLinkRef.current.category) {
       setExpandedItems((prev) =>
         prev.includes("expense-receipt") ? prev : [...prev, "expense-receipt"],
       );
     }
-  }, []);
+  }, [formVisibilityData]);
 
   // Auto-expand Approval Dashboard for admins so data is visible immediately
   useEffect(() => {
@@ -1225,7 +1239,15 @@ export default function FormsPage() {
   useEffect(() => {
     if (formSections.length === 0) return;
     if (!formSections.some((s) => s.id === activeSection)) {
-      setActiveSection(formSections[0].id);
+      // Honor a deep-linked section (e.g. a subcategory form link) over the
+      // first-tab default, so the link lands on the right tab instead of
+      // falling back to "Client Onboarding Form".
+      const deepSection = deepLinkRef.current.section;
+      const target =
+        deepSection && formSections.some((s) => s.id === deepSection)
+          ? deepSection
+          : formSections[0].id;
+      setActiveSection(target);
     }
   }, [formSections, activeSection]);
 

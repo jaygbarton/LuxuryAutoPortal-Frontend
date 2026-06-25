@@ -96,9 +96,15 @@ export default function FormReceiptInModal({ carId, year, editingCell, isOpen }:
       ) : formReceiptUrls?.length ? (
         <div className="flex flex-wrap gap-3">
           {formReceiptUrls.map((urlOrId: string, i: number) => {
-            const isPdf = urlOrId?.match(/\.pdf$/i);
             const label = `Receipt ${i + 1}`;
             const embedded = formReceiptDataUrls?.[urlOrId];
+            // Drive-stored receipts have no extension (e.g. "drive:<id>"), so a
+            // ".pdf" filename check misses them and a PDF would be shoved into an
+            // <img> → broken image. Trust the embedded data-url's MIME type when
+            // present, and still honor an explicit .pdf suffix as a fallback.
+            const isPdf =
+              (embedded?.startsWith("data:application/pdf") ?? false) ||
+              /\.pdf$/i.test(urlOrId ?? "");
             const linkUrl =
               urlOrId && !urlOrId.startsWith("http") && matchingSubmissionId
                 ? buildApiUrl(

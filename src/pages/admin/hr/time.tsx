@@ -875,7 +875,11 @@ function HistoryDialog(props: { row: TimeRow | null; onClose: () => void }) {
       return res.json();
     },
   });
-  const entries = data?.data ?? [];
+  // Hide legacy no-op "UPDATE" rows (a Save with no edits used to log an empty
+  // audit entry). Keep any update that carries an explicit note.
+  const entries = (data?.data ?? []).filter(
+    (h) => auditHasChanges(h) || (h.time_audit_notes && h.time_audit_notes.trim())
+  );
 
   return (
     <Dialog open={!!row} onOpenChange={(o) => !o && onClose()}>
@@ -941,22 +945,34 @@ function HistoryDialog(props: { row: TimeRow | null; onClose: () => void }) {
   );
 }
 
+// Keys the edit-history diff shows. Shared so the dialog can also decide whether
+// an audit entry has any visible change (and hide no-op "UPDATE" rows).
+const HISTORY_FIELDS: { key: string; label: string; isTime?: boolean; isDate?: boolean }[] = [
+  { key: "time_date", label: "Date", isDate: true },
+  { key: "time_employee_id", label: "Employee id" },
+  { key: "time_working_hours", label: "Schedule" },
+  { key: "time_in", label: "Time in", isTime: true },
+  { key: "time_lunch_out", label: "Lunch out", isTime: true },
+  { key: "time_lunch_in", label: "Lunch in", isTime: true },
+  { key: "time_out", label: "Time out", isTime: true },
+  { key: "time_total_hours", label: "Total hrs" },
+  { key: "time_is_active", label: "Active" },
+];
+
+/** True if before→after differ in any tracked field. create/delete always count. */
+function auditHasChanges(h: AuditRow): boolean {
+  if (h.time_audit_action !== "update") return true;
+  const b = safeParse(h.time_audit_before);
+  const a = safeParse(h.time_audit_after);
+  if (!b && !a) return false;
+  return HISTORY_FIELDS.some((f) => String(b?.[f.key] ?? "") !== String(a?.[f.key] ?? ""));
+}
+
 function HistoryDiff(props: { before: string | null; after: string | null }) {
   const beforeObj = safeParse(props.before);
   const afterObj = safeParse(props.after);
 
-  // Keys we want to show in the diff
-  const FIELDS: { key: string; label: string; isTime?: boolean; isDate?: boolean }[] = [
-    { key: "time_date", label: "Date", isDate: true },
-    { key: "time_employee_id", label: "Employee id" },
-    { key: "time_working_hours", label: "Schedule" },
-    { key: "time_in", label: "Time in", isTime: true },
-    { key: "time_lunch_out", label: "Lunch out", isTime: true },
-    { key: "time_lunch_in", label: "Lunch in", isTime: true },
-    { key: "time_out", label: "Time out", isTime: true },
-    { key: "time_total_hours", label: "Total hrs" },
-    { key: "time_is_active", label: "Active" },
-  ];
+  const FIELDS = HISTORY_FIELDS;
 
   const fmt = (v: unknown, isTime?: boolean, isDate?: boolean) => {
     if (v == null || v === "") return "—";

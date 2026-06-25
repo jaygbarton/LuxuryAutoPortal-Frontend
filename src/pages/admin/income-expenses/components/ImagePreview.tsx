@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, ZoomIn, Upload } from "lucide-react";
+import { X, ZoomIn, Upload, FileText } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -33,6 +33,10 @@ function CredentialedImg({
   const isAbsolute = src.startsWith("http://") || src.startsWith("https://");
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  // Drive-stored receipts have no extension and are often PDFs, not images.
+  // A PDF blob in an <img> tag never decodes → "Failed to load image". When we
+  // detect a PDF from the fetched blob's type, show a clickable PDF tile instead.
+  const [isPdf, setIsPdf] = useState(false);
 
   useEffect(() => {
     // Absolute (public) URLs are rendered directly; nothing to fetch.
@@ -42,6 +46,7 @@ function CredentialedImg({
     let objectUrl: string | null = null;
     setBlobUrl(null);
     setFailed(false);
+    setIsPdf(false);
     fetch(src, { credentials: "include" })
       .then((res) => {
         if (!res.ok) throw new Error(`Failed to load (${res.status})`);
@@ -50,6 +55,7 @@ function CredentialedImg({
       .then((blob) => {
         if (revoked) return;
         objectUrl = URL.createObjectURL(blob);
+        if ((blob.type || "").toLowerCase().includes("pdf")) setIsPdf(true);
         setBlobUrl(objectUrl);
       })
       .catch(() => {
@@ -66,6 +72,23 @@ function CredentialedImg({
       <div className="w-full h-full flex items-center justify-center bg-red-500/20 text-red-700 text-xs p-2 text-center">
         Failed to load image
       </div>
+    );
+  }
+
+  // PDF receipt → document tile that opens the file in a new tab on click.
+  if (isPdf && blobUrl) {
+    return (
+      <a
+        href={blobUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={`Open ${alt || "PDF receipt"}`}
+        onClick={(e) => e.stopPropagation()}
+        className={`flex flex-col items-center justify-center gap-1 bg-background text-muted-foreground hover:text-primary p-2 text-center ${className ?? ""}`}
+      >
+        <FileText className="w-6 h-6" />
+        <span className="text-[10px] leading-tight break-all line-clamp-2">{alt || "PDF receipt"}</span>
+      </a>
     );
   }
 
