@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Search, X } from "lucide-react";
-import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
-import { SectionHeader, DashboardRecordCard } from "@/components/admin/dashboard";
+import { buildApiUrl } from "@/lib/queryClient";
+import { SectionHeader, DashboardRecordCard, CarPhotoCell } from "@/components/admin/dashboard";
 import { FuelReturnedCell } from "@/pages/admin/operations/FuelReturnedCell";
 import { CarIssueTypesCell } from "@/pages/admin/operations/CarIssueTypesCell";
 import {
@@ -130,20 +130,6 @@ function fmtDateTime(v: unknown): string {
   }
 }
 
-function parseCarPhotoUrl(raw: string | null | undefined): string | null {
-  if (!raw) return null;
-  try {
-    const arr = JSON.parse(raw);
-    if (Array.isArray(arr) && arr.length > 0) {
-      const first = arr[0];
-      const url = typeof first === "object" ? (first.url ?? first.path ?? null) : String(first);
-      if (url && typeof url === "string" && url.trim()) return url.trim();
-    }
-  } catch {
-    if (typeof raw === "string" && raw.trim()) return raw.trim();
-  }
-  return null;
-}
 
 function parseIssueTypes(v: unknown): string[] {
   if (Array.isArray(v)) return v as string[];
@@ -295,17 +281,6 @@ export default function TuroInspectionsSection() {
           {inspections.map((insp, i) => {
             const sm = statusMeta(insp.status);
             const photoCount = insp.photos?.length ?? 0;
-            const carPhotoUrl = parseCarPhotoUrl(insp.car_photo);
-            let media: React.ReactNode = null;
-            if (carPhotoUrl) {
-              const proxied = getProxiedImageUrl(carPhotoUrl);
-              const src = proxied.includes("/api/gcs-image-proxy")
-                ? proxied + (proxied.includes("?") ? "&" : "?") + "size=128"
-                : proxied;
-              media = (
-                <img src={src} alt={insp.car_name ?? "Car"} className="h-10 w-16 object-cover rounded" />
-              );
-            }
             return (
               <DashboardRecordCard
                 key={insp.id ?? i}
@@ -320,7 +295,7 @@ export default function TuroInspectionsSection() {
                 tripEnd={fmtDateTime(insp.tt_trip_end)}
                 pickupLocation={asStr(insp.pickup_location)}
                 dropoffLocation={asStr(insp.dropoff_location)}
-                media={media}
+                media={<CarPhotoCell carPhoto={insp.car_photo} carName={insp.car_name} />}
                 details={[
                   { label: "Days Rented", value: fmtDays(insp.days_rented) },
                   { label: "Extras", value: asStr(insp.extras) },

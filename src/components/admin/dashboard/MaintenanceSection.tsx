@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
-import { SectionHeader, DashboardRecordCard } from "@/components/admin/dashboard";
+import { Search, X } from "lucide-react";
+import { buildApiUrl } from "@/lib/queryClient";
+import { SectionHeader, DashboardRecordCard, CarPhotoCell } from "@/components/admin/dashboard";
 
 interface MaintenanceTask {
   id: number;
@@ -42,6 +41,7 @@ interface MaintenanceTask {
   trip_cancelled_earnings?: number | null;
   trip_status?: string | null;
   trip_plate_number?: string | null;
+  car_photo?: string | null;
 }
 
 interface MaintenanceResponse {
@@ -73,71 +73,6 @@ function formatCurrency(val: number | null | undefined): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
 }
 
-function PhotoLightbox({ photos, startIndex, onClose }: { photos: string[]; startIndex: number; onClose: () => void }) {
-  const [idx, setIdx] = useState(startIndex);
-  const proxied = getProxiedImageUrl(photos[idx]);
-  const src = proxied.includes("/api/gcs-image-proxy")
-    ? proxied + (proxied.includes("?") ? "&" : "?") + "size=1200"
-    : proxied;
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80"
-      onClick={onClose}
-    >
-      <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
-        <img src={src} alt={`Photo ${idx + 1}`} className="max-h-[80vh] max-w-full object-contain rounded" />
-        {photos.length > 1 && (
-          <div className="flex items-center gap-4 mt-3">
-            <button onClick={() => setIdx(i => (i - 1 + photos.length) % photos.length)}
-              className="p-1 rounded-full bg-white/20 hover:bg-white/30 text-white">
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <span className="text-white text-sm">{idx + 1} / {photos.length}</span>
-            <button onClick={() => setIdx(i => (i + 1) % photos.length)}
-              className="p-1 rounded-full bg-white/20 hover:bg-white/30 text-white">
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
-        )}
-        <button onClick={onClose} className="absolute -top-8 right-0 text-white/70 hover:text-white text-sm">✕ Close</button>
-      </div>
-    </div>,
-    document.body
-  );
-}
-
-/** Render the Photos cell as a clickable thumbnail (opens lightbox). */
-function PhotosCell({ photos }: { photos: string[] | null }) {
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  if (!photos || photos.length === 0) return null;
-  const proxied = getProxiedImageUrl(photos[0]);
-  const src = proxied.includes("/api/gcs-image-proxy")
-    ? proxied + (proxied.includes("?") ? "&" : "?") + "size=128"
-    : proxied;
-  return (
-    <>
-      <div
-        className="relative inline-block cursor-pointer"
-        onClick={() => setLightboxIndex(0)}
-        title="Click to view photos"
-      >
-        <img
-          src={src}
-          alt="Maintenance photo"
-          className="h-10 w-16 object-cover rounded mx-auto hover:opacity-90 transition-opacity"
-        />
-        {photos.length > 1 && (
-          <span className="absolute -top-1 -right-1 rounded-full bg-black px-1.5 text-[10px] font-bold leading-4 text-white">
-            {photos.length}
-          </span>
-        )}
-      </div>
-      {lightboxIndex !== null && (
-        <PhotoLightbox photos={photos} startIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
-      )}
-    </>
-  );
-}
 
 function statusLabel(status: string): string {
   const labels: Record<string, string> = {
@@ -347,7 +282,7 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
                     tripEnd={hasTrip ? formatDateTime(task.trip_end) : "—"}
                     pickupLocation={hasTrip ? pickupLocation : "—"}
                     dropoffLocation={hasTrip ? dropOffLocation : "—"}
-                    media={<PhotosCell photos={task.photos} />}
+                    media={<CarPhotoCell carPhoto={task.car_photo} carName={carLabel(task)} />}
                     details={[
                       { label: "Task Description", value: task.task_description || "—" },
                       { label: "Days Rented", value: daysRented != null ? daysRented : "—" },

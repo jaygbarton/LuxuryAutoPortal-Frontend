@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Search, X } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
-import { SectionHeader, DashboardRecordCard } from "@/components/admin/dashboard";
+import { SectionHeader, DashboardRecordCard, CarPhotoCell } from "@/components/admin/dashboard";
 import { FuelReturnedCell } from "@/pages/admin/operations/FuelReturnedCell";
 import { CarIssueTypesCell } from "@/pages/admin/operations/CarIssueTypesCell";
 import {
@@ -41,6 +41,7 @@ interface Inspection {
   trip_status?: string | null;
   fuel_level_returned?: string | null;
   car_issue_types?: unknown;
+  car_photo?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -283,6 +284,7 @@ export default function CarIssuesSection() {
                 tripEnd={fmtDateTime(insp.tt_trip_end)}
                 pickupLocation={asStr(insp.pickup_location)}
                 dropoffLocation={asStr(insp.dropoff_location)}
+                media={<CarPhotoCell carPhoto={insp.car_photo} carName={insp.car_name} />}
                 details={[
                   { label: "Days Rented", value: fmtDays(insp.days_rented) },
                   { label: "Extras", value: asStr(insp.extras) },
