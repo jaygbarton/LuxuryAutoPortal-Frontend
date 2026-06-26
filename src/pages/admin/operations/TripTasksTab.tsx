@@ -156,13 +156,11 @@ export function TripTasksTab() {
       const params = new URLSearchParams();
       if (filterType !== "all" && filterType !== "no-refuel") params.append("task_type", filterType);
       if (filterStatus !== "all") params.append("status", filterStatus);
-      // Skip date filters when search is active so a reservation ID or name
-      // search finds rows regardless of the date range.
       // ONE date RANGE → tasks whose trip's Trip Start OR Trip End falls in
       // [rangeFrom, rangeTo]. Applied to BOTH trip_start (startDate/endDate) and
       // trip_end (tripEndFrom/tripEndOn), then OR-ed via startOrEnd. A single
-      // day = rangeFrom == rangeTo.
-      if (!search.trim() && (rangeFrom || rangeTo)) {
+      // day = rangeFrom == rangeTo. Composes with search (AND-ed).
+      if (rangeFrom || rangeTo) {
         if (rangeFrom) { params.set("startDate", rangeFrom); params.set("tripEndFrom", rangeFrom); }
         if (rangeTo) { params.set("endDate", rangeTo); params.set("tripEndOn", rangeTo); }
         params.set("startOrEnd", "true");

@@ -280,10 +280,11 @@ export function MaintenanceTab({
         if (!hay.includes(q)) return false;
       }
       if (dateFrom || dateTo) {
-        const day = toMtDate(rec.scheduled_date);
-        if (!day) return false;
-        if (dateFrom && day < dateFrom) return false;
-        if (dateTo && day > dateTo) return false;
+        const inRange = (day: string | null) =>
+          day != null && (!dateFrom || day >= dateFrom) && (!dateTo || day <= dateTo);
+        const startDay = toMtDate(rec.trip_start ?? null);
+        const endDay = toMtDate(rec.trip_end ?? null);
+        if (!inRange(startDay) && !inRange(endDay)) return false;
       }
       return true;
     });
@@ -459,23 +460,25 @@ export function MaintenanceTab({
             )}
             <div className="flex flex-col gap-1">
               <label className="text-muted-foreground text-xs">
-                Scheduled From
+                Trip Start/End From
               </label>
               <Input
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
+                title="Show records whose Trip Start OR Trip End is on/after this day"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-muted-foreground text-xs">
-                Scheduled To
+                To
               </label>
               <Input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
+                title="Show records whose Trip Start OR Trip End is on/before this day"
                 className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
               />
             </div>
