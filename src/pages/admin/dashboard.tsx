@@ -38,6 +38,7 @@ const ALL_SECTIONS: SectionDef[] = [
   { id: "income-expenses", label: "Income & Expenses" },
   { id: "airport-parking", label: "Airport Parking & Trips" },
   { id: "commissions", label: "Commissions" },
+  { id: "car-onboarding-offboarding", label: "Car Onboarding & Offboarding" },
   { id: "car-blocked-off", label: "Car Blocked Off" },
   { id: "operations", label: "Operations" },
   { id: "turo-inspections", label: "Turo Inspections" },
@@ -367,6 +368,10 @@ export default function AdminDashboard() {
           {show["airport-parking"] && <AirportParkingSection year={selectedYear} />}
 
           {show["commissions"] && <CommissionsSection />}
+
+          {/* Car Onboarding/Offboarding report — sits directly above Car Blocked
+              Off per Cathy's request; shows submissions from July 1st onward. */}
+          {show["car-onboarding-offboarding"] && <CarOnOffboardingReport />}
 
           {show["car-blocked-off"] && <CarBlockedOffSection />}
 
