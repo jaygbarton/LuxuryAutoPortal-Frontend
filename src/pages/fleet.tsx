@@ -48,7 +48,7 @@ function cleanVal(v: string | null | undefined): string {
 function CarCard({ car }: { car: FleetCar }) {
   const imgSrc = car.photo ? getProxiedImageUrl(car.photo) : PLACEHOLDER_IMG;
   return (
-    <Card className="group overflow-hidden bg-card border-border hover-elevate">
+    <Card className="group flex flex-col h-full overflow-hidden bg-card border-border hover-elevate">
       <div className="relative aspect-[16/10] overflow-hidden">
         <img
           src={imgSrc}
@@ -61,7 +61,7 @@ function CarCard({ car }: { car: FleetCar }) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
-      <CardContent className="p-6">
+      <CardContent className="flex flex-1 flex-col p-6">
         <div className="mb-6">
           {/* Name format matches the booking car picker: "<make/model/trim> <year>"
               (e.g. "Acura MDX Base - AWD 2020"). Mileage and fuel removed since
@@ -75,23 +75,27 @@ function CarCard({ car }: { car: FleetCar }) {
           })()}
         </div>
 
-        {car.turoLink ? (
-          // Book Now → the car's OWN public Turo link (not the admin Turo link).
-          <a href={car.turoLink} target="_blank" rel="noopener noreferrer">
-            <Button className="w-full group/btn bg-primary text-primary-foreground hover:bg-primary/90">
-              Book Now
-              <ExternalLink className="ml-2 w-4 h-4 transition-transform group-hover/btn:translate-x-0.5" />
-            </Button>
-          </a>
-        ) : (
-          // No Turo link on file → fall back to the inquiry/contact flow.
-          <Link href="/contact">
-            <Button variant="outline" className="w-full group/btn border-gray-300 text-foreground hover:bg-gray-50">
-              Inquire
-              <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-            </Button>
-          </Link>
-        )}
+        {/* mt-auto pins the action to the card bottom so buttons line up across
+            a row regardless of title length or whether a subtitle is shown. */}
+        <div className="mt-auto">
+          {car.turoLink ? (
+            // Book Now → the car's OWN public Turo link (not the admin Turo link).
+            <a href={car.turoLink} target="_blank" rel="noopener noreferrer" className="block">
+              <Button className="w-full group/btn bg-primary text-primary-foreground hover:bg-primary/90">
+                Book Now
+                <ExternalLink className="ml-2 w-4 h-4 transition-transform group-hover/btn:translate-x-0.5" />
+              </Button>
+            </a>
+          ) : (
+            // No Turo link on file → fall back to the inquiry/contact flow.
+            <Link href="/contact" className="block">
+              <Button variant="outline" className="w-full group/btn border-gray-300 text-foreground hover:bg-gray-50">
+                Inquire
+                <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+              </Button>
+            </Link>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
