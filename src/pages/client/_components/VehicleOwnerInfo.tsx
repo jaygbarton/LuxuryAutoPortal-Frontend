@@ -1,5 +1,6 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { CalendarPlus, Video, ExternalLink } from "lucide-react";
 import type { ClientCar } from "./types";
 
 interface VehicleOwnerInfoProps {
@@ -89,33 +90,22 @@ export function VehicleOwnerInfo({
                 )}
               </div>
 
-              <div className="flex items-center gap-1 pt-0.5">
-                <span className="font-bold text-foreground">Book Your Car</span>
-                {" :"}
-                <a href="https://turo.com" target="_blank" rel="noopener noreferrer"
-                  className="ml-1 text-foreground hover:text-[#d3bc8d]" title="Book on Turo">
-                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="3" y="3" width="7" height="7" rx="1"/>
-                    <rect x="14" y="3" width="7" height="7" rx="1"/>
-                    <rect x="3" y="14" width="7" height="7" rx="1"/>
-                    <rect x="14" y="14" width="3" height="3" rx="0.5" fill="currentColor"/>
-                    <rect x="18" y="14" width="3" height="3" rx="0.5" fill="currentColor"/>
-                    <rect x="14" y="18" width="3" height="3" rx="0.5" fill="currentColor"/>
-                    <rect x="18" y="18" width="3" height="3" rx="0.5" fill="currentColor"/>
-                  </svg>
+              {/* Clear, labeled action buttons (replacing the previous bare
+                  icons that didn't read as clickable). Same destinations. */}
+              <div className="flex flex-wrap gap-2 pt-2">
+                <a href="https://app.goldenluxuryauto.com/admin/car-block-off" target="_blank" rel="noopener noreferrer">
+                  <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80 transition-colors">
+                    <CalendarPlus className="w-3.5 h-3.5" />
+                    Book Your Car
+                    <ExternalLink className="w-3 h-3 opacity-70" />
+                  </button>
                 </a>
-              </div>
-
-              <div className="flex items-center gap-1 pt-0.5">
-                <span className="font-bold text-foreground">Schedule a Zoom call</span>
-                {" "}
-                <a href="https://calendly.com/goldenluxuryauto" target="_blank" rel="noopener noreferrer"
-                  className="text-foreground hover:text-[#d3bc8d]" title="Schedule a Zoom call">
-                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/>
-                    <circle cx="17" cy="7" r="4"/>
-                    <path d="M15 7h4M17 5v4"/>
-                  </svg>
+                <a href="https://rent.goldenluxuryauto.com/lyc-client-check-in" target="_blank" rel="noopener noreferrer">
+                  <button className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:border-primary hover:text-[#d3bc8d] transition-colors">
+                    <Video className="w-3.5 h-3.5" />
+                    Schedule a Zoom Call
+                    <ExternalLink className="w-3 h-3 opacity-70" />
+                  </button>
                 </a>
               </div>
             </div>
