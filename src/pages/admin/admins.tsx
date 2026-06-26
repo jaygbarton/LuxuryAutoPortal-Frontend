@@ -63,6 +63,8 @@ interface AdminUser {
   /** True when this user is a co-host (no dedicated role; flagged by the API
    *  via email match against co_hosts). Display-only — the role stays Admin. */
   isCoHost: boolean;
+  /** True when this user is a super admin (can edit Time Sheet + Admins panel). */
+  isSuperAdmin: boolean;
   createdAt: string;
 }
 
@@ -105,6 +107,7 @@ function normalizeUser(raw: any): AdminUser {
     roleId: Number(raw.roleId ?? 0),
     isActive: Boolean(raw.isActive),
     isCoHost: Boolean(raw.isCoHost),
+    isSuperAdmin: Boolean(raw.isSuperAdmin),
     createdAt: raw.createdAt
       ? typeof raw.createdAt === "string"
         ? raw.createdAt
@@ -147,6 +150,7 @@ const userSchema = z.object({
     .optional()
     .or(z.literal("")),
   roleId: z.number().int().positive("Role is required"),
+  isSuperAdmin: z.boolean().optional(),
 });
 
 const quickLinkSchema = z.object({
@@ -281,6 +285,7 @@ export default function AdminsPage() {
       email: "",
       password: "",
       roleId: 0,
+      isSuperAdmin: false,
     },
   });
 
@@ -457,6 +462,7 @@ export default function AdminsPage() {
       email: "",
       password: "",
       roleId: 0,
+      isSuperAdmin: false,
     });
     setIsModalOpen(true);
   };
@@ -470,6 +476,7 @@ export default function AdminsPage() {
       email: user.email,
       password: "",
       roleId: user.roleId,
+      isSuperAdmin: user.isSuperAdmin,
     });
     setIsModalOpen(true);
   };
@@ -791,12 +798,22 @@ export default function AdminsPage() {
                           </div>
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4">
-                          <Badge
-                            variant="outline"
-                            className={cn(getRoleBadgeColor(displayRole(user)), "text-[10px] sm:text-xs")}
-                          >
-                            {displayRole(user)}
-                          </Badge>
+                          <div className="flex flex-wrap items-center gap-1">
+                            <Badge
+                              variant="outline"
+                              className={cn(getRoleBadgeColor(displayRole(user)), "text-[10px] sm:text-xs")}
+                            >
+                              {displayRole(user)}
+                            </Badge>
+                            {user.isSuperAdmin && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] sm:text-xs bg-amber-100 text-amber-800 border-amber-300"
+                              >
+                                Super Admin
+                              </Badge>
+                            )}
+                          </div>
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4">
                           <Badge
@@ -1082,6 +1099,36 @@ export default function AdminsPage() {
                     )}
                   />
                 )}
+
+                {/* Super Admin grant — only super admins can grant/revoke this.
+                    Super admins alone may edit the Time Sheet + Admins panel. */}
+                <FormField
+                  control={form.control}
+                  name="isSuperAdmin"
+                  render={({ field }) => (
+                    <FormItem className="rounded-lg border border-border p-3 space-y-2">
+                      <div className="flex items-start gap-3">
+                        <FormControl>
+                          <Checkbox
+                            checked={!!field.value}
+                            onCheckedChange={(v) => field.onChange(Boolean(v))}
+                            className="mt-0.5"
+                          />
+                        </FormControl>
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-foreground font-medium">
+                            Super Admin
+                          </FormLabel>
+                          <p className="text-xs text-muted-foreground">
+                            Super admins are the only users who can edit the Time
+                            Sheet and the Admins panel.
+                          </p>
+                        </div>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 {editingUser && (
                   <SwitchableRolesSection

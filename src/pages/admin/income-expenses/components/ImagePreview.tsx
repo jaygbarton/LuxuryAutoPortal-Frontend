@@ -88,6 +88,10 @@ function CredentialedImg({
       >
         <FileText className="w-6 h-6" />
         <span className="text-[10px] leading-tight break-all line-clamp-2">{alt || "PDF receipt"}</span>
+        {/* PDFs can't render as an inline image, so this is a clickable tile that
+            opens the file. The explicit label makes that obvious (otherwise a
+            zoomed PDF reads as a "blank" preview). */}
+        <span className="text-[10px] font-medium text-primary underline">Open PDF</span>
       </a>
     );
   }
