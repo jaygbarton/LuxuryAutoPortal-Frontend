@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
@@ -78,9 +79,9 @@ function PhotoLightbox({ photos, startIndex, onClose }: { photos: string[]; star
   const src = proxied.includes("/api/gcs-image-proxy")
     ? proxied + (proxied.includes("?") ? "&" : "?") + "size=1200"
     : proxied;
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80"
       onClick={onClose}
     >
       <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
@@ -100,7 +101,8 @@ function PhotoLightbox({ photos, startIndex, onClose }: { photos: string[]; star
         )}
         <button onClick={onClose} className="absolute -top-8 right-0 text-white/70 hover:text-white text-sm">✕ Close</button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
