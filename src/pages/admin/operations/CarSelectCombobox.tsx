@@ -53,11 +53,14 @@ export function CarSelectCombobox({ value, onChange, onSelectCar, disabled }: Ca
     (c) => c.status === "ACTIVE" || c.status === "active"
   );
 
+  // Admin-requested standard label: "Car Name Model Year - Plate # - Vin #"
+  // (e.g. "BMW X2 2026 - ABC123 - 123456789"). Year is appended to the name
+  // when present; blank plate/vin segments are skipped to avoid dangling " - ".
   const formatCarLabel = (car: CarOption) => {
-    const parts = [car.makeModel];
-    if (car.licensePlate) parts.push(`#${car.licensePlate}`);
-    if (car.vin) parts.push(`(${car.vin.slice(-6)})`);
-    return parts.join(" - ");
+    const name = [car.makeModel, car.year].filter(Boolean).join(" ").trim();
+    return [name, car.licensePlate?.trim(), car.vin?.trim()]
+      .filter((s) => s && String(s).length > 0)
+      .join(" - ");
   };
 
   const selectedLabel = value

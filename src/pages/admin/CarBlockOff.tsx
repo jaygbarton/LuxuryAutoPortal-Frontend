@@ -138,13 +138,19 @@ function CarSelect({ value, onChange, isAdmin: _isAdmin }: { value: string; onCh
         <SelectValue placeholder="Select a car..." />
       </SelectTrigger>
       <SelectContent className="bg-card border-border text-foreground">
-        {cars.map((c) => (
-          <SelectItem key={c.id} value={String(c.id)}>
-            {c.makeModel} {c.year ? `(${c.year})` : ""}
-            {c.vin ? ` — VIN: ${c.vin}` : ""}
-            {(c.licensePlate ?? c.plateNumber) ? ` — ${c.licensePlate ?? c.plateNumber}` : ""}
-          </SelectItem>
-        ))}
+        {cars.map((c) => {
+          // Admin-requested standard label: "Car Name Model Year - Plate # - Vin #".
+          const name = [c.makeModel, c.year].filter(Boolean).join(" ").trim();
+          const label =
+            [name, (c.licensePlate ?? c.plateNumber)?.trim(), c.vin?.trim()]
+              .filter((s) => s && String(s).length > 0)
+              .join(" - ") || `Car #${c.id}`;
+          return (
+            <SelectItem key={c.id} value={String(c.id)}>
+              {label}
+            </SelectItem>
+          );
+        })}
       </SelectContent>
     </Select>
   );

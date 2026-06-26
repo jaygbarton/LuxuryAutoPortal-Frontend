@@ -74,6 +74,12 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
   const options = optionsData?.data || {};
   const employees = options.employees || [];
   const cars = options.cars || [];
+  // Admin-requested standard label: "Car Name Model Year - Plate # - Vin #".
+  // The submitted value is the car id (unchanged); this only affects display.
+  const carLabel = (car: { name: string; displayName?: string; vin?: string | null; plate?: string | null }) =>
+    [(car.displayName ?? car.name)?.trim(), car.plate?.trim(), car.vin?.trim()]
+      .filter((s) => s && String(s).length > 0)
+      .join(" - ") || (car.displayName ?? car.name);
   const currentEmployeeId = options.currentEmployeeId ?? null;
   const currentUser = options.currentUser || null;
   const isAdmin = options.isAdmin === true;
@@ -494,11 +500,11 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
                       onMouseDown={(e) => {
                         e.preventDefault();
                         setFormData((prev) => ({ ...prev, carId: String(car.id) }));
-                        setCarSearch(car.displayName ?? car.name);
+                        setCarSearch(carLabel(car));
                         setCarDropdownOpen(false);
                       }}
                     >
-                      {car.displayName ?? car.name}
+                      {carLabel(car)}
                     </button>
                   ))}
                 {cars.length === 0 ? (

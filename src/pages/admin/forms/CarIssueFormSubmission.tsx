@@ -47,33 +47,35 @@ function CarSelect({
 
   const cars = data?.data ?? [];
 
+  // Admin-requested standard label: "Car Name Model Year - Plate # - Vin #".
+  // The selected <option value> is this label, and onChange matches it back, so
+  // both the render and the lookup MUST use this one helper (kept in sync here).
+  const carLabel = (c: (typeof cars)[number]) => {
+    const name = c.makeModel
+      ? c.makeModel
+      : [c.make, c.model, c.year].filter(Boolean).join(" ");
+    return (
+      [name, c.licensePlate?.trim(), c.vin?.trim()]
+        .filter((s) => s && String(s).length > 0)
+        .join(" - ") || String(c.id)
+    );
+  };
+
   return (
     <select
       value={value}
       onChange={(e) => {
-        const selected = cars.find((c) => {
-          const nameParts = c.makeModel ?? [c.make, c.model, c.year].filter(Boolean).join(" ");
-          const label = [nameParts, c.licensePlate ? `(${c.licensePlate})` : ""].filter(Boolean).join(" ");
-          return (label || String(c.id)) === e.target.value;
-        });
+        const selected = cars.find((c) => carLabel(c) === e.target.value);
         onChange(e.target.value, selected?.vin ?? "");
       }}
       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
     >
       <option value="">Select a car…</option>
-      {cars.map((c) => {
-        const nameParts = c.makeModel
-          ? c.makeModel
-          : [c.make, c.model, c.year].filter(Boolean).join(" ");
-        const label = [nameParts, c.licensePlate ? `(${c.licensePlate})` : ""]
-          .filter(Boolean)
-          .join(" ");
-        return (
-          <option key={c.id} value={label || String(c.id)}>
-            {label || `Car #${c.id}`}
-          </option>
-        );
-      })}
+      {cars.map((c) => (
+        <option key={c.id} value={carLabel(c)}>
+          {carLabel(c)}
+        </option>
+      ))}
     </select>
   );
 }

@@ -313,14 +313,23 @@ export default function CarsPage() {
 
         const filteredCars = normalizedCars
           .filter((car) => matchesSearch(car) && matchesStatus(car))
-          // Sort A–Z by Model/Specs to match the admin list; blanks sort last.
+          // Sort A–Z by Make to match the admin list; blank makes sort last,
+          // tie-break by Model/Specs so rows within a make stay readable.
           .sort((a, b) => {
-            const am = (a.model || "").trim();
-            const bm = (b.model || "").trim();
-            if (!am && !bm) return 0;
-            if (!am) return 1;
-            if (!bm) return -1;
-            return am.localeCompare(bm, undefined, { sensitivity: "base" });
+            const am = (a.make || "").trim();
+            const bm = (b.make || "").trim();
+            if (am && bm) {
+              const cmp = am.localeCompare(bm, undefined, { sensitivity: "base" });
+              if (cmp !== 0) return cmp;
+            } else if (!am && bm) {
+              return 1;
+            } else if (am && !bm) {
+              return -1;
+            }
+            // Same make (or both blank): tie-break by model.
+            return (a.model || "").localeCompare(b.model || "", undefined, {
+              sensitivity: "base",
+            });
           });
         const total = filteredCars.length;
         const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));

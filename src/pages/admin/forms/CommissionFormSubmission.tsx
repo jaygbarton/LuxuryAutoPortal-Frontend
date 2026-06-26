@@ -77,6 +77,13 @@ export default function CommissionFormSubmission() {
 
   const cars: Car[] = options.cars ?? [];
 
+  // Admin-requested standard label: "Car Name Model Year - Plate # - Vin #".
+  // car.name already holds the make/model/year; append plate + VIN when present.
+  const carLabel = (car: Car) =>
+    [car.name?.trim(), car.plate?.trim(), car.vin?.trim()]
+      .filter((s) => s && String(s).length > 0)
+      .join(" - ") || car.name;
+
   // Default the employee dropdown to the current user once options arrive.
   useEffect(() => {
     if (selectedEmployeeId) return;
@@ -303,12 +310,12 @@ export default function CommissionFormSubmission() {
                       onMouseDown={(e) => {
                         e.preventDefault();
                         setSelectedCarId(car.id);
-                        setSelectedCarName(car.name);
-                        setCarSearch(car.name);
+                        setSelectedCarName(carLabel(car));
+                        setCarSearch(carLabel(car));
                         setCarDropdownOpen(false);
                       }}
                     >
-                      {car.name}
+                      {carLabel(car)}
                     </button>
                   ))
                 )}
