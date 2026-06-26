@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { buildApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, authMeQueryFn } from "@/lib/queryClient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, History, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { Fragment, useMemo, useState } from "react";
@@ -312,6 +312,21 @@ export default function AdminHrTime() {
   const [historyRow, setHistoryRow] = useState<TimeRow | null>(null);
   const [deleteRow, setDeleteRow] = useState<TimeRow | null>(null);
 
+  // Only super admins (Cathy/Jay/Jin) may add/edit/delete time logs. Everyone
+  // else sees read-only controls and a "contact super admin" notice on attempt.
+  const { data: currentUserData } = useQuery({
+    queryKey: ["/api/auth/me"],
+    queryFn: authMeQueryFn,
+  });
+  const isSuperAdmin = Boolean(currentUserData?.user?.isSuperAdmin);
+  const notifyNoTimesheetAccess = () =>
+    toast({
+      title: "No access",
+      description:
+        "You don't have access to edit your timesheet. Please contact the super admin to update your hours.",
+      variant: "destructive",
+    });
+
   const [addForm, setAddForm] = useState<TimeFormState>(emptyForm());
   const [editForm, setEditForm] = useState<TimeFormState>(emptyForm());
   const [deleteNotes, setDeleteNotes] = useState("");
@@ -458,12 +473,18 @@ export default function AdminHrTime() {
 
   // ── Handlers ──
   const openAdd = () => {
+    if (!isSuperAdmin) return notifyNoTimesheetAccess();
     setAddForm(emptyForm());
     setAddOpen(true);
   };
   const openEdit = (r: TimeRow) => {
+    if (!isSuperAdmin) return notifyNoTimesheetAccess();
     setEditForm(rowToForm(r));
     setEditRow(r);
+  };
+  const openDelete = (r: TimeRow) => {
+    if (!isSuperAdmin) return notifyNoTimesheetAccess();
+    setDeleteRow(r);
   };
 
   const submitAdd = (e: React.FormEvent) => {
@@ -623,9 +644,9 @@ export default function AdminHrTime() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
+                                className={`h-8 w-8 ${!isSuperAdmin ? "opacity-40" : ""}`}
                                 onClick={() => openEdit(r)}
-                                title="Edit"
+                                title={isSuperAdmin ? "Edit" : "Only the super admin can edit time logs"}
                               >
                                 <Pencil className="h-4 w-4" />
                               </Button>
@@ -641,12 +662,12 @@ export default function AdminHrTime() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                className={`h-8 w-8 text-destructive hover:text-destructive ${!isSuperAdmin ? "opacity-40" : ""}`}
                                 onClick={() => {
                                   setDeleteNotes("");
-                                  setDeleteRow(r);
+                                  openDelete(r);
                                 }}
-                                title="Delete"
+                                title={isSuperAdmin ? "Delete" : "Only the super admin can delete time logs"}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>

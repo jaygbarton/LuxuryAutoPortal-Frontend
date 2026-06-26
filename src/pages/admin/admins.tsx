@@ -184,14 +184,24 @@ export default function AdminsPage() {
     retry: false,
   });
 
-  // Current session admin — used to prevent self-deletion from the UI.
-  const { data: currentSession } = useQuery<{ user?: { id?: number } }>({
+  // Current session admin — used to prevent self-deletion from the UI and to
+  // gate edits to super admins (Cathy/Jay/Jin) only.
+  const { data: currentSession } = useQuery<{ user?: { id?: number; isSuperAdmin?: boolean } }>({
     queryKey: ["/api/auth/me"],
     queryFn: authMeQueryFn,
     retry: false,
     staleTime: 5 * 60 * 1000,
   });
   const currentUserId = Number(currentSession?.user?.id ?? 0);
+  // Only super admins may add/edit/delete admins or change roles. Others get a
+  // read-only panel and a "contact super admin" notice if they try.
+  const isSuperAdmin = Boolean(currentSession?.user?.isSuperAdmin);
+  const notifyNoAdminAccess = () =>
+    toast({
+      title: "No access",
+      description: "Please contact the super admin to update the Admins panel.",
+      variant: "destructive",
+    });
 
   const { data: roles } = useQuery<Role[]>({
     queryKey: ["/api/admin/roles"],
@@ -439,6 +449,7 @@ export default function AdminsPage() {
   });
 
   const handleAddClick = () => {
+    if (!isSuperAdmin) return notifyNoAdminAccess();
     setEditingUser(null);
     form.reset({
       firstName: "",
@@ -451,6 +462,7 @@ export default function AdminsPage() {
   };
 
   const handleEditClick = (user: AdminUser) => {
+    if (!isSuperAdmin) return notifyNoAdminAccess();
     setEditingUser(user);
     form.reset({
       firstName: user.firstName,
@@ -825,7 +837,8 @@ export default function AdminsPage() {
                                       ? "text-red-600 hover:text-red-700"
                                       : "text-green-600 hover:text-green-700"
                                   )}
-                                  disabled={toggleActiveMutation.isPending}
+                                  disabled={toggleActiveMutation.isPending || !isSuperAdmin}
+                                  title={!isSuperAdmin ? "Only the super admin can change this" : undefined}
                                   data-testid={`button-toggle-admin-${user.id}`}
                                 >
                                   <span className="hidden sm:inline">
@@ -853,9 +866,10 @@ export default function AdminsPage() {
                               variant={
                                 user.isActive ? "destructive" : "default"
                               }
-                              onConfirm={() =>
-                                toggleActiveMutation.mutate(user)
-                              }
+                              onConfirm={() => {
+                                if (!isSuperAdmin) return notifyNoAdminAccess();
+                                toggleActiveMutation.mutate(user);
+                              }}
                             />
                             <ConfirmDialog
                               trigger={
@@ -865,10 +879,13 @@ export default function AdminsPage() {
                                   className="text-red-600 hover:text-red-700 hover:bg-red-500/10 px-2 sm:px-3"
                                   disabled={
                                     deleteMutation.isPending ||
-                                    currentUserId === user.id
+                                    currentUserId === user.id ||
+                                    !isSuperAdmin
                                   }
                                   title={
-                                    currentUserId === user.id
+                                    !isSuperAdmin
+                                      ? "Only the super admin can delete users"
+                                      : currentUserId === user.id
                                       ? "You cannot delete your own account"
                                       : "Permanently delete user"
                                   }
@@ -883,9 +900,10 @@ export default function AdminsPage() {
                               confirmText="Delete permanently"
                               cancelText="Cancel"
                               variant="destructive"
-                              onConfirm={() =>
-                                deleteMutation.mutate(user.id)
-                              }
+                              onConfirm={() => {
+                                if (!isSuperAdmin) return notifyNoAdminAccess();
+                                deleteMutation.mutate(user.id);
+                              }}
                             />
                           </div>
                         </td>

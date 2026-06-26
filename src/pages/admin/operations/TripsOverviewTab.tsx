@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,24 @@ const formatDateTime = (dateStr: string | null): string => {
   } catch {
     return dateStr;
   }
+};
+
+/**
+ * Render a trip date cell. A cancelled booking can legitimately have no
+ * trip_start/trip_end (it was cancelled before dates were confirmed); showing a
+ * bare "--" there reads as missing/broken data. So when the date is absent AND
+ * the trip is cancelled, label it "Cancelled" instead. Other empty dates still
+ * show "--".
+ */
+const tripDateCell = (
+  dateStr: string | null,
+  status: string | null | undefined,
+): ReactNode => {
+  if (dateStr) return formatDateTime(dateStr);
+  if ((status || "").toLowerCase() === "cancelled") {
+    return <span className="text-muted-foreground italic">Cancelled</span>;
+  }
+  return "--";
 };
 
 /**
@@ -944,7 +962,7 @@ export function TripsOverviewTab() {
                           })()}
                         </TableCell>
                         <TableCell className="text-foreground text-sm whitespace-nowrap">
-                          {formatDateTime(trip.tripStart)}
+                          {tripDateCell(trip.tripStart, trip.status)}
                         </TableCell>
                         <TableCell
                           className="text-muted-foreground text-sm max-w-[160px] truncate"
@@ -955,7 +973,7 @@ export function TripsOverviewTab() {
                           {trip.pickupLocation || trip.deliveryLocation || "--"}
                         </TableCell>
                         <TableCell className="text-foreground text-sm whitespace-nowrap">
-                          {formatDateTime(trip.tripEnd)}
+                          {tripDateCell(trip.tripEnd, trip.status)}
                         </TableCell>
                         <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
                           {daysRented != null ? daysRented : "--"}
