@@ -206,11 +206,18 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
+  const toMtDate = (iso: string | null | undefined): string | null => {
+    if (!iso) return null;
+    try {
+      return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso));
+    } catch { return null; }
+  };
+
   const allTasks = useMemo(() =>
     [...(data?.data ?? [])].sort((a, b) => {
-      const aTime = a.scheduled_date ? new Date(a.scheduled_date).getTime() : 0;
-      const bTime = b.scheduled_date ? new Date(b.scheduled_date).getTime() : 0;
-      return bTime - aTime;
+      const aTime = a.trip_start ? new Date(a.trip_start).getTime() : (a.scheduled_date ? new Date(a.scheduled_date).getTime() : 0);
+      const bTime = b.trip_start ? new Date(b.trip_start).getTime() : (b.scheduled_date ? new Date(b.scheduled_date).getTime() : 0);
+      return aTime - bTime;
     }),
     [data]
   );
@@ -226,13 +233,9 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
       f = f.filter(t => t.status === statusFilter);
     }
     if (fromDate || toDate) {
-      f = f.filter(t => {
-        const d = (t.scheduled_date || "").slice(0, 10);
-        if (!d) return false;
-        if (fromDate && d !== fromDate) return false;
-        if (toDate && d !== toDate) return false;
-        return true;
-      });
+      const inRange = (day: string | null) =>
+        day != null && (!fromDate || day >= fromDate) && (!toDate || day <= toDate);
+      f = f.filter(t => inRange(toMtDate(t.trip_start)) || inRange(toMtDate(t.trip_end)));
     }
     return f.slice(0, 20);
   }, [allTasks, search, statusFilter, fromDate, toDate]);
@@ -258,7 +261,7 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
           {MAINT_STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
         <div className="flex items-center gap-1">
-          <span className="text-xs text-gray-500">Scheduled</span>
+          <span className="text-xs text-gray-500">Trip Start/End</span>
           <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
             className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
           <span className="text-xs text-gray-400">–</span>
