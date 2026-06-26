@@ -121,6 +121,7 @@ const ICON_BY_LABEL: Record<string, LucideIcon> = {
   wipers: Fan,
   towingimpoundfees: Truck,
   tiredairstation: Wind,
+  tireairstation: Wind,
   tires: CircleDot,
   oillube: Droplet,
   parts: Cog,

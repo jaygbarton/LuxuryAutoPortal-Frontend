@@ -4,7 +4,7 @@
  * COGS workflow: Select sub-category → Upload receipt → AI extracts date/cost, optionally VIN/plate
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -94,25 +94,66 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
     options.categoryFields || {};
   const fieldOptions = categoryFields[formData.category] || [];
 
-  useEffect(() => {
-    // Don't clear field when category matches initial (e.g. staff form link with category+field)
-    if (initialCategory && initialField && formData.category === initialCategory) return;
-    setFormData((prev) => ({ ...prev, field: "" }));
-  }, [formData.category, initialCategory, initialField]);
+  // Tracks whether the deep-linked initial category/field has been applied yet.
+  // Until it has, the "clear field on category change" effect below must NOT run,
+  // otherwise it wipes the pre-selected sub-category before/while the apply
+  // effect sets it — the root cause of "the link didn't change the form".
+  const initialApplied = useRef(false);
 
-  // Apply initial category/field from URL or props (e.g. staff Forms list) once options are loaded
+  // The deep-link field value as resolved against the loaded options. A link can
+  // arrive as either the form value ("db_2316") or the I&E table key
+  // ("subcategory-2316"); normalize both to the dropdown's "db_<id>" value so
+  // the Select actually matches an option and shows the right sub-category.
+  const resolvedInitialField = useMemo(() => {
+    const raw = initialField?.trim();
+    if (!raw) return null;
+    const m = raw.match(/(?:^db_|^subcategory-)(\d+)$/);
+    return m ? `db_${m[1]}` : raw;
+  }, [initialField]);
+
+  const resolvedInitialCategory = useMemo(
+    () =>
+      initialCategory && ["income", "directDelivery", "cogs", "reimbursedBills"].includes(initialCategory)
+        ? initialCategory
+        : null,
+    [initialCategory],
+  );
+
+  // Apply initial category/field from URL or props (e.g. staff Forms list) once
+  // options are loaded. Runs exactly once per (category, field) so the user can
+  // freely change the dropdown afterward without it snapping back.
   useEffect(() => {
     if (!optionsData?.data?.categoryFields) return;
-    const cat = initialCategory && ["income", "directDelivery", "cogs", "reimbursedBills"].includes(initialCategory) ? initialCategory : null;
-    const fld = initialField?.trim() || null;
-    if (!cat && !fld) return;
+    if (!resolvedInitialCategory && !resolvedInitialField) return;
+    if (initialApplied.current) return;
+    initialApplied.current = true;
     setFormData((prev) => {
       const next = { ...prev };
-      if (cat) next.category = cat;
-      if (fld) next.field = fld;
+      if (resolvedInitialCategory) next.category = resolvedInitialCategory;
+      if (resolvedInitialField) next.field = resolvedInitialField;
       return next;
     });
-  }, [optionsData?.data?.categoryFields, initialCategory, initialField]);
+  }, [optionsData?.data?.categoryFields, resolvedInitialCategory, resolvedInitialField]);
+
+  // Clear the field when the user changes category — but only AFTER the deep-link
+  // has been applied (and never on the very first render that carries it), so a
+  // pre-selected sub-category survives.
+  const prevCategory = useRef(formData.category);
+  useEffect(() => {
+    if (prevCategory.current === formData.category) return;
+    prevCategory.current = formData.category;
+    // Guard: if this category change is the deep-link applying its category,
+    // keep the field it just set.
+    if (
+      resolvedInitialField &&
+      resolvedInitialCategory &&
+      formData.category === resolvedInitialCategory &&
+      formData.field === resolvedInitialField
+    ) {
+      return;
+    }
+    setFormData((prev) => ({ ...prev, field: "" }));
+  }, [formData.category, formData.field, resolvedInitialCategory, resolvedInitialField]);
 
   // Derive Year and Month from Date of receipt (single source of truth)
   useEffect(() => {

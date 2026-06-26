@@ -19,6 +19,7 @@ import TuroInspectionsSection from "@/components/admin/dashboard/TuroInspections
 import CarIssuesSection from "@/components/admin/dashboard/CarIssuesSection";
 import CarPerformanceSection from "@/components/admin/dashboard/CarPerformanceSection";
 import CarBlockedOffSection from "@/components/admin/dashboard/CarBlockedOffSection";
+import CarOnOffboardingReport from "@/pages/admin/forms/CarOnOffboardingReport";
 
 /* ── Section filter configuration ──
  * Admins can show/hide individual dashboard sections via a checkbox panel at
