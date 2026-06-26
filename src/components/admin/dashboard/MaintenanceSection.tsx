@@ -1,8 +1,7 @@
-import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Search, X } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { SectionHeader, DashboardRecordCard } from "@/components/admin/dashboard";
 
@@ -54,10 +53,6 @@ interface MaintenanceSectionProps {
   year: string;
 }
 
-function truncate(text: string, max: number): string {
-  return text.length > max ? text.slice(0, max) + "…" : text;
-}
-
 function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
@@ -77,28 +72,68 @@ function formatCurrency(val: number | null | undefined): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
 }
 
-/** Render the Photos cell as a thumbnail of the first photo (with a count badge
- *  when there's more than one) instead of plain "N photos" text. Matches the
- *  thumbnail style used in TuroInspectionsSection. */
-function renderPhotosCell(photos: string[] | null): ReactNode {
+function PhotoLightbox({ photos, startIndex, onClose }: { photos: string[]; startIndex: number; onClose: () => void }) {
+  const [idx, setIdx] = useState(startIndex);
+  const proxied = getProxiedImageUrl(photos[idx]);
+  const src = proxied.includes("/api/gcs-image-proxy")
+    ? proxied + (proxied.includes("?") ? "&" : "?") + "size=1200"
+    : proxied;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+      onClick={onClose}
+    >
+      <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
+        <img src={src} alt={`Photo ${idx + 1}`} className="max-h-[80vh] max-w-full object-contain rounded" />
+        {photos.length > 1 && (
+          <div className="flex items-center gap-4 mt-3">
+            <button onClick={() => setIdx(i => (i - 1 + photos.length) % photos.length)}
+              className="p-1 rounded-full bg-white/20 hover:bg-white/30 text-white">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span className="text-white text-sm">{idx + 1} / {photos.length}</span>
+            <button onClick={() => setIdx(i => (i + 1) % photos.length)}
+              className="p-1 rounded-full bg-white/20 hover:bg-white/30 text-white">
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+        <button onClick={onClose} className="absolute -top-8 right-0 text-white/70 hover:text-white text-sm">✕ Close</button>
+      </div>
+    </div>
+  );
+}
+
+/** Render the Photos cell as a clickable thumbnail (opens lightbox). */
+function PhotosCell({ photos }: { photos: string[] | null }) {
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   if (!photos || photos.length === 0) return null;
   const proxied = getProxiedImageUrl(photos[0]);
   const src = proxied.includes("/api/gcs-image-proxy")
     ? proxied + (proxied.includes("?") ? "&" : "?") + "size=128"
     : proxied;
   return (
-    <div className="relative inline-block">
-      <img
-        src={src}
-        alt="Maintenance photo"
-        className="h-10 w-16 object-cover rounded mx-auto"
-      />
-      {photos.length > 1 && (
-        <span className="absolute -top-1 -right-1 rounded-full bg-black px-1.5 text-[10px] font-bold leading-4 text-white">
-          {photos.length}
-        </span>
+    <>
+      <div
+        className="relative inline-block cursor-pointer"
+        onClick={() => setLightboxIndex(0)}
+        title="Click to view photos"
+      >
+        <img
+          src={src}
+          alt="Maintenance photo"
+          className="h-10 w-16 object-cover rounded mx-auto hover:opacity-90 transition-opacity"
+        />
+        {photos.length > 1 && (
+          <span className="absolute -top-1 -right-1 rounded-full bg-black px-1.5 text-[10px] font-bold leading-4 text-white">
+            {photos.length}
+          </span>
+        )}
+      </div>
+      {lightboxIndex !== null && (
+        <PhotoLightbox photos={photos} startIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
       )}
-    </div>
+    </>
   );
 }
 
@@ -310,9 +345,9 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
                     tripEnd={hasTrip ? formatDateTime(task.trip_end) : "—"}
                     pickupLocation={hasTrip ? pickupLocation : "—"}
                     dropoffLocation={hasTrip ? dropOffLocation : "—"}
-                    media={renderPhotosCell(task.photos)}
+                    media={<PhotosCell photos={task.photos} />}
                     details={[
-                      { label: "Task Description", value: task.task_description ? truncate(task.task_description, 80) : "—" },
+                      { label: "Task Description", value: task.task_description || "—" },
                       { label: "Days Rented", value: daysRented != null ? daysRented : "—" },
                       { label: "Extras", value: task.trip_extras || "—" },
                       { label: "Miles Included", value: task.trip_miles_included || (task.trip_total_distance != null ? String(task.trip_total_distance) : null) || "—" },
@@ -322,7 +357,7 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
                       { label: "Due Date", value: formatDate(task.due_date) },
                       { label: "Repair Shop", value: task.repair_shop || "—" },
                     ]}
-                    notes={task.notes ? truncate(task.notes, 80) : "—"}
+                    notes={task.notes || "—"}
                     statusControl={<StatusSelect id={task.id} value={task.status} />}
                   />
                 );

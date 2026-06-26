@@ -110,13 +110,12 @@ export function DashboardRecordCard({
             </span>
           )}
           <div className="flex-1" />
-          {media}
           {statusControl}
         </div>
 
-        {/* Body: trip identity on the left, details grid on the right so the
-            empty horizontal space beside the trip info gets used. Stacks on
-            small screens, splits into two columns from lg up. */}
+        {/* Body: trip identity on the left, details grid in the middle, media
+            on the far right — so the empty horizontal space beside the trip
+            info gets used. Stacks on small screens. */}
         <div className="flex flex-col lg:flex-row lg:gap-6 lg:items-start">
           {/* Left column: car / guest / window / locations */}
           <div className="space-y-1.5 lg:flex-1 lg:min-w-0">
@@ -167,8 +166,7 @@ export function DashboardRecordCard({
             )}
           </div>
 
-          {/* Right column: details grid — moved up to fill the empty space
-              beside the trip info instead of sitting below it. */}
+          {/* Middle: details grid */}
           {shownDetails.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 pt-1 mt-1 border-t border-border/60 lg:pt-0 lg:mt-0 lg:border-t-0 lg:flex-[2] lg:min-w-0 lg:self-stretch">
               {shownDetails.map((d) => (
@@ -177,6 +175,13 @@ export function DashboardRecordCard({
                   <div className="text-xs text-foreground break-words">{d.value}</div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Right: media (car photo / maintenance photo) */}
+          {media && (
+            <div className="flex-shrink-0 pt-1 mt-1 lg:pt-0 lg:mt-0 lg:self-start">
+              {media}
             </div>
           )}
         </div>
