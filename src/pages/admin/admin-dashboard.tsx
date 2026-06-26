@@ -12,11 +12,15 @@ import TaskManagementSection from "@/components/admin/dashboard/TaskManagementSe
 import NoticeBoardSection from "@/components/admin/dashboard/NoticeBoardSection";
 import EmployeeStatsSection from "@/components/admin/dashboard/EmployeeStatsSection";
 import MonthlyEmployeeStatsSection from "@/components/admin/dashboard/MonthlyEmployeeStatsSection";
+import CarBlockedOffSection from "@/components/admin/dashboard/CarBlockedOffSection";
+import CarOnOffboardingReport from "@/pages/admin/forms/CarOnOffboardingReport";
 
 const ALL_IDS = [
   "income-expenses",
   "airport-parking",
   "commissions",
+  "car-onboarding-offboarding",
+  "car-blocked-off",
   "operations",
   "turo-inspections",
   "car-issues",
@@ -98,6 +102,10 @@ export default function AdminDashboardPage() {
         {show["airport-parking"] && <AirportParkingSection year={year} />}
 
         {show["commissions"] && <CommissionsSection />}
+
+        {show["car-onboarding-offboarding"] && <CarOnOffboardingReport />}
+
+        {show["car-blocked-off"] && <CarBlockedOffSection />}
 
         {show["operations"] && <OperationsSection />}
 
