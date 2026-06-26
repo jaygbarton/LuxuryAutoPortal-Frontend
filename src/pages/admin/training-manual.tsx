@@ -116,6 +116,7 @@ export default function TrainingManualPage() {
   const [videoError, setVideoError] = useState<string | null>(null);
   const [videoValid, setVideoValid] = useState<boolean | null>(null);
   const [videoUploading, setVideoUploading] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const videoFileInputRef = useRef<HTMLInputElement>(null);
   // Photo upload state — a step carries either a video or a photo, never both.
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -652,8 +653,16 @@ export default function TrainingManualPage() {
     setVideoError(null);
     setVideoValid(null);
     try {
+      // Resolve content type — browsers sometimes return "" for .mov/.m4v files
+      const extMap: Record<string, string> = {
+        mp4: "video/mp4", webm: "video/webm", ogg: "video/ogg",
+        mov: "video/quicktime", m4v: "video/x-m4v", avi: "video/x-msvideo",
+      };
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+      const contentType = file.type || extMap[ext] || "video/mp4";
+
       // Step 1: get a signed upload URL from the backend
-      const params = new URLSearchParams({ filename: file.name, contentType: file.type });
+      const params = new URLSearchParams({ filename: file.name, contentType });
       const urlRes = await fetch(buildApiUrl(`/api/admin/tutorial/upload-video-url?${params}`), {
         credentials: "include",
       });
@@ -662,25 +671,34 @@ export default function TrainingManualPage() {
         throw new Error(urlData.error || "Failed to get upload URL");
       }
 
-      // Step 2: PUT the file directly to GCS (no backend roundtrip)
-      const putRes = await fetch(urlData.signedUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
+      // Step 2: PUT the file directly to GCS with XHR so we can track progress
+      setVideoUploadProgress(0);
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", urlData.signedUrl);
+        xhr.setRequestHeader("Content-Type", contentType);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) setVideoUploadProgress(Math.round((e.loaded / e.total) * 100));
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error(`GCS upload failed: ${xhr.status} ${xhr.statusText}`));
+        };
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+        xhr.send(file);
       });
-      if (!putRes.ok) {
-        throw new Error(`GCS upload failed: ${putRes.status} ${putRes.statusText}`);
-      }
 
       form.setValue("videoUrl", urlData.publicUrl);
       setVideoPreviewUrl(urlData.publicUrl);
       setVideoValid(true);
+      setVideoUploadProgress(100);
       toast({ title: "Video uploaded", description: "Video uploaded successfully." });
     } catch (err: any) {
       setVideoError(err.message || "Failed to upload video");
       toast({ title: "Upload failed", description: err.message || "Failed to upload video", variant: "destructive" });
     } finally {
       setVideoUploading(false);
+      setVideoUploadProgress(0);
       if (videoFileInputRef.current) videoFileInputRef.current.value = "";
     }
   };
@@ -1873,9 +1891,14 @@ export default function TrainingManualPage() {
                                   ) : (
                                     <Upload className="w-4 h-4 mr-2" />
                                   )}
-                                  {videoUploading ? "Uploading..." : "Upload"}
+                                  {videoUploading ? `Uploading${videoUploadProgress > 0 ? ` ${videoUploadProgress}%` : "..."}` : "Upload"}
                                 </Button>
                               </div>
+                              {videoUploading && videoUploadProgress > 0 && (
+                                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                  <div className="bg-primary h-1.5 rounded-full transition-all duration-300" style={{ width: `${videoUploadProgress}%` }} />
+                                </div>
+                              )}
                               {videoError && (
                                 <p className="text-xs text-red-700 flex items-center gap-1">
                                   <AlertCircle className="w-3 h-3" />
