@@ -5,6 +5,7 @@ import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader, DashboardRecordCard, CarPhotoCell } from "@/components/admin/dashboard";
 import { FuelReturnedCell } from "@/pages/admin/operations/FuelReturnedCell";
 import { CarIssueTypesCell } from "@/pages/admin/operations/CarIssueTypesCell";
+import { PhotoUpload } from "@/pages/admin/operations/PhotoUpload";
 import {
   Select,
   SelectContent,
@@ -309,7 +310,7 @@ export default function TuroInspectionsSection() {
                   { label: "Gas Level Trip End", value: fmtGasLevel(insp.gas_level_trip_end) },
                   { label: "Fuel Returned", value: <FuelReturnedCell level={(insp.fuel_returned as any) ?? null} /> },
                   { label: "Car Issues Type", value: <CarIssueTypesCell types={parseIssueTypes(insp.car_issue_types)} /> },
-                  { label: "Photos", value: photoCount > 0 ? `${photoCount} photo${photoCount > 1 ? "s" : ""}` : "—" },
+                  { label: "Photos", value: photoCount > 0 ? <PhotoUpload photos={insp.photos!} onPhotosChange={() => {}} entityType="inspection" entityId={insp.id} disabled compact /> : "—" },
                 ]}
                 notes={asStr(insp.notes)}
                 statusControl={
