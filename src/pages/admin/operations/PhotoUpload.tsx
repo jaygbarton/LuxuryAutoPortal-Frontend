@@ -118,19 +118,24 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
     onPhotosChange(photos.filter((_, i) => i !== index));
   };
 
+  const openGallery = (initial?: string) => {
+    setSelectedPhoto(initial ?? photos[0] ?? null);
+    setGalleryOpen(true);
+  };
+
   if (compact && photos.length > 0) {
     return (
       <div className="flex flex-col items-center gap-1">
         <div
           className="w-14 h-14 rounded border border-border overflow-hidden cursor-pointer shrink-0"
-          onClick={() => { setSelectedPhoto(photos[0]); setGalleryOpen(true); }}
+          onClick={() => openGallery(photos[0])}
         >
           <img src={getProxiedImageUrl(photos[0])} alt="Photo 1" className="w-full h-full object-cover" />
         </div>
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setGalleryOpen(true)}
+          onClick={() => openGallery()}
           className="text-muted-foreground hover:text-primary h-auto p-0 text-xs"
         >
           <ImageIcon className="w-3 h-3 mr-1" />
@@ -141,20 +146,22 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
             <DialogHeader>
               <DialogTitle>Photos ({photos.length})</DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto">
-              {photos.map((url, index) => (
-                <div
-                  key={index}
-                  className={`relative rounded border overflow-hidden cursor-pointer ${selectedPhoto === url ? "border-primary border-2" : "border-border"}`}
-                  onClick={() => setSelectedPhoto(url)}
-                >
-                  <img src={getProxiedImageUrl(url)} alt={`Photo ${index + 1}`} className="w-full aspect-square object-cover" />
-                </div>
-              ))}
-            </div>
             {selectedPhoto && (
-              <div className="mt-3 flex justify-center">
-                <img src={getProxiedImageUrl(selectedPhoto)} alt="Selected" className="max-h-[40vh] rounded object-contain" />
+              <div className="flex justify-center mb-3">
+                <img src={getProxiedImageUrl(selectedPhoto)} alt="Selected" className="max-h-[50vh] rounded object-contain" />
+              </div>
+            )}
+            {photos.length > 1 && (
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-[20vh] overflow-y-auto">
+                {photos.map((url, index) => (
+                  <div
+                    key={index}
+                    className={`relative rounded border overflow-hidden cursor-pointer ${selectedPhoto === url ? "border-primary border-2" : "border-border"}`}
+                    onClick={() => setSelectedPhoto(url)}
+                  >
+                    <img src={getProxiedImageUrl(url)} alt={`Photo ${index + 1}`} className="w-full aspect-square object-cover" />
+                  </div>
+                ))}
               </div>
             )}
           </DialogContent>
@@ -234,7 +241,7 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setGalleryOpen(true)}
+          onClick={() => openGallery()}
           className="text-muted-foreground hover:text-primary mt-1 h-auto p-0 text-xs"
         >
           <ImageIcon className="w-3 h-3 mr-1" />
@@ -247,20 +254,22 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
           <DialogHeader>
             <DialogTitle>Photos ({photos.length})</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto">
-            {photos.map((url, index) => (
-              <div
-                key={index}
-                className={`relative rounded border overflow-hidden cursor-pointer ${selectedPhoto === url ? "border-primary border-2" : "border-border"}`}
-                onClick={() => setSelectedPhoto(url)}
-              >
-                <img src={getProxiedImageUrl(url)} alt={`Photo ${index + 1}`} className="w-full aspect-square object-cover" />
-              </div>
-            ))}
-          </div>
           {selectedPhoto && (
-            <div className="mt-3 flex justify-center">
-              <img src={getProxiedImageUrl(selectedPhoto)} alt="Selected" className="max-h-[40vh] rounded object-contain" />
+            <div className="flex justify-center mb-3">
+              <img src={getProxiedImageUrl(selectedPhoto)} alt="Selected" className="max-h-[50vh] rounded object-contain" />
+            </div>
+          )}
+          {photos.length > 1 && (
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-[20vh] overflow-y-auto">
+              {photos.map((url, index) => (
+                <div
+                  key={index}
+                  className={`relative rounded border overflow-hidden cursor-pointer ${selectedPhoto === url ? "border-primary border-2" : "border-border"}`}
+                  onClick={() => setSelectedPhoto(url)}
+                >
+                  <img src={getProxiedImageUrl(url)} alt={`Photo ${index + 1}`} className="w-full aspect-square object-cover" />
+                </div>
+              ))}
             </div>
           )}
         </DialogContent>
