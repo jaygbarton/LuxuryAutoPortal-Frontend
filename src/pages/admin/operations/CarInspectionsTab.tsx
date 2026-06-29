@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Badge } from "@/components/ui/badge";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { DashboardRecordCard } from "@/components/admin/dashboard";
+import { CarPhotoCell } from "@/components/admin/dashboard/CarPhotoCell";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
 import { StatusBadge } from "./StatusBadge";
@@ -592,6 +593,7 @@ export function CarInspectionsTab() {
                         tripEnd={trip ? formatDate(trip.tripEnd) : null}
                         pickupLocation={pickupLocation}
                         dropoffLocation={dropOffLocation}
+                        media={<CarPhotoCell carPhoto={insp.car_photo} carName={insp.car_name} />}
                         details={[
                           { label: "Car Name", value: carNameDisplay },
                           { label: "Days Rented", value: daysRented ?? "--" },

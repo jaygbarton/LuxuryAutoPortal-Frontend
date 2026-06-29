@@ -100,6 +100,7 @@ export interface Inspection {
    *  Car Issues / Turo Messages / No Car Issues tabs; writes back to the trip. */
   gas_level_trip_start?: string | null;
   gas_level_trip_end?: string | null;
+  car_photo?: string | null;
   created_at: string;
   updated_at: string;
 }
