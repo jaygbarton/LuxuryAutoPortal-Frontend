@@ -4,63 +4,16 @@
  */
 
 import { useState } from "react";
-import { Link } from "wouter";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExpenseFormSubmission from "@/pages/admin/forms/ExpenseFormSubmission";
 import ExpenseFormMySubmissions from "@/pages/admin/forms/ExpenseFormMySubmissions";
 import CommissionFormSubmission from "@/pages/admin/forms/CommissionFormSubmission";
 import CommissionFormMySubmissions from "@/pages/admin/forms/CommissionFormMySubmissions";
 import CarIssueFormSubmission from "@/pages/admin/forms/CarIssueFormSubmission";
-import { ChevronDown, ChevronRight, Car, DollarSign, FileText } from "lucide-react";
-
-type SectionId = "expense" | "expense-my" | "commission" | "commission-my" | "car-issue";
 
 export default function StaffForms() {
-  const [expanded, setExpanded] = useState<SectionId[]>(["expense"]);
-
-  const toggle = (id: SectionId) =>
-    setExpanded((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
-
-  const isOpen = (id: SectionId) => expanded.includes(id);
-
-  const sections: { id: SectionId; label: string; icon: React.ElementType; content: React.ReactNode }[] = [
-    {
-      id: "expense",
-      label: "Income & Expense Receipt Submission",
-      icon: DollarSign,
-      content: <ExpenseFormSubmission />,
-    },
-    {
-      id: "expense-my",
-      label: "My Income & Expense Submissions",
-      icon: FileText,
-      content: <ExpenseFormMySubmissions />,
-    },
-    {
-      id: "commission",
-      label: "Submit Commission Form",
-      icon: DollarSign,
-      content: <CommissionFormSubmission />,
-    },
-    {
-      id: "commission-my",
-      label: "My Commission Submissions",
-      icon: FileText,
-      content: <CommissionFormMySubmissions />,
-    },
-    {
-      id: "car-issue",
-      label: "Car Issue Report",
-      icon: Car,
-      content: <CarIssueFormSubmission />,
-    },
-  ];
-
   return (
     <AdminLayout>
       <div className="space-y-4 p-4 md:p-6">
@@ -71,39 +24,31 @@ export default function StaffForms() {
           </p>
         </div>
 
-        <Card className="bg-card border-primary/20 overflow-hidden">
-          <CardContent className="p-0">
-            {sections.map((section, idx) => {
-              const Icon = section.icon;
-              const open = isOpen(section.id);
-              return (
-                <div key={section.id}>
-                  {idx > 0 && <div className="border-t border-border" />}
-                  <button
-                    type="button"
-                    onClick={() => toggle(section.id)}
-                    className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-4 h-4 text-primary" />
-                      <span className="text-primary font-medium text-sm">{section.label}</span>
-                    </div>
-                    {open ? (
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </button>
-                  {open && (
-                    <div className="border-t border-border bg-card px-3 sm:px-5 py-4">
-                      {section.content}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="expense">
+          <TabsList className="flex flex-wrap h-auto gap-1">
+            <TabsTrigger value="expense">I&amp;E Submission</TabsTrigger>
+            <TabsTrigger value="expense-my">My I&amp;E Submissions</TabsTrigger>
+            <TabsTrigger value="commission">Commission Form</TabsTrigger>
+            <TabsTrigger value="commission-my">My Commissions</TabsTrigger>
+            <TabsTrigger value="car-issue">Car Issue Report</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="expense" className="mt-4">
+            <ExpenseFormSubmission />
+          </TabsContent>
+          <TabsContent value="expense-my" className="mt-4">
+            <ExpenseFormMySubmissions />
+          </TabsContent>
+          <TabsContent value="commission" className="mt-4">
+            <CommissionFormSubmission />
+          </TabsContent>
+          <TabsContent value="commission-my" className="mt-4">
+            <CommissionFormMySubmissions />
+          </TabsContent>
+          <TabsContent value="car-issue" className="mt-4">
+            <CarIssueFormSubmission />
+          </TabsContent>
+        </Tabs>
       </div>
       <EmployeePageLinks />
     </AdminLayout>

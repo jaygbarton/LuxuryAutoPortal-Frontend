@@ -203,7 +203,7 @@ export default function StaffTaskManagement() {
 
   const tasks: TaskItem[] = data?.data ?? [];
   const total = data?.total ?? tasks.length;
-  const hasFilters = !!statusFilter || !!fromDate || !!toDate;
+  const hasFilters = !!statusFilter || !!fromDate || !!toDate || !!searchValue;
 
   const clearFilters = useCallback(() => {
     setStatusFilter("");
@@ -252,7 +252,7 @@ export default function StaffTaskManagement() {
                 </Select>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-                <label className="text-sm text-muted-foreground">From</label>
+                <label className="text-sm text-muted-foreground whitespace-nowrap">Due From</label>
                 <Input
                   type="date"
                   value={fromDate}
@@ -261,7 +261,7 @@ export default function StaffTaskManagement() {
                 />
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-                <label className="text-sm text-muted-foreground">To</label>
+                <label className="text-sm text-muted-foreground whitespace-nowrap">Due To</label>
                 <Input
                   type="date"
                   value={toDate}
