@@ -42,7 +42,7 @@ import { QuickLinksSection } from "@/pages/client/_components/QuickLinksSection"
 
 export function AdminPageLinks() {
   const { data: meData } = useQuery<{
-    user?: { isAdmin?: boolean; isClient?: boolean; isEmployee?: boolean };
+    user?: { isAdmin?: boolean; isClient?: boolean; isEmployee?: boolean; isCoHost?: boolean };
   }>({
     queryKey: ["/api/auth/me"],
     queryFn: authMeQueryFn,
@@ -52,6 +52,7 @@ export function AdminPageLinks() {
   const isAdmin    = Boolean(meData?.user?.isAdmin);
   const isClient   = Boolean(meData?.user?.isClient);
   const isEmployee = Boolean(meData?.user?.isEmployee);
+  const isCoHost   = Boolean((meData?.user as any)?.isCoHost);
 
   if (!isAdmin || isClient || isEmployee) return null;
 
@@ -69,7 +70,7 @@ export function AdminPageLinks() {
     { href: "/admin/bouncie",       icon: Radio,         label: "Bouncie" },
     { href: "/admin/operations",    icon: Anchor,        label: "Operations" },
     { href: "/admin/car-block-off", icon: CalendarOff,   label: "Car Block Off" },
-    { href: "/admin/rental-listings", icon: Car,         label: "Rental Listings" },
+    ...(!isCoHost ? [{ href: "/admin/rental-listings", icon: Car, label: "Rental Listings" }] : []),
     { href: "/admin/forms",         icon: ClipboardList, label: "Forms" },
   ];
 
