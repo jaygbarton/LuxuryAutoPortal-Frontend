@@ -4,7 +4,6 @@ import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TripsOverviewTab } from "./operations/TripsOverviewTab";
-import { TripTasksTab } from "./operations/TripTasksTab";
 import { TuroInspectionTab } from "./operations/TuroInspectionTab";
 import { CarInspectionsTab } from "./operations/CarInspectionsTab";
 import { MaintenanceTab } from "./operations/MaintenanceTab";
@@ -13,7 +12,7 @@ import { CarBlockOffTab } from "./operations/CarBlockOffTab";
 import { DayScheduleTab } from "./operations/DayScheduleTab";
 import { TvTimelineTab } from "./operations/TvTimelineTab";
 
-const TAB_IDS = ["trips", "tasks", "turo-inspection", "inspections", "maintenance", "completed", "car-block-off", "day-schedule", "tv-timeline"] as const;
+const TAB_IDS = ["trips", "turo-inspection", "inspections", "maintenance", "completed", "car-block-off", "day-schedule", "tv-timeline"] as const;
 type TabId = typeof TAB_IDS[number];
 
 // Renders a tab's content only after it has been activated for the first time,
@@ -63,9 +62,6 @@ export default function OperationsPage() {
               <TabsTrigger value="trips" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 Trips Overview
               </TabsTrigger>
-              <TabsTrigger value="tasks" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                Trip Tasks
-              </TabsTrigger>
               <TabsTrigger value="turo-inspection" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 Turo Messages
               </TabsTrigger>
@@ -92,9 +88,6 @@ export default function OperationsPage() {
 
           <LazyTab value="trips" activeTab={activeTab} mountedTabs={mountedTabs}>
             <TripsOverviewTab />
-          </LazyTab>
-          <LazyTab value="tasks" activeTab={activeTab} mountedTabs={mountedTabs}>
-            <TripTasksTab />
           </LazyTab>
           <LazyTab value="turo-inspection" activeTab={activeTab} mountedTabs={mountedTabs}>
             <TuroInspectionTab />
