@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Search, X } from "lucide-react";
+import { Loader2, Search, X, Sparkles, Truck, Package, Clock } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
-import { SectionHeader, DashboardRecordCard } from "@/components/admin/dashboard";
+import { SectionHeader } from "@/components/admin/dashboard";
 import {
   Select,
   SelectContent,
@@ -48,39 +48,38 @@ interface OperationTasksResponse {
   total: number;
 }
 
+// A "trip group" — one card per unique turo_trip_id (or per standalone task)
+interface TripGroup {
+  tripId: number | null;
+  key: string;
+  reservation_id: string | null;
+  car_name: string | null;
+  plate: string | null;
+  guest_name: string | null;
+  trip_start: string | null;
+  trip_end: string | null;
+  pickup_location: string | null;
+  dropoff_location: string | null;
+  days_rented: unknown;
+  extras: unknown;
+  miles_included: unknown;
+  trip_start_odometer: unknown;
+  trip_end_odometer: unknown;
+  total_miles: unknown;
+  earnings: unknown;
+  trip_status: string | null;
+  cleaning: OperationTask | null;
+  delivery: OperationTask | null;
+  pickup: OperationTask | null;
+  allTasks: OperationTask[];
+}
+
 const STATUS_OPTIONS = [
   { value: "new", label: "New", className: "bg-gray-100 text-gray-700" },
   { value: "in_progress", label: "In Progress", className: "bg-blue-100 text-blue-700" },
   { value: "completed", label: "Completed", className: "bg-green-100 text-green-700" },
   { value: "delivered", label: "Delivered", className: "bg-emerald-100 text-emerald-700" },
 ];
-
-const TASK_TYPE_META: Record<string, { label: string; className: string }> = {
-  pickup: { label: "Pick Up", className: "bg-blue-100 text-blue-700" },
-  delivery: { label: "Drop Off", className: "bg-purple-100 text-purple-700" },
-  cleaning: { label: "Cleaning", className: "bg-amber-100 text-amber-800" },
-};
-
-function taskTypeMeta(t: string | undefined | null) {
-  return (
-    TASK_TYPE_META[String(t ?? "").toLowerCase()] ?? {
-      label: t ? String(t) : "—",
-      className: "bg-gray-100 text-gray-700",
-    }
-  );
-}
-
-function statusMeta(v: string | undefined | null) {
-  return (
-    STATUS_OPTIONS.find((s) => s.value === String(v ?? "").toLowerCase()) ??
-    STATUS_OPTIONS[0]
-  );
-}
-
-function asStr(v: unknown): string {
-  if (v === null || v === undefined || v === "") return "—";
-  return String(v);
-}
 
 function fmtMoney(v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
@@ -101,6 +100,11 @@ function fmtDays(v: unknown): string {
   const n = Number(v);
   if (!isFinite(n) || n < 0) return "—";
   return String(n);
+}
+
+function asStr(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  return String(v);
 }
 
 function fmtDateTime(v: unknown): string {
@@ -127,22 +131,83 @@ function fmtDateTime(v: unknown): string {
   }
 }
 
-// Accent colors per task type, mirroring the Day Schedule category palette so
-// the dashboard cards read the same way as the daily schedule.
-const TASK_TYPE_ACCENT: Record<string, { bg: string; border: string }> = {
-  pickup: { bg: "bg-blue-500", border: "border-blue-300" },
-  delivery: { bg: "bg-indigo-500", border: "border-indigo-300" },
-  cleaning: { bg: "bg-teal-500", border: "border-teal-300" },
-};
+function statusMeta(v: string | undefined | null) {
+  return (
+    STATUS_OPTIONS.find((s) => s.value === String(v ?? "").toLowerCase()) ??
+    STATUS_OPTIONS[0]
+  );
+}
+
+// Assignment chip for cleaning / delivery / pickup
+function AssignmentChip({
+  icon: Icon,
+  label,
+  task,
+  iconColor,
+  bgColor,
+}: {
+  icon: React.ElementType;
+  label: string;
+  task: OperationTask | null;
+  iconColor: string;
+  bgColor: string;
+}) {
+  if (!task) {
+    return (
+      <div className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 border border-dashed border-gray-200 bg-gray-50 opacity-50`}>
+        <Icon className={`w-3.5 h-3.5 shrink-0 text-gray-400`} />
+        <span className="text-[11px] text-gray-400">{label}: —</span>
+      </div>
+    );
+  }
+
+  const sm = statusMeta(task.status);
+  const hasSched = !!task.scheduled_date;
+
+  return (
+    <div className={`flex flex-col gap-0.5 rounded-md px-2 py-1.5 border border-border ${bgColor}`}>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <Icon className={`w-3.5 h-3.5 shrink-0 ${iconColor}`} />
+        <span className={`text-[11px] font-semibold ${iconColor}`}>{label}</span>
+        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${sm.className}`}>{sm.label}</span>
+      </div>
+      <span className="text-xs text-foreground font-medium pl-5">
+        {task.assigned_to || <span className="text-muted-foreground italic">Unassigned</span>}
+      </span>
+      {hasSched && (
+        <div className="flex items-center gap-1 pl-5">
+          <Clock className="w-3 h-3 text-muted-foreground" />
+          <span className="text-[11px] text-muted-foreground">{fmtDateTime(task.scheduled_date)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function OperationsSection() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const todayMt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date());
+  const fromDate = (() => {
+    const d = new Date(); d.setDate(d.getDate() - 30);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(d);
+  })();
+  const toDate = (() => {
+    const d = new Date(); d.setDate(d.getDate() + 60);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(d);
+  })();
+
   const { data, isLoading } = useQuery<OperationTasksResponse>({
-    queryKey: ["/api/operations/tasks"],
+    queryKey: ["/api/operations/tasks", todayMt],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/operations/tasks?limit=50"), {
+      const params = new URLSearchParams({
+        limit: "500",
+        startOrEnd: "true",
+        tripStartOn: fromDate,
+        tripEndOn: toDate,
+      });
+      const res = await fetch(buildApiUrl(`/api/operations/tasks?${params}`), {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch tasks");
@@ -172,25 +237,52 @@ export default function OperationsSection() {
     },
   });
 
-  const allTasks = useMemo(() =>
-    [...(data?.data ?? [])].sort((a, b) => {
-      // Sort by trip_start ASC (soonest upcoming at the top), matching the Day
-      // Schedule's chronological order. Fall back to scheduled_date then
-      // created_at for tasks without a trip.
-      const aTime = a.trip_start
-        ? new Date(a.trip_start).getTime()
-        : a.scheduled_date
-          ? new Date(a.scheduled_date).getTime()
-          : new Date(a.created_at).getTime();
-      const bTime = b.trip_start
-        ? new Date(b.trip_start).getTime()
-        : b.scheduled_date
-          ? new Date(b.scheduled_date).getTime()
-          : new Date(b.created_at).getTime();
+  // Group tasks by turo_trip_id so each trip shows one card with all 3 assignments
+  const allGroups = useMemo<TripGroup[]>(() => {
+    const rawTasks = (data?.data ?? []).filter(t => t.task_type !== "refuel");
+    const map = new Map<string, TripGroup>();
+
+    for (const t of rawTasks) {
+      const key = t.turo_trip_id != null ? `trip_${t.turo_trip_id}` : `task_${t.id}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          tripId: t.turo_trip_id,
+          key,
+          reservation_id: t.reservation_id,
+          car_name: t.car_name,
+          plate: t.plate ?? null,
+          guest_name: t.guest_name,
+          trip_start: t.trip_start ?? null,
+          trip_end: t.trip_end ?? null,
+          pickup_location: t.pickup_location ?? t.scheduled_location ?? null,
+          dropoff_location: t.dropoff_location ?? null,
+          days_rented: t.days_rented,
+          extras: t.extras,
+          miles_included: t.miles_included,
+          trip_start_odometer: t.trip_start_odometer,
+          trip_end_odometer: t.trip_end_odometer,
+          total_miles: t.total_miles,
+          earnings: t.earnings,
+          trip_status: t.trip_status ?? null,
+          cleaning: null,
+          delivery: null,
+          pickup: null,
+          allTasks: [],
+        });
+      }
+      const g = map.get(key)!;
+      g.allTasks.push(t);
+      if (t.task_type === "cleaning") g.cleaning = t;
+      else if (t.task_type === "delivery") g.delivery = t;
+      else if (t.task_type === "pickup") g.pickup = t;
+    }
+
+    return [...map.values()].sort((a, b) => {
+      const aTime = a.trip_start ? new Date(a.trip_start).getTime() : 0;
+      const bTime = b.trip_start ? new Date(b.trip_start).getTime() : 0;
       return aTime - bTime;
-    }),
-    [data]
-  );
+    });
+  }, [data]);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -200,36 +292,47 @@ export default function OperationsSection() {
 
   const assignedToOptions = useMemo(() => {
     const names = new Set<string>();
-    for (const t of allTasks) { const v = (t.assigned_to ?? "").trim(); if (v) names.add(v); }
+    for (const g of allGroups) {
+      for (const t of g.allTasks) {
+        const v = (t.assigned_to ?? "").trim();
+        if (v) names.add(v);
+      }
+    }
     return Array.from(names).sort();
-  }, [allTasks]);
+  }, [allGroups]);
 
-  const tasks = useMemo(() => {
-    // This section is "Pick Up and Drop Off" — refuel tasks are standalone
-    // Bouncie-triggered reminders, not related to guest pickups/deliveries.
-    let f = allTasks.filter(t => t.task_type !== "refuel");
-    if (search.trim()) { const q = search.toLowerCase(); f = f.filter(t => Object.values(t).some(v => v != null && String(v).toLowerCase().includes(q))); }
-    if (statusFilter !== "all") f = f.filter(t => t.status === statusFilter);
-    if (assignedToFilter !== "all") f = f.filter(t => (t.assigned_to ?? "").trim() === assignedToFilter);
-    // Single date RANGE [From, To]: keep trips whose trip_start OR trip_end
-    // falls within the range (single day = From==To). Compare MT YYYY-MM-DD
-    // strings (not raw UTC timestamps) so the filter agrees with the Trip Start
-    // / Trip Ends columns, which render in America/Denver.
-    const toMtDate = (iso: string | null | undefined): string | null => {
-      if (!iso) return null;
-      try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso)); }
-      catch { return null; }
-    };
+  const toMtDate = (iso: string | null | undefined): string | null => {
+    if (!iso) return null;
+    try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso)); }
+    catch { return null; }
+  };
+
+  const groups = useMemo(() => {
+    let f = allGroups;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      f = f.filter(g =>
+        [g.reservation_id, g.car_name, g.plate, g.guest_name,
+          g.cleaning?.assigned_to, g.delivery?.assigned_to, g.pickup?.assigned_to,
+        ].some(v => v != null && String(v).toLowerCase().includes(q))
+      );
+    }
+    if (statusFilter !== "all") {
+      f = f.filter(g => g.allTasks.some(t => t.status === statusFilter));
+    }
+    if (assignedToFilter !== "all") {
+      f = f.filter(g => g.allTasks.some(t => (t.assigned_to ?? "").trim() === assignedToFilter));
+    }
     if (rangeFrom || rangeTo) {
-      f = f.filter(t => {
-        const sd = toMtDate(t.trip_start);
-        const ed = toMtDate(t.trip_end);
+      f = f.filter(g => {
+        const sd = toMtDate(g.trip_start);
+        const ed = toMtDate(g.trip_end);
         const inRange = (day: string | null) => day != null && (!rangeFrom || day >= rangeFrom) && (!rangeTo || day <= rangeTo);
         return inRange(sd) || inRange(ed);
       });
     }
     return f.slice(0, 20);
-  }, [allTasks, search, statusFilter, assignedToFilter, rangeFrom, rangeTo]);
+  }, [allGroups, search, statusFilter, assignedToFilter, rangeFrom, rangeTo]);
 
   const isFiltered = search || statusFilter !== "all" || assignedToFilter !== "all" || rangeFrom || rangeTo;
   function clearAll() { setSearch(""); setStatusFilter("all"); setAssignedToFilter("all"); setRangeFrom(""); setRangeTo(""); }
@@ -264,65 +367,148 @@ export default function OperationsSection() {
           <input type="date" value={rangeTo} onChange={e => setRangeTo(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
           {(rangeFrom || rangeTo) && <button onClick={() => { setRangeFrom(""); setRangeTo(""); }} className="text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
         </div>
-        {isFiltered && <><span className="text-xs text-gray-500">{tasks.length} result{tasks.length !== 1 ? "s" : ""}</span><button onClick={clearAll} className="text-xs text-[#B8860B] hover:underline">Clear all</button></>}
+        {isFiltered && <><span className="text-xs text-gray-500">{groups.length} result{groups.length !== 1 ? "s" : ""}</span><button onClick={clearAll} className="text-xs text-[#B8860B] hover:underline">Clear all</button></>}
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-[#d3bc8d]" />
         </div>
-      ) : tasks.length === 0 ? (
+      ) : groups.length === 0 ? (
         <p className="py-8 text-center text-sm text-gray-500">{isFiltered ? "No matching results." : "No tasks found."}</p>
       ) : (
         <div className="flex flex-col gap-3">
-          {tasks.map((task, i) => {
-            const type = taskTypeMeta(task.task_type);
-            const sm = statusMeta(task.status);
-            return (
-              <DashboardRecordCard
-                key={task.id ?? i}
-                accentBg={TASK_TYPE_ACCENT[String(task.task_type ?? "").toLowerCase()]?.bg ?? "bg-slate-500"}
-                accentBorder={TASK_TYPE_ACCENT[String(task.task_type ?? "").toLowerCase()]?.border ?? "border-slate-300"}
-                typeLabel={type.label}
-                reservationId={task.reservation_id}
-                carName={task.car_name}
-                plate={task.plate}
-                guestName={task.guest_name}
-                assignedTo={task.assigned_to}
-                tripStart={fmtDateTime(task.trip_start)}
-                tripEnd={fmtDateTime(task.trip_end)}
-                pickupLocation={asStr(task.pickup_location ?? task.scheduled_location)}
-                dropoffLocation={asStr(task.dropoff_location)}
-                details={[
-                  { label: "Days Rented", value: fmtDays(task.days_rented) },
-                  { label: "Extras", value: asStr(task.extras) },
-                  { label: "Miles Included", value: fmtNum(task.miles_included) },
-                  { label: "Trip Start Odometer", value: fmtNum(task.trip_start_odometer) },
-                  { label: "Trip Ends Odometer", value: fmtNum(task.trip_end_odometer) },
-                  { label: "Total Miles", value: fmtNum(task.total_miles) },
-                  { label: "Earnings", value: fmtMoney(task.earnings) },
-                  { label: "Trip Status", value: asStr(task.trip_status) },
-                  { label: "Scheduled Date/Time", value: fmtDateTime(task.scheduled_date) },
-                ]}
-                statusControl={
-                  <Select
-                    value={sm.value}
-                    onValueChange={(v) => updateStatus.mutate({ id: task.id, status: v })}
-                    disabled={updateStatus.isPending}
-                  >
-                    <SelectTrigger className={`h-7 w-[130px] text-xs ${sm.className}`}>
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                }
-              />
-            );
-          })}
+          {groups.map((g) => (
+            <div
+              key={g.key}
+              className="flex items-stretch rounded-lg overflow-hidden border border-blue-200 bg-white shadow-sm"
+            >
+              {/* Accent bar */}
+              <div className="w-1.5 flex-shrink-0 bg-blue-500" />
+
+              <div className="flex-1 min-w-0 px-3 py-2.5 space-y-2">
+                {/* Header: reservation + trip dates */}
+                <div className="flex items-start gap-2 flex-wrap">
+                  {g.reservation_id && (
+                    <span className="text-[11px] font-medium text-muted-foreground">
+                      #{g.reservation_id}
+                    </span>
+                  )}
+                  {g.trip_status && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 font-medium capitalize">
+                      {g.trip_status}
+                    </span>
+                  )}
+                </div>
+
+                {/* Car + plate */}
+                {g.car_name && (
+                  <div className="flex items-center gap-1.5 text-sm text-foreground">
+                    <span className="font-semibold">{g.car_name}</span>
+                    {g.plate && <span className="text-muted-foreground text-xs">· {g.plate}</span>}
+                  </div>
+                )}
+
+                {/* Guest */}
+                {g.guest_name && (
+                  <div className="text-xs text-muted-foreground">{g.guest_name}</div>
+                )}
+
+                {/* Trip window */}
+                {(g.trip_start || g.trip_end) && (
+                  <div className="flex items-center gap-1.5 text-xs flex-wrap">
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span className="font-medium text-foreground">{fmtDateTime(g.trip_start)}</span>
+                    <span className="text-muted-foreground">→</span>
+                    <span className="font-medium text-foreground">{fmtDateTime(g.trip_end)}</span>
+                  </div>
+                )}
+
+                {/* Pickup / drop off locations */}
+                {g.pickup_location && g.pickup_location !== "—" && (
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Pick Up:</span> {g.pickup_location}
+                  </div>
+                )}
+                {g.dropoff_location && g.dropoff_location !== "—" && (
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Drop Off:</span> {g.dropoff_location}
+                  </div>
+                )}
+
+                {/* ── Assignment chips: Cleaning · Delivery · Pickup ── */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                  <AssignmentChip
+                    icon={Sparkles}
+                    label="Cleaning"
+                    task={g.cleaning}
+                    iconColor="text-yellow-600"
+                    bgColor="bg-yellow-50"
+                  />
+                  <AssignmentChip
+                    icon={Truck}
+                    label="Delivery"
+                    task={g.delivery}
+                    iconColor="text-blue-600"
+                    bgColor="bg-blue-50"
+                  />
+                  <AssignmentChip
+                    icon={Package}
+                    label="Pick Up"
+                    task={g.pickup}
+                    iconColor="text-green-600"
+                    bgColor="bg-green-50"
+                  />
+                </div>
+
+                {/* Trip details grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 pt-1 border-t border-border/40">
+                  {[
+                    { label: "Days Rented", value: fmtDays(g.days_rented) },
+                    { label: "Miles Included", value: fmtNum(g.miles_included) },
+                    { label: "Total Miles", value: fmtNum(g.total_miles) },
+                    { label: "Earnings", value: fmtMoney(g.earnings) },
+                    { label: "Trip Start ODO", value: fmtNum(g.trip_start_odometer) },
+                    { label: "Trip End ODO", value: fmtNum(g.trip_end_odometer) },
+                    { label: "Extras", value: asStr(g.extras) },
+                  ].filter(d => d.value !== "—").map(d => (
+                    <div key={d.label} className="min-w-0">
+                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground/70 leading-tight">{d.label}</div>
+                      <div className="text-xs text-foreground">{d.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Per-task status controls */}
+                {g.allTasks.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1 border-t border-border/40">
+                    {g.allTasks.map(t => {
+                      const sm = statusMeta(t.status);
+                      return (
+                        <div key={t.id} className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-muted-foreground capitalize">{t.task_type}:</span>
+                          <Select
+                            value={sm.value}
+                            onValueChange={(v) => updateStatus.mutate({ id: t.id, status: v })}
+                            disabled={updateStatus.isPending}
+                          >
+                            <SelectTrigger className={`h-7 w-[120px] text-xs ${sm.className}`}>
+                              <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {STATUS_OPTIONS.map((s) => (
+                                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
