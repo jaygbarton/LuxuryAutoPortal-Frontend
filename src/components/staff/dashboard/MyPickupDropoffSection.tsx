@@ -309,10 +309,10 @@ export default function MyPickupDropoffSection() {
           {isFiltered ? "No matching results." : "Nothing assigned to you."}
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-y border-[#D3BC8D] border-collapse text-xs">
+        <div className="rounded-md border overflow-x-auto max-h-[420px] overflow-y-auto">
+          <table className="w-full border-collapse text-xs">
             <thead>
-              <tr className="bg-black border-y border-[#D3BC8D]">
+              <tr className="bg-black">
                 {[
                   "Reservation #",
                   "CAR Name",
@@ -320,8 +320,8 @@ export default function MyPickupDropoffSection() {
                   "Trip Start",
                   "Pick Up Location",
                   "Trip Ends",
-                  "Days Rented",
                   "Drop Off Location",
+                  "Days Rented",
                   "Extras",
                   "Miles Included",
                   "Trip Start Odometer",
@@ -336,7 +336,7 @@ export default function MyPickupDropoffSection() {
                 ].map((label) => (
                   <th
                     key={label}
-                    className="px-3 py-2 text-center font-bold uppercase text-white whitespace-nowrap"
+                    className="sticky top-0 z-10 bg-black px-3 py-2 text-center font-bold uppercase text-white whitespace-nowrap border-b border-[#D3BC8D]"
                   >
                     {label}
                   </th>
@@ -346,56 +346,49 @@ export default function MyPickupDropoffSection() {
             <tbody>
               {rows.map((row, i) => {
                 const type = taskTypeMeta(row.task_type);
+                const sm = statusMeta(row.status);
                 return (
-                  <tr key={String(row.id ?? i)} className="bg-white border-y border-[#D3BC8D]">
-                    <td className="px-3 py-2 text-center text-black">{asString(row.reservation_no)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.car)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.plate)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtDateTime(row.trip_start)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.pickup_location)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtDateTime(row.trip_end)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtDays(row.days_rented)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.dropoff_location)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.extras)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtNum(row.miles_included)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtNum(row.trip_start_odometer)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtNum(row.trip_end_odometer)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtNum(row.total_miles)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtMoney(row.earnings)}</td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.trip_status)}</td>
-                    <td className="px-3 py-2 text-center text-black">
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${type.className}`}
-                      >
+                  <tr key={String(row.id ?? i)} className="border-b border-[#D3BC8D] even:bg-muted/30 hover:bg-muted/50">
+                    <td className="px-3 py-2 text-center whitespace-nowrap font-medium text-primary">{asString(row.reservation_no)}</td>
+                    <td className="px-3 py-2 text-center whitespace-nowrap">{asString(row.car)}</td>
+                    <td className="px-3 py-2 text-center whitespace-nowrap">{asString(row.plate)}</td>
+                    <td className="px-3 py-2 text-center whitespace-nowrap">{fmtDateTime(row.trip_start)}</td>
+                    <td className="px-3 py-2 text-center max-w-[160px] truncate" title={asString(row.pickup_location) !== "—" ? String(row.pickup_location) : undefined}>{asString(row.pickup_location)}</td>
+                    <td className="px-3 py-2 text-center whitespace-nowrap">{fmtDateTime(row.trip_end)}</td>
+                    <td className="px-3 py-2 text-center max-w-[160px] truncate" title={asString(row.dropoff_location) !== "—" ? String(row.dropoff_location) : undefined}>{asString(row.dropoff_location)}</td>
+                    <td className="px-3 py-2 text-center">{fmtDays(row.days_rented)}</td>
+                    <td className="px-3 py-2 text-center max-w-[140px] truncate" title={asString(row.extras) !== "—" ? String(row.extras) : undefined}>{asString(row.extras)}</td>
+                    <td className="px-3 py-2 text-center">{fmtNum(row.miles_included)}</td>
+                    <td className="px-3 py-2 text-center">{fmtNum(row.trip_start_odometer)}</td>
+                    <td className="px-3 py-2 text-center">{fmtNum(row.trip_end_odometer)}</td>
+                    <td className="px-3 py-2 text-center">{fmtNum(row.total_miles)}</td>
+                    <td className="px-3 py-2 text-center font-medium text-primary">{fmtMoney(row.earnings)}</td>
+                    <td className="px-3 py-2 text-center capitalize">{asString(row.trip_status)}</td>
+                    <td className="px-3 py-2 text-center">
+                      <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${type.className}`}>
                         {type.label}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-center text-black">{asString(row.assigned_to)}</td>
-                    <td className="px-3 py-2 text-center text-black">{fmtScheduled(row.scheduled_date)}</td>
-                    <td className="px-3 py-2 text-center text-black">
+                    <td className="px-3 py-2 text-center whitespace-nowrap">{asString(row.assigned_to)}</td>
+                    <td className="px-3 py-2 text-center whitespace-nowrap">{fmtScheduled(row.scheduled_date)}</td>
+                    <td className="px-3 py-2 text-center">
                       {row.id != null ? (
                         <Select
-                          value={statusMeta(row.status).value}
-                          onValueChange={(v) =>
-                            updateStatus.mutate({ id: Number(row.id), status: v })
-                          }
+                          value={sm.value}
+                          onValueChange={(v) => updateStatus.mutate({ id: Number(row.id), status: v })}
                           disabled={updateStatus.isPending}
                         >
-                          <SelectTrigger
-                            className={`h-8 w-[140px] mx-auto text-xs ${statusMeta(row.status).className}`}
-                          >
+                          <SelectTrigger className={`h-7 w-[130px] mx-auto text-xs font-semibold ${sm.className}`}>
                             <SelectValue placeholder="Status" />
                           </SelectTrigger>
                           <SelectContent>
                             {STATUS_OPTIONS.map((s) => (
-                              <SelectItem key={s.value} value={s.value}>
-                                {s.label}
-                              </SelectItem>
+                              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       ) : (
-                        statusMeta(row.status).label
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${sm.className}`}>{sm.label}</span>
                       )}
                     </td>
                   </tr>

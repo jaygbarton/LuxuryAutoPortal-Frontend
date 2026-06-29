@@ -2848,6 +2848,13 @@ export default function TuroTripsPage() {
                       {selectedTrip.totalDistance}
                     </div>
                   )}
+                  {selectedTrip.extras && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-muted-foreground mt-0.5">✦</span>
+                      <span className="font-medium">Extras:</span>
+                      <span>{selectedTrip.extras}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
