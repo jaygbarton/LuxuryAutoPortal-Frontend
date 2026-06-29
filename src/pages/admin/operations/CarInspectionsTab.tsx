@@ -3,10 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
+import { DashboardRecordCard } from "@/components/admin/dashboard";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
 import { StatusBadge } from "./StatusBadge";
@@ -501,269 +501,118 @@ export function CarInspectionsTab() {
             Total: {inspections.length}
           </div>
 
-          <div className="overflow-auto max-h-[60vh]">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">Reservation #</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">CAR Name</TableHead>
-                  <TableHead className="text-foreground font-medium">Plate #</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Start</TableHead>
-                  <TableHead className="text-foreground font-medium">Pick Up Location</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Ends</TableHead>
-                  <TableHead className="text-foreground font-medium">Days Rented</TableHead>
-                  <TableHead className="text-foreground font-medium">Drop Off Location</TableHead>
-                  <TableHead className="text-foreground font-medium">Extras</TableHead>
-                  <TableHead className="text-foreground font-medium">Miles Included</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Start Odometer</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Ends Odometer</TableHead>
-                  <TableHead className="text-foreground font-medium">Total Miles</TableHead>
-                  <TableHead className="text-foreground font-medium">Earnings</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Status</TableHead>
-                  <TableHead className="text-foreground font-medium">Assigned To</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip Start</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip End</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">Fuel Returned</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">Car Issues Type</TableHead>
-                  <TableHead className="text-foreground font-medium">Inspection Status</TableHead>
-                  <TableHead className="text-center text-foreground font-medium">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <div className="flex flex-col gap-3">
                 {isLoading || isMaintLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={22} className="text-center py-12 text-muted-foreground">Loading inspections...</TableCell>
-                  </TableRow>
+                  <p className="text-center py-12 text-muted-foreground">Loading inspections...</p>
                 ) : inspections.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={22} className="text-center py-12 text-muted-foreground">No inspections found</TableCell>
-                  </TableRow>
+                  <p className="text-center py-12 text-muted-foreground">No inspections found</p>
                 ) : (
                   pagedInspections.map((insp) => {
                     const movedToMaint = isMovedToMaintenance(insp.id);
                     const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
                     const isManual = !trip;
-                    const pickupLocation = trip?.pickupLocation || trip?.deliveryLocation || "--";
-                    const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? "--";
+                    const pickupLocation = isManual ? null : (trip?.pickupLocation || trip?.deliveryLocation || null);
+                    const dropOffLocation = isManual ? null : (trip?.returnLocation ?? trip?.deliveryLocation ?? null);
                     const daysRented = trip ? calculateDaysRented(trip.tripStart, trip.tripEnd) : null;
-                    const earnings = trip
-                      ? (trip.status?.toLowerCase() === "cancelled"
-                          ? trip.cancelledEarnings
-                          : trip.earnings)
-                      : null;
+                    const earnings = trip ? (trip.status?.toLowerCase() === "cancelled" ? trip.cancelledEarnings : trip.earnings) : null;
+
+                    const startOdoEl = trip ? (() => {
+                      const edit = odoEdits[trip.id];
+                      const startStr = edit?.start !== undefined ? edit.start : trip.tripStartOdometer != null ? String(trip.tripStartOdometer) : "";
+                      return <Input type="number" value={startStr} onChange={(e) => setOdoEdits((prev) => ({ ...prev, [trip.id]: { ...prev[trip.id], start: e.target.value } }))} placeholder="--" className="h-7 w-[100px] text-sm" />;
+                    })() : "--";
+
+                    const endOdoEl = trip ? (() => {
+                      const edit = odoEdits[trip.id];
+                      const endStr = edit?.end !== undefined ? edit.end : trip.tripEndOdometer != null ? String(trip.tripEndOdometer) : "";
+                      const dirty = edit !== undefined;
+                      return (
+                        <div className="flex items-center gap-1">
+                          <Input type="number" value={endStr} onChange={(e) => setOdoEdits((prev) => ({ ...prev, [trip.id]: { ...prev[trip.id], end: e.target.value } }))} placeholder="--" className="h-7 w-[100px] text-sm" />
+                          {dirty && <Button variant="default" size="sm" className="h-7 px-2" onClick={() => saveRowOdometers(trip)} disabled={savingOdoRow === trip.id}>{savingOdoRow === trip.id ? "…" : "Save"}</Button>}
+                        </div>
+                      );
+                    })() : "--";
+
+                    const totalMiles = trip && trip.tripStartOdometer != null && trip.tripEndOdometer != null && trip.tripEndOdometer >= trip.tripStartOdometer
+                      ? (trip.tripEndOdometer - trip.tripStartOdometer).toLocaleString() : "--";
+
+                    const inspStatusEl = (
+                      <Select value={insp.status} onValueChange={(v) => statusUpdateMutation.mutate({ id: insp.id, status: v })}>
+                        <SelectTrigger className="bg-transparent border-0 p-0 h-auto w-auto shadow-none focus:ring-0"><StatusBadge status={insp.status} /></SelectTrigger>
+                        <SelectContent className="bg-card border-border text-foreground">
+                          <SelectItem value="new">New</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    );
+
+                    const assigneeEl = (
+                      <EmployeeSelectCombobox value={insp.assigned_to || ""}
+                        onChange={(v) => { if (!v) assigneeUpdateMutation.mutate({ id: insp.id, assigned_to: null, assigned_to_id: null }); }}
+                        onSelectEmployee={(emp) => {
+                          if (emp) {
+                            const fullName = [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || emp.employee_email || `Employee #${emp.employee_aid}`;
+                            assigneeUpdateMutation.mutate({ id: insp.id, assigned_to: fullName, assigned_to_id: emp.employee_aid });
+                          }
+                        }}
+                        placeholder="Assign..." />
+                    );
+
+                    const actions = (
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => { setEditingInspection(insp); setModalOpen(true); }} className="text-muted-foreground hover:text-primary h-7 px-2" title="Edit"><Edit className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => { setHistoryInspection(insp); setHistoryModalOpen(true); }} className="text-muted-foreground hover:text-blue-400 h-7 px-2" title="History"><History className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => moveToTuroMessagesMutation.mutate(insp.id)} className="text-muted-foreground hover:text-yellow-500 h-7 px-2" title="Move to Turo Messages"><RotateCcw className="w-3.5 h-3.5" /></Button>
+                        {!movedToMaint && insp.status !== "no_issues" && <Button variant="ghost" size="sm" onClick={() => moveToMaintenanceMutation.mutate(insp.id)} className="text-muted-foreground hover:text-blue-400 h-7 px-2" title="Move to Maintenance"><Wrench className="w-3.5 h-3.5" /></Button>}
+                        {!movedToMaint && insp.status !== "no_issues" && <Button variant="ghost" size="sm" onClick={() => statusUpdateMutation.mutate({ id: insp.id, status: "no_issues" })} className="text-muted-foreground hover:text-emerald-400 h-7 px-2" title="Mark No Car Issues"><CheckCircle2 className="w-3.5 h-3.5" /></Button>}
+                        <Button variant="ghost" size="sm" onClick={() => { setDeletingInspection(insp); setDeleteModalOpen(true); }} className="text-muted-foreground hover:text-red-700 h-7 px-2" title="Delete"><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </div>
+                    );
+
+                    const carNameDisplay = (
+                      <div className="flex items-center gap-2">
+                        <span>{insp.car_name || "--"}</span>
+                        {movedToMaint && <Badge className="bg-blue-500/20 text-blue-400 border-0 text-[10px] px-1.5 py-0 gap-1"><Wrench className="w-2.5 h-2.5" />In Maintenance</Badge>}
+                      </div>
+                    );
+
                     return (
-                      <TableRow key={insp.id} className="border-border hover:bg-card/50 transition-colors">
-                        <TableCell className="text-foreground font-mono text-sm whitespace-nowrap">
-                          {insp.reservation_id || trip?.reservationId || "--"}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <span className="text-foreground">{insp.car_name || "--"}</span>
-                            {movedToMaint && (
-                              <Badge className="bg-blue-500/20 text-blue-400 border-0 text-[10px] px-1.5 py-0 gap-1">
-                                <Wrench className="w-2.5 h-2.5" />
-                                In Maintenance
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-foreground font-mono text-sm">{trip?.plateNumber || "--"}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {trip ? formatDate(trip.tripStart) : formatDate(insp.inspection_date)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={pickupLocation}>
-                          {isManual ? "--" : pickupLocation}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {trip ? formatDate(trip.tripEnd) : "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm text-center">
-                          {daysRented ?? "--"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate" title={dropOffLocation}>
-                          {isManual ? "--" : dropOffLocation}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm max-w-[120px] truncate" title={trip?.extras || undefined}>
-                          {trip?.extras || "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm">
-                          {trip?.milesIncluded || trip?.totalDistance || "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
-                          {!trip ? "--" : (() => {
-                            const edit = odoEdits[trip.id];
-                            const startStr = edit?.start !== undefined ? edit.start : trip.tripStartOdometer != null ? String(trip.tripStartOdometer) : "";
-                            return (
-                              <Input
-                                type="number"
-                                value={startStr}
-                                onChange={(e) => setOdoEdits((prev) => ({ ...prev, [trip.id]: { ...prev[trip.id], start: e.target.value } }))}
-                                placeholder="--"
-                                className="h-7 w-[100px] text-sm"
-                              />
-                            );
-                          })()}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
-                          {!trip ? "--" : (() => {
-                            const edit = odoEdits[trip.id];
-                            const endStr = edit?.end !== undefined ? edit.end : trip.tripEndOdometer != null ? String(trip.tripEndOdometer) : "";
-                            const dirty = edit !== undefined;
-                            return (
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  type="number"
-                                  value={endStr}
-                                  onChange={(e) => setOdoEdits((prev) => ({ ...prev, [trip.id]: { ...prev[trip.id], end: e.target.value } }))}
-                                  placeholder="--"
-                                  className="h-7 w-[100px] text-sm"
-                                />
-                                {dirty && (
-                                  <Button variant="default" size="sm" className="h-7 px-2" onClick={() => saveRowOdometers(trip)} disabled={savingOdoRow === trip.id}>
-                                    {savingOdoRow === trip.id ? "…" : "Save"}
-                                  </Button>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
-                          {(() => {
-                            if (!trip) return "--";
-                            const s = trip.tripStartOdometer; const e = trip.tripEndOdometer;
-                            if (s != null && e != null && e >= s) return (e - s).toLocaleString();
-                            return "--";
-                          })()}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm">
-                          {earnings != null ? formatCurrency(earnings) : "--"}
-                        </TableCell>
-                        <TableCell>
-                          {trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm italic text-xs">Manual</span>}
-                        </TableCell>
-                        <TableCell className="min-w-[200px]">
-                          <EmployeeSelectCombobox
-                            value={insp.assigned_to || ""}
-                            onChange={(v) => {
-                              if (!v) {
-                                assigneeUpdateMutation.mutate({
-                                  id: insp.id,
-                                  assigned_to: null,
-                                  assigned_to_id: null,
-                                });
-                              }
-                            }}
-                            onSelectEmployee={(emp) => {
-                              if (emp) {
-                                const fullName =
-                                  [emp.employee_first_name, emp.employee_last_name]
-                                    .filter(Boolean)
-                                    .join(" ")
-                                    .trim() ||
-                                  emp.employee_email ||
-                                  `Employee #${emp.employee_aid}`;
-                                assigneeUpdateMutation.mutate({
-                                  id: insp.id,
-                                  assigned_to: fullName,
-                                  assigned_to_id: emp.employee_aid,
-                                });
-                              }
-                            }}
-                            placeholder="Assign..."
-                          />
-                        </TableCell>
-                        <GasLevelCells
-                          tripId={insp.turo_trip_id}
-                          start={trip?.gasLevelTripStart ?? insp.gas_level_trip_start}
-                          end={trip?.gasLevelTripEnd ?? insp.gas_level_trip_end}
-                          onSaved={() => {
-                            queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
-                            queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });
-                          }}
-                        />
-                        <TableCell>
-                          <FuelReturnedCell level={insp.fuel_level_returned} />
-                        </TableCell>
-                        <TableCell>
-                          <CarIssueTypesCell types={insp.car_issue_types} />
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={insp.status}
-                            onValueChange={(v) => statusUpdateMutation.mutate({ id: insp.id, status: v })}
-                          >
-                            <SelectTrigger className="bg-transparent border-0 p-0 h-auto w-auto shadow-none focus:ring-0">
-                              <StatusBadge status={insp.status} />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card border-border text-foreground">
-                              <SelectItem value="new">New</SelectItem>
-                              <SelectItem value="in_progress">In Progress</SelectItem>
-                              <SelectItem value="completed">Completed</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-1">
-                            <Button
-                              variant="ghost" size="sm"
-                              onClick={() => { setEditingInspection(insp); setModalOpen(true); }}
-                              className="text-muted-foreground hover:text-primary h-8 px-2"
-                              title="Edit"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost" size="sm"
-                              onClick={() => { setHistoryInspection(insp); setHistoryModalOpen(true); }}
-                              className="text-muted-foreground hover:text-blue-400 h-8 px-2"
-                              title="View History"
-                            >
-                              <History className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost" size="sm"
-                              onClick={() => moveToTuroMessagesMutation.mutate(insp.id)}
-                              className="text-muted-foreground hover:text-yellow-500 h-8 px-2"
-                              title="Move back to Turo Messages"
-                            >
-                              <RotateCcw className="w-3.5 h-3.5" />
-                            </Button>
-                            {!movedToMaint && insp.status !== "no_issues" && (
-                              <Button
-                                variant="ghost" size="sm"
-                                onClick={() => moveToMaintenanceMutation.mutate(insp.id)}
-                                className="text-muted-foreground hover:text-blue-400 h-8 px-2"
-                                title="Move to Maintenance"
-                              >
-                                <Wrench className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
-                            {!movedToMaint && insp.status !== "no_issues" && (
-                              <Button
-                                variant="ghost" size="sm"
-                                onClick={() => statusUpdateMutation.mutate({ id: insp.id, status: "no_issues" })}
-                                className="text-muted-foreground hover:text-emerald-400 h-8 px-2"
-                                title="Mark No Car Issues"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost" size="sm"
-                              onClick={() => { setDeletingInspection(insp); setDeleteModalOpen(true); }}
-                              className="text-muted-foreground hover:text-red-700 h-8 px-2"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                      <DashboardRecordCard
+                        key={insp.id}
+                        accentBg="bg-orange-500"
+                        accentBorder="border-orange-300"
+                        typeLabel="Car Issue"
+                        reservationId={insp.reservation_id || trip?.reservationId}
+                        carName={insp.car_name}
+                        plate={trip?.plateNumber}
+                        assignedTo={insp.assigned_to}
+                        tripStart={trip ? formatDate(trip.tripStart) : formatDate(insp.inspection_date)}
+                        tripEnd={trip ? formatDate(trip.tripEnd) : null}
+                        pickupLocation={pickupLocation}
+                        dropoffLocation={dropOffLocation}
+                        details={[
+                          { label: "Car Name", value: carNameDisplay },
+                          { label: "Days Rented", value: daysRented ?? "--" },
+                          { label: "Extras", value: trip?.extras || "--" },
+                          { label: "Miles Included", value: trip?.milesIncluded || trip?.totalDistance || "--" },
+                          { label: "Trip Start Odo", value: startOdoEl },
+                          { label: "Trip End Odo", value: endOdoEl },
+                          { label: "Total Miles", value: totalMiles },
+                          { label: "Earnings", value: earnings != null ? formatCurrency(earnings) : "--" },
+                          { label: "Trip Status", value: trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground italic text-xs">Manual</span> },
+                          { label: "Assigned To", value: assigneeEl },
+                          { label: "Gas Level", value: trip ? <GasLevelCells tripId={insp.turo_trip_id} start={trip.gasLevelTripStart ?? insp.gas_level_trip_start} end={trip.gasLevelTripEnd ?? insp.gas_level_trip_end} onSaved={() => { queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] }); queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] }); }} /> : "--" },
+                          { label: "Fuel Returned", value: <FuelReturnedCell level={insp.fuel_level_returned} /> },
+                          { label: "Car Issues Type", value: <CarIssueTypesCell types={insp.car_issue_types} /> },
+                          { label: "Inspection Status", value: inspStatusEl },
+                        ]}
+                        statusControl={actions}
+                      />
                     );
                   })
                 )}
-              </TableBody>
-            </Table>
           </div>
         </div>
         <TablePagination

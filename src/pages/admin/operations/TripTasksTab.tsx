@@ -11,14 +11,6 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -26,6 +18,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
+import { DashboardRecordCard } from "@/components/admin/dashboard";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
 import { StatusBadge } from "./StatusBadge";
@@ -405,297 +398,127 @@ export function TripTasksTab() {
               : `Total: ${data?.total ?? filteredTasks.length}`}
           </div>
 
-          <div className="overflow-auto max-h-[60vh]">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-foreground font-medium">Reservation #</TableHead>
-                  <TableHead className="text-foreground font-medium">CAR Name</TableHead>
-                  <TableHead className="text-foreground font-medium">Plate #</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">VIN #</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Start</TableHead>
-                  <TableHead className="text-foreground font-medium">Pick Up Location</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Ends</TableHead>
-                  <TableHead className="text-foreground font-medium">Days Rented</TableHead>
-                  <TableHead className="text-foreground font-medium">Drop Off Location</TableHead>
-                  <TableHead className="text-foreground font-medium">Extras</TableHead>
-                  <TableHead className="text-foreground font-medium">Miles Included</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Start Odometer</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Ends Odometer</TableHead>
-                  <TableHead className="text-foreground font-medium">Total Miles</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip Start</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip End</TableHead>
-                  <TableHead className="text-foreground font-medium">Earnings</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Status</TableHead>
-                  <TableHead className="text-foreground font-medium">Task Type</TableHead>
-                  <TableHead className="text-foreground font-medium">Assigned To</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">Scheduled Date/Time</TableHead>
-                  <TableHead className="text-foreground font-medium">Task Status</TableHead>
-                  <TableHead className="text-center text-foreground font-medium">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <div className="flex flex-col gap-3">
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={23}
-                      className="text-center py-12 text-muted-foreground"
-                    >
-                      Loading tasks...
-                    </TableCell>
-                  </TableRow>
+                  <p className="text-center py-12 text-muted-foreground">Loading tasks...</p>
                 ) : filteredTasks.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={23}
-                      className="text-center py-12 text-muted-foreground"
-                    >
-                      No tasks found
-                    </TableCell>
-                  </TableRow>
+                  <p className="text-center py-12 text-muted-foreground">No tasks found</p>
                 ) : (
                   pagedTasks.map((task) => {
                     const trip =
                       task.turo_trip_id != null
                         ? tripsById.get(task.turo_trip_id)
                         : undefined;
-                    const pickupLocation = trip?.pickupLocation || trip?.deliveryLocation || "--";
-                    const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? trip?.pickupLocation ?? "--";
+                    const pickupLocation = trip?.pickupLocation || trip?.deliveryLocation || null;
+                    const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? trip?.pickupLocation ?? null;
                     const daysRented = trip ? calculateDaysRented(trip.tripStart, trip.tripEnd) : null;
                     const earnings = trip
                       ? (trip.status?.toLowerCase() === "cancelled"
                           ? trip.cancelledEarnings
                           : trip.earnings)
                       : null;
+
+                    const startOdoEl = trip ? (() => {
+                      const edit = odoEdits[trip.id];
+                      const startStr = edit?.start !== undefined ? edit.start : trip.tripStartOdometer != null ? String(trip.tripStartOdometer) : "";
+                      return (
+                        <Input type="number" value={startStr}
+                          onChange={(e) => setOdoEdits((prev) => ({ ...prev, [trip.id]: { ...prev[trip.id], start: e.target.value } }))}
+                          onBlur={() => saveRowOdometers(trip)}
+                          placeholder="--" className="h-7 w-[100px] text-sm" />
+                      );
+                    })() : "--";
+
+                    const endOdoEl = trip ? (() => {
+                      const edit = odoEdits[trip.id];
+                      const endStr = edit?.end !== undefined ? edit.end : trip.tripEndOdometer != null ? String(trip.tripEndOdometer) : "";
+                      const dirty = edit !== undefined;
+                      return (
+                        <div className="flex items-center gap-1">
+                          <Input type="number" value={endStr}
+                            onChange={(e) => setOdoEdits((prev) => ({ ...prev, [trip.id]: { ...prev[trip.id], end: e.target.value } }))}
+                            onBlur={() => saveRowOdometers(trip)}
+                            placeholder="--" className="h-7 w-[100px] text-sm" />
+                          {dirty && (
+                            <Button variant="default" size="sm" className="h-7 px-2"
+                              onClick={() => saveRowOdometers(trip)} disabled={savingOdoRow === trip.id}>
+                              {savingOdoRow === trip.id ? "…" : "Save"}
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })() : "--";
+
+                    const totalMiles = (() => {
+                      if (!trip) return "--";
+                      const s = trip.tripStartOdometer, e = trip.tripEndOdometer;
+                      return s != null && e != null && e >= s ? (e - s).toLocaleString() : "--";
+                    })();
+
+                    const taskStatusSelect = (
+                      <Select value={task.status} onValueChange={(v) => statusUpdateMutation.mutate({ id: task.id, status: v })}>
+                        <SelectTrigger className="bg-transparent border-0 p-0 h-auto w-auto shadow-none focus:ring-0">
+                          <StatusBadge status={task.status} />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border text-foreground">
+                          <SelectItem value="new">New</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="delivered">Delivered</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    );
+
+                    const actions = (
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => { setEditingTask(task); setTaskModalOpen(true); }}
+                          className="text-muted-foreground hover:text-primary h-7 px-2" title="Edit">
+                          <Edit className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => { setHistoryTask(task); setHistoryModalOpen(true); }}
+                          className="text-muted-foreground hover:text-blue-400 h-7 px-2" title="History">
+                          <History className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => { setDeletingTask(task); setDeleteModalOpen(true); }}
+                          className="text-muted-foreground hover:text-red-700 h-7 px-2" title="Delete">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    );
+
                     return (
-                      <TableRow
+                      <DashboardRecordCard
                         key={task.id}
-                        className="border-border hover:bg-card/50 transition-colors"
-                      >
-                        <TableCell className="text-foreground font-mono text-sm">
-                          {task.reservation_id || trip?.reservationId || "N/A"}
-                        </TableCell>
-                        <TableCell className="text-foreground">
-                          {task.car_name || "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground font-mono text-sm">
-                          {trip?.plateNumber || "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground font-mono text-sm whitespace-nowrap">
-                          {trip?.vinNumber || "--"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {trip ? formatDate(trip.tripStart) : "--"}
-                        </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[150px] truncate"
-                          title={pickupLocation}
-                        >
-                          {pickupLocation}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {trip ? formatDate(trip.tripEnd) : "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm text-center">
-                          {daysRented ?? "--"}
-                        </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[150px] truncate"
-                          title={dropOffLocation}
-                        >
-                          {dropOffLocation}
-                        </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[120px] truncate"
-                          title={trip?.extras || undefined}
-                        >
-                          {trip?.extras || "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm">
-                          {trip?.milesIncluded || trip?.totalDistance || "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
-                          {!trip ? (
-                            "--"
-                          ) : (
-                            (() => {
-                              const edit = odoEdits[trip.id];
-                              const startStr =
-                                edit?.start !== undefined
-                                  ? edit.start
-                                  : trip.tripStartOdometer != null
-                                    ? String(trip.tripStartOdometer)
-                                    : "";
-                              return (
-                                <Input
-                                  type="number"
-                                  value={startStr}
-                                  onChange={(e) =>
-                                    setOdoEdits((prev) => ({
-                                      ...prev,
-                                      [trip.id]: { ...prev[trip.id], start: e.target.value },
-                                    }))
-                                  }
-                                  onBlur={() => saveRowOdometers(trip)}
-                                  placeholder="--"
-                                  className="h-7 w-[100px] text-sm"
-                                />
-                              );
-                            })()
-                          )}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
-                          {!trip ? (
-                            "--"
-                          ) : (
-                            (() => {
-                              const edit = odoEdits[trip.id];
-                              const endStr =
-                                edit?.end !== undefined
-                                  ? edit.end
-                                  : trip.tripEndOdometer != null
-                                    ? String(trip.tripEndOdometer)
-                                    : "";
-                              const dirty = edit !== undefined;
-                              return (
-                                <div className="flex items-center gap-1">
-                                  <Input
-                                    type="number"
-                                    value={endStr}
-                                    onChange={(e) =>
-                                      setOdoEdits((prev) => ({
-                                        ...prev,
-                                        [trip.id]: { ...prev[trip.id], end: e.target.value },
-                                      }))
-                                    }
-                                    onBlur={() => saveRowOdometers(trip)}
-                                    placeholder="--"
-                                    className="h-7 w-[100px] text-sm"
-                                  />
-                                  {dirty && (
-                                    <Button
-                                      variant="default"
-                                      size="sm"
-                                      className="h-7 px-2"
-                                      onClick={() => saveRowOdometers(trip)}
-                                      disabled={savingOdoRow === trip.id}
-                                    >
-                                      {savingOdoRow === trip.id ? "…" : "Save"}
-                                    </Button>
-                                  )}
-                                </div>
-                              );
-                            })()
-                          )}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
-                          {(() => {
-                            if (!trip) return "--";
-                            const startOdo = trip.tripStartOdometer;
-                            const endOdo = trip.tripEndOdometer;
-                            if (startOdo != null && endOdo != null && endOdo >= startOdo) {
-                              return (endOdo - startOdo).toLocaleString();
-                            }
-                            return "--";
-                          })()}
-                        </TableCell>
-                        <GasLevelCells
-                          tripId={task.turo_trip_id}
-                          start={trip?.gasLevelTripStart}
-                          end={trip?.gasLevelTripEnd}
-                          onSaved={() => {
-                            queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
-                            queryClient.invalidateQueries({ queryKey: ["/api/operations/tasks"] });
-                          }}
-                        />
-                        <TableCell className="text-foreground text-sm">
-                          {earnings != null ? formatCurrency(earnings) : "--"}
-                        </TableCell>
-                        <TableCell>
-                          {trip ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm">--</span>}
-                        </TableCell>
-                        <TableCell className="text-foreground capitalize">
-                          {task.task_type}
-                        </TableCell>
-                        <TableCell className="text-foreground">
-                          {task.assigned_to}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm whitespace-nowrap">
-                          {formatDate(task.scheduled_date)}
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={task.status}
-                            onValueChange={(v) =>
-                              statusUpdateMutation.mutate({
-                                id: task.id,
-                                status: v,
-                              })
-                            }
-                          >
-                            <SelectTrigger className="bg-transparent border-0 p-0 h-auto w-auto shadow-none focus:ring-0">
-                              <StatusBadge status={task.status} />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card border-border text-foreground">
-                              <SelectItem value="new">New</SelectItem>
-                              <SelectItem value="in_progress">
-                                In Progress
-                              </SelectItem>
-                              <SelectItem value="completed">
-                                Completed
-                              </SelectItem>
-                              <SelectItem value="delivered">
-                                Delivered
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEditingTask(task);
-                                setTaskModalOpen(true);
-                              }}
-                              className="text-muted-foreground hover:text-primary h-8 px-2"
-                              title="Edit"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setHistoryTask(task);
-                                setHistoryModalOpen(true);
-                              }}
-                              className="text-muted-foreground hover:text-blue-400 h-8 px-2"
-                              title="View History"
-                            >
-                              <History className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setDeletingTask(task);
-                                setDeleteModalOpen(true);
-                              }}
-                              className="text-muted-foreground hover:text-red-700 h-8 px-2"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                        accentBg="bg-blue-500"
+                        accentBorder="border-blue-300"
+                        typeLabel={task.task_type}
+                        reservationId={task.reservation_id || trip?.reservationId}
+                        carName={task.car_name}
+                        plate={trip?.plateNumber}
+                        assignedTo={task.assigned_to}
+                        tripStart={trip ? formatDate(trip.tripStart) : null}
+                        tripEnd={trip ? formatDate(trip.tripEnd) : null}
+                        pickupLocation={pickupLocation}
+                        dropoffLocation={dropOffLocation}
+                        details={[
+                          { label: "Days Rented", value: daysRented ?? "--" },
+                          { label: "VIN #", value: trip?.vinNumber || "--" },
+                          { label: "Extras", value: trip?.extras || "--" },
+                          { label: "Miles Included", value: trip?.milesIncluded || trip?.totalDistance || "--" },
+                          { label: "Trip Start Odometer", value: startOdoEl },
+                          { label: "Trip Ends Odometer", value: endOdoEl },
+                          { label: "Total Miles", value: totalMiles },
+                          { label: "Gas Level", value: trip ? <GasLevelCells tripId={task.turo_trip_id} start={trip.gasLevelTripStart} end={trip.gasLevelTripEnd} onSaved={() => { queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] }); queryClient.invalidateQueries({ queryKey: ["/api/operations/tasks"] }); }} /> : "--" },
+                          { label: "Earnings", value: earnings != null ? formatCurrency(earnings) : "--" },
+                          { label: "Trip Status", value: trip ? <StatusBadge status={trip.status} /> : "--" },
+                          { label: "Scheduled", value: formatDate(task.scheduled_date) },
+                          { label: "Task Status", value: taskStatusSelect },
+                        ]}
+                        statusControl={actions}
+                      />
                     );
                   })
                 )}
-              </TableBody>
-            </Table>
           </div>
         </div>
         <TablePagination

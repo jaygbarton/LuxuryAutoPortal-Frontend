@@ -11,14 +11,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -26,6 +18,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { DashboardRecordCard } from "@/components/admin/dashboard";
 import { SummaryCard } from "@/components/admin/dashboard/SummaryCard";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { TablePagination } from "@/components/ui/table-pagination";
@@ -732,606 +725,180 @@ export function TripsOverviewTab() {
               ? `Showing ${pagedTrips.length} of ${totalServerMatches} matched trip${totalServerMatches === 1 ? "" : "s"} (Assigned filter applied to current page)`
               : `Total: ${totalServerMatches} trip${totalServerMatches === 1 ? "" : "s"}`}
           </div>
-          <div className="overflow-auto max-h-[60vh] ">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="md:sticky md:left-0 md:z-20 md:bg-muted/40 text-foreground font-medium whitespace-nowrap">
-                    Reservation #
-                  </TableHead>
-                  <TableHead className="md:sticky md:left-[130px] md:z-20 md:bg-muted/40 text-foreground font-medium whitespace-nowrap">
-                    CAR Name
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Plate #
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    VIN #
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Trip Start
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Pick Up Location
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Trip Ends
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Days Rented
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Drop Off Location
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Extras
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Miles Included
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Trip Start Odometer
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Trip Ends Odometer
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Gas Level Trip Start
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Gas Level Trip End
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Total Miles
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Earnings
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Status
-                  </TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">
-                    Assigned
-                  </TableHead>
-                  <TableHead className="text-center text-foreground font-medium whitespace-nowrap">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <div className="flex flex-col gap-3">
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={19}
-                      className="text-center py-12 text-muted-foreground"
-                    >
-                      Loading trips...
-                    </TableCell>
-                  </TableRow>
+                  <p className="text-center py-12 text-muted-foreground">Loading trips...</p>
                 ) : pagedTrips.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={19}
-                      className="text-center py-12 text-muted-foreground"
-                    >
-                      No trips found
-                    </TableCell>
-                  </TableRow>
+                  <p className="text-center py-12 text-muted-foreground">No trips found</p>
                 ) : (
                   pagedTrips.map((trip) => {
                     const tripTasks = getTasksForTrip(trip.id);
-                    const cleaningTask = tripTasks.find(
-                      (t) => t.task_type === "cleaning",
+                    const cleaningTask = tripTasks.find((t) => t.task_type === "cleaning");
+                    const deliveryTask = tripTasks.find((t) => t.task_type === "delivery");
+                    const pickupTask = tripTasks.find((t) => t.task_type === "pickup");
+                    const daysRented = calculateDaysRented(trip.tripStart, trip.tripEnd);
+                    const totalMiles = trip.tripStartOdometer != null && trip.tripEndOdometer != null && trip.tripEndOdometer >= trip.tripStartOdometer
+                      ? trip.tripEndOdometer - trip.tripStartOdometer : null;
+
+                    const carNameEl = (() => {
+                      const editing = carNameEdits[trip.id] !== undefined;
+                      const current = trip.carName ?? "";
+                      const value = editing ? carNameEdits[trip.id] : current;
+                      return (
+                        <div className="flex items-center gap-1">
+                          <Input value={value} placeholder="Car name" title="Enter the car name exactly as it appears on the Turo listing" className="h-7 w-[160px] text-sm"
+                            onChange={(e) => setCarNameEdits((prev) => ({ ...prev, [trip.id]: e.target.value }))}
+                            onBlur={() => { if (carNameEdits[trip.id] === undefined) return; if (carNameEdits[trip.id].trim() === current.trim()) { setCarNameEdits((prev) => { const next = { ...prev }; delete next[trip.id]; return next; }); return; } saveRowCarInfo(trip, "carName"); }}
+                            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setCarNameEdits((prev) => { const next = { ...prev }; delete next[trip.id]; return next; }); }} />
+                          {savingCarName === trip.id && <span className="text-xs text-muted-foreground">…</span>}
+                        </div>
+                      );
+                    })();
+
+                    const vinEl = (() => {
+                      const editing = vinEdits[trip.id] !== undefined;
+                      const current = trip.vinNumber ?? "";
+                      const value = editing ? vinEdits[trip.id] : current;
+                      return (
+                        <div className="flex items-center gap-1">
+                          <Input value={value} placeholder="--" className="h-7 w-[150px] text-sm font-mono"
+                            onChange={(e) => setVinEdits((prev) => ({ ...prev, [trip.id]: e.target.value }))}
+                            onBlur={() => { if (vinEdits[trip.id] === undefined) return; if (vinEdits[trip.id].trim() === current.trim()) { setVinEdits((prev) => { const next = { ...prev }; delete next[trip.id]; return next; }); return; } saveRowCarInfo(trip, "vinNumber"); }}
+                            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setVinEdits((prev) => { const next = { ...prev }; delete next[trip.id]; return next; }); }} />
+                          {savingVin === trip.id && <span className="text-xs text-muted-foreground">…</span>}
+                        </div>
+                      );
+                    })();
+
+                    const milesEl = (() => {
+                      const pending = milesEdits[trip.id];
+                      const value = pending !== undefined ? pending : trip.milesIncluded ?? trip.totalDistance ?? "";
+                      const dirty = pending !== undefined;
+                      return (
+                        <div className="flex items-center gap-1">
+                          <Input value={value} onChange={(e) => setMilesEdits((prev) => ({ ...prev, [trip.id]: e.target.value }))} placeholder="--" className="h-7 w-[110px] text-sm" />
+                          {dirty && <Button variant="default" size="sm" className="h-7 px-2" onClick={() => saveRowMiles(trip)} disabled={savingMilesRow === trip.id}>{savingMilesRow === trip.id ? "…" : "Save"}</Button>}
+                        </div>
+                      );
+                    })();
+
+                    const startOdoEl = (() => {
+                      const edit = odoEdits[trip.id];
+                      const startStr = edit?.start !== undefined ? edit.start : trip.tripStartOdometer != null ? String(trip.tripStartOdometer) : "";
+                      return <Input type="number" value={startStr} onChange={(e) => setOdoEdits((prev) => ({ ...prev, [trip.id]: { ...prev[trip.id], start: e.target.value } }))} onBlur={() => saveRowOdometers(trip)} placeholder="--" className="h-7 w-[100px] text-sm" />;
+                    })();
+
+                    const endOdoEl = (() => {
+                      const edit = odoEdits[trip.id];
+                      const endStr = edit?.end !== undefined ? edit.end : trip.tripEndOdometer != null ? String(trip.tripEndOdometer) : "";
+                      const dirty = edit !== undefined;
+                      return (
+                        <div className="flex items-center gap-1">
+                          <Input type="number" value={endStr} onChange={(e) => setOdoEdits((prev) => ({ ...prev, [trip.id]: { ...prev[trip.id], end: e.target.value } }))} onBlur={() => saveRowOdometers(trip)} placeholder="--" className="h-7 w-[100px] text-sm" />
+                          {dirty && <Button variant="default" size="sm" className="h-7 px-2" onClick={() => saveRowOdometers(trip)} disabled={savingOdoRow === trip.id}>{savingOdoRow === trip.id ? "…" : "Save"}</Button>}
+                        </div>
+                      );
+                    })();
+
+                    const gasStartEl = (() => {
+                      const edit = gasEdits[trip.id];
+                      const startVal = edit?.start !== undefined ? edit.start : (trip.gasLevelTripStart ?? "");
+                      const endVal = edit?.end !== undefined ? edit.end : (trip.gasLevelTripEnd ?? "");
+                      return (
+                        <Select value={startVal || "__none__"} onValueChange={(v) => { const newVal = v === "__none__" ? "" : v; setGasEdits((prev) => ({ ...prev, [trip.id]: { ...prev[trip.id], start: newVal } })); saveRowGasLevels(trip, { start: newVal, end: endVal }); }}>
+                          <SelectTrigger className="h-7 w-[110px] text-xs"><SelectValue placeholder="--" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">--</SelectItem>
+                            <SelectItem value="empty">Empty</SelectItem>
+                            <SelectItem value="quarter">1/4</SelectItem>
+                            <SelectItem value="half">1/2</SelectItem>
+                            <SelectItem value="three_quarters">3/4</SelectItem>
+                            <SelectItem value="full">Full</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      );
+                    })();
+
+                    const gasEndEl = (() => {
+                      const edit = gasEdits[trip.id];
+                      const startVal = edit?.start !== undefined ? edit.start : (trip.gasLevelTripStart ?? "");
+                      const endVal = edit?.end !== undefined ? edit.end : (trip.gasLevelTripEnd ?? "");
+                      return (
+                        <Select value={endVal || "__none__"} onValueChange={(v) => { const newVal = v === "__none__" ? "" : v; setGasEdits((prev) => ({ ...prev, [trip.id]: { ...prev[trip.id], end: newVal } })); saveRowGasLevels(trip, { start: startVal, end: newVal }); }}>
+                          <SelectTrigger className="h-7 w-[110px] text-xs"><SelectValue placeholder="--" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">--</SelectItem>
+                            <SelectItem value="empty">Empty</SelectItem>
+                            <SelectItem value="quarter">1/4</SelectItem>
+                            <SelectItem value="half">1/2</SelectItem>
+                            <SelectItem value="three_quarters">3/4</SelectItem>
+                            <SelectItem value="full">Full</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      );
+                    })();
+
+                    const taskBadges = tripTasks.length === 0 ? "--" : (
+                      <div className="flex flex-col gap-1 text-xs">
+                        {tripTasks.map((t) => {
+                          const Icon = t.task_type === "cleaning" ? Sparkles : t.task_type === "delivery" ? Truck : Package;
+                          const color = t.task_type === "cleaning" ? "text-yellow-500" : t.task_type === "delivery" ? "text-blue-400" : "text-green-500";
+                          return (
+                            <div key={t.id} className="flex items-center gap-1.5">
+                              <Icon className={`w-3 h-3 ${color} shrink-0`} />
+                              <span className={`${color} capitalize text-[10px] font-medium shrink-0`}>{t.task_type}:</span>
+                              <span className="text-foreground truncate max-w-[120px]">{t.assigned_to || "--"}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     );
-                    const deliveryTask = tripTasks.find(
-                      (t) => t.task_type === "delivery",
+
+                    const taskChips = (
+                      <div className="flex items-center gap-2">
+                        <TaskChip icon={Sparkles} task={cleaningTask} assignedColor="text-yellow-500" assignedBg="bg-yellow-500/10" labelEmpty="Assign Cleaning" labelAssigned="Edit Cleaning Task" labelDelete="Delete Cleaning Task" onAssign={() => openTaskModal(trip, "cleaning")} onEdit={() => { if (cleaningTask) { setEditingTask(cleaningTask); setEditModalOpen(true); } }} onDelete={() => cleaningTask && setConfirmDeleteTask(cleaningTask)} />
+                        <TaskChip icon={Truck} task={deliveryTask} assignedColor="text-blue-400" assignedBg="bg-blue-400/10" labelEmpty="Assign Delivery" labelAssigned="Edit Delivery Task" labelDelete="Delete Delivery Task" onAssign={() => openTaskModal(trip, "delivery")} onEdit={() => { if (deliveryTask) { setEditingTask(deliveryTask); setEditModalOpen(true); } }} onDelete={() => deliveryTask && setConfirmDeleteTask(deliveryTask)} />
+                        <TaskChip icon={Package} task={pickupTask} assignedColor="text-green-500" assignedBg="bg-green-500/10" labelEmpty="Assign Pickup" labelAssigned="Edit Pickup Task" labelDelete="Delete Pickup Task" onAssign={() => openTaskModal(trip, "pickup")} onEdit={() => { if (pickupTask) { setEditingTask(pickupTask); setEditModalOpen(true); } }} onDelete={() => pickupTask && setConfirmDeleteTask(pickupTask)} />
+                      </div>
                     );
-                    const pickupTask = tripTasks.find(
-                      (t) => t.task_type === "pickup",
-                    );
-                    const daysRented = calculateDaysRented(
-                      trip.tripStart,
-                      trip.tripEnd,
-                    );
-                    const totalMiles =
-                      trip.tripStartOdometer != null &&
-                      trip.tripEndOdometer != null &&
-                      trip.tripEndOdometer >= trip.tripStartOdometer
-                        ? trip.tripEndOdometer - trip.tripStartOdometer
-                        : null;
+
+                    const accentBg = trip.status === "cancelled" ? "bg-red-500" : trip.status === "booked" ? "bg-blue-500" : trip.status === "ended" ? "bg-gray-500" : "bg-slate-500";
+                    const accentBorder = trip.status === "cancelled" ? "border-red-300" : trip.status === "booked" ? "border-blue-300" : trip.status === "ended" ? "border-gray-300" : "border-slate-300";
 
                     return (
-                      <TableRow
+                      <DashboardRecordCard
                         key={trip.id}
-                        className="border-border hover:bg-card/50 transition-colors"
-                      >
-                        <TableCell className="md:sticky md:left-0 md:z-10 md:bg-card text-foreground font-mono text-sm whitespace-nowrap">
-                          {trip.reservationId || "--"}
-                        </TableCell>
-                        <TableCell className="md:sticky md:left-[130px] md:z-10 md:bg-card text-foreground whitespace-nowrap">
-                          {(() => {
-                            const editing =
-                              carNameEdits[trip.id] !== undefined;
-                            const current = trip.carName ?? "";
-                            const value = editing
-                              ? carNameEdits[trip.id]
-                              : current;
-                            return (
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  value={value}
-                                  placeholder="Car name"
-                                  title="Enter the car name exactly as it appears on the Turo listing"
-                                  className="h-7 w-[160px] text-sm"
-                                  onChange={(e) =>
-                                    setCarNameEdits((prev) => ({
-                                      ...prev,
-                                      [trip.id]: e.target.value,
-                                    }))
-                                  }
-                                  onBlur={() => {
-                                    if (carNameEdits[trip.id] === undefined)
-                                      return;
-                                    if (
-                                      carNameEdits[trip.id].trim() ===
-                                      current.trim()
-                                    ) {
-                                      setCarNameEdits((prev) => {
-                                        const next = { ...prev };
-                                        delete next[trip.id];
-                                        return next;
-                                      });
-                                      return;
-                                    }
-                                    saveRowCarInfo(trip, "carName");
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter")
-                                      (e.target as HTMLInputElement).blur();
-                                    if (e.key === "Escape")
-                                      setCarNameEdits((prev) => {
-                                        const next = { ...prev };
-                                        delete next[trip.id];
-                                        return next;
-                                      });
-                                  }}
-                                />
-                                {savingCarName === trip.id && (
-                                  <span className="text-xs text-muted-foreground">
-                                    …
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </TableCell>
-                        <TableCell className="text-foreground font-mono text-sm whitespace-nowrap">
-                          {trip.plateNumber || "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground font-mono text-sm whitespace-nowrap">
-                          {(() => {
-                            const editing = vinEdits[trip.id] !== undefined;
-                            const current = trip.vinNumber ?? "";
-                            const value = editing
-                              ? vinEdits[trip.id]
-                              : current;
-                            return (
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  value={value}
-                                  placeholder="--"
-                                  className="h-7 w-[150px] text-sm font-mono"
-                                  onChange={(e) =>
-                                    setVinEdits((prev) => ({
-                                      ...prev,
-                                      [trip.id]: e.target.value,
-                                    }))
-                                  }
-                                  onBlur={() => {
-                                    if (vinEdits[trip.id] === undefined) return;
-                                    if (
-                                      vinEdits[trip.id].trim() === current.trim()
-                                    ) {
-                                      setVinEdits((prev) => {
-                                        const next = { ...prev };
-                                        delete next[trip.id];
-                                        return next;
-                                      });
-                                      return;
-                                    }
-                                    saveRowCarInfo(trip, "vinNumber");
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter")
-                                      (e.target as HTMLInputElement).blur();
-                                    if (e.key === "Escape")
-                                      setVinEdits((prev) => {
-                                        const next = { ...prev };
-                                        delete next[trip.id];
-                                        return next;
-                                      });
-                                  }}
-                                />
-                                {savingVin === trip.id && (
-                                  <span className="text-xs text-muted-foreground">
-                                    …
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm whitespace-nowrap">
-                          {tripDateCell(trip.tripStart, trip.status)}
-                        </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[160px] truncate"
-                          title={
-                            trip.pickupLocation || trip.deliveryLocation || ""
-                          }
-                        >
-                          {trip.pickupLocation || trip.deliveryLocation || "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm whitespace-nowrap">
-                          {tripDateCell(trip.tripEnd, trip.status)}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
-                          {daysRented != null ? daysRented : "--"}
-                        </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[160px] truncate"
-                          title={trip.returnLocation || trip.deliveryLocation || trip.pickupLocation || ""}
-                        >
-                          {trip.returnLocation || trip.deliveryLocation || trip.pickupLocation || "--"}
-                        </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[140px] truncate"
-                          title={trip.extras || ""}
-                        >
-                          {trip.extras || "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm whitespace-nowrap">
-                          {(() => {
-                            const pending = milesEdits[trip.id];
-                            const value =
-                              pending !== undefined
-                                ? pending
-                                : trip.milesIncluded ?? trip.totalDistance ?? "";
-                            const dirty = pending !== undefined;
-                            return (
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  value={value}
-                                  onChange={(e) =>
-                                    setMilesEdits((prev) => ({
-                                      ...prev,
-                                      [trip.id]: e.target.value,
-                                    }))
-                                  }
-                                  placeholder="--"
-                                  className="h-7 w-[110px] text-sm"
-                                />
-                                {dirty && (
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    className="h-7 px-2"
-                                    onClick={() => saveRowMiles(trip)}
-                                    disabled={savingMilesRow === trip.id}
-                                  >
-                                    {savingMilesRow === trip.id
-                                      ? "…"
-                                      : "Save"}
-                                  </Button>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
-                          {(() => {
-                            const edit = odoEdits[trip.id];
-                            const startStr =
-                              edit?.start !== undefined
-                                ? edit.start
-                                : trip.tripStartOdometer != null
-                                  ? String(trip.tripStartOdometer)
-                                  : "";
-                            return (
-                              <Input
-                                type="number"
-                                value={startStr}
-                                onChange={(e) =>
-                                  setOdoEdits((prev) => ({
-                                    ...prev,
-                                    [trip.id]: {
-                                      ...prev[trip.id],
-                                      start: e.target.value,
-                                    },
-                                  }))
-                                }
-                                onBlur={() => saveRowOdometers(trip)}
-                                placeholder="--"
-                                className="h-7 w-[100px] text-sm"
-                              />
-                            );
-                          })()}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
-                          {(() => {
-                            const edit = odoEdits[trip.id];
-                            const endStr =
-                              edit?.end !== undefined
-                                ? edit.end
-                                : trip.tripEndOdometer != null
-                                  ? String(trip.tripEndOdometer)
-                                  : "";
-                            const dirty = edit !== undefined;
-                            return (
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  type="number"
-                                  value={endStr}
-                                  onChange={(e) =>
-                                    setOdoEdits((prev) => ({
-                                      ...prev,
-                                      [trip.id]: {
-                                        ...prev[trip.id],
-                                        end: e.target.value,
-                                      },
-                                    }))
-                                  }
-                                  onBlur={() => saveRowOdometers(trip)}
-                                  placeholder="--"
-                                  className="h-7 w-[100px] text-sm"
-                                />
-                                {dirty && (
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    className="h-7 px-2"
-                                    onClick={() => saveRowOdometers(trip)}
-                                    disabled={savingOdoRow === trip.id}
-                                  >
-                                    {savingOdoRow === trip.id ? "…" : "Save"}
-                                  </Button>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </TableCell>
-                        {/* Gas Level Trip Start */}
-                        <TableCell className="text-foreground text-sm whitespace-nowrap">
-                          {(() => {
-                            const edit = gasEdits[trip.id];
-                            const startVal = edit?.start !== undefined ? edit.start : (trip.gasLevelTripStart ?? "");
-                            const endVal = edit?.end !== undefined ? edit.end : (trip.gasLevelTripEnd ?? "");
-                            const dirty = edit !== undefined;
-                            return (
-                              <div className="flex items-center gap-1">
-                                <Select
-                                  value={startVal || "__none__"}
-                                  onValueChange={(v) => {
-                                    const newVal = v === "__none__" ? "" : v;
-                                    setGasEdits((prev) => ({
-                                      ...prev,
-                                      [trip.id]: { ...prev[trip.id], start: newVal },
-                                    }));
-                                    saveRowGasLevels(trip, { start: newVal, end: endVal });
-                                  }}
-                                >
-                                  <SelectTrigger className="h-7 w-[110px] text-xs">
-                                    <SelectValue placeholder="--" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="__none__">--</SelectItem>
-                                    <SelectItem value="empty">Empty</SelectItem>
-                                    <SelectItem value="quarter">1/4</SelectItem>
-                                    <SelectItem value="half">1/2</SelectItem>
-                                    <SelectItem value="three_quarters">3/4</SelectItem>
-                                    <SelectItem value="full">Full</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                {dirty && (
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    className="h-7 px-2"
-                                    onClick={() => saveRowGasLevels(trip)}
-                                    disabled={savingGasRow === trip.id}
-                                  >
-                                    {savingGasRow === trip.id ? "…" : "Save"}
-                                  </Button>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </TableCell>
-                        {/* Gas Level Trip End */}
-                        <TableCell className="text-foreground text-sm whitespace-nowrap">
-                          {(() => {
-                            const edit = gasEdits[trip.id];
-                            const startVal = edit?.start !== undefined ? edit.start : (trip.gasLevelTripStart ?? "");
-                            const endVal = edit?.end !== undefined ? edit.end : (trip.gasLevelTripEnd ?? "");
-                            const dirty = edit !== undefined;
-                            return (
-                              <div className="flex items-center gap-1">
-                                <Select
-                                  value={endVal || "__none__"}
-                                  onValueChange={(v) => {
-                                    const newVal = v === "__none__" ? "" : v;
-                                    setGasEdits((prev) => ({
-                                      ...prev,
-                                      [trip.id]: { ...prev[trip.id], end: newVal },
-                                    }));
-                                    saveRowGasLevels(trip, { start: startVal, end: newVal });
-                                  }}
-                                >
-                                  <SelectTrigger className="h-7 w-[110px] text-xs">
-                                    <SelectValue placeholder="--" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="__none__">--</SelectItem>
-                                    <SelectItem value="empty">Empty</SelectItem>
-                                    <SelectItem value="quarter">1/4</SelectItem>
-                                    <SelectItem value="half">1/2</SelectItem>
-                                    <SelectItem value="three_quarters">3/4</SelectItem>
-                                    <SelectItem value="full">Full</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                {dirty && (
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    className="h-7 px-2"
-                                    onClick={() => saveRowGasLevels(trip)}
-                                    disabled={savingGasRow === trip.id}
-                                  >
-                                    {savingGasRow === trip.id ? "…" : "Save"}
-                                  </Button>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
-                          {totalMiles != null
-                            ? totalMiles.toLocaleString()
-                            : "--"}
-                        </TableCell>
-                        {/* Earnings — mirror /admin/turo-trips: cancelled trips
-                            show their lost earnings in red parentheses, not a
-                            misleading $0 from the (empty) `earnings` field. */}
-                        <TableCell className="text-foreground text-sm tabular-nums whitespace-nowrap">
-                          {trip.status === "cancelled" ? (
-                            <span className="text-destructive">
-                              ({formatCurrency(trip.cancelledEarnings)})
-                            </span>
-                          ) : (
-                            formatCurrency(trip.earnings)
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={trip.status} />
-                        </TableCell>
-                        <TableCell>
-                          {tripTasks.length === 0 ? (
-                            <span className="text-muted-foreground text-xs">
-                              --
-                            </span>
-                          ) : (
-                            <div className="flex flex-col gap-1 text-xs">
-                              {tripTasks.map((t) => {
-                                const Icon =
-                                  t.task_type === "cleaning"
-                                    ? Sparkles
-                                    : t.task_type === "delivery"
-                                      ? Truck
-                                      : Package;
-                                const color =
-                                  t.task_type === "cleaning"
-                                    ? "text-yellow-500"
-                                    : t.task_type === "delivery"
-                                      ? "text-blue-400"
-                                      : "text-green-500";
-                                return (
-                                  <div
-                                    key={t.id}
-                                    className="flex items-center gap-1.5"
-                                    title={`${t.task_type}: ${t.assigned_to}${t.scheduled_date ? ` — ${new Date(t.scheduled_date).toLocaleString("en-US", { timeZone: "America/Denver", month: "numeric", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true })}` : ""}`}
-                                  >
-                                    <Icon className={`w-3 h-3 ${color} shrink-0`} />
-                                    <span className={`${color} capitalize text-[10px] font-medium shrink-0`}>
-                                      {t.task_type}:
-                                    </span>
-                                    <span className="text-foreground truncate max-w-[120px]">
-                                      {t.assigned_to || "--"}
-                                    </span>
-                                    {t.scheduled_date && (
-                                      <span className="text-muted-foreground text-[10px] whitespace-nowrap shrink-0">
-                                        {(() => { try { return new Intl.DateTimeFormat("en-US", { timeZone: "America/Denver", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date(t.scheduled_date)); } catch { return ""; } })()}
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </TableCell>
-                        {/* Actions — one chip per task type.
-                            • Empty (grey icon)     → click to assign
-                            • Assigned (colored)    → click body to edit, click × to delete
-                            The × is only rendered for assigned tasks, so the row
-                            never shows three identical trash icons. */}
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-2">
-                            <TaskChip
-                              icon={Sparkles}
-                              task={cleaningTask}
-                              assignedColor="text-yellow-500"
-                              assignedBg="bg-yellow-500/10"
-                              labelEmpty="Assign Cleaning"
-                              labelAssigned="Edit Cleaning Task"
-                              labelDelete="Delete Cleaning Task"
-                              onAssign={() => openTaskModal(trip, "cleaning")}
-                              onEdit={() => {
-                                if (cleaningTask) {
-                                  setEditingTask(cleaningTask);
-                                  setEditModalOpen(true);
-                                }
-                              }}
-                              onDelete={() =>
-                                cleaningTask &&
-                                setConfirmDeleteTask(cleaningTask)
-                              }
-                            />
-                            <TaskChip
-                              icon={Truck}
-                              task={deliveryTask}
-                              assignedColor="text-blue-400"
-                              assignedBg="bg-blue-400/10"
-                              labelEmpty="Assign Delivery"
-                              labelAssigned="Edit Delivery Task"
-                              labelDelete="Delete Delivery Task"
-                              onAssign={() => openTaskModal(trip, "delivery")}
-                              onEdit={() => {
-                                if (deliveryTask) {
-                                  setEditingTask(deliveryTask);
-                                  setEditModalOpen(true);
-                                }
-                              }}
-                              onDelete={() =>
-                                deliveryTask &&
-                                setConfirmDeleteTask(deliveryTask)
-                              }
-                            />
-                            <TaskChip
-                              icon={Package}
-                              task={pickupTask}
-                              assignedColor="text-green-500"
-                              assignedBg="bg-green-500/10"
-                              labelEmpty="Assign Pickup"
-                              labelAssigned="Edit Pickup Task"
-                              labelDelete="Delete Pickup Task"
-                              onAssign={() => openTaskModal(trip, "pickup")}
-                              onEdit={() => {
-                                if (pickupTask) {
-                                  setEditingTask(pickupTask);
-                                  setEditModalOpen(true);
-                                }
-                              }}
-                              onDelete={() =>
-                                pickupTask && setConfirmDeleteTask(pickupTask)
-                              }
-                            />
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                        accentBg={accentBg}
+                        accentBorder={accentBorder}
+                        typeLabel={trip.status || "Trip"}
+                        reservationId={trip.reservationId}
+                        carName={trip.carName}
+                        plate={trip.plateNumber}
+                        guestName={trip.guestName}
+                        tripStart={tripDateCell(trip.tripStart, trip.status) as string}
+                        tripEnd={tripDateCell(trip.tripEnd, trip.status) as string}
+                        pickupLocation={trip.pickupLocation || trip.deliveryLocation}
+                        dropoffLocation={trip.returnLocation || trip.deliveryLocation || trip.pickupLocation}
+                        details={[
+                          { label: "Car Name", value: carNameEl },
+                          { label: "VIN #", value: vinEl },
+                          { label: "Days Rented", value: daysRented ?? "--" },
+                          { label: "Extras", value: trip.extras || "--" },
+                          { label: "Miles Included", value: milesEl },
+                          { label: "Trip Start Odo", value: startOdoEl },
+                          { label: "Trip End Odo", value: endOdoEl },
+                          { label: "Gas Level Start", value: gasStartEl },
+                          { label: "Gas Level End", value: gasEndEl },
+                          { label: "Total Miles", value: totalMiles != null ? totalMiles.toLocaleString() : "--" },
+                          { label: "Earnings", value: trip.status === "cancelled" ? <span className="text-destructive">({formatCurrency(trip.cancelledEarnings)})</span> : formatCurrency(trip.earnings) },
+                          { label: "Trip Tasks", value: taskBadges },
+                          { label: "Task Actions", value: taskChips },
+                        ]}
+                        statusControl={<StatusBadge status={trip.status} />}
+                      />
                     );
                   })
                 )}
-              </TableBody>
-            </Table>
           </div>
         </div>
         <TablePagination
