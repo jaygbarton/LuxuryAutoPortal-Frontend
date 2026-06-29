@@ -28,8 +28,12 @@ interface DayEvent {
   status: string | null;
   notes: string | null;
   detail: string | null;
+  reservation_id: string | null;
+  extras: string | null;
   trip_start: string | null;
   trip_end: string | null;
+  trip_start_mt: string | null;
+  trip_end_mt: string | null;
   pickup_location: string | null;
   dropoff_location: string | null;
 }
@@ -114,6 +118,22 @@ function timeKey(t: string | null): string {
   return t ?? "99:99";
 }
 
+/**
+ * Format a full MT datetime "YYYY-MM-DD HH:MM" for display.
+ * Shows "Mon Jun 30, 10:00 AM" — used when the trip spans across days so
+ * the date context is clear.
+ */
+function fmtTripDateTime(dt: string | null): string {
+  if (!dt) return "—";
+  const [datePart, timePart] = dt.split(" ");
+  if (!datePart || !timePart) return dt;
+  const [y, mo, d] = datePart.split("-").map(Number);
+  const dateLabel = new Intl.DateTimeFormat("en-US", {
+    weekday: "short", month: "short", day: "numeric", timeZone: "UTC",
+  }).format(new Date(Date.UTC(y, mo - 1, d)));
+  return `${dateLabel}, ${fmt12(timePart)}`;
+}
+
 /** Grouping key: prefer id, fall back to name, null = truly unassigned */
 function assigneeKey(e: DayEvent): string | null {
   if (e.assigned_to_id) return `id:${e.assigned_to_id}`;
@@ -193,17 +213,27 @@ function EventCard({ event }: { event: DayEvent }) {
             {event.plate && <span className="text-muted-foreground">· {event.plate}</span>}
           </div>
         )}
+        {event.reservation_id && (
+          <div className="text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Res:</span> {event.reservation_id}
+          </div>
+        )}
         {event.guest_name && (
           <div className="text-xs text-muted-foreground">{event.guest_name}</div>
         )}
+        {event.extras && (
+          <div className="text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Extras:</span> {event.extras}
+          </div>
+        )}
 
-        {/* Trip window: trip start → trip end */}
-        {(event.trip_start || event.trip_end) && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        {/* Trip window: trip start → trip end (with date when it spans days) */}
+        {(event.trip_start_mt || event.trip_end_mt) && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
             <Clock className="w-3 h-3 flex-shrink-0" />
-            <span className="text-foreground font-medium">{fmt12(event.trip_start) || "—"}</span>
+            <span className="text-foreground font-medium">{fmtTripDateTime(event.trip_start_mt)}</span>
             <ArrowRight className="w-3 h-3 flex-shrink-0" />
-            <span className="text-foreground font-medium">{fmt12(event.trip_end) || "—"}</span>
+            <span className="text-foreground font-medium">{fmtTripDateTime(event.trip_end_mt)}</span>
           </div>
         )}
 
@@ -348,11 +378,16 @@ function UnassignedCard({ event }: { event: DayEvent }) {
             <span className="break-words">{event.car_name}{event.plate ? ` (${event.plate})` : ""}</span>
           </div>
         )}
-        {(event.trip_start || event.trip_end) && (
-          <div className="text-muted-foreground flex items-center gap-1">
-            <span className="font-medium text-foreground">{fmt12(event.trip_start) || "—"}</span>
+        {event.reservation_id && (
+          <div className="text-muted-foreground">
+            <span className="font-medium text-foreground">Res:</span> {event.reservation_id}
+          </div>
+        )}
+        {(event.trip_start_mt || event.trip_end_mt) && (
+          <div className="text-muted-foreground flex items-center gap-1 flex-wrap">
+            <span className="font-medium text-foreground">{fmtTripDateTime(event.trip_start_mt)}</span>
             <ArrowRight className="w-3 h-3 flex-shrink-0" />
-            <span className="font-medium text-foreground">{fmt12(event.trip_end) || "—"}</span>
+            <span className="font-medium text-foreground">{fmtTripDateTime(event.trip_end_mt)}</span>
           </div>
         )}
         {event.pickup_location && (
