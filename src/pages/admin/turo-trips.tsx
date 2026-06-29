@@ -42,6 +42,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { buildApiUrl } from "@/lib/queryClient";
+import { toMtLocalInput, mtLocalInputToUtcDbString } from "@/lib/mt-datetime";
 import { useToast } from "@/hooks/use-toast";
 import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
 import {
@@ -179,6 +180,11 @@ export default function TuroTripsPage() {
     Record<number, { pickup: string; dropoff: string; miles: string }>
   >({});
   const [savingLocations, setSavingLocations] = useState<number | null>(null);
+  // Inline date editing: tripId → { start, end } — datetime-local values in Mountain Time
+  const [dateEdits, setDateEdits] = useState<
+    Record<number, { start: string; end: string }>
+  >({});
+  const [savingDates, setSavingDates] = useState<number | null>(null);
   // Bulk paste-import modal state
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
@@ -588,6 +594,42 @@ export default function TuroTripsPage() {
       toast({ title: "Failed to save gas level", variant: "destructive" });
     } finally {
       setSavingGas(null);
+    }
+  };
+
+  const saveDates = async (trip: TuroTrip) => {
+    const edit = dateEdits[trip.id];
+    if (!edit) return;
+    const startUtc = mtLocalInputToUtcDbString(edit.start);
+    const endUtc = mtLocalInputToUtcDbString(edit.end);
+    if (!startUtc || !endUtc) {
+      toast({ title: "Invalid date", description: "Please enter valid start and end dates.", variant: "destructive" });
+      return;
+    }
+    setSavingDates(trip.id);
+    try {
+      const response = await fetch(
+        buildApiUrl(`/api/turo-trips/${trip.id}/dates`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tripStart: startUtc, tripEnd: endUtc }),
+        },
+      );
+      if (!response.ok) throw new Error("Failed to save");
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/operations"] });
+      setDateEdits((prev) => {
+        const next = { ...prev };
+        delete next[trip.id];
+        return next;
+      });
+      toast({ title: "Trip dates updated", description: `Reservation #${trip.reservationId} — operations tasks updated.` });
+    } catch {
+      toast({ title: "Failed to save dates", variant: "destructive" });
+    } finally {
+      setSavingDates(null);
     }
   };
 
@@ -1790,13 +1832,44 @@ export default function TuroTripsPage() {
                             </div>
                           </TableCell>
 
-                          {/* Trip Start */}
-                          <TableCell
-                            className="cursor-pointer"
-                            onClick={() => setSelectedTrip(trip)}
-                          >
-                            <div className="text-sm whitespace-nowrap">
-                              {formatDateTime(trip.tripStart)}
+                          {/* Trip Start — inline datetime editable */}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="datetime-local"
+                                className="h-8 text-sm border border-input rounded-md px-2 bg-background"
+                                value={
+                                  dateEdits[trip.id]?.start !== undefined
+                                    ? dateEdits[trip.id].start
+                                    : toMtLocalInput(trip.tripStart)
+                                }
+                                onChange={(e) =>
+                                  setDateEdits((prev) => ({
+                                    ...prev,
+                                    [trip.id]: {
+                                      start: e.target.value,
+                                      end: prev[trip.id]?.end !== undefined
+                                        ? prev[trip.id].end
+                                        : toMtLocalInput(trip.tripEnd),
+                                    },
+                                  }))
+                                }
+                              />
+                              {dateEdits[trip.id] !== undefined && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs"
+                                  disabled={savingDates === trip.id}
+                                  onClick={() => saveDates(trip)}
+                                >
+                                  {savingDates === trip.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    "Save"
+                                  )}
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
 
@@ -1868,13 +1941,44 @@ export default function TuroTripsPage() {
                             </div>
                           </TableCell>
 
-                          {/* Trip Ends */}
-                          <TableCell
-                            className="cursor-pointer"
-                            onClick={() => setSelectedTrip(trip)}
-                          >
-                            <div className="text-sm whitespace-nowrap">
-                              {formatDateTime(trip.tripEnd)}
+                          {/* Trip Ends — inline datetime editable */}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="datetime-local"
+                                className="h-8 text-sm border border-input rounded-md px-2 bg-background"
+                                value={
+                                  dateEdits[trip.id]?.end !== undefined
+                                    ? dateEdits[trip.id].end
+                                    : toMtLocalInput(trip.tripEnd)
+                                }
+                                onChange={(e) =>
+                                  setDateEdits((prev) => ({
+                                    ...prev,
+                                    [trip.id]: {
+                                      start: prev[trip.id]?.start !== undefined
+                                        ? prev[trip.id].start
+                                        : toMtLocalInput(trip.tripStart),
+                                      end: e.target.value,
+                                    },
+                                  }))
+                                }
+                              />
+                              {dateEdits[trip.id] !== undefined && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs"
+                                  disabled={savingDates === trip.id}
+                                  onClick={() => saveDates(trip)}
+                                >
+                                  {savingDates === trip.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    "Save"
+                                  )}
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
 
