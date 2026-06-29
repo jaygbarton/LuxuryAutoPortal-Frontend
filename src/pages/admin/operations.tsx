@@ -11,8 +11,9 @@ import { MaintenanceTab } from "./operations/MaintenanceTab";
 import { NoCarIssuesTab } from "./operations/NoCarIssuesTab";
 import { CarBlockOffTab } from "./operations/CarBlockOffTab";
 import { DayScheduleTab } from "./operations/DayScheduleTab";
+import { TvTimelineTab } from "./operations/TvTimelineTab";
 
-const TAB_IDS = ["trips", "tasks", "turo-inspection", "inspections", "maintenance", "completed", "car-block-off", "day-schedule"] as const;
+const TAB_IDS = ["trips", "tasks", "turo-inspection", "inspections", "maintenance", "completed", "car-block-off", "day-schedule", "tv-timeline"] as const;
 type TabId = typeof TAB_IDS[number];
 
 // Renders a tab's content only after it has been activated for the first time,
@@ -83,6 +84,9 @@ export default function OperationsPage() {
               <TabsTrigger value="day-schedule" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 Day Schedule
               </TabsTrigger>
+              <TabsTrigger value="tv-timeline" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
+                TV Timeline
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -109,6 +113,9 @@ export default function OperationsPage() {
           </LazyTab>
           <LazyTab value="day-schedule" activeTab={activeTab} mountedTabs={mountedTabs}>
             <DayScheduleTab />
+          </LazyTab>
+          <LazyTab value="tv-timeline" activeTab={activeTab} mountedTabs={mountedTabs}>
+            <TvTimelineTab />
           </LazyTab>
         </Tabs>
       </div>
