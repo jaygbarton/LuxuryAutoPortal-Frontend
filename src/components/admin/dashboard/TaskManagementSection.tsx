@@ -210,8 +210,8 @@ export default function TaskManagementSection() {
           d = (t.task_timer_date_start || "").slice(0, 10);
         }
         if (!d) return false;
-        if (fromDate && d !== fromDate) return false;
-        if (toDate && d !== toDate) return false;
+        if (fromDate && d < fromDate) return false;
+        if (toDate && d > toDate) return false;
         return true;
       });
     }

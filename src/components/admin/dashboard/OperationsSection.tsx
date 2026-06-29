@@ -203,9 +203,8 @@ export default function OperationsSection() {
     queryFn: async () => {
       const params = new URLSearchParams({
         limit: "500",
-        startOrEnd: "true",
-        tripStartOn: fromDate,
-        tripEndOn: toDate,
+        tripRangeFrom: fromDate,
+        tripRangeTo: toDate,
       });
       const res = await fetch(buildApiUrl(`/api/operations/tasks?${params}`), {
         credentials: "include",

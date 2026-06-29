@@ -40,6 +40,7 @@ const formatDateTime = (dateStr: string | null): string => {
         weekday: "short",
         month: "short",
         day: "numeric",
+        year: "numeric",
       }) +
       ", " +
       d.toLocaleTimeString("en-US", {
@@ -844,10 +845,17 @@ export function TripsOverviewTab() {
                           const Icon = t.task_type === "cleaning" ? Sparkles : t.task_type === "delivery" ? Truck : Package;
                           const color = t.task_type === "cleaning" ? "text-yellow-500" : t.task_type === "delivery" ? "text-blue-400" : "text-green-500";
                           return (
-                            <div key={t.id} className="flex items-center gap-1.5">
-                              <Icon className={`w-3 h-3 ${color} shrink-0`} />
-                              <span className={`${color} capitalize text-[10px] font-medium shrink-0`}>{t.task_type}:</span>
-                              <span className="text-foreground truncate max-w-[120px]">{t.assigned_to || "--"}</span>
+                            <div key={t.id} className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <Icon className={`w-3 h-3 ${color} shrink-0`} />
+                                <span className={`${color} capitalize text-[10px] font-medium shrink-0`}>{t.task_type}:</span>
+                                <span className="text-foreground truncate max-w-[120px]">{t.assigned_to || "--"}</span>
+                              </div>
+                              {t.scheduled_date && (
+                                <div className="pl-5 text-[10px] text-muted-foreground">
+                                  {formatDateTime(t.scheduled_date)}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
