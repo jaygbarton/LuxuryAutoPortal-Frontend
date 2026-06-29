@@ -12,6 +12,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   CalendarDays,
+  Sparkles,
+  Wrench,
+  Fuel,
 } from "lucide-react";
 
 // ─── Types (mirror /api/operations/day-schedule) ──────────────────────────────
@@ -53,7 +56,6 @@ interface DayScheduleResult {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// Same palette as the Day Schedule tab so the two views stay visually consistent.
 const CATEGORY_COLORS: Record<string, string> = {
   "Trip Start": "bg-emerald-600",
   "Trip End": "bg-rose-600",
@@ -67,39 +69,28 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Owner Rental": "bg-pink-500",
 };
 
-// A task is "done" once it reaches one of these statuses.
 const DONE_STATUSES = new Set([
   "completed", "delivered", "blocked_off_ended", "done",
 ]);
 
-// Yellow once the deadline is within this many minutes.
-const SOON_MINUTES = 30;
+// Task types that are "children" of a trip card rather than standalone rows.
+const TRIP_CHILD_TYPES = new Set<DayEventType>([
+  "pickup", "delivery", "cleaning", "refuel",
+]);
 
-// Auto-refresh cadence (ms): pull fresh data, and separately tick "now" so the
-// urgency colors recompute even between fetches.
+const SOON_MINUTES = 30;
 const DATA_REFRESH_MS = 60_000;
 const CLOCK_TICK_MS = 15_000;
 
 // ─── Urgency model ────────────────────────────────────────────────────────────
-//
-// Only TIME-SENSITIVE events get an urgency color. Per the shop's rules, the one
-// hard deadline is a car going OUT on a trip — it must be at the delivery
-// location by the trip's start time. Everything else (airport pickups,
-// cleanings, inspections, refuels, trip returns) is sorted by time but never
-// flagged overdue.
-//
-//   "complete by" = the trip_start datetime for a `trip_start` event.
-//
+
 type Urgency = "overdue" | "soon" | "scheduled" | "none";
 
 interface Timed {
-  /** Epoch ms used for chronological sorting (always set when a time exists). */
   sortMs: number | null;
-  /** Epoch ms of the hard deadline — only for time-sensitive events. */
   deadlineMs: number | null;
 }
 
-/** Parse an MT "YYYY-MM-DD HH:MM" string into epoch ms (interpreting it as MT). */
 function mtDateTimeToMs(mt: string | null): number | null {
   if (!mt) return null;
   const [datePart, timePart] = mt.split(" ");
@@ -107,15 +98,11 @@ function mtDateTimeToMs(mt: string | null): number | null {
   const [y, mo, d] = datePart.split("-").map(Number);
   const [h, mi] = timePart.split(":").map(Number);
   if ([y, mo, d, h, mi].some((n) => Number.isNaN(n))) return null;
-  // Build a UTC instant for the wall-clock time, then correct by MT's offset.
   const asUtc = Date.UTC(y, mo - 1, d, h, mi);
-  // MT offset (minutes) at that instant: compare the wall time we want against
-  // what that UTC instant renders as in America/Denver.
   const offsetMin = mtOffsetMinutes(new Date(asUtc));
   return asUtc - offsetMin * 60_000;
 }
 
-/** Offset of America/Denver from UTC in minutes (negative; handles DST). */
 function mtOffsetMinutes(d: Date): number {
   const tz = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Denver",
@@ -130,7 +117,6 @@ function mtOffsetMinutes(d: Date): number {
   return Math.round((asIfUtc - d.getTime()) / 60_000);
 }
 
-/** Today's date (YYYY-MM-DD) in Mountain Time. */
 function todayMTDate(): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Denver",
@@ -146,7 +132,7 @@ function formatDisplayDate(iso: string): string {
   }).format(new Date(Date.UTC(y, m - 1, d)));
 }
 
-/** "HH:MM" → "9:30 AM". */
+/** "HH:MM" → "9:30 AM" */
 function fmt12(t: string | null): string {
   if (!t) return "";
   const [h, m] = t.split(":").map(Number);
@@ -156,17 +142,30 @@ function fmt12(t: string | null): string {
   return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
-/** Compute the sort + deadline timestamps for an event. */
+/**
+ * Format a full MT datetime "YYYY-MM-DD HH:MM" for display.
+ * When the date part matches scheduleDate (today) we only show the time.
+ * When it's a different day, prefix with "Mon Jun 30, ".
+ */
+function fmtMtDateTime(mt: string | null, scheduleDate: string): string {
+  if (!mt) return "—";
+  const [datePart, timePart] = mt.split(" ");
+  if (!datePart || !timePart) return mt;
+  const timeLabel = fmt12(timePart);
+  if (datePart === scheduleDate) return timeLabel;
+  const [y, mo, d] = datePart.split("-").map(Number);
+  const dateLabel = new Intl.DateTimeFormat("en-US", {
+    weekday: "short", month: "short", day: "numeric", timeZone: "UTC",
+  }).format(new Date(Date.UTC(y, mo - 1, d)));
+  return `${dateLabel}, ${timeLabel}`;
+}
+
 function timingFor(e: DayEvent, scheduleDate: string): Timed {
-  // Chronological sort key: prefer the event's own start_time on the schedule
-  // day; fall back to far-future so timeless tasks sink to the bottom.
   let sortMs: number | null = null;
   if (e.start_time) {
     sortMs = mtDateTimeToMs(`${scheduleDate} ${e.start_time}`);
   }
 
-  // Deadline only for cars going OUT (trip_start). The car must be at the
-  // delivery location by trip_start_mt.
   let deadlineMs: number | null = null;
   if (e.type === "trip_start") {
     deadlineMs = mtDateTimeToMs(e.trip_start_mt) ?? sortMs;
@@ -185,7 +184,6 @@ function urgencyFor(t: Timed, isDone: boolean, nowMs: number): Urgency {
   return "scheduled";
 }
 
-// Urgency → row styling. Overdue/soon are loud; scheduled is a subtle accent.
 const URGENCY_STYLE: Record<Urgency, { row: string; chip: string; label: string }> = {
   overdue: {
     row: "border-red-500 bg-red-500/10 ring-1 ring-red-500/40",
@@ -205,7 +203,6 @@ const URGENCY_STYLE: Record<Urgency, { row: string; chip: string; label: string 
   none: { row: "border-border bg-card", chip: "", label: "" },
 };
 
-// Sort rank: overdue first, then soon, then everything else by time.
 const URGENCY_RANK: Record<Urgency, number> = {
   overdue: 0, soon: 1, scheduled: 2, none: 3,
 };
@@ -215,6 +212,8 @@ interface TimelineRow {
   timing: Timed;
   urgency: Urgency;
   isDone: boolean;
+  // Operation tasks linked to this trip (for trip_start / trip_end cards)
+  childTasks: DayEvent[];
 }
 
 function relativeDeadline(deadlineMs: number, nowMs: number): string {
@@ -227,12 +226,100 @@ function relativeDeadline(deadlineMs: number, nowMs: number): string {
   return mins < 0 ? `${span} overdue` : `in ${span}`;
 }
 
+// ─── Child task chip (cleaning / pickup / delivery / refuel) ──────────────────
+
+const TASK_ICON: Record<string, React.ReactNode> = {
+  cleaning: <Sparkles className="w-3.5 h-3.5" />,
+  pickup: <Car className="w-3.5 h-3.5" />,
+  delivery: <MapPin className="w-3.5 h-3.5" />,
+  refuel: <Fuel className="w-3.5 h-3.5" />,
+  maintenance: <Wrench className="w-3.5 h-3.5" />,
+};
+
+const TASK_BG: Record<string, string> = {
+  cleaning: "bg-teal-900/40 border-teal-700/50",
+  pickup: "bg-blue-900/40 border-blue-700/50",
+  delivery: "bg-indigo-900/40 border-indigo-700/50",
+  refuel: "bg-orange-900/40 border-orange-700/50",
+  maintenance: "bg-red-900/40 border-red-700/50",
+};
+
+function ChildTaskChip({ task, scheduleDate }: { task: DayEvent; scheduleDate: string }) {
+  const isDone = DONE_STATUSES.has((task.status ?? "").toLowerCase());
+  const bg = TASK_BG[task.type] ?? "bg-muted border-border";
+  return (
+    <div
+      className={`flex items-start gap-2 rounded border px-2 py-1.5 text-sm ${bg} ${
+        isDone ? "opacity-50" : ""
+      }`}
+    >
+      <span className="flex-shrink-0 mt-0.5 text-foreground/70">
+        {TASK_ICON[task.type] ?? <Clock className="w-3.5 h-3.5" />}
+      </span>
+      <div className="min-w-0 space-y-0.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-semibold text-foreground capitalize">{task.category}</span>
+          {task.start_time && (
+            <span className="text-muted-foreground text-xs">
+              {fmtMtDateTime(`${scheduleDate} ${task.start_time}`, scheduleDate)}
+            </span>
+          )}
+          {isDone && (
+            <span className="inline-flex items-center gap-1 text-xs text-green-400">
+              <CheckCircle2 className="w-3 h-3" /> Done
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <User className="w-3 h-3" />
+            {task.assigned_to ? (
+              <span className="text-foreground font-medium">{task.assigned_to}</span>
+            ) : (
+              <span className="italic text-amber-500">Unassigned</span>
+            )}
+          </span>
+          {task.location && (
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="w-3 h-3" />
+              <span className="truncate max-w-[200px]">{task.location}</span>
+            </span>
+          )}
+          {task.notes && (
+            <span className="italic truncate max-w-[200px]">{task.notes}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Timeline card ─────────────────────────────────────────────────────────────
 
-function TimelineCard({ row, nowMs }: { row: TimelineRow; nowMs: number }) {
-  const { event: e, urgency, isDone, timing } = row;
+function TimelineCard({
+  row,
+  nowMs,
+  scheduleDate,
+}: {
+  row: TimelineRow;
+  nowMs: number;
+  scheduleDate: string;
+}) {
+  const { event: e, urgency, isDone, timing, childTasks } = row;
   const accent = CATEGORY_COLORS[e.category] ?? "bg-slate-500";
   const u = URGENCY_STYLE[urgency];
+
+  // Date label for the time column — show day name when event is cross-day
+  const eventDateLabel = (() => {
+    const mt = e.type === "trip_start" ? e.trip_start_mt : e.trip_end_mt;
+    if (!mt) return null;
+    const [datePart] = mt.split(" ");
+    if (!datePart || datePart === scheduleDate) return null;
+    const [y, mo, d] = datePart.split("-").map(Number);
+    return new Intl.DateTimeFormat("en-US", {
+      weekday: "short", month: "short", day: "numeric", timeZone: "UTC",
+    }).format(new Date(Date.UTC(y, mo - 1, d)));
+  })();
 
   return (
     <div
@@ -244,7 +331,12 @@ function TimelineCard({ row, nowMs }: { row: TimelineRow; nowMs: number }) {
       <div className={`w-2 flex-shrink-0 ${accent}`} />
 
       {/* Time column */}
-      <div className="w-28 flex-shrink-0 flex flex-col items-center justify-center px-2 py-3 bg-muted/30 border-r border-border text-center">
+      <div className="w-32 flex-shrink-0 flex flex-col items-center justify-center px-2 py-3 bg-muted/30 border-r border-border text-center gap-0.5">
+        {eventDateLabel && (
+          <span className="text-[10px] font-medium text-muted-foreground leading-none">
+            {eventDateLabel}
+          </span>
+        )}
         {e.start_time ? (
           <span className="text-2xl font-bold text-foreground leading-none">
             {fmt12(e.start_time)}
@@ -254,7 +346,7 @@ function TimelineCard({ row, nowMs }: { row: TimelineRow; nowMs: number }) {
         )}
         {timing.deadlineMs != null && !isDone && (
           <span
-            className={`mt-1 text-xs font-semibold ${
+            className={`text-xs font-semibold leading-tight ${
               urgency === "overdue"
                 ? "text-red-500"
                 : urgency === "soon"
@@ -268,7 +360,8 @@ function TimelineCard({ row, nowMs }: { row: TimelineRow; nowMs: number }) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 px-3 py-2.5 space-y-1">
+      <div className="flex-1 min-w-0 px-3 py-2.5 space-y-1.5">
+        {/* Badge row */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className={`text-sm font-semibold px-2 py-0.5 rounded text-white ${accent}`}>
             {e.category}
@@ -287,6 +380,7 @@ function TimelineCard({ row, nowMs }: { row: TimelineRow; nowMs: number }) {
           ) : null}
         </div>
 
+        {/* Car */}
         {e.car_name && (
           <div className="flex items-center gap-1.5 text-lg text-foreground">
             <Car className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
@@ -295,6 +389,7 @@ function TimelineCard({ row, nowMs }: { row: TimelineRow; nowMs: number }) {
           </div>
         )}
 
+        {/* Res / guest / assigned */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-base text-muted-foreground">
           {e.reservation_id && (
             <span>
@@ -312,7 +407,21 @@ function TimelineCard({ row, nowMs }: { row: TimelineRow; nowMs: number }) {
           </span>
         </div>
 
-        {/* Pick up → drop off, for trip-derived events */}
+        {/* Trip window (shows full date+time when cross-day) */}
+        {(e.trip_start_mt || e.trip_end_mt) && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+            <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="font-medium text-foreground">
+              {fmtMtDateTime(e.trip_start_mt, scheduleDate)}
+            </span>
+            <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="font-medium text-foreground">
+              {fmtMtDateTime(e.trip_end_mt, scheduleDate)}
+            </span>
+          </div>
+        )}
+
+        {/* Locations */}
         {(e.pickup_location || e.dropoff_location) && (
           <div className="flex items-center gap-2 text-base text-muted-foreground flex-wrap">
             <MapPin className="w-4 h-4 flex-shrink-0" />
@@ -323,17 +432,23 @@ function TimelineCard({ row, nowMs }: { row: TimelineRow; nowMs: number }) {
             {e.dropoff_location && <span className="break-words">{e.dropoff_location}</span>}
           </div>
         )}
-
-        {/* Generic location for non-trip events */}
         {e.location && !e.pickup_location && !e.dropoff_location && (
           <div className="flex items-center gap-1.5 text-base text-muted-foreground">
             <MapPin className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">{e.location}</span>
           </div>
         )}
-
         {e.detail && (
           <div className="text-base text-muted-foreground italic">{e.detail}</div>
+        )}
+
+        {/* Linked tasks (cleaning, pickup, delivery, refuel) */}
+        {childTasks.length > 0 && (
+          <div className="pt-1 space-y-1 border-t border-border/50">
+            {childTasks.map((t) => (
+              <ChildTaskChip key={`${t.type}-${t.id}`} task={t} scheduleDate={scheduleDate} />
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -343,13 +458,10 @@ function TimelineCard({ row, nowMs }: { row: TimelineRow; nowMs: number }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function TvTimelineTab() {
-  // Today-only board for an unattended shop monitor.
   const [date, setDate] = useState(todayMTDate);
   const [showCompleted, setShowCompleted] = useState(true);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
-  // Tick "now" so urgency colors recompute live between data fetches, and roll
-  // over to the new day at midnight MT.
   useEffect(() => {
     const id = setInterval(() => {
       setNowMs(Date.now());
@@ -375,19 +487,57 @@ export function TvTimelineTab() {
 
   const rows = useMemo<TimelineRow[]>(() => {
     const events = data?.events ?? [];
-    const built = events.map((event): TimelineRow => {
+
+    // Build a lookup: reservation_id → list of operation task events for that trip.
+    // These are the "child" tasks (cleaning, pickup, delivery, refuel) that belong
+    // to a trip and should appear nested under the trip_start / trip_end card.
+    const tasksByRes = new Map<string, DayEvent[]>();
+    for (const ev of events) {
+      if (!TRIP_CHILD_TYPES.has(ev.type)) continue;
+      if (!ev.reservation_id) continue;
+      const list = tasksByRes.get(ev.reservation_id) ?? [];
+      list.push(ev);
+      tasksByRes.set(ev.reservation_id, list);
+    }
+
+    // Build rows for events that should appear as top-level cards.
+    // Operation tasks that match a trip card are shown as children of that card,
+    // not as their own row. Standalone tasks (no reservation_id, or no matching
+    // trip event) still get their own row.
+    const tripResIds = new Set<string>();
+    for (const ev of events) {
+      if ((ev.type === "trip_start" || ev.type === "trip_end") && ev.reservation_id) {
+        tripResIds.add(ev.reservation_id);
+      }
+    }
+
+    const topLevel = events.filter((ev) => {
+      if (!TRIP_CHILD_TYPES.has(ev.type)) return true;
+      // Keep as standalone if there's no parent trip card to attach to.
+      return !ev.reservation_id || !tripResIds.has(ev.reservation_id);
+    });
+
+    const built = topLevel.map((event): TimelineRow => {
       const timing = timingFor(event, date);
       const isDone = DONE_STATUSES.has((event.status ?? "").toLowerCase());
-      return { event, timing, urgency: urgencyFor(timing, isDone, nowMs), isDone };
+      // Attach child tasks for trip start/end cards.
+      const childTasks =
+        (event.type === "trip_start" || event.type === "trip_end") && event.reservation_id
+          ? (tasksByRes.get(event.reservation_id) ?? [])
+          : [];
+      return {
+        event,
+        timing,
+        urgency: urgencyFor(timing, isDone, nowMs),
+        isDone,
+        childTasks,
+      };
     });
 
     built.sort((a, b) => {
-      // Active tasks always above completed ones.
       if (a.isDone !== b.isDone) return a.isDone ? 1 : -1;
-      // Then by urgency (overdue → soon → scheduled → none).
       const ur = URGENCY_RANK[a.urgency] - URGENCY_RANK[b.urgency];
       if (ur !== 0) return ur;
-      // Then chronologically; timeless tasks sink to the bottom.
       const am = a.timing.sortMs ?? Number.POSITIVE_INFINITY;
       const bm = b.timing.sortMs ?? Number.POSITIVE_INFINITY;
       return am - bm;
@@ -416,7 +566,7 @@ export function TvTimelineTab() {
 
   return (
     <div className="space-y-4">
-      {/* Header bar — large, TV-readable */}
+      {/* Header bar */}
       <div className="flex items-center justify-between flex-wrap gap-3 bg-card border border-border rounded-lg px-4 py-3">
         <div className="flex items-center gap-3">
           <CalendarDays className="w-6 h-6 text-primary" />
@@ -472,7 +622,12 @@ export function TvTimelineTab() {
         ) : (
           <div className="space-y-2">
             {visibleRows.map((row) => (
-              <TimelineCard key={`${row.event.type}-${row.event.id}`} row={row} nowMs={nowMs} />
+              <TimelineCard
+                key={`${row.event.type}-${row.event.id}`}
+                row={row}
+                nowMs={nowMs}
+                scheduleDate={date}
+              />
             ))}
           </div>
         )
