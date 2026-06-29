@@ -1455,12 +1455,8 @@ export default function TuroTripsPage() {
                     >
                       Booking Date{sortArrow("booking")}
                     </TableHead>
-                    <TableHead
-                      className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold cursor-pointer select-none hover:bg-muted/70"
-                      onClick={() => toggleSort("tripStart")}
-                      title="Click to sort by Trip Start"
-                    >
-                      Trip Start{sortArrow("tripStart")}
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
+                      Trip Start
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Pick Up Location
