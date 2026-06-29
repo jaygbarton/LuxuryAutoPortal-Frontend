@@ -77,9 +77,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
   // Admin-requested standard label: "Car Name Model Year - Plate # - Vin #".
   // The submitted value is the car id (unchanged); this only affects display.
   const carLabel = (car: { name: string; displayName?: string; vin?: string | null; plate?: string | null }) =>
-    [(car.displayName ?? car.name)?.trim(), car.plate?.trim(), car.vin?.trim()]
-      .filter((s) => s && String(s).length > 0)
-      .join(" - ") || (car.displayName ?? car.name);
+    (car.displayName ?? car.name)?.trim() || "";
   const currentEmployeeId = options.currentEmployeeId ?? null;
   const currentUser = options.currentUser || null;
   const isAdmin = options.isAdmin === true;
