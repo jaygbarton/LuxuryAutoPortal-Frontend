@@ -196,7 +196,13 @@ export default function TuroInspectionsSection() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [assignedToFilter, setAssignedToFilter] = useState("all");
-  const [rangeFrom, setRangeFrom] = useState("");
+  // Default to last 30 days so stale old-trip stubs don't flood the dashboard.
+  // User can clear the filter to see all history.
+  const [rangeFrom, setRangeFrom] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
   const [rangeTo, setRangeTo] = useState("");
 
   const assignedToOptions = useMemo(() => {
