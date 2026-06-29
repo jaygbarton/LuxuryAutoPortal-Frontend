@@ -383,6 +383,11 @@ function UnassignedCard({ event }: { event: DayEvent }) {
             <span className="font-medium text-foreground">Res:</span> {event.reservation_id}
           </div>
         )}
+        {event.extras && (
+          <div className="text-muted-foreground">
+            <span className="font-medium text-foreground">Extras:</span> {event.extras}
+          </div>
+        )}
         {(event.trip_start_mt || event.trip_end_mt) && (
           <div className="text-muted-foreground flex items-center gap-1 flex-wrap">
             <span className="font-medium text-foreground">{fmtTripDateTime(event.trip_start_mt)}</span>
