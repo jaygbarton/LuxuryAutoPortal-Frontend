@@ -4,6 +4,7 @@ import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -50,6 +51,32 @@ interface DayScheduleResult {
   date: string;
   events: DayEvent[];
   work_shifts: WorkShift[];
+}
+
+// ─── Status options per event type ───────────────────────────────────────────
+
+const TASK_STATUSES = ["new", "in_progress", "completed", "delivered"];
+const INSPECTION_STATUSES = ["new", "in_progress", "completed", "no_issues"];
+const MAINTENANCE_STATUSES = ["new", "in_progress", "completed"];
+
+function statusOptionsFor(type: DayEventType): string[] | null {
+  if (type === "cleaning" || type === "delivery" || type === "pickup" || type === "refuel") return TASK_STATUSES;
+  if (type === "inspection") return INSPECTION_STATUSES;
+  if (type === "maintenance") return MAINTENANCE_STATUSES;
+  return null; // trip_start, trip_end, block_off — no editable status
+}
+
+function statusEndpointFor(type: DayEventType, id: number): { url: string; method: string } | null {
+  if (type === "cleaning" || type === "delivery" || type === "pickup" || type === "refuel") {
+    return { url: `/api/operations/tasks/${id}/status`, method: "PATCH" };
+  }
+  if (type === "inspection") {
+    return { url: `/api/operations/inspections/${id}/status`, method: "PATCH" };
+  }
+  if (type === "maintenance") {
+    return { url: `/api/operations/maintenance/${id}`, method: "PUT" };
+  }
+  return null;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -168,9 +195,16 @@ function readDragData(e: React.DragEvent): DragPayload | null {
 
 // ─── Event card ───────────────────────────────────────────────────────────────
 
-function EventCard({ event }: { event: DayEvent }) {
+function EventCard({
+  event,
+  onStatusChange,
+}: {
+  event: DayEvent;
+  onStatusChange: (type: DayEventType, id: number, status: string) => void;
+}) {
   const c = colorFor(event.category);
   const badgeClass = STATUS_BADGE[event.status ?? ""] ?? "bg-gray-100 text-gray-700 border-gray-300";
+  const statusOptions = statusOptionsFor(event.type);
 
   return (
     <div
@@ -200,11 +234,29 @@ function EventCard({ event }: { event: DayEvent }) {
           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${c.bg} ${c.text}`}>
             {event.category}
           </span>
-          {event.status && (
+          {statusOptions ? (
+            <span onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
+              <Select
+                value={event.status ?? "new"}
+                onValueChange={(val) => onStatusChange(event.type, event.id, val)}
+              >
+                <SelectTrigger className={`h-5 text-[10px] px-1.5 py-0 rounded border cursor-pointer ${badgeClass} w-auto min-w-0 gap-1`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((s) => (
+                    <SelectItem key={s} value={s} className="text-xs">
+                      {s.replace(/_/g, " ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </span>
+          ) : event.status ? (
             <span className={`text-[10px] px-1.5 py-0.5 rounded border ${badgeClass}`}>
               {event.status.replace(/_/g, " ")}
             </span>
-          )}
+          ) : null}
         </div>
         {event.car_name && (
           <div className="flex items-center gap-1 text-xs text-foreground">
@@ -282,11 +334,13 @@ function EmployeeSection({
   emp,
   events,
   onAssign,
+  onStatusChange,
 }: {
   empKey: string;
   emp: EmpInfo;
   events: DayEvent[];
   onAssign: (payload: DragPayload, employeeId: number, fullname: string) => void;
+  onStatusChange: (type: DayEventType, id: number, status: string) => void;
 }) {
   const sorted = [...events].sort((a, b) => timeKey(a.start_time).localeCompare(timeKey(b.start_time)));
   const [dragOver, setDragOver] = useState(false);
@@ -347,7 +401,7 @@ function EmployeeSection({
         {sorted.length === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-3 italic">No tasks scheduled</div>
         ) : (
-          sorted.map((e) => <EventCard key={`${e.type}-${e.id}`} event={e} />)
+          sorted.map((e) => <EventCard key={`${e.type}-${e.id}`} event={e} onStatusChange={onStatusChange} />)
         )}
       </div>
     </div>
@@ -466,6 +520,32 @@ export function DayScheduleTab() {
     assignMutation.mutate({ type: payload.type, eventId: payload.id, employeeId: null, fullname: null });
   }
 
+  const statusMutation = useMutation({
+    mutationFn: async ({ type, id, status }: { type: DayEventType; id: number; status: string }) => {
+      const endpoint = statusEndpointFor(type, id);
+      if (!endpoint) throw new Error("Cannot update status for this event type");
+      const res = await fetch(buildApiUrl(endpoint.url), {
+        method: endpoint.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to update status");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
+    },
+    onError: (e: Error) => toast({ variant: "destructive", title: "Couldn't update status", description: e.message }),
+  });
+
+  function handleStatusChange(type: DayEventType, id: number, status: string) {
+    statusMutation.mutate({ type, id, status });
+  }
+
   const events = data?.events ?? [];
   const shifts = data?.work_shifts ?? [];
 
@@ -576,6 +656,7 @@ export function DayScheduleTab() {
                   emp={emp}
                   events={assignedMap.get(key) ?? []}
                   onAssign={assignTo}
+                  onStatusChange={handleStatusChange}
                 />
               ))
             )}
