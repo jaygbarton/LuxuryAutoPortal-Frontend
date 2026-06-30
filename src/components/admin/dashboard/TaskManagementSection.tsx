@@ -186,12 +186,12 @@ export default function TaskManagementSection() {
   const [toDate, setToDate] = useState("");
 
   const sortedTasks = useMemo(() => {
-    // Default sort: by task date, newest first (descending).
+    // Sort by task date, soonest first (ascending).
     const ts = (t: TaskTimer) => {
       const v = new Date(t.task_timer_date_start).getTime();
-      return isNaN(v) ? -Infinity : v;
+      return isNaN(v) ? Infinity : v;
     };
-    let f = [...tasks].sort((a, b) => ts(b) - ts(a));
+    let f = [...tasks].sort((a, b) => ts(a) - ts(b));
     if (search.trim()) {
       const q = search.toLowerCase();
       f = f.filter(t => [t.task_timer_name, t.task_timer_description, t.task_timer_goal, t.task_timer_car_name]

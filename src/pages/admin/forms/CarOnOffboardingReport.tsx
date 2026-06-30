@@ -110,10 +110,10 @@ export default function CarOnOffboardingReport() {
   });
 
   const onboardingRows = (onboardingData?.data ?? []).filter((r) =>
-    isAfterCutoff(r.createdAt),
+    isAfterCutoff(r.onboardingDate || r.createdAt),
   );
   const offboardingRows = (offboardingData?.data ?? []).filter((r) =>
-    isAfterCutoff(r.createdAt),
+    isAfterCutoff(r.offboardAt || r.createdAt),
   );
 
   const cutoffLabel = CUTOFF.toLocaleDateString("en-US", {
