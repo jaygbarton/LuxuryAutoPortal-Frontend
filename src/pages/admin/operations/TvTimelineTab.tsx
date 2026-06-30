@@ -15,6 +15,7 @@ import {
   Sparkles,
   Wrench,
   Fuel,
+  Calendar,
 } from "lucide-react";
 
 // ─── Types (mirror /api/operations/day-schedule) ──────────────────────────────
@@ -22,7 +23,7 @@ import {
 type DayEventType =
   | "pickup" | "delivery" | "cleaning" | "refuel"
   | "maintenance" | "inspection" | "block_off"
-  | "trip_start" | "trip_end";
+  | "trip_start" | "trip_end" | "calendar_event";
 
 interface DayEvent {
   id: number;
@@ -67,6 +68,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Car Inspection": "bg-yellow-500",
   "Windshield Run": "bg-purple-500",
   "Owner Rental": "bg-pink-500",
+  "Calendar Event": "bg-violet-600",
 };
 
 const DONE_STATUSES = new Set([
@@ -308,6 +310,7 @@ const TASK_ICON: Record<string, React.ReactNode> = {
   delivery: <MapPin className="w-3.5 h-3.5" />,
   refuel: <Fuel className="w-3.5 h-3.5" />,
   maintenance: <Wrench className="w-3.5 h-3.5" />,
+  calendar_event: <Calendar className="w-3.5 h-3.5" />,
 };
 
 const TASK_BG: Record<string, string> = {
@@ -490,6 +493,22 @@ function TimelineCard({
           ) : null}
         </div>
 
+        {/* Calendar event title + time range */}
+        {e.type === "calendar_event" && e.detail && (
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1.5 text-lg font-semibold text-foreground">
+              <Calendar className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
+              <span>{e.detail}</span>
+            </div>
+            {e.end_time && e.end_time !== e.start_time && (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{fmt12(e.start_time)} <ArrowRight className="w-3 h-3 inline" /> {fmt12(e.end_time)}</span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Car */}
         {e.car_name && (
           <div className="flex items-center gap-1.5 text-lg text-foreground">
@@ -499,7 +518,8 @@ function TimelineCard({
           </div>
         )}
 
-        {/* Res / guest / assigned */}
+        {/* Res / guest / assigned — skip for calendar events */}
+        {e.type !== "calendar_event" && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-base text-muted-foreground">
           {e.reservation_id && (
             <span>
@@ -516,6 +536,7 @@ function TimelineCard({
             )}
           </span>
         </div>
+        )}
 
         {/* Trip window (shows full date+time when cross-day) */}
         {(e.trip_start_mt || e.trip_end_mt) && (
@@ -555,8 +576,11 @@ function TimelineCard({
             <span>{e.extras}</span>
           </div>
         )}
-        {e.detail && (
+        {e.detail && e.type !== "calendar_event" && (
           <div className="text-base text-muted-foreground italic">{e.detail}</div>
+        )}
+        {e.type === "calendar_event" && e.notes && (
+          <div className="text-sm text-muted-foreground">{e.notes}</div>
         )}
 
         {/* Linked tasks (cleaning, pickup, delivery, refuel) */}
@@ -655,6 +679,24 @@ function TimelineCard({
             );
           }
 
+          if (e.type === "calendar_event") {
+            return (
+              <div className="flex justify-end pt-1">
+                <label
+                  className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none"
+                  onClick={(ev) => ev.stopPropagation()}
+                >
+                  <Checkbox
+                    checked={locallyDone}
+                    onCheckedChange={onToggleLocal}
+                    className="w-5 h-5"
+                  />
+                  <span>Completed</span>
+                </label>
+              </div>
+            );
+          }
+
           return null;
         })()}
       </div>
@@ -698,7 +740,7 @@ function setLocalDone(date: string, keys: Set<string>) {
 
 export function TvTimelineTab() {
   const [date, setDate] = useState(todayMTDate);
-  const [showCompleted, setShowCompleted] = useState(true);
+  const [showCompleted, setShowCompleted] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [localDone, setLocalDoneState] = useState<Set<string>>(() => getLocalDone(todayMTDate()));
   const { toggle, toggleBlockOff, toggleChildren, pending } = useToggleTaskDone(date);
@@ -864,7 +906,7 @@ export function TvTimelineTab() {
           <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none ml-2">
             <Checkbox
               checked={showCompleted}
-              onCheckedChange={(v) => setShowCompleted(v === true)}
+              onCheckedChange={() => setShowCompleted((v) => !v)}
             />
             Show completed
           </label>
