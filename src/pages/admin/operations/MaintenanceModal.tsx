@@ -169,7 +169,9 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
                 setFormData((prev) => ({
                   ...prev,
                   car_id: car?.id ?? null,
-                  car_name: car?.makeModel ?? prev.car_name,
+                  car_name: car
+                    ? [car.makeModel, car.year].filter(Boolean).join(" ")
+                    : prev.car_name,
                 }))
               }
             />
