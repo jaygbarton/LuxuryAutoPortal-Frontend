@@ -254,6 +254,24 @@ function useToggleTaskDone(scheduleDate: string) {
     }
   }
 
+  // Toggle a block_off card (car_block_off table)
+  async function toggleBlockOff(id: number, currentlyDone: boolean) {
+    if (pending.has(id)) return;
+    const newStatus = currentlyDone ? "new" : "blocked_off_ended";
+    setPending((s) => new Set(s).add(id));
+    try {
+      await fetch(buildApiUrl(`/api/operations/block-off/${id}/status`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      qc.invalidateQueries({ queryKey: ["/api/operations/day-schedule", scheduleDate] });
+    } finally {
+      setPending((s) => { const n = new Set(s); n.delete(id); return n; });
+    }
+  }
+
   // Toggle all child tasks of a trip card at once
   async function toggleChildren(childTasks: DayEvent[], allDone: boolean) {
     const opTasks = childTasks.filter((t) => OPERATION_TASK_TYPES.has(t.type));
@@ -279,7 +297,7 @@ function useToggleTaskDone(scheduleDate: string) {
     }
   }
 
-  return { toggle, toggleChildren, pending };
+  return { toggle, toggleBlockOff, toggleChildren, pending };
 }
 
 // ─── Child task chip (cleaning / pickup / delivery / refuel) ──────────────────
@@ -381,6 +399,7 @@ function TimelineCard({
   nowMs,
   scheduleDate,
   onToggle,
+  onToggleBlockOff,
   onToggleChildren,
   toggling,
 }: {
@@ -388,6 +407,7 @@ function TimelineCard({
   nowMs: number;
   scheduleDate: string;
   onToggle: (id: number, isDone: boolean) => void;
+  onToggleBlockOff: (id: number, isDone: boolean) => void;
   onToggleChildren: (children: DayEvent[], allDone: boolean) => void;
   toggling: (id: number) => boolean;
 }) {
@@ -553,6 +573,7 @@ function TimelineCard({
         {/* Completed checkbox — all card types, bottom-right */}
         {(() => {
           const isTripCard = e.type === "trip_start" || e.type === "trip_end";
+
           if (isTripCard) {
             const opChildren = childTasks.filter((t) => OPERATION_TASK_TYPES.has(t.type));
             if (opChildren.length === 0) return null;
@@ -577,6 +598,26 @@ function TimelineCard({
               </div>
             );
           }
+
+          if (e.type === "block_off") {
+            return (
+              <div className="flex justify-end pt-1">
+                <label
+                  className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none"
+                  onClick={(ev) => ev.stopPropagation()}
+                >
+                  <Checkbox
+                    checked={isDone}
+                    disabled={toggling(e.id)}
+                    onCheckedChange={() => onToggleBlockOff(e.id, isDone)}
+                    className="w-5 h-5"
+                  />
+                  <span>Completed</span>
+                </label>
+              </div>
+            );
+          }
+
           if (OPERATION_TASK_TYPES.has(e.type)) {
             return (
               <div className="flex justify-end pt-1">
@@ -595,6 +636,7 @@ function TimelineCard({
               </div>
             );
           }
+
           return null;
         })()}
       </div>
@@ -608,7 +650,7 @@ export function TvTimelineTab() {
   const [date, setDate] = useState(todayMTDate);
   const [showCompleted, setShowCompleted] = useState(true);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const { toggle, toggleChildren, pending } = useToggleTaskDone(date);
+  const { toggle, toggleBlockOff, toggleChildren, pending } = useToggleTaskDone(date);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -776,6 +818,7 @@ export function TvTimelineTab() {
                 nowMs={nowMs}
                 scheduleDate={date}
                 onToggle={toggle}
+                onToggleBlockOff={toggleBlockOff}
                 onToggleChildren={toggleChildren}
                 toggling={(id) => pending.has(id)}
               />
