@@ -652,47 +652,47 @@ export default function TrainingManualPage() {
     setVideoUploading(true);
     setVideoError(null);
     setVideoValid(null);
+    setVideoUploadProgress(0);
     try {
-      // Resolve content type — browsers sometimes return "" for .mov/.m4v files
-      const extMap: Record<string, string> = {
-        mp4: "video/mp4", webm: "video/webm", ogg: "video/ogg",
-        mov: "video/quicktime", m4v: "video/x-m4v", avi: "video/x-msvideo",
-      };
-      const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-      const contentType = file.type || extMap[ext] || "video/mp4";
-
-      // Step 1: get a signed upload URL from the backend
-      const params = new URLSearchParams({ filename: file.name, contentType });
-      const urlRes = await fetch(buildApiUrl(`/api/admin/tutorial/upload-video-url?${params}`), {
-        credentials: "include",
-      });
-      const urlData = await urlRes.json();
-      if (!urlRes.ok || !urlData.success) {
-        throw new Error(urlData.error || "Failed to get upload URL");
-      }
-
-      // Step 2: PUT the file directly to GCS with XHR so we can track progress
-      setVideoUploadProgress(0);
+      // Upload through the backend proxy (avoids GCS CORS entirely)
       await new Promise<void>((resolve, reject) => {
+        const formData = new FormData();
+        formData.append("video", file);
         const xhr = new XMLHttpRequest();
-        xhr.open("PUT", urlData.signedUrl);
-        xhr.setRequestHeader("Content-Type", contentType);
+        xhr.open("POST", buildApiUrl("/api/admin/tutorial/upload-video"));
+        xhr.withCredentials = true;
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) setVideoUploadProgress(Math.round((e.loaded / e.total) * 100));
         };
         xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) resolve();
-          else reject(new Error(`GCS upload failed: ${xhr.status} ${xhr.statusText}`));
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const data = JSON.parse(xhr.responseText);
+              if (data.success && data.url) {
+                form.setValue("videoUrl", data.url);
+                setVideoPreviewUrl(data.url);
+                setVideoValid(true);
+                setVideoUploadProgress(100);
+                toast({ title: "Video uploaded", description: "Video uploaded successfully." });
+                resolve();
+              } else {
+                reject(new Error(data.error || "Upload succeeded but no URL returned"));
+              }
+            } catch {
+              reject(new Error("Invalid response from server"));
+            }
+          } else {
+            try {
+              const data = JSON.parse(xhr.responseText);
+              reject(new Error(data.error || `Upload failed: ${xhr.status}`));
+            } catch {
+              reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+            }
+          }
         };
         xhr.onerror = () => reject(new Error("Network error during upload"));
-        xhr.send(file);
+        xhr.send(formData);
       });
-
-      form.setValue("videoUrl", urlData.publicUrl);
-      setVideoPreviewUrl(urlData.publicUrl);
-      setVideoValid(true);
-      setVideoUploadProgress(100);
-      toast({ title: "Video uploaded", description: "Video uploaded successfully." });
     } catch (err: any) {
       setVideoError(err.message || "Failed to upload video");
       toast({ title: "Upload failed", description: err.message || "Failed to upload video", variant: "destructive" });
