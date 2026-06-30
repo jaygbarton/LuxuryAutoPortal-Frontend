@@ -397,6 +397,7 @@ interface Submission {
   month: number;
   category: string;
   field: string;
+  fieldLabel: string | null;
   amount: number;
   receiptUrls: string[] | null;
   remarks: string | null;
@@ -1297,8 +1298,8 @@ export default function ExpenseFormApprovalDashboard({
                     <TableCell className="text-foreground text-xs whitespace-nowrap py-2 px-2" title={CATEGORY_LABELS[sub.category] || sub.category}>
                       {CATEGORY_LABELS[sub.category] || sub.category}
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-xs whitespace-nowrap py-2 px-2" title={formatFieldLabel(sub.field)}>
-                      {formatFieldLabel(sub.field)}
+                    <TableCell className="text-muted-foreground text-xs whitespace-nowrap py-2 px-2" title={sub.fieldLabel || formatFieldLabel(sub.field)}>
+                      {sub.fieldLabel || formatFieldLabel(sub.field)}
                     </TableCell>
                     <TableCell className="text-green-700 font-semibold text-xs whitespace-nowrap py-2 px-2">
                       $
