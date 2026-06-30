@@ -107,9 +107,7 @@ const LEGACY_HIDDEN_FIELDS: {
   reimbursedBills: string[];
 } = {
   directDelivery: [],
-  cogs: [
-    "laborCleaning", // "Labor - Detailing" — no data in DB
-  ],
+  cogs: [],
   reimbursedBills: [],
 };
 
@@ -3019,17 +3017,15 @@ export default function IncomeExpenseTable({
                 field="keyFob"
                 {...rowActions("cogs", "keyFob", "Keys & Fob")}
               />
-              {SHOW_LEGACY_IE_ROWS && (
-                <CategoryRow
-                  label="Labor - Detailing"
-                  values={MONTHS.map((_, i) =>
-                    getMonthValue(data.cogs, i + 1, "laborCleaning"),
-                  )}
-                  category="cogs"
-                  field="laborCleaning"
-                  {...rowActions("cogs", "laborCleaning", "Labor - Detailing")}
-                />
-              )}
+              <CategoryRow
+                label="Labor - Detailing"
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.cogs, i + 1, "laborCleaning"),
+                )}
+                category="cogs"
+                field="laborCleaning"
+                {...rowActions("cogs", "laborCleaning", "Labor - Detailing")}
+              />
               <CategoryRow
                 label="Windshield"
                 values={MONTHS.map((_, i) =>
