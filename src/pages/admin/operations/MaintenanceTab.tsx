@@ -164,9 +164,9 @@ export function MaintenanceTab({
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filterStatus !== "all") params.append("status", filterStatus);
-      const qs = params.toString();
+      params.append("limit", "5000");
       const response = await fetch(
-        buildApiUrl(`/api/operations/maintenance${qs ? `?${qs}` : ""}`),
+        buildApiUrl(`/api/operations/maintenance?${params.toString()}`),
         { credentials: "include" },
       );
       if (!response.ok) throw new Error("Failed to fetch maintenance records");
