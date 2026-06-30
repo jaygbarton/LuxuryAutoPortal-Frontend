@@ -1647,14 +1647,12 @@ export default function ExpenseFormApprovalDashboard({
                 const isPdf = urlOrId?.match(/\.pdf$/i);
                 const receiptLabel = `Receipt ${i + 1}`;
                 const embeddedDataUrl = receiptDataUrls?.[urlOrId];
-                const isBackendFileId = urlOrId && !urlOrId.startsWith("http");
                 const isDriveUrl = isGoogleDriveUrl(urlOrId);
-                const displayUrl =
-                  isBackendFileId || isDriveUrl
-                    ? buildApiUrl(
-                        `/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}`,
-                      )
-                    : urlOrId;
+                // Always proxy through backend — covers plain file IDs, Drive URLs,
+                // and full GCS URLs (which 403 from CORS when fetched directly).
+                const displayUrl = buildApiUrl(
+                  `/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}`,
+                );
                 if (!displayUrl && !embeddedDataUrl) return null;
                 if (isPdf) {
                   return (

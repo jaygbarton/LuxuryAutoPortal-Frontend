@@ -1,10 +1,8 @@
 /**
  * Car Onboarding / Offboarding Report
- * Admin-only summary tables of recent Car On-boarding and Off-boarding
- * submissions, shown above the Car Block Off section on the Forms page.
- *
- * Per request, only entries submitted on/after July 1st of the current year
- * are shown ("show the new entries only starting July 1st").
+ * Shows only actual form submissions from car_onboarding_submissions and
+ * car_offboarding_submissions tables — NOT car status changes.
+ * Only entries submitted on/after July 1st of the current year are shown.
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -20,34 +18,28 @@ import {
 } from "@/components/ui/table";
 import { Loader2, Car, LogOut } from "lucide-react";
 
-// Cutoff: only show entries submitted on/after July 1st of the current year.
-// Computed once at module load so the report rolls forward each year.
-const CUTOFF = new Date(new Date().getFullYear(), 6, 1); // month is 0-indexed → 6 = July
+const CUTOFF = new Date(new Date().getFullYear(), 6, 1); // July 1st of current year
 
-interface OnboardingCar {
+interface OnboardingSubmission {
   id: number;
+  date: string;
+  name: string;
+  carMakeModelYear: string;
+  plateNumber: string;
+  dropOffDate: string;
   createdAt: string;
-  clientName: string | null;
-  clientEmail: string | null;
-  clientPhone: string | null;
-  vin: string | null;
-  carMakeModel: string;
-  year: number | null;
-  licensePlate: string | null;
-  onboardingDate: string | null;
+  status: string;
 }
 
-interface OffboardingCar {
+interface OffboardingSubmission {
   id: number;
+  date: string;
+  name: string;
+  vehicleMakeModelYear: string;
+  licensePlate: string;
+  returnDate: string;
   createdAt: string;
-  clientName: string | null;
-  clientEmail: string | null;
-  clientPhone: string | null;
-  vin: string | null;
-  carMakeModel: string;
-  year: number | null;
-  licensePlate: string | null;
-  offboardAt: string | null;
+  status: string;
 }
 
 function formatDate(d: string | null) {
@@ -65,26 +57,21 @@ function formatDate(d: string | null) {
   }
 }
 
-/** True when `d` is a valid date on/after the July-1st cutoff. */
 function isAfterCutoff(d: string | null): boolean {
   if (!d) return false;
   const date = new Date(d);
   return !isNaN(date.getTime()) && date >= CUTOFF;
 }
 
-function vehicleLabel(carMakeModel: string, year: number | null): string {
-  return [carMakeModel?.trim(), year].filter(Boolean).join(" ").trim() || "—";
-}
-
 export default function CarOnOffboardingReport() {
   const { data: onboardingData, isLoading: loadingOn } = useQuery<{
-    success: boolean;
-    data: OnboardingCar[];
+    submissions: OnboardingSubmission[];
+    total: number;
   }>({
-    queryKey: ["car-onboarding-report"],
+    queryKey: ["car-onboarding-submissions-report"],
     queryFn: async () => {
       const res = await fetch(
-        buildApiUrl("/api/cars/onboarding?page=1&limit=100"),
+        buildApiUrl("/api/car-onboarding/submissions?page=1&limit=100"),
         { credentials: "include" },
       );
       if (!res.ok) throw new Error("Failed to fetch onboarding submissions");
@@ -94,13 +81,13 @@ export default function CarOnOffboardingReport() {
   });
 
   const { data: offboardingData, isLoading: loadingOff } = useQuery<{
-    success: boolean;
-    data: OffboardingCar[];
+    submissions: OffboardingSubmission[];
+    total: number;
   }>({
-    queryKey: ["car-offboarding-report"],
+    queryKey: ["car-offboarding-submissions-report"],
     queryFn: async () => {
       const res = await fetch(
-        buildApiUrl("/api/cars/offboarding-forms?page=1&limit=100"),
+        buildApiUrl("/api/car-offboarding/submissions?page=1&limit=100"),
         { credentials: "include" },
       );
       if (!res.ok) throw new Error("Failed to fetch offboarding submissions");
@@ -109,11 +96,11 @@ export default function CarOnOffboardingReport() {
     refetchInterval: 30000,
   });
 
-  const onboardingRows = (onboardingData?.data ?? []).filter((r) =>
-    isAfterCutoff(r.onboardingDate || r.createdAt),
+  const onboardingRows = (onboardingData?.submissions ?? []).filter((r) =>
+    isAfterCutoff(r.createdAt),
   );
-  const offboardingRows = (offboardingData?.data ?? []).filter((r) =>
-    isAfterCutoff(r.offboardAt || r.createdAt),
+  const offboardingRows = (offboardingData?.submissions ?? []).filter((r) =>
+    isAfterCutoff(r.createdAt),
   );
 
   const cutoffLabel = CUTOFF.toLocaleDateString("en-US", {
@@ -150,44 +137,29 @@ export default function CarOnOffboardingReport() {
                 <TableHeader>
                   <TableRow className="bg-muted/40">
                     <TableHead>Name</TableHead>
-                    <TableHead className="hidden md:table-cell">Email</TableHead>
-                    <TableHead className="hidden lg:table-cell">Phone</TableHead>
                     <TableHead>Vehicle</TableHead>
-                    <TableHead className="hidden xl:table-cell">VIN#</TableHead>
                     <TableHead className="hidden lg:table-cell">Plate #</TableHead>
+                    <TableHead className="hidden lg:table-cell">Drop-Off Date</TableHead>
                     <TableHead>Submitted</TableHead>
-                    <TableHead>Onboarding Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {onboardingRows.map((row) => (
                     <TableRow key={row.id} className="hover:bg-muted/20">
                       <TableCell className="text-sm font-medium">
-                        {row.clientName || "—"}
-                      </TableCell>
-                      <TableCell
-                        className="text-sm hidden md:table-cell max-w-[180px] truncate"
-                        title={row.clientEmail || "—"}
-                      >
-                        {row.clientEmail || "—"}
-                      </TableCell>
-                      <TableCell className="text-sm hidden lg:table-cell">
-                        {row.clientPhone || "—"}
+                        {row.name || "—"}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {vehicleLabel(row.carMakeModel, row.year)}
-                      </TableCell>
-                      <TableCell className="text-sm hidden xl:table-cell font-mono text-xs">
-                        {row.vin || "—"}
+                        {row.carMakeModelYear || "—"}
                       </TableCell>
                       <TableCell className="text-sm hidden lg:table-cell">
-                        {row.licensePlate || "—"}
+                        {row.plateNumber || "—"}
+                      </TableCell>
+                      <TableCell className="text-sm hidden lg:table-cell">
+                        {formatDate(row.dropOffDate)}
                       </TableCell>
                       <TableCell className="text-sm">
                         {formatDate(row.createdAt)}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {formatDate(row.onboardingDate || row.createdAt)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -224,44 +196,29 @@ export default function CarOnOffboardingReport() {
                 <TableHeader>
                   <TableRow className="bg-muted/40">
                     <TableHead>Name</TableHead>
-                    <TableHead className="hidden md:table-cell">Email</TableHead>
-                    <TableHead className="hidden lg:table-cell">Phone</TableHead>
                     <TableHead>Vehicle</TableHead>
-                    <TableHead className="hidden xl:table-cell">VIN#</TableHead>
                     <TableHead className="hidden lg:table-cell">Plate #</TableHead>
+                    <TableHead className="hidden lg:table-cell">Return Date</TableHead>
                     <TableHead>Submitted</TableHead>
-                    <TableHead>Offboarding Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {offboardingRows.map((row) => (
                     <TableRow key={row.id} className="hover:bg-muted/20">
                       <TableCell className="text-sm font-medium">
-                        {row.clientName || "—"}
-                      </TableCell>
-                      <TableCell
-                        className="text-sm hidden md:table-cell max-w-[180px] truncate"
-                        title={row.clientEmail || "—"}
-                      >
-                        {row.clientEmail || "—"}
-                      </TableCell>
-                      <TableCell className="text-sm hidden lg:table-cell">
-                        {row.clientPhone || "—"}
+                        {row.name || "—"}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {vehicleLabel(row.carMakeModel, row.year)}
-                      </TableCell>
-                      <TableCell className="text-sm hidden xl:table-cell font-mono text-xs">
-                        {row.vin || "—"}
+                        {row.vehicleMakeModelYear || "—"}
                       </TableCell>
                       <TableCell className="text-sm hidden lg:table-cell">
                         {row.licensePlate || "—"}
                       </TableCell>
-                      <TableCell className="text-sm">
-                        {formatDate(row.createdAt)}
+                      <TableCell className="text-sm hidden lg:table-cell">
+                        {formatDate(row.returnDate)}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {formatDate(row.offboardAt)}
+                        {formatDate(row.createdAt)}
                       </TableCell>
                     </TableRow>
                   ))}
