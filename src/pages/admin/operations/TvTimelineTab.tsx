@@ -401,6 +401,8 @@ function TimelineCard({
   onToggle,
   onToggleBlockOff,
   onToggleChildren,
+  onToggleLocal,
+  locallyDone,
   toggling,
 }: {
   row: TimelineRow;
@@ -409,6 +411,8 @@ function TimelineCard({
   onToggle: (id: number, isDone: boolean) => void;
   onToggleBlockOff: (id: number, isDone: boolean) => void;
   onToggleChildren: (children: DayEvent[], allDone: boolean) => void;
+  onToggleLocal: () => void;
+  locallyDone: boolean;
   toggling: (id: number) => boolean;
 }) {
   const { event: e, urgency, isDone, timing, childTasks } = row;
@@ -430,7 +434,7 @@ function TimelineCard({
   return (
     <div
       className={`flex items-stretch rounded-lg overflow-hidden border shadow-sm ${
-        isDone ? "border-border bg-muted/40 opacity-60" : u.row
+        isDone ? "border-border bg-zinc-900/80 opacity-70" : u.row
       }`}
     >
       {/* Color bar */}
@@ -576,21 +580,35 @@ function TimelineCard({
 
           if (isTripCard) {
             const opChildren = childTasks.filter((t) => OPERATION_TASK_TYPES.has(t.type));
-            if (opChildren.length === 0) return null;
-            const allChildrenDone = opChildren.every((t) =>
-              DONE_STATUSES.has((t.status ?? "").toLowerCase()),
-            );
+            const allChildrenDone =
+              opChildren.length > 0 &&
+              opChildren.every((t) => DONE_STATUSES.has((t.status ?? "").toLowerCase()));
             const anyPending = opChildren.some((t) => toggling(t.id));
+            // Checked if locally toggled OR all children done
+            const checked = locallyDone || allChildrenDone;
             return (
-              <div className="flex justify-end pt-1">
+              <div className="flex justify-end pt-1 gap-3 flex-wrap">
+                {opChildren.length > 0 && !locallyDone && (
+                  <label
+                    className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none"
+                    onClick={(ev) => ev.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={allChildrenDone}
+                      disabled={anyPending}
+                      onCheckedChange={() => onToggleChildren(opChildren, allChildrenDone)}
+                      className="w-5 h-5"
+                    />
+                    <span>Tasks done</span>
+                  </label>
+                )}
                 <label
                   className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none"
                   onClick={(ev) => ev.stopPropagation()}
                 >
                   <Checkbox
-                    checked={allChildrenDone}
-                    disabled={anyPending}
-                    onCheckedChange={() => onToggleChildren(opChildren, allChildrenDone)}
+                    checked={checked}
+                    onCheckedChange={onToggleLocal}
                     className="w-5 h-5"
                   />
                   <span>Completed</span>
@@ -644,20 +662,66 @@ function TimelineCard({
   );
 }
 
+// ─── Local trip-card override (localStorage, keyed by trip event id+type+date) ─
+
+const LOCAL_KEY = "tv_timeline_local_done";
+
+function getLocalDone(date: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY);
+    if (!raw) return new Set();
+    const obj = JSON.parse(raw) as Record<string, string[]>;
+    return new Set(obj[date] ?? []);
+  } catch {
+    return new Set();
+  }
+}
+
+function setLocalDone(date: string, keys: Set<string>) {
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY);
+    const obj = raw ? (JSON.parse(raw) as Record<string, string[]>) : {};
+    // Prune dates older than 3 days
+    const today = todayMTDate();
+    const [ty, tm, td] = today.split("-").map(Number);
+    const cutoff = Date.UTC(ty, tm - 1, td) - 3 * 86_400_000;
+    for (const k of Object.keys(obj)) {
+      const [ky, km, kd] = k.split("-").map(Number);
+      if (Date.UTC(ky, km - 1, kd) < cutoff) delete obj[k];
+    }
+    obj[date] = [...keys];
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(obj));
+  } catch {}
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function TvTimelineTab() {
   const [date, setDate] = useState(todayMTDate);
   const [showCompleted, setShowCompleted] = useState(true);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [localDone, setLocalDoneState] = useState<Set<string>>(() => getLocalDone(todayMTDate()));
   const { toggle, toggleBlockOff, toggleChildren, pending } = useToggleTaskDone(date);
+
+  function toggleLocalDone(key: string) {
+    setLocalDoneState((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      setLocalDone(date, next);
+      return next;
+    });
+  }
 
   useEffect(() => {
     const id = setInterval(() => {
       setNowMs(Date.now());
       setDate((d) => {
         const today = todayMTDate();
-        return d === today ? d : today;
+        if (d !== today) {
+          setLocalDoneState(getLocalDone(today));
+          return today;
+        }
+        return d;
       });
     }, CLOCK_TICK_MS);
     return () => clearInterval(id);
@@ -674,6 +738,10 @@ export function TvTimelineTab() {
     },
     refetchInterval: DATA_REFRESH_MS,
   });
+
+  function localKey(ev: DayEvent) {
+    return `${ev.type}-${ev.id}`;
+  }
 
   const rows = useMemo<TimelineRow[]>(() => {
     const events = data?.events ?? [];
@@ -709,12 +777,20 @@ export function TvTimelineTab() {
 
     const built = topLevel.map((event): TimelineRow => {
       const timing = timingFor(event, date);
-      const isDone = DONE_STATUSES.has((event.status ?? "").toLowerCase());
+      const serverDone = DONE_STATUSES.has((event.status ?? "").toLowerCase());
       // Attach child tasks for trip start/end cards.
       const childTasks =
         (event.type === "trip_start" || event.type === "trip_end") && event.reservation_id
           ? (tasksByRes.get(event.reservation_id) ?? [])
           : [];
+      // Trip cards: done if locally overridden OR all children are done
+      const isTripCard = event.type === "trip_start" || event.type === "trip_end";
+      const locallyDone = localDone.has(localKey(event));
+      const opChildren = childTasks.filter((t) => OPERATION_TASK_TYPES.has(t.type));
+      const childrenAllDone =
+        opChildren.length > 0 &&
+        opChildren.every((t) => DONE_STATUSES.has((t.status ?? "").toLowerCase()));
+      const isDone = serverDone || locallyDone || (isTripCard && childrenAllDone);
       return {
         event,
         timing,
@@ -734,7 +810,7 @@ export function TvTimelineTab() {
     });
 
     return built;
-  }, [data, date, nowMs]);
+  }, [data, date, nowMs, localDone]);
 
   const visibleRows = showCompleted ? rows : rows.filter((r) => !r.isDone);
 
@@ -820,6 +896,8 @@ export function TvTimelineTab() {
                 onToggle={toggle}
                 onToggleBlockOff={toggleBlockOff}
                 onToggleChildren={toggleChildren}
+                onToggleLocal={() => toggleLocalDone(localKey(row.event))}
+                locallyDone={localDone.has(localKey(row.event))}
                 toggling={(id) => pending.has(id)}
               />
             ))}
