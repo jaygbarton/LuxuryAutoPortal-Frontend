@@ -118,6 +118,54 @@ function statusColor(v: number) {
   );
 }
 
+// ─── Inline status selector ───────────────────────────────────────────────────
+
+function InlineStatusSelect({
+  taskId,
+  status,
+  onChanged,
+}: {
+  taskId: number;
+  status: number;
+  onChanged: () => void;
+}) {
+  const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
+
+  async function handleChange(val: string) {
+    setSaving(true);
+    try {
+      const res = await fetch(buildApiUrl(`/api/admin/hr/task-timers/${taskId}`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ task_timer_status: parseInt(val, 10) }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      onChanged();
+    } catch {
+      toast({ title: "Could not update status", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Select value={String(status)} onValueChange={handleChange} disabled={saving}>
+      <SelectTrigger className={`h-7 w-32 text-xs border px-2 ${statusColor(status)}`}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {STATUS_OPTIONS.map((s) => (
+          <SelectItem key={s.value} value={s.value} className="text-xs">
+            {s.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 // ─── Employee picker ──────────────────────────────────────────────────────────
 
 function EmployeePicker({
@@ -1000,12 +1048,13 @@ export default function AdminHrTaskManagement() {
                           {r.task_timer_date_end || "—"}
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={`text-xs ${statusColor(r.task_timer_status ?? 0)}`}
-                          >
-                            {statusLabel(r.task_timer_status ?? 0)}
-                          </Badge>
+                          <InlineStatusSelect
+                            taskId={r.task_timer_aid}
+                            status={r.task_timer_status ?? 0}
+                            onChanged={() =>
+                              queryClient.invalidateQueries({ queryKey: ["/api/admin/hr/task-timers"] })
+                            }
+                          />
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">
                           {r.task_timer_description || "—"}
