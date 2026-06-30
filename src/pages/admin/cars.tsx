@@ -245,22 +245,21 @@ export default function CarsPage() {
 
         const parsePhotos = (rawPhoto: unknown): string[] => {
           if (!rawPhoto) return [];
-          if (Array.isArray(rawPhoto)) {
-            return rawPhoto.filter((item) => typeof item === "string") as string[];
-          }
+          const extractUrls = (arr: any[]): string[] =>
+            arr.flatMap((item) => {
+              if (typeof item === "string" && (item.startsWith("http://") || item.startsWith("https://"))) return [item];
+              if (typeof item === "object" && item !== null && typeof item.url === "string") return [item.url];
+              return [];
+            });
+          if (Array.isArray(rawPhoto)) return extractUrls(rawPhoto);
           if (typeof rawPhoto === "string") {
             try {
               const parsed = JSON.parse(rawPhoto);
-              if (Array.isArray(parsed)) {
-                return parsed.filter((item) => typeof item === "string") as string[];
-              }
-              if (typeof parsed === "string") {
-                return [parsed];
-              }
+              if (Array.isArray(parsed)) return extractUrls(parsed);
+              if (typeof parsed === "string") return [parsed];
             } catch {
-              return [rawPhoto];
+              return rawPhoto.startsWith("http") ? [rawPhoto] : [];
             }
-            return [rawPhoto];
           }
           return [];
         };

@@ -438,6 +438,13 @@ function TimelineCard({
             <span className="truncate">{e.location}</span>
           </div>
         )}
+        {/* Extras */}
+        {e.extras && (
+          <div className="flex items-center gap-1.5 text-base text-muted-foreground">
+            <Sparkles className="w-4 h-4 flex-shrink-0" />
+            <span>{e.extras}</span>
+          </div>
+        )}
         {e.detail && (
           <div className="text-base text-muted-foreground italic">{e.detail}</div>
         )}
