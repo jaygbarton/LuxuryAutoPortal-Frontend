@@ -277,8 +277,12 @@ export function TaskAssignmentModal({
               <SelectContent className="bg-card border-border text-foreground">
                 <SelectItem value="cleaning">Cleaning</SelectItem>
                 <SelectItem value="delivery">Delivery</SelectItem>
-                <SelectItem value="pickup">Pickup</SelectItem>
+                <SelectItem value="pickup">Airport / Pickup Run</SelectItem>
+                <SelectItem value="airport">Airport Run</SelectItem>
                 <SelectItem value="refuel">Refuel</SelectItem>
+                <SelectItem value="mechanic">Mechanic Run</SelectItem>
+                <SelectItem value="windshield">Windshield Run</SelectItem>
+                <SelectItem value="license_plate">License Plate Run</SelectItem>
               </SelectContent>
             </Select>
           </div>

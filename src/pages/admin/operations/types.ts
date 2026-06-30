@@ -161,7 +161,7 @@ export interface MaintenanceRecord {
   owner_responded_at?: string | null;
 }
 
-export type TaskType = "cleaning" | "delivery" | "pickup" | "refuel";
+export type TaskType = "cleaning" | "delivery" | "pickup" | "refuel" | "mechanic" | "windshield" | "license_plate" | "airport";
 export type TaskStatus = "new" | "in_progress" | "completed" | "delivered";
 export type InspectionStatus =
   | "new"

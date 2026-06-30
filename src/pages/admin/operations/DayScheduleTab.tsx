@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, Arro
 
 type DayEventType =
   | "pickup" | "delivery" | "cleaning" | "refuel"
+  | "mechanic" | "windshield" | "license_plate" | "airport"
   | "maintenance" | "inspection" | "block_off"
   | "trip_start" | "trip_end";
 
@@ -59,15 +60,17 @@ const TASK_STATUSES = ["new", "in_progress", "completed", "delivered"];
 const INSPECTION_STATUSES = ["new", "in_progress", "completed", "no_issues"];
 const MAINTENANCE_STATUSES = ["new", "in_progress", "completed"];
 
+const OPERATION_TASK_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup", "refuel", "mechanic", "windshield", "license_plate", "airport"];
+
 function statusOptionsFor(type: DayEventType): string[] | null {
-  if (type === "cleaning" || type === "delivery" || type === "pickup" || type === "refuel") return TASK_STATUSES;
+  if (OPERATION_TASK_TYPES.includes(type)) return TASK_STATUSES;
   if (type === "inspection") return INSPECTION_STATUSES;
   if (type === "maintenance") return MAINTENANCE_STATUSES;
   return null; // trip_start, trip_end, block_off — no editable status
 }
 
 function statusEndpointFor(type: DayEventType, id: number): { url: string; method: string } | null {
-  if (type === "cleaning" || type === "delivery" || type === "pickup" || type === "refuel") {
+  if (OPERATION_TASK_TYPES.includes(type)) {
     return { url: `/api/operations/tasks/${id}/status`, method: "PATCH" };
   }
   if (type === "inspection") {
@@ -82,16 +85,17 @@ function statusEndpointFor(type: DayEventType, id: number): { url: string; metho
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  "Trip Start":           { bg: "bg-emerald-600", text: "text-white", border: "border-emerald-700" },
-  "Trip End":             { bg: "bg-rose-600",    text: "text-white", border: "border-rose-700" },
-  "Airport / Pickup Run": { bg: "bg-blue-500",    text: "text-white", border: "border-blue-600" },
-  "Delivery Run":         { bg: "bg-indigo-500",  text: "text-white", border: "border-indigo-600" },
-  "Cleaning":             { bg: "bg-teal-500",    text: "text-white", border: "border-teal-600" },
-  "Refuel Run":           { bg: "bg-orange-500",  text: "text-white", border: "border-orange-600" },
-  "Mechanical Run":       { bg: "bg-red-500",     text: "text-white", border: "border-red-600" },
-  "Car Inspection":       { bg: "bg-yellow-500",  text: "text-white", border: "border-yellow-600" },
-  "Windshield Run":       { bg: "bg-purple-500",  text: "text-white", border: "border-purple-600" },
-  "Owner Rental":         { bg: "bg-pink-500",    text: "text-white", border: "border-pink-600" },
+  "Trip Start":            { bg: "bg-emerald-600", text: "text-white", border: "border-emerald-700" },
+  "Trip End":              { bg: "bg-rose-600",    text: "text-white", border: "border-rose-700" },
+  "Airport / Pickup Run":  { bg: "bg-blue-500",    text: "text-white", border: "border-blue-600" },
+  "Delivery Run":          { bg: "bg-indigo-500",  text: "text-white", border: "border-indigo-600" },
+  "Cleaning":              { bg: "bg-teal-500",    text: "text-white", border: "border-teal-600" },
+  "Refuel Run":            { bg: "bg-orange-500",  text: "text-white", border: "border-orange-600" },
+  "Mechanical Run":        { bg: "bg-red-500",     text: "text-white", border: "border-red-600" },
+  "Car Inspection":        { bg: "bg-yellow-500",  text: "text-white", border: "border-yellow-600" },
+  "Windshield Run":        { bg: "bg-purple-500",  text: "text-white", border: "border-purple-600" },
+  "License Plate Run":     { bg: "bg-cyan-600",    text: "text-white", border: "border-cyan-700" },
+  "Owner Rental":          { bg: "bg-pink-500",    text: "text-white", border: "border-pink-600" },
 };
 
 const STATUS_BADGE: Record<string, string> = {

@@ -25,7 +25,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
 import { StatusBadge } from "./StatusBadge";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
-import { Truck, Sparkles, Package, X } from "lucide-react";
+import { Truck, Sparkles, Package, X, Wrench, Shield, CreditCard, PlaneTakeoff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { TuroTrip, OperationTask, TaskType } from "./types";
 
@@ -839,16 +839,25 @@ export function TripsOverviewTab() {
                       );
                     })();
 
+                    const taskTypeIcon = (type: string) => {
+                      if (type === "cleaning") return { Icon: Sparkles, color: "text-yellow-500" };
+                      if (type === "delivery") return { Icon: Truck, color: "text-blue-400" };
+                      if (type === "mechanic") return { Icon: Wrench, color: "text-red-500" };
+                      if (type === "windshield") return { Icon: Shield, color: "text-purple-500" };
+                      if (type === "license_plate") return { Icon: CreditCard, color: "text-cyan-500" };
+                      if (type === "airport") return { Icon: PlaneTakeoff, color: "text-sky-500" };
+                      return { Icon: Package, color: "text-green-500" };
+                    };
                     const taskBadges = tripTasks.length === 0 ? "--" : (
                       <div className="flex flex-col gap-1 text-xs">
                         {tripTasks.map((t) => {
-                          const Icon = t.task_type === "cleaning" ? Sparkles : t.task_type === "delivery" ? Truck : Package;
-                          const color = t.task_type === "cleaning" ? "text-yellow-500" : t.task_type === "delivery" ? "text-blue-400" : "text-green-500";
+                          const { Icon, color } = taskTypeIcon(t.task_type);
+                          const typeLabel = t.task_type.replace(/_/g, " ");
                           return (
                             <div key={t.id} className="flex flex-col gap-0.5">
                               <div className="flex items-center gap-1.5">
                                 <Icon className={`w-3 h-3 ${color} shrink-0`} />
-                                <span className={`${color} capitalize text-[10px] font-medium shrink-0`}>{t.task_type}:</span>
+                                <span className={`${color} capitalize text-[10px] font-medium shrink-0`}>{typeLabel}:</span>
                                 <span className="text-foreground truncate max-w-[120px]">{t.assigned_to || "--"}</span>
                               </div>
                               {t.scheduled_date && (
