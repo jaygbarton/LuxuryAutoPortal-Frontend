@@ -249,12 +249,10 @@ function ReceiptImageOrDrive({
     );
   }
 
-  const isDriveFileId = urlOrId && !urlOrId.startsWith("http");
-  const displayUrl = isDriveFileId
-    ? buildApiUrl(
-        `/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}`,
-      )
-    : urlOrId;
+  // Always proxy through backend: covers plain file IDs AND full GCS URLs (which 403 from CORS directly)
+  const displayUrl = buildApiUrl(
+    `/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}`,
+  );
   return <ReceiptImage url={displayUrl} alt={alt} className={className} />;
 }
 

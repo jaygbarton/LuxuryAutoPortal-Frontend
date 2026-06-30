@@ -251,10 +251,8 @@ export default function ExpenseFormMySubmissions() {
           </DialogHeader>
           <div className="flex flex-wrap gap-4">
             {selectedSubmission?.receiptUrls?.map((urlOrId, i) => {
-              const isDriveFileId = urlOrId && !urlOrId.startsWith("http");
-              const displayUrl = isDriveFileId
-                ? buildApiUrl(`/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}`)
-                : urlOrId;
+              // Always proxy through backend: covers plain file IDs AND full GCS URLs (which 403 from CORS directly)
+              const displayUrl = buildApiUrl(`/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}`);
               const isPdf = urlOrId?.match(/\.pdf$/i);
               return (
                 <a
