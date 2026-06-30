@@ -12,6 +12,7 @@
  * overlaps surrounding content.
  */
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import {
   BarChart3,
@@ -39,6 +40,16 @@ import { ReportCenter } from "@/pages/client/_components/ReportCenter";
 import { SupportCenter } from "@/pages/client/_components/SupportCenter";
 
 export function ClientPageLinks() {
+  const [location] = useLocation();
+
+  // If the current page URL already contains /admin/cars/:id/..., use that car
+  // ID so the Report Center links stay scoped to the car being viewed rather
+  // than always defaulting to the client's first car.
+  const urlCarId = (() => {
+    const m = location.match(/\/admin\/cars\/(\d+)\//);
+    return m ? parseInt(m[1], 10) : null;
+  })();
+
   const { data: meData } = useQuery<{ user?: { isClient?: boolean } }>({
     queryKey: ["/api/auth/me"],
     queryFn: authMeQueryFn,
@@ -66,9 +77,13 @@ export function ClientPageLinks() {
   if (!isClient) return null;
 
   const firstCarId = profileData?.data?.cars?.[0]?.id ?? null;
+  // Prefer the car ID already in the URL (so sub-pages like Records keep the
+  // same car when linking to Maintenance, Totals, etc.). Fall back to the
+  // client's first car when no car ID is in the URL (e.g. on trip-history).
+  const activeCarId = urlCarId ?? firstCarId;
 
-  const carPath = firstCarId
-    ? (p: string) => `/admin/cars/${firstCarId}/${p}`
+  const carPath = activeCarId
+    ? (p: string) => `/admin/cars/${activeCarId}/${p}`
     : (_: string) => "#";
 
   // Kept in sync with src/pages/client/dashboard.tsx — same order, same URLs.
