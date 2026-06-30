@@ -960,6 +960,7 @@ export default function ExpenseFormApprovalDashboard({
   const formatFieldLabel = (field: string) => {
     const direct = labelByValue.get(field);
     if (direct) return direct;
+    if (/^db_\d+$/i.test(field)) return `Custom Item #${field.replace(/^db_/i, "")}`;
     return field
       .replace(/([A-Z])/g, " $1")
       .replace(/^./, (s) => s.toUpperCase())

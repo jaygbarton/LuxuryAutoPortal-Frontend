@@ -64,6 +64,7 @@ interface Submission {
 }
 
 function fallbackFormatFieldLabel(field: string) {
+  if (/^db_\d+$/i.test(field)) return `Custom Item #${field.replace(/^db_/i, "")}`;
   return field
     .replace(/([A-Z])/g, " $1")
     .replace(/^./, (s) => s.toUpperCase())
