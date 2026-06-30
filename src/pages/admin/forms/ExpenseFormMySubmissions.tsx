@@ -266,10 +266,6 @@ export default function ExpenseFormMySubmissions() {
                     <span className="flex items-center gap-2 text-blue-700 hover:underline">
                       <ExternalLink className="w-4 h-4" /> Receipt {i + 1} (PDF)
                     </span>
-                  ) : isDriveFileId ? (
-                    <span className="flex items-center gap-2 text-blue-700 hover:underline">
-                      <ExternalLink className="w-4 h-4" /> View Receipt {i + 1}
-                    </span>
                   ) : (
                     <img
                       src={displayUrl}

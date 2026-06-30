@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -76,6 +76,11 @@ const DONE_STATUSES = new Set([
 // Task types that are "children" of a trip card rather than standalone rows.
 const TRIP_CHILD_TYPES = new Set<DayEventType>([
   "pickup", "delivery", "cleaning", "refuel",
+]);
+
+// Task types backed by operation_tasks table — support the completed checkbox.
+const OPERATION_TASK_TYPES = new Set<DayEventType>([
+  "pickup", "delivery", "cleaning", "refuel", "maintenance", "inspection",
 ]);
 
 const SOON_MINUTES = 30;
@@ -226,6 +231,32 @@ function relativeDeadline(deadlineMs: number, nowMs: number): string {
   return mins < 0 ? `${span} overdue` : `in ${span}`;
 }
 
+// ─── Toggle task done ─────────────────────────────────────────────────────────
+
+function useToggleTaskDone(scheduleDate: string) {
+  const qc = useQueryClient();
+  const [pending, setPending] = useState<Set<number>>(new Set());
+
+  async function toggle(taskId: number, currentlyDone: boolean) {
+    if (pending.has(taskId)) return;
+    const newStatus = currentlyDone ? "new" : "completed";
+    setPending((s) => new Set(s).add(taskId));
+    try {
+      await fetch(buildApiUrl(`/api/operations/tasks/${taskId}/status`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      qc.invalidateQueries({ queryKey: ["/api/operations/day-schedule", scheduleDate] });
+    } finally {
+      setPending((s) => { const n = new Set(s); n.delete(taskId); return n; });
+    }
+  }
+
+  return { toggle, pending };
+}
+
 // ─── Child task chip (cleaning / pickup / delivery / refuel) ──────────────────
 
 const TASK_ICON: Record<string, React.ReactNode> = {
@@ -244,7 +275,17 @@ const TASK_BG: Record<string, string> = {
   maintenance: "bg-red-900/40 border-red-700/50",
 };
 
-function ChildTaskChip({ task, scheduleDate }: { task: DayEvent; scheduleDate: string }) {
+function ChildTaskChip({
+  task,
+  scheduleDate,
+  onToggle,
+  toggling,
+}: {
+  task: DayEvent;
+  scheduleDate: string;
+  onToggle: (id: number, isDone: boolean) => void;
+  toggling: boolean;
+}) {
   const isDone = DONE_STATUSES.has((task.status ?? "").toLowerCase());
   const bg = TASK_BG[task.type] ?? "bg-muted border-border";
   return (
@@ -256,7 +297,7 @@ function ChildTaskChip({ task, scheduleDate }: { task: DayEvent; scheduleDate: s
       <span className="flex-shrink-0 mt-0.5 text-foreground/70">
         {TASK_ICON[task.type] ?? <Clock className="w-3.5 h-3.5" />}
       </span>
-      <div className="min-w-0 space-y-0.5">
+      <div className="min-w-0 flex-1 space-y-0.5">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold text-foreground capitalize">{task.category}</span>
           {task.start_time && (
@@ -270,24 +311,38 @@ function ChildTaskChip({ task, scheduleDate }: { task: DayEvent; scheduleDate: s
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <User className="w-3 h-3" />
-            {task.assigned_to ? (
-              <span className="text-foreground font-medium">{task.assigned_to}</span>
-            ) : (
-              <span className="italic text-amber-500">Unassigned</span>
-            )}
-          </span>
-          {task.location && (
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
-              <span className="truncate max-w-[200px]">{task.location}</span>
+              <User className="w-3 h-3" />
+              {task.assigned_to ? (
+                <span className="text-foreground font-medium">{task.assigned_to}</span>
+              ) : (
+                <span className="italic text-amber-500">Unassigned</span>
+              )}
             </span>
-          )}
-          {task.notes && (
-            <span className="italic truncate max-w-[200px]">{task.notes}</span>
-          )}
+            {task.location && (
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                <span className="truncate max-w-[200px]">{task.location}</span>
+              </span>
+            )}
+            {task.notes && (
+              <span className="italic truncate max-w-[200px]">{task.notes}</span>
+            )}
+          </div>
+          <label
+            className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none flex-shrink-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Checkbox
+              checked={isDone}
+              disabled={toggling}
+              onCheckedChange={() => onToggle(task.id, isDone)}
+              className="w-4 h-4"
+            />
+            <span>Done</span>
+          </label>
         </div>
       </div>
     </div>
@@ -300,10 +355,14 @@ function TimelineCard({
   row,
   nowMs,
   scheduleDate,
+  onToggle,
+  toggling,
 }: {
   row: TimelineRow;
   nowMs: number;
   scheduleDate: string;
+  onToggle: (id: number, isDone: boolean) => void;
+  toggling: (id: number) => boolean;
 }) {
   const { event: e, urgency, isDone, timing, childTasks } = row;
   const accent = CATEGORY_COLORS[e.category] ?? "bg-slate-500";
@@ -453,8 +512,32 @@ function TimelineCard({
         {childTasks.length > 0 && (
           <div className="pt-1 space-y-1 border-t border-border/50">
             {childTasks.map((t) => (
-              <ChildTaskChip key={`${t.type}-${t.id}`} task={t} scheduleDate={scheduleDate} />
+              <ChildTaskChip
+                key={`${t.type}-${t.id}`}
+                task={t}
+                scheduleDate={scheduleDate}
+                onToggle={onToggle}
+                toggling={toggling(t.id)}
+              />
             ))}
+          </div>
+        )}
+
+        {/* Completed checkbox — operation tasks only, bottom-right */}
+        {OPERATION_TASK_TYPES.has(e.type) && (
+          <div className="flex justify-end pt-1">
+            <label
+              className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none"
+              onClick={(ev) => ev.stopPropagation()}
+            >
+              <Checkbox
+                checked={isDone}
+                disabled={toggling(e.id)}
+                onCheckedChange={() => onToggle(e.id, isDone)}
+                className="w-5 h-5"
+              />
+              <span>Completed</span>
+            </label>
           </div>
         )}
       </div>
@@ -468,6 +551,7 @@ export function TvTimelineTab() {
   const [date, setDate] = useState(todayMTDate);
   const [showCompleted, setShowCompleted] = useState(true);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const { toggle, pending } = useToggleTaskDone(date);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -634,6 +718,8 @@ export function TvTimelineTab() {
                 row={row}
                 nowMs={nowMs}
                 scheduleDate={date}
+                onToggle={toggle}
+                toggling={(id) => pending.has(id)}
               />
             ))}
           </div>
