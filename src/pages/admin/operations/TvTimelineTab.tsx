@@ -254,7 +254,32 @@ function useToggleTaskDone(scheduleDate: string) {
     }
   }
 
-  return { toggle, pending };
+  // Toggle all child tasks of a trip card at once
+  async function toggleChildren(childTasks: DayEvent[], allDone: boolean) {
+    const opTasks = childTasks.filter((t) => OPERATION_TASK_TYPES.has(t.type));
+    if (opTasks.length === 0) return;
+    const newStatus = allDone ? "new" : "completed";
+    opTasks.forEach((t) => setPending((s) => new Set(s).add(t.id)));
+    try {
+      await Promise.all(
+        opTasks.map((t) =>
+          fetch(buildApiUrl(`/api/operations/tasks/${t.id}/status`), {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: newStatus }),
+          }),
+        ),
+      );
+      qc.invalidateQueries({ queryKey: ["/api/operations/day-schedule", scheduleDate] });
+    } finally {
+      opTasks.forEach((t) =>
+        setPending((s) => { const n = new Set(s); n.delete(t.id); return n; }),
+      );
+    }
+  }
+
+  return { toggle, toggleChildren, pending };
 }
 
 // ─── Child task chip (cleaning / pickup / delivery / refuel) ──────────────────
@@ -356,12 +381,14 @@ function TimelineCard({
   nowMs,
   scheduleDate,
   onToggle,
+  onToggleChildren,
   toggling,
 }: {
   row: TimelineRow;
   nowMs: number;
   scheduleDate: string;
   onToggle: (id: number, isDone: boolean) => void;
+  onToggleChildren: (children: DayEvent[], allDone: boolean) => void;
   toggling: (id: number) => boolean;
 }) {
   const { event: e, urgency, isDone, timing, childTasks } = row;
@@ -523,23 +550,53 @@ function TimelineCard({
           </div>
         )}
 
-        {/* Completed checkbox — operation tasks only, bottom-right */}
-        {OPERATION_TASK_TYPES.has(e.type) && (
-          <div className="flex justify-end pt-1">
-            <label
-              className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none"
-              onClick={(ev) => ev.stopPropagation()}
-            >
-              <Checkbox
-                checked={isDone}
-                disabled={toggling(e.id)}
-                onCheckedChange={() => onToggle(e.id, isDone)}
-                className="w-5 h-5"
-              />
-              <span>Completed</span>
-            </label>
-          </div>
-        )}
+        {/* Completed checkbox — all card types, bottom-right */}
+        {(() => {
+          const isTripCard = e.type === "trip_start" || e.type === "trip_end";
+          if (isTripCard) {
+            const opChildren = childTasks.filter((t) => OPERATION_TASK_TYPES.has(t.type));
+            if (opChildren.length === 0) return null;
+            const allChildrenDone = opChildren.every((t) =>
+              DONE_STATUSES.has((t.status ?? "").toLowerCase()),
+            );
+            const anyPending = opChildren.some((t) => toggling(t.id));
+            return (
+              <div className="flex justify-end pt-1">
+                <label
+                  className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none"
+                  onClick={(ev) => ev.stopPropagation()}
+                >
+                  <Checkbox
+                    checked={allChildrenDone}
+                    disabled={anyPending}
+                    onCheckedChange={() => onToggleChildren(opChildren, allChildrenDone)}
+                    className="w-5 h-5"
+                  />
+                  <span>Completed</span>
+                </label>
+              </div>
+            );
+          }
+          if (OPERATION_TASK_TYPES.has(e.type)) {
+            return (
+              <div className="flex justify-end pt-1">
+                <label
+                  className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none"
+                  onClick={(ev) => ev.stopPropagation()}
+                >
+                  <Checkbox
+                    checked={isDone}
+                    disabled={toggling(e.id)}
+                    onCheckedChange={() => onToggle(e.id, isDone)}
+                    className="w-5 h-5"
+                  />
+                  <span>Completed</span>
+                </label>
+              </div>
+            );
+          }
+          return null;
+        })()}
       </div>
     </div>
   );
@@ -551,7 +608,7 @@ export function TvTimelineTab() {
   const [date, setDate] = useState(todayMTDate);
   const [showCompleted, setShowCompleted] = useState(true);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const { toggle, pending } = useToggleTaskDone(date);
+  const { toggle, toggleChildren, pending } = useToggleTaskDone(date);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -719,6 +776,7 @@ export function TvTimelineTab() {
                 nowMs={nowMs}
                 scheduleDate={date}
                 onToggle={toggle}
+                onToggleChildren={toggleChildren}
                 toggling={(id) => pending.has(id)}
               />
             ))}

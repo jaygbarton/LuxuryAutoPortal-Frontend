@@ -277,8 +277,8 @@ export default function OperationsSection() {
     }
 
     return [...map.values()].sort((a, b) => {
-      const aTime = a.trip_start ? new Date(a.trip_start).getTime() : 0;
-      const bTime = b.trip_start ? new Date(b.trip_start).getTime() : 0;
+      const aTime = a.trip_end ? new Date(a.trip_end).getTime() : Infinity;
+      const bTime = b.trip_end ? new Date(b.trip_end).getTime() : Infinity;
       return aTime - bTime;
     });
   }, [data]);
