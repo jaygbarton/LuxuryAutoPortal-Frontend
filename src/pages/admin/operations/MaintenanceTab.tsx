@@ -11,14 +11,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -26,6 +18,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
+import { SummaryCard } from "@/components/admin/dashboard/SummaryCard";
+import { DashboardRecordCard } from "@/components/admin/dashboard/DashboardRecordCard";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
 import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
@@ -41,7 +35,6 @@ import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarIssueTypesCell } from "./CarIssueTypesCell";
 import { FuelReturnedCell } from "./FuelReturnedCell";
-import { GasLevelCells } from "./GasLevelCells";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -403,6 +396,14 @@ export function MaintenanceTab({
     },
   });
 
+  const newCount = rawRecords.filter((r) => r.status === "new").length;
+  const inProgressCount = rawRecords.filter((r) =>
+    ["in_review", "in_progress", "in_repair", "damage_reported"].includes(r.status)
+  ).length;
+  const completedCount = rawRecords.filter((r) =>
+    ["completed", "charged_customer"].includes(r.status)
+  ).length;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -420,6 +421,12 @@ export function MaintenanceTab({
             Add Maintenance
           </Button>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <SummaryCard label="New" value={String(newCount)} variant="gold" />
+        <SummaryCard label="In Progress" value={String(inProgressCount)} variant="dark" />
+        <SummaryCard label="Completed" value={String(completedCount)} variant="white" />
       </div>
 
       <div className="bg-card border border-border rounded-lg">
@@ -501,349 +508,199 @@ export function MaintenanceTab({
             Total: {records.length}
           </div>
 
-          <div className="overflow-auto max-h-[60vh]">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">Reservation #</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">CAR Name</TableHead>
-                  <TableHead className="text-foreground font-medium">Plate #</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Start</TableHead>
-                  <TableHead className="text-foreground font-medium">Pick Up Location</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Ends</TableHead>
-                  <TableHead className="text-foreground font-medium">Days Rented</TableHead>
-                  <TableHead className="text-foreground font-medium">Drop Off Location</TableHead>
-                  <TableHead className="text-foreground font-medium">Extras</TableHead>
-                  <TableHead className="text-foreground font-medium">Miles Included</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Start Odometer</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Ends Odometer</TableHead>
-                  <TableHead className="text-foreground font-medium">Total Miles</TableHead>
-                  <TableHead className="text-foreground font-medium">Earnings</TableHead>
-                  <TableHead className="text-foreground font-medium">Trip Status</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip Start</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">Gas Level Trip End</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">Fuel Returned</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">Car Issues Type</TableHead>
-                  <TableHead className="text-foreground font-medium">Description</TableHead>
-                  <TableHead className="text-foreground font-medium">Assigned To</TableHead>
-                  <TableHead className="text-foreground font-medium">Scheduled Date</TableHead>
-                  <TableHead className="text-foreground font-medium">Due Date</TableHead>
-                  <TableHead className="text-foreground font-medium">Maint. Status</TableHead>
-                  <TableHead className="text-foreground font-medium whitespace-nowrap">Owner Approval</TableHead>
-                  <TableHead className="text-foreground font-medium">Repair Shop</TableHead>
-                  <TableHead className="text-foreground font-medium">Notes</TableHead>
-                  <TableHead className="text-foreground font-medium">Photos</TableHead>
-                  <TableHead className="text-center text-foreground font-medium">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={29}
-                      className="text-center py-12 text-muted-foreground"
-                    >
-                      Loading maintenance records...
-                    </TableCell>
-                  </TableRow>
-                ) : records.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={29}
-                      className="text-center py-12 text-muted-foreground"
-                    >
-                      No maintenance records found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  pagedRecords.map((rec) => {
-                    const insp = rec.inspection_id != null ? inspectionsById.get(rec.inspection_id) : undefined;
-                    const clientTrip = insp?.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
-                    // Prefer trip context joined on the backend (rec.trip_*) — it's
-                    // attached to every row regardless of the client's fetch window.
-                    // Fall back to the client-side inspection→trip lookup for any
-                    // field the backend join didn't supply.
-                    const num = (v: string | number | null | undefined): number | null =>
-                      v == null || v === "" ? null : Number(v);
-                    const trip = (rec.trip_id != null || rec.trip_reservation_id || rec.trip_start)
-                      ? {
-                          reservationId: rec.trip_reservation_id ?? clientTrip?.reservationId ?? null,
-                          tripStart: rec.trip_start ?? clientTrip?.tripStart ?? null,
-                          tripEnd: rec.trip_end ?? clientTrip?.tripEnd ?? null,
-                          pickupLocation: rec.trip_pickup_location ?? clientTrip?.pickupLocation ?? null,
-                          deliveryLocation: rec.trip_delivery_location ?? clientTrip?.deliveryLocation ?? null,
-                          returnLocation: rec.trip_return_location ?? clientTrip?.returnLocation ?? null,
-                          extras: rec.trip_extras ?? clientTrip?.extras ?? null,
-                          milesIncluded: rec.trip_miles_included ?? clientTrip?.milesIncluded ?? null,
-                          totalDistance: num(rec.trip_total_distance ?? clientTrip?.totalDistance),
-                          tripStartOdometer: num(rec.trip_start_odometer ?? clientTrip?.tripStartOdometer),
-                          tripEndOdometer: num(rec.trip_end_odometer ?? clientTrip?.tripEndOdometer),
-                          earnings: num(rec.trip_earnings ?? clientTrip?.earnings),
-                          cancelledEarnings: num(rec.trip_cancelled_earnings ?? clientTrip?.cancelledEarnings),
-                          status: rec.trip_status ?? clientTrip?.status ?? null,
-                          plateNumber: rec.trip_plate_number ?? clientTrip?.plateNumber ?? null,
-                        }
-                      : clientTrip;
-                    const pickupLocation = trip?.pickupLocation || trip?.deliveryLocation || "--";
-                    const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? trip?.pickupLocation ?? "--";
-                    const daysRented = trip ? calculateDaysRented(trip.tripStart, trip.tripEnd) : null;
-                    const tripEarnings = trip
-                      ? (trip.status?.toLowerCase() === "cancelled"
-                          ? trip.cancelledEarnings
-                          : trip.earnings)
-                      : null;
-                    const reservationId = rec.trip_reservation_id || insp?.reservation_id || trip?.reservationId || "--";
-                    const plateNumber = rec.car_plate || trip?.plateNumber || "--";
-                    // Prefer joined car fields; fall back to car_name for legacy rows
-                    const fallbackParts = (rec.car_name || "").trim().split(/\s+/);
-                    const make = rec.car_make || fallbackParts[0] || "--";
-                    const model = rec.car_model || (fallbackParts.length > 1 ? fallbackParts.slice(1).join(" ") : "--");
-                    let year = rec.car_year != null ? String(rec.car_year) : "";
-                    if (!year && rec.car_name) {
-                      const enriched = carNameWithYear(rec.car_name, rec.car_plate);
-                      const match = enriched.match(/\b(19|20)\d{2}\b/);
-                      if (match) year = match[0];
+          <div className="flex flex-col gap-3">
+            {isLoading ? (
+              <p className="text-center py-12 text-muted-foreground">Loading maintenance records...</p>
+            ) : records.length === 0 ? (
+              <p className="text-center py-12 text-muted-foreground">No maintenance records found</p>
+            ) : (
+              pagedRecords.map((rec) => {
+                const insp = rec.inspection_id != null ? inspectionsById.get(rec.inspection_id) : undefined;
+                const clientTrip = insp?.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+                const num = (v: string | number | null | undefined): number | null =>
+                  v == null || v === "" ? null : Number(v);
+                const trip = (rec.trip_id != null || rec.trip_reservation_id || rec.trip_start)
+                  ? {
+                      reservationId: rec.trip_reservation_id ?? clientTrip?.reservationId ?? null,
+                      tripStart: rec.trip_start ?? clientTrip?.tripStart ?? null,
+                      tripEnd: rec.trip_end ?? clientTrip?.tripEnd ?? null,
+                      pickupLocation: rec.trip_pickup_location ?? clientTrip?.pickupLocation ?? null,
+                      deliveryLocation: rec.trip_delivery_location ?? clientTrip?.deliveryLocation ?? null,
+                      returnLocation: rec.trip_return_location ?? clientTrip?.returnLocation ?? null,
+                      extras: rec.trip_extras ?? clientTrip?.extras ?? null,
+                      milesIncluded: rec.trip_miles_included ?? clientTrip?.milesIncluded ?? null,
+                      totalDistance: num(rec.trip_total_distance ?? clientTrip?.totalDistance),
+                      tripStartOdometer: num(rec.trip_start_odometer ?? clientTrip?.tripStartOdometer),
+                      tripEndOdometer: num(rec.trip_end_odometer ?? clientTrip?.tripEndOdometer),
+                      earnings: num(rec.trip_earnings ?? clientTrip?.earnings),
+                      cancelledEarnings: num(rec.trip_cancelled_earnings ?? clientTrip?.cancelledEarnings),
+                      status: rec.trip_status ?? clientTrip?.status ?? null,
+                      plateNumber: rec.trip_plate_number ?? clientTrip?.plateNumber ?? null,
                     }
-                    const carDisplayName = rec.car_name || (make !== "--" ? `${make} ${model}${year ? " " + year : ""}`.trim() : "--");
-                    return (
-                      <TableRow
-                        key={rec.id}
-                        className="border-border hover:bg-card/50 transition-colors"
-                      >
-                        <TableCell className="text-foreground font-mono text-sm whitespace-nowrap">
-                          {reservationId}
-                        </TableCell>
-                        <TableCell className="text-foreground whitespace-nowrap">
-                          {rec.car_id ? (
-                            <Link href={`/admin/cars/${rec.car_id}/maintenance`} className="text-[#D3BC8D] hover:underline">
-                              {carDisplayName}
-                            </Link>
-                          ) : carDisplayName}
-                        </TableCell>
-                        <TableCell className="text-foreground font-mono text-sm">
-                          {plateNumber}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {trip ? formatDateTime(trip.tripStart) : formatDateTime(insp?.inspection_date ?? null)}
-                        </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[150px] truncate"
-                          title={pickupLocation}
-                        >
-                          {trip ? pickupLocation : "--"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {trip ? formatDateTime(trip.tripEnd) : "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm text-center">
-                          {daysRented ?? "--"}
-                        </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[150px] truncate"
-                          title={dropOffLocation}
-                        >
-                          {dropOffLocation}
-                        </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[120px] truncate"
-                          title={trip?.extras || undefined}
-                        >
-                          {trip?.extras || "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm">
-                          {trip?.milesIncluded || (trip?.totalDistance != null ? String(trip.totalDistance) : null) || "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm tabular-nums">
-                          {trip?.tripStartOdometer ?? "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm tabular-nums">
-                          {trip?.tripEndOdometer ?? "--"}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm tabular-nums">
-                          {(() => {
-                            if (!trip) return "--";
-                            const s = trip.tripStartOdometer; const e = trip.tripEndOdometer;
-                            if (s != null && e != null && e >= s) return (e - s).toLocaleString();
-                            return "--";
-                          })()}
-                        </TableCell>
-                        <TableCell className="text-foreground text-sm">
-                          {tripEarnings != null ? formatCurrency(tripEarnings) : "--"}
-                        </TableCell>
-                        <TableCell>
-                          {trip?.status ? <StatusBadge status={trip.status} /> : <span className="text-muted-foreground text-sm italic text-xs">Manual</span>}
-                        </TableCell>
-                        <GasLevelCells
-                          tripId={rec.trip_id ?? clientTrip?.id}
-                          start={rec.gas_level_trip_start ?? clientTrip?.gasLevelTripStart}
-                          end={rec.gas_level_trip_end ?? clientTrip?.gasLevelTripEnd}
-                          onSaved={() => {
-                            queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
-                            queryClient.invalidateQueries({ queryKey: ["/api/operations/maintenance"] });
-                          }}
-                        />
-                        <TableCell>
-                          <FuelReturnedCell level={rec.inspection_fuel_level_returned} />
-                        </TableCell>
-                        <TableCell>
-                          <CarIssueTypesCell types={rec.inspection_car_issue_types} />
-                        </TableCell>
-                        <TableCell
-                          className="text-foreground text-sm max-w-[200px] truncate"
-                          title={rec.task_description}
-                        >
-                          {rec.task_description}
-                        </TableCell>
-                        <TableCell className="min-w-[200px]">
-                          <EmployeeSelectCombobox
-                            value={rec.assigned_to || ""}
-                            onChange={(v) => {
-                              if (!v) {
-                                assigneeUpdateMutation.mutate({
-                                  id: rec.id,
-                                  assigned_to: null,
-                                  assigned_to_id: null,
-                                });
-                              }
-                            }}
-                            onSelectEmployee={(emp) => {
-                              if (emp) {
-                                const fullName =
-                                  [emp.employee_first_name, emp.employee_last_name]
-                                    .filter(Boolean)
-                                    .join(" ")
-                                    .trim() ||
-                                  emp.employee_email ||
-                                  `Employee #${emp.employee_aid}`;
-                                assigneeUpdateMutation.mutate({
-                                  id: rec.id,
-                                  assigned_to: fullName,
-                                  assigned_to_id: emp.employee_aid,
-                                });
-                              }
-                            }}
-                            placeholder="Assign..."
-                          />
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {formatDateTime(rec.scheduled_date)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                          {formatDateTime(rec.due_date)}
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={rec.status}
-                            onValueChange={(v) =>
-                              statusUpdateMutation.mutate({
-                                id: rec.id,
-                                status: v,
-                              })
-                            }
-                          >
-                            <SelectTrigger className="bg-transparent border-0 p-0 h-auto w-auto shadow-none focus:ring-0">
-                              <StatusBadge status={rec.status} />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card border-border text-foreground">
-                              <SelectItem value="new">New</SelectItem>
-                              <SelectItem value="damage_reported">
-                                Maintenance Reported
-                              </SelectItem>
-                              <SelectItem value="in_review">
-                                In Review
-                              </SelectItem>
-                              <SelectItem value="in_progress">
-                                In Progress
-                              </SelectItem>
-                              <SelectItem value="in_repair">
-                                In Repair
-                              </SelectItem>
-                              <SelectItem value="completed">
-                                Completed
-                              </SelectItem>
-                              <SelectItem value="charged_customer">
-                                Charged Customer
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <OwnerApprovalBadge rec={rec} />
-                        </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[160px] truncate"
-                          title={rec.repair_shop || undefined}
-                        >
-                          {rec.repair_shop || "--"}
-                        </TableCell>
-                        <TableCell
-                          className="text-muted-foreground text-sm max-w-[200px] truncate"
-                          title={rec.notes || undefined}
-                        >
-                          {rec.notes || "--"}
-                        </TableCell>
-                        <TableCell>
-                          {rec.photos && rec.photos.length > 0 ? (
-                            <PhotoUpload
-                              photos={rec.photos}
-                              onPhotosChange={() => {}}
-                              entityType="maintenance"
-                              entityId={rec.id}
-                              disabled
-                              compact
-                            />
-                          ) : (
-                            <span className="text-muted-foreground text-sm">
-                              --
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEditingRecord(rec);
-                                setModalOpen(true);
-                              }}
-                              className="text-muted-foreground hover:text-primary h-8 px-2"
-                              title="Edit"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setHistoryRecord(rec);
-                                setHistoryModalOpen(true);
-                              }}
-                              className="text-muted-foreground hover:text-blue-400 h-8 px-2"
-                              title="View History"
-                            >
-                              <History className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setDeletingRecord(rec);
-                                setDeleteModalOpen(true);
-                              }}
-                              className="text-muted-foreground hover:text-red-700 h-8 px-2"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+                  : clientTrip;
+                const pickupLocation = trip?.pickupLocation || trip?.deliveryLocation || null;
+                const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? trip?.pickupLocation ?? null;
+                const daysRented = trip ? calculateDaysRented(trip.tripStart, trip.tripEnd) : null;
+                const tripEarnings = trip
+                  ? (trip.status?.toLowerCase() === "cancelled" ? trip.cancelledEarnings : trip.earnings)
+                  : null;
+                const reservationId = rec.trip_reservation_id || insp?.reservation_id || trip?.reservationId || null;
+                const plateNumber = rec.car_plate || trip?.plateNumber || null;
+                const fallbackParts = (rec.car_name || "").trim().split(/\s+/);
+                const make = rec.car_make || fallbackParts[0] || "--";
+                const model = rec.car_model || (fallbackParts.length > 1 ? fallbackParts.slice(1).join(" ") : "--");
+                let year = rec.car_year != null ? String(rec.car_year) : "";
+                if (!year && rec.car_name) {
+                  const enriched = carNameWithYear(rec.car_name, rec.car_plate);
+                  const match = enriched.match(/\b(19|20)\d{2}\b/);
+                  if (match) year = match[0];
+                }
+                const carDisplayName = rec.car_name || (make !== "--" ? `${make} ${model}${year ? " " + year : ""}`.trim() : "--");
+
+                const statusAccent = rec.status === "completed" || rec.status === "charged_customer"
+                  ? { bg: "bg-green-600", border: "border-green-300" }
+                  : rec.status === "in_repair" || rec.status === "in_progress"
+                  ? { bg: "bg-amber-500", border: "border-amber-300" }
+                  : rec.status === "damage_reported"
+                  ? { bg: "bg-orange-500", border: "border-orange-300" }
+                  : rec.status === "in_review"
+                  ? { bg: "bg-blue-500", border: "border-blue-300" }
+                  : { bg: "bg-slate-500", border: "border-slate-300" };
+
+                const statusControl = (
+                  <Select
+                    value={rec.status}
+                    onValueChange={(v) => statusUpdateMutation.mutate({ id: rec.id, status: v })}
+                  >
+                    <SelectTrigger className="bg-transparent border-0 p-0 h-auto w-auto shadow-none focus:ring-0">
+                      <StatusBadge status={rec.status} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border text-foreground">
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="damage_reported">Maintenance Reported</SelectItem>
+                      <SelectItem value="in_review">In Review</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="in_repair">In Repair</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="charged_customer">Charged Customer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                );
+
+                const actionsEl = (
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => { setEditingRecord(rec); setModalOpen(true); }} className="text-muted-foreground hover:text-primary h-7 px-2" title="Edit">
+                      <Edit className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => { setHistoryRecord(rec); setHistoryModalOpen(true); }} className="text-muted-foreground hover:text-blue-400 h-7 px-2" title="View History">
+                      <History className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => { setDeletingRecord(rec); setDeleteModalOpen(true); }} className="text-muted-foreground hover:text-red-700 h-7 px-2" title="Delete">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                );
+
+                const assigneeEl = (
+                  <EmployeeSelectCombobox
+                    value={rec.assigned_to || ""}
+                    onChange={(v) => { if (!v) assigneeUpdateMutation.mutate({ id: rec.id, assigned_to: null, assigned_to_id: null }); }}
+                    onSelectEmployee={(emp) => {
+                      if (emp) {
+                        const fullName = [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || emp.employee_email || `Employee #${emp.employee_aid}`;
+                        assigneeUpdateMutation.mutate({ id: rec.id, assigned_to: fullName, assigned_to_id: emp.employee_aid });
+                      }
+                    }}
+                    placeholder="Assign..."
+                  />
+                );
+
+                const tripIdForGas = rec.trip_id ?? clientTrip?.id;
+                const gasStart = rec.gas_level_trip_start ?? clientTrip?.gasLevelTripStart ?? "";
+                const gasEnd = rec.gas_level_trip_end ?? clientTrip?.gasLevelTripEnd ?? "";
+                const GAS_OPTS = [
+                  { value: "__none__", label: "--" },
+                  { value: "empty", label: "Empty" },
+                  { value: "quarter", label: "1/4" },
+                  { value: "half", label: "1/2" },
+                  { value: "three_quarters", label: "3/4" },
+                  { value: "full", label: "Full" },
+                ];
+                const saveGas = async (newStart: string, newEnd: string) => {
+                  if (!tripIdForGas) return;
+                  try {
+                    const res = await fetch(buildApiUrl(`/api/turo-trips/${tripIdForGas}/gas-levels`), {
+                      method: "PATCH", credentials: "include",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ gasLevelTripStart: newStart || null, gasLevelTripEnd: newEnd || null }),
+                    });
+                    if (!res.ok) throw new Error();
+                    queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+                    queryClient.invalidateQueries({ queryKey: ["/api/operations/maintenance"] });
+                  } catch { toast({ title: "Failed to save gas levels", variant: "destructive" }); }
+                };
+                const gasEl = tripIdForGas ? (
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <Select value={gasStart || "__none__"} onValueChange={(v) => saveGas(v === "__none__" ? "" : v, gasEnd)}>
+                      <SelectTrigger className="h-7 w-[90px] text-xs"><SelectValue placeholder="Start" /></SelectTrigger>
+                      <SelectContent>{GAS_OPTS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                    <span className="text-muted-foreground text-xs">→</span>
+                    <Select value={gasEnd || "__none__"} onValueChange={(v) => saveGas(gasStart, v === "__none__" ? "" : v)}>
+                      <SelectTrigger className="h-7 w-[90px] text-xs"><SelectValue placeholder="End" /></SelectTrigger>
+                      <SelectContent>{GAS_OPTS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                ) : <span className="text-muted-foreground text-xs">--</span>;
+
+                const photosEl = rec.photos && rec.photos.length > 0 ? (
+                  <PhotoUpload photos={rec.photos} onPhotosChange={() => {}} entityType="maintenance" entityId={rec.id} disabled compact />
+                ) : null;
+
+                return (
+                  <DashboardRecordCard
+                    key={rec.id}
+                    accentBg={statusAccent.bg}
+                    accentBorder={statusAccent.border}
+                    typeLabel="Maintenance"
+                    reservationId={reservationId}
+                    carName={rec.car_id ? undefined : carDisplayName}
+                    plate={plateNumber}
+                    assignedTo={rec.assigned_to || null}
+                    tripStart={trip ? formatDateTime(trip.tripStart) : formatDateTime(insp?.inspection_date ?? null)}
+                    tripEnd={trip ? formatDateTime(trip.tripEnd) : null}
+                    pickupLocation={pickupLocation}
+                    dropoffLocation={dropOffLocation}
+                    statusControl={statusControl}
+                    media={photosEl}
+                    notes={rec.notes}
+                    details={[
+                      { label: "CAR Name", value: rec.car_id ? (
+                        <Link href={`/admin/cars/${rec.car_id}/maintenance`} className="text-[#D3BC8D] hover:underline">{carDisplayName}</Link>
+                      ) : carDisplayName },
+                      { label: "Description", value: rec.task_description },
+                      { label: "Assigned To", value: assigneeEl },
+                      { label: "Scheduled", value: formatDateTime(rec.scheduled_date) },
+                      { label: "Due Date", value: formatDateTime(rec.due_date) },
+                      { label: "Trip Status", value: trip?.status ? <StatusBadge status={trip.status} /> : "Manual" },
+                      { label: "Days Rented", value: daysRented ?? "--" },
+                      { label: "Earnings", value: tripEarnings != null ? formatCurrency(tripEarnings) : "--" },
+                      { label: "Miles Included", value: trip?.milesIncluded || (trip?.totalDistance != null ? String(trip.totalDistance) : null) || "--" },
+                      { label: "Start Odo", value: trip?.tripStartOdometer != null ? String(trip.tripStartOdometer) : "--" },
+                      { label: "End Odo", value: trip?.tripEndOdometer != null ? String(trip.tripEndOdometer) : "--" },
+                      { label: "Total Miles", value: (() => { if (!trip) return "--"; const s = trip.tripStartOdometer; const e = trip.tripEndOdometer; return s != null && e != null && e >= s ? (e - s).toLocaleString() : "--"; })() },
+                      { label: "Extras", value: trip?.extras || "--" },
+                      { label: "Gas Levels", value: gasEl },
+                      { label: "Fuel Returned", value: <FuelReturnedCell level={rec.inspection_fuel_level_returned} /> },
+                      { label: "Car Issues", value: <CarIssueTypesCell types={rec.inspection_car_issue_types} /> },
+                      { label: "Owner Approval", value: <OwnerApprovalBadge rec={rec} /> },
+                      { label: "Repair Shop", value: rec.repair_shop || "--" },
+                      { label: "Actions", value: actionsEl },
+                    ]}
+                  />
+                );
+              })
+            )}
           </div>
         </div>
         <TablePagination
