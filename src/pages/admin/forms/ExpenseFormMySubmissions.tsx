@@ -53,6 +53,7 @@ interface Submission {
   month: number;
   category: string;
   field: string;
+  fieldLabel?: string | null;
   amount: number;
   receiptUrls: string[] | null;
   remarks: string | null;
@@ -64,7 +65,10 @@ interface Submission {
 }
 
 function fallbackFormatFieldLabel(field: string) {
-  if (/^db_\d+$/i.test(field)) return `Custom Item #${field.replace(/^db_/i, "")}`;
+  // Orphaned dynamic-subcategory reference (metadata renamed/deleted after
+  // submission with no label snapshot): show a neutral "Other" rather than the
+  // meaningless internal id.
+  if (/^db_\d+$/i.test(field)) return "Other";
   return field
     .replace(/([A-Z])/g, " $1")
     .replace(/^./, (s) => s.toUpperCase())
@@ -179,7 +183,7 @@ export default function ExpenseFormMySubmissions() {
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">{s.carDisplayName || "—"}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {CATEGORY_LABELS[s.category] || s.category} / {formatFieldLabel(s.field)}
+                    {CATEGORY_LABELS[s.category] || s.category} / {s.fieldLabel || formatFieldLabel(s.field)}
                   </TableCell>
                   <TableCell className="text-green-700 font-semibold">
                     ${Number(s.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}

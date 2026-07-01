@@ -159,6 +159,7 @@ export default function IncomeExpenseTable({
     carId,
     isAllCars,
     getCategoryMonthFormTotal,
+    formAmounts,
   } = useIncomeExpense();
 
   // ── Co-Hosting: tri-state ownership selector (drives the split formula) ──
@@ -521,6 +522,55 @@ export default function IncomeExpenseTable({
     return list.filter(
       (s: any) => findStandardCategoryMatch(categoryType, s.name) != null,
     );
+  };
+
+  // ---- Orphaned approved form submissions ----
+  // A `db_<id>` field on an APPROVED submission whose subcategory metadata row
+  // was later deleted has no row to render into: the standard COGS rows key by
+  // plain field names (carInsurance, …), and the dynamic-subcategory list no
+  // longer contains the deleted id. Its amount still lands in the category
+  // subtotal (getCategoryMonthFormTotal sums ALL approved form amounts), so the
+  // grand totals look right but every visible row shows $0.00 — the money
+  // "disappears" from the grid. This helper recovers those orphans directly
+  // from the approved-form map (formAmounts) so they can be rendered as their
+  // own rows. Returns [{ field, monthly: number[12], total }].
+  const getOrphanFormRows = (
+    categoryType: string,
+  ): { field: string; monthly: number[]; total: number }[] => {
+    if (!FORM_BACKED_CATEGORIES.has(categoryType)) return [];
+    // Field ids that ARE rendered as dynamic subcategory rows.
+    const renderedDynamicFields = new Set<string>(
+      ((dynamicSubcategories as any)?.[categoryType] || []).map((s: any) =>
+        dynamicFieldValue(s.id),
+      ),
+    );
+    // Collect db_<id> fields present in the approved-form map for this category.
+    const byField = new Map<string, number[]>();
+    const prefix = `${categoryType}-`;
+    for (const [key, entry] of Object.entries(formAmounts)) {
+      if (!key.startsWith(prefix)) continue;
+      // key = `${category}-${field}-${month}` — field may itself contain '-',
+      // so split off the leading category and the trailing month explicitly.
+      const rest = key.slice(prefix.length);
+      const lastDash = rest.lastIndexOf("-");
+      if (lastDash < 0) continue;
+      const field = rest.slice(0, lastDash);
+      const month = Number(rest.slice(lastDash + 1));
+      if (!/^db_\d+$/i.test(field)) continue; // only dynamic-id fields orphan
+      if (renderedDynamicFields.has(field)) continue; // has a real row already
+      if (!month || month < 1 || month > 12) continue;
+      const arr = byField.get(field) ?? Array(12).fill(0);
+      arr[month - 1] += entry.amount;
+      byField.set(field, arr);
+    }
+    return Array.from(byField.entries())
+      .map(([field, monthly]) => ({
+        field,
+        monthly,
+        total: monthly.reduce((s, v) => s + v, 0),
+      }))
+      .filter((r) => r.total !== 0)
+      .sort((a, b) => a.field.localeCompare(b.field));
   };
 
   // Delete every dynamic subcategory in `categoryType` whose name matches a
@@ -2829,6 +2879,10 @@ export default function IncomeExpenseTable({
                   isReadOnly={isReadOnly}
                 />
               ))}
+              {/* Orphaned approved receipts whose subcategory was deleted */}
+              {getOrphanFormRows("directDelivery").map((o) => (
+                <OrphanFormRow key={o.field} field={o.field} monthly={o.monthly} total={o.total} />
+              ))}
               {/* Add Subcategory + Clean Up Duplicates */}
               {!isReadOnly && (
                 <tr>
@@ -3165,6 +3219,10 @@ export default function IncomeExpenseTable({
                   onUpdateValue={updateDynamicSubcategoryValue}
                   isReadOnly={isReadOnly}
                 />
+              ))}
+              {/* Orphaned approved receipts whose subcategory was deleted */}
+              {getOrphanFormRows("cogs").map((o) => (
+                <OrphanFormRow key={o.field} field={o.field} monthly={o.monthly} total={o.total} />
               ))}
               {/* Add Subcategory + Clean Up Duplicates */}
               {!isReadOnly && (
@@ -3530,6 +3588,10 @@ export default function IncomeExpenseTable({
                   onUpdateValue={updateDynamicSubcategoryValue}
                   isReadOnly={isReadOnly}
                 />
+              ))}
+              {/* Orphaned approved receipts whose subcategory was deleted */}
+              {getOrphanFormRows("reimbursedBills").map((o) => (
+                <OrphanFormRow key={o.field} field={o.field} monthly={o.monthly} total={o.total} />
               ))}
               {/* Add Subcategory + Clean Up Duplicates */}
               {!isReadOnly && (
@@ -4795,6 +4857,64 @@ export default function IncomeExpenseTable({
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// Orphaned Form-Submission Row
+// Renders an approved receipt whose dynamic subcategory metadata row was deleted
+// (so it no longer has a normal DynamicSubcategoryRow). Read-only — there is no
+// manual value to edit, only the recovered form amount — so the money is visible
+// in its own category section instead of silently living only in the subtotal.
+const ORPHAN_MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+function OrphanFormRow({
+  field,
+  monthly,
+  total,
+}: {
+  field: string;
+  monthly: number[];
+  total: number;
+}) {
+  // Label: the metadata name is gone, so show the stable id form + a hint that
+  // it came from an approved receipt whose category was removed.
+  const idPart = field.replace(/^db_/i, "");
+  return (
+    <tr className="border-b border-border">
+      <td className="md:sticky md:left-0 md:z-20 bg-card px-2 py-1 text-left text-muted-foreground border-r border-border text-xs">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-primary" title={`Approved receipt for a deleted subcategory (#${idPart}). Re-create the subcategory to relabel it.`}>
+            Approved Receipt #{idPart}
+          </span>
+        </div>
+      </td>
+      {ORPHAN_MONTHS.map((_, i) => {
+        const value = monthly[i] || 0;
+        return (
+          <td key={i} className="border-l border-border px-1 py-1 text-right">
+            <span
+              title={value > 0 ? `$${value.toFixed(2)} from an approved form submission` : undefined}
+              className={cn(
+                "px-1 py-0.5 rounded block text-xs text-right",
+                value === 0 ? "text-gray-600" : "text-primary font-medium",
+              )}
+            >
+              ${value.toFixed(2)}
+            </span>
+          </td>
+        );
+      })}
+      <td
+        className={cn(
+          "md:sticky md:right-0 md:z-20 border-l border-border px-1 py-1 text-right font-bold text-xs bg-card",
+          total === 0 ? "text-gray-600" : "text-primary",
+        )}
+      >
+        ${total.toFixed(2)}
+      </td>
+    </tr>
   );
 }
 

@@ -960,7 +960,10 @@ export default function ExpenseFormApprovalDashboard({
   const formatFieldLabel = (field: string) => {
     const direct = labelByValue.get(field);
     if (direct) return direct;
-    if (/^db_\d+$/i.test(field)) return `Custom Item #${field.replace(/^db_/i, "")}`;
+    // Orphaned dynamic-subcategory reference: the metadata row was renamed or
+    // deleted after submission and no label snapshot exists. Show a neutral
+    // "Other" rather than the meaningless internal id ("Custom Item #2408").
+    if (/^db_\d+$/i.test(field)) return "Other";
     return field
       .replace(/([A-Z])/g, " $1")
       .replace(/^./, (s) => s.toUpperCase())
