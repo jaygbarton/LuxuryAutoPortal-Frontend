@@ -29,6 +29,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
   TableBody,
   TableCell,
   TableFooter,
@@ -39,8 +52,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl, authMeQueryFn } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, History, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, ChevronsUpDown, History, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { Fragment, useMemo, useState } from "react";
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -812,6 +826,13 @@ function TimeEntryForm(props: {
   submitLabel: string;
 }) {
   const { form, onChange, employees, onSubmit, onCancel, submitting, submitLabel } = props;
+  const [empPickerOpen, setEmpPickerOpen] = useState(false);
+  const empName = (e: EmployeeOption) =>
+    `${e.employee_first_name ?? ""} ${e.employee_last_name ?? ""}`.trim() ||
+    `Employee ${e.employee_aid}`;
+  const selectedEmployee = employees.find(
+    (e) => String(e.employee_aid) === form.employeeId,
+  );
   const set = (k: keyof TimeFormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const value = e.target.value;
     // Keep `date` in sync with whatever day the admin picked for `timeIn`,
@@ -830,22 +851,63 @@ function TimeEntryForm(props: {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label>Employee *</Label>
-          <Select
-            value={form.employeeId}
-            onValueChange={(v) => onChange({ ...form, employeeId: v })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select employee" />
-            </SelectTrigger>
-            <SelectContent>
-              {employees.map((e) => (
-                <SelectItem key={e.employee_aid} value={String(e.employee_aid)}>
-                  {`${e.employee_first_name ?? ""} ${e.employee_last_name ?? ""}`.trim() ||
-                    `Employee ${e.employee_aid}`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={empPickerOpen} onOpenChange={setEmpPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                role="combobox"
+                aria-expanded={empPickerOpen}
+                className="w-full justify-between bg-card border-border text-foreground hover:bg-card hover:text-foreground font-normal"
+              >
+                <span className="truncate">
+                  {selectedEmployee ? empName(selectedEmployee) : "Select employee"}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-[--radix-popover-trigger-width] p-0 bg-card border-border"
+              align="start"
+            >
+              <Command className="bg-card">
+                <CommandInput
+                  placeholder="Search employee name..."
+                  className="text-foreground placeholder:text-muted-foreground border-b border-border"
+                />
+                <CommandList className="max-h-[240px]">
+                  <CommandEmpty className="text-muted-foreground py-4 text-sm text-center">
+                    No employees found.
+                  </CommandEmpty>
+                  <CommandGroup>
+                    {employees.map((e) => {
+                      const name = empName(e);
+                      const isMatch = String(e.employee_aid) === form.employeeId;
+                      return (
+                        <CommandItem
+                          key={e.employee_aid}
+                          value={name}
+                          onSelect={() => {
+                            onChange({ ...form, employeeId: String(e.employee_aid) });
+                            setEmpPickerOpen(false);
+                          }}
+                          className="text-foreground data-[selected=true]:bg-primary/20 data-[selected=true]:text-foreground cursor-pointer"
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4 shrink-0",
+                              isMatch ? "opacity-100 text-primary" : "opacity-0",
+                            )}
+                          />
+                          <span>{name}</span>
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="space-y-1">
           <Label>Date *</Label>
