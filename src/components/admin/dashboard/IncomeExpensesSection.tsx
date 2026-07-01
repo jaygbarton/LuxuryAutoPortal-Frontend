@@ -491,8 +491,10 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
       availableDays: availableDays.toLocaleString(),
       totalMiles:
         mc.totalMiles > 0 ? mc.totalMiles.toLocaleString() : PLACEHOLDER,
-      fleetUtilization:
-        availableDays > 0 ? `${utilizationPct.toFixed(2)}%` : PLACEHOLDER,
+      // Fleet Utilization is always a real number (0% when nothing was rented
+      // or no capacity was recorded), so show 0.00% rather than a "—" dash —
+      // a future/empty month is genuinely 0, not "unknown".
+      fleetUtilization: `${utilizationPct.toFixed(2)}%`,
       avgEarningsPerTrip:
         mc.tripsTaken > 0 ? formatCurrency(avgPerTrip) : PLACEHOLDER,
       avgLeadTime:
@@ -542,10 +544,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     availableDays: totalAvailableDaysAccurate.toLocaleString(),
     totalMiles:
       totalMilesAll > 0 ? totalMilesAll.toLocaleString() : PLACEHOLDER,
-    fleetUtilization:
-      totalAvailableDaysAccurate > 0
-        ? `${yearUtilization.toFixed(2)}%`
-        : PLACEHOLDER,
+    fleetUtilization: `${yearUtilization.toFixed(2)}%`,
     avgEarningsPerTrip:
       totalTripsTakenAll > 0 ? formatCurrency(yearAvgPerTrip) : PLACEHOLDER,
     avgLeadTime: yearAvgLeadTime > 0 ? yearAvgLeadTime.toFixed(2) : PLACEHOLDER,
