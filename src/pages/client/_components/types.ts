@@ -19,6 +19,7 @@ export interface ClientCar {
   manufacturerWebsite?: string | null;
   manufacturerUsername?: string | null;
   turoPassword?: string | null;
+  turoLink?: string | null;
 }
 
 export interface ClientProfile {

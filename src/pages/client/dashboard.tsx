@@ -410,9 +410,13 @@ export default function ClientDashboard() {
   }, [currentYear]);
 
   const quickLinks = (quickLinksData ?? []).filter((l) => l.visibleToClients);
+  // The Turo listing is a PER-CAR value (car.car_turo_link). Prefer it; only
+  // fall back to a global "turo" quick-link if this car has no link on file.
   const turoViewLink =
+    activeCar?.turoLink ||
     quickLinks.find((l) => l.title?.toLowerCase().includes("turo") && l.url)
-      ?.url ?? null;
+      ?.url ||
+    null;
   const manufacturerUrl = (profile?.onboarding as any)?.manufacturerUrl ?? null;
 
   const ownerName = profile?.onboarding?.firstNameOwner

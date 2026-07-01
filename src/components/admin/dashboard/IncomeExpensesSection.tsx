@@ -466,8 +466,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
 
   // All six new columns now have real data via enrichWithTuroMonthlyMetrics
   // on the backend (totalMiles + avgLeadTimeDays come back on history[]).
-  // Months with no Turo activity will simply render 0 / "—".
-  const PLACEHOLDER = "—";
+  // Months with no Turo activity render 0 (empty ≠ unknown here).
 
   const tableRows = monthlyComputed.map((mc) => {
     const availableDays = mc.carsAvailable * daysInMonth(mc.month);
@@ -489,20 +488,13 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
       daysRented: mc.daysRented.toLocaleString(),
       tripsTaken: mc.tripsTaken.toLocaleString(),
       availableDays: availableDays.toLocaleString(),
-      totalMiles:
-        mc.totalMiles > 0 ? mc.totalMiles.toLocaleString() : PLACEHOLDER,
-      // Fleet Utilization is always a real number (0% when nothing was rented
-      // or no capacity was recorded), so show 0.00% rather than a "—" dash —
-      // a future/empty month is genuinely 0, not "unknown".
+      // Empty/future months are genuinely 0, not "unknown" — show 0 (not a "—"
+      // dash) across every metric so the table reads consistently.
+      totalMiles: mc.totalMiles.toLocaleString(),
       fleetUtilization: `${utilizationPct.toFixed(2)}%`,
-      avgEarningsPerTrip:
-        mc.tripsTaken > 0 ? formatCurrency(avgPerTrip) : PLACEHOLDER,
-      avgLeadTime:
-        mc.avgLeadTimeDays > 0
-          ? mc.avgLeadTimeDays.toFixed(2)
-          : PLACEHOLDER,
-      avgEarningsPerMile:
-        mc.totalMiles > 0 ? formatCurrency(avgPerMile) : PLACEHOLDER,
+      avgEarningsPerTrip: formatCurrency(mc.tripsTaken > 0 ? avgPerTrip : 0),
+      avgLeadTime: (mc.avgLeadTimeDays > 0 ? mc.avgLeadTimeDays : 0).toFixed(2),
+      avgEarningsPerMile: formatCurrency(mc.totalMiles > 0 ? avgPerMile : 0),
     };
   });
 
@@ -542,14 +534,13 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     daysRented: totalDaysRented.toLocaleString(),
     tripsTaken: totalTripsTakenAll.toLocaleString(),
     availableDays: totalAvailableDaysAccurate.toLocaleString(),
-    totalMiles:
-      totalMilesAll > 0 ? totalMilesAll.toLocaleString() : PLACEHOLDER,
+    totalMiles: totalMilesAll.toLocaleString(),
     fleetUtilization: `${yearUtilization.toFixed(2)}%`,
-    avgEarningsPerTrip:
-      totalTripsTakenAll > 0 ? formatCurrency(yearAvgPerTrip) : PLACEHOLDER,
-    avgLeadTime: yearAvgLeadTime > 0 ? yearAvgLeadTime.toFixed(2) : PLACEHOLDER,
-    avgEarningsPerMile:
-      totalMilesAll > 0 ? formatCurrency(yearAvgPerMile) : PLACEHOLDER,
+    avgEarningsPerTrip: formatCurrency(
+      totalTripsTakenAll > 0 ? yearAvgPerTrip : 0,
+    ),
+    avgLeadTime: (yearAvgLeadTime > 0 ? yearAvgLeadTime : 0).toFixed(2),
+    avgEarningsPerMile: formatCurrency(totalMilesAll > 0 ? yearAvgPerMile : 0),
   };
 
   // ── Chart data ─────────────────────────────────────────────────────
