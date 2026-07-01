@@ -1855,31 +1855,35 @@ export default function EarningsPage() {
                   />
                 </CategorySection>
 
-                {/* PARKING AIRPORT AVERAGE PER TRIP - GLA */}
-                <CategorySection
-                  title="PARKING AIRPORT AVERAGE PER TRIP - GLA"
-                  isExpanded={expandedSections.parkingAverageQB}
-                  onToggle={() => toggleSection("parkingAverageQB")}
-                >
-                  <TableRow
-                    label="Total Trips Taken"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "tripsTaken"))}
-                    isInteger
-                  />
-                  <TableRow
-                    label="Total Parking Airport"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.parkingAirportQB || [], i + 1, "totalParkingAirport"))}
-                  />
-                  <TableRow
-                    label="Average per trip"
-                    values={MONTHS.map((_, i) => {
-                      const monthNum = i + 1;
-                      const parking = getMonthValue(incomeExpenseDataValue?.parkingAirportQB || [], monthNum, "totalParkingAirport");
-                      const trips = getMonthValue(incomeExpenseDataValue?.history || [], monthNum, "tripsTaken");
-                      return trips > 0 ? parking / trips : 0;
-                    })}
-                  />
-                </CategorySection>
+                {/* PARKING AIRPORT AVERAGE PER TRIP - GLA - Only visible to admin
+                    (internal GLA metric; hidden from client access, same as the
+                    GLA Parking Fee & Labor Cleaning section above). */}
+                {isAdmin && (
+                  <CategorySection
+                    title="PARKING AIRPORT AVERAGE PER TRIP - GLA"
+                    isExpanded={expandedSections.parkingAverageQB}
+                    onToggle={() => toggleSection("parkingAverageQB")}
+                  >
+                    <TableRow
+                      label="Total Trips Taken"
+                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "tripsTaken"))}
+                      isInteger
+                    />
+                    <TableRow
+                      label="Total Parking Airport"
+                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.parkingAirportQB || [], i + 1, "totalParkingAirport"))}
+                    />
+                    <TableRow
+                      label="Average per trip"
+                      values={MONTHS.map((_, i) => {
+                        const monthNum = i + 1;
+                        const parking = getMonthValue(incomeExpenseDataValue?.parkingAirportQB || [], monthNum, "totalParkingAirport");
+                        const trips = getMonthValue(incomeExpenseDataValue?.history || [], monthNum, "tripsTaken");
+                        return trips > 0 ? parking / trips : 0;
+                      })}
+                    />
+                  </CategorySection>
+                )}
               </tbody>
             </table>
             <div className="h-8 pb-4"></div>

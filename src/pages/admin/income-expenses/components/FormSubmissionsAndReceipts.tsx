@@ -255,9 +255,13 @@ export default function FormSubmissionsAndReceipts({ carId, year, className }: F
               </div>
             ) : receiptUrlsFromDb?.length ? (
               receiptUrlsFromDb.map((urlOrId: string, i: number) => {
-                const isPdf = urlOrId?.match(/\.pdf$/i);
                 const receiptLabel = `Receipt ${i + 1}`;
                 const embeddedDataUrl = receiptDataUrls?.[urlOrId];
+                // Drive-stored receipts have no extension, so a ".pdf" filename
+                // check misses them. Trust the embedded data-url MIME when present.
+                const isPdf =
+                  embeddedDataUrl?.startsWith("data:application/pdf") ||
+                  /\.pdf$/i.test(urlOrId ?? "");
                 const isOurFileId = urlOrId && !urlOrId.startsWith("http");
                 const receiptUrl =
                   isOurFileId && submissionIdForReceipt
@@ -278,7 +282,7 @@ export default function FormSubmissionsAndReceipts({ carId, year, className }: F
                           className="w-full min-h-[300px] max-h-[64vh] rounded border border-border bg-muted/30 object-contain"
                           title={receiptLabel}
                         >
-                          <a href={embeddedDataUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
+                          <a href={displayUrl || embeddedDataUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
                             <ExternalLink className="h-4 w-4" /> Open PDF in new tab
                           </a>
                         </object>
@@ -287,7 +291,9 @@ export default function FormSubmissionsAndReceipts({ carId, year, className }: F
                           <ExternalLink className="h-4 w-4" /> {receiptLabel} (PDF) — Open in new tab
                         </a>
                       )}
-                      <a href={embeddedDataUrl ?? displayUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                      {/* Chrome blocks navigating a new tab to a data: URL, so
+                          prefer the server file URL for "Open in new tab". */}
+                      <a href={displayUrl || embeddedDataUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
                         <ExternalLink className="h-3 w-3" /> Open in new tab
                       </a>
                     </div>
@@ -309,7 +315,7 @@ export default function FormSubmissionsAndReceipts({ carId, year, className }: F
                         className="max-h-64 w-auto rounded border border-border object-contain bg-muted/30"
                       />
                     )}
-                    <a href={embeddedDataUrl ?? displayUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                    <a href={displayUrl || embeddedDataUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
                       <ExternalLink className="h-3 w-3" /> Open in new tab
                     </a>
                   </div>

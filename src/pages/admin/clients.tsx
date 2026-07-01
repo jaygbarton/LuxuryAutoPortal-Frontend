@@ -97,6 +97,9 @@ export default function ClientsPage() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  // Online-status filter: all | online | offline | never. Filters by the
+  // Online Status column (login/logout activity), independent of account status.
+  const [onlineFilter, setOnlineFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   
   // Load items per page from localStorage, default to 10
@@ -160,7 +163,7 @@ export default function ClientsPage() {
       totalPages: number;
     };
   }>({
-    queryKey: ["/api/clients", searchQuery, statusFilter, page, itemsPerPage],
+    queryKey: ["/api/clients", searchQuery, statusFilter, onlineFilter, page, itemsPerPage],
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -169,6 +172,7 @@ export default function ClientsPage() {
         params.append("search", searchQuery.trim());
       }
       if (statusFilter !== "all") params.append("status", statusFilter);
+      if (onlineFilter !== "all") params.append("onlineStatus", onlineFilter);
       params.append("page", page.toString());
       params.append("limit", itemsPerPage.toString());
 
@@ -682,6 +686,28 @@ export default function ClientsPage() {
     }
   };
 
+  // Last login date + time, shown in Mountain Time (the app's display zone).
+  // Returns "Never" when the client has never logged in.
+  const formatLastLoginDateTime = (
+    value: string | null | undefined,
+  ): string => {
+    if (!value) return "Never";
+    try {
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return "Never";
+      return d.toLocaleString("en-US", {
+        timeZone: "America/Denver",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    } catch {
+      return "Never";
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-4 sm:space-y-6">
@@ -804,7 +830,7 @@ export default function ClientsPage() {
                 setStatusFilter(value);
                 setPage(1); // Reset to first page when filter changes
               }}>
-                <SelectTrigger className="w-full md:w-[200px] bg-card border-border text-foreground">
+                <SelectTrigger className="w-full md:w-[180px] bg-card border-border text-foreground">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground">
@@ -813,13 +839,28 @@ export default function ClientsPage() {
                   <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
-              {(searchQuery || statusFilter !== "all") && (
+              <Select value={onlineFilter} onValueChange={(value) => {
+                setOnlineFilter(value);
+                setPage(1); // Reset to first page when filter changes
+              }}>
+                <SelectTrigger className="w-full md:w-[180px] bg-card border-border text-foreground">
+                  <SelectValue placeholder="Online status" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground">
+                  <SelectItem value="all">All Online Status</SelectItem>
+                  <SelectItem value="online">Online</SelectItem>
+                  <SelectItem value="offline">Offline</SelectItem>
+                  <SelectItem value="never">Never logged in</SelectItem>
+                </SelectContent>
+              </Select>
+              {(searchQuery || statusFilter !== "all" || onlineFilter !== "all") && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setSearchQuery("");
                     setStatusFilter("all");
+                    setOnlineFilter("all");
                     setPage(1);
                   }}
                   className="text-muted-foreground hover:text-foreground"
@@ -846,16 +887,17 @@ export default function ClientsPage() {
                     <TableHead className="text-left text-foreground font-semibold px-2 sm:px-4 md:px-6 py-3 sm:py-4 w-20 sm:w-28 text-[10px] sm:text-xs">Status</TableHead>
                     <TableHead className="text-left text-foreground font-semibold px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[100px] sm:min-w-[140px] text-[10px] sm:text-xs hidden md:table-cell">Joined Date</TableHead>
                     <TableHead className="text-left text-foreground font-semibold px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[100px] sm:min-w-[120px] text-[10px] sm:text-xs">Online Status</TableHead>
+                    <TableHead className="text-left text-foreground font-semibold px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[130px] sm:min-w-[160px] text-[10px] sm:text-xs">Last Login</TableHead>
                     <TableHead className="text-center text-foreground font-semibold px-2 sm:px-4 md:px-6 py-3 sm:py-4 w-24 sm:w-32 text-[10px] sm:text-xs hidden lg:table-cell">Counts of Cars</TableHead>
                     <TableHead className="text-center text-foreground font-semibold px-2 sm:px-4 md:px-6 py-3 sm:py-4 w-20 sm:w-28 text-[10px] sm:text-xs">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRowSkeleton colSpan={10} rows={5} />
+                    <TableRowSkeleton colSpan={11} rows={5} />
                   ) : error ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8">
+                      <TableCell colSpan={11} className="text-center py-8">
                         <div className="flex flex-col items-center gap-3">
                           <p className="text-red-400">
                             {error instanceof Error ? error.message : "Database connection failed. Please try again."}
@@ -873,7 +915,7 @@ export default function ClientsPage() {
                     </TableRow>
                   ) : clients.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                         No clients found. Try adjusting your search or filters.
                       </TableCell>
                     </TableRow>
@@ -937,6 +979,13 @@ export default function ClientsPage() {
                             >
                               {onlineStatusBadge.text}
                             </Badge>
+                          </TableCell>
+                          <TableCell className="text-left text-muted-foreground px-2 sm:px-4 md:px-6 py-3 sm:py-4 align-middle text-xs sm:text-sm whitespace-nowrap">
+                            {client.lastLoginAt ? (
+                              formatLastLoginDateTime(client.lastLoginAt)
+                            ) : (
+                              <span className="text-gray-600">Never</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-center text-muted-foreground px-2 sm:px-4 md:px-6 py-3 sm:py-4 align-middle text-xs sm:text-sm hidden lg:table-cell">
                             {client.carCount}

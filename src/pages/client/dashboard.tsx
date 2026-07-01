@@ -419,6 +419,17 @@ export default function ClientDashboard() {
     null;
   const manufacturerUrl = (profile?.onboarding as any)?.manufacturerUrl ?? null;
 
+  // The "this month" summary cards + donut should highlight the most recent
+  // COMPLETED month, not the calendar month that just started (which has no
+  // data yet). For the current year that's the previous month; for a past year
+  // the whole year is complete, so show December. Clamp to Jan at minimum.
+  const displayMonth = useMemo(() => {
+    const yr = Number(selectedYear);
+    if (yr < currentYear) return 12;            // past year: December (year complete)
+    if (yr > currentYear) return 1;             // future year (shouldn't happen): Jan
+    return Math.max(1, currentMonth - 1);       // current year: previous month
+  }, [selectedYear, currentYear, currentMonth]);
+
   const ownerName = profile?.onboarding?.firstNameOwner
     ? `${profile.onboarding.firstNameOwner} ${profile.onboarding.lastNameOwner ?? ""}`.trim()
     : [profile?.firstName, profile?.lastName].filter(Boolean).join(" ") ||
@@ -570,9 +581,9 @@ export default function ClientDashboard() {
           monthlyDaysTripsData={monthlyDaysTripsData}
           yearTotals={yearTotals}
           yearTotalsTrips={yearTotalsTrips}
-          currentMonthData={monthlyTripData[currentMonth - 1]}
-          currentMonthDaysTripsData={monthlyDaysTripsData[currentMonth - 1]}
-          currentMonth={currentMonth}
+          currentMonthData={monthlyTripData[displayMonth - 1]}
+          currentMonthDaysTripsData={monthlyDaysTripsData[displayMonth - 1]}
+          currentMonth={displayMonth}
           isLoadingIncome={paymentsLoading}
           isLoadingTrips={tripsLoading}
         />
@@ -594,9 +605,9 @@ export default function ClientDashboard() {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
           <DonutCharts
             yearTotals={yearTotals}
-            currentMonthData={monthlyTripData[currentMonth - 1]}
+            currentMonthData={monthlyTripData[displayMonth - 1]}
             selectedYear={selectedYear}
-            currentMonth={currentMonth}
+            currentMonth={displayMonth}
             isLoading={totalsLoading || tripsLoading}
           />
           <PaymentHistoryCard

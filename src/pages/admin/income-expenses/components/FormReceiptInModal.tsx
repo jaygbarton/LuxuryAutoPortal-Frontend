@@ -113,10 +113,15 @@ export default function FormReceiptInModal({ carId, year, editingCell, isOpen }:
                 : urlOrId;
             const displayUrl = urlOrId && !urlOrId.startsWith("http") ? linkUrl : urlOrId;
             if (isPdf) {
+              // Chrome blocks navigating a new top-level tab to a data: URL
+              // ("Not allowed to navigate top frame to data URL"), so a
+              // base64-embedded PDF opens blank. Prefer the server file URL,
+              // which streams the PDF and opens correctly; only fall back to the
+              // inline data URL when there's no server URL to hit.
               return (
                 <a
                   key={i}
-                  href={embedded ?? displayUrl}
+                  href={displayUrl || embedded}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-primary hover:underline"

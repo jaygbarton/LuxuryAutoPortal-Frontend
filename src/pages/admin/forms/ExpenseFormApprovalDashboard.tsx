@@ -1275,7 +1275,7 @@ export default function ExpenseFormApprovalDashboard({
                   <TableHead className="text-foreground font-semibold min-w-0 text-xs whitespace-nowrap py-2 px-2 h-auto">
                     Employee
                   </TableHead>
-                  <TableHead className="text-foreground font-semibold w-[200px] min-w-[160px] text-xs whitespace-nowrap py-2 px-2 h-auto">
+                  <TableHead className="text-foreground font-semibold w-[220px] min-w-[200px] text-xs whitespace-nowrap py-2 px-2 h-auto">
                     Car
                   </TableHead>
                   <TableHead className="text-foreground font-semibold w-[80px] text-xs whitespace-nowrap py-2 px-2 h-auto">
@@ -1340,7 +1340,7 @@ export default function ExpenseFormApprovalDashboard({
                       {sub.employeeName || "-"}
                     </TableCell>
                     <TableCell
-                      className="text-foreground text-xs py-2 px-2 w-[200px] min-w-[160px] truncate whitespace-nowrap"
+                      className="text-foreground text-xs py-2 px-2 w-[220px] min-w-[200px] whitespace-normal break-words align-top"
                       title={sub.carDisplayName || undefined}
                     >
                       {sub.carId ? (
