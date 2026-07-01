@@ -46,6 +46,7 @@ import {
   History,
   Filter,
   X,
+  Upload,
 } from "lucide-react";
 const CATEGORY_LABELS: Record<string, string> = {
   directDelivery: "Direct Delivery",
@@ -558,6 +559,11 @@ export default function ExpenseFormApprovalDashboard({
   const [editForm, setEditForm] = useState<
     Partial<Submission> & { employeeId?: number; carId?: number }
   >({});
+  // Optional replacement receipt files chosen in the edit modal. When set, they
+  // are uploaded on Save and REPLACE the submission's receipt_urls. Empty = keep
+  // the existing receipt(s) untouched.
+  const [editReceiptFiles, setEditReceiptFiles] = useState<File[]>([]);
+  const [isUploadingEditReceipt, setIsUploadingEditReceipt] = useState(false);
 
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historySubmission, setHistorySubmission] = useState<Submission | null>(
@@ -897,6 +903,7 @@ export default function ExpenseFormApprovalDashboard({
       setEditModalOpen(false);
       setSelectedSubmission(null);
       setEditForm({});
+      setEditReceiptFiles([]);
       queryClient.invalidateQueries({
         queryKey: ["/api/expense-form-submissions"],
       });
@@ -940,11 +947,59 @@ export default function ExpenseFormApprovalDashboard({
       employeeId: sub.employeeId,
       carId: sub.carId,
     });
+    setEditReceiptFiles([]);
     setEditModalOpen(true);
   };
 
-  const confirmEdit = () => {
+  const confirmEdit = async () => {
     if (!selectedSubmission) return;
+
+    // If the admin picked replacement receipt file(s), upload them first (same
+    // GCS endpoint + contract as the submission form) and REPLACE receipt_urls.
+    // The upload needs an employeeId — use the (possibly reassigned) one from the
+    // edit form, falling back to the submission's original employee.
+    let receiptUrls: string[] | undefined;
+    if (editReceiptFiles.length > 0) {
+      const employeeIdForUpload =
+        editForm.employeeId ?? selectedSubmission.employeeId;
+      if (!employeeIdForUpload) {
+        toast({
+          title: "Employee required",
+          description: "Select an employee before replacing the receipt.",
+          variant: "destructive",
+        });
+        return;
+      }
+      try {
+        setIsUploadingEditReceipt(true);
+        const fd = new FormData();
+        editReceiptFiles.forEach((file) => fd.append("receipts", file));
+        fd.append("employeeId", String(employeeIdForUpload));
+        const uploadRes = await fetch(
+          buildApiUrl("/api/expense-form-submissions/receipts/upload"),
+          { method: "POST", credentials: "include", body: fd },
+        );
+        if (!uploadRes.ok) {
+          const err = await uploadRes.json().catch(() => ({}));
+          throw new Error(err.error || "Failed to upload receipt");
+        }
+        const uploadData = await uploadRes.json();
+        if (!uploadData.fileIds?.length) {
+          throw new Error("Upload returned no file");
+        }
+        receiptUrls = uploadData.fileIds as string[];
+      } catch (err) {
+        toast({
+          title: "Receipt upload failed",
+          description: err instanceof Error ? err.message : "Please try again.",
+          variant: "destructive",
+        });
+        return;
+      } finally {
+        setIsUploadingEditReceipt(false);
+      }
+    }
+
     updateMutation.mutate({
       id: selectedSubmission.id,
       body: {
@@ -953,6 +1008,9 @@ export default function ExpenseFormApprovalDashboard({
         remarks: editForm.remarks,
         employeeId: editForm.employeeId,
         carId: editForm.carId,
+        // Only sent when a replacement was uploaded; otherwise omitted so the
+        // existing receipt is preserved.
+        ...(receiptUrls ? { receiptUrls } : {}),
       },
     });
   };
@@ -1788,7 +1846,8 @@ export default function ExpenseFormApprovalDashboard({
           <DialogHeader>
             <DialogTitle className="text-primary">Edit Submission</DialogTitle>
             <DialogDescription>
-              Edit receipt date, employee, car, total receipt cost, or remarks.
+              Edit receipt date, employee, car, total receipt cost, remarks, or
+              replace the receipt image.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -1888,6 +1947,59 @@ export default function ExpenseFormApprovalDashboard({
                 placeholder="Optional"
               />
             </div>
+            <div>
+              <label className="text-sm text-muted-foreground">Receipt</label>
+              <div className="mt-1">
+                <input
+                  id="edit-receipt-file-input"
+                  type="file"
+                  accept="image/*,.pdf"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = e.target.files
+                      ? Array.from(e.target.files)
+                      : [];
+                    setEditReceiptFiles(files);
+                    e.target.value = "";
+                  }}
+                />
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-border"
+                    onClick={() =>
+                      document
+                        .getElementById("edit-receipt-file-input")
+                        ?.click()
+                    }
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {editReceiptFiles.length > 0
+                      ? "Change file"
+                      : "Replace receipt"}
+                  </Button>
+                  <span className="text-xs text-muted-foreground truncate">
+                    {editReceiptFiles.length > 0
+                      ? `${editReceiptFiles.length} new file(s) — replaces the current receipt on Save`
+                      : selectedSubmission?.receiptUrls?.length
+                        ? `${selectedSubmission.receiptUrls.length} receipt on file — leave blank to keep it`
+                        : "No receipt on file"}
+                  </span>
+                  {editReceiptFiles.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setEditReceiptFiles([])}
+                      className="text-muted-foreground hover:text-foreground"
+                      title="Clear selection"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -1900,12 +2012,12 @@ export default function ExpenseFormApprovalDashboard({
             <Button
               className="bg-primary text-primary-foreground hover:bg-primary/80"
               onClick={confirmEdit}
-              disabled={updateMutation.isPending}
+              disabled={updateMutation.isPending || isUploadingEditReceipt}
             >
-              {updateMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+              {updateMutation.isPending || isUploadingEditReceipt ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : null}
-              Save
+              {isUploadingEditReceipt ? "Uploading…" : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
