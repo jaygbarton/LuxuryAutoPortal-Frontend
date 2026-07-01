@@ -1302,7 +1302,7 @@ export default function ExpenseFormApprovalDashboard({
                     <TableCell className="text-muted-foreground text-xs whitespace-nowrap py-2 px-2" title={sub.fieldLabel || formatFieldLabel(sub.field)}>
                       {sub.fieldLabel || formatFieldLabel(sub.field)}
                     </TableCell>
-                    <TableCell className="text-green-700 font-semibold text-xs whitespace-nowrap py-2 px-2">
+                    <TableCell className="text-foreground font-semibold text-xs whitespace-nowrap py-2 px-2">
                       $
                       {Number(sub.amount).toLocaleString("en-US", {
                         minimumFractionDigits: 2,
