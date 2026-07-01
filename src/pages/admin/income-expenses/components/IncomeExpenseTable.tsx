@@ -4836,15 +4836,27 @@ function DynamicSubcategoryRow({
     "Nov",
     "Dec",
   ];
-  const { setEditingCell } = useIncomeExpense();
+  const { setEditingCell, getFormAmount } = useIncomeExpense();
   const { toast } = useToast();
+
+  const hasFormLink = FORM_BACKED_CATEGORIES.has(categoryType);
+
+  // Approved form submissions for a dynamic (custom) subcategory are keyed by
+  // `db_<metadataId>` — the same field value the receipt form stores. Standard
+  // rows surface this via <EditableCell>; dynamic rows must do the same here or
+  // an approved "Custom Item" submission is invisible in the grid even though it
+  // already rolls into the category subtotal (getCategoryMonthFormTotal).
+  const formFieldKey = dynamicFieldValue(subcategory.id);
+  const formAmountForMonth = (month: number): number =>
+    hasFormLink ? getFormAmount(categoryType, formFieldKey, month) : 0;
 
   const total = subcategory.values.reduce(
     (sum: number, val: any) => sum + (val.value || 0),
     0,
-  );
-
-  const hasFormLink = FORM_BACKED_CATEGORIES.has(categoryType);
+  ) +
+    (hasFormLink
+      ? MONTHS.reduce((sum, _, i) => sum + formAmountForMonth(i + 1), 0)
+      : 0);
   const copyFormLink = async () => {
     const url = buildExpenseFormUrl(
       categoryType as ExpenseFormCategory,
@@ -4908,7 +4920,12 @@ function DynamicSubcategoryRow({
         const monthValue = subcategory.values.find(
           (v: any) => v.month === month,
         );
+        // Manual value is what the click-to-edit modal changes; the form amount
+        // is derived from approved submissions and is added for DISPLAY only.
         const value = monthValue?.value || 0;
+        const formAmount = formAmountForMonth(month);
+        const displayed = value + formAmount;
+        const hasForm = formAmount > 0;
 
         return (
           <td
@@ -4917,13 +4934,22 @@ function DynamicSubcategoryRow({
           >
             <span
               onClick={() => handleCellClick(month, value)}
+              title={
+                hasForm
+                  ? `Manual $${value.toFixed(2)} + Form $${formAmount.toFixed(2)} = Total $${displayed.toFixed(2)}`
+                  : undefined
+              }
               className={cn(
                 "px-1 py-0.5 rounded block text-xs text-right transition-colors",
                 isReadOnly ? "cursor-default" : "cursor-pointer hover:bg-muted",
-                value === 0 ? "text-gray-600" : "text-[#D3BC8D]",
+                displayed === 0
+                  ? "text-gray-600"
+                  : hasForm
+                    ? "text-primary font-medium"
+                    : "text-[#D3BC8D]",
               )}
             >
-              ${value.toFixed(2)}
+              ${displayed.toFixed(2)}
             </span>
           </td>
         );
