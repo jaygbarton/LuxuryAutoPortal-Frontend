@@ -338,6 +338,27 @@ export default function CarBlockOffPage() {
     },
   });
 
+  // Status-change mutation (admin edits the block-off status inline).
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const res = await fetch(buildApiUrl(`/api/car-block-off/submissions/${id}/status`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const body = await res.json();
+      if (!body.success) throw new Error(body.error || "Failed to update status");
+    },
+    onSuccess: () => {
+      toast({ title: "Status updated" });
+      queryClient.invalidateQueries({ queryKey: ["/api/car-block-off/submissions"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
   const handlePickupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!carName || !ownerName || !reason || !pickupDate || !blockOffEndDate || !pickupLocation) {
@@ -616,7 +637,30 @@ export default function CarBlockOffPage() {
                     <td className="px-3 py-2 text-foreground">{s.pickup_location}</td>
                     <td className="px-3 py-2 whitespace-nowrap text-foreground text-xs">{s.dropoff_date ? fmtDateTime(s.dropoff_date) : "—"}</td>
                     <td className="px-3 py-2 text-foreground">{s.dropoff_location ?? "—"}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{statusBadge(s.status)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {isAdmin ? (
+                        <Select
+                          value={s.status}
+                          onValueChange={(v) => {
+                            if (v !== s.status) statusMutation.mutate({ id: s.id, status: v });
+                          }}
+                          disabled={statusMutation.isPending}
+                        >
+                          <SelectTrigger className="h-7 w-[172px] bg-card border-border text-foreground text-xs">
+                            <SelectValue>{statusBadge(s.status)}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent className="bg-card border-border text-foreground">
+                            {Object.keys(STATUS_META).map((k) => (
+                              <SelectItem key={k} value={k} className="text-xs">
+                                {STATUS_META[k].label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        statusBadge(s.status)
+                      )}
+                    </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {isAdmin && (
                         <Button
