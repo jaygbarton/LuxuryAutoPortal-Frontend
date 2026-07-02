@@ -36,6 +36,7 @@ interface CarBlockOff {
   reason: "personal_use" | "maintenance" | "others";
   reason_other: string | null;
   pickup_date: string;
+  block_off_end_date: string | null;
   pickup_location: string;
   pickup_submitted_at: string | null;
   dropoff_date: string | null;
@@ -227,7 +228,7 @@ export function CarBlockOffTab() {
             <tr className="border-b border-border bg-muted/50">
               {[
                 "Car Name", "Plate #", "Owner", "Reason",
-                "Pick Up Date", "Pick Up Location",
+                "Pick Up Date", "Block Off End", "Pick Up Location",
                 "Drop Off Date", "Drop Off Location",
                 "Assigned To", "Pick Up Assigned To", "Drop Off Assigned To",
                 "Status", "Actions"
@@ -238,9 +239,9 @@ export function CarBlockOffTab() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={13} className="px-3 py-8 text-center text-muted-foreground">Loading...</td></tr>
+              <tr><td colSpan={14} className="px-3 py-8 text-center text-muted-foreground">Loading...</td></tr>
             ) : records.length === 0 ? (
-              <tr><td colSpan={13} className="px-3 py-8 text-center text-muted-foreground">No records found.</td></tr>
+              <tr><td colSpan={14} className="px-3 py-8 text-center text-muted-foreground">No records found.</td></tr>
             ) : records.map((r) => {
               const sm = statusMeta(r.status);
               return (
@@ -260,6 +261,8 @@ export function CarBlockOffTab() {
                   </td>
                   {/* Pick Up Date */}
                   <td className="px-3 py-2 whitespace-nowrap text-foreground text-xs">{fmtDateTime(r.pickup_date)}</td>
+                  {/* Block Off End */}
+                  <td className="px-3 py-2 whitespace-nowrap text-foreground text-xs">{r.block_off_end_date ? fmtDateTime(r.block_off_end_date) : "—"}</td>
                   {/* Pick Up Location */}
                   <td className="px-3 py-2 text-foreground max-w-[160px] truncate">{r.pickup_location}</td>
                   {/* Drop Off Date */}

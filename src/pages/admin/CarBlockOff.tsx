@@ -210,6 +210,11 @@ export default function CarBlockOffPage() {
   const [pickupDate, setPickupDate] = useState("");
   const [blockOffEndDate, setBlockOffEndDate] = useState("");
   const [pickupLocation, setPickupLocation] = useState("");
+  // Planned drop-off location — captured up front alongside Block Off End Date
+  // so both date/location pairs are required on the Start form. The later
+  // "Car Block Off End" submission can still correct this once the car is
+  // actually returned.
+  const [plannedDropoffLocation, setPlannedDropoffLocation] = useState("");
   const [notes, setNotes] = useState("");
 
   // Drop-off form state
@@ -280,6 +285,7 @@ export default function CarBlockOffPage() {
           pickupDate,
           pickupLocation,
           blockOffEndDate,
+          dropoffLocation: plannedDropoffLocation,
           notes: notes || null,
         }),
       });
@@ -291,7 +297,8 @@ export default function CarBlockOffPage() {
       toast({ title: "Submitted", description: "Car block-off pick-up request submitted." });
       queryClient.invalidateQueries({ queryKey: ["/api/car-block-off/submissions"] });
       setCarIdStr(""); setCarName(""); setPlateNumber(""); setReason("personal_use");
-      setReasonOther(""); setPickupDate(""); setBlockOffEndDate(""); setPickupLocation(""); setNotes("");
+      setReasonOther(""); setPickupDate(""); setBlockOffEndDate(""); setPickupLocation("");
+      setPlannedDropoffLocation(""); setNotes("");
     },
     onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
@@ -361,7 +368,10 @@ export default function CarBlockOffPage() {
 
   const handlePickupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!carName || !ownerName || !reason || !pickupDate || !blockOffEndDate || !pickupLocation) {
+    if (
+      !carName || !ownerName || !reason || !pickupDate || !blockOffEndDate ||
+      !pickupLocation || !plannedDropoffLocation
+    ) {
       toast({ title: "Missing fields", description: "Please fill in all required fields.", variant: "destructive" });
       return;
     }
@@ -481,6 +491,14 @@ export default function CarBlockOffPage() {
                       className="bg-card border-border text-foreground" />
                   </div>
                   <div>
+                    <Label className="text-muted-foreground text-sm">Pick Up Location *</Label>
+                    <Input value={pickupLocation} onChange={(e) => setPickupLocation(e.target.value)}
+                      className="bg-card border-border text-foreground" placeholder="Address or description" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
                     <Label className="text-muted-foreground text-sm">Block Off End Date & Time *</Label>
                     <Input type="datetime-local" value={blockOffEndDate} min={pickupDate || undefined}
                       onChange={(e) => setBlockOffEndDate(e.target.value)}
@@ -489,12 +507,11 @@ export default function CarBlockOffPage() {
                       When the car becomes available again, so we know how long it's blocked off.
                     </p>
                   </div>
-                </div>
-
-                <div>
-                  <Label className="text-muted-foreground text-sm">Pick Up Location *</Label>
-                  <Input value={pickupLocation} onChange={(e) => setPickupLocation(e.target.value)}
-                    className="bg-card border-border text-foreground" placeholder="Address or description" />
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Drop Off Location *</Label>
+                    <Input value={plannedDropoffLocation} onChange={(e) => setPlannedDropoffLocation(e.target.value)}
+                      className="bg-card border-border text-foreground" placeholder="Address or description" />
+                  </div>
                 </div>
 
                 <div>

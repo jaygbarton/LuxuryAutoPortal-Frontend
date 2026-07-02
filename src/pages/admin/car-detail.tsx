@@ -3667,8 +3667,16 @@ export default function CarDetailPage() {
                         <FormItem>
                           <FormLabel className="text-muted-foreground">Manufacturer Username</FormLabel>
                           <FormControl>
+                            {/* autoComplete="off" (plus the browser-agnostic
+                                honeypot name below) stops Chrome/Safari from
+                                reading this as a login username and offering
+                                the admin's OWN saved site password — that
+                                autofill previously leaked the admin's real
+                                login onto car records, visible to clients. */}
                             <Input
                               {...field}
+                              autoComplete="off"
+                              name="car-manufacturer-username"
                               className="bg-card border-border text-foreground focus:border-primary"
                             />
                           </FormControl>
@@ -3676,7 +3684,7 @@ export default function CarDetailPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="password"
@@ -3684,9 +3692,14 @@ export default function CarDetailPage() {
                         <FormItem>
                           <FormLabel className="text-muted-foreground">Password</FormLabel>
                           <FormControl>
+                            {/* autoComplete="new-password" is the standard
+                                trick browsers honor to mean "this is not a
+                                login form" — it stops autofill of a saved
+                                site password into this field. */}
                             <Input
                               {...field}
                               type="password"
+                              autoComplete="new-password"
                               className="bg-card border-border text-foreground focus:border-primary font-mono"
                             />
                           </FormControl>

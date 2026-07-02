@@ -2721,19 +2721,29 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Manufacturer Username</Label>
+                  {/* autoComplete="off" + a non-generic name stop browsers from
+                      treating this as a login username and offering to
+                      autofill the ADMIN's own saved site password here — that
+                      leak previously saved the admin's real login onto car
+                      records, visible to that car's client on their dashboard. */}
                   <Input
                     value={addCarForm.carManufacturerUsername}
                     onChange={(e) => setAddCarForm({ ...addCarForm, carManufacturerUsername: e.target.value })}
+                    autoComplete="off"
+                    name="car-manufacturer-username"
                     className="bg-card border-border text-foreground"
                   />
                 </div>
               </div>
               <div>
                 <Label className="text-muted-foreground">Password</Label>
+                {/* autoComplete="new-password" is the standard signal browsers
+                    honor to mean "this is not a login form". */}
                 <Input
                   type="password"
                   value={addCarForm.password}
                   onChange={(e) => setAddCarForm({ ...addCarForm, password: e.target.value })}
+                  autoComplete="new-password"
                   className="bg-card border-border text-foreground font-mono"
                 />
               </div>
