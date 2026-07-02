@@ -48,11 +48,19 @@ const REASON_LABELS: Record<string, string> = {
 function fmtDate(v: string | null | undefined) {
   if (!v) return "—";
   try {
-    return new Date(v).toLocaleDateString("en-US", {
-      timeZone: "America/Denver",
+    // pickup/dropoff are captured via a <input type="datetime-local"> and stored
+    // AS-IS (naive Mountain wall-clock) — mysql2 tacks on a spurious "Z". Strip
+    // it and parse as local so the time shows exactly what was entered (matching
+    // the Operations Car Block Off tab). Treating it as UTC would shift the hour.
+    const normalized = String(v).replace(" ", "T").replace(/Z$/, "");
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) return String(v);
+    return d.toLocaleString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
     });
   } catch {
     return String(v);
