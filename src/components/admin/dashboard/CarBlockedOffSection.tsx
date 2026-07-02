@@ -1,7 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, CalendarOff } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
-import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import { SectionHeader } from "./SectionHeader";
 import { DashboardRecordCard } from "./DashboardRecordCard";
 import { useLocation } from "wouter";
@@ -32,12 +39,18 @@ interface SubmissionsResponse {
   total: number;
 }
 
-const STATUS_META: Record<string, { label: string; className: string }> = {
-  new: { label: "New", className: "bg-gray-100 text-gray-700 border-gray-200" },
-  car_not_available: { label: "Car Not Available", className: "bg-red-100 text-red-700 border-red-200" },
-  block_off_started: { label: "Block Off Started", className: "bg-amber-100 text-amber-700 border-amber-200" },
-  blocked_off_ended: { label: "Blocked Off Ended", className: "bg-green-100 text-green-700 border-green-200" },
-};
+// Ordered list so the inline status dropdown lists options in a sensible order —
+// mirrors STATUS_OPTIONS in the Operations Car Block Off tab.
+const STATUS_OPTIONS = [
+  { value: "new", label: "New", className: "bg-gray-100 text-gray-700 border-gray-200" },
+  { value: "car_not_available", label: "Car Not Available", className: "bg-red-100 text-red-700 border-red-200" },
+  { value: "block_off_started", label: "Block Off Started", className: "bg-amber-100 text-amber-700 border-amber-200" },
+  { value: "blocked_off_ended", label: "Blocked Off Ended", className: "bg-green-100 text-green-700 border-green-200" },
+];
+
+function statusMeta(v: string) {
+  return STATUS_OPTIONS.find((s) => s.value === v) ?? STATUS_OPTIONS[0];
+}
 
 const REASON_LABELS: Record<string, string> = {
   personal_use: "Personal Use",
@@ -69,6 +82,8 @@ function fmtDate(v: string | null | undefined) {
 
 export default function CarBlockedOffSection() {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data, isLoading } = useQuery<SubmissionsResponse>({
     queryKey: ["/api/car-block-off/submissions", "dashboard"],
@@ -80,6 +95,27 @@ export default function CarBlockedOffSection() {
       return res.json();
     },
     staleTime: 1000 * 60 * 5,
+  });
+
+  // Inline status update — same endpoint the Operations Car Block Off tab uses,
+  // so a status changed here shows up there and vice-versa. Invalidates both
+  // query keys so every view refreshes.
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const res = await fetch(buildApiUrl(`/api/car-block-off/submissions/${id}/status`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.success) throw new Error(body.error || `HTTP ${res.status}`);
+      return body;
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["/api/car-block-off/submissions"] }),
+    onError: (err: any) =>
+      toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
   const records = data?.data ?? [];
@@ -109,7 +145,7 @@ export default function CarBlockedOffSection() {
       ) : (
         <div className="flex flex-col gap-3">
           {records.map((r) => {
-            const sm = STATUS_META[r.status] ?? STATUS_META["new"];
+            const sm = statusMeta(r.status);
             const accent = REASON_ACCENT[r.reason] ?? REASON_ACCENT["others"];
             const reasonLabel = (REASON_LABELS[r.reason] ?? r.reason) +
               (r.reason === "others" && r.reason_other ? `: ${r.reason_other}` : "");
@@ -129,7 +165,24 @@ export default function CarBlockedOffSection() {
                   { label: "Drop Off Date", value: fmtDate(r.dropoff_date) },
                 ]}
                 statusControl={
-                  <Badge variant="outline" className={`text-xs ${sm.className}`}>{sm.label}</Badge>
+                  // Inline status dropdown. stopPropagation so opening/changing
+                  // it doesn't trigger the card's navigate-to-page onClick.
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Select
+                      value={r.status}
+                      onValueChange={(v) => statusMutation.mutate({ id: r.id, status: v })}
+                      disabled={statusMutation.isPending}
+                    >
+                      <SelectTrigger className={`h-7 text-xs w-40 border ${sm.className}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border text-foreground">
+                        {STATUS_OPTIONS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 }
                 onClick={() => setLocation("/admin/car-block-off")}
               />
