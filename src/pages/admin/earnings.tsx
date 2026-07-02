@@ -82,11 +82,26 @@ export default function EarningsPage() {
   const months = generateMonths(selectedYear);
 
   // Fetch user data to check if admin or client
-  const { data: userData } = useQuery<{ user?: { isAdmin?: boolean; isClient?: boolean } }>({
+  const { data: userData } = useQuery<{
+    user?: { isAdmin?: boolean; isClient?: boolean; impersonatorIsAdmin?: boolean };
+  }>({
     queryKey: ["/api/auth/me"],
     retry: false,
   });
+  // isAdmin gates EDIT capability (handleEditCell) and must stay strict: during
+  // "View as Client" impersonation /api/auth/me deliberately reports isAdmin
+  // false so the page behaves exactly as the client would experience it —
+  // including staying read-only. Broadening isAdmin itself here would make
+  // cells editable while impersonating, defeating the point of the preview.
   const isAdmin = userData?.user?.isAdmin === true;
+  // isUnderlyingAdmin additionally covers "a real admin is looking at this,
+  // even if rendering as a client preview" — same signal ViewAsClientBanner.tsx
+  // uses. Use this (not isAdmin) to gate VISIBILITY of GLA-internal read-only
+  // sections (Parking Fee & Labor Cleaning, Parking Airport Average) so an
+  // admin auditing via "View as Client" still sees them, while a genuine
+  // client session still does not.
+  const isUnderlyingAdmin =
+    userData?.user?.isAdmin === true || userData?.user?.impersonatorIsAdmin === true;
 
   // Fetch car data
   const { data: carData, isLoading: isCarLoading, error: carError } = useQuery<{
@@ -1729,8 +1744,10 @@ export default function EarningsPage() {
                   />
                 </CategorySection>
 
-                {/* GLA PARKING FEE & LABOR CLEANING - Only visible to admin */}
-                {isAdmin && (
+                {/* GLA PARKING FEE & LABOR CLEANING - internal GLA metric, hidden
+                    from real clients but visible to an admin auditing via
+                    "View as Client" (isUnderlyingAdmin, not isAdmin — see def). */}
+                {isUnderlyingAdmin && (
                   <CategorySection
                     title="GLA PARKING FEE & LABOR CLEANING"
                     isExpanded={expandedSections.parkingFeeLabor}
@@ -1749,8 +1766,9 @@ export default function EarningsPage() {
                   </CategorySection>
                 )}
 
-                {/* REIMBURSED AND NON-REIMBURSED BILLS - Only visible to admin */}
-                {isAdmin && (
+                {/* REIMBURSED AND NON-REIMBURSED BILLS - internal GLA metric,
+                    same visibility rule as GLA Parking Fee above. */}
+                {isUnderlyingAdmin && (
                   <CategorySection
                     title="REIMBURSED AND NON-REIMBURSED BILLS"
                     isExpanded={expandedSections.reimbursedBills}
@@ -1815,7 +1833,7 @@ export default function EarningsPage() {
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "daysRented"))}
                     isInteger
                   />
-                  {isAdmin && (
+                  {isUnderlyingAdmin && (
                     <TableRow
                       label="Cars Available"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "carsAvailableForRent"))}
@@ -1855,10 +1873,9 @@ export default function EarningsPage() {
                   />
                 </CategorySection>
 
-                {/* PARKING AIRPORT AVERAGE PER TRIP - GLA - Only visible to admin
-                    (internal GLA metric; hidden from client access, same as the
-                    GLA Parking Fee & Labor Cleaning section above). */}
-                {isAdmin && (
+                {/* PARKING AIRPORT AVERAGE PER TRIP - GLA - internal GLA metric,
+                    same visibility rule as GLA Parking Fee above. */}
+                {isUnderlyingAdmin && (
                   <CategorySection
                     title="PARKING AIRPORT AVERAGE PER TRIP - GLA"
                     isExpanded={expandedSections.parkingAverageQB}
