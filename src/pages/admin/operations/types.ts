@@ -116,6 +116,7 @@ export interface Claim {
   reservationId: string | null;
   claimId: string | null;
   damageReport: string | null;
+  shopName: string | null;
   deadline: string | null;
   description: string | null;
   status: ClaimStatus;
@@ -157,6 +158,7 @@ export interface MaintenanceRecord {
   car_model: string | null;
   car_year: number | null;
   car_plate: string | null;
+  car_vin: string | null;
   // Trip context joined on the backend via inspection_id → inspections →
   // turo_trips. Null when there's no linked inspection/trip (manual rows).
   trip_id?: number | null;

@@ -33,6 +33,7 @@ export function ClaimModal({
     reservationId: claim?.reservationId || "",
     claimId: claim?.claimId || "",
     damageReport: claim?.damageReport || "",
+    shopName: claim?.shopName || "",
     deadline: claim?.deadline ? claim.deadline.slice(0, 10) : "",
     description: claim?.description || "",
     assignedTo: claim?.assignedTo || defaultAssignedTo || "",
@@ -45,6 +46,7 @@ export function ClaimModal({
         reservationId: claim.reservationId || "",
         claimId: claim.claimId || "",
         damageReport: claim.damageReport || "",
+        shopName: claim.shopName || "",
         deadline: claim.deadline ? claim.deadline.slice(0, 10) : "",
         description: claim.description || "",
         assignedTo: claim.assignedTo || "",
@@ -55,6 +57,7 @@ export function ClaimModal({
         reservationId: "",
         claimId: "",
         damageReport: "",
+        shopName: "",
         deadline: "",
         description: "",
         assignedTo: defaultAssignedTo || "",
@@ -142,6 +145,16 @@ export function ClaimModal({
               className="bg-card border-border text-foreground mt-1"
               placeholder="What damage was reported..."
               rows={3}
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-muted-foreground">Shop Name</label>
+            <Input
+              value={formData.shopName}
+              onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
+              className="bg-card border-border text-foreground mt-1"
+              placeholder="Repair shop handling the estimate"
             />
           </div>
 

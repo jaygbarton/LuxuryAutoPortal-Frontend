@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +7,70 @@ import { Textarea } from "@/components/ui/textarea";
 import { buildApiUrl } from "@/lib/queryClient";
 import { toMtLocalInput, mtLocalInputToUtcDbString } from "@/lib/mt-datetime";
 import { useToast } from "@/hooks/use-toast";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { PhotoUpload } from "./PhotoUpload";
 import { CarSelectCombobox } from "./CarSelectCombobox";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import type { MaintenanceRecord } from "./types";
+
+interface CarAvailability {
+  carId: number;
+  isBookedNow: boolean;
+  currentTrip: { id: number; reservationId: string | null; tripStart: string; tripEnd: string; guestName: string | null } | null;
+  nextTrip: { id: number; reservationId: string | null; tripStart: string; tripEnd: string; guestName: string | null } | null;
+}
+
+function formatMt(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("en-US", { timeZone: "America/Denver", month: "short", day: "numeric" }) +
+    ", " + d.toLocaleTimeString("en-US", { timeZone: "America/Denver", hour: "numeric", minute: "2-digit" });
+}
+
+function TuroAvailabilityNotice({ carId }: { carId: number | null }) {
+  const { data, isLoading } = useQuery<{ success: boolean; data: CarAvailability }>({
+    queryKey: ["/api/operations/cars", carId, "availability"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl(`/api/operations/cars/${carId}/availability`), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to check Turo availability");
+      return res.json();
+    },
+    enabled: carId != null,
+    staleTime: 60 * 1000,
+  });
+
+  if (carId == null || isLoading || !data?.data) return null;
+  const a = data.data;
+
+  if (a.isBookedNow && a.currentTrip) {
+    return (
+      <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-500">
+        <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+        <span>
+          Currently on an active Turo trip{a.currentTrip.reservationId ? ` (#${a.currentTrip.reservationId})` : ""}
+          {a.currentTrip.guestName ? ` with ${a.currentTrip.guestName}` : ""}, ends {formatMt(a.currentTrip.tripEnd)}.
+        </span>
+      </div>
+    );
+  }
+  if (a.nextTrip) {
+    return (
+      <div className="flex items-start gap-2 rounded-md border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-xs text-blue-400">
+        <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+        <span>
+          Available now, but booked starting {formatMt(a.nextTrip.tripStart)}
+          {a.nextTrip.reservationId ? ` (#${a.nextTrip.reservationId})` : ""}.
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-green-500/40 bg-green-500/10 px-3 py-2 text-xs text-green-500">
+      <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+      <span>No upcoming Turo bookings — available for maintenance.</span>
+    </div>
+  );
+}
 
 interface MaintenanceModalProps {
   open: boolean;
@@ -175,6 +235,9 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
                 }))
               }
             />
+            <div className="mt-2">
+              <TuroAvailabilityNotice carId={formData.car_id} />
+            </div>
           </div>
 
           <div>

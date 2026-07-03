@@ -228,6 +228,7 @@ export function MaintenanceTab({
           rec.car_make,
           rec.car_model,
           rec.car_plate,
+          rec.car_vin,
           rec.task_description,
           rec.assigned_to,
           rec.repair_shop,
@@ -678,6 +679,8 @@ export function MaintenanceTab({
                       { label: "CAR Name", value: rec.car_id ? (
                         <Link href={`/admin/cars/${rec.car_id}/maintenance`} className="text-[#D3BC8D] hover:underline">{carDisplayName}</Link>
                       ) : carDisplayName },
+                      { label: "Plate #", value: plateNumber || "--" },
+                      { label: "VIN #", value: rec.car_vin || "--" },
                       { label: "Description", value: rec.task_description },
                       { label: "Assigned To", value: assigneeEl },
                       { label: "Scheduled", value: formatDateTime(rec.scheduled_date) },

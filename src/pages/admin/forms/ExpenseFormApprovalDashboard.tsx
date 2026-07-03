@@ -18,6 +18,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +57,8 @@ import {
   Filter,
   X,
   Upload,
+  ChevronsUpDown,
+  Check,
 } from "lucide-react";
 const CATEGORY_LABELS: Record<string, string> = {
   directDelivery: "Direct Delivery",
@@ -54,6 +66,71 @@ const CATEGORY_LABELS: Record<string, string> = {
   reimbursedBills: "Reimbursed Bills",
   income: "Income & Expenses",
 };
+
+/** Searchable car picker keyed by numeric id (matches editForm.carId). The
+ *  plain shadcn <Select> it replaces has no text input in its dropdown, so
+ *  typing did nothing against a 100+ car list — this uses cmdk's built-in
+ *  filtering via CommandInput instead. */
+function CarComboboxById({
+  value,
+  onChange,
+  cars,
+}: {
+  value: number | undefined;
+  onChange: (id: number) => void;
+  cars: Array<{ id: number; name?: string; displayName?: string }>;
+}) {
+  const [open, setOpen] = useState(false);
+  const label = (c: { id: number; name?: string; displayName?: string }) =>
+    c.displayName || c.name || `Car #${c.id}`;
+  const selected = cars.find((c) => c.id === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between bg-card border-border text-foreground hover:bg-card hover:text-foreground mt-1 font-normal"
+        >
+          <span className="truncate">{selected ? label(selected) : "Select car"}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-card border-border" align="start">
+        <Command className="bg-card">
+          <CommandInput
+            placeholder="Search cars..."
+            className="text-foreground placeholder:text-muted-foreground border-b border-border"
+          />
+          <CommandList className="max-h-[260px]">
+            <CommandEmpty className="text-muted-foreground py-4 text-sm text-center">
+              No cars found.
+            </CommandEmpty>
+            <CommandGroup>
+              {cars.map((car) => (
+                <CommandItem
+                  key={car.id}
+                  value={label(car)}
+                  onSelect={() => {
+                    onChange(car.id);
+                    setOpen(false);
+                  }}
+                  className="text-foreground data-[selected=true]:bg-primary/20 data-[selected=true]:text-foreground cursor-pointer"
+                >
+                  <Check className={cn("mr-2 h-4 w-4 shrink-0", value === car.id ? "opacity-100 text-primary" : "opacity-0")} />
+                  {label(car)}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 /** Extract Google Drive file ID from share/view URLs. */
 function getGoogleDriveFileId(url: string): string | null {
@@ -1891,32 +1968,11 @@ export default function ExpenseFormApprovalDashboard({
             </div>
             <div>
               <label className="text-sm text-muted-foreground">Car</label>
-              <Select
-                value={editForm.carId != null ? String(editForm.carId) : ""}
-                onValueChange={(v) =>
-                  setEditForm((p) => ({
-                    ...p,
-                    carId: v ? Number(v) : undefined,
-                  }))
-                }
-              >
-                <SelectTrigger className="bg-card border-border text-foreground mt-1">
-                  <SelectValue placeholder="Select car" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cars.map(
-                    (car: {
-                      id: number;
-                      name?: string;
-                      displayName?: string;
-                    }) => (
-                      <SelectItem key={car.id} value={String(car.id)}>
-                        {car.displayName || car.name || `Car #${car.id}`}
-                      </SelectItem>
-                    ),
-                  )}
-                </SelectContent>
-              </Select>
+              <CarComboboxById
+                value={editForm.carId}
+                onChange={(id) => setEditForm((p) => ({ ...p, carId: id }))}
+                cars={cars}
+              />
             </div>
             <div>
               <label className="text-sm text-muted-foreground">
