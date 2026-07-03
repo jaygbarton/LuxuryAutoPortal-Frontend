@@ -105,6 +105,35 @@ export interface Inspection {
   updated_at: string;
 }
 
+export type ClaimStatus =
+  | "estimate_requested"
+  | "estimate_sent_to_turo"
+  | "resolved"
+  | "not_resolved";
+
+export interface Claim {
+  id: number;
+  reservationId: string | null;
+  claimId: string | null;
+  damageReport: string | null;
+  deadline: string | null;
+  description: string | null;
+  status: ClaimStatus;
+  assignedTo: string | null;
+  assignedToId: number | null;
+  emailReceivedAt: string | null;
+  source: "email" | "manual";
+  createdAt: string;
+  updatedAt: string;
+  // Derived (joined from turo_trips) — null until a matching trip syncs
+  tripStart: string | null;
+  tripEnd: string | null;
+  guestName: string | null;
+  carName: string | null;
+  vin: string | null;
+  plate: string | null;
+}
+
 export interface MaintenanceRecord {
   id: number;
   inspection_id: number | null;
