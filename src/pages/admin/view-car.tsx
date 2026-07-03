@@ -228,7 +228,13 @@ export default function ViewCarPage() {
     );
   }
 
-  const carName = car.makeModel || `${car.year || ""} ${car.vin}`.trim();
+  // car.makeModel never includes the year (backend CONCATs make+specs only,
+  // and that field also round-trips through the editable car-detail form, so
+  // fixing it there would risk baking a duplicate year into car_specs on
+  // save). Append year here for DISPLAY only.
+  const carName = car.makeModel
+    ? car.year ? `${car.makeModel} ${car.year}` : car.makeModel
+    : `${car.year || ""} ${car.vin}`.trim();
   const hasLinkedOwner = !!car.owner && !!(car.owner.firstName || car.owner.lastName);
   const linkedOwnerName = hasLinkedOwner
     ? `${car.owner!.firstName} ${car.owner!.lastName}`.trim()
@@ -262,7 +268,7 @@ export default function ViewCarPage() {
             <h1 className="text-2xl font-bold text-primary">View Car</h1>
             {car && (
               <p className="text-sm text-muted-foreground mt-1">
-                Car: {car.makeModel || "Unknown Car"}
+                Car: {carName || "Unknown Car"}
               </p>
             )}
           </div>

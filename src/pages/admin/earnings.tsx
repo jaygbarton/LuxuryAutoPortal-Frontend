@@ -94,14 +94,6 @@ export default function EarningsPage() {
   // including staying read-only. Broadening isAdmin itself here would make
   // cells editable while impersonating, defeating the point of the preview.
   const isAdmin = userData?.user?.isAdmin === true;
-  // isUnderlyingAdmin additionally covers "a real admin is looking at this,
-  // even if rendering as a client preview" — same signal ViewAsClientBanner.tsx
-  // uses. Use this (not isAdmin) to gate VISIBILITY of GLA-internal read-only
-  // sections (Parking Fee & Labor Cleaning, Parking Airport Average) so an
-  // admin auditing via "View as Client" still sees them, while a genuine
-  // client session still does not.
-  const isUnderlyingAdmin =
-    userData?.user?.isAdmin === true || userData?.user?.impersonatorIsAdmin === true;
 
   // Fetch car data
   const { data: carData, isLoading: isCarLoading, error: carError } = useQuery<{
@@ -1744,11 +1736,9 @@ export default function EarningsPage() {
                   />
                 </CategorySection>
 
-                {/* GLA PARKING FEE & LABOR CLEANING - internal GLA metric, hidden
-                    from real clients but visible to an admin auditing via
-                    "View as Client" (isUnderlyingAdmin, not isAdmin — see def). */}
-                {isUnderlyingAdmin && (
-                  <CategorySection
+                {/* GLA PARKING FEE & LABOR CLEANING - per Cathy (2026-07-02),
+                    visible to all clients now (previously admin-only). */}
+                <CategorySection
                     title="GLA PARKING FEE & LABOR CLEANING"
                     isExpanded={expandedSections.parkingFeeLabor}
                     onToggle={() => toggleSection("parkingFeeLabor")}
@@ -1764,12 +1754,10 @@ export default function EarningsPage() {
                       category="parkingFeeLabor" field="laborCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
                     />
                   </CategorySection>
-                )}
 
-                {/* REIMBURSED AND NON-REIMBURSED BILLS - internal GLA metric,
-                    same visibility rule as GLA Parking Fee above. */}
-                {isUnderlyingAdmin && (
-                  <CategorySection
+                {/* REIMBURSED AND NON-REIMBURSED BILLS - per Cathy (2026-07-02),
+                    visible to all clients now (previously admin-only). */}
+                <CategorySection
                     title="REIMBURSED AND NON-REIMBURSED BILLS"
                     isExpanded={expandedSections.reimbursedBills}
                     onToggle={() => toggleSection("reimbursedBills")}
@@ -1820,7 +1808,6 @@ export default function EarningsPage() {
                       isTotal
                     />
                   </CategorySection>
-                )}
 
                 {/* HISTORY */}
                 <CategorySection
@@ -1833,13 +1820,12 @@ export default function EarningsPage() {
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "daysRented"))}
                     isInteger
                   />
-                  {isUnderlyingAdmin && (
-                    <TableRow
-                      label="Cars Available"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "carsAvailableForRent"))}
-                      isInteger
-                    />
-                  )}
+                  {/* Cars Available - per Cathy (2026-07-02), visible to all clients now. */}
+                  <TableRow
+                    label="Cars Available"
+                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "carsAvailableForRent"))}
+                    isInteger
+                  />
                   <TableRow
                     label="Trips Taken"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "tripsTaken"))}
@@ -1873,10 +1859,9 @@ export default function EarningsPage() {
                   />
                 </CategorySection>
 
-                {/* PARKING AIRPORT AVERAGE PER TRIP - GLA - internal GLA metric,
-                    same visibility rule as GLA Parking Fee above. */}
-                {isUnderlyingAdmin && (
-                  <CategorySection
+                {/* PARKING AIRPORT AVERAGE PER TRIP - GLA - per Cathy (2026-07-02),
+                    visible to all clients now (previously admin-only). */}
+                <CategorySection
                     title="PARKING AIRPORT AVERAGE PER TRIP - GLA"
                     isExpanded={expandedSections.parkingAverageQB}
                     onToggle={() => toggleSection("parkingAverageQB")}
@@ -1900,7 +1885,6 @@ export default function EarningsPage() {
                       })}
                     />
                   </CategorySection>
-                )}
               </tbody>
             </table>
             <div className="h-8 pb-4"></div>
