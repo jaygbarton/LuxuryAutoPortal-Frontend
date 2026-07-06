@@ -1422,8 +1422,8 @@ export default function EarningsPage() {
           </div>
         </div>
 
-        {/* Earnings Table — internal cost/split breakdown, admin/employee/co-host only (see isClient above) */}
-        {!isClient && (
+        {/* Earnings Table — per Cathy (2026-07-02), visible to all clients now
+            (previously admin/employee/co-host only via isClient). */}
         <div className="bg-card border border-border rounded-lg overflow-hidden mb-6">
           <div className="w-full h-[600px] overflow-y-auto overflow-x-auto">
             <table className="border-collapse w-full table-fixed" style={{ minWidth: '1200px' }}>
@@ -1898,7 +1898,6 @@ export default function EarningsPage() {
             <div className="h-8 pb-4"></div>
           </div>
         </div>
-        )}
 
         {/* Turo Earnings Chart Section */}
         <div className="bg-card border border-border rounded-lg overflow-hidden mb-6">
