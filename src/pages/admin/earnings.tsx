@@ -94,6 +94,13 @@ export default function EarningsPage() {
   // including staying read-only. Broadening isAdmin itself here would make
   // cells editable while impersonating, defeating the point of the preview.
   const isAdmin = userData?.user?.isAdmin === true;
+  // Hides the internal cost/split breakdown table (Car Management Split,
+  // COGS, Direct Delivery, Parking Fee & Labor, Reimbursed Bills, etc.) from
+  // real clients — this page is shared between admins and the client-facing
+  // "Earnings" nav link, and the breakdown table has no place being shown to
+  // an owner. Deliberately independent of isAdmin/impersonation: a co-host or
+  // employee viewing as themselves should still see it.
+  const isClient = userData?.user?.isClient === true;
 
   // Fetch car data
   const { data: carData, isLoading: isCarLoading, error: carError } = useQuery<{
@@ -1415,7 +1422,8 @@ export default function EarningsPage() {
           </div>
         </div>
 
-        {/* Earnings Table */}
+        {/* Earnings Table — internal cost/split breakdown, admin/employee/co-host only (see isClient above) */}
+        {!isClient && (
         <div className="bg-card border border-border rounded-lg overflow-hidden mb-6">
           <div className="w-full h-[600px] overflow-y-auto overflow-x-auto">
             <table className="border-collapse w-full table-fixed" style={{ minWidth: '1200px' }}>
@@ -1890,6 +1898,7 @@ export default function EarningsPage() {
             <div className="h-8 pb-4"></div>
           </div>
         </div>
+        )}
 
         {/* Turo Earnings Chart Section */}
         <div className="bg-card border border-border rounded-lg overflow-hidden mb-6">
@@ -2199,6 +2208,7 @@ export default function EarningsPage() {
           calculateCarManagementTotalExpenses={calculateCarManagementTotalExpenses}
           calculateCarOwnerTotalExpenses={calculateCarOwnerTotalExpenses}
           getMonthValue={getMonthValue}
+          isClient={isClient}
         />
       </div>
       <ClientPageLinks />

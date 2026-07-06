@@ -106,6 +106,7 @@ export interface Inspection {
 }
 
 export type ClaimStatus =
+  | "new"
   | "estimate_requested"
   | "estimate_sent_to_turo"
   | "resolved"

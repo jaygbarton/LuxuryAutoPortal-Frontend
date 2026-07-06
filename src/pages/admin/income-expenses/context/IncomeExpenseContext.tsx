@@ -209,6 +209,20 @@ export function IncomeExpenseProvider({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Payment History's "Car Owner Split" column is computed live from this same
+  // I&E data on every fetch (see _recomputeOwnerSplitsForList on the backend),
+  // but it's cached under a separate query key. Without invalidating it here
+  // too, an I&E edit doesn't show up on the Payment History page until the
+  // user navigates away and back (React Query keeps serving the stale cache).
+  const invalidateIncomeExpenseAndPayments = () => {
+    queryClient.invalidateQueries({
+      queryKey: isAllCars ? ["/api/income-expense/all-cars", year] : ["/api/income-expense", carId, year],
+    });
+    if (!isAllCars) {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/car", carId] });
+    }
+  };
+
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [pendingChanges, setPendingChanges] = useState<Map<string, any>>(new Map());
   
@@ -579,11 +593,7 @@ export function IncomeExpenseProvider({
       if (!response.ok) throw new Error("Failed to update subcategory value");
       
       await fetchDynamicSubcategories();
-      queryClient.invalidateQueries({
-        queryKey: isAllCars
-          ? ["/api/income-expense/all-cars", year]
-          : ["/api/income-expense", carId, year],
-      });
+      invalidateIncomeExpenseAndPayments();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -700,11 +710,7 @@ export function IncomeExpenseProvider({
       }
 
       // Invalidate query to refresh data
-      queryClient.invalidateQueries({
-        queryKey: isAllCars
-          ? ["/api/income-expense/all-cars", year]
-          : ["/api/income-expense", carId, year],
-      });
+      invalidateIncomeExpenseAndPayments();
       
       toast({
         title: "Success",
@@ -784,11 +790,7 @@ export function IncomeExpenseProvider({
       }
 
       // Invalidate query to refresh data (but don't wait for it)
-      queryClient.invalidateQueries({
-        queryKey: isAllCars
-          ? ["/api/income-expense/all-cars", year]
-          : ["/api/income-expense", carId, year],
-      });
+      invalidateIncomeExpenseAndPayments();
       
       toast({
         title: "Success",
@@ -845,11 +847,7 @@ export function IncomeExpenseProvider({
       if (result.success && result.data?.splitTypeByMonth) {
         setSplitTypeByMonth({ ...getDefaultSplitTypeByMonth(), ...result.data.splitTypeByMonth });
       }
-      queryClient.invalidateQueries({
-        queryKey: isAllCars
-          ? ["/api/income-expense/all-cars", year]
-          : ["/api/income-expense", carId, year],
-      });
+      invalidateIncomeExpenseAndPayments();
       toast({ title: "Success", description: "Split type updated successfully" });
     } catch (error: any) {
       setSplitTypeByMonth(previousTypes);
@@ -911,11 +909,7 @@ export function IncomeExpenseProvider({
       await Promise.all(promises);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: isAllCars
-          ? ["/api/income-expense/all-cars", year]
-          : ["/api/income-expense", carId, year],
-      });
+      invalidateIncomeExpenseAndPayments();
       setPendingChanges(new Map());
       setEditingCell(null); // Close modal after successful save
       toast({
@@ -998,11 +992,7 @@ export function IncomeExpenseProvider({
 
       Promise.all(promises)
         .then(() => {
-          queryClient.invalidateQueries({
-            queryKey: isAllCars
-              ? ["/api/income-expense/all-cars", year]
-              : ["/api/income-expense", carId, year],
-          });
+          invalidateIncomeExpenseAndPayments();
           setPendingChanges(new Map());
           setEditingCell(null);
           toast({
@@ -1067,11 +1057,7 @@ export function IncomeExpenseProvider({
           }),
         ),
       );
-      queryClient.invalidateQueries({
-        queryKey: isAllCars
-          ? ["/api/income-expense/all-cars", year]
-          : ["/api/income-expense", carId, year],
-      });
+      invalidateIncomeExpenseAndPayments();
       setEditingCell(null);
       toast({
         title: "Row cleared",

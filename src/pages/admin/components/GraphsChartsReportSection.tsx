@@ -23,6 +23,10 @@ interface GraphsChartsReportSectionProps {
   calculateCarManagementTotalExpenses: (month: number) => number;
   calculateCarOwnerTotalExpenses: (month: number) => number;
   getMonthValue: (arr: any[], month: number, field: string) => number;
+  /** Hides the GLA-internal "Car Management Profit" / "Car Management Total
+   *  Expenses" charts — per Cathy/Jin, clients should only see charts about
+   *  their own car (Rental Income, Car Owner Profit/Expenses, History). */
+  isClient?: boolean;
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -37,6 +41,7 @@ export function GraphsChartsReportSection({
   calculateCarManagementTotalExpenses,
   calculateCarOwnerTotalExpenses,
   getMonthValue,
+  isClient = false,
 }: GraphsChartsReportSectionProps) {
   // Prepare monthly data for charts
   const monthlyData = useMemo(() => {
@@ -137,7 +142,8 @@ export function GraphsChartsReportSection({
         </ResponsiveContainer>
       </div>
 
-      {/* Car Management Profit Chart */}
+      {/* Car Management Profit Chart — GLA-internal, hidden from clients */}
+      {!isClient && (
       <div className="bg-card border border-border rounded-lg p-6 mb-6">
         <h2 className="text-lg font-semibold text-muted-foreground mb-4">Car Management Profit</h2>
         <div className="mb-4 text-sm text-muted-foreground">
@@ -161,6 +167,7 @@ export function GraphsChartsReportSection({
           </BarChart>
         </ResponsiveContainer>
       </div>
+      )}
 
       {/* Car Owner Profit Chart */}
       <div className="bg-card border border-border rounded-lg p-6 mb-6">
@@ -212,7 +219,8 @@ export function GraphsChartsReportSection({
         </ResponsiveContainer>
       </div>
 
-      {/* Car Management Total Expenses Chart */}
+      {/* Car Management Total Expenses Chart — GLA-internal, hidden from clients */}
+      {!isClient && (
       <div className="bg-card border border-border rounded-lg p-6 mb-6">
         <h2 className="text-lg font-semibold text-muted-foreground mb-4">Car Management Total Expenses</h2>
         <div className="mb-4 text-sm text-muted-foreground">
@@ -236,6 +244,7 @@ export function GraphsChartsReportSection({
           </BarChart>
         </ResponsiveContainer>
       </div>
+      )}
 
       {/* History Chart */}
       <div className="bg-card border border-border rounded-lg p-6 mb-6">

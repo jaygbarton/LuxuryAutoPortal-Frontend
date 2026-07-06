@@ -244,6 +244,7 @@ export function ClaimsTab() {
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-foreground">
                   <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
                   <SelectItem value="estimate_requested">Estimate Requested</SelectItem>
                   <SelectItem value="estimate_sent_to_turo">Estimate Sent to Turo</SelectItem>
                   <SelectItem value="resolved">Resolved</SelectItem>
@@ -270,6 +271,8 @@ export function ClaimsTab() {
                     ? { bg: "bg-red-600", border: "border-red-300" }
                     : claim.status === "estimate_sent_to_turo"
                     ? { bg: "bg-blue-500", border: "border-blue-300" }
+                    : claim.status === "new"
+                    ? { bg: "bg-slate-500", border: "border-slate-300" }
                     : { bg: "bg-amber-500", border: "border-amber-300" };
 
                 const statusControl = (
@@ -281,6 +284,7 @@ export function ClaimsTab() {
                       <StatusBadge status={claim.status} />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border text-foreground">
+                      <SelectItem value="new">New</SelectItem>
                       <SelectItem value="estimate_requested">Estimate Requested</SelectItem>
                       <SelectItem value="estimate_sent_to_turo">Estimate Sent to Turo</SelectItem>
                       <SelectItem value="resolved">Resolved</SelectItem>

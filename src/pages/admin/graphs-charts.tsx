@@ -276,6 +276,7 @@ export default function GraphsChartsPage() {
           calculateCarManagementTotalExpenses={calculateCarManagementTotalExpenses}
           calculateCarOwnerTotalExpenses={calculateCarOwnerTotalExpenses}
           getMonthValue={getMonthValueWrapper}
+          isClient={isClient}
         />
       </div>
       <ClientPageLinks />
