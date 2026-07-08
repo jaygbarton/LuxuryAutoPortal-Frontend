@@ -117,6 +117,10 @@ export interface Claim {
   reservationId: string | null;
   claimId: string | null;
   damageReport: string | null;
+  damageReportLink: string | null;
+  incidentReportLink: string | null;
+  estimateCost: number | null;
+  receiptPhotos: string[];
   shopName: string | null;
   deadline: string | null;
   description: string | null;
@@ -190,6 +194,9 @@ export interface MaintenanceRecord {
   owner_approval_status?: "not_sent" | "email_sent" | "approved" | "declined" | "auto_approved" | null;
   owner_decline_reason?: string | null;
   owner_wants_pickup?: 0 | 1 | boolean | null;
+  /** Whether the car owner has an active app account. When false, the SOP does
+   *  not email them, so owner_approval_status stays "not_sent" by design. */
+  owner_has_app_access?: 0 | 1 | boolean | null;
   owner_responded_at?: string | null;
 }
 

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
+import { PhotoUpload } from "./PhotoUpload";
 import type { Claim } from "./types";
 
 interface ClaimModalProps {
@@ -33,12 +34,18 @@ export function ClaimModal({
     reservationId: claim?.reservationId || "",
     claimId: claim?.claimId || "",
     damageReport: claim?.damageReport || "",
+    damageReportLink: claim?.damageReportLink || "",
+    incidentReportLink: claim?.incidentReportLink || "",
+    estimateCost: claim?.estimateCost != null ? String(claim.estimateCost) : "",
     shopName: claim?.shopName || "",
     deadline: claim?.deadline ? claim.deadline.slice(0, 10) : "",
     description: claim?.description || "",
     assignedTo: claim?.assignedTo || defaultAssignedTo || "",
     assignedToId: claim?.assignedToId ?? defaultAssignedToId ?? null,
   });
+  // Receipt images are managed via their own upload endpoint (they need a saved
+  // claim id), so they live outside formData and are kept in sync with the claim.
+  const [receiptPhotos, setReceiptPhotos] = useState<string[]>(claim?.receiptPhotos || []);
 
   useEffect(() => {
     if (claim) {
@@ -46,23 +53,31 @@ export function ClaimModal({
         reservationId: claim.reservationId || "",
         claimId: claim.claimId || "",
         damageReport: claim.damageReport || "",
+        damageReportLink: claim.damageReportLink || "",
+        incidentReportLink: claim.incidentReportLink || "",
+        estimateCost: claim.estimateCost != null ? String(claim.estimateCost) : "",
         shopName: claim.shopName || "",
         deadline: claim.deadline ? claim.deadline.slice(0, 10) : "",
         description: claim.description || "",
         assignedTo: claim.assignedTo || "",
         assignedToId: claim.assignedToId ?? null,
       });
+      setReceiptPhotos(claim.receiptPhotos || []);
     } else {
       setFormData({
         reservationId: "",
         claimId: "",
         damageReport: "",
+        damageReportLink: "",
+        incidentReportLink: "",
+        estimateCost: "",
         shopName: "",
         deadline: "",
         description: "",
         assignedTo: defaultAssignedTo || "",
         assignedToId: defaultAssignedToId ?? null,
       });
+      setReceiptPhotos([]);
     }
   }, [claim, defaultAssignedTo, defaultAssignedToId, open]);
 
@@ -78,6 +93,10 @@ export function ClaimModal({
         body: JSON.stringify({
           ...data,
           deadline: data.deadline || null,
+          estimateCost: data.estimateCost === "" ? null : data.estimateCost,
+          // Only send the photo array on edit — a new claim's receipts are
+          // uploaded after it exists (PhotoUpload needs the saved id).
+          ...(isEdit ? { receiptPhotos } : {}),
         }),
       });
       if (!response.ok) throw new Error("Failed to save claim");
@@ -149,6 +168,28 @@ export function ClaimModal({
           </div>
 
           <div>
+            <label className="text-sm text-muted-foreground">Damage Report Link</label>
+            <Input
+              type="url"
+              value={formData.damageReportLink}
+              onChange={(e) => setFormData({ ...formData, damageReportLink: e.target.value })}
+              className="bg-card border-border text-foreground mt-1"
+              placeholder="https://..."
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-muted-foreground">Incident Report Link</label>
+            <Input
+              type="url"
+              value={formData.incidentReportLink}
+              onChange={(e) => setFormData({ ...formData, incidentReportLink: e.target.value })}
+              className="bg-card border-border text-foreground mt-1"
+              placeholder="https://..."
+            />
+          </div>
+
+          <div>
             <label className="text-sm text-muted-foreground">Shop Name</label>
             <Input
               value={formData.shopName}
@@ -156,6 +197,22 @@ export function ClaimModal({
               className="bg-card border-border text-foreground mt-1"
               placeholder="Repair shop handling the estimate"
             />
+          </div>
+
+          <div>
+            <label className="text-sm text-muted-foreground">Estimate Cost</label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.estimateCost}
+                onChange={(e) => setFormData({ ...formData, estimateCost: e.target.value })}
+                className="bg-card border-border text-foreground pl-7"
+                placeholder="0.00"
+              />
+            </div>
           </div>
 
           <div>
@@ -178,6 +235,22 @@ export function ClaimModal({
               placeholder="Additional notes..."
               rows={3}
             />
+          </div>
+
+          <div>
+            <label className="text-sm text-muted-foreground">Receipt</label>
+            {isEdit ? (
+              <PhotoUpload
+                photos={receiptPhotos}
+                onPhotosChange={setReceiptPhotos}
+                entityType="claim"
+                entityId={claim?.id}
+              />
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                Save the claim first, then re-open it to upload receipt images.
+              </p>
+            )}
           </div>
 
           <div>

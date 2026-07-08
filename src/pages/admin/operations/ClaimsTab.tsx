@@ -24,6 +24,7 @@ import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
 import { StatusBadge } from "./StatusBadge";
 import { ClaimModal } from "./ClaimModal";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
+import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Plus, Edit, Trash2 } from "lucide-react";
@@ -108,6 +109,8 @@ export function ClaimsTab() {
         c.reservationId,
         c.claimId,
         c.damageReport,
+        c.damageReportLink,
+        c.incidentReportLink,
         c.shopName,
         c.description,
         c.assignedTo,
@@ -304,6 +307,42 @@ export function ClaimsTab() {
                   </div>
                 );
 
+                const linkEl = (url: string | null) =>
+                  url ? (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline break-all hover:text-primary/80"
+                    >
+                      Open
+                    </a>
+                  ) : (
+                    "--"
+                  );
+
+                const estimateCostEl =
+                  claim.estimateCost != null
+                    ? `$${Number(claim.estimateCost).toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
+                    : "--";
+
+                const receiptEl =
+                  claim.receiptPhotos && claim.receiptPhotos.length > 0 ? (
+                    <PhotoUpload
+                      photos={claim.receiptPhotos}
+                      onPhotosChange={() => {}}
+                      entityType="claim"
+                      entityId={claim.id}
+                      disabled
+                      compact
+                    />
+                  ) : (
+                    "--"
+                  );
+
                 const assigneeEl = (
                   <EmployeeSelectCombobox
                     value={claim.assignedTo || ""}
@@ -337,7 +376,11 @@ export function ClaimsTab() {
                       { label: "Claim ID", value: claim.claimId || "--" },
                       { label: "VIN", value: claim.vin || "--" },
                       { label: "Damage Report", value: claim.damageReport || "--" },
+                      { label: "Damage Report Link", value: linkEl(claim.damageReportLink) },
+                      { label: "Incident Report Link", value: linkEl(claim.incidentReportLink) },
                       { label: "Shop Name", value: claim.shopName || "--" },
+                      { label: "Estimate Cost", value: estimateCostEl },
+                      { label: "Receipt", value: receiptEl },
                       { label: "Deadline", value: formatDate(claim.deadline) },
                       { label: "Assigned To", value: assigneeEl },
                       { label: "Source", value: claim.source === "email" ? "Turo Email" : "Manual" },
