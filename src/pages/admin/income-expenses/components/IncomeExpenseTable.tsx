@@ -9,7 +9,7 @@ import {
   Link2,
 } from "lucide-react";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
-import EditableCell from "./EditableCell";
+import EditableCell, { FORM_AWARE_CATEGORIES } from "./EditableCell";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -5209,6 +5209,11 @@ function CategoryRow({
 }: CategoryRowProps) {
   const [location] = useLocation();
   const isEmployeeView = useIsEmployeeView();
+  // Approved expense-form submissions contribute a "form amount" that is added
+  // to the manual value for DISPLAY. This is needed in the read-only cell branch
+  // below too — otherwise approved submissions never appear on the (read-only)
+  // /admin/income-expenses grid, only in the editable modal path.
+  const { getFormAmount } = useIncomeExpense();
   // Hidden standard rows are removed entirely from this car's table. They are
   // also excluded from section totals by the caller (see isRowHidden).
   // (Placed after hooks to respect the rules of hooks.)
@@ -5236,9 +5241,18 @@ function CategoryRow({
   // For currency rows, round each month's value to the nearest cent before summing
   // so the yearly total exactly matches the sum of what's shown in each month cell
   // (otherwise accumulated sub-cent floats can drift the total by several dollars).
-  const summedTotal = values.reduce((sum, val) => {
+  // Annual form-amount contribution for this row (approved submissions across
+  // all 12 months), so the row's Total column matches the sum of the month
+  // cells (each of which now includes its form amount). Only form-aware
+  // currency fields carry a form amount. Category subtotals add their own form
+  // totals separately via getCategoryMonthFormTotal, so this stays row-local.
+  const isFormAwareRow =
+    !!category && !!field && !isPercentage && !isInteger && FORM_AWARE_CATEGORIES.has(category);
+  const summedTotal = values.reduce((sum, val, i) => {
     const numVal = typeof val === "number" && !isNaN(val) ? val : 0;
-    const rounded = isInteger ? numVal : Math.round(numVal * 100) / 100;
+    const cellForm = isFormAwareRow ? getFormAmount(category!, field!, i + 1) : 0;
+    const combined = numVal + cellForm;
+    const rounded = isInteger ? combined : Math.round(combined * 100) / 100;
     return sum + rounded;
   }, 0);
   const total =
@@ -5361,6 +5375,14 @@ function CategoryRow({
         // Ensure value is a number and handle null/undefined
         const cellValue =
           typeof value === "number" && !isNaN(value) ? value : 0;
+        // Form-amount contribution (approved expense-form submissions) for this
+        // cell — only for form-aware currency fields, never for percentages/
+        // integers. Mirrors EditableCell so the read-only branch below shows the
+        // same total the editable path does.
+        const cellFormAmount =
+          category && field && !isPercentage && !isInteger && FORM_AWARE_CATEGORIES.has(category)
+            ? getFormAmount(category, field, month)
+            : 0;
         // Determine if this specific month is editable
         const isMonthEditable = isReadOnly
           ? false
@@ -5404,17 +5426,33 @@ function CategoryRow({
                 />
               )
             ) : (
-              <span
-                className={cn(
-                  "text-xs text-right block",
-                  cellValue === 0 && "text-gray-600",
-                  onPercentCellClick && !isReadOnly && "cursor-pointer hover:bg-muted px-2 py-1 rounded transition-colors",
-                )}
-                onClick={onPercentCellClick && !isReadOnly ? () => onPercentCellClick(month) : undefined}
-                title={onPercentCellClick && !isReadOnly ? "Click to edit Co-Host %" : undefined}
-              >
-                {formatValue(cellValue, month)}
-              </span>
+              (() => {
+                // Add the approved-form contribution for display. hasForm drives
+                // the highlight + tooltip so a read-only cell that only has form
+                // money (manual $0) still renders visibly, not as gray $0.
+                const displayedCellValue = cellValue + cellFormAmount;
+                const hasForm = cellFormAmount > 0;
+                return (
+                  <span
+                    className={cn(
+                      "text-xs text-right block",
+                      displayedCellValue === 0 && "text-gray-600",
+                      hasForm && "text-primary font-medium",
+                      onPercentCellClick && !isReadOnly && "cursor-pointer hover:bg-muted px-2 py-1 rounded transition-colors",
+                    )}
+                    onClick={onPercentCellClick && !isReadOnly ? () => onPercentCellClick(month) : undefined}
+                    title={
+                      hasForm
+                        ? `Manual $${cellValue.toFixed(2)} + Form $${cellFormAmount.toFixed(2)} = Total $${displayedCellValue.toFixed(2)}`
+                        : onPercentCellClick && !isReadOnly
+                          ? "Click to edit Co-Host %"
+                          : undefined
+                    }
+                  >
+                    {formatValue(displayedCellValue, month)}
+                  </span>
+                );
+              })()
             )}
           </td>
         );

@@ -85,10 +85,16 @@ export function useFormAmounts(carId: number | null | undefined, year: string) {
   // totals shown in <EditableCell>.
   const getCategoryMonthFormTotal = (category: string, month: number): number => {
     let sum = 0;
-    const suffix = `-${month}`;
     const prefix = `${category}-`;
     for (const [key, entry] of Object.entries(byCell)) {
-      if (key.startsWith(prefix) && key.endsWith(suffix)) {
+      if (!key.startsWith(prefix)) continue;
+      // Match the month EXACTLY on the trailing token. A naive
+      // `endsWith("-" + month)` would let month 2 ("-2") also match keys ending
+      // in "-12" (December), leaking December's form amounts into February's
+      // subtotal. The month is always the substring after the final "-".
+      const lastDash = key.lastIndexOf("-");
+      if (lastDash === -1) continue;
+      if (Number(key.slice(lastDash + 1)) === month) {
         sum += entry.amount;
       }
     }

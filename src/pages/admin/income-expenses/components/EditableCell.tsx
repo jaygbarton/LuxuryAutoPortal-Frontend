@@ -16,7 +16,7 @@ interface EditableCellProps {
 // submissions. Every other category (parkingFeeLabor, officeSupport, etc.)
 // cannot receive a "form amount", so we skip the lookup entirely. This keeps
 // split %/history/etc. cells untouched by form-amount math.
-const FORM_AWARE_CATEGORIES = new Set([
+export const FORM_AWARE_CATEGORIES = new Set([
   "income",
   "directDelivery",
   "cogs",
