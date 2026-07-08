@@ -102,6 +102,23 @@ const calculateDaysRented = (
 function OwnerApprovalBadge({ rec }: { rec: MaintenanceRecord }) {
   const s = rec.owner_approval_status || "not_sent";
   if (s === "not_sent") {
+    // The SOP only emails owners who have an app account. If this task is
+    // already "Maintenance Reported" but no email went out because the owner
+    // can't log in, say so instead of a bare "--" that reads as "nothing
+    // happened" (the case Cathy flagged on cars owned by non-app clients).
+    const isReported = rec.status === "damage_reported";
+    const hasAppAccess =
+      rec.owner_has_app_access === 1 || rec.owner_has_app_access === true;
+    if (isReported && !hasAppAccess) {
+      return (
+        <Badge
+          className="bg-slate-500/20 text-slate-400 border-0 text-xs font-medium"
+          title="The car owner does not have an app account, so the approval email was not sent. Handle approval manually."
+        >
+          No App Access
+        </Badge>
+      );
+    }
     return <span className="text-xs text-muted-foreground">--</span>;
   }
   const map: Record<string, { label: string; cls: string }> = {
