@@ -72,7 +72,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const DONE_STATUSES = new Set([
-  "completed", "delivered", "blocked_off_ended", "done",
+  "completed", "delivered", "done",
+  // Block-off cards: a car that's been blocked off is considered "handled" on
+  // the timeline. Legacy 'blocked_off_ended' kept for old rows.
+  "car_blocked_off", "blocked_off_ended",
 ]);
 
 // Task types that are "children" of a trip card rather than standalone rows.
@@ -259,7 +262,7 @@ function useToggleTaskDone(scheduleDate: string) {
   // Toggle a block_off card (car_block_off table)
   async function toggleBlockOff(id: number, currentlyDone: boolean) {
     if (pending.has(id)) return;
-    const newStatus = currentlyDone ? "new" : "blocked_off_ended";
+    const newStatus = currentlyDone ? "new" : "car_blocked_off";
     setPending((s) => new Set(s).add(id));
     try {
       await fetch(buildApiUrl(`/api/operations/block-off/${id}/status`), {

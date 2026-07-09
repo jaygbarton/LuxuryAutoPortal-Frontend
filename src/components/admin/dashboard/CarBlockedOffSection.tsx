@@ -30,7 +30,7 @@ interface CarBlockOff {
   pickup_date: string;
   pickup_location: string;
   dropoff_date: string | null;
-  status: "new" | "car_not_available" | "block_off_started" | "blocked_off_ended";
+  status: "new" | "car_not_available" | "car_blocked_off";
 }
 
 interface SubmissionsResponse {
@@ -43,9 +43,8 @@ interface SubmissionsResponse {
 // mirrors STATUS_OPTIONS in the Operations Car Block Off tab.
 const STATUS_OPTIONS = [
   { value: "new", label: "New", className: "bg-gray-100 text-gray-700 border-gray-200" },
+  { value: "car_blocked_off", label: "Car Blocked Off", className: "bg-amber-100 text-amber-700 border-amber-200" },
   { value: "car_not_available", label: "Car Not Available", className: "bg-red-100 text-red-700 border-red-200" },
-  { value: "block_off_started", label: "Block Off Started", className: "bg-amber-100 text-amber-700 border-amber-200" },
-  { value: "blocked_off_ended", label: "Blocked Off Ended", className: "bg-green-100 text-green-700 border-green-200" },
 ];
 
 function statusMeta(v: string) {

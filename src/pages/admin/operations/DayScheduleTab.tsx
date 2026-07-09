@@ -103,9 +103,11 @@ const STATUS_BADGE: Record<string, string> = {
   in_progress:       "bg-blue-100 text-blue-800 border-blue-300",
   completed:         "bg-green-100 text-green-800 border-green-300",
   new:               "bg-gray-100 text-gray-700 border-gray-300",
-  block_off_started: "bg-blue-100 text-blue-800 border-blue-300",
-  blocked_off_ended: "bg-green-100 text-green-800 border-green-300",
+  car_blocked_off:   "bg-amber-100 text-amber-800 border-amber-300",
   car_not_available: "bg-red-100 text-red-800 border-red-300",
+  // Legacy statuses (pre-merge) still colored for any historical rows.
+  block_off_started: "bg-amber-100 text-amber-800 border-amber-300",
+  blocked_off_ended: "bg-amber-100 text-amber-800 border-amber-300",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
