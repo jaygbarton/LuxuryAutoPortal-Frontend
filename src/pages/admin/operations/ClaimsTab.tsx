@@ -223,7 +223,7 @@ export function ClaimsTab() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <SummaryCard label="Estimate Requested" value={String(requestedCount)} variant="gold" />
-        <SummaryCard label="Sent to Turo" value={String(sentCount)} variant="dark" />
+        <SummaryCard label="Invoiced Guest" value={String(sentCount)} variant="dark" />
         <SummaryCard label="Resolved" value={String(resolvedCount)} variant="white" />
       </div>
 
@@ -249,7 +249,8 @@ export function ClaimsTab() {
                   <SelectItem value="all">All</SelectItem>
                   <SelectItem value="new">New</SelectItem>
                   <SelectItem value="estimate_requested">Estimate Requested</SelectItem>
-                  <SelectItem value="estimate_sent_to_turo">Estimate Sent to Turo</SelectItem>
+                  <SelectItem value="estimate_sent_to_turo">Invoiced Guest</SelectItem>
+                  <SelectItem value="turo_managed">Turo Managed</SelectItem>
                   <SelectItem value="resolved">Resolved</SelectItem>
                   <SelectItem value="not_resolved">Not Resolved</SelectItem>
                 </SelectContent>
@@ -274,6 +275,8 @@ export function ClaimsTab() {
                     ? { bg: "bg-red-600", border: "border-red-300" }
                     : claim.status === "estimate_sent_to_turo"
                     ? { bg: "bg-blue-500", border: "border-blue-300" }
+                    : claim.status === "turo_managed"
+                    ? { bg: "bg-indigo-500", border: "border-indigo-300" }
                     : claim.status === "new"
                     ? { bg: "bg-slate-500", border: "border-slate-300" }
                     : { bg: "bg-amber-500", border: "border-amber-300" };
@@ -289,7 +292,8 @@ export function ClaimsTab() {
                     <SelectContent className="bg-card border-border text-foreground">
                       <SelectItem value="new">New</SelectItem>
                       <SelectItem value="estimate_requested">Estimate Requested</SelectItem>
-                      <SelectItem value="estimate_sent_to_turo">Estimate Sent to Turo</SelectItem>
+                      <SelectItem value="estimate_sent_to_turo">Invoiced Guest</SelectItem>
+                      <SelectItem value="turo_managed">Turo Managed</SelectItem>
                       <SelectItem value="resolved">Resolved</SelectItem>
                       <SelectItem value="not_resolved">Not Resolved</SelectItem>
                     </SelectContent>

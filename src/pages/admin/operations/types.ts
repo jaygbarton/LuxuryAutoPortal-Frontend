@@ -109,6 +109,7 @@ export type ClaimStatus =
   | "new"
   | "estimate_requested"
   | "estimate_sent_to_turo"
+  | "turo_managed"
   | "resolved"
   | "not_resolved";
 

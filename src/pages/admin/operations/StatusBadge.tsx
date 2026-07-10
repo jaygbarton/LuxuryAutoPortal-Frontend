@@ -17,6 +17,7 @@ const statusColors: Record<string, { bg: string; text: string }> = {
   no_issues: { bg: "bg-emerald-500/20", text: "text-emerald-400" },
   estimate_requested: { bg: "bg-amber-500/20", text: "text-amber-500" },
   estimate_sent_to_turo: { bg: "bg-blue-500/20", text: "text-blue-400" },
+  turo_managed: { bg: "bg-indigo-500/20", text: "text-indigo-400" },
   resolved: { bg: "bg-green-500/20", text: "text-green-500" },
   not_resolved: { bg: "bg-red-500/20", text: "text-red-500" },
 };
@@ -37,7 +38,8 @@ const statusLabels: Record<string, string> = {
   charged_customer: "Charged Customer",
   no_issues: "No Car Issues",
   estimate_requested: "Estimate Requested",
-  estimate_sent_to_turo: "Estimate Sent to Turo",
+  estimate_sent_to_turo: "Invoiced Guest",
+  turo_managed: "Turo Managed",
   resolved: "Resolved",
   not_resolved: "Not Resolved",
 };
