@@ -16,9 +16,19 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { SummaryCard } from "@/components/admin/dashboard/SummaryCard";
 import { DashboardRecordCard } from "@/components/admin/dashboard/DashboardRecordCard";
@@ -28,7 +38,7 @@ import { StatusBadge } from "./StatusBadge";
 import { PhotoUpload } from "./PhotoUpload";
 import { VIOLATION_TYPES } from "../forms/TicketViolationSubmission";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, ChevronsUpDown, Check } from "lucide-react";
 
 interface TicketViolation {
   tv_aid: number;
@@ -140,6 +150,7 @@ function TicketViolationModal({
     tv_status: "new",
   });
   const [photos, setPhotos] = useState<string[]>([]);
+  const [carPickerOpen, setCarPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -239,14 +250,57 @@ function TicketViolationModal({
           </div>
           <div className="space-y-1.5">
             <Label>Car (Name Model Year)</Label>
-            <Select value={form.tv_car_id} onValueChange={onCarChange}>
-              <SelectTrigger><SelectValue placeholder="Select a car" /></SelectTrigger>
-              <SelectContent className="max-h-64">
-                {cars.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>{c.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={carPickerOpen} onOpenChange={setCarPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={carPickerOpen}
+                  className="w-full justify-between bg-card border-border text-foreground hover:bg-card hover:text-foreground font-normal"
+                >
+                  <span className="truncate">
+                    {form.tv_car_id
+                      ? cars.find((c) => String(c.id) === form.tv_car_id)?.label || "Select a car"
+                      : "Select a car"}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-card border-border" align="start">
+                <Command className="bg-card">
+                  <CommandInput
+                    placeholder="Search by name, plate, or VIN…"
+                    className="text-foreground placeholder:text-muted-foreground border-b border-border"
+                  />
+                  <CommandList className="max-h-[220px]">
+                    <CommandEmpty className="text-muted-foreground py-4 text-sm text-center px-2">
+                      No cars found.
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {cars.map((c) => (
+                        <CommandItem
+                          key={c.id}
+                          value={c.label}
+                          onSelect={() => {
+                            onCarChange(String(c.id));
+                            setCarPickerOpen(false);
+                          }}
+                          className="text-foreground data-[selected=true]:bg-primary/20 data-[selected=true]:text-foreground cursor-pointer"
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4 shrink-0",
+                              form.tv_car_id === String(c.id) ? "opacity-100 text-primary" : "opacity-0",
+                            )}
+                          />
+                          {c.label}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="space-y-1.5">
             <Label>Plate #</Label>

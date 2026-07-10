@@ -2467,9 +2467,15 @@ export default function IncomeExpenseTable({
                   Car Management %). */}
               <CategoryRow
                 label="Co-Host Split"
-                values={MONTHS.map((_, i) =>
-                  isCoHostActive(i + 1) ? roundToPhp2Dp(calculateCoHostSplit(i + 1)) : 0,
-                )}
+                values={MONTHS.map((_, i) => {
+                  const monthNum = i + 1;
+                  // All-Cars view: the per-car co-host formula can't be re-run on
+                  // aggregated inputs, so use the backend-summed `coHostIncome`
+                  // (sum of each car's computed co-host split).
+                  if (isAllCarsView)
+                    return getMonthValue(data.incomeExpenses, monthNum, "coHostIncome");
+                  return isCoHostActive(monthNum) ? roundToPhp2Dp(calculateCoHostSplit(monthNum)) : 0;
+                })}
                 percentageValues={MONTHS.map((_, i) =>
                   isCoHostActive(i + 1) ? getCoHostPercent(i + 1) : 0,
                 )}
@@ -2488,9 +2494,13 @@ export default function IncomeExpenseTable({
                   (GLA% + coHost% = 100) and the Co-Host row re-derives from it. */}
               <CategoryRow
                 label="GLA Split"
-                values={MONTHS.map((_, i) =>
-                  isCoHostActive(i + 1) ? roundToPhp2Dp(calculateGlaSplit(i + 1)) : 0,
-                )}
+                values={MONTHS.map((_, i) => {
+                  const monthNum = i + 1;
+                  // All-Cars view: use the backend-summed `glaIncome`.
+                  if (isAllCarsView)
+                    return getMonthValue(data.incomeExpenses, monthNum, "glaIncome");
+                  return isCoHostActive(monthNum) ? roundToPhp2Dp(calculateGlaSplit(monthNum)) : 0;
+                })}
                 percentageValues={MONTHS.map((_, i) =>
                   isCoHostActive(i + 1) ? getGlaSplitPercent(i + 1) : 0,
                 )}
