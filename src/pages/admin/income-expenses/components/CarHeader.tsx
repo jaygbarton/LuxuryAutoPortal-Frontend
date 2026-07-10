@@ -22,7 +22,16 @@ export default function CarHeader({ car, onboarding, onNavigateToClient }: CarHe
             <div>
               <span className="text-muted-foreground text-xs">Car Name: </span>
               <span className="text-foreground text-xs">
-                {car?.makeModel || `${car?.year || ""} ${car?.vin || ""}`.trim()}
+                {(() => {
+                  // makeModel is free text (year isn't always included when the
+                  // car was onboarded) — append the stored year, matching the
+                  // "Make Model Year" convention used by the car selector
+                  // dropdown elsewhere on this page.
+                  const makeModel = (car?.makeModel || "").trim();
+                  const year = car?.year ? String(car.year) : "";
+                  if (makeModel) return year ? `${makeModel} ${year}` : makeModel;
+                  return `${year} ${car?.vin || ""}`.trim();
+                })()}
               </span>
             </div>
             <div>

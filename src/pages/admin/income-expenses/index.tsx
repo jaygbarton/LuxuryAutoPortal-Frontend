@@ -509,7 +509,7 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
               <h1 className="text-2xl font-bold text-primary">Income and Expenses</h1>
               {car && (
                 <p className="text-sm text-muted-foreground mt-1">
-                  Car: {car.makeModel || "Unknown Car"}
+                  Car: {car.makeModel ? `${car.makeModel}${car.year ? ` ${car.year}` : ""}` : "Unknown Car"}
                 </p>
               )}
             </div>

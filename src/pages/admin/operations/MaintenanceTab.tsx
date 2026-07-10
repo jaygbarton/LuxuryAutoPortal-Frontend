@@ -573,7 +573,14 @@ export function MaintenanceTab({
                   const match = enriched.match(/\b(19|20)\d{2}\b/);
                   if (match) year = match[0];
                 }
-                const carDisplayName = rec.car_name || (make !== "--" ? `${make} ${model}${year ? " " + year : ""}`.trim() : "--");
+                // rec.car_name comes from maintenance_tasks.car_name, set at task
+                // creation time — some rows stored it without the year (e.g. "Hyundai
+                // Santa Fe") even though the car's year is known via the c.car_year
+                // join, so append it here rather than trusting car_name as-is.
+                const carNameHasYear = !!rec.car_name && /\b(19|20)\d{2}\b/.test(rec.car_name);
+                const carDisplayName = rec.car_name
+                  ? (carNameHasYear || !year ? rec.car_name : `${rec.car_name} ${year}`)
+                  : (make !== "--" ? `${make} ${model}${year ? " " + year : ""}`.trim() : "--");
 
                 const statusAccent = rec.status === "completed" || rec.status === "charged_customer"
                   ? { bg: "bg-green-600", border: "border-green-300" }
