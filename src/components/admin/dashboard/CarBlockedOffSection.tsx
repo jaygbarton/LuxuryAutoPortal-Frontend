@@ -29,6 +29,10 @@ interface CarBlockOff {
   reason_other: string | null;
   pickup_date: string;
   pickup_location: string;
+  /** Planned end of the block-off, captured up front on the Start form. */
+  block_off_end_date: string | null;
+  /** ACTUAL return date, only set once the car owner submits the End (Drop
+   *  Off) form. Null the whole time the block-off is open. */
   dropoff_date: string | null;
   status: "new" | "car_not_available" | "car_blocked_off";
 }
@@ -148,6 +152,14 @@ export default function CarBlockedOffSection() {
             const accent = REASON_ACCENT[r.reason] ?? REASON_ACCENT["others"];
             const reasonLabel = (REASON_LABELS[r.reason] ?? r.reason) +
               (r.reason === "others" && r.reason_other ? `: ${r.reason_other}` : "");
+            // dropoff_date is only written once the car is actually returned
+            // (submitDropoff) — it's null the whole time the block-off is open.
+            // Fall back to the planned block_off_end_date (captured up front on
+            // the Start form) so the card always answers "when is drop off?"
+            // instead of silently hiding the row.
+            const isActualDropoff = !!r.dropoff_date;
+            const dropOffLabel = isActualDropoff ? "Drop Off Date" : "Drop Off Date (Planned)";
+            const dropOffValue = fmtDate(r.dropoff_date ?? r.block_off_end_date);
             return (
               <DashboardRecordCard
                 key={r.id}
@@ -161,7 +173,7 @@ export default function CarBlockedOffSection() {
                 details={[
                   { label: "Reason", value: reasonLabel },
                   { label: "Pick Up Date", value: fmtDate(r.pickup_date) },
-                  { label: "Drop Off Date", value: fmtDate(r.dropoff_date) },
+                  { label: dropOffLabel, value: dropOffValue },
                 ]}
                 statusControl={
                   // Inline status dropdown. stopPropagation so opening/changing
