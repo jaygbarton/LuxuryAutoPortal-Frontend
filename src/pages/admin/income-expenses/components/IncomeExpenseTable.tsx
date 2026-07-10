@@ -2860,7 +2860,7 @@ export default function IncomeExpenseTable({
                 )}
               />
               {/* Dynamic Subcategories */}
-              {dynamicSubcategories.directDelivery.filter((s) => !isEmployeeView && findStandardCategoryMatch("directDelivery", s.name) == null).map((subcat) => (
+              {dynamicSubcategories.directDelivery.filter((s) => findStandardCategoryMatch("directDelivery", s.name) == null).map((subcat) => (
                 <DynamicSubcategoryRow
                   key={subcat.id}
                   subcategory={subcat}
@@ -3201,7 +3201,7 @@ export default function IncomeExpenseTable({
                 )}
               />
               {/* Dynamic Subcategories */}
-              {dynamicSubcategories.cogs.filter((s) => !isEmployeeView && findStandardCategoryMatch("cogs", s.name) == null).map((subcat) => (
+              {dynamicSubcategories.cogs.filter((s) => findStandardCategoryMatch("cogs", s.name) == null).map((subcat) => (
                 <DynamicSubcategoryRow
                   key={subcat.id}
                   subcategory={subcat}
@@ -3570,7 +3570,7 @@ export default function IncomeExpenseTable({
                 )}
               />
               {/* Dynamic Subcategories */}
-              {dynamicSubcategories.reimbursedBills.filter((s) => !isEmployeeView && findStandardCategoryMatch("reimbursedBills", s.name) == null).map((subcat) => (
+              {dynamicSubcategories.reimbursedBills.filter((s) => findStandardCategoryMatch("reimbursedBills", s.name) == null).map((subcat) => (
                 <DynamicSubcategoryRow
                   key={subcat.id}
                   subcategory={subcat}

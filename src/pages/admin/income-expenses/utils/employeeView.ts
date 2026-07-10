@@ -1,13 +1,12 @@
 /**
- * Employee-restricted view of the Income & Expenses table.
+ * Employee view of the Income & Expenses table.
  *
- * Per the client spec ("EMPLOYEE USER ONLY — ADMIN ACCESS WILL SEE THE FULL
- * ACCESS"), a logged-in EMPLOYEE (non-admin) sees only three sections, each
- * trimmed to a fixed whitelist of rows. Admins (and admins impersonating an
- * employee? no — see useIsEmployeeView) see the full table unchanged.
- *
- * Used by IncomeExpenseTable's CategorySection (hide non-listed sections) and
- * CategoryRow (hide non-listed rows), plus the dynamic-subcategory filter.
+ * NOTE (per Cathy, 2026-07): employees now see ALL categories/rows, same as the
+ * full table — the earlier "employee sees only 3 sections" restriction was
+ * removed. `isSectionAllowedForEmployee` / `isRowAllowedForEmployee` therefore
+ * always return true (kept as no-op hooks so callers don't have to change and
+ * so the restriction can be re-narrowed later by editing the whitelist sets).
+ * `useIsEmployeeView` is still used to keep the table read-only for employees.
  */
 import { useQuery } from "@tanstack/react-query";
 import { authMeQueryFn } from "@/lib/queryClient";
@@ -73,12 +72,18 @@ const ALLOWED_ROW_SET = new Set(
   EMPLOYEE_ALLOWED_ROW_LABELS.map(normalizeLabel),
 );
 
-export function isSectionAllowedForEmployee(title: string): boolean {
-  return ALLOWED_SECTION_SET.has(normalizeLabel(title));
+// Employees now see every section/row (restriction removed per Cathy). The
+// whitelist sets above are retained only so the old behavior can be restored by
+// switching these back to the membership checks.
+void ALLOWED_SECTION_SET;
+void ALLOWED_ROW_SET;
+
+export function isSectionAllowedForEmployee(_title: string): boolean {
+  return true;
 }
 
-export function isRowAllowedForEmployee(label: string): boolean {
-  return ALLOWED_ROW_SET.has(normalizeLabel(label));
+export function isRowAllowedForEmployee(_label: string): boolean {
+  return true;
 }
 
 interface AuthMe {
