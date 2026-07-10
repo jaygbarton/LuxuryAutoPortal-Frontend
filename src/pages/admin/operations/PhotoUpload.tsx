@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 interface PhotoUploadProps {
   photos: string[];
   onPhotosChange: (photos: string[]) => void;
-  entityType: "inspection" | "maintenance" | "claim";
+  entityType: "inspection" | "maintenance" | "claim" | "ticket_violation";
   entityId?: number;
   disabled?: boolean;
   compact?: boolean;
@@ -49,6 +49,8 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
         ? `/api/operations/inspections/${entityId}/photos`
         : entityType === "claim"
         ? `/api/operations/claims/${entityId}/receipts`
+        : entityType === "ticket_violation"
+        ? `/api/admin/ticket-violations/${entityId}/photos`
         : `/api/operations/maintenance/${entityId}/photos`;
 
       const response = await fetch(buildUploadApiUrl(endpoint), {

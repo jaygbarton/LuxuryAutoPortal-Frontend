@@ -15,7 +15,7 @@ import { checkPasswordStrength, getPasswordStrengthColor, getPasswordStrengthLab
 
 interface SlackChannelConfig {
   id: number;
-  formType: "lyc" | "car_onboarding" | "car_offboarding" | "employee_onboarding" | "employee_time_in_out" | "expense_income" | "expense_direct_delivery" | "expense_cogs" | "expense_reimbursed_bills" | "commission_form" | "parking_ticket";
+  formType: "lyc" | "car_onboarding" | "car_offboarding" | "employee_onboarding" | "employee_time_in_out" | "expense_income" | "expense_direct_delivery" | "expense_cogs" | "expense_reimbursed_bills" | "commission_form" | "parking_ticket" | "ticket_violation";
   channelId: string;
   channelName: string | null;
   updatedAt: string;
@@ -33,6 +33,7 @@ const formTypeLabels: Record<string, string> = {
   expense_reimbursed_bills: "Reimbursed & Non-Reimbursed Bills",
   commission_form: "Commission Forms",
   parking_ticket: "Parking Ticket (Car Owner)",
+  ticket_violation: "Ticket Violation (Client)",
 };
 
 export default function SettingsPage() {

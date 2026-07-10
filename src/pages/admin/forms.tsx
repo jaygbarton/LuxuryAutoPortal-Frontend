@@ -34,6 +34,8 @@ import DocumentUpdateApprovalDashboard from "./forms/DocumentUpdateApprovalDashb
 import ParkingTicketSubmission from "./forms/ParkingTicketSubmission";
 import ParkingTicketMySubmissions from "./forms/ParkingTicketMySubmissions";
 import ParkingTicketApprovalDashboard from "./forms/ParkingTicketApprovalDashboard";
+import TicketViolationSubmission from "./forms/TicketViolationSubmission";
+import TicketViolationMySubmissions from "./forms/TicketViolationMySubmissions";
 import CarOnOffboardingReport from "./forms/CarOnOffboardingReport";
 import {
   EmployeeOnboardingFormContent,
@@ -71,6 +73,7 @@ import {
   DollarSign,
   Users,
   ParkingCircle,
+  FileWarning,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { cn } from "@/lib/utils";
@@ -1036,6 +1039,12 @@ export default function FormsPage() {
       icon: FileCheck,
     };
 
+    const ticketViolationSubmitItem: FormItem = {
+      id: "ticket-violation-submit",
+      title: "Ticket Violation Form",
+      icon: FileWarning,
+    };
+
     if (formVisibilityData?.isAdmin) {
       return [
         {
@@ -1103,6 +1112,12 @@ export default function FormsPage() {
           title: "Client Parking Ticket",
           icon: ParkingCircle,
           items: [parkingTicketSubmitItem, parkingTicketApprovalItem],
+        },
+        {
+          id: "ticket-violation-forms",
+          title: "Ticket Violation Form",
+          icon: FileWarning,
+          items: [ticketViolationSubmitItem],
         },
       ];
     }
@@ -1185,6 +1200,12 @@ export default function FormsPage() {
           title: "Parking Ticket",
           icon: ParkingCircle,
           items: [parkingTicketSubmitItem],
+        },
+        {
+          id: "ticket-violation-forms",
+          title: "Ticket Violation Form",
+          icon: FileWarning,
+          items: [ticketViolationSubmitItem],
         },
         {
           id: "referral-forms",
@@ -1624,6 +1645,26 @@ export default function FormsPage() {
                               item.id === "parking-ticket-approval" && (
                                 <div className="bg-card border-t border-border px-3 sm:px-5 py-4 min-w-0 max-w-full overflow-hidden">
                                   <ParkingTicketApprovalDashboard />
+                                </div>
+                              )}
+
+                            {/* Expanded content for Ticket Violation submission (client submits + sees own status) */}
+                            {isItemExpanded &&
+                              item.id === "ticket-violation-submit" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
+                                  {formVisibilityData?.isAdmin && (
+                                    <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                      <span>Submissions appear in</span>
+                                      <a
+                                        href="/admin/operations?tab=ticket-violation"
+                                        className="font-semibold underline hover:text-amber-900"
+                                      >
+                                        Operations → Ticket Violation
+                                      </a>
+                                    </div>
+                                  )}
+                                  <TicketViolationSubmission />
+                                  <TicketViolationMySubmissions />
                                 </div>
                               )}
 

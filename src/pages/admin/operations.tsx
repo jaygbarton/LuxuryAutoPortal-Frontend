@@ -7,13 +7,14 @@ import { TripsOverviewTab } from "./operations/TripsOverviewTab";
 import { TuroInspectionTab } from "./operations/TuroInspectionTab";
 import { CarInspectionsTab } from "./operations/CarInspectionsTab";
 import { ClaimsTab } from "./operations/ClaimsTab";
+import { TicketViolationTab } from "./operations/TicketViolationTab";
 import { MaintenanceTab } from "./operations/MaintenanceTab";
 import { NoCarIssuesTab } from "./operations/NoCarIssuesTab";
 import { CarBlockOffTab } from "./operations/CarBlockOffTab";
 import { DayScheduleTab } from "./operations/DayScheduleTab";
 import { TvTimelineTab } from "./operations/TvTimelineTab";
 
-const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "maintenance", "completed", "car-block-off", "day-schedule", "tv-timeline"] as const;
+const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "maintenance", "completed", "car-block-off", "day-schedule", "tv-timeline"] as const;
 type TabId = typeof TAB_IDS[number];
 
 // Renders a tab's content only after it has been activated for the first time,
@@ -32,9 +33,15 @@ function LazyTab({ value, activeTab, mountedTabs, children }: {
   );
 }
 
+function initialTab(): TabId {
+  if (typeof window === "undefined") return "trips";
+  const t = new URLSearchParams(window.location.search).get("tab");
+  return t && (TAB_IDS as readonly string[]).includes(t) ? (t as TabId) : "trips";
+}
+
 export default function OperationsPage() {
-  const [activeTab, setActiveTab] = useState<TabId>("trips");
-  const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(new Set(["trips"]));
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
+  const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(new Set(["trips", initialTab()]));
 
   const handleTabChange = (value: string) => {
     const tab = value as TabId;
@@ -72,6 +79,9 @@ export default function OperationsPage() {
               <TabsTrigger value="claims" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 Claims
               </TabsTrigger>
+              <TabsTrigger value="ticket-violation" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
+                Ticket Violation
+              </TabsTrigger>
               <TabsTrigger value="maintenance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 Maintenance
               </TabsTrigger>
@@ -101,6 +111,9 @@ export default function OperationsPage() {
           </LazyTab>
           <LazyTab value="claims" activeTab={activeTab} mountedTabs={mountedTabs}>
             <ClaimsTab />
+          </LazyTab>
+          <LazyTab value="ticket-violation" activeTab={activeTab} mountedTabs={mountedTabs}>
+            <TicketViolationTab />
           </LazyTab>
           <LazyTab value="maintenance" activeTab={activeTab} mountedTabs={mountedTabs}>
             <MaintenanceTab />
