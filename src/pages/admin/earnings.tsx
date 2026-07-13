@@ -154,6 +154,14 @@ export default function EarningsPage() {
     },
     enabled: !!carId && !!selectedYear,
     retry: false,
+    // Earnings is client-facing and clients have no way to cross-check it
+    // against I&E, so it must never show stale manual values (Cathy: "make
+    // sure the Earnings page is accurate"). Matches the single-car freshness
+    // policy already used by the I&E page itself (IncomeExpenseContext.tsx) —
+    // the app-wide default of staleTime:Infinity would otherwise let an
+    // already-open Earnings tab keep showing pre-edit values indefinitely.
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: true,
   });
 
   const incomeExpenseDataValue = incomeExpenseData?.data;
@@ -186,6 +194,8 @@ export default function EarningsPage() {
     },
     retry: false,
     enabled: !!carId && !!selectedYear,
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: true,
   });
 
   const prevYearDecData = previousYearData?.data;
@@ -198,16 +208,18 @@ export default function EarningsPage() {
     reimbursedBills: any[];
   }>({
     queryKey: ["/api/income-expense/dynamic-subcategories", carId, previousYear],
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: true,
     queryFn: async () => {
       if (!carId || !previousYear) return { directDelivery: [], cogs: [], parkingFeeLabor: [], reimbursedBills: [] };
-      
+
       const categories: Array<'directDelivery' | 'cogs' | 'parkingFeeLabor' | 'reimbursedBills'> = [
         'directDelivery',
         'cogs',
         'parkingFeeLabor',
         'reimbursedBills',
       ];
-      
+
       const promises = categories.map(async (categoryType) => {
         try {
           const response = await fetch(
@@ -254,6 +266,10 @@ export default function EarningsPage() {
     };
   }>({
     queryKey: ["/api/income-expense/dynamic-subcategories", carId, selectedYear],
+    // Same reasoning as the incomeExpenseData query above — dynamic
+    // subcategory amounts also feed the Earnings totals and must stay fresh.
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: true,
     queryFn: async () => {
       if (!carId) throw new Error("Invalid car ID");
       const categories: Array<'directDelivery' | 'cogs' | 'parkingFeeLabor' | 'reimbursedBills'> = [
@@ -262,7 +278,7 @@ export default function EarningsPage() {
         'parkingFeeLabor',
         'reimbursedBills',
       ];
-      
+
       const promises = categories.map(async (categoryType) => {
         try {
           const response = await fetch(
@@ -992,8 +1008,12 @@ export default function EarningsPage() {
   // In 30:70 mode: "TOTAL REIMBURSE AND NON-REIMBURSE BILLS" only
   // In 50:50 mode: "TOTAL REIMBURSE AND NON-REIMBURSE BILLS" + ("TOTAL OPERATING EXPENSE (Direct Delivery)" + "TOTAL OPERATING EXPENSE (COGS - Per Vehicle)") * "Car Management Split %"
   const calculateCarManagementTotalExpenses = (month: number): number => {
+    // Use manually-entered override when present (matches IncomeExpenseTable behavior)
+    const override = Number(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "mgmtTotalOverride"));
+    if (override > 0) return override;
+
     const totalReimbursedBills = getTotalReimbursedBillsForMonth(month);
-    
+
     // Get the mode for this month
     const mode = monthModes[month] || 50;
     
@@ -1015,12 +1035,16 @@ export default function EarningsPage() {
   // In 30:70 mode: "TOTAL OPERATING EXPENSE (Direct Delivery)" + "TOTAL OPERATING EXPENSE (COGS - Per Vehicle)" + "Total Parking Fee & Labor Cleaning"
   // In 50:50 mode: ("TOTAL OPERATING EXPENSE (Direct Delivery)" + "TOTAL OPERATING EXPENSE (COGS - Per Vehicle)") * "Car Owner Split %"
   const calculateCarOwnerTotalExpenses = (month: number): number => {
+    // Use manually-entered override when present (matches IncomeExpenseTable behavior)
+    const override = Number(getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "ownerTotalOverride"));
+    if (override > 0) return override;
+
     const totalDirectDelivery = getTotalDirectDeliveryForMonth(month);
     const totalCogs = getTotalCogsForMonth(month);
-    
+
     // Get the mode for this month
     const mode = monthModes[month] || 50;
-    
+
     if (mode === 70) {
       // 30:70 mode: Direct Delivery + COGS + Total Parking Fee & Labor Cleaning
       const totalParkingFeeLabor = getTotalParkingFeeLaborForMonth(month);

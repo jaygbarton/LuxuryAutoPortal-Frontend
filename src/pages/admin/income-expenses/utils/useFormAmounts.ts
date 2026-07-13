@@ -56,6 +56,18 @@ export function useFormAmounts(carId: number | null | undefined, year: string) {
       return res.json();
     },
     enabled,
+    // Override the app-wide staleTime:Infinity/refetchOnWindowFocus:false
+    // defaults for THIS query specifically. Earnings is client-facing and must
+    // never show stale form amounts (Cathy: "Earnings page is designed for
+    // client access. They don't have access to Income & Expenses so please
+    // make sure Earnings is accurate"). Without this, a tab left open across
+    // an approval keeps showing the pre-approval amount indefinitely — the
+    // approve/decline invalidateQueries call only reaches query instances
+    // alive in that same tab, not a separate already-open tab/window (e.g.
+    // an admin's Earnings view next to someone else's I&E view).
+    staleTime: 1000 * 60, // 1 minute — refetch on remount/focus after this
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const byCell = useMemo<FormAmountsMap>(() => {
