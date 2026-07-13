@@ -581,6 +581,12 @@ export function MaintenanceTab({
                 const carDisplayName = rec.car_name
                   ? (carNameHasYear || !year ? rec.car_name : `${rec.car_name} ${year}`)
                   : (make !== "--" ? `${make} ${model}${year ? " " + year : ""}`.trim() : "--");
+                // "CAR Name" details cell shows the full "Make Model Year - Plate #"
+                // label (same convention as Claims / Ticket Violation) — carDisplayName
+                // alone omits the plate, which is why it read as e.g. just "BMW X2 2.0L".
+                const carNameWithPlateLabel = plateNumber
+                  ? `${carDisplayName} - ${plateNumber}`
+                  : carDisplayName;
 
                 const statusAccent = rec.status === "completed" || rec.status === "charged_customer"
                   ? { bg: "bg-green-600", border: "border-green-300" }
@@ -701,8 +707,8 @@ export function MaintenanceTab({
                     notes={rec.notes}
                     details={[
                       { label: "CAR Name", value: rec.car_id ? (
-                        <Link href={`/admin/cars/${rec.car_id}/maintenance`} className="text-[#D3BC8D] hover:underline">{carDisplayName}</Link>
-                      ) : carDisplayName },
+                        <Link href={`/admin/cars/${rec.car_id}/maintenance`} className="text-[#D3BC8D] hover:underline">{carNameWithPlateLabel}</Link>
+                      ) : carNameWithPlateLabel },
                       { label: "Plate #", value: plateNumber || "--" },
                       { label: "VIN #", value: rec.car_vin || "--" },
                       { label: "Description", value: rec.task_description },

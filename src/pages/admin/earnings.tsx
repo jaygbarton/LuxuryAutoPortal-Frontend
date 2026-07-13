@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ReceiptEditHistory } from "@/components/admin/ReceiptEditHistory";
 import EarningsCellEditor, { type OpenCellEditor } from "./EarningsCellEditor";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { useFormAmounts } from "@/pages/admin/income-expenses/utils/useFormAmounts";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -156,6 +157,13 @@ export default function EarningsPage() {
   });
 
   const incomeExpenseDataValue = incomeExpenseData?.data;
+
+  // Approved expense-form amounts (mirrors IncomeExpenseTable.tsx) — without this,
+  // Earnings only reflects the manually-entered value and diverges from I&E for
+  // any category/field that has approved form receipts on top of (or instead of)
+  // a manual entry (e.g. a $0 manual Brakes row with an approved $1,439.50 form
+  // submission shows $0 here but the correct total on I&E).
+  const { getFormAmount, getCategoryMonthFormTotal } = useFormAmounts(carId, selectedYear);
 
   // Fetch previous year December data for January calculation
   const previousYear = String(parseInt(selectedYear) - 1);
@@ -348,7 +356,7 @@ export default function EarningsPage() {
       const monthValue = subcat.values.find((v: any) => v.month === month);
       return sum + (monthValue?.value || 0);
     }, 0);
-    return fixedTotal + dynamicTotal;
+    return fixedTotal + dynamicTotal + getCategoryMonthFormTotal("directDelivery", month);
   };
 
   // Helper to get total operating expense (COGS) for a month (including dynamic subcategories)
@@ -383,7 +391,7 @@ export default function EarningsPage() {
       const monthValue = subcat.values.find((v: any) => v.month === month);
       return sum + (monthValue?.value || 0);
     }, 0);
-    return fixedTotal + dynamicTotal;
+    return fixedTotal + dynamicTotal + getCategoryMonthFormTotal("cogs", month);
   };
 
   // Helper to get total reimbursed bills for a month (including dynamic subcategories)
@@ -402,7 +410,7 @@ export default function EarningsPage() {
       const monthValue = subcat.values.find((v: any) => v.month === month);
       return sum + (monthValue?.value || 0);
     }, 0);
-    return fixedTotal + dynamicTotal;
+    return fixedTotal + dynamicTotal + getCategoryMonthFormTotal("reimbursedBills", month);
   };
 
   // Helper to get value from previous year data by month
@@ -1531,57 +1539,57 @@ export default function EarningsPage() {
                   <TableRow
                     label="Rental Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "rentalIncome"))}
-                    category="income" field="rentalIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="income" field="rentalIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Delivery Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "deliveryIncome"))}
-                    category="income" field="deliveryIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="income" field="deliveryIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Electric Prepaid Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "electricPrepaidIncome"))}
-                    category="income" field="electricPrepaidIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="income" field="electricPrepaidIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Smoking Fines"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "smokingFines"))}
-                    category="income" field="smokingFines" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="income" field="smokingFines" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Gas Prepaid Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "gasPrepaidIncome"))}
-                    category="income" field="gasPrepaidIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="income" field="gasPrepaidIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Ski Racks Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "skiRacksIncome"))}
-                    category="income" field="skiRacksIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="income" field="skiRacksIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Miles Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "milesIncome"))}
-                    category="income" field="milesIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="income" field="milesIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Child Seat Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "childSeatIncome"))}
-                    category="income" field="childSeatIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="income" field="childSeatIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Coolers Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "coolersIncome"))}
-                    category="income" field="coolersIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="income" field="coolersIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Income Insurance and Client Wrecks"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "insuranceWreckIncome"))}
-                    category="income" field="insuranceWreckIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="income" field="insuranceWreckIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Other Income"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "otherIncome"))}
-                    category="income" field="otherIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="income" field="otherIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Negative Balance Carry Over"
@@ -1599,27 +1607,27 @@ export default function EarningsPage() {
                   <TableRow
                     label="Labor - Cleaning"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "laborCarCleaning"))}
-                    category="directDelivery" field="laborCarCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="directDelivery" field="laborCarCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Labor - Delivery"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "laborDelivery"))}
-                    category="directDelivery" field="laborDelivery" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="directDelivery" field="laborDelivery" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Parking - Airport"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "parkingAirport"))}
-                    category="directDelivery" field="parkingAirport" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="directDelivery" field="parkingAirport" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Parking - Lot"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "parkingLot"))}
-                    category="directDelivery" field="parkingLot" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="directDelivery" field="parkingLot" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Uber/Lyft/Lime"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "uberLyftLime"))}
-                    category="directDelivery" field="uberLyftLime" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="directDelivery" field="uberLyftLime" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="TOTAL OPERATING EXPENSE (Direct Delivery)"
@@ -1639,122 +1647,122 @@ export default function EarningsPage() {
                   <TableRow
                     label="Auto Body Shop / Wreck"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "autoBodyShopWreck"))}
-                    category="cogs" field="autoBodyShopWreck" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="autoBodyShopWreck" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Alignment"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "alignment"))}
-                    category="cogs" field="alignment" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="alignment" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Battery"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "battery"))}
-                    category="cogs" field="battery" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="battery" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Brakes"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "brakes"))}
-                    category="cogs" field="brakes" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="brakes" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Car Payment"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "carPayment"))}
-                    category="cogs" field="carPayment" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="carPayment" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Car Insurance"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "carInsurance"))}
-                    category="cogs" field="carInsurance" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="carInsurance" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Car Seats"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "carSeats"))}
-                    category="cogs" field="carSeats" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="carSeats" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Cleaning Supplies / Tools"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "cleaningSuppliesTools"))}
-                    category="cogs" field="cleaningSuppliesTools" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="cleaningSuppliesTools" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Emissions"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "emissions"))}
-                    category="cogs" field="emissions" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="emissions" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="GPS System"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "gpsSystem"))}
-                    category="cogs" field="gpsSystem" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="gpsSystem" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Key & Fob"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "keyFob"))}
-                    category="cogs" field="keyFob" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="keyFob" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Labor - Cleaning"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "laborCleaning"))}
-                    category="cogs" field="laborCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="laborCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="License & Registration"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "licenseRegistration"))}
-                    category="cogs" field="licenseRegistration" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="licenseRegistration" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Mechanic"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "mechanic"))}
-                    category="cogs" field="mechanic" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="mechanic" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Oil/Lube"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "oilLube"))}
-                    category="cogs" field="oilLube" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="oilLube" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Parts"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "parts"))}
-                    category="cogs" field="parts" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="parts" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Ski Racks"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "skiRacks"))}
-                    category="cogs" field="skiRacks" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="skiRacks" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Tickets & Tolls"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "tickets"))}
-                    category="cogs" field="tickets" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="tickets" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Tired Air Station"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "tiredAirStation"))}
-                    category="cogs" field="tiredAirStation" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="tiredAirStation" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Tires"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "tires"))}
-                    category="cogs" field="tires" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="tires" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Towing / Impound Fees"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "towingImpoundFees"))}
-                    category="cogs" field="towingImpoundFees" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="towingImpoundFees" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Uber/Lyft/Lime"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "uberLyftLime"))}
-                    category="cogs" field="uberLyftLime" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="uberLyftLime" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Windshield"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "windshield"))}
-                    category="cogs" field="windshield" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="windshield" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Wipers"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "wipers"))}
-                    category="cogs" field="wipers" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                    category="cogs" field="wipers" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="TOTAL OPERATING EXPENSE (COGS - Per Vehicle)"
@@ -1764,10 +1772,11 @@ export default function EarningsPage() {
                 </CategorySection>
                 )}
 
-                {/* GLA PARKING FEE & LABOR CLEANING — GLA-internal, hidden from
-                    clients per Cathy (2026-07-08), reversing the 2026-07-02
-                    "visible to all clients" change. */}
-                {isUnderlyingAdmin && (
+                {/* GLA PARKING FEE & LABOR CLEANING — client-visible per Cathy
+                    (2026-07-10), reversing the 2026-07-08 "hide from clients"
+                    change for this section specifically. The internal
+                    "Parking Airport Average Per Trip - GLA" breakdown below
+                    stays admin-only. */}
                 <CategorySection
                     title="GLA PARKING FEE & LABOR CLEANING"
                     isExpanded={expandedSections.parkingFeeLabor}
@@ -1776,15 +1785,14 @@ export default function EarningsPage() {
                     <TableRow
                       label="GLA Parking Fee"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.parkingFeeLabor || [], i + 1, "glaParkingFee"))}
-                      category="parkingFeeLabor" field="glaParkingFee" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                      category="parkingFeeLabor" field="glaParkingFee" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
                       label="Labor - Cleaning"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.parkingFeeLabor || [], i + 1, "laborCleaning"))}
-                      category="parkingFeeLabor" field="laborCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                      category="parkingFeeLabor" field="laborCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                   </CategorySection>
-                )}
 
                 {/* REIMBURSED AND NON-REIMBURSED BILLS — GLA-internal, hidden
                     from clients per Cathy (2026-07-08), reversing the
@@ -1798,42 +1806,42 @@ export default function EarningsPage() {
                     <TableRow
                       label="Electric - Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "electricReimbursed"))}
-                      category="reimbursedBills" field="electricReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                      category="reimbursedBills" field="electricReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
                       label="Electric - Not Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "electricNotReimbursed"))}
-                      category="reimbursedBills" field="electricNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                      category="reimbursedBills" field="electricNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
                       label="Gas - Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasReimbursed"))}
-                      category="reimbursedBills" field="gasReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                      category="reimbursedBills" field="gasReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
                       label="Gas - Not Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasNotReimbursed"))}
-                      category="reimbursedBills" field="gasNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                      category="reimbursedBills" field="gasNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
                       label="Gas - Service Run"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "gasServiceRun"))}
-                      category="reimbursedBills" field="gasServiceRun" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                      category="reimbursedBills" field="gasServiceRun" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
                       label="Parking Airport"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "parkingAirport"))}
-                      category="reimbursedBills" field="parkingAirport" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                      category="reimbursedBills" field="parkingAirport" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
                       label="Uber/Lyft/Lime - Not Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "uberLyftLimeNotReimbursed"))}
-                      category="reimbursedBills" field="uberLyftLimeNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                      category="reimbursedBills" field="uberLyftLimeNotReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
                       label="Uber/Lyft/Lime - Reimbursed"
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "uberLyftLimeReimbursed"))}
-                      category="reimbursedBills" field="uberLyftLimeReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell}
+                      category="reimbursedBills" field="uberLyftLimeReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
                     <TableRow
                       label="TOTAL REIMBURSED AND NON-REIMBURSED BILLS"
@@ -2371,6 +2379,10 @@ interface TableRowProps {
   // the view-only receipt viewer, and EVERY cell is clickable (not just ones
   // that already have a receipt) so staff can add/upload too.
   onEditCell?: (month: number, category: string, field: string, value: number) => void;
+  // Approved expense-form amount for this (category, field, month) — mirrors
+  // IncomeExpenseTable.tsx's read-only cell so Earnings shows manual + form,
+  // same as I&E, instead of only the manual value.
+  getFormAmount?: (category: string, field: string, month: number) => number;
 }
 
 function TableRow({
@@ -2383,10 +2395,14 @@ function TableRow({
   receiptCells,
   onViewReceipts,
   onEditCell,
+  getFormAmount,
 }: TableRowProps) {
-  const total = calculateTotal(values);
   // For Negative Balance Carry Over, display absolute value (remove minus sign)
   const isNegativeBalance = label === "Negative Balance Carry Over";
+  const displayValues = (!isInteger && category && field && getFormAmount)
+    ? values.map((v, i) => (typeof v === "number" && !isNaN(v) ? v : 0) + getFormAmount(category, field, i + 1))
+    : values;
+  const total = calculateTotal(displayValues);
 
   return (
     <tr className={cn(
@@ -2399,8 +2415,12 @@ function TableRow({
       )}>
         <span className="whitespace-normal break-words md:whitespace-nowrap">{label}</span>
       </td>
-      {values.map((value, i) => {
+      {displayValues.map((value, i) => {
         const cellValue = typeof value === 'number' && !isNaN(value) ? value : 0;
+        // Raw MANUAL value (no form amount) — this is what the edit modal must
+        // pre-fill/save, never the enriched display value, or saving would
+        // write the form's money into the manual DB amount (double-counting).
+        const manualValue = typeof values[i] === 'number' && !isNaN(values[i]) ? values[i] : 0;
         // For Negative Balance Carry Over, display in parentheses format for negative values
         // e.g., -3 => (3), -100 => (100), 0 => $0.00
         let displayText: string;
@@ -2429,7 +2449,7 @@ function TableRow({
               // Staff: click any cell to open the full editor (view/add/upload).
               <button
                 type="button"
-                onClick={() => onEditCell!(month, category!, field!, cellValue)}
+                onClick={() => onEditCell!(month, category!, field!, manualValue)}
                 title="Edit amount / receipts"
                 className={cn(
                   "inline-flex items-center gap-1 hover:text-primary cursor-pointer",
