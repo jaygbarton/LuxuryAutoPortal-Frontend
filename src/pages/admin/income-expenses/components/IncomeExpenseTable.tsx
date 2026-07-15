@@ -2102,16 +2102,23 @@ export default function IncomeExpenseTable({
     return Number((data as any).formulaSetting?.coHostSplitPercent ?? 0);
   };
 
-  // GLA % — its OWN editable per-month field (`glaSplit`). Per @Jin, for a
-  // GLA-owned car the GLA Split uses the SAME formula as the CAR OWNER Split, so
-  // it defaults to the Car Owner %; for an externally-owned car it is the
-  // remainder of the co-host % (derived, not separately stored).
+  // GLA % — its OWN editable per-month field (`glaSplit`) ONLY for a GLA-owned
+  // car, where the GLA Split uses the SAME formula as the CAR OWNER Split (so
+  // it defaults to the Car Owner %). For an externally-owned car, GLA % is
+  // ALWAYS the derived remainder of the co-host % — never read from the
+  // `glaSplit` column. Editing GLA Split there redirects the save to
+  // `coHostSplit = 100 - value` (see ModalEditIncomeExpense's
+  // convertGlaToCoHost) and never writes/clears `glaSplit` itself, so a
+  // pre-existing (now-stale) glaSplit value from before that redirect existed
+  // would otherwise silently override a freshly-saved co-host % forever —
+  // exactly the "changed % to 0 but it still shows the old %" bug (Cathy,
+  // 2026-07, Kia Rio 2019).
   const getGlaSplitPercent = (month: number): number => {
+    if (!isGlaOwned) return 100 - getCoHostPercent(month);
     const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
     const stored = monthRow?.glaSplit;
     if (stored != null) return Number(stored);
-    if (isGlaOwned) return getCarOwnerPercent(month);
-    return 100 - getCoHostPercent(month);
+    return getCarOwnerPercent(month);
   };
 
   // Per-month split-type selector (GLA-owned cars only). When a month is set to
