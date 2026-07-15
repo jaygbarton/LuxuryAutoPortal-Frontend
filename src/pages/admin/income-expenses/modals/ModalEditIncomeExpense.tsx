@@ -179,74 +179,82 @@ export default function ModalEditIncomeExpense() {
   // co-host / GLA split use the same simple % input without that panel.
   const isPercentField = isManagementSplit || isCoHostSplit || isGlaSplit;
   
+  // Value + approved-form-amount for a form-aware cell, matching EditableCell/
+  // CategoryRow so this breakdown panel never understates a field that has an
+  // approved expense-form submission on top of (or instead of) its manual
+  // value. Without this, fields like Oil/Lube showed $0 here while the real
+  // I&E grid showed the form-augmented total (Cathy: "Oil Lube is not showing").
+  const withForm = (category: string, field: string, manual: number): number =>
+    manual + getFormAmount(category, field, month);
+
   // Income values
   const incomeValues = isManagementSplit ? {
-    rentalIncome: getMonthValue(data.incomeExpenses, month, "rentalIncome"),
-    deliveryIncome: getMonthValue(data.incomeExpenses, month, "deliveryIncome"),
-    electricPrepaidIncome: getMonthValue(data.incomeExpenses, month, "electricPrepaidIncome"),
-    smokingFines: getMonthValue(data.incomeExpenses, month, "smokingFines"),
-    gasPrepaidIncome: getMonthValue(data.incomeExpenses, month, "gasPrepaidIncome"),
-    skiRacksIncome: getMonthValue(data.incomeExpenses, month, "skiRacksIncome"),
-    milesIncome: getMonthValue(data.incomeExpenses, month, "milesIncome"),
-    childSeatIncome: getMonthValue(data.incomeExpenses, month, "childSeatIncome"),
-    coolersIncome: getMonthValue(data.incomeExpenses, month, "coolersIncome"),
-    insuranceWreckIncome: getMonthValue(data.incomeExpenses, month, "insuranceWreckIncome"),
-    otherIncome: getMonthValue(data.incomeExpenses, month, "otherIncome"),
+    rentalIncome: withForm("income", "rentalIncome", getMonthValue(data.incomeExpenses, month, "rentalIncome")),
+    deliveryIncome: withForm("income", "deliveryIncome", getMonthValue(data.incomeExpenses, month, "deliveryIncome")),
+    electricPrepaidIncome: withForm("income", "electricPrepaidIncome", getMonthValue(data.incomeExpenses, month, "electricPrepaidIncome")),
+    smokingFines: withForm("income", "smokingFines", getMonthValue(data.incomeExpenses, month, "smokingFines")),
+    gasPrepaidIncome: withForm("income", "gasPrepaidIncome", getMonthValue(data.incomeExpenses, month, "gasPrepaidIncome")),
+    skiRacksIncome: withForm("income", "skiRacksIncome", getMonthValue(data.incomeExpenses, month, "skiRacksIncome")),
+    milesIncome: withForm("income", "milesIncome", getMonthValue(data.incomeExpenses, month, "milesIncome")),
+    childSeatIncome: withForm("income", "childSeatIncome", getMonthValue(data.incomeExpenses, month, "childSeatIncome")),
+    coolersIncome: withForm("income", "coolersIncome", getMonthValue(data.incomeExpenses, month, "coolersIncome")),
+    insuranceWreckIncome: withForm("income", "insuranceWreckIncome", getMonthValue(data.incomeExpenses, month, "insuranceWreckIncome")),
+    otherIncome: withForm("income", "otherIncome", getMonthValue(data.incomeExpenses, month, "otherIncome")),
   } : null;
-  
+
   // Direct Delivery values
   const directDeliveryValues = isManagementSplit ? {
-    laborCarCleaning: getMonthValue(data.directDelivery, month, "laborCarCleaning"),
-    laborDelivery: getMonthValue(data.directDelivery, month, "laborDelivery"),
-    parkingAirport: getMonthValue(data.directDelivery, month, "parkingAirport"),
-    parkingLot: getMonthValue(data.directDelivery, month, "parkingLot"),
-    uberLyftLime: getMonthValue(data.directDelivery, month, "uberLyftLime"),
+    laborCarCleaning: withForm("directDelivery", "laborCarCleaning", getMonthValue(data.directDelivery, month, "laborCarCleaning")),
+    laborDelivery: withForm("directDelivery", "laborDelivery", getMonthValue(data.directDelivery, month, "laborDelivery")),
+    parkingAirport: withForm("directDelivery", "parkingAirport", getMonthValue(data.directDelivery, month, "parkingAirport")),
+    parkingLot: withForm("directDelivery", "parkingLot", getMonthValue(data.directDelivery, month, "parkingLot")),
+    uberLyftLime: withForm("directDelivery", "uberLyftLime", getMonthValue(data.directDelivery, month, "uberLyftLime")),
   } : null;
-  
+
   // COGS values
   const cogsValues = isManagementSplit ? {
-    autoBodyShopWreck: getMonthValue(data.cogs, month, "autoBodyShopWreck"),
-    alignment: getMonthValue(data.cogs, month, "alignment"),
-    battery: getMonthValue(data.cogs, month, "battery"),
-    brakes: getMonthValue(data.cogs, month, "brakes"),
-    carPayment: getMonthValue(data.cogs, month, "carPayment"),
-    carInsurance: getMonthValue(data.cogs, month, "carInsurance"),
-    carSeats: getMonthValue(data.cogs, month, "carSeats"),
-    cleaningSuppliesTools: getMonthValue(data.cogs, month, "cleaningSuppliesTools"),
-    emissions: getMonthValue(data.cogs, month, "emissions"),
-    gpsSystem: getMonthValue(data.cogs, month, "gpsSystem"),
-    keyFob: getMonthValue(data.cogs, month, "keyFob"),
-    laborCleaning: getMonthValue(data.cogs, month, "laborCleaning"),
-    licenseRegistration: getMonthValue(data.cogs, month, "licenseRegistration"),
-    mechanic: getMonthValue(data.cogs, month, "mechanic"),
-    oilLube: getMonthValue(data.cogs, month, "oilLube"),
-    parts: getMonthValue(data.cogs, month, "parts"),
-    skiRacks: getMonthValue(data.cogs, month, "skiRacks"),
-    tickets: getMonthValue(data.cogs, month, "tickets"),
-    tiredAirStation: getMonthValue(data.cogs, month, "tiredAirStation"),
-    tires: getMonthValue(data.cogs, month, "tires"),
-    towingImpoundFees: getMonthValue(data.cogs, month, "towingImpoundFees"),
-    uberLyftLime: getMonthValue(data.cogs, month, "uberLyftLime"),
-    windshield: getMonthValue(data.cogs, month, "windshield"),
-    wipers: getMonthValue(data.cogs, month, "wipers"),
+    autoBodyShopWreck: withForm("cogs", "autoBodyShopWreck", getMonthValue(data.cogs, month, "autoBodyShopWreck")),
+    alignment: withForm("cogs", "alignment", getMonthValue(data.cogs, month, "alignment")),
+    battery: withForm("cogs", "battery", getMonthValue(data.cogs, month, "battery")),
+    brakes: withForm("cogs", "brakes", getMonthValue(data.cogs, month, "brakes")),
+    carPayment: withForm("cogs", "carPayment", getMonthValue(data.cogs, month, "carPayment")),
+    carInsurance: withForm("cogs", "carInsurance", getMonthValue(data.cogs, month, "carInsurance")),
+    carSeats: withForm("cogs", "carSeats", getMonthValue(data.cogs, month, "carSeats")),
+    cleaningSuppliesTools: withForm("cogs", "cleaningSuppliesTools", getMonthValue(data.cogs, month, "cleaningSuppliesTools")),
+    emissions: withForm("cogs", "emissions", getMonthValue(data.cogs, month, "emissions")),
+    gpsSystem: withForm("cogs", "gpsSystem", getMonthValue(data.cogs, month, "gpsSystem")),
+    keyFob: withForm("cogs", "keyFob", getMonthValue(data.cogs, month, "keyFob")),
+    laborCleaning: withForm("cogs", "laborCleaning", getMonthValue(data.cogs, month, "laborCleaning")),
+    licenseRegistration: withForm("cogs", "licenseRegistration", getMonthValue(data.cogs, month, "licenseRegistration")),
+    mechanic: withForm("cogs", "mechanic", getMonthValue(data.cogs, month, "mechanic")),
+    oilLube: withForm("cogs", "oilLube", getMonthValue(data.cogs, month, "oilLube")),
+    parts: withForm("cogs", "parts", getMonthValue(data.cogs, month, "parts")),
+    skiRacks: withForm("cogs", "skiRacks", getMonthValue(data.cogs, month, "skiRacks")),
+    tickets: withForm("cogs", "tickets", getMonthValue(data.cogs, month, "tickets")),
+    tiredAirStation: withForm("cogs", "tiredAirStation", getMonthValue(data.cogs, month, "tiredAirStation")),
+    tires: withForm("cogs", "tires", getMonthValue(data.cogs, month, "tires")),
+    towingImpoundFees: withForm("cogs", "towingImpoundFees", getMonthValue(data.cogs, month, "towingImpoundFees")),
+    uberLyftLime: withForm("cogs", "uberLyftLime", getMonthValue(data.cogs, month, "uberLyftLime")),
+    windshield: withForm("cogs", "windshield", getMonthValue(data.cogs, month, "windshield")),
+    wipers: withForm("cogs", "wipers", getMonthValue(data.cogs, month, "wipers")),
   } : null;
-  
-  // Parking Fee & Labor values
+
+  // Parking Fee & Labor values (not form-aware — no approved-form category maps here)
   const parkingFeeLaborValues = isManagementSplit ? {
     glaParkingFee: getMonthValue(data.parkingFeeLabor, month, "glaParkingFee"),
     laborCleaning: getMonthValue(data.parkingFeeLabor, month, "laborCleaning"),
   } : null;
-  
+
   // Reimbursed Bills values
   const reimbursedBillsValues = isManagementSplit ? {
-    electricReimbursed: getMonthValue(data.reimbursedBills, month, "electricReimbursed"),
-    electricNotReimbursed: getMonthValue(data.reimbursedBills, month, "electricNotReimbursed"),
-    gasReimbursed: getMonthValue(data.reimbursedBills, month, "gasReimbursed"),
-    gasNotReimbursed: getMonthValue(data.reimbursedBills, month, "gasNotReimbursed"),
-    gasServiceRun: getMonthValue(data.reimbursedBills, month, "gasServiceRun"),
-    parkingAirport: getMonthValue(data.reimbursedBills, month, "parkingAirport"),
-    uberLyftLimeNotReimbursed: getMonthValue(data.reimbursedBills, month, "uberLyftLimeNotReimbursed"),
-    uberLyftLimeReimbursed: getMonthValue(data.reimbursedBills, month, "uberLyftLimeReimbursed"),
+    electricReimbursed: withForm("reimbursedBills", "electricReimbursed", getMonthValue(data.reimbursedBills, month, "electricReimbursed")),
+    electricNotReimbursed: withForm("reimbursedBills", "electricNotReimbursed", getMonthValue(data.reimbursedBills, month, "electricNotReimbursed")),
+    gasReimbursed: withForm("reimbursedBills", "gasReimbursed", getMonthValue(data.reimbursedBills, month, "gasReimbursed")),
+    gasNotReimbursed: withForm("reimbursedBills", "gasNotReimbursed", getMonthValue(data.reimbursedBills, month, "gasNotReimbursed")),
+    gasServiceRun: withForm("reimbursedBills", "gasServiceRun", getMonthValue(data.reimbursedBills, month, "gasServiceRun")),
+    parkingAirport: withForm("reimbursedBills", "parkingAirport", getMonthValue(data.reimbursedBills, month, "parkingAirport")),
+    uberLyftLimeNotReimbursed: withForm("reimbursedBills", "uberLyftLimeNotReimbursed", getMonthValue(data.reimbursedBills, month, "uberLyftLimeNotReimbursed")),
+    uberLyftLimeReimbursed: withForm("reimbursedBills", "uberLyftLimeReimbursed", getMonthValue(data.reimbursedBills, month, "uberLyftLimeReimbursed")),
   } : null;
   
   // Calculate totals
