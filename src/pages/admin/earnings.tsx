@@ -598,12 +598,28 @@ export default function EarningsPage() {
   // Calculate Negative Balance Carry Over (exact copy from IncomeExpenseTable)
   const calculateNegativeBalanceCarryOver = (month: number): number => {
     const currentYear = parseInt(selectedYear, 10);
-    
+
     // Year 2019: Always 0
     if (currentYear === 2019) {
       return 0;
     }
-    
+
+    // January year-boundary rule (mode-gated):
+    //   • If the PRIOR December was a 30/70 (mode-70) month, the negative balance
+    //     DOES carry across the year boundary — prior-December rolls into January.
+    //   • Otherwise (50/50, or no prior-year data) January resets to $0, so a
+    //     50/50 car's within-year balance does NOT roll into the next year.
+    // Within a year it always compounds month-to-month below.
+    if (month === 1) {
+      const prevDecMode: 50 | 70 =
+        (prevYearDecData?.formulaSetting?.monthModes?.[12] as 50 | 70) || 50;
+      if (!prevYearDecData || prevDecMode !== 70) {
+        return 0;
+      }
+      // 30/70 December → fall through to the January branch below, which pulls
+      // prior-year December and rolls its balance into January.
+    }
+
     // Get the CURRENT month's mode (not previous month's mode)
     const currentMonthMode: 50 | 70 = monthModes[month] || 50;
     
@@ -644,7 +660,12 @@ export default function EarningsPage() {
       prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevDec);
       prevTotalCogs = getPrevYearTotalCogs(prevDec);
       prevTotalParkingFeeLabor = getPrevYearTotalParkingFeeLabor(prevDec);
-      prevCarOwnerSplitPercent = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "carOwnerSplit") || 0;
+      {
+        const prevYearOwnerRaw = getPrevYearValue(prevYearDecData?.incomeExpenses || [], prevDec, "carOwnerSplit");
+        prevCarOwnerSplitPercent = (prevYearOwnerRaw != null && prevYearOwnerRaw !== 0)
+          ? prevYearOwnerRaw
+          : (prevYearDecData?.formulaSetting?.carOwnerSplitPercent ?? incomeExpenseDataValue?.formulaSetting?.carOwnerSplitPercent ?? 50);
+      }
       
       // Calculate previous year December's negative balance carry over
       // The function will use December's mode internally
@@ -670,7 +691,12 @@ export default function EarningsPage() {
       prevTotalDirectDelivery = getTotalDirectDeliveryForMonth(prevMonth);
       prevTotalCogs = getTotalCogsForMonth(prevMonth);
       prevTotalParkingFeeLabor = getTotalParkingFeeLaborForMonth(prevMonth);
-      prevCarOwnerSplitPercent = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], prevMonth, "carOwnerSplit") || 0;
+      {
+        const prevMonthOwnerRaw = incomeExpenseDataValue?.incomeExpenses?.find((x: any) => x && x.month === prevMonth)?.carOwnerSplit;
+        prevCarOwnerSplitPercent = (prevMonthOwnerRaw != null)
+          ? Number(prevMonthOwnerRaw)
+          : (incomeExpenseDataValue?.formulaSetting?.carOwnerSplitPercent ?? 50);
+      }
     }
     
     const prevCarOwnerSplitDecimal = prevCarOwnerSplitPercent / 100;

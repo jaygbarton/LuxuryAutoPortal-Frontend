@@ -5295,13 +5295,7 @@ function CategoryRow({
     } else if (isPercentage) {
       // Format as percentage; number of decimals configurable via `percentageDecimals`.
       return `${value.toFixed(percentageDecimals)}%`;
-    } else if (formatType === "managementSplit") {
-      // Get mode for this month to determine percentage
-      const mode = monthModes?.[month] || 50;
-      const percentage = mode === 70 ? 30 : 50; // 30:70 split when mode is 70 (Car Management : Car Owner)
-      // Format: $ {splitAmount.toFixed(2)}({percentage}%)
-      return `$ ${value.toFixed(2)}(${percentage}%)`;
-    } else if (formatType === "ownerSplit") {
+    } else if (formatType === "managementSplit" || formatType === "ownerSplit") {
       // Format: $ {splitAmount.toFixed(2)}
       return `$ ${value.toFixed(2)}`;
     } else if (isInteger) {
@@ -5329,17 +5323,8 @@ function CategoryRow({
           ? total
           : total / 12;
       return `${displayTotal.toFixed(percentageDecimals)}%`;
-    } else if (formatType === "managementSplit") {
-      // For management split, calculate average percentage or use default
-      const avgMode = monthModes
-        ? Object.values(monthModes).reduce(
-            (sum, mode) => sum + (mode === 70 ? 30 : 50),
-            0,
-          ) / 12 // 30:70 split when mode is 70
-        : 50;
-      return `$ ${total.toFixed(2)}(${Math.round(avgMode)}%)`;
-    } else if (formatType === "ownerSplit") {
-      // Owner split: $ {total.toFixed(2)}
+    } else if (formatType === "managementSplit" || formatType === "ownerSplit") {
+      // Split totals: $ {total.toFixed(2)}
       return `$ ${total.toFixed(2)}`;
     } else if (isInteger) {
       // Integer values (like trips, days): just the number

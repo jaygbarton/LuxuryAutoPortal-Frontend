@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Edit, FileText, Loader2, Upload, Download, Wand2, CalendarX, Filter, FileSpreadsheet, CheckCircle2, X, AlertTriangle, Search, ChevronDown, Check } from "lucide-react";
+import { Plus, Trash2, Edit, FileText, Loader2, Upload, Download, Wand2, CalendarX, Filter, FileSpreadsheet, CheckCircle2, X, AlertTriangle, Search, ChevronDown, Check, Lock } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -948,6 +948,14 @@ export default function PaymentsMainPage() {
                                   className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-yellow-500/15 text-yellow-700 dark:text-yellow-400"
                                 >
                                   <AlertTriangle className="w-3 h-3" />
+                                </span>
+                              )}
+                              {payment.payments_amount_is_live === false && (
+                                <span
+                                  title="This amount is a frozen historical figure and will not update automatically as Income & Expense data changes."
+                                  className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-500/15 text-slate-700 dark:text-slate-400"
+                                >
+                                  <Lock className="w-3 h-3" />
                                 </span>
                               )}
                               <span className="text-primary font-semibold">
