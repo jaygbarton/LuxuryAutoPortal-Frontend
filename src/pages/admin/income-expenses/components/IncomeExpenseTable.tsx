@@ -2968,7 +2968,11 @@ export default function IncomeExpenseTable({
                       },
                       0,
                     );
-                  return fixedTotal + dynamicTotal;
+                  // Same duplicate-formula bug as the COGS TOTAL row below —
+                  // this hand-coded total was missing the approved-form
+                  // amount, understating whenever a Direct Delivery field's
+                  // real total came from an approved receipt.
+                  return fixedTotal + dynamicTotal + getCategoryMonthFormTotal("directDelivery", monthNum);
                 })}
                 isEditable={false}
                 isTotal
@@ -3321,7 +3325,14 @@ export default function IncomeExpenseTable({
                     },
                     0,
                   );
-                  return fixedTotal + dynamicTotal;
+                  // This TOTAL row is a separate hand-coded duplicate of
+                  // getTotalCogsForMonth (not a call to it) and was missing the
+                  // approved-form-amount addition, so it understated whenever
+                  // any COGS field's real total came from an approved receipt
+                  // rather than a manual entry (Cathy: License & Registration/
+                  // Emissions showed correctly per-row but the TOTAL row still
+                  // showed only the manual $8.95).
+                  return fixedTotal + dynamicTotal + getCategoryMonthFormTotal("cogs", monthNum);
                 })}
                 isEditable={false}
                 isTotal
@@ -3709,7 +3720,9 @@ export default function IncomeExpenseTable({
                       },
                       0,
                     );
-                  return fixedTotal + dynamicTotal;
+                  // Same duplicate-formula bug as the COGS/Direct Delivery
+                  // TOTAL rows — missing the approved-form amount.
+                  return fixedTotal + dynamicTotal + getCategoryMonthFormTotal("reimbursedBills", monthNum);
                 })}
                 isEditable={false}
                 isTotal
