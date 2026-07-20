@@ -102,16 +102,6 @@ export default function EarningsPage() {
   // an owner. Deliberately independent of isAdmin/impersonation: a co-host or
   // employee viewing as themselves should still see it.
   const isClient = userData?.user?.isClient === true;
-  // GLA-internal breakdown sections (Owner Split, Direct Delivery, COGS, GLA
-  // Parking Fee & Labor, Reimbursed Bills, Parking Airport Avg) and the monthly
-  // split-mode badges must NOT be visible to real clients — per Cathy
-  // (2026-07-08, URGENT), reversing the 2026-07-02 "visible to all clients"
-  // change. Gate on the impersonation-aware flag, not bare isAdmin: during
-  // "View as Client" auditing /api/auth/me reports isAdmin=false, and an admin
-  // legitimately previewing must still see these. impersonatorIsAdmin is set
-  // server-side whenever an admin session has viewAsClient active.
-  const isUnderlyingAdmin =
-    userData?.user?.isAdmin === true || userData?.user?.impersonatorIsAdmin === true;
 
   // Fetch car data
   const { data: carData, isLoading: isCarLoading, error: carError } = useQuery<{
@@ -1520,16 +1510,13 @@ export default function EarningsPage() {
                       >
                         <div className="flex flex-col items-center gap-1 justify-center">
                           <span className="text-foreground text-xs font-medium">{month}</span>
-                          {/* Split-mode / ski-racks badges — GLA-internal, hidden
-                              from clients per Cathy (2026-07-08). */}
-                          {isUnderlyingAdmin && (
                           <div className="flex items-center justify-center gap-1 h-[24px]">
                             {/* Mode Toggle (Read-only) - Shows 50:50 or 30:70 split mode */}
                             <div
                               className={cn(
                                 "px-3 py-0.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-default",
-                                currentMode === 50 
-                                  ? "bg-green-600 text-white" 
+                                currentMode === 50
+                                  ? "bg-green-600 text-white"
                                   : "bg-blue-600 text-white"
                               )}
                               title={`Rate mode: ${currentMode === 50 ? "50:50 (green)" : "30:70 (blue)"} (Read-only)`}
@@ -1551,7 +1538,6 @@ export default function EarningsPage() {
                               </div>
                             )}
                           </div>
-                          )}
                         </div>
                     </th>
                     );
@@ -1562,8 +1548,9 @@ export default function EarningsPage() {
                 </tr>
               </thead>
               <tbody className="relative">
-                {/* CAR MANAGEMENT - OWNER SPLIT — GLA-internal, hidden from clients */}
-                {isUnderlyingAdmin && (
+                {/* CAR MANAGEMENT - OWNER SPLIT — client-visible per Cathy
+                    (2026-07-20), reversing the 2026-07-08 "hide from clients"
+                    change. */}
                 <CategorySection
                   title="Car Management - Owner Split"
                   isExpanded={expandedSections.managementOwner}
@@ -1578,7 +1565,6 @@ export default function EarningsPage() {
                     values={MONTHS.map((_, i) => calculateCarOwnerSplit(i + 1))}
                   />
                 </CategorySection>
-                )}
 
                 {/* INCOME AND EXPENSES */}
                 <CategorySection
@@ -1647,8 +1633,9 @@ export default function EarningsPage() {
                   />
                 </CategorySection>
 
-                {/* OPERATING EXPENSE (Direct Delivery) — GLA-internal, hidden from clients */}
-                {isUnderlyingAdmin && (
+                {/* OPERATING EXPENSE (Direct Delivery) — client-visible per
+                    Cathy (2026-07-20), reversing the 2026-07-08 "hide from
+                    clients" change. */}
                 <CategorySection
                   title="OPERATING EXPENSE (DIRECT DELIVERY)"
                   isExpanded={expandedSections.directDelivery}
@@ -1685,10 +1672,10 @@ export default function EarningsPage() {
                     isTotal
                   />
                 </CategorySection>
-                )}
 
-                {/* OPERATING EXPENSE (COGS - Per Vehicle) — GLA-internal, hidden from clients */}
-                {isUnderlyingAdmin && (
+                {/* OPERATING EXPENSE (COGS - Per Vehicle) — client-visible per
+                    Cathy (2026-07-20), reversing the 2026-07-08 "hide from
+                    clients" change. */}
                 <CategorySection
                   title="OPERATING EXPENSE (COGS - PER VEHICLE)"
                   isExpanded={expandedSections.cogs}
@@ -1820,7 +1807,6 @@ export default function EarningsPage() {
                     isTotal
                   />
                 </CategorySection>
-                )}
 
                 {/* GLA PARKING FEE & LABOR CLEANING — client-visible per Cathy
                     (2026-07-10), reversing the 2026-07-08 "hide from clients"
@@ -1844,10 +1830,9 @@ export default function EarningsPage() {
                     />
                   </CategorySection>
 
-                {/* REIMBURSED AND NON-REIMBURSED BILLS — GLA-internal, hidden
-                    from clients per Cathy (2026-07-08), reversing the
-                    2026-07-02 "visible to all clients" change. */}
-                {isUnderlyingAdmin && (
+                {/* REIMBURSED AND NON-REIMBURSED BILLS — client-visible per
+                    Cathy (2026-07-20), reversing the 2026-07-08 "hide from
+                    clients" change. */}
                 <CategorySection
                     title="REIMBURSED AND NON-REIMBURSED BILLS"
                     isExpanded={expandedSections.reimbursedBills}
@@ -1899,7 +1884,6 @@ export default function EarningsPage() {
                       isTotal
                     />
                   </CategorySection>
-                )}
 
                 {/* HISTORY — client-visible */}
                 <CategorySection
@@ -1951,10 +1935,9 @@ export default function EarningsPage() {
                   />
                 </CategorySection>
 
-                {/* PARKING AIRPORT AVERAGE PER TRIP - GLA — GLA-internal, hidden
-                    from clients per Cathy (2026-07-08), reversing the
-                    2026-07-02 "visible to all clients" change. */}
-                {isUnderlyingAdmin && (
+                {/* PARKING AIRPORT AVERAGE PER TRIP - GLA — client-visible per
+                    Cathy (2026-07-20), reversing the 2026-07-08 "hide from
+                    clients" change. */}
                 <CategorySection
                     title="PARKING AIRPORT AVERAGE PER TRIP - GLA"
                     isExpanded={expandedSections.parkingAverageQB}
@@ -1979,7 +1962,6 @@ export default function EarningsPage() {
                       })}
                     />
                   </CategorySection>
-                )}
               </tbody>
             </table>
             <div className="h-8 pb-4"></div>

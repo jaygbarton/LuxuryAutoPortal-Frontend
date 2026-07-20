@@ -1376,7 +1376,8 @@ export default function FormsPage() {
                             item.id === "document-update-approval" ||
                             item.id === "car-issue-submit" ||
                             item.id === "parking-ticket-submit" ||
-                            item.id === "parking-ticket-approval") &&
+                            item.id === "parking-ticket-approval" ||
+                            item.id === "ticket-violation-submit") &&
                           !item.comingSoon;
 
                         return (

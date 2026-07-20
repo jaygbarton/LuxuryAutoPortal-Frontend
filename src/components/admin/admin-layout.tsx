@@ -43,6 +43,7 @@ import {
   TreePalm,
   Newspaper,
   ExternalLink,
+  Megaphone,
 } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { ViewAsClientBanner } from "./ViewAsClientBanner";
@@ -228,6 +229,20 @@ const allSidebarItems: SidebarItem[] = [
     label: "Rental Listings",
     icon: Car,
     roles: ["admin"],
+  },
+  {
+    href: "/admin/marketing",
+    label: "Marketing",
+    icon: Megaphone,
+    roles: ["admin"],
+    children: [
+      {
+        href: "/admin/marketing/guest-database",
+        label: "Guest Database",
+        icon: Users,
+        roles: ["admin"],
+      },
+    ],
   },
   {
     href: "/admin/hr",

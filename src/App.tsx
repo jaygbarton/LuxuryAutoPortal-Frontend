@@ -107,6 +107,7 @@ import CarBlockOffPage from "@/pages/admin/CarBlockOff";
 import AdminTestimonialsPage from "@/pages/admin/testimonials";
 import AdminTuroGuidePage from "@/pages/admin/turo-guide";
 import RentalListingsPage from "@/pages/admin/rental-listings";
+import GuestDatabasePage from "@/pages/admin/marketing/guest-database";
 import NewsMediaPage from "@/pages/admin/news-media";
 import NoticeBoardManagementPage from "@/pages/admin/notice-board";
 import NotificationsPage from "@/pages/admin/notifications";
@@ -411,6 +412,9 @@ function Router() {
             </Route>
             <Route path="/admin/rental-listings">
               <RequireRole roles={["isAdmin"]}><RentalListingsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/marketing/guest-database">
+              <RequireRole roles={["isAdmin"]}><GuestDatabasePage /></RequireRole>
             </Route>
             <Route path="/admin/news-media">
               <RequireRole roles={["isAdmin", "isClient"]}><NewsMediaPage /></RequireRole>
