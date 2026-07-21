@@ -1025,6 +1025,8 @@ export default function ExpenseFormApprovalDashboard({
       carId: sub.carId,
       year: sub.year,
       month: sub.month,
+      category: sub.category,
+      field: sub.field,
     });
     setEditReceiptFiles([]);
     setEditModalOpen(true);
@@ -1089,6 +1091,8 @@ export default function ExpenseFormApprovalDashboard({
         carId: editForm.carId,
         year: editForm.year,
         month: editForm.month,
+        category: editForm.category,
+        field: editForm.field,
         // Only sent when a replacement was uploaded; otherwise omitted so the
         // existing receipt is preserved.
         ...(receiptUrls ? { receiptUrls } : {}),
@@ -1987,6 +1991,58 @@ export default function ExpenseFormApprovalDashboard({
                         {m}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                {/* Form Category / Expense Type ("Type" column) — was
+                    display-only, no way to correct a wrong sub-category
+                    (e.g. an Oil/Lube receipt that should have been Tires)
+                    without deleting and resubmitting. */}
+                <label className="text-sm text-muted-foreground">
+                  Form Category
+                </label>
+                <Select
+                  value={editForm.category || ""}
+                  onValueChange={(v) =>
+                    setEditForm((p) => ({ ...p, category: v, field: "" }))
+                  }
+                >
+                  <SelectTrigger className="bg-card border-border text-foreground mt-1">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(["income", "directDelivery", "cogs", "reimbursedBills"] as const)
+                      .filter((cat) => (liveCategoryFields[cat]?.length ?? 0) > 0)
+                      .map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {CATEGORY_LABELS[cat] || cat}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground">
+                  Expense Type
+                </label>
+                <Select
+                  value={editForm.field || ""}
+                  onValueChange={(v) => setEditForm((p) => ({ ...p, field: v }))}
+                >
+                  <SelectTrigger className="bg-card border-border text-foreground mt-1">
+                    <SelectValue placeholder="Select expense type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(liveCategoryFields[editForm.category || ""] || []).map(
+                      (f: { value: string; label: string }) => (
+                        <SelectItem key={f.value} value={f.value}>
+                          {f.label}
+                        </SelectItem>
+                      ),
+                    )}
                   </SelectContent>
                 </Select>
               </div>
