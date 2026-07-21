@@ -528,10 +528,15 @@ export default function EarningsPage() {
     if (prevYear === 2019) {
       return 0;
     }
-    
-    // January of other years (2020+): Use 0 (would need another level of recursion)
+
+    // Negative balance always carries across a calendar-year boundary the
+    // same as any other month-to-month transition — no special reset (see
+    // calculateNegativeBalanceCarryOver below). This function only has ONE
+    // year of prior data (prevYearDecData, i.e. year - 1), so January of
+    // prevYear still bottoms out at 0 here — that's a real data-availability
+    // limit (no year-2-back payload fetched), not an intentional reset.
     if (month === 1 && prevYear > 2019) {
-      return 0;
+      return 0; // data wall — no year-2-back payload available
     }
     
     // Get the CURRENT month's mode from previous year's formulaSetting (not previous month's mode)
@@ -595,21 +600,17 @@ export default function EarningsPage() {
       return 0;
     }
 
-    // January year-boundary rule (mode-gated):
-    //   • If the PRIOR December was a 30/70 (mode-70) month, the negative balance
-    //     DOES carry across the year boundary — prior-December rolls into January.
-    //   • Otherwise (50/50, or no prior-year data) January resets to $0, so a
-    //     50/50 car's within-year balance does NOT roll into the next year.
-    // Within a year it always compounds month-to-month below.
-    if (month === 1) {
-      const prevDecMode: 50 | 70 =
-        (prevYearDecData?.formulaSetting?.monthModes?.[12] as 50 | 70) || 50;
-      if (!prevYearDecData || prevDecMode !== 70) {
-        return 0;
-      }
-      // 30/70 December → fall through to the January branch below, which pulls
-      // prior-year December and rolls its balance into January.
-    }
+    // January year-boundary: the negative balance ALWAYS carries across the
+    // calendar-year boundary, same as any other month-to-month transition —
+    // no special year-end reset. (Previously this returned 0 for 50/50
+    // Decembers, based on a misreading of what the legacy v3 app showed; v3's
+    // own `glav1_car_year_end_reconciliation` table records a real carried
+    // year-end balance for both a 50/50 car (GMC 1GKS2KE73CR155280: v3 shows
+    // -$110 for 2025, not $0) and a 30/70 car (Audi WA1G2AFY3L2048638), so v3
+    // never reset either mode. Confirmed by owner 2026-07 for Chevy Suburban
+    // 1GNSKHKC3LR284756, whose v3 year-end amount is -$668.50.)
+    // Within a year it always compounds month-to-month below; January falls
+    // through to the branch below, which pulls prior-year December.
 
     // Get the CURRENT month's mode (not previous month's mode)
     const currentMonthMode: 50 | 70 = monthModes[month] || 50;

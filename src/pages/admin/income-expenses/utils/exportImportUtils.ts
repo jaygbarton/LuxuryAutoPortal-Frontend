@@ -489,10 +489,15 @@ export function buildIncomeExpenseCSV(
     if (prevYear === 2019) {
       return 0;
     }
-    
-    // January of other years (2020+): Use 0 (would need another level of recursion)
+
+    // Negative balance always carries across a calendar-year boundary the
+    // same as any other month-to-month transition — no special reset (see
+    // calculateNegativeBalanceCarryOver below). This function only has ONE
+    // year of prior data (previousYearData, i.e. year - 1), so January of
+    // prevYear still bottoms out at 0 here — that's a real data-availability
+    // limit (no year-2-back payload fetched), not an intentional reset.
     if (month === 1 && prevYear > 2019) {
-      return 0;
+      return 0; // data wall — no year-2-back payload available
     }
     
     // Get the CURRENT month's mode from previous year's formulaSetting (not previous month's mode)

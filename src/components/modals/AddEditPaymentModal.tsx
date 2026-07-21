@@ -364,9 +364,17 @@ export function AddEditPaymentModal({
       prevOtherIncome = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevDec, "otherIncome");
       prevCarOwnerSplitPercent = getPrevYearValue(prevYearDecData.incomeExpenses || [], prevDec, "carOwnerSplit") || 0;
       
-      // For January, we'll use 0 for negative balance carry over from previous year December
-      // (full calculation would require recursive calculation of previous year)
-      prevNegativeBalanceCarryOver = 0;
+      // Negative balance always carries across a calendar-year boundary the
+      // same as any other month-to-month transition — no special reset (see
+      // the sibling calculateNegativeBalanceCarryOver implementations in
+      // IncomeExpenseTable.tsx / earnings.tsx / exportImportUtils.ts). This
+      // modal only fetches prior-year `incomeExpenses` (not prior-year
+      // dynamicSubcategories/COGS/direct-delivery breakdowns), so it can't
+      // fully recompute December's own carry-in the way the other files do
+      // — that's a real data-availability limit (would need an additional
+      // prior-year dynamic-subcategories fetch), not an intentional reset.
+      // Known follow-up if this modal's January figures need full fidelity.
+      prevNegativeBalanceCarryOver = 0; // data wall — no prior-year dynamic subcats fetched
       prevTotalDirectDelivery = 0; // Simplified
       prevTotalCogs = 0; // Simplified
       prevTotalParkingFeeLabor = 0; // Simplified
