@@ -1018,7 +1018,11 @@ export default function ExpenseFormApprovalDashboard({
   const handleEdit = (sub: Submission) => {
     setSelectedSubmission(sub);
     setEditForm({
-      submissionDate: sub.submissionDate,
+      // The <input type="date"> below requires exactly "yyyy-MM-dd" — the API
+      // returns a full ISO datetime ("2026-07-21T00:00:00.000Z"), which the
+      // browser rejects ("does not conform to the required format") and
+      // renders as blank.
+      submissionDate: sub.submissionDate?.slice(0, 10),
       amount: sub.amount,
       remarks: sub.remarks ?? "",
       employeeId: sub.employeeId,

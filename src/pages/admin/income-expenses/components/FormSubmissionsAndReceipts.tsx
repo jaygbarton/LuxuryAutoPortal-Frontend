@@ -262,14 +262,20 @@ export default function FormSubmissionsAndReceipts({ carId, year, className }: F
                 const isPdf =
                   embeddedDataUrl?.startsWith("data:application/pdf") ||
                   /\.pdf$/i.test(urlOrId ?? "");
-                const isOurFileId = urlOrId && !urlOrId.startsWith("http");
-                const receiptUrl =
-                  isOurFileId && submissionIdForReceipt
-                    ? buildApiUrl(
-                        `/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}&submissionId=${submissionIdForReceipt}`
-                      )
-                    : urlOrId;
-                const displayUrl = isOurFileId ? receiptUrl : urlOrId;
+                // Route EVERY stored value through our authenticated proxy when
+                // we have a submissionId — including raw GCS URLs. The bucket
+                // enforces Public Access Prevention (org policy blocks allUsers
+                // grants), so a "public" storage.googleapis.com URL 403s if
+                // fetched directly; the backend proxy already knows how to
+                // strip a GCS URL down to its filename and stream it with
+                // proper server-side auth (see receipt/file route).
+                const canProxy = !!urlOrId && !!submissionIdForReceipt;
+                const receiptUrl = canProxy
+                  ? buildApiUrl(
+                      `/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}&submissionId=${submissionIdForReceipt}`
+                    )
+                  : urlOrId;
+                const displayUrl = canProxy ? receiptUrl : urlOrId;
 
                 if (isPdf) {
                   return (
