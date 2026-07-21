@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
 import EditableCell, { FORM_AWARE_CATEGORIES } from "./EditableCell";
+import ReceiptViewerModal from "./ReceiptViewerModal";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -160,6 +161,10 @@ export default function IncomeExpenseTable({
     isAllCars,
     getCategoryMonthFormTotal,
     formAmounts,
+    receiptViewer,
+    closeReceipts,
+    receiptViewerImages,
+    isReceiptViewerLoading,
   } = useIncomeExpense();
 
   // ── Co-Hosting: tri-state ownership selector (drives the split formula) ──
@@ -1161,23 +1166,17 @@ export default function IncomeExpenseTable({
       return 0;
     }
 
-    // January year-boundary rule (mode-gated):
-    //   • If the PRIOR December was a 30/70 (mode-70) month, the negative balance
-    //     DOES carry across the year boundary — prior-December rolls into January
-    //     (matches legacy v3 for 30/70 cars, e.g. Audi WA1G2AFY3L2048638).
-    //   • Otherwise (50/50, or no prior-year data) January resets to $0, so a
-    //     50/50 car's within-year balance does NOT roll into the next year
-    //     (e.g. GMC 1GKS2KE73CR155280 must show $0 in January, not −$110).
-    // Within a year it always compounds month-to-month below.
-    if (month === 1) {
-      const prevDecMode: 50 | 70 =
-        (prevYearDecData?.formulaSetting?.monthModes?.[12] as 50 | 70) || 50;
-      if (!prevYearDecData || prevDecMode !== 70) {
-        return 0;
-      }
-      // 30/70 December → fall through to the January branch below, which pulls
-      // prior-year December and rolls its balance into January.
-    }
+    // January year-boundary: the negative balance ALWAYS carries across the
+    // calendar-year boundary, same as any other month-to-month transition —
+    // no special year-end reset. (Previously this returned 0 for 50/50
+    // Decembers, based on a misreading of what the legacy v3 app showed; v3's
+    // own `glav1_car_year_end_reconciliation` table records a real carried
+    // year-end balance for both a 50/50 car (GMC 1GKS2KE73CR155280: v3 shows
+    // -$110 for 2025, not $0) and a 30/70 car (Audi WA1G2AFY3L2048638), so v3
+    // never reset either mode. Confirmed by owner 2026-07 for Chevy Suburban
+    // 1GNSKHKC3LR284756, whose v3 year-end amount is -$668.50.)
+    // Within a year it always compounds month-to-month below; January falls
+    // through to the branch below, which pulls prior-year December.
 
     // Get the CURRENT month's mode (not previous month's mode)
     const currentMonthMode: 50 | 70 = monthModes[month] || 50;
@@ -4886,6 +4885,15 @@ export default function IncomeExpenseTable({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ReceiptViewerModal
+        viewer={receiptViewer}
+        onClose={closeReceipts}
+        images={receiptViewerImages}
+        isLoading={isReceiptViewerLoading}
+        monthLabel={receiptViewer ? MONTHS[receiptViewer.month - 1] : ""}
+        year={year}
+      />
     </div>
   );
 }
@@ -5243,7 +5251,7 @@ function CategoryRow({
   // to the manual value for DISPLAY. This is needed in the read-only cell branch
   // below too — otherwise approved submissions never appear on the (read-only)
   // /admin/income-expenses grid, only in the editable modal path.
-  const { getFormAmount } = useIncomeExpense();
+  const { getFormAmount, receiptCells, openReceipts } = useIncomeExpense();
   // Hidden standard rows are removed entirely from this car's table. They are
   // also excluded from section totals by the caller (see isRowHidden).
   // (Placed after hooks to respect the rules of hooks.)
@@ -5447,6 +5455,18 @@ function CategoryRow({
                 // money (manual $0) still renders visibly, not as gray $0.
                 const displayedCellValue = cellValue + cellFormAmount;
                 const hasForm = cellFormAmount > 0;
+                // View-only receipt access (e.g. clients, who never get
+                // EditableCell): clicking the amount opens any uploaded
+                // receipt for this cell. Only for plain currency fields —
+                // never percentage/integer rows, and never when
+                // onPercentCellClick already owns this cell's click.
+                const canViewReceipt =
+                  !onPercentCellClick &&
+                  !isPercentage &&
+                  !isInteger &&
+                  !!category &&
+                  !!field &&
+                  (receiptCells[`${month}:${category}:${field}`] ?? 0) > 0;
                 return (
                   <span
                     className={cn(
@@ -5454,14 +5474,23 @@ function CategoryRow({
                       displayedCellValue === 0 && "text-gray-600",
                       hasForm && "text-primary font-medium",
                       onPercentCellClick && !isReadOnly && "cursor-pointer hover:bg-muted px-2 py-1 rounded transition-colors",
+                      canViewReceipt && "cursor-pointer underline decoration-dotted underline-offset-2 hover:text-primary",
                     )}
-                    onClick={onPercentCellClick && !isReadOnly ? () => onPercentCellClick(month) : undefined}
+                    onClick={
+                      onPercentCellClick && !isReadOnly
+                        ? () => onPercentCellClick(month)
+                        : canViewReceipt
+                          ? () => openReceipts(month, category!, field!, label)
+                          : undefined
+                    }
                     title={
                       hasForm
                         ? `Manual $${cellValue.toFixed(2)} + Form $${cellFormAmount.toFixed(2)} = Total $${displayedCellValue.toFixed(2)}`
                         : onPercentCellClick && !isReadOnly
                           ? "Click to edit Co-Host %"
-                          : undefined
+                          : canViewReceipt
+                            ? "View uploaded receipt"
+                            : undefined
                     }
                   >
                     {formatValue(displayedCellValue, month)}

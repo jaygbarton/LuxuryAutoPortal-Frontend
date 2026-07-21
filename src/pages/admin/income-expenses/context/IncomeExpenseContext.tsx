@@ -57,6 +57,16 @@ interface IncomeExpenseContextType {
   formAmounts: FormAmountsMap;
   getFormAmount: (category: string, field: string, month: number) => number;
   getCategoryMonthFormTotal: (category: string, month: number) => number;
+  // Receipt viewer: lets a read-only cell (no edit modal, e.g. a client) open
+  // an uploaded receipt by clicking the amount. receiptCells maps
+  // "month:category:field" -> receipt count, so callers only make cells with
+  // at least one receipt clickable.
+  receiptCells: Record<string, number>;
+  receiptViewer: { month: number; category: string; field: string; label: string } | null;
+  openReceipts: (month: number, category: string, field: string, label: string) => void;
+  closeReceipts: () => void;
+  receiptViewerImages: { id: string; url: string; filename: string }[];
+  isReceiptViewerLoading: boolean;
 }
 
 const IncomeExpenseContext = createContext<IncomeExpenseContextType | undefined>(undefined);
@@ -306,6 +316,65 @@ export function IncomeExpenseProvider({
     !isAllCars && carId ? carId : null,
     year
   );
+
+  // Receipt-presence map across all rows: which (month, category, field) cells
+  // have at least one uploaded receipt. One request per car/year (not per
+  // cell), mirroring earnings.tsx's receiptSummaryData — lets clients (who get
+  // no edit modal) click a cell with a receipt to view it read-only.
+  const { data: receiptSummaryData } = useQuery<{ cells: Record<string, number> }>({
+    queryKey: ["/api/income-expense/images/summary", carId, year],
+    queryFn: async () => {
+      if (!carId) throw new Error("Invalid car ID");
+      const res = await fetch(
+        buildApiUrl(`/api/income-expense/images/summary?carId=${carId}&year=${year}`),
+        { credentials: "include" },
+      );
+      if (!res.ok) throw new Error(`summary HTTP ${res.status}`);
+      const json = await res.json();
+      return { cells: json.cells || {} };
+    },
+    enabled: !isAllCars && !!carId && !!year,
+    retry: 4,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
+  });
+  const receiptCells = receiptSummaryData?.cells || {};
+
+  const [receiptViewer, setReceiptViewer] = useState<{
+    month: number; category: string; field: string; label: string;
+  } | null>(null);
+  const openReceipts = (month: number, category: string, field: string, label: string) =>
+    setReceiptViewer({ month, category, field, label });
+  const closeReceipts = () => setReceiptViewer(null);
+
+  const { data: receiptViewerImagesData, isLoading: isReceiptViewerLoading } = useQuery<
+    { id: string; url: string; filename: string }[]
+  >({
+    queryKey: [
+      "/api/income-expense/images",
+      carId,
+      year,
+      receiptViewer?.month,
+      receiptViewer?.category,
+      receiptViewer?.field,
+    ],
+    queryFn: async () => {
+      if (!carId || !receiptViewer) return [];
+      const { month, category, field } = receiptViewer;
+      const res = await fetch(
+        buildApiUrl(
+          `/api/income-expense/images?carId=${carId}&year=${year}&month=${month}&category=${encodeURIComponent(category)}&field=${encodeURIComponent(field)}`,
+        ),
+        { credentials: "include" },
+      );
+      if (!res.ok) throw new Error(`images HTTP ${res.status}`);
+      const json = await res.json();
+      return json.images || json.data?.images || [];
+    },
+    enabled: !isAllCars && !!carId && !!receiptViewer,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+  });
+  const receiptViewerImages = receiptViewerImagesData || [];
 
   // Fetch dynamic subcategories
   const fetchDynamicSubcategories = async () => {
@@ -1122,6 +1191,12 @@ export function IncomeExpenseProvider({
         formAmounts,
         getFormAmount,
         getCategoryMonthFormTotal,
+        receiptCells,
+        receiptViewer,
+        openReceipts,
+        closeReceipts,
+        receiptViewerImages,
+        isReceiptViewerLoading,
       }}
     >
       {children}
