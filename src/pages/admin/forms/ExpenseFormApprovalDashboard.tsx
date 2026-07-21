@@ -1023,6 +1023,8 @@ export default function ExpenseFormApprovalDashboard({
       remarks: sub.remarks ?? "",
       employeeId: sub.employeeId,
       carId: sub.carId,
+      year: sub.year,
+      month: sub.month,
     });
     setEditReceiptFiles([]);
     setEditModalOpen(true);
@@ -1085,6 +1087,8 @@ export default function ExpenseFormApprovalDashboard({
         remarks: editForm.remarks,
         employeeId: editForm.employeeId,
         carId: editForm.carId,
+        year: editForm.year,
+        month: editForm.month,
         // Only sent when a replacement was uploaded; otherwise omitted so the
         // existing receipt is preserved.
         ...(receiptUrls ? { receiptUrls } : {}),
@@ -1940,6 +1944,52 @@ export default function ExpenseFormApprovalDashboard({
                 }
                 className="bg-card border-border text-foreground mt-1"
               />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                {/* I&E Year/Month — these (not Receipt Date) are what the
+                    Income & Expenses grid keys a submission's cell to. A
+                    submission created with the wrong year/month (e.g. an old
+                    2023 receipt logged for a 2026 expense) shows correctly in
+                    this list but never appears on the I&E page for the
+                    intended month, even after fixing Receipt Date. */}
+                <label className="text-sm text-muted-foreground">
+                  I&E Year
+                </label>
+                <Input
+                  type="number"
+                  value={editForm.year ?? ""}
+                  onChange={(e) =>
+                    setEditForm((p) => ({
+                      ...p,
+                      year: e.target.value ? Number(e.target.value) : undefined,
+                    }))
+                  }
+                  className="bg-card border-border text-foreground mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground">
+                  I&E Month
+                </label>
+                <Select
+                  value={editForm.month != null ? String(editForm.month) : ""}
+                  onValueChange={(v) =>
+                    setEditForm((p) => ({ ...p, month: v ? Number(v) : undefined }))
+                  }
+                >
+                  <SelectTrigger className="bg-card border-border text-foreground mt-1">
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.map((m, i) => (
+                      <SelectItem key={i + 1} value={String(i + 1)}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div>
               <label className="text-sm text-muted-foreground">Employee</label>
