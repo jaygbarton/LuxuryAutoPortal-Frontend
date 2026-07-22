@@ -1,6 +1,6 @@
 import { Link } from "wouter";
-import { Mail, Phone, MapPin, Clock, Facebook, Instagram, Youtube, Music2 } from "lucide-react";
-import { SITE_CONTACT, SITE_TAGLINE, LEGAL_LINKS, SOCIAL_LINKS } from "@/lib/site-config";
+import { Mail, Phone, MapPin, Clock, Facebook, Instagram, Linkedin, Star, Route, Car, BadgeDollarSign } from "lucide-react";
+import { SITE_CONTACT, SITE_TAGLINE, SITE_STATS, LEGAL_LINKS, SOCIAL_LINKS } from "@/lib/site-config";
 
 const quickLinks = [
   { href: "/fleet", label: "Our Fleet" },
@@ -16,8 +16,15 @@ const legalLinks = [
 const SOCIAL_ICONS: Record<string, typeof Facebook> = {
   Facebook,
   Instagram,
-  YouTube: Youtube,
-  TikTok: Music2,
+  LinkedIn: Linkedin,
+};
+
+const STAT_ICONS = [Route, Star, BadgeDollarSign, Car];
+
+const socialInitial = (name: string) => {
+  if (name === "Pinterest") return "P";
+  if (name === "Yelp") return "Y";
+  return name.charAt(0);
 };
 
 export function Footer() {
@@ -54,7 +61,7 @@ export function Footer() {
             {/* Social media */}
             <div className="flex items-center gap-3 mt-5">
               {SOCIAL_LINKS.map((s) => {
-                const Icon = SOCIAL_ICONS[s.name] ?? Facebook;
+                const Icon = SOCIAL_ICONS[s.name];
                 return (
                   <a
                     key={s.name}
@@ -68,7 +75,11 @@ export function Footer() {
                     onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "#C49000"; (e.currentTarget as HTMLAnchorElement).style.color = "#FFFDF8"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.color = "#C49000"; }}
                   >
-                    <Icon className="w-4 h-4" />
+                    {Icon ? (
+                      <Icon className="w-4 h-4" />
+                    ) : (
+                      <span className="text-xs font-bold">{socialInitial(s.name)}</span>
+                    )}
                   </a>
                 );
               })}
@@ -158,7 +169,41 @@ export function Footer() {
               <Clock className="w-4 h-4 shrink-0" style={{ stroke: "#C49000" }} />
               <span>{SITE_CONTACT.hours}</span>
             </div>
+            <div className="mt-6">
+              <h4 className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#C49000", letterSpacing: "2px" }}>
+                Partnered With
+              </h4>
+              <p className="text-lg font-semibold" style={{ color: "#1C1C1C" }}>
+                Turo
+              </p>
+            </div>
           </div>
+        </div>
+
+        <div
+          className="mt-10 grid grid-cols-2 lg:grid-cols-4 gap-3 rounded-sm p-3"
+          style={{ background: "#1C1C1C" }}
+        >
+          {SITE_STATS.map((stat, index) => {
+            const Icon = STAT_ICONS[index] ?? BadgeDollarSign;
+            return (
+              <div
+                key={stat.label}
+                className="flex items-center gap-3 px-3 py-4"
+                style={{ border: "1px solid rgba(212, 160, 23, 0.35)" }}
+              >
+                <Icon className="w-5 h-5 shrink-0" style={{ color: "#D4A017" }} />
+                <div>
+                  <div className="text-xl font-bold leading-none" style={{ color: "#FFFDF8" }}>
+                    {stat.value}
+                  </div>
+                  <div className="mt-1 text-xs uppercase tracking-wider" style={{ color: "#D9C37A" }}>
+                    {stat.label}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Bottom bar */}

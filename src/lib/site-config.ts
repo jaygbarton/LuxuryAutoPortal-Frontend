@@ -15,6 +15,13 @@ export const SITE_CONTACT = {
 export const SITE_TAGLINE =
   "We are the leaders in car management. We specialize in renting cars to our clients, while you make money off your car.";
 
+export const SITE_STATS = [
+  { label: "Trips Taken", value: "22,924" },
+  { label: "Star Rating", value: "5" },
+  { label: "Cars For Sale", value: "10" },
+  { label: "Luxury Rental", value: "142" },
+] as const;
+
 export const LEGAL_LINKS = {
   privacy: "https://goldenluxuryauto.com/privacy-policy",
   terms: "https://goldenluxuryauto.com/terms-and-conditions/",
@@ -22,9 +29,9 @@ export const LEGAL_LINKS = {
 
 // Public social profiles for the footer. Update hrefs as accounts are confirmed.
 export const SOCIAL_LINKS = [
-  { name: "Facebook", href: "https://www.facebook.com/goldenluxuryauto" },
-  { name: "Instagram", href: "https://www.instagram.com/goldenluxuryauto" },
-  { name: "TikTok", href: "https://www.tiktok.com/@goldenluxuryauto" },
-  { name: "YouTube", href: "https://www.youtube.com/@goldenluxuryauto" },
+  { name: "Facebook", href: "https://www.facebook.com/Goldenluxuryauto/" },
+  { name: "Instagram", href: "https://www.instagram.com/goldenluxuryauto/?hl=en" },
+  { name: "Yelp", href: "https://www.yelp.com/biz/golden-luxury-auto-salt-lake-city" },
+  { name: "Pinterest", href: "https://ph.pinterest.com/goldenluxuryauto/" },
   { name: "LinkedIn", href: "https://linkedin.com/company/golden-luxury-auto" },
 ] as const;
