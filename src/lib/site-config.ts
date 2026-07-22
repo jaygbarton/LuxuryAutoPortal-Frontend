@@ -26,4 +26,5 @@ export const SOCIAL_LINKS = [
   { name: "Instagram", href: "https://www.instagram.com/goldenluxuryauto" },
   { name: "TikTok", href: "https://www.tiktok.com/@goldenluxuryauto" },
   { name: "YouTube", href: "https://www.youtube.com/@goldenluxuryauto" },
+  { name: "LinkedIn", href: "https://linkedin.com/company/golden-luxury-auto" },
 ] as const;
