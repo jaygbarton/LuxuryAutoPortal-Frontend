@@ -36,6 +36,8 @@ import ParkingTicketMySubmissions from "./forms/ParkingTicketMySubmissions";
 import ParkingTicketApprovalDashboard from "./forms/ParkingTicketApprovalDashboard";
 import TicketViolationSubmission from "./forms/TicketViolationSubmission";
 import TicketViolationMySubmissions from "./forms/TicketViolationMySubmissions";
+import CarRepairedSubmission from "./forms/CarRepairedSubmission";
+import CarRepairedMySubmissions from "./forms/CarRepairedMySubmissions";
 import CarOnOffboardingReport from "./forms/CarOnOffboardingReport";
 import {
   EmployeeOnboardingFormContent,
@@ -74,6 +76,7 @@ import {
   Users,
   ParkingCircle,
   FileWarning,
+  Wrench,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { cn } from "@/lib/utils";
@@ -465,7 +468,9 @@ export default function FormsPage() {
       itemId === "document-update-approval" ||
       itemId === "car-issue-submit" ||
       itemId === "parking-ticket-submit" ||
-      itemId === "parking-ticket-approval"
+      itemId === "parking-ticket-approval" ||
+      itemId === "ticket-violation-submit" ||
+      itemId === "car-repaired-submit"
     ) {
       setExpandedItems((prev) =>
         prev.includes(itemId)
@@ -1045,6 +1050,12 @@ export default function FormsPage() {
       icon: FileWarning,
     };
 
+    const carRepairedSubmitItem: FormItem = {
+      id: "car-repaired-submit",
+      title: "Car Repaired Form",
+      icon: Wrench,
+    };
+
     if (formVisibilityData?.isAdmin) {
       return [
         {
@@ -1108,6 +1119,12 @@ export default function FormsPage() {
           items: [carBlockOffStartItem, carBlockOffEndItem],
         },
         {
+          id: "car-repaired-forms",
+          title: "Car Repaired Form",
+          icon: Wrench,
+          items: [carRepairedSubmitItem],
+        },
+        {
           id: "parking-ticket-forms",
           title: "Client Parking Ticket",
           icon: ParkingCircle,
@@ -1142,6 +1159,12 @@ export default function FormsPage() {
           title: "Car Issue Form",
           icon: Car,
           items: [carIssueSubmitItem],
+        },
+        {
+          id: "car-repaired-forms",
+          title: "Car Repaired Form",
+          icon: Wrench,
+          items: [carRepairedSubmitItem],
         },
       ];
     }
@@ -1377,7 +1400,8 @@ export default function FormsPage() {
                             item.id === "car-issue-submit" ||
                             item.id === "parking-ticket-submit" ||
                             item.id === "parking-ticket-approval" ||
-                            item.id === "ticket-violation-submit") &&
+                            item.id === "ticket-violation-submit" ||
+                            item.id === "car-repaired-submit") &&
                           !item.comingSoon;
 
                         return (
@@ -1666,6 +1690,24 @@ export default function FormsPage() {
                                   )}
                                   <TicketViolationSubmission />
                                   <TicketViolationMySubmissions />
+                                </div>
+                              )}
+
+                            {/* Expanded content for Car Repaired Form */}
+                            {isItemExpanded &&
+                              item.id === "car-repaired-submit" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
+                                  <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                    <span>Submissions appear in</span>
+                                    <a
+                                      href="/admin/operations?tab=car-repaired"
+                                      className="font-semibold underline hover:text-amber-900"
+                                    >
+                                      Operations → Car Repaired
+                                    </a>
+                                  </div>
+                                  <CarRepairedSubmission />
+                                  <CarRepairedMySubmissions />
                                 </div>
                               )}
 

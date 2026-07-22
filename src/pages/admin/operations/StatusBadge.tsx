@@ -23,6 +23,7 @@ const statusColors: Record<string, { bg: string; text: string }> = {
   disputed: { bg: "bg-red-500/20", text: "text-red-500" },
   resolved: { bg: "bg-green-500/20", text: "text-green-500" },
   not_resolved: { bg: "bg-red-500/20", text: "text-red-500" },
+  logged: { bg: "bg-slate-500/20", text: "text-slate-400" },
 };
 
 const statusLabels: Record<string, string> = {
@@ -48,6 +49,7 @@ const statusLabels: Record<string, string> = {
   disputed: "Disputed",
   resolved: "Resolved",
   not_resolved: "Not Resolved",
+  logged: "Logged",
 };
 
 interface StatusBadgeProps {

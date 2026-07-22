@@ -10,11 +10,12 @@ import { ClaimsTab } from "./operations/ClaimsTab";
 import { TicketViolationTab } from "./operations/TicketViolationTab";
 import { MaintenanceTab } from "./operations/MaintenanceTab";
 import { NoCarIssuesTab } from "./operations/NoCarIssuesTab";
+import { CarRepairedTab } from "./operations/CarRepairedTab";
 import { CarBlockOffTab } from "./operations/CarBlockOffTab";
 import { DayScheduleTab } from "./operations/DayScheduleTab";
 import { TvTimelineTab } from "./operations/TvTimelineTab";
 
-const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "maintenance", "completed", "car-block-off", "day-schedule", "tv-timeline"] as const;
+const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "maintenance", "completed", "car-repaired", "car-block-off", "day-schedule", "tv-timeline"] as const;
 type TabId = typeof TAB_IDS[number];
 
 // Renders a tab's content only after it has been activated for the first time,
@@ -88,6 +89,9 @@ export default function OperationsPage() {
               <TabsTrigger value="completed" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 No Car Issues
               </TabsTrigger>
+              <TabsTrigger value="car-repaired" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
+                Car Repaired
+              </TabsTrigger>
               <TabsTrigger value="car-block-off" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 Car Block Off
               </TabsTrigger>
@@ -120,6 +124,9 @@ export default function OperationsPage() {
           </LazyTab>
           <LazyTab value="completed" activeTab={activeTab} mountedTabs={mountedTabs}>
             <NoCarIssuesTab />
+          </LazyTab>
+          <LazyTab value="car-repaired" activeTab={activeTab} mountedTabs={mountedTabs}>
+            <CarRepairedTab />
           </LazyTab>
           <LazyTab value="car-block-off" activeTab={activeTab} mountedTabs={mountedTabs}>
             <CarBlockOffTab />
