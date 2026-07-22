@@ -21,6 +21,11 @@ const SOCIAL_ICONS: Record<string, typeof Facebook> = {
 
 const STAT_ICONS = [Route, Star, BadgeDollarSign, Car];
 
+const socialIconFor = (social: { name: string; href: string }) => {
+  if (social.href.toLowerCase().includes("linkedin.com")) return Linkedin;
+  return SOCIAL_ICONS[social.name];
+};
+
 const socialInitial = (name: string) => {
   if (name === "Pinterest") return "P";
   if (name === "Yelp") return "Y";
@@ -61,7 +66,7 @@ export function Footer() {
             {/* Social media */}
             <div className="flex items-center gap-3 mt-5">
               {SOCIAL_LINKS.map((s) => {
-                const Icon = SOCIAL_ICONS[s.name];
+                const Icon = socialIconFor(s);
                 return (
                   <a
                     key={s.name}
