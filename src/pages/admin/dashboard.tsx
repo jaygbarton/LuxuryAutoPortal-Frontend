@@ -6,6 +6,7 @@ import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { NewsMediaSlot } from "@/pages/client/_components/NewsMediaSlot";
 import { OnboardingTutorial, useTutorial } from "@/components/onboarding/OnboardingTutorial";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
+import { useCoHost } from "@/hooks/use-co-host";
 
 // Dashboard section components
 import IncomeExpensesSection from "@/components/admin/dashboard/IncomeExpensesSection";
@@ -129,15 +130,19 @@ export default function AdminDashboard() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // News & Media items grouped by dashboard slot
+  // News & Media items grouped by dashboard slot. Audience-filtered: co-hosts
+  // (admin-role but a distinct audience) get the "cohost" feed; everyone else
+  // on this page is a real admin and gets the "admin" feed.
+  const { isCoHost } = useCoHost();
+  const newsAudience = isCoHost ? "cohost" : "admin";
   const { data: newsDashboardData } = useQuery<{
     success: boolean;
     slot1: any[];
     slot2: any[];
   }>({
-    queryKey: ["/api/news-media/dashboard"],
+    queryKey: ["/api/news-media/dashboard", newsAudience],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/news-media/dashboard"), {
+      const res = await fetch(buildApiUrl(`/api/news-media/dashboard?audience=${newsAudience}`), {
         credentials: "include",
       });
       if (!res.ok) return { success: false, slot1: [], slot2: [] };

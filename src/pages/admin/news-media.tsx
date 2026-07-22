@@ -53,6 +53,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { VideoPreview } from "@/components/admin/video-preview";
 import { VideoFileInput } from "@/components/admin/video-file-input";
@@ -68,7 +69,15 @@ interface NewsMediaRow {
   news_show_in_dashboard: number;
   news_dashboard_slot: number;
   news_media_type: string;
+  news_audience: string;
 }
+
+const NEWS_AUDIENCE_OPTIONS: { value: "admin" | "cohost" | "client" | "employee"; label: string }[] = [
+  { value: "admin", label: "Admin" },
+  { value: "cohost", label: "Co-Host" },
+  { value: "client", label: "Client" },
+  { value: "employee", label: "Employee" },
+];
 
 function formatDate(s: string) {
   if (!s) return "—";
@@ -100,6 +109,9 @@ export default function NewsMediaPage() {
   const [formShowInDashboard, setFormShowInDashboard] = useState(false);
   const [formDashboardSlot, setFormDashboardSlot] = useState<"1" | "2">("1");
   const [formMediaType, setFormMediaType] = useState<"video" | "photo">("video");
+  const [formAudience, setFormAudience] = useState<string[]>(
+    NEWS_AUDIENCE_OPTIONS.map((o) => o.value),
+  );
 
   const { data: meData } = useQuery({
     queryKey: ["/api/auth/me"],
@@ -166,6 +178,7 @@ export default function NewsMediaPage() {
     mutationFn: async (body: {
       title: string; description: string; file: string;
       showInDashboard: boolean; dashboardSlot: number; mediaType: string;
+      audience: string[];
     }) => {
       const res = await fetch(buildApiUrl("/api/client-testimonials"), {
         method: "POST",
@@ -178,6 +191,7 @@ export default function NewsMediaPage() {
           news_show_in_dashboard: body.showInDashboard ? 1 : 0,
           news_dashboard_slot: body.dashboardSlot,
           news_media_type: body.mediaType,
+          news_audience: body.audience,
         }),
       });
       if (!res.ok) throw new Error("Failed to create");
@@ -201,7 +215,8 @@ export default function NewsMediaPage() {
     }: {
       id: number;
       body: { title: string; description: string; file: string;
-              showInDashboard: boolean; dashboardSlot: number; mediaType: string; };
+              showInDashboard: boolean; dashboardSlot: number; mediaType: string;
+              audience: string[]; };
     }) => {
       const res = await fetch(buildApiUrl(`/api/client-testimonials/${id}`), {
         method: "PUT",
@@ -214,6 +229,7 @@ export default function NewsMediaPage() {
           news_show_in_dashboard: body.showInDashboard ? 1 : 0,
           news_dashboard_slot: body.dashboardSlot,
           news_media_type: body.mediaType,
+          news_audience: body.audience,
         }),
       });
       if (!res.ok) throw new Error("Failed to update");
@@ -286,6 +302,8 @@ export default function NewsMediaPage() {
     setFormShowInDashboard(row.news_show_in_dashboard === 1);
     setFormDashboardSlot(row.news_dashboard_slot === 2 ? "2" : "1");
     setFormMediaType(row.news_media_type === "photo" ? "photo" : "video");
+    const rowAudience = (row.news_audience || "").split(",").map((a) => a.trim()).filter(Boolean);
+    setFormAudience(rowAudience.length ? rowAudience : NEWS_AUDIENCE_OPTIONS.map((o) => o.value));
   };
 
   const resetForm = () => {
@@ -295,6 +313,13 @@ export default function NewsMediaPage() {
     setFormShowInDashboard(false);
     setFormDashboardSlot("1");
     setFormMediaType("video");
+    setFormAudience(NEWS_AUDIENCE_OPTIONS.map((o) => o.value));
+  };
+
+  const toggleAudience = (value: string) => {
+    setFormAudience((prev) =>
+      prev.includes(value) ? prev.filter((a) => a !== value) : [...prev, value],
+    );
   };
 
   return (
@@ -530,6 +555,21 @@ export default function NewsMediaPage() {
                         <div className="flex items-center gap-1.5"><RadioGroupItem value="photo" id="add-type-photo" /><Label htmlFor="add-type-photo" className="cursor-pointer">Photo</Label></div>
                       </RadioGroup>
                     </div>
+                    <div className="space-y-1.5 col-span-2">
+                      <Label className="text-xs text-muted-foreground">Visible To</Label>
+                      <div className="flex flex-wrap gap-4">
+                        {NEWS_AUDIENCE_OPTIONS.map((opt) => (
+                          <div key={opt.value} className="flex items-center gap-1.5">
+                            <Checkbox
+                              id={`add-audience-${opt.value}`}
+                              checked={formAudience.includes(opt.value)}
+                              onCheckedChange={() => toggleAudience(opt.value)}
+                            />
+                            <Label htmlFor={`add-audience-${opt.value}`} className="cursor-pointer">{opt.label}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -541,6 +581,7 @@ export default function NewsMediaPage() {
                 onClick={() => createMutation.mutate({
                   title: formTitle.trim(), description: formDescription.trim(), file: formFile.trim(),
                   showInDashboard: formShowInDashboard, dashboardSlot: Number(formDashboardSlot), mediaType: formMediaType,
+                  audience: formAudience,
                 })}
               >
                 {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -592,6 +633,21 @@ export default function NewsMediaPage() {
                           <div className="flex items-center gap-1.5"><RadioGroupItem value="photo" id="edit-type-photo" /><Label htmlFor="edit-type-photo" className="cursor-pointer">Photo</Label></div>
                         </RadioGroup>
                       </div>
+                      <div className="space-y-1.5 col-span-2">
+                        <Label className="text-xs text-muted-foreground">Visible To</Label>
+                        <div className="flex flex-wrap gap-4">
+                          {NEWS_AUDIENCE_OPTIONS.map((opt) => (
+                            <div key={opt.value} className="flex items-center gap-1.5">
+                              <Checkbox
+                                id={`edit-audience-${opt.value}`}
+                                checked={formAudience.includes(opt.value)}
+                                onCheckedChange={() => toggleAudience(opt.value)}
+                              />
+                              <Label htmlFor={`edit-audience-${opt.value}`} className="cursor-pointer">{opt.label}</Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -606,6 +662,7 @@ export default function NewsMediaPage() {
                   body: {
                     title: formTitle.trim(), description: formDescription.trim(), file: formFile.trim(),
                     showInDashboard: formShowInDashboard, dashboardSlot: Number(formDashboardSlot), mediaType: formMediaType,
+                    audience: formAudience,
                   },
                 })}
               >

@@ -50,11 +50,12 @@ export default function EmployeeProfileSection() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Admin-uploaded media (same source as /admin/dashboard)
+  // Admin-uploaded media (same source as /admin/dashboard), filtered to the
+  // "employee" audience.
   const { data: newsDashboardData } = useQuery<{ success: boolean; slot1: any[]; slot2: any[] }>({
-    queryKey: ["/api/news-media/dashboard"],
+    queryKey: ["/api/news-media/dashboard", "employee"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/news-media/dashboard"), { credentials: "include" });
+      const res = await fetch(buildApiUrl("/api/news-media/dashboard?audience=employee"), { credentials: "include" });
       if (!res.ok) return { success: false, slot1: [], slot2: [] };
       return res.json();
     },

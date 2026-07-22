@@ -240,9 +240,9 @@ export default function ClientDashboard() {
     slot1: any[];
     slot2: any[];
   }>({
-    queryKey: ["/api/news-media/dashboard"],
+    queryKey: ["/api/news-media/dashboard", "client"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/news-media/dashboard"), {
+      const res = await fetch(buildApiUrl("/api/news-media/dashboard?audience=client"), {
         credentials: "include",
       });
       if (!res.ok) return { success: false, slot1: [], slot2: [] };
