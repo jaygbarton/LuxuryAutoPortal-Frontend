@@ -43,7 +43,7 @@ export function GlaContactCard() {
             </svg>
           </a>
 
-          <a href="https://www.linkedin.com/company/goldenluxuryauto" target="_blank" rel="noopener noreferrer" title="LinkedIn">
+          <a href="https://linkedin.com/company/golden-luxury-auto" target="_blank" rel="noopener noreferrer" title="LinkedIn">
             <svg viewBox="0 0 24 24" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
               <rect width="24" height="24" rx="4" fill="#0A66C2"/>
               <text x="4" y="17" fontFamily="Arial" fontWeight="bold" fontSize="14" fill="white">in</text>
