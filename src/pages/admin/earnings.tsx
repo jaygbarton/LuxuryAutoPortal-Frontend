@@ -1912,12 +1912,16 @@ export default function EarningsPage() {
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "daysRented"))}
                     isInteger
                   />
-                  {/* Cars Available - per Cathy (2026-07-02), visible to all clients now. */}
+                  {/* Cars Available - was made client-visible per Cathy (2026-07-02),
+                      but re-hidden from clients per Hoang (2026-07-23): fleet-wide
+                      availability count has no place on a single owner's Earnings page. */}
+                  {isUnderlyingAdmin && (
                   <TableRow
                     label="Cars Available"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "carsAvailableForRent"))}
                     isInteger
                   />
+                  )}
                   <TableRow
                     label="Trips Taken"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "tripsTaken"))}
