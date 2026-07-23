@@ -12,6 +12,8 @@ import ExpenseFormMySubmissions from "@/pages/admin/forms/ExpenseFormMySubmissio
 import CommissionFormSubmission from "@/pages/admin/forms/CommissionFormSubmission";
 import CommissionFormMySubmissions from "@/pages/admin/forms/CommissionFormMySubmissions";
 import CarIssueFormSubmission from "@/pages/admin/forms/CarIssueFormSubmission";
+import CarRepairedSubmission from "@/pages/admin/forms/CarRepairedSubmission";
+import CarRepairedMySubmissions from "@/pages/admin/forms/CarRepairedMySubmissions";
 
 export default function StaffForms() {
   return (
@@ -31,6 +33,7 @@ export default function StaffForms() {
             <TabsTrigger value="commission">Commission Form</TabsTrigger>
             <TabsTrigger value="commission-my">My Commissions</TabsTrigger>
             <TabsTrigger value="car-issue">Car Issue Report</TabsTrigger>
+            <TabsTrigger value="car-repaired">Car Repaired</TabsTrigger>
           </TabsList>
 
           <TabsContent value="expense" className="mt-4">
@@ -47,6 +50,10 @@ export default function StaffForms() {
           </TabsContent>
           <TabsContent value="car-issue" className="mt-4">
             <CarIssueFormSubmission />
+          </TabsContent>
+          <TabsContent value="car-repaired" className="mt-4 space-y-6">
+            <CarRepairedSubmission />
+            <CarRepairedMySubmissions />
           </TabsContent>
         </Tabs>
       </div>
