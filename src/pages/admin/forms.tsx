@@ -77,6 +77,8 @@ import {
   ParkingCircle,
   FileWarning,
   Wrench,
+  Edit,
+  PauseCircle,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { cn } from "@/lib/utils";
@@ -124,6 +126,7 @@ interface OnboardingSubmission {
   isOffboarded?: boolean;
   carOffboardAt?: string | null;
   carOffboardReason?: string | null;
+  remarks?: string | null;
   [key: string]: any; // For full submission details
 }
 
@@ -340,6 +343,8 @@ export default function FormsPage() {
   const [declineReason, setDeclineReason] = useState("");
   const [submissionToDecline, setSubmissionToDecline] =
     useState<OnboardingSubmission | null>(null);
+  const [editingRemarksId, setEditingRemarksId] = useState<number | null>(null);
+  const [remarksDraft, setRemarksDraft] = useState("");
   const [fullScreenDocument, setFullScreenDocument] = useState<{
     url: string;
     type: "insurance" | "license";
@@ -659,6 +664,117 @@ export default function FormsPage() {
       queryClient.invalidateQueries({ queryKey: ["sidebar-badges"] });
     },
     onError: (error: Error, variables) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update submission status (e.g. "on-hold") without the approve/reject side-effects
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const response = await fetch(
+        buildApiUrl(`/api/onboarding/submissions/${id}/status`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        },
+      );
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to update status" }));
+        throw new Error(error.error || "Failed to update status");
+      }
+      return response.json();
+    },
+    onSuccess: (_data, variables) => {
+      toast({
+        title: "Status Updated",
+        description: `Submission marked as ${variables.status}.`,
+      });
+      queryClient.setQueriesData(
+        { queryKey: ["onboarding-submissions"] },
+        (
+          old:
+            | {
+                data?: OnboardingSubmission[];
+                pagination?: { total: number };
+                success?: boolean;
+              }
+            | undefined,
+        ) => {
+          if (!old?.data) return old;
+          return {
+            ...old,
+            data: old.data.map((s) =>
+              s.id === variables.id ? { ...s, status: variables.status } : s,
+            ),
+          };
+        },
+      );
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Add/edit remarks for a submission
+  const remarksMutation = useMutation({
+    mutationFn: async ({ id, remarks }: { id: number; remarks: string }) => {
+      const response = await fetch(
+        buildApiUrl(`/api/onboarding/submissions/${id}/remarks`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ remarks }),
+        },
+      );
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ error: "Failed to update remarks" }));
+        throw new Error(error.error || "Failed to update remarks");
+      }
+      return response.json();
+    },
+    onSuccess: (_data, variables) => {
+      toast({
+        title: "Remarks Saved",
+        description: "Submission remarks updated.",
+      });
+      queryClient.setQueriesData(
+        { queryKey: ["onboarding-submissions"] },
+        (
+          old:
+            | {
+                data?: OnboardingSubmission[];
+                pagination?: { total: number };
+                success?: boolean;
+              }
+            | undefined,
+        ) => {
+          if (!old?.data) return old;
+          return {
+            ...old,
+            data: old.data.map((s) =>
+              s.id === variables.id ? { ...s, remarks: variables.remarks } : s,
+            ),
+          };
+        },
+      );
+      setEditingRemarksId(null);
+    },
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message,
@@ -1788,6 +1904,9 @@ export default function FormsPage() {
                                             <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden 2xl:table-cell whitespace-nowrap">
                                               Car Offboarding Date
                                             </th>
+                                            <th className="text-left py-3 px-2 sm:px-3 text-muted-foreground font-medium text-xs hidden lg:table-cell">
+                                              Remarks
+                                            </th>
                                             <th className="text-left py-3 px-2 sm:px-3 text-foreground font-medium text-xs whitespace-nowrap">
                                               Actions
                                             </th>
@@ -1872,7 +1991,10 @@ export default function FormsPage() {
                                                           : submission.status ===
                                                               "rejected"
                                                             ? "border-red-500/50 text-red-700 bg-red-500/20 font-semibold"
-                                                            : "border-gray-500/50 text-gray-700 bg-gray-500/20 font-semibold",
+                                                            : submission.status ===
+                                                                "on-hold"
+                                                              ? "border-orange-500/50 text-orange-700 bg-orange-500/20 font-semibold"
+                                                              : "border-gray-500/50 text-gray-700 bg-gray-500/20 font-semibold",
                                                     )}
                                                   >
                                                     {submission.status ||
@@ -1968,6 +2090,100 @@ export default function FormsPage() {
                                                     <span className="text-muted-foreground">
                                                       N/A
                                                     </span>
+                                                  )}
+                                                </td>
+                                                <td className="py-3 px-2 sm:px-3 hidden lg:table-cell max-w-[220px]">
+                                                  {editingRemarksId ===
+                                                  submission.id ? (
+                                                    <div className="flex items-center gap-1">
+                                                      <input
+                                                        autoFocus
+                                                        type="text"
+                                                        value={remarksDraft}
+                                                        onChange={(e) =>
+                                                          setRemarksDraft(
+                                                            e.target.value,
+                                                          )
+                                                        }
+                                                        onKeyDown={(e) => {
+                                                          if (e.key === "Enter") {
+                                                            remarksMutation.mutate(
+                                                              {
+                                                                id: submission.id,
+                                                                remarks:
+                                                                  remarksDraft,
+                                                              },
+                                                            );
+                                                          } else if (
+                                                            e.key === "Escape"
+                                                          ) {
+                                                            setEditingRemarksId(
+                                                              null,
+                                                            );
+                                                          }
+                                                        }}
+                                                        placeholder="Add a note..."
+                                                        className="w-full text-xs px-2 py-1 rounded border border-border bg-background text-foreground"
+                                                      />
+                                                      <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-7 w-7 p-0"
+                                                        title="Save"
+                                                        disabled={
+                                                          remarksMutation.isPending
+                                                        }
+                                                        onClick={() =>
+                                                          remarksMutation.mutate(
+                                                            {
+                                                              id: submission.id,
+                                                              remarks:
+                                                                remarksDraft,
+                                                            },
+                                                          )
+                                                        }
+                                                      >
+                                                        <CheckCircle className="w-3.5 h-3.5 text-green-700" />
+                                                      </Button>
+                                                      <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-7 w-7 p-0"
+                                                        title="Cancel"
+                                                        onClick={() =>
+                                                          setEditingRemarksId(
+                                                            null,
+                                                          )
+                                                        }
+                                                      >
+                                                        <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                                      </Button>
+                                                    </div>
+                                                  ) : (
+                                                    <div
+                                                      className="flex items-center gap-1.5 cursor-pointer group"
+                                                      onClick={() => {
+                                                        setEditingRemarksId(
+                                                          submission.id,
+                                                        );
+                                                        setRemarksDraft(
+                                                          submission.remarks ||
+                                                            "",
+                                                        );
+                                                      }}
+                                                      title="Click to edit remarks"
+                                                    >
+                                                      {submission.remarks ? (
+                                                        <span className="text-xs text-foreground truncate">
+                                                          {submission.remarks}
+                                                        </span>
+                                                      ) : (
+                                                        <span className="text-xs text-muted-foreground italic">
+                                                          Add note...
+                                                        </span>
+                                                      )}
+                                                      <Edit className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 flex-shrink-0" />
+                                                    </div>
                                                   )}
                                                 </td>
                                                 <td className="py-3 px-2 sm:px-3 whitespace-nowrap">
@@ -2075,6 +2291,42 @@ export default function FormsPage() {
                                                       }
                                                     >
                                                       <XCircle className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button
+                                                      size="sm"
+                                                      variant="ghost"
+                                                      className={cn(
+                                                        "h-8 w-8 p-0",
+                                                        submission.status ===
+                                                          "on-hold"
+                                                          ? "text-orange-700 bg-orange-500/10"
+                                                          : "text-muted-foreground",
+                                                      )}
+                                                      onClick={() =>
+                                                        statusMutation.mutate({
+                                                          id: submission.id,
+                                                          status:
+                                                            submission.status ===
+                                                            "on-hold"
+                                                              ? "pending"
+                                                              : "on-hold",
+                                                        })
+                                                      }
+                                                      disabled={
+                                                        submission.status ===
+                                                          "approved" ||
+                                                        submission.status ===
+                                                          "rejected" ||
+                                                        statusMutation.isPending
+                                                      }
+                                                      title={
+                                                        submission.status ===
+                                                        "on-hold"
+                                                          ? "Remove hold (set back to Pending)"
+                                                          : "Put submission On-Hold"
+                                                      }
+                                                    >
+                                                      <PauseCircle className="w-4 h-4" />
                                                     </Button>
                                                   </div>
                                                 </td>
