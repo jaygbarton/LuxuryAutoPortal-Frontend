@@ -505,12 +505,18 @@ interface AuditEntry {
 
 const UTAH_TZ = "America/Denver";
 
+// submissionDate (`expense_form_submission.submission_date`) is a MySQL DATE
+// column — a calendar date with no time-of-day, which mysql2/JSON round-trips
+// as UTC midnight (e.g. "2026-07-21T00:00:00.000Z"). Formatting that through
+// America/Denver (UTC-6/7) shifts it back a day (e.g. shows "Jul 20" for a
+// row saved as 07/21) — read the UTC date parts directly instead of
+// converting through a timezone, since there's no real time-of-day to convert.
 function formatUtahDate(value: string | null | undefined): string {
   if (!value) return "—";
   const d = new Date(String(value).replace(" ", "T"));
   if (isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("en-US", {
-    timeZone: UTAH_TZ,
+    timeZone: "UTC",
     year: "numeric",
     month: "short",
     day: "2-digit",

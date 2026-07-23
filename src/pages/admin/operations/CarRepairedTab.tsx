@@ -422,6 +422,24 @@ export function CarRepairedTab() {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const statusUpdateMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const res = await fetch(buildApiUrl(`/api/admin/car-repaired/${id}`), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ cr_status: status }),
+      });
+      if (!res.ok) throw new Error("Failed to update status");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/car-repaired"] });
+      toast({ title: "Success", description: "Status updated" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
   const thisMonthCount = useMemo(() => {
     const now = new Date();
     return rawRows.filter((r) => {
@@ -507,16 +525,43 @@ export function CarRepairedTab() {
                   <ReceiptUpload receipts={r.cr_receipts} onReceiptsChange={() => {}} entityId={r.cr_aid} disabled compact />
                 );
 
+                const statusAccent =
+                  r.cr_status === "completed"
+                    ? { bg: "bg-green-600", border: "border-green-300" }
+                    : r.cr_status === "in_progress"
+                    ? { bg: "bg-yellow-500", border: "border-yellow-300" }
+                    : { bg: "bg-slate-500", border: "border-slate-300" };
+
+                // Legacy rows predate the status workflow ('logged' placeholder) — treat as "new" in the dropdown.
+                const statusValue =
+                  r.cr_status === "in_progress" || r.cr_status === "completed" ? r.cr_status : "new";
+
+                const statusControl = (
+                  <Select
+                    value={statusValue}
+                    onValueChange={(v) => statusUpdateMutation.mutate({ id: r.cr_aid, status: v })}
+                  >
+                    <SelectTrigger className="bg-transparent border-0 p-0 h-auto w-auto shadow-none focus:ring-0">
+                      <StatusBadge status={statusValue} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border text-foreground">
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                );
+
                 return (
                   <DashboardRecordCard
                     key={r.cr_aid}
-                    accentBg="bg-slate-500"
-                    accentBorder="border-slate-300"
+                    accentBg={statusAccent.bg}
+                    accentBorder={statusAccent.border}
                     typeLabel="Repaired"
                     carName={r.cr_car_label || "--"}
                     plate={r.cr_plate}
                     guestName={null}
-                    statusControl={<StatusBadge status="logged" />}
+                    statusControl={statusControl}
                     notes={r.cr_repair_notes}
                     details={[
                       { label: "Repair Type", value: r.cr_repair_type || "--" },
