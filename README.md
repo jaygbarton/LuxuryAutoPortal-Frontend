@@ -10,7 +10,7 @@ Modern React application for Golden Luxury Auto's car rental management system.
 - **Responsive Design** - Works on all devices and screen sizes
 - **Real-time Updates** - Live data with TanStack Query
 - **Type Safety** - Full TypeScript implementation
-
+ 
 ## 🛠️ Tech Stack
 
 - **React 18** - Latest React with hooks and concurrent features
