@@ -1046,6 +1046,15 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                         return String(value);
                       };
 
+                      // Only the last 4 digits of an SSN are ever shown in the admin UI.
+                      const maskSSN = (value: any): string => {
+                        const str = value === null || value === undefined ? "" : String(value);
+                        const digitsOnly = str.replace(/\D/g, "");
+                        if (!digitsOnly) return "Not provided";
+                        const last4 = digitsOnly.slice(-4);
+                        return `•••-••-${last4}`;
+                      };
+
                       const formatDate = (dateStr: string | null | undefined): string => {
                         if (!dateStr) return "Not provided";
                         try {
@@ -1130,7 +1139,7 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                               </div>
                               <div>
                                 <span className="text-muted-foreground block mb-1">SSN:</span>
-                                <span className="text-foreground font-mono">{formatValue(data.ssn)}</span>
+                                <span className="text-foreground font-mono">{maskSSN(data.ssn)}</span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground block mb-1">Representative:</span>
@@ -1301,7 +1310,7 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                                         <div>
                                           <span className="text-muted-foreground block mb-1">SSN:</span>
                                           <span className="text-foreground font-mono">
-                                            {formatValue(bankInfo.banking_info_ssn)}
+                                            {maskSSN(bankInfo.banking_info_ssn)}
                                           </span>
                                         </div>
                                       )}

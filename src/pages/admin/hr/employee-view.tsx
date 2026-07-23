@@ -111,6 +111,14 @@ function unspecified(val: string | null | undefined): string {
   return (val ?? "").trim() || "Unspecified";
 }
 
+/** Only the last 4 digits of an SSN/EIN are ever shown in the admin UI. */
+function maskSSN(val: string | null | undefined): string {
+  const digitsOnly = (val ?? "").replace(/\D/g, "");
+  if (!digitsOnly) return "Unspecified";
+  const last4 = digitsOnly.slice(-4);
+  return `•••-••-${last4}`;
+}
+
 function formatCurrency(val: string | number | null | undefined): string {
   const n = parseFloat(String(val ?? 0));
   return isNaN(n) ? "$0.00" : `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -556,7 +564,7 @@ export default function EmployeeViewPage() {
                             <li className="font-bold text-muted-foreground">Marital Status:</li>
                             <li>{unspecified(employee.employee_marital_status)}</li>
                             <li className="font-bold text-muted-foreground">Social Security Number or EIN:</li>
-                            <li>{unspecified(employee.employee_ssn_ein)}</li>
+                            <li>{maskSSN(employee.employee_ssn_ein)}</li>
                             <li className="font-bold text-muted-foreground">Street:</li>
                             <li>{unspecified(employee.employee_street)}</li>
                             <li className="font-bold text-muted-foreground">City:</li>

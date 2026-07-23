@@ -20,7 +20,7 @@ Modern React application for Golden Luxury Auto's car rental management system.
 - **Tailwind CSS** - Utility-first CSS framework
 - **Wouter** - Lightweight React router
 - **Zod** - Runtime type validation
-
+ 
 ## 🏃‍♂️ Quick Start
 
 ### Prerequisites
