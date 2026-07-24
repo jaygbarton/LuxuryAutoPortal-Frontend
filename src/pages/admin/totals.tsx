@@ -291,12 +291,21 @@ export default function TotalsPage() {
   const isStandalonePage = !!standaloneTotalsRoute;
   const urlCarId = individualParams?.id ? parseInt(individualParams.id, 10) : null;
 
-  const { data: authData } = useQuery<{ user?: { isClient?: boolean } }>({
+  const { data: authData } = useQuery<{
+    user?: { isAdmin?: boolean; isClient?: boolean; impersonatorIsAdmin?: boolean };
+  }>({
     queryKey: ["/api/auth/me"],
     queryFn: authMeQueryFn,
     retry: false,
   });
   const isClient = authData?.user?.isClient === true;
+  // Gates visibility of the Reimbursed & Non-Reimbursed Bills section — hidden
+  // from real clients per Hoang (2026-07-22), same rule as admin/earnings.tsx.
+  // Uses impersonatorIsAdmin (not bare isAdmin) so an admin auditing via "View
+  // as Client" still sees it, since /api/auth/me reports isAdmin false during
+  // that impersonation.
+  const isUnderlyingAdmin =
+    authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true;
 
   const now = new Date();
   const nowYear = now.getFullYear();
@@ -837,7 +846,8 @@ export default function TotalsPage() {
               </Section>
             )}
 
-            {/* 7. Reimbursed Bills */}
+            {/* 7. Reimbursed Bills — GLA-internal, hidden from real clients */}
+            {isUnderlyingAdmin && (
             <Section
               title="REIMBURSED & NON-REIMBURSED BILLS"
               totalValue={
@@ -860,6 +870,7 @@ export default function TotalsPage() {
               <TotalRow label="Uber/Lyft/Lime - Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeReimbursed} />
               <TotalRow label="Uber/Lyft/Lime - Not Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeNotReimbursed} />
             </Section>
+            )}
 
             {/* 8. Vehicle History */}
             <Section
