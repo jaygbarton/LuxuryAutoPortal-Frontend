@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import {
   Card,
@@ -25,8 +25,18 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { ChevronDown, XCircle } from "lucide-react";
+
+type ContactStatus = "new" | "in_progress" | "contacted" | "dnc";
 
 interface GuestTrip {
   id: number;
@@ -34,6 +44,7 @@ interface GuestTrip {
   guestName: string | null;
   phoneNumber: string | null;
   status: "booked" | "cancelled" | "ended" | "returned";
+  contactStatus: ContactStatus;
   tripStart: string | null;
   tripEnd: string | null;
   carName: string | null;
@@ -44,16 +55,42 @@ interface GuestTrip {
 
 const STATUS_OPTIONS = ["booked", "ended", "returned", "cancelled"] as const;
 
+const CONTACT_STATUS_OPTIONS = [
+  "new",
+  "in_progress",
+  "contacted",
+  "dnc",
+] as const;
+
+const CONTACT_STATUS_LABELS: Record<ContactStatus, string> = {
+  new: "New",
+  in_progress: "In Progress",
+  contacted: "Contacted",
+  dnc: "DNC",
+};
+
+const CONTACT_STATUS_BADGE_CLASS: Record<ContactStatus, string> = {
+  new: "bg-slate-500",
+  in_progress: "bg-amber-500",
+  contacted: "bg-green-600",
+  dnc: "bg-red-600",
+};
+
 export default function GuestDatabasePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [contactStatusFilters, setContactStatusFilters] = useState<string[]>(
+    [],
+  );
   const [rangeFrom, setRangeFrom] = useState("");
   const [rangeTo, setRangeTo] = useState("");
   const [sortBy, setSortBy] = useState<"tripStart" | "tripEnd">("tripStart");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -71,6 +108,7 @@ export default function GuestDatabasePage() {
     queryKey: [
       "/api/marketing/guest-database",
       statusFilters,
+      contactStatusFilters,
       debouncedSearchQuery,
       currentPage,
       itemsPerPage,
@@ -86,6 +124,9 @@ export default function GuestDatabasePage() {
       );
       if (statusFilters.length > 0) {
         url += `&status=${statusFilters.join(",")}`;
+      }
+      if (contactStatusFilters.length > 0) {
+        url += `&contactStatus=${contactStatusFilters.join(",")}`;
       }
       if (debouncedSearchQuery) {
         url += `&q=${encodeURIComponent(debouncedSearchQuery)}`;
@@ -156,8 +197,64 @@ export default function GuestDatabasePage() {
   const sortArrow = (col: "tripStart" | "tripEnd") =>
     sortBy === col ? (sortDir === "asc" ? " ▲" : " ▼") : "";
 
+  const updateContactStatusMutation = useMutation({
+    mutationFn: async ({
+      id,
+      contactStatus,
+    }: {
+      id: number;
+      contactStatus: ContactStatus;
+    }) => {
+      const response = await fetch(
+        buildApiUrl(`/api/marketing/guest-database/${id}/contact-status`),
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contactStatus }),
+        },
+      );
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ message: "Failed to update contact status" }));
+        throw new Error(error.message || "Failed to update contact status");
+      }
+      return response.json();
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.setQueriesData(
+        { queryKey: ["/api/marketing/guest-database"] },
+        (
+          old: { data?: GuestTrip[]; total?: number; success?: boolean } | undefined,
+        ) => {
+          if (!old?.data) return old;
+          return {
+            ...old,
+            data: old.data.map((g) =>
+              g.id === variables.id
+                ? { ...g, contactStatus: variables.contactStatus }
+                : g,
+            ),
+          };
+        },
+      );
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const hasFilters =
-    searchQuery || statusFilters.length > 0 || rangeFrom || rangeTo;
+    searchQuery ||
+    statusFilters.length > 0 ||
+    contactStatusFilters.length > 0 ||
+    rangeFrom ||
+    rangeTo;
 
   return (
     <AdminLayout>
@@ -234,6 +331,46 @@ export default function GuestDatabasePage() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-[180px] justify-between font-normal"
+                  >
+                    <span>
+                      {contactStatusFilters.length === 0
+                        ? "All Contact Status"
+                        : contactStatusFilters.length <= 2
+                          ? contactStatusFilters
+                              .map(
+                                (s) =>
+                                  CONTACT_STATUS_LABELS[s as ContactStatus],
+                              )
+                              .join(" + ")
+                          : `${contactStatusFilters.length} selected`}
+                    </span>
+                    <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[180px]">
+                  {CONTACT_STATUS_OPTIONS.map((cs) => (
+                    <DropdownMenuCheckboxItem
+                      key={cs}
+                      checked={contactStatusFilters.includes(cs)}
+                      onCheckedChange={(checked) => {
+                        setContactStatusFilters((prev) =>
+                          checked
+                            ? [...prev, cs]
+                            : prev.filter((s) => s !== cs),
+                        );
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {CONTACT_STATUS_LABELS[cs]}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
               {hasFilters && (
                 <Button
                   variant="outline"
@@ -241,6 +378,7 @@ export default function GuestDatabasePage() {
                   onClick={() => {
                     setSearchQuery("");
                     setStatusFilters([]);
+                    setContactStatusFilters([]);
                     setRangeFrom("");
                     setRangeTo("");
                     setCurrentPage(1);
@@ -319,19 +457,22 @@ export default function GuestDatabasePage() {
                     <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
                       Phone Number
                     </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap font-semibold">
+                      Contact Status
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
+                      <TableCell colSpan={6} className="text-center py-8">
                         Loading…
                       </TableCell>
                     </TableRow>
                   ) : guests.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={6}
                         className="text-center py-12 text-muted-foreground"
                       >
                         No guests found
@@ -366,6 +507,42 @@ export default function GuestDatabasePage() {
                         <TableCell>{getStatusBadge(guest.status)}</TableCell>
                         <TableCell>{guest.guestName || "—"}</TableCell>
                         <TableCell>{guest.phoneNumber || "—"}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={guest.contactStatus || "new"}
+                            onValueChange={(value) =>
+                              updateContactStatusMutation.mutate({
+                                id: guest.id,
+                                contactStatus: value as ContactStatus,
+                              })
+                            }
+                          >
+                            <SelectTrigger className="w-[140px] h-8 border-none bg-transparent p-0 focus:ring-0">
+                              <SelectValue asChild>
+                                <Badge
+                                  className={
+                                    CONTACT_STATUS_BADGE_CLASS[
+                                      guest.contactStatus || "new"
+                                    ]
+                                  }
+                                >
+                                  {
+                                    CONTACT_STATUS_LABELS[
+                                      guest.contactStatus || "new"
+                                    ]
+                                  }
+                                </Badge>
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {CONTACT_STATUS_OPTIONS.map((cs) => (
+                                <SelectItem key={cs} value={cs}>
+                                  {CONTACT_STATUS_LABELS[cs]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
