@@ -896,31 +896,24 @@ export default function CarsPage() {
                         }
                       };
 
-                      // Get Management status from car_is_active value
-                      // Mapping: 0 = management, 1 = own, 2 = off_ride, 3 = off_ride
-                      const getManagementStatusFromIsActive = (isActive?: number): "management" | "own" | "off_ride" => {
-                        if (isActive === undefined || isActive === null) return "own"; // Default fallback
-                        if (isActive === 0) return "own";
-                        if (isActive === 1) return "management";
-                        if (isActive === 2 || isActive === 3) return "off_ride";
-                        return "own"; // Default fallback
-                      };
-                      
-                      const getManagementDisplay = (status: "management" | "own" | "off_ride") => {
+                      // Management status comes directly from the API's car_management
+                      // column (same field the car detail page reads), so the list and
+                      // detail views always agree. Do not re-derive from car_is_active —
+                      // that column tracks a separate concept (available/in_use/maintenance)
+                      // and can change independently of Management.
+                      const getManagementDisplay = (status?: "management" | "own" | "off_ride") => {
                         switch (status) {
                           case "management":
                             return "Management";
-                          case "own":
-                            return "Own";
                           case "off_ride":
                             return "Off Ride";
+                          case "own":
                           default:
                             return "Own";
                         }
                       };
-                      
-                      // Derive management status from car_is_active
-                      const derivedManagementStatus = getManagementStatusFromIsActive(car.isActive);
+
+                      const derivedManagementStatus = car.managementStatus ?? "own";
                       const managementValue = getManagementDisplay(derivedManagementStatus);
 
                       // Create unique key to avoid duplicate key warnings
