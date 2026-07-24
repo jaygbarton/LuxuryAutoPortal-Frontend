@@ -13,9 +13,7 @@ import {
   TrendingUp,
   TrendingDown,
   Car,
-  Calendar,
   FileText,
-  Folder,
   History,
   Loader2,
   Wrench,
@@ -447,11 +445,9 @@ export default function ClientDashboard() {
     { href: carHref("earnings"),       icon: DollarSign,   label: "Earnings" },
     { href: "/client/trip-history",    icon: History,      label: "History" },
     { href: carHref("totals"),         icon: BarChart3,    label: "Totals" },
-    { href: carHref("records"),        icon: Folder,       label: "Records and Files" },
 
     { href: carHref("graphs"),         icon: TrendingUp,   label: "Graphs and Charts Report" },
     { href: carHref("maintenance"),    icon: Wrench,       label: "Maintenance" },
-    { href: carHref("income-expense"), icon: Calendar,     label: "Car Rental Value Per Month" },
     { href: carHref("depreciation"),   icon: TrendingDown, label: "NADA Depreciation Schedule" },
 
     { href: carHref("payments"),       icon: CreditCard,   label: "Payment History" },

@@ -45,8 +45,8 @@ export function PaymentHistoryCard({ payments, isLoading }: PaymentHistoryCardPr
                   <TableCell className="text-sm py-2 font-medium text-black">
                     {getMonthLabel(p.payments_year_month)}
                   </TableCell>
-                  <TableCell className="text-sm py-2 text-right text-black">{fmt(p.payments_amount_payout)}</TableCell>
                   <TableCell className="text-sm py-2 text-right text-black">{fmt(p.payments_amount)}</TableCell>
+                  <TableCell className="text-sm py-2 text-right text-black">{fmt(p.payments_amount_payout)}</TableCell>
                   <TableCell className="text-sm py-2 text-right text-black">
                     {fmt(p.payments_amount_balance)}
                   </TableCell>

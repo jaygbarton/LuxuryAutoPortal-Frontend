@@ -17,14 +17,12 @@ import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import {
   BarChart3,
   BookOpen,
-  Calendar,
   CalendarOff,
   Car,
   ClipboardList,
   CreditCard,
   DollarSign,
   FileText,
-  Folder,
   Globe,
   History,
   Map,
@@ -88,19 +86,17 @@ export function ClientPageLinks() {
 
   // Kept in sync with src/pages/client/dashboard.tsx — same order, same URLs.
   //
-  //   Row 1: Earnings | History | Totals | Records and Files
-  //   Row 2: Graphs and Charts Report | Maintenance | Car Rental Value Per Month | NADA Depreciation Schedule
+  //   Row 1: Earnings | History | Totals
+  //   Row 2: Graphs and Charts Report | Maintenance | NADA Depreciation Schedule
   //   Row 3: Payment History
   const reportLinks = [
     { href: carPath("earnings"),       icon: DollarSign,   label: "Earnings" },
     { href: "/client/trip-history",    icon: History,      label: "History" },
     { href: carPath("totals"),         icon: BarChart3,    label: "Totals" },
-    { href: carPath("records"),        icon: Folder,       label: "Records and Files" },
 
     { href: carPath("graphs"),         icon: TrendingUp,   label: "Graphs and Charts Report" },
     { href: carPath("maintenance"),    icon: Wrench,       label: "Maintenance" },
     { href: "/client/maintenance-history", icon: Wrench,   label: "Maintenance History" },
-    { href: carPath("income-expense"), icon: Calendar,     label: "Car Rental Value Per Month" },
     { href: carPath("depreciation"),   icon: TrendingDown, label: "NADA Depreciation Schedule" },
 
     { href: carPath("payments"),       icon: CreditCard,   label: "Payment History" },
