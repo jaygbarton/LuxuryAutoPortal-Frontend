@@ -79,6 +79,25 @@ const NEWS_AUDIENCE_OPTIONS: { value: "admin" | "cohost" | "client" | "employee"
   { value: "employee", label: "Employee" },
 ];
 
+const NEWS_AUDIENCE_SHORT_LABELS: Record<string, string> = {
+  admin: "Admin",
+  cohost: "Co-Host",
+  client: "Client",
+  employee: "Employee",
+};
+
+/** Parse the comma-separated news_audience column into display labels. */
+function parseAudienceLabels(audience: string): string[] {
+  const roles = (audience || "")
+    .split(",")
+    .map((a) => a.trim().toLowerCase())
+    .filter(Boolean);
+  if (roles.length === 0 || roles.length === NEWS_AUDIENCE_OPTIONS.length) {
+    return ["All"];
+  }
+  return roles.map((r) => NEWS_AUDIENCE_SHORT_LABELS[r] || r);
+}
+
 function formatDate(s: string) {
   if (!s) return "—";
   try {
@@ -447,6 +466,21 @@ export default function NewsMediaPage() {
                         <p className="flex-1 text-xs text-muted-foreground line-clamp-3">
                           {row.client_testimonial_description || "—"}
                         </p>
+                        {!viewOnly && (
+                          <div className="flex flex-wrap items-center gap-1">
+                            <span className="text-[10px] text-muted-foreground">
+                              Posted to:
+                            </span>
+                            {parseAudienceLabels(row.news_audience).map((label) => (
+                              <span
+                                key={label}
+                                className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-foreground"
+                              >
+                                {label}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <div className="flex items-center justify-between border-t border-border pt-2">
                           <span className="text-xs text-muted-foreground">
                             {formatDate(row.client_testimonial_datetime)}
