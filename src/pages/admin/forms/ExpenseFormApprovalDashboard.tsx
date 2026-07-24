@@ -506,14 +506,24 @@ interface AuditEntry {
 const UTAH_TZ = "America/Denver";
 
 // submissionDate (`expense_form_submission.submission_date`) is a MySQL DATE
-// column — a calendar date with no time-of-day, which mysql2/JSON round-trips
-// as UTC midnight (e.g. "2026-07-21T00:00:00.000Z"). Formatting that through
-// America/Denver (UTC-6/7) shifts it back a day (e.g. shows "Jul 20" for a
-// row saved as 07/21) — read the UTC date parts directly instead of
-// converting through a timezone, since there's no real time-of-day to convert.
+// column — a calendar date with no time-of-day. It round-trips as
+// "2026-07-21T00:00:00.000Z" (UTC midnight) most of the time, but some
+// response paths return a naive datetime string with no "Z"/offset at all
+// (e.g. "2026-07-21 00:00:00" or "2026-07-21T00:00:00"). `new Date(...)` on a
+// naive string is parsed in the BROWSER's LOCAL timezone, not UTC — so
+// reading it back via `timeZone: "UTC"` silently rolls the date back (or
+// forward) a day depending on the viewer's local offset (this is exactly how
+// a row saved as 07/21 rendered as "Jul 20" in the table for a Denver-local
+// admin). Since there's no real time-of-day to convert either way, pull the
+// YYYY-MM-DD prefix directly out of the string instead of parsing it as a
+// Date at all — this is correct regardless of Z-suffix, offset, or viewer
+// timezone.
 function formatUtahDate(value: string | null | undefined): string {
   if (!value) return "—";
-  const d = new Date(String(value).replace(" ", "T"));
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value));
+  if (!match) return "—";
+  const [, year, month, day] = match;
+  const d = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
   if (isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("en-US", {
     timeZone: "UTC",

@@ -214,12 +214,6 @@ export default function ClientProfilePage() {
                         {formatValue(onboarding.tshirtSize)}
                       </span>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground block mb-1">SSN:</span>
-                      <span className="text-foreground font-mono">
-                        {formatValue(onboarding.ssn)}
-                      </span>
-                              </div>
                               <div>
                       <span className="text-muted-foreground block mb-1">
                         Representative:
