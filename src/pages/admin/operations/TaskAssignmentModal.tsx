@@ -154,18 +154,22 @@ export function TaskAssignmentModal({
     }
   }, [formData.task_type]);
 
-  // Fetch all existing tasks once the modal opens so we can block duplicates
-  // (same trip + same task type) before sending the create request.
+  // Fetch this trip's existing tasks once the modal opens so we can block
+  // duplicates (same trip + same task type) before sending the create request.
+  // Query by turo_trip_id — a capped global fetch (the old ?limit=1000) starts
+  // missing tasks once the table outgrows the cap.
+  const dupCheckTripId = !isEdit ? formData.turo_trip_id : null;
   const { data: existingTasksResp } = useQuery<{ data: OperationTask[] }>({
-    queryKey: ["/api/operations/tasks", "duplicate-check"],
+    queryKey: ["/api/operations/tasks", "duplicate-check", dupCheckTripId],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/operations/tasks?limit=1000"), {
-        credentials: "include",
-      });
+      const res = await fetch(
+        buildApiUrl(`/api/operations/tasks?turo_trip_id=${dupCheckTripId}&limit=100`),
+        { credentials: "include" },
+      );
       if (!res.ok) throw new Error("Failed to load tasks");
       return res.json();
     },
-    enabled: open,
+    enabled: open && !!dupCheckTripId,
     staleTime: 30_000,
   });
   const existingTasks = existingTasksResp?.data ?? [];

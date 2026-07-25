@@ -508,24 +508,32 @@ export function TripsOverviewTab() {
     },
   });
 
-  const { data: tasksData } = useQuery<{ data: OperationTask[] }>({
-    queryKey: ["/api/operations/tasks", "all", "all"],
-    queryFn: async () => {
-      const response = await fetch(
-        buildApiUrl("/api/operations/tasks?limit=500"),
-        { credentials: "include" },
-      );
-      if (!response.ok) throw new Error("Failed to fetch tasks");
-      return response.json();
-    },
-    staleTime: 2 * 60 * 1000,
-  });
-
   // `pageTrips` is the current page from the server. `total` is the count of
   // rows that match the active server-side filters (excluding the client-side
   // "Assigned" filter). Summary cards use the unfiltered counts from the
   // /summary endpoint so they always show fleet totals.
   const pageTrips = data?.data || [];
+
+  // Fetch tasks scoped to the trips on the current page. The old global
+  // "?limit=500" fetch (oldest-scheduled first) silently dropped current
+  // trips' tasks once the task table grew past 500 rows — Trip Tasks showed
+  // "--" for trips that actually had tasks.
+  const pageTripIdsKey = pageTrips.map((t) => t.id).join(",");
+  const { data: tasksData } = useQuery<{ data: OperationTask[] }>({
+    queryKey: ["/api/operations/tasks", "by-trips", pageTripIdsKey],
+    queryFn: async () => {
+      const response = await fetch(
+        buildApiUrl(
+          `/api/operations/tasks?turo_trip_ids=${pageTripIdsKey}&limit=1000`,
+        ),
+        { credentials: "include" },
+      );
+      if (!response.ok) throw new Error("Failed to fetch tasks");
+      return response.json();
+    },
+    enabled: pageTrips.length > 0,
+    staleTime: 2 * 60 * 1000,
+  });
   const totalServerMatches = data?.total ?? pageTrips.length;
   const allTasks = tasksData?.data || [];
   const summary = summaryData?.data;

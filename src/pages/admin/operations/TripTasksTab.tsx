@@ -147,6 +147,10 @@ export function TripTasksTab() {
     queryKey: ["/api/operations/tasks", filterType, filterStatus, rangeFrom, rangeTo, search],
     queryFn: async () => {
       const params = new URLSearchParams();
+      // Fetch the full task set — pagination/search/filtering are client-side.
+      // Without this the backend default (limit 50, oldest scheduled first)
+      // silently hides every recent task once the table grows past 50 rows.
+      params.set("limit", "10000");
       if (filterType !== "all" && filterType !== "no-refuel") params.append("task_type", filterType);
       if (filterStatus !== "all") params.append("status", filterStatus);
       // ONE date RANGE → tasks whose trip's Trip Start OR Trip End falls in
@@ -228,7 +232,12 @@ export function TripTasksTab() {
         if (!hay.includes(q)) return false;
       }
       return true;
-    });
+    })
+      // Newest scheduled first — the API returns oldest-first, which buries
+      // current trips' tasks pages deep now that the table has grown.
+      .sort((a, b) =>
+        String(b.scheduled_date || "").localeCompare(String(a.scheduled_date || "")),
+      );
   }, [tasks, tripsById, search, filterType]);
 
   useEffect(() => {
