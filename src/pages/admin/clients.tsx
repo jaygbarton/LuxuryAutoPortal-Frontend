@@ -46,6 +46,7 @@ import { buildApiUrl } from "@/lib/queryClient";
 import { TablePagination, ItemsPerPage } from "@/components/ui/table-pagination";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useSalesReps } from "@/hooks/use-sales-reps";
 import { getOnlineStatusBadge } from "@/lib/onlineStatus";
 
 interface Client {
@@ -124,6 +125,7 @@ export default function ClientsPage() {
   const [blockClientEmail, setBlockClientEmail] = useState<string | null>(null);
   const [deleteClientEmail, setDeleteClientEmail] = useState<string | null>(null);
   const { toast } = useToast();
+  const { salesReps } = useSalesReps();
   const queryClient = useQueryClient();
 
   // State to force re-render for real-time online status calculation
@@ -1288,7 +1290,8 @@ export default function ClientsPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent className="bg-card border-border text-foreground">
-                              {["Jay Barton", "Jenn Mason", "Brynn Lunn", "Other"].map((rep) => (
+                              {/* Keep a saved rep visible even if later removed from the admin-managed list */}
+                              {[...new Set([...salesReps, ...(field.value ? [field.value] : []), "Other"])].map((rep) => (
                                 <SelectItem key={rep} value={rep}>
                                   {rep}
                                 </SelectItem>

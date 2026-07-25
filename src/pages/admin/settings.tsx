@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl } from "@/lib/queryClient";
-import { Loader2, Save, Slack, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Loader2, Save, Slack, Lock, Eye, EyeOff, AlertCircle, Users, Plus, X } from "lucide-react";
 import { checkPasswordStrength, getPasswordStrengthColor, getPasswordStrengthLabel } from "@/lib/password-strength";
 
 interface SlackChannelConfig {
@@ -83,6 +83,76 @@ export default function SettingsPage() {
     },
     enabled: isAdmin, // Only fetch if user is admin
   });
+
+  // Sales representatives (client onboarding form dropdown)
+  const { data: salesRepsData } = useQuery<{ success: boolean; data: string[] }>({
+    queryKey: ["/api/settings/sales-reps"],
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl("/api/settings/sales-reps"), {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch sales representatives");
+      }
+      return response.json();
+    },
+    enabled: isAdmin,
+  });
+  const serverSalesReps = salesRepsData?.data || [];
+  // null = no unsaved edits (mirror the server list)
+  const [salesRepsDraft, setSalesRepsDraft] = useState<string[] | null>(null);
+  const salesReps = salesRepsDraft ?? serverSalesReps;
+  const [newRepName, setNewRepName] = useState("");
+
+  const saveSalesRepsMutation = useMutation({
+    mutationFn: async (reps: string[]) => {
+      const response = await fetch(buildApiUrl("/api/settings/sales-reps"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ reps }),
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to save sales representatives");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/sales-reps"] });
+      setSalesRepsDraft(null);
+      toast({
+        title: "Success",
+        description: "Sales representatives saved. The onboarding form dropdown is updated.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAddRep = () => {
+    const name = newRepName.trim();
+    if (!name) return;
+    if (salesReps.some((r) => r.toLowerCase() === name.toLowerCase())) {
+      toast({
+        title: "Already in the list",
+        description: `"${name}" is already a sales representative.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    setSalesRepsDraft([...salesReps, name]);
+    setNewRepName("");
+  };
+
+  const handleRemoveRep = (name: string) => {
+    setSalesRepsDraft(salesReps.filter((r) => r !== name));
+  };
 
   const slackBotTokenConfigured = channelsData?.slackBotTokenConfigured === true;
   const slackBotTokenValue = channelsData?.slackBotToken ?? "";
@@ -463,6 +533,102 @@ export default function SettingsPage() {
             </form>
           </CardContent>
         </Card>
+
+        {/* Sales Representatives - Admin Only */}
+        {isAdmin && (
+          <Card className="bg-card border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-primary flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Sales Representatives
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Names shown in the &quot;Golden Luxury Auto Representative&quot; dropdown on the client
+                onboarding form. &quot;Other&quot; is always included automatically.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                {salesReps.map((rep) => (
+                  <div
+                    key={rep}
+                    className="flex items-center justify-between p-3 border border-border rounded-lg bg-background"
+                  >
+                    <span className="text-foreground">{rep}</span>
+                    <Button
+                      onClick={() => handleRemoveRep(rep)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-red-600"
+                      title={`Remove ${rep}`}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                {salesReps.length === 0 && (
+                  <p className="text-sm text-muted-foreground py-2">
+                    No representatives in the list. Add at least one below before saving.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  value={newRepName}
+                  onChange={(e) => setNewRepName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddRep();
+                    }
+                  }}
+                  placeholder="Add representative name (e.g. Jane Smith)"
+                  className="w-full sm:max-w-md bg-background border-border text-foreground focus:border-primary"
+                />
+                <Button
+                  onClick={handleAddRep}
+                  disabled={!newRepName.trim()}
+                  variant="outline"
+                  size="sm"
+                  className="border-border text-muted-foreground hover:bg-muted sm:self-center"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add
+                </Button>
+              </div>
+
+              {salesRepsDraft !== null && (
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <Button
+                    onClick={() => saveSalesRepsMutation.mutate(salesRepsDraft)}
+                    disabled={saveSalesRepsMutation.isPending || salesRepsDraft.length === 0}
+                    className="bg-primary text-primary-foreground hover:bg-primary/80"
+                    size="sm"
+                  >
+                    {saveSalesRepsMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Save Changes
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setSalesRepsDraft(null);
+                      setNewRepName("");
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="border-border text-muted-foreground hover:bg-muted"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Slack Channel Configuration - Admin Only */}
         {isAdmin && (

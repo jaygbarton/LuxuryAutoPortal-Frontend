@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { useSalesReps } from "@/hooks/use-sales-reps";
 import {
   Check,
   ArrowRight,
@@ -139,6 +140,7 @@ export default function Onboarding() {
   const [isDragging, setIsDragging] = useState(false);
   const [isDraggingLicense, setIsDraggingLicense] = useState(false);
   const { toast } = useToast();
+  const { salesReps } = useSalesReps();
 
   const form = useForm<OnboardingFormData, any, OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
@@ -550,18 +552,11 @@ export default function Onboarding() {
                                       </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                      <SelectItem value="Jay Barton">
-                                        Jay Barton
-                                      </SelectItem>
-                                      <SelectItem value="Jenn Mason">
-                                        Jenn Mason
-                                      </SelectItem>
-                                      <SelectItem value="Brynn Lunn">
-                                        Brynn Lunn
-                                      </SelectItem>
-                                      <SelectItem value="Other">
-                                        Other
-                                      </SelectItem>
+                                      {[...salesReps, "Other"].map((rep) => (
+                                        <SelectItem key={rep} value={rep}>
+                                          {rep}
+                                        </SelectItem>
+                                      ))}
                                     </SelectContent>
                                   </Select>
                                   <FormMessage />
