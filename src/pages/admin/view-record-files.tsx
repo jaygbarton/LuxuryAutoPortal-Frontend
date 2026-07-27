@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, ExternalLink, Plus, Search, Edit, Trash2, List, ChevronLeft, ChevronRight, Download, Eye, Grid3x3, Folder, Archive, History, FileText, FileType, File as FileIcon } from "lucide-react";
+import { ArrowLeft, ExternalLink, Plus, Search, Edit, Trash2, List, ChevronLeft, ChevronRight, Download, Eye, Grid3x3, Folder, Archive, History, FileText, FileType, File as FileIcon, ArrowUp, ArrowDown } from "lucide-react";
 import { RecordFilesLogModal } from "@/components/modals/RecordFilesLogModal";
 import { RecordFileViewModal } from "@/components/modals/RecordFileViewModal";
 import { FileViewerModal } from "@/components/modals/FileViewerModal";
@@ -188,8 +188,10 @@ export default function ViewRecordFilesPage() {
   const recordId = params?.recordId ? parseInt(params.recordId, 10) : null;
   const [filterStatus, setFilterStatus] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [itemsPerPage, setItemsPerPage] = useState<10 | 20 | 50>(10);
+  const [itemsPerPage, setItemsPerPage] = useState<10 | 20 | 50 | "all">(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [sortBy, setSortBy] = useState<"name" | "date">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [onSearch, setOnSearch] = useState(false);
   const [isFilter, setIsFilter] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -256,10 +258,10 @@ export default function ViewRecordFilesPage() {
 
   const record = recordData?.success ? recordData?.data : null;
 
-  // Reset to page 1 when filter, search, or items per page changes
+  // Reset to page 1 when filter, search, items per page, or sort changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus, searchQuery, itemsPerPage, isFilter, onSearch]);
+  }, [filterStatus, searchQuery, itemsPerPage, isFilter, onSearch, sortBy, sortDir]);
 
   // Fetch record file views with pagination
   const {
@@ -278,6 +280,8 @@ export default function ViewRecordFilesPage() {
       searchQuery,
       filterStatus,
       isFilter,
+      sortBy,
+      sortDir,
     ],
     queryFn: async (): Promise<PageData> => {
       // Only use recordFilesGdrive as folderId (don't use recordId as fallback)
@@ -297,8 +301,15 @@ export default function ViewRecordFilesPage() {
       const params = new URLSearchParams({
         folderId: folderId,
         page: currentPage.toString(),
-        limit: itemsPerPage.toString(),
+        sortBy,
+        sortDir,
       });
+
+      if (itemsPerPage === "all") {
+        params.append("all", "true");
+      } else {
+        params.append("limit", itemsPerPage.toString());
+      }
 
       if (carId) {
         params.append("carId", carId.toString());
@@ -339,8 +350,8 @@ export default function ViewRecordFilesPage() {
 
   const files = recordsData?.data || [];
   const totalFiles = Number(recordsData?.total) || 0;
-  const totalPages = itemsPerPage > 0 ? Math.ceil(totalFiles / itemsPerPage) : 0;
-  const startIndex = (currentPage - 1) * itemsPerPage;
+  const totalPages = itemsPerPage === "all" ? 1 : Math.ceil(totalFiles / itemsPerPage);
+  const startIndex = itemsPerPage === "all" ? 0 : (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + files.length;
 
   // Ensure current page is valid when filtered results change
@@ -707,16 +718,17 @@ export default function ViewRecordFilesPage() {
                       // size), which produced a non-zero OFFSET and silently
                       // dropped rows from the first page of the new size.
                       setCurrentPage(1);
-                      setItemsPerPage(parseInt(value) as 10 | 20 | 50);
+                      setItemsPerPage(value === "all" ? "all" : (parseInt(value) as 10 | 20 | 50));
                     }}
                   >
-                    <SelectTrigger className="bg-card border-border text-foreground w-[80px]">
+                    <SelectTrigger className="bg-card border-border text-foreground w-[90px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border text-foreground">
                       <SelectItem value="10">10</SelectItem>
                       <SelectItem value="20">20</SelectItem>
                       <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="all">View All</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -915,7 +927,25 @@ export default function ViewRecordFilesPage() {
                       <TableRow className="border-border">
                         <TableHead className="text-center text-foreground font-medium w-16">#</TableHead>
                         <TableHead className="text-foreground font-medium">File Name</TableHead>
-                        <TableHead className="text-foreground font-medium">Upload Date</TableHead>
+                        <TableHead className="text-foreground font-medium">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (sortBy === "date") {
+                                setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+                              } else {
+                                setSortBy("date");
+                                setSortDir("desc");
+                              }
+                            }}
+                            className="flex items-center gap-1 hover:text-primary transition-colors"
+                          >
+                            Upload Date
+                            {sortBy === "date" && (
+                              sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                            )}
+                          </button>
+                        </TableHead>
                         <TableHead className="text-foreground font-medium">Status</TableHead>
                         <TableHead className="text-foreground font-medium">Actions</TableHead>
                       </TableRow>
@@ -931,7 +961,14 @@ export default function ViewRecordFilesPage() {
                           </TableCell>
                           <TableCell className="text-foreground">{file.recordsFileViewName}</TableCell>
                           <TableCell className="text-muted-foreground">
-                            {file.recordsFileViewCreated ? new Date(file.recordsFileViewCreated).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : "N/A"}
+                            {(() => {
+                              const raw = file.recordsFileViewCreated || file.recordsFileViewDatetime;
+                              if (!raw) return "N/A";
+                              const d = new Date(raw);
+                              return isNaN(d.getTime())
+                                ? "N/A"
+                                : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                            })()}
                           </TableCell>
                           <TableCell>
                             <Badge variant={file.recordsFileViewIsActive ? "default" : "secondary"} className="mr-2">
