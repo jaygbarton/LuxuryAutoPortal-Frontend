@@ -4,8 +4,9 @@ import { Link, useLocation } from "wouter";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { EmployeeDocumentImage } from "@/components/admin/EmployeeDocumentImage";
+import { SensitiveValue } from "@/components/admin/SensitiveValue";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ChevronRight, Image, List, Loader2, Pencil, Plus, RotateCcw, Trash2, User, UserCheck, UserX } from "lucide-react";
 import {
@@ -261,6 +262,15 @@ export default function EmployeeViewPage() {
     const id = params.get("employeeId");
     return id ? parseInt(id, 10) : null;
   }, [location]);
+
+  // Only super admins may reveal the full SSN/EIN (Cathy's policy, Jul 2026).
+  const { data: currentSession } = useQuery<{ user?: { isSuperAdmin?: boolean } }>({
+    queryKey: ["/api/auth/me"],
+    queryFn: authMeQueryFn,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+  const isSuperAdmin = Boolean(currentSession?.user?.isSuperAdmin);
 
   const { data, isLoading, error, refetch } = useQuery<{ success: boolean; data: Employee }>({
     queryKey: ["/api/employees", employeeId],
@@ -564,7 +574,17 @@ export default function EmployeeViewPage() {
                             <li className="font-bold text-muted-foreground">Marital Status:</li>
                             <li>{unspecified(employee.employee_marital_status)}</li>
                             <li className="font-bold text-muted-foreground">Social Security Number or EIN:</li>
-                            <li>{maskSSN(employee.employee_ssn_ein)}</li>
+                            <li>
+                              {/* Value arrives already masked from the API; only
+                                  super-admins get the audited reveal control. */}
+                              <SensitiveValue
+                                masked={employee.employee_ssn_ein}
+                                entityType="employee"
+                                field="ssn_ein"
+                                entityId={employee.employee_aid}
+                                canReveal={isSuperAdmin}
+                              />
+                            </li>
                             <li className="font-bold text-muted-foreground">Street:</li>
                             <li>{unspecified(employee.employee_street)}</li>
                             <li className="font-bold text-muted-foreground">City:</li>

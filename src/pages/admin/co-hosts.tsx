@@ -23,7 +23,8 @@ import {
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, buildApiUrl } from "@/lib/queryClient";
+import { apiRequest, authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
+import { SensitiveValue } from "@/components/admin/SensitiveValue";
 import { cn } from "@/lib/utils";
 import { Search, Eye, CheckCircle, XCircle, Trash2, Loader2, ExternalLink, QrCode, Car, Save, Copy } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -116,6 +117,15 @@ export default function CoHostsPage() {
   const [selectedCarAids, setSelectedCarAids] = useState<Set<number>>(new Set());
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Only super admins may reveal a full SSN/EIN (Cathy's policy, Jul 2026).
+  const { data: currentSession } = useQuery<{ user?: { isSuperAdmin?: boolean } }>({
+    queryKey: ["/api/auth/me"],
+    queryFn: authMeQueryFn,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+  const isSuperAdmin = Boolean(currentSession?.user?.isSuperAdmin);
 
   const { data, isLoading } = useQuery<{ coHosts: CoHost[]; total: number }>({
     queryKey: ["/api/admin/co-hosts", statusFilter, search, page],
@@ -432,7 +442,19 @@ export default function CoHostsPage() {
                   <DetailRow label="Telephone" value={viewCoHost.telephone} />
                   <DetailRow label="Birthday" value={viewCoHost.birthday} />
                   <DetailRow label="Marital Status" value={viewCoHost.marital_status} />
-                  <DetailRow label="SSN / EIN" value={viewCoHost.ssn_ein} />
+                  {/* Arrives masked from the API; audited reveal for super-admins only. */}
+                  <DetailRow
+                    label="SSN / EIN"
+                    value={
+                      <SensitiveValue
+                        masked={viewCoHost.ssn_ein}
+                        entityType="co_host"
+                        field="ssn_ein"
+                        entityId={viewCoHost.id}
+                        canReveal={isSuperAdmin}
+                      />
+                    }
+                  />
                   <DetailRow label="Shirt Size" value={viewCoHost.shirt_size} />
                 </DetailGrid>
               </DetailSection>
@@ -698,7 +720,15 @@ function DetailGrid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">{children}</div>;
 }
 
-function DetailRow({ label, value }: { label: string; value?: string | null }) {
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  // ReactNode so rows can hold interactive content (e.g. a click-to-reveal
+  // masked SSN) rather than plain text only.
+  value?: React.ReactNode;
+}) {
   if (!value) return null;
   return (
     <div className="flex gap-1 min-w-0">

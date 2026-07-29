@@ -1022,25 +1022,14 @@ export default function FormsPage() {
     return parts.length > 0 ? parts.join(", ") : "Not provided";
   };
 
-  // Helper function to mask SSN (show last 4 or masked)
-  const maskSSN = (ssn: string | null | undefined): string => {
-    if (!ssn) return "Not provided";
-    if (showSensitiveData) return ssn;
-    if (ssn.length >= 4) {
-      return `•••-••-${ssn.slice(-4)}`;
-    }
-    return "•••-••-••••";
-  };
-
-  // Helper function to mask account/routing number
-  const maskAccountInfo = (value: string | null | undefined): string => {
-    if (!value) return "Not provided";
-    if (showSensitiveData) return value;
-    if (value.length >= 3) {
-      return `••••••${value.slice(-3)}`;
-    }
-    return "•••••••••";
-  };
+  // These values now arrive already masked from the API — the server never
+  // sends the full SSN/bank number to this page. The old `showSensitiveData`
+  // branch was not an access control (it only flipped a local boolean over data
+  // already in the browser), so it has been removed: there is nothing left to
+  // un-mask client-side. Full values are available only through the audited
+  // super-admin reveal endpoint.
+  const maskSSN = (ssn: string | null | undefined): string => ssn || "Not provided";
+  const maskAccountInfo = (value: string | null | undefined): string => value || "Not provided";
 
   // Filter form items based on visibility
   const getFormSections = (): FormSection[] => {

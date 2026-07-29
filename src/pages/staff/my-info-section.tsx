@@ -317,7 +317,8 @@ export default function StaffMyInfoSection() {
                   <li className="font-bold text-foreground">Last Name:</li><li>{unspecified(employee.employee_last_name)}</li>
                   <li className="font-bold text-foreground">Birth Date:</li><li>{employee.employee_birthday ? formatDate(employee.employee_birthday) : "Unspecified"}</li>
                   <li className="font-bold text-foreground">Marital Status:</li><li>{unspecified(employee.employee_marital_status)}</li>
-                  <li className="font-bold text-foreground">Social Security Number or EIN:</li><li>{unspecified(employee.employee_ssn_ein)}</li>
+                  {/* Server returns this already masked (last 4 only); staff have no reveal. */}
+                  <li className="font-bold text-foreground">Social Security Number or EIN:</li><li className="font-mono">{unspecified(employee.employee_ssn_ein)}</li>
                   <li className="font-bold text-foreground">Street:</li><li>{unspecified(employee.employee_street)}</li>
                   <li className="font-bold text-foreground">City:</li><li>{unspecified(employee.employee_city)}</li>
                   <li className="font-bold text-foreground">State:</li><li>{unspecified(employee.employee_state)}</li>
