@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, ExternalLink, Gauge, Calendar, Users, Loader2 } from "lucide-react";
@@ -21,6 +22,8 @@ interface FeaturedCar {
   photo: string | null;
   turoLink: string | null;
 }
+
+type FeaturedMode = "previous-month" | "top-performing";
 
 const PLACEHOLDER_IMG =
   "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
@@ -115,10 +118,12 @@ function CarCard({ car }: { car: FeaturedCar }) {
 }
 
 export function FeaturedCars() {
+  const [mode, setMode] = useState<FeaturedMode>("previous-month");
+
   const { data, isLoading } = useQuery<{ success: boolean; data: FeaturedCar[] }>({
-    queryKey: ["/api/public/fleet/featured"],
+    queryKey: ["/api/public/fleet/featured", mode],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/public/fleet/featured"));
+      const res = await fetch(buildApiUrl(`/api/public/fleet/featured?mode=${mode}`));
       if (!res.ok) throw new Error("Failed to load featured vehicles");
       return res.json();
     },
@@ -138,8 +143,32 @@ export function FeaturedCars() {
             Featured Vehicles
           </h2>
           <p className="max-w-2xl mx-auto" style={{ color: "#4A4A4A", fontSize: "16px", lineHeight: "1.65" }}>
-            Our top-performing vehicles from last month — updated automatically.
+            {mode === "previous-month"
+              ? "Our top-performing vehicles from the previous month — updated automatically."
+              : "Our top-performing vehicles by broader backend performance — updated automatically."}
           </p>
+          <div className="mt-6 inline-flex rounded-lg border p-1" style={{ borderColor: "#E8D4A0", background: "#FFF8E8" }}>
+            {([
+              ["previous-month", "Top Monthly Performing"],
+              ["top-performing", "Top Performing"],
+            ] as const).map(([value, label]) => {
+              const active = mode === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setMode(value)}
+                  className="px-4 py-2 text-sm font-semibold rounded-md transition-all"
+                  style={{
+                    background: active ? "linear-gradient(135deg, #D4A017, #E8B830)" : "transparent",
+                    color: active ? "#1A0E00" : "#8B6914",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {isLoading ? (
