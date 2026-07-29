@@ -129,6 +129,13 @@ const MAINT_STATUS_OPTIONS = [
   { value: "delivered", label: "Delivered" },
 ];
 
+/**
+ * Dashboard default: show the full list but hide Completed, per Cathy's policy.
+ * A sentinel (rather than a silent hardcoded filter) keeps it visible in the
+ * dropdown and lets Clear reset back to it.
+ */
+const HIDE_COMPLETED_FILTER = "__not_completed__";
+
 function StatusSelect({ id, value }: { id: number; value: string }) {
   const queryClient = useQueryClient();
   const mutation = useMutation({
@@ -174,7 +181,8 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
   });
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  // Hide Completed by default; "All Statuses" remains available.
+  const [statusFilter, setStatusFilter] = useState(HIDE_COMPLETED_FILTER);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
@@ -201,7 +209,9 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
       f = f.filter(t => [t.car_name, t.task_description, t.assigned_to, t.repair_shop, t.notes]
         .some(v => v && v.toLowerCase().includes(q)));
     }
-    if (statusFilter !== "all") {
+    if (statusFilter === HIDE_COMPLETED_FILTER) {
+      f = f.filter(t => String(t.status ?? "").toLowerCase() !== "completed");
+    } else if (statusFilter !== "all") {
       f = f.filter(t => t.status === statusFilter);
     }
     if (fromDate || toDate) {
@@ -212,7 +222,7 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
     return f.slice(0, 20);
   }, [allTasks, search, statusFilter, fromDate, toDate]);
 
-  const isFiltered = search || statusFilter !== "all" || fromDate || toDate;
+  const isFiltered = search || statusFilter !== HIDE_COMPLETED_FILTER || fromDate || toDate;
 
   return (
     <div className="mb-8">
@@ -229,6 +239,7 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
         </div>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
           className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]">
+          <option value={HIDE_COMPLETED_FILTER}>Active (hide Completed)</option>
           <option value="all">All Statuses</option>
           {MAINT_STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
@@ -244,7 +255,8 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
         {isFiltered && (
           <>
             <span className="text-xs text-gray-500">{displayTasks.length} result{displayTasks.length !== 1 ? "s" : ""}</span>
-            <button onClick={() => { setSearch(""); setStatusFilter("all"); setFromDate(""); setToDate(""); }} className="text-xs text-[#B8860B] hover:underline">Clear all</button>
+            {/* Clear returns to the dashboard default (Completed hidden), not "all". */}
+            <button onClick={() => { setSearch(""); setStatusFilter(HIDE_COMPLETED_FILTER); setFromDate(""); setToDate(""); }} className="text-xs text-[#B8860B] hover:underline">Clear all</button>
           </>
         )}
       </div>

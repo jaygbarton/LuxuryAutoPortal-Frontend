@@ -86,6 +86,14 @@ function formatCreatedAt(s: string | null | undefined): string {
 
 // ─── Status helpers ───────────────────────────────────────────────────────────
 
+/**
+ * Dashboard/list default: show the full task list but hide Completed (status
+ * code "3"), per Cathy's policy. A sentinel value keeps it visible in the
+ * dropdown so it's clear why completed tasks aren't listed.
+ */
+const HIDE_COMPLETED_FILTER = "__not_completed__";
+const COMPLETED_STATUS_CODE = "3";
+
 const STATUS_OPTIONS = [
   {
     value: "0",
@@ -356,7 +364,8 @@ export default function AdminHrTaskManagement() {
   const { toast } = useToast();
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
+  // Hide Completed by default; the filter still offers All / Completed.
+  const [filterStatus, setFilterStatus] = useState(HIDE_COMPLETED_FILTER);
   const [filterAssignedTo, setFilterAssignedTo] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any | null>(null);
@@ -533,7 +542,12 @@ export default function AdminHrTaskManagement() {
   ).sort();
 
   const filteredRows = allRows.filter((r) => {
-    if (filterStatus !== "all" && String(r.task_timer_status ?? 0) !== filterStatus) return false;
+    const rowStatus = String(r.task_timer_status ?? 0);
+    if (filterStatus === HIDE_COMPLETED_FILTER) {
+      if (rowStatus === COMPLETED_STATUS_CODE) return false;
+    } else if (filterStatus !== "all" && rowStatus !== filterStatus) {
+      return false;
+    }
     if (filterAssignedTo !== "all" && getAssignedName(r) !== filterAssignedTo) return false;
     return true;
   });
@@ -895,6 +909,7 @@ export default function AdminHrTaskManagement() {
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={HIDE_COMPLETED_FILTER}>Active (hide Completed)</SelectItem>
                   <SelectItem value="all">All Statuses</SelectItem>
                   {STATUS_OPTIONS.map((s) => (
                     <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
@@ -915,14 +930,15 @@ export default function AdminHrTaskManagement() {
                 </SelectContent>
               </Select>
 
-              {(fromDate || toDate || filterStatus !== "all" || filterAssignedTo !== "all") && (
+              {(fromDate || toDate || filterStatus !== HIDE_COMPLETED_FILTER || filterAssignedTo !== "all") && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setFromDate("");
                     setToDate("");
-                    setFilterStatus("all");
+                    // Reset to the default (Completed hidden), not "all".
+                    setFilterStatus(HIDE_COMPLETED_FILTER);
                     setFilterAssignedTo("all");
                   }}
                   className="text-red-700 hover:text-red-700 col-span-full sm:col-auto w-full lg:w-auto"

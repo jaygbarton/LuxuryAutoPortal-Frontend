@@ -121,8 +121,36 @@ export default function CarBlockedOffSection() {
       toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
-  const records = data?.data ?? [];
-  const total = data?.total ?? 0;
+  // Per Cathy: completed block-offs should disappear from the dashboard once the
+  // blocked period has ended. A block-off is finished when the owner has actually
+  // returned the car (dropoff_date set) or the planned end date is in the past.
+  //
+  // Dates are compared as Mountain Time YYYY-MM-DD strings, not raw timestamps:
+  // a block-off ending "today" must stay visible for all of today, which a
+  // UTC-instant comparison would drop early in the MT evening.
+  const todayMt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date());
+  const toMtDate = (iso: string | null | undefined): string | null => {
+    if (!iso) return null;
+    try {
+      return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso));
+    } catch {
+      return null;
+    }
+  };
+  const hasEnded = (r: CarBlockOff): boolean => {
+    const returned = toMtDate(r.dropoff_date);
+    if (returned && returned < todayMt) return true;
+    const plannedEnd = toMtDate(r.block_off_end_date);
+    // No end date recorded => open-ended, so never auto-hide it.
+    return plannedEnd != null && plannedEnd < todayMt;
+  };
+
+  const allRecords = data?.data ?? [];
+  const records = allRecords.filter(r => !hasEnded(r));
+  const hiddenCount = allRecords.length - records.length;
+  // `total` is the server-side count; subtract what we hid so the header count
+  // matches what is actually listed.
+  const total = Math.max(0, (data?.total ?? 0) - hiddenCount);
 
   return (
     <div className="space-y-4">

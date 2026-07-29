@@ -286,8 +286,11 @@ export default function OperationsSection() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [assignedToFilter, setAssignedToFilter] = useState("all");
-  const [rangeFrom, setRangeFrom] = useState("");
-  const [rangeTo, setRangeTo] = useState("");
+  // Default the date range to TODAY (Mountain Time) per Cathy's dashboard
+  // policy: Pick Up & Drop Off should show only trips starting/ending today.
+  // The range inputs stay editable, so widening it is one click.
+  const [rangeFrom, setRangeFrom] = useState(todayMt);
+  const [rangeTo, setRangeTo] = useState(todayMt);
 
   const assignedToOptions = useMemo(() => {
     const names = new Set<string>();
@@ -333,8 +336,11 @@ export default function OperationsSection() {
     return f.slice(0, 20);
   }, [allGroups, search, statusFilter, assignedToFilter, rangeFrom, rangeTo]);
 
-  const isFiltered = search || statusFilter !== "all" || assignedToFilter !== "all" || rangeFrom || rangeTo;
-  function clearAll() { setSearch(""); setStatusFilter("all"); setAssignedToFilter("all"); setRangeFrom(""); setRangeTo(""); }
+  const isFiltered =
+    search || statusFilter !== "all" || assignedToFilter !== "all" ||
+    rangeFrom !== todayMt || rangeTo !== todayMt;
+  // Clear resets to the dashboard default (today), not to an empty range.
+  function clearAll() { setSearch(""); setStatusFilter("all"); setAssignedToFilter("all"); setRangeFrom(todayMt); setRangeTo(todayMt); }
 
   return (
     <div className="mb-8">

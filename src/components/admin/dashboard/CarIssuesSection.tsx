@@ -60,6 +60,14 @@ const STATUS_OPTIONS = [
   { value: "no_issues", label: "No Issues", className: "bg-emerald-100 text-emerald-700" },
 ];
 
+/**
+ * Sentinel filter value for "still needs attention" — the dashboard default.
+ * Kept as a real dropdown option rather than a silent hardcoded filter so it's
+ * obvious why completed rows aren't listed, and so Clear/reset can return to it.
+ */
+const OPEN_STATUS_FILTER = "__open__";
+const OPEN_STATUSES = ["new", "in_progress"];
+
 function statusMeta(v: string | undefined | null) {
   return (
     STATUS_OPTIONS.find((s) => s.value === String(v ?? "").toLowerCase()) ??
@@ -180,7 +188,10 @@ export default function CarIssuesSection() {
   );
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  // Default to open work only (New + In Progress) per Cathy's dashboard policy —
+  // the dashboard is a "what needs attention" view. "All Statuses" is still in
+  // the dropdown to see Completed / No Issues.
+  const [statusFilter, setStatusFilter] = useState(OPEN_STATUS_FILTER);
   const [assignedToFilter, setAssignedToFilter] = useState("all");
   const [rangeFrom, setRangeFrom] = useState("");
   const [rangeTo, setRangeTo] = useState("");
@@ -202,7 +213,11 @@ export default function CarIssuesSection() {
     // Never show inspections whose linked trip is cancelled
     f = f.filter(t => (t.trip_status ?? "").toLowerCase() !== "cancelled");
     if (search.trim()) { const q = search.toLowerCase(); f = f.filter(t => Object.values(t).some(v => v != null && String(v).toLowerCase().includes(q))); }
-    if (statusFilter !== "all") f = f.filter(t => t.status === statusFilter);
+    if (statusFilter === OPEN_STATUS_FILTER) {
+      f = f.filter(t => OPEN_STATUSES.includes(String(t.status ?? "").toLowerCase()));
+    } else if (statusFilter !== "all") {
+      f = f.filter(t => t.status === statusFilter);
+    }
     if (assignedToFilter !== "all") f = f.filter(t => (t.assigned_to ?? "").trim() === assignedToFilter);
     // Single date RANGE [From, To]: keep inspections whose trip START OR trip
     // END falls within the range (single day = From==To). Compare MT
@@ -224,8 +239,9 @@ export default function CarIssuesSection() {
     return f.slice(0, 20);
   }, [allInspections, search, statusFilter, assignedToFilter, rangeFrom, rangeTo]);
 
-  const isFiltered = search || statusFilter !== "all" || assignedToFilter !== "all" || rangeFrom || rangeTo;
-  function clearAll() { setSearch(""); setStatusFilter("all"); setAssignedToFilter("all"); setRangeFrom(""); setRangeTo(""); }
+  const isFiltered = search || statusFilter !== OPEN_STATUS_FILTER || assignedToFilter !== "all" || rangeFrom || rangeTo;
+  // Clear returns to the dashboard default (open work), not to "all".
+  function clearAll() { setSearch(""); setStatusFilter(OPEN_STATUS_FILTER); setAssignedToFilter("all"); setRangeFrom(""); setRangeTo(""); }
 
   return (
     <div className="mb-8">
@@ -240,6 +256,7 @@ export default function CarIssuesSection() {
           {search && <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
         </div>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]">
+          <option value={OPEN_STATUS_FILTER}>Open (New + In Progress)</option>
           <option value="all">All Statuses</option>
           {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
