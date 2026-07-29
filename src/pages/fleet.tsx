@@ -1,12 +1,18 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Search, ArrowRight, X, Loader2, ExternalLink, Calendar, Gauge, Users } from "lucide-react";
+import { Search, ArrowRight, X, Loader2, ExternalLink, Calendar, Gauge, Users, SlidersHorizontal } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -32,7 +38,10 @@ interface FleetCar {
   vehicleTrim: string | null;
   photo: string | null;
   turoLink: string | null;
+  performanceIncome?: number | null;
 }
+
+type SortOption = "az" | "za" | "top-performing" | "newest";
 
 const PLACEHOLDER_IMG =
   "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
@@ -43,6 +52,48 @@ function cleanVal(v: string | null | undefined): string {
   const s = (v ?? "").trim();
   if (!s) return "";
   return /^(no data|n\/a|na|--|-|none|null|undefined)$/i.test(s) ? "" : s;
+}
+
+function vehicleType(car: FleetCar): string {
+  const label = `${car.make ?? ""} ${car.model ?? ""} ${car.makeModel ?? ""}`.toLowerCase();
+  if (/\b(tacoma|f-150|f150|silverado|sierra|ram|gladiator|truck)\b/.test(label)) return "Truck";
+  if (/\b(sprinter|odyssey|voyager|sienna|carnival|pacifica|van)\b/.test(label)) return "Van";
+  if (/\b(accord|camry|sonata|malibu|passat|altima|charger|sedan)\b/.test(label)) return "Sedan";
+  if (/\b(mdx|q5|x2|x5|x6|enclave|escalade|yukon|tahoe|suburban|acadia|equinox|trax|telluride|grand cherokee|defender|range rover|outback|rav4|sequoia|expedition|navigator|bronco|wrangler|hummer|terrain|santa fe|suv)\b/.test(label)) return "SUV";
+  return "Other";
+}
+
+function toggleValue(values: string[], value: string): string[] {
+  return values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
+}
+
+function FilterGroup({
+  title,
+  options,
+  selected,
+  onToggle,
+}: {
+  title: string;
+  options: string[];
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{title}</p>
+      <div className="max-h-44 overflow-y-auto pr-1 space-y-2">
+        {options.map((option) => (
+          <label key={option} className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+            <Checkbox
+              checked={selected.includes(option)}
+              onCheckedChange={() => onToggle(option)}
+            />
+            <span>{option}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function CarCard({ car }: { car: FleetCar }) {
@@ -117,8 +168,10 @@ function CarCard({ car }: { car: FleetCar }) {
 
 export default function Fleet() {
   const [search, setSearch] = useState("");
-  const [make, setMake] = useState("All Makes");
-  const [year, setYear] = useState("All Years");
+  const [selectedMakes, setSelectedMakes] = useState<string[]>([]);
+  const [selectedYears, setSelectedYears] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [sort, setSort] = useState<SortOption>("az");
 
   const { data, isLoading } = useQuery<{ success: boolean; data: FleetCar[] }>({
     queryKey: ["/api/public/fleet"],
@@ -130,38 +183,72 @@ export default function Fleet() {
     staleTime: 1000 * 60 * 5,
   });
 
+  const { data: featuredData } = useQuery<{ success: boolean; data: FleetCar[] }>({
+    queryKey: ["/api/public/fleet/featured"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/public/fleet/featured"));
+      if (!res.ok) throw new Error("Failed to load top performing vehicles");
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+
   const cars = useMemo(() => data?.data ?? [], [data]);
+  const featuredRank = useMemo(
+    () => new Map((featuredData?.data ?? []).map((car, index) => [car.id, index])),
+    [featuredData],
+  );
 
   // Filter options derived live from the active fleet.
   const makes = useMemo(
-    () => ["All Makes", ...Array.from(new Set(cars.map((c) => c.make).filter(Boolean) as string[])).sort()],
+    () => Array.from(new Set(cars.map((c) => c.make).filter(Boolean) as string[])).sort(),
     [cars],
   );
   const years = useMemo(
-    () => [
-      "All Years",
-      ...Array.from(new Set(cars.map((c) => c.year).filter((y): y is number => y != null)))
-        .sort((a, b) => b - a)
-        .map(String),
-    ],
+    () => Array.from(new Set(cars.map((c) => c.year).filter((y): y is number => y != null)))
+      .sort((a, b) => b - a)
+      .map(String),
     [cars],
   );
+  const vehicleTypes = useMemo(
+    () => Array.from(new Set(cars.map(vehicleType))).sort((a, b) => a.localeCompare(b)),
+    [cars],
+  );
+  const activeFilterCount = selectedMakes.length + selectedYears.length + selectedTypes.length;
 
   const clearFilters = () => {
-    setMake("All Makes");
-    setYear("All Years");
+    setSelectedMakes([]);
+    setSelectedYears([]);
+    setSelectedTypes([]);
     setSearch("");
   };
 
-  const filteredCars = cars.filter((car) => {
-    const matchesSearch =
-      search === "" ||
-      car.makeModel.toLowerCase().includes(search.toLowerCase()) ||
-      (car.vehicleTrim ?? "").toLowerCase().includes(search.toLowerCase());
-    const matchesMake = make === "All Makes" || car.make === make;
-    const matchesYear = year === "All Years" || String(car.year) === year;
-    return matchesSearch && matchesMake && matchesYear;
-  });
+  const filteredCars = useMemo(() => {
+    const searchTerm = search.trim().toLowerCase();
+    const rankFor = (car: FleetCar) => featuredRank.get(car.id) ?? Number.MAX_SAFE_INTEGER;
+
+    return cars
+      .filter((car) => {
+        const matchesSearch =
+          searchTerm === "" ||
+          car.makeModel.toLowerCase().includes(searchTerm) ||
+          (car.vehicleTrim ?? "").toLowerCase().includes(searchTerm);
+        const matchesMake = selectedMakes.length === 0 || (car.make != null && selectedMakes.includes(car.make));
+        const matchesYear = selectedYears.length === 0 || (car.year != null && selectedYears.includes(String(car.year)));
+        const matchesType = selectedTypes.length === 0 || selectedTypes.includes(vehicleType(car));
+        return matchesSearch && matchesMake && matchesYear && matchesType;
+      })
+      .sort((a, b) => {
+        if (sort === "za") return b.makeModel.localeCompare(a.makeModel);
+        if (sort === "newest") return (b.year ?? 0) - (a.year ?? 0) || a.makeModel.localeCompare(b.makeModel);
+        if (sort === "top-performing") {
+          const rankDiff = rankFor(a) - rankFor(b);
+          if (rankDiff !== 0) return rankDiff;
+          return (b.performanceIncome ?? 0) - (a.performanceIncome ?? 0) || a.makeModel.localeCompare(b.makeModel);
+        }
+        return a.makeModel.localeCompare(b.makeModel);
+      });
+  }, [cars, featuredRank, search, selectedMakes, selectedTypes, selectedYears, sort]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -181,7 +268,7 @@ export default function Fleet() {
           </div>
 
           <div>
-            {/* Top filter bar: search on the left, Make / Year on the right. */}
+            {/* Top filter bar: search on the left, filter button on the right. */}
             <div className="flex flex-col md:flex-row md:items-end gap-4 mb-8">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -193,46 +280,77 @@ export default function Fleet() {
                 />
               </div>
 
-              <div className="w-full md:w-44">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">Make</label>
-                <Select value={make} onValueChange={setMake}>
-                  <SelectTrigger className="bg-card border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {makes.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full md:w-auto border-border bg-card">
+                    <SlidersHorizontal className="w-4 h-4 mr-2" />
+                    Filters
+                    {activeFilterCount > 0 && (
+                      <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-[min(92vw,420px)] p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="font-semibold text-foreground">Filter Vehicles</p>
+                    {activeFilterCount > 0 && (
+                      <Button variant="ghost" size="sm" onClick={clearFilters}>
+                        <X className="w-4 h-4 mr-1" />
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <FilterGroup
+                      title="Make"
+                      options={makes}
+                      selected={selectedMakes}
+                      onToggle={(value) => setSelectedMakes((current) => toggleValue(current, value))}
+                    />
+                    <FilterGroup
+                      title="Year"
+                      options={years}
+                      selected={selectedYears}
+                      onToggle={(value) => setSelectedYears((current) => toggleValue(current, value))}
+                    />
+                    <FilterGroup
+                      title="Type"
+                      options={vehicleTypes}
+                      selected={selectedTypes}
+                      onToggle={(value) => setSelectedTypes((current) => toggleValue(current, value))}
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
 
-              <div className="w-full md:w-36">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">Year</label>
-                <Select value={year} onValueChange={setYear}>
-                  <SelectTrigger className="bg-card border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map((y) => (
-                      <SelectItem key={y} value={y}>{y}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {(make !== "All Makes" || year !== "All Years") && (
+              {(activeFilterCount > 0 || search) && (
                 <Button variant="ghost" onClick={clearFilters} className="md:mb-0">
                   <X className="w-4 h-4 mr-1" />
-                  Clear
+                  Clear All
                 </Button>
               )}
             </div>
 
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <p className="text-sm text-muted-foreground">
                 Showing <span className="text-foreground font-medium">{filteredCars.length}</span> vehicles
               </p>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Sort</span>
+                <Select value={sort} onValueChange={(value) => setSort(value as SortOption)}>
+                  <SelectTrigger className="w-full sm:w-48 bg-card border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="az">A-Z</SelectItem>
+                    <SelectItem value="za">Z-A</SelectItem>
+                    <SelectItem value="top-performing">Top Performing</SelectItem>
+                    <SelectItem value="newest">Newest Model Year</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {isLoading ? (
