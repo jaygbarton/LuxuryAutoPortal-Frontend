@@ -183,21 +183,7 @@ export default function Fleet() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data: featuredData } = useQuery<{ success: boolean; data: FleetCar[] }>({
-    queryKey: ["/api/public/fleet/featured"],
-    queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/public/fleet/featured"));
-      if (!res.ok) throw new Error("Failed to load top performing vehicles");
-      return res.json();
-    },
-    staleTime: 1000 * 60 * 30,
-  });
-
   const cars = useMemo(() => data?.data ?? [], [data]);
-  const featuredRank = useMemo(
-    () => new Map((featuredData?.data ?? []).map((car, index) => [car.id, index])),
-    [featuredData],
-  );
 
   // Filter options derived live from the active fleet.
   const makes = useMemo(
@@ -225,7 +211,6 @@ export default function Fleet() {
 
   const filteredCars = useMemo(() => {
     const searchTerm = search.trim().toLowerCase();
-    const rankFor = (car: FleetCar) => featuredRank.get(car.id) ?? Number.MAX_SAFE_INTEGER;
 
     return cars
       .filter((car) => {
@@ -242,13 +227,11 @@ export default function Fleet() {
         if (sort === "za") return b.makeModel.localeCompare(a.makeModel);
         if (sort === "newest") return (b.year ?? 0) - (a.year ?? 0) || a.makeModel.localeCompare(b.makeModel);
         if (sort === "top-performing") {
-          const rankDiff = rankFor(a) - rankFor(b);
-          if (rankDiff !== 0) return rankDiff;
           return (b.performanceIncome ?? 0) - (a.performanceIncome ?? 0) || a.makeModel.localeCompare(b.makeModel);
         }
         return a.makeModel.localeCompare(b.makeModel);
       });
-  }, [cars, featuredRank, search, selectedMakes, selectedTypes, selectedYears, sort]);
+  }, [cars, search, selectedMakes, selectedTypes, selectedYears, sort]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -346,7 +329,7 @@ export default function Fleet() {
                   <SelectContent>
                     <SelectItem value="az">A-Z</SelectItem>
                     <SelectItem value="za">Z-A</SelectItem>
-                    <SelectItem value="top-performing">Top Performing</SelectItem>
+                    <SelectItem value="top-performing">Top Monthly</SelectItem>
                     <SelectItem value="newest">Newest Model Year</SelectItem>
                   </SelectContent>
                 </Select>
