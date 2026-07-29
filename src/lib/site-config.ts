@@ -34,4 +34,5 @@ export const SOCIAL_LINKS = [
   { name: "Yelp", href: "https://www.yelp.com/biz/golden-luxury-auto-salt-lake-city" },
   { name: "Pinterest", href: "https://ph.pinterest.com/goldenluxuryauto/" },
   { name: "LinkedIn", href: "https://linkedin.com/company/golden-luxury-auto" },
+  { name: "Google", href: "https://share.google/RGquoSnT9QCjNI8ZH" },
 ] as const;

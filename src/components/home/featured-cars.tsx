@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ExternalLink, Gauge, Calendar, Users, Loader2 } from "lucide-react";
+import { ArrowRight, ExternalLink, Calendar, Users, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
@@ -72,14 +72,10 @@ function CarCard({ car }: { car: FeaturedCar }) {
           })()}
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="flex items-center gap-2 text-sm" style={{ color: "#808080" }}>
             <Calendar className="w-4 h-4" style={{ stroke: "#d3bc8d" }} />
             <span>{car.year ?? "—"}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm" style={{ color: "#808080" }}>
-            <Gauge className="w-4 h-4" style={{ stroke: "#C49000" }} />
-            <span>{car.mileage != null ? `${car.mileage.toLocaleString()} mi` : "—"}</span>
           </div>
           <div className="flex items-center gap-2 text-sm" style={{ color: "#808080" }}>
             <Users className="w-4 h-4" style={{ stroke: "#C49000" }} />

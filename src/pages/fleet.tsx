@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Search, ArrowRight, X, Loader2, ExternalLink, Calendar, Gauge, Users, SlidersHorizontal } from "lucide-react";
+import { Search, ArrowRight, X, Loader2, ExternalLink, Calendar, Users, SlidersHorizontal } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ interface FleetCar {
 }
 
 type SortOption = "az" | "za" | "top-performing" | "newest";
+type SeatFilterOption = "-5" | "5" | "7" | "8" | "10+";
 
 const PLACEHOLDER_IMG =
   "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
@@ -65,6 +66,15 @@ function vehicleType(car: FleetCar): string {
 
 function toggleValue(values: string[], value: string): string[] {
   return values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
+}
+
+function seatBucket(car: FleetCar): SeatFilterOption | null {
+  const seats = car.numberOfSeats;
+  if (seats == null) return null;
+  if (seats < 5) return "-5";
+  if (seats >= 10) return "10+";
+  if (seats === 5 || seats === 7 || seats === 8) return String(seats) as SeatFilterOption;
+  return null;
 }
 
 function FilterGroup({
@@ -125,14 +135,10 @@ function CarCard({ car }: { car: FleetCar }) {
           })()}
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-6 text-sm text-muted-foreground">
+        <div className="grid grid-cols-2 gap-3 mb-6 text-sm text-muted-foreground">
           <div className="flex items-center gap-2 min-w-0">
             <Calendar className="w-4 h-4 shrink-0 text-primary" />
             <span className="truncate">{car.year ?? "—"}</span>
-          </div>
-          <div className="flex items-center gap-2 min-w-0">
-            <Gauge className="w-4 h-4 shrink-0 text-primary" />
-            <span className="truncate">{car.mileage != null ? `${car.mileage.toLocaleString()} mi` : "—"}</span>
           </div>
           <div className="flex items-center gap-2 min-w-0">
             <Users className="w-4 h-4 shrink-0 text-primary" />
@@ -171,6 +177,7 @@ export default function Fleet() {
   const [selectedMakes, setSelectedMakes] = useState<string[]>([]);
   const [selectedYears, setSelectedYears] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [sort, setSort] = useState<SortOption>("az");
 
   const { data, isLoading } = useQuery<{ success: boolean; data: FleetCar[] }>({
@@ -200,12 +207,14 @@ export default function Fleet() {
     () => Array.from(new Set(cars.map(vehicleType))).sort((a, b) => a.localeCompare(b)),
     [cars],
   );
-  const activeFilterCount = selectedMakes.length + selectedYears.length + selectedTypes.length;
+  const seatOptions: SeatFilterOption[] = ["-5", "5", "7", "8", "10+"];
+  const activeFilterCount = selectedMakes.length + selectedYears.length + selectedTypes.length + selectedSeats.length;
 
   const clearFilters = () => {
     setSelectedMakes([]);
     setSelectedYears([]);
     setSelectedTypes([]);
+    setSelectedSeats([]);
     setSearch("");
   };
 
@@ -221,7 +230,8 @@ export default function Fleet() {
         const matchesMake = selectedMakes.length === 0 || (car.make != null && selectedMakes.includes(car.make));
         const matchesYear = selectedYears.length === 0 || (car.year != null && selectedYears.includes(String(car.year)));
         const matchesType = selectedTypes.length === 0 || selectedTypes.includes(vehicleType(car));
-        return matchesSearch && matchesMake && matchesYear && matchesType;
+        const matchesSeats = selectedSeats.length === 0 || (seatBucket(car) != null && selectedSeats.includes(seatBucket(car)!));
+        return matchesSearch && matchesMake && matchesYear && matchesType && matchesSeats;
       })
       .sort((a, b) => {
         if (sort === "za") return b.makeModel.localeCompare(a.makeModel);
@@ -231,7 +241,7 @@ export default function Fleet() {
         }
         return a.makeModel.localeCompare(b.makeModel);
       });
-  }, [cars, search, selectedMakes, selectedTypes, selectedYears, sort]);
+  }, [cars, search, selectedMakes, selectedSeats, selectedTypes, selectedYears, sort]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -275,7 +285,7 @@ export default function Fleet() {
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent align="end" className="w-[min(92vw,420px)] p-4">
+                <PopoverContent align="end" className="w-[min(92vw,560px)] p-4">
                   <div className="flex items-center justify-between mb-4">
                     <p className="font-semibold text-foreground">Filter Vehicles</p>
                     {activeFilterCount > 0 && (
@@ -285,7 +295,7 @@ export default function Fleet() {
                       </Button>
                     )}
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
                     <FilterGroup
                       title="Make"
                       options={makes}
@@ -303,6 +313,12 @@ export default function Fleet() {
                       options={vehicleTypes}
                       selected={selectedTypes}
                       onToggle={(value) => setSelectedTypes((current) => toggleValue(current, value))}
+                    />
+                    <FilterGroup
+                      title="Seats"
+                      options={seatOptions}
+                      selected={selectedSeats}
+                      onToggle={(value) => setSelectedSeats((current) => toggleValue(current, value))}
                     />
                   </div>
                 </PopoverContent>
