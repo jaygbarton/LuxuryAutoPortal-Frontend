@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ExternalLink, Gauge, Calendar, Fuel, Loader2 } from "lucide-react";
+import { ArrowRight, ExternalLink, Gauge, Calendar, Users, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
@@ -16,6 +16,7 @@ interface FeaturedCar {
   color: string | null;
   mileage: number | null;
   fuelType: string | null;
+  numberOfSeats: number | null;
   vehicleTrim: string | null;
   photo: string | null;
   turoLink: string | null;
@@ -78,8 +79,8 @@ function CarCard({ car }: { car: FeaturedCar }) {
             <span>{car.mileage != null ? `${car.mileage.toLocaleString()} mi` : "—"}</span>
           </div>
           <div className="flex items-center gap-2 text-sm" style={{ color: "#808080" }}>
-            <Fuel className="w-4 h-4" style={{ stroke: "#C49000" }} />
-            <span>{car.fuelType || "—"}</span>
+            <Users className="w-4 h-4" style={{ stroke: "#C49000" }} />
+            <span>{car.numberOfSeats != null ? `${car.numberOfSeats} seats` : "—"}</span>
           </div>
         </div>
 
