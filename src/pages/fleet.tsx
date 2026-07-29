@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Search, ArrowRight, X, Loader2, ExternalLink } from "lucide-react";
+import { Search, ArrowRight, X, Loader2, ExternalLink, Calendar, Gauge, Users } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
@@ -64,8 +64,7 @@ function CarCard({ car }: { car: FleetCar }) {
       <CardContent className="flex flex-1 flex-col p-6">
         <div className="mb-6">
           {/* Name format matches the booking car picker: "<make/model/trim> <year>"
-              (e.g. "Acura MDX Base - AWD 2020"). Mileage and fuel removed since
-              our mileage data isn't kept up to date (often showed "0 mi"). */}
+              (e.g. "Acura MDX Base - AWD 2020"). */}
           <h3 className="text-xl font-semibold text-foreground">
             {[car.makeModel, car.year].filter(Boolean).join(" ")}
           </h3>
@@ -73,6 +72,21 @@ function CarCard({ car }: { car: FleetCar }) {
             const sub = [car.vehicleTrim, car.color].map(cleanVal).filter(Boolean).join(" · ");
             return sub ? <p className="text-sm text-gray-500">{sub}</p> : null;
           })()}
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 mb-6 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 min-w-0">
+            <Calendar className="w-4 h-4 shrink-0 text-primary" />
+            <span className="truncate">{car.year ?? "—"}</span>
+          </div>
+          <div className="flex items-center gap-2 min-w-0">
+            <Gauge className="w-4 h-4 shrink-0 text-primary" />
+            <span className="truncate">{car.mileage != null ? `${car.mileage.toLocaleString()} mi` : "—"}</span>
+          </div>
+          <div className="flex items-center gap-2 min-w-0">
+            <Users className="w-4 h-4 shrink-0 text-primary" />
+            <span className="truncate">{car.numberOfSeats != null ? `${car.numberOfSeats} seats` : "—"}</span>
+          </div>
         </div>
 
         {/* mt-auto pins the action to the card bottom so buttons line up across
