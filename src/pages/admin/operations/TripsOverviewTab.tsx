@@ -25,7 +25,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
 import { StatusBadge } from "./StatusBadge";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
-import { Truck, Sparkles, Package, X, Wrench, Shield, CreditCard, PlaneTakeoff } from "lucide-react";
+import { Truck, Sparkles, Package, X, Wrench, Shield, CreditCard, PlaneTakeoff, Fuel } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { TuroTrip, OperationTask, TaskType } from "./types";
 
@@ -111,6 +111,45 @@ const formatCurrency = (n: number | null | undefined): string => {
 //       - Click ×     → onDelete (parent shows confirm dialog)
 // Replaces the older "edit icon + separate trash icon" pair so each row has
 // at most one button per task type.
+/**
+ * Gas levels are an ordered scale, so compare by rank rather than string.
+ * Keys match the Gas Level dropdown values.
+ */
+const GAS_LEVEL_RANK: Record<string, number> = {
+  empty: 0,
+  quarter: 1,
+  half: 2,
+  three_quarters: 3,
+  full: 4,
+};
+
+/** Human label for a gas level value; matches the Gas Level dropdown options. */
+const GAS_LEVEL_LABEL: Record<string, string> = {
+  empty: "Empty",
+  quarter: "1/4",
+  half: "1/2",
+  three_quarters: "3/4",
+  full: "Full",
+};
+
+function formatGasLevel(value: string): string {
+  return GAS_LEVEL_LABEL[value] ?? "--";
+}
+
+/**
+ * True when the car came back with less fuel than required — i.e. below the
+ * level it went out at (and not full). Returns false when either level is
+ * unknown: an unset dropdown is missing data, not a proven shortfall, and
+ * flagging it would put a refuel icon on nearly every trip.
+ */
+function isFuelShortfall(start: string, end: string): boolean {
+  const startRank = GAS_LEVEL_RANK[start];
+  const endRank = GAS_LEVEL_RANK[end];
+  if (startRank === undefined || endRank === undefined) return false;
+  if (endRank === GAS_LEVEL_RANK.full) return false; // returned full always satisfies
+  return endRank < startRank;
+}
+
 function TaskChip({
   icon: Icon,
   task,
@@ -745,6 +784,15 @@ export function TripsOverviewTab() {
                     const cleaningTask = tripTasks.find((t) => t.task_type === "cleaning");
                     const deliveryTask = tripTasks.find((t) => t.task_type === "delivery");
                     const pickupTask = tripTasks.find((t) => t.task_type === "pickup");
+                    const refuelTask = tripTasks.find((t) => t.task_type === "refuel");
+                    // Cathy's rule: the car must come back at the level it left
+                    // at, or full. Flag a shortfall so staff can assign a refuel.
+                    // Uses the live dropdown edits so the icon reacts before the
+                    // row is re-fetched.
+                    const gasEdit = gasEdits[trip.id];
+                    const gasStartVal = gasEdit?.start !== undefined ? gasEdit.start : (trip.gasLevelTripStart ?? "");
+                    const gasEndVal = gasEdit?.end !== undefined ? gasEdit.end : (trip.gasLevelTripEnd ?? "");
+                    const needsRefuel = isFuelShortfall(gasStartVal, gasEndVal);
                     const daysRented = calculateDaysRented(trip.tripStart, trip.tripEnd);
                     const totalMiles = trip.tripStartOdometer != null && trip.tripEndOdometer != null && trip.tripEndOdometer >= trip.tripStartOdometer
                       ? trip.tripEndOdometer - trip.tripStartOdometer : null;
@@ -884,6 +932,23 @@ export function TripsOverviewTab() {
                         <TaskChip icon={Sparkles} task={cleaningTask} assignedColor="text-yellow-500" assignedBg="bg-yellow-500/10" labelEmpty="Assign Cleaning" labelAssigned="Edit Cleaning Task" labelDelete="Delete Cleaning Task" onAssign={() => openTaskModal(trip, "cleaning")} onEdit={() => { if (cleaningTask) { setEditingTask(cleaningTask); setEditModalOpen(true); } }} onDelete={() => cleaningTask && setConfirmDeleteTask(cleaningTask)} />
                         <TaskChip icon={Truck} task={deliveryTask} assignedColor="text-blue-400" assignedBg="bg-blue-400/10" labelEmpty="Assign Delivery" labelAssigned="Edit Delivery Task" labelDelete="Delete Delivery Task" onAssign={() => openTaskModal(trip, "delivery")} onEdit={() => { if (deliveryTask) { setEditingTask(deliveryTask); setEditModalOpen(true); } }} onDelete={() => deliveryTask && setConfirmDeleteTask(deliveryTask)} />
                         <TaskChip icon={Package} task={pickupTask} assignedColor="text-green-500" assignedBg="bg-green-500/10" labelEmpty="Assign Pickup" labelAssigned="Edit Pickup Task" labelDelete="Delete Pickup Task" onAssign={() => openTaskModal(trip, "pickup")} onEdit={() => { if (pickupTask) { setEditingTask(pickupTask); setEditModalOpen(true); } }} onDelete={() => pickupTask && setConfirmDeleteTask(pickupTask)} />
+                        {/* Only offered when the fuel actually came back short —
+                            or when a refuel task already exists, so it stays
+                            editable even after the levels are corrected. */}
+                        {(needsRefuel || refuelTask) && (
+                          <TaskChip
+                            icon={Fuel}
+                            task={refuelTask}
+                            assignedColor="text-orange-500"
+                            assignedBg="bg-orange-500/10"
+                            labelEmpty={`Assign Refuel Vehicle — returned ${formatGasLevel(gasEndVal)}, went out ${formatGasLevel(gasStartVal)}`}
+                            labelAssigned="Edit Refuel Vehicle Task"
+                            labelDelete="Delete Refuel Vehicle Task"
+                            onAssign={() => openTaskModal(trip, "refuel")}
+                            onEdit={() => { if (refuelTask) { setEditingTask(refuelTask); setEditModalOpen(true); } }}
+                            onDelete={() => refuelTask && setConfirmDeleteTask(refuelTask)}
+                          />
+                        )}
                       </div>
                     );
 
