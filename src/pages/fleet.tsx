@@ -329,7 +329,7 @@ export default function Fleet() {
                   <SelectContent>
                     <SelectItem value="az">A-Z</SelectItem>
                     <SelectItem value="za">Z-A</SelectItem>
-                    <SelectItem value="top-performing">Top Monthly</SelectItem>
+                    <SelectItem value="top-performing">Previous Month</SelectItem>
                     <SelectItem value="newest">Newest Model Year</SelectItem>
                   </SelectContent>
                 </Select>
