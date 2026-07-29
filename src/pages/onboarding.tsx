@@ -375,6 +375,17 @@ export default function Onboarding() {
               alt="Golden Luxury Auto"
               className="h-[120px] md:h-[150px] w-auto object-contain mb-4 drop-shadow-[0_0_12px_rgba(234,235,128,0.4)]"
             />
+            <div className="w-full max-w-3xl mb-6 overflow-hidden rounded-lg border border-primary/20 bg-card shadow-lg">
+              <div className="aspect-video">
+                <iframe
+                  src="https://www.youtube.com/embed/zyhzeXvCp8U?start=1"
+                  title="Golden Luxury Auto Client Onboarding"
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+            </div>
             <p className="text-muted-foreground text-center">Client Onboarding Form</p>
           </div>
 
