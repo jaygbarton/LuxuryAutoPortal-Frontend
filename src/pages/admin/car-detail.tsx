@@ -1116,7 +1116,9 @@ export default function CarDetailPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to upload photos");
+        // Prefer `message`: the backend puts the actionable detail there (which
+        // file, which formats are allowed) and only a generic label in `error`.
+        throw new Error(error.message || error.error || "Failed to upload photos");
       }
 
       const result = await response.json();
