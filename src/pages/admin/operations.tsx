@@ -9,13 +9,14 @@ import { CarInspectionsTab } from "./operations/CarInspectionsTab";
 import { ClaimsTab } from "./operations/ClaimsTab";
 import { TicketViolationTab } from "./operations/TicketViolationTab";
 import { MaintenanceTab } from "./operations/MaintenanceTab";
+import { ServiceDueTab } from "./operations/ServiceDueTab";
 import { NoCarIssuesTab } from "./operations/NoCarIssuesTab";
 import { CarRepairedTab } from "./operations/CarRepairedTab";
 import { CarBlockOffTab } from "./operations/CarBlockOffTab";
 import { DayScheduleTab } from "./operations/DayScheduleTab";
 import { TvTimelineTab } from "./operations/TvTimelineTab";
 
-const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "maintenance", "completed", "car-repaired", "car-block-off", "day-schedule", "tv-timeline"] as const;
+const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "day-schedule", "tv-timeline"] as const;
 type TabId = typeof TAB_IDS[number];
 
 // Renders a tab's content only after it has been activated for the first time,
@@ -86,6 +87,9 @@ export default function OperationsPage() {
               <TabsTrigger value="maintenance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 Maintenance
               </TabsTrigger>
+              <TabsTrigger value="service-due" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
+                Service Due
+              </TabsTrigger>
               <TabsTrigger value="completed" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
                 No Car Issues
               </TabsTrigger>
@@ -121,6 +125,9 @@ export default function OperationsPage() {
           </LazyTab>
           <LazyTab value="maintenance" activeTab={activeTab} mountedTabs={mountedTabs}>
             <MaintenanceTab />
+          </LazyTab>
+          <LazyTab value="service-due" activeTab={activeTab} mountedTabs={mountedTabs}>
+            <ServiceDueTab />
           </LazyTab>
           <LazyTab value="completed" activeTab={activeTab} mountedTabs={mountedTabs}>
             <NoCarIssuesTab />

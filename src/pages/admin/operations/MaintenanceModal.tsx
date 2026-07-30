@@ -4,6 +4,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
 import { toMtLocalInput, mtLocalInputToUtcDbString } from "@/lib/mt-datetime";
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +18,8 @@ import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { PhotoUpload } from "./PhotoUpload";
 import { CarSelectCombobox } from "./CarSelectCombobox";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
-import type { MaintenanceRecord } from "./types";
+import type { MaintenanceRecord, MaintenanceServiceType } from "./types";
+import { MAINTENANCE_SERVICE_TYPE_LABELS } from "./types";
 
 interface CarAvailability {
   carId: number;
@@ -103,6 +111,7 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
     inspection_id: record?.inspection_id || prefill?.inspection_id || null,
     car_id: record?.car_id ?? null,
     car_name: record?.car_name || prefill?.car_name || "",
+    service_type: (record?.service_type ?? null) as MaintenanceServiceType | null,
     task_description: record?.task_description || prefill?.task_description || "",
     assigned_to: record?.assigned_to || "",
     assigned_to_id: record?.assigned_to_id ?? null,
@@ -120,6 +129,7 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
         inspection_id: record.inspection_id,
         car_id: record.car_id ?? null,
         car_name: record.car_name,
+        service_type: record.service_type ?? null,
         task_description: record.task_description,
         assigned_to: record.assigned_to,
         assigned_to_id: record.assigned_to_id ?? null,
@@ -238,6 +248,29 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
             <div className="mt-2">
               <TuroAvailabilityNotice carId={formData.car_id} />
             </div>
+          </div>
+
+          <div>
+            <label className="text-sm text-muted-foreground">Service Type</label>
+            <Select
+              value={formData.service_type ?? "__none__"}
+              onValueChange={(v) =>
+                setFormData({ ...formData, service_type: v === "__none__" ? null : (v as MaintenanceServiceType) })
+              }
+            >
+              <SelectTrigger className="bg-card border-border text-foreground mt-1">
+                <SelectValue placeholder="Select a service type..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">--</SelectItem>
+                {Object.entries(MAINTENANCE_SERVICE_TYPE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Used to track last Oil Change / Tires per car on the Service Due report.
+            </p>
           </div>
 
           <div>

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, ExternalLink, Search, Folder } from "lucide-react";
 import { authMeQueryFn, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
+import { MAINTENANCE_SERVICE_TYPE_LABELS } from "@/pages/admin/operations/types";
 
 function formatDate(d: string | null | undefined): string {
   if (!d) return "—";
@@ -133,7 +134,7 @@ export default function MaintenancePage() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       f = f.filter((r) =>
-        [r.task_description, r.assigned_to, r.repair_shop, r.notes, r.car_name]
+        [r.task_description, r.assigned_to, r.repair_shop, r.notes, r.car_name, r.service_type]
           .some((v) => v && String(v).toLowerCase().includes(q))
       );
     }
@@ -349,6 +350,7 @@ export default function MaintenancePage() {
                 <thead className="bg-muted/40">
                   <tr className="border-b border-border">
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">#</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Service Type</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Task Description</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Assigned To</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Scheduled Date</th>
@@ -362,13 +364,13 @@ export default function MaintenancePage() {
                 <tbody>
                   {maintLoading ? (
                     <tr>
-                      <td colSpan={9} className="py-12 text-center text-muted-foreground text-sm">
+                      <td colSpan={10} className="py-12 text-center text-muted-foreground text-sm">
                         Loading…
                       </td>
                     </tr>
                   ) : maintenanceRecords.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-12 text-center">
+                      <td colSpan={10} className="py-12 text-center">
                         <div className="flex flex-col items-center justify-center gap-3">
                           <Folder className="w-12 h-12 text-gray-400" />
                           <span className="text-muted-foreground text-sm">No data</span>
@@ -379,6 +381,9 @@ export default function MaintenancePage() {
                     maintenanceRecords.map((record, index) => (
                       <tr key={record.id ?? index} className="border-b border-border hover:bg-muted/20 transition-colors">
                         <td className="px-4 py-3 text-muted-foreground">{index + 1}</td>
+                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                          {record.service_type ? MAINTENANCE_SERVICE_TYPE_LABELS[record.service_type as keyof typeof MAINTENANCE_SERVICE_TYPE_LABELS] : "—"}
+                        </td>
                         <td className="px-4 py-3 text-foreground max-w-[220px] whitespace-pre-wrap break-words">
                           {record.task_description || "—"}
                         </td>

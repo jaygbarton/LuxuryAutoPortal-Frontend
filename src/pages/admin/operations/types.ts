@@ -146,18 +146,53 @@ export interface Claim {
   plate: string | null;
 }
 
+export type MaintenanceServiceType =
+  | "oil_change"
+  | "tires"
+  | "brakes"
+  | "battery"
+  | "mechanic"
+  | "windshield"
+  | "electric"
+  | "other";
+
+export const MAINTENANCE_SERVICE_TYPE_LABELS: Record<MaintenanceServiceType, string> = {
+  oil_change: "Oil Change",
+  tires: "Tires",
+  brakes: "Brakes",
+  battery: "Battery",
+  mechanic: "Mechanic",
+  windshield: "Windshield",
+  electric: "Electric",
+  other: "Other",
+};
+
+export interface CarServiceDue {
+  car_id: number;
+  car_name: string;
+  car_plate: string | null;
+  last_oil_change: string | null;
+  last_tires: string | null;
+  last_any_service: string | null;
+  days_since_oil_change: number | null;
+  days_since_tires: number | null;
+  days_since_any_service: number | null;
+}
+
 export interface MaintenanceRecord {
   id: number;
   inspection_id: number | null;
   /** Foreign key to the car. Preferred over car_name for new rows. */
   car_id: number | null;
   car_name: string;
+  service_type: MaintenanceServiceType | null;
   task_description: string;
   assigned_to: string;
   assigned_to_id: number | null;
   scheduled_date: string | null;
   due_date: string | null;
   status: string;
+  completed_date: string | null;
   notes: string | null;
   photos: string[];
   repair_shop: string | null;

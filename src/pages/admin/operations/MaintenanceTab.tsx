@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Plus, Edit, Trash2, History } from "lucide-react";
 import type { Inspection, MaintenanceRecord, TuroTrip } from "./types";
+import { MAINTENANCE_SERVICE_TYPE_LABELS } from "./types";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarIssueTypesCell } from "./CarIssueTypesCell";
@@ -246,6 +247,7 @@ export function MaintenanceTab({
           rec.car_model,
           rec.car_plate,
           rec.car_vin,
+          rec.service_type ? MAINTENANCE_SERVICE_TYPE_LABELS[rec.service_type] : null,
           rec.task_description,
           rec.assigned_to,
           rec.repair_shop,
@@ -711,6 +713,7 @@ export function MaintenanceTab({
                       ) : carNameWithPlateLabel },
                       { label: "Plate #", value: plateNumber || "--" },
                       { label: "VIN #", value: rec.car_vin || "--" },
+                      { label: "Service Type", value: rec.service_type ? MAINTENANCE_SERVICE_TYPE_LABELS[rec.service_type] : "--" },
                       { label: "Description", value: rec.task_description },
                       { label: "Assigned To", value: assigneeEl },
                       { label: "Scheduled", value: formatDateTime(rec.scheduled_date) },
