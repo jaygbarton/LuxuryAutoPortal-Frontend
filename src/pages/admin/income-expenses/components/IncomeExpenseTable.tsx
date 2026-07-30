@@ -2618,6 +2618,7 @@ export default function IncomeExpenseTable({
               />
               <CategoryRow
                 label="Delivery Income"
+                splitLabel="100% Host Share"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "deliveryIncome"),
                 )}
@@ -2626,6 +2627,7 @@ export default function IncomeExpenseTable({
               />
               <CategoryRow
                 label="Electric Prepaid Income"
+                splitLabel="100% Host Share"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(
                     data.incomeExpenses,
@@ -2638,6 +2640,7 @@ export default function IncomeExpenseTable({
               />
               <CategoryRow
                 label="Smoking Fines"
+                splitLabel="10% Owner Share, 90% Host Share"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "smokingFines"),
                 )}
@@ -2646,6 +2649,7 @@ export default function IncomeExpenseTable({
               />
               <CategoryRow
                 label="Gas Prepaid Income"
+                splitLabel="100% Host Share"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "gasPrepaidIncome"),
                 )}
@@ -2654,6 +2658,7 @@ export default function IncomeExpenseTable({
               />
               <CategoryRow
                 label="Ski Racks Income"
+                splitLabel="100% Ski Racks Owner Share"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "skiRacksIncome"),
                 )}
@@ -2662,6 +2667,7 @@ export default function IncomeExpenseTable({
               />
               <CategoryRow
                 label="Miles Income"
+                splitLabel="100% Owner Share"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "milesIncome"),
                 )}
@@ -2670,6 +2676,7 @@ export default function IncomeExpenseTable({
               />
               <CategoryRow
                 label="Child Seat Income"
+                splitLabel="100% Host Share"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "childSeatIncome"),
                 )}
@@ -2678,6 +2685,7 @@ export default function IncomeExpenseTable({
               />
               <CategoryRow
                 label="Coolers Income"
+                splitLabel="100% Host Share"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "coolersIncome"),
                 )}
@@ -2686,6 +2694,7 @@ export default function IncomeExpenseTable({
               />
               <CategoryRow
                 label="Income insurance and Client Wrecks"
+                splitLabel="100% Host Share"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(
                     data.incomeExpenses,
@@ -2698,6 +2707,7 @@ export default function IncomeExpenseTable({
               />
               <CategoryRow
                 label="Other Income"
+                splitLabel="100% Host Share"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "otherIncome"),
                 )}
@@ -5193,6 +5203,8 @@ function CategorySection({
 
 interface CategoryRowProps {
   label: string;
+  /** Optional red italic note rendered next to the label (e.g. "100% Host Share"). */
+  splitLabel?: string;
   values: number[];
   percentageValues?: number[]; // For split rows, this stores the percentage
   category?: string;
@@ -5229,6 +5241,7 @@ interface CategoryRowProps {
 
 function CategoryRow({
   label,
+  splitLabel,
   values,
   percentageValues,
   category,
@@ -5375,6 +5388,11 @@ function CategoryRow({
         {onEdit || onHide ? (
           <div className="flex items-center gap-1.5">
             <span className="truncate">{label}</span>
+            {splitLabel && (
+              <span className="truncate italic text-red-600 font-medium">
+                {splitLabel}
+              </span>
+            )}
             {onEdit && !isReadOnly && (
               <button
                 onClick={onEdit}
@@ -5395,7 +5413,14 @@ function CategoryRow({
             )}
           </div>
         ) : (
-          <span className="truncate block">{label}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="truncate">{label}</span>
+            {splitLabel && (
+              <span className="truncate italic text-red-600 font-medium">
+                {splitLabel}
+              </span>
+            )}
+          </div>
         )}
       </td>
       {values.map((value, i) => {
