@@ -164,6 +164,11 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
     }));
   }, [formData.submissionDate]);
 
+  // Warn when the derived accounting year isn't the current year — catches both a
+  // bad OCR year and a manual typo before the expense is filed to the wrong year.
+  const isOffCurrentYear =
+    !!formData.year && Number(formData.year) !== new Date().getFullYear();
+
   // Default Employee Name to logged-in employee (for both admin dropdown and employee view)
   useEffect(() => {
     if (!optionsData?.data) return;
@@ -457,6 +462,15 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
               required
             />
             <p className="text-xs text-muted-foreground/80 mt-1.5">Year and Month are derived from this date.</p>
+            {/* The receipt OCR has misread the year before (a Jul-2026 receipt came
+                back as 2023), which silently filed the expense under the wrong
+                accounting year. Surface it so it can't pass unnoticed. */}
+            {isOffCurrentYear && (
+              <p className="text-xs text-amber-600 dark:text-amber-500 mt-1.5 font-medium">
+                ⚠ This receipt is dated {formData.year}, not {new Date().getFullYear()}. It will be
+                filed under {formData.year}. Please confirm the date is correct.
+              </p>
+            )}
           </div>
             <div className="space-y-2">
               <Label className="text-foreground font-medium text-sm">Employee Name <span className="text-primary">*</span></Label>
