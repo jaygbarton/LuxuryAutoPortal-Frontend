@@ -9,17 +9,17 @@ export const SITE_CONTACT = {
   phone: "1-800-346-1394",
   phoneHref: "tel:+18003461394",
   address: ["South 500 West", "Salt Lake City, Utah 84101"],
-  hours: "24/7 Always Available",
+  hours: "Available by appointment",
 };
 
 export const SITE_TAGLINE =
-  "We are the leaders in car management. We specialize in renting cars to our clients, while you make money off your car.";
+  "Golden Luxury Auto manages premium rentals for guests and vehicle owners in Utah.";
 
 export const SITE_STATS = [
   { label: "Trips Taken", value: "22,924" },
   { label: "Star Rating", value: "5" },
   { label: "Cars For Sale", value: "10" },
-  { label: "Luxury Rental", value: "142" },
+  { label: "Rental Vehicles", value: "142" },
 ] as const;
 
 export const LEGAL_LINKS = {

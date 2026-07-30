@@ -256,7 +256,7 @@ export default function Fleet() {
               Luxury Fleet
             </h1>
             <p className="max-w-2xl mx-auto text-muted-foreground">
-              Explore our curated selection of the world's most prestigious automobiles.
+              Browse active vehicles available through Golden Luxury Auto.
             </p>
           </div>
 

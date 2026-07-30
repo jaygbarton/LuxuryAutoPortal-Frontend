@@ -43,7 +43,7 @@ export function Hero() {
             className="text-sm font-semibold tracking-wide"
             style={{ color: "#E8B830", letterSpacing: "1px" }}
           >
-            Exclusive Collection Available
+            Salt Lake City Car Rentals
           </span>
         </div>
 
@@ -59,13 +59,13 @@ export function Hero() {
               backgroundClip: "text",
             }}
           >
-            Automotive Excellence
+            Luxury Car Rentals
           </span>
         </h1>
 
         <p className="max-w-2xl mx-auto text-lg sm:text-xl leading-relaxed mb-10" style={{ color: "rgba(255,255,255,0.7)" }}>
-          Discover our curated collection of the world's most prestigious luxury vehicles.
-          Each car tells a story of craftsmanship, performance, and timeless elegance.
+          Browse a practical selection of premium vehicles for trips, events, airport
+          travel, and everyday transportation around Utah.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

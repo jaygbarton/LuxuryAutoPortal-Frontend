@@ -107,8 +107,8 @@ export default function Contact() {
               Contact Us
             </h1>
             <p className="max-w-2xl mx-auto text-muted-foreground">
-              Have questions about our vehicles or services? Our team of luxury
-              automotive specialists is here to help.
+              Have questions about a vehicle, rental timing, or pickup details?
+              Our team is here to help.
             </p>
           </div>
 

@@ -345,8 +345,7 @@ export default function Onboarding() {
                 </h2>
                 <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Your information has been submitted successfully. One of our
-                  luxury automotive specialists will contact you within 24
-                  hours.
+                  team members will follow up as soon as possible.
                 </p>
                 <Button
                   onClick={() => (window.location.href = "/fleet")}

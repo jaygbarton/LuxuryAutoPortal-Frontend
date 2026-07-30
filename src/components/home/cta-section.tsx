@@ -36,15 +36,15 @@ export function CTASection() {
               backgroundClip: "text",
             }}
           >
-            Dream Vehicle?
+            Right Vehicle?
           </span>
         </h2>
         <p
           className="text-lg mb-10 max-w-2xl mx-auto"
           style={{ color: "rgba(255,255,255,0.7)", lineHeight: "1.65" }}
         >
-          Our team of luxury automotive specialists is ready to help you find
-          the perfect vehicle that matches your lifestyle and preferences.
+          Tell us what you need and our team will help you choose a vehicle
+          that fits the trip, timing, and pickup plan.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

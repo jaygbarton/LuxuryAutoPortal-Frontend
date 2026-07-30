@@ -4,33 +4,33 @@ import { Card, CardContent } from "@/components/ui/card";
 const services = [
   {
     icon: Shield,
-    title: "Certified Quality",
-    description: "Every vehicle undergoes a rigorous 200-point inspection by our master technicians.",
+    title: "Vehicle Readiness",
+    description: "Vehicles are reviewed, cleaned, and prepared before each rental whenever possible.",
   },
   {
     icon: Truck,
-    title: "Worldwide Delivery",
-    description: "White-glove delivery service to any destination, fully insured and tracked.",
+    title: "Local Delivery Options",
+    description: "Pickup and delivery options may be available around the Salt Lake City area.",
   },
   {
     icon: Headphones,
-    title: "Concierge Service",
-    description: "Dedicated personal advisor to guide you through every step of your purchase.",
+    title: "Responsive Support",
+    description: "Our team helps with questions, booking details, and the rental process.",
   },
   {
     icon: FileCheck,
-    title: "Complete Documentation",
-    description: "Full service history, provenance documentation, and authenticity certificates.",
+    title: "Clear Vehicle Details",
+    description: "We provide the key vehicle and rental information customers need before booking.",
   },
   {
     icon: Sparkles,
-    title: "Detailing Excellence",
-    description: "Professional detailing and preparation before every delivery.",
+    title: "Clean Presentation",
+    description: "Cars are cleaned and prepared so guests can start their trip confidently.",
   },
   {
     icon: Clock,
-    title: "Extended Warranty",
-    description: "Comprehensive warranty options for complete peace of mind.",
+    title: "Practical Coordination",
+    description: "We coordinate pickup, return, and trip timing with clear communication.",
   },
 ];
 
@@ -55,8 +55,8 @@ export function Services() {
             className="max-w-2xl mx-auto"
             style={{ color: "#4A4A4A", fontSize: "16px", lineHeight: "1.65" }}
           >
-            Beyond exceptional vehicles, we deliver an unparalleled ownership experience
-            tailored to the most discerning clientele.
+            Quality vehicles, straightforward communication, and rental support
+            built around real guest needs.
           </p>
         </div>
 
