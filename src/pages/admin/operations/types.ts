@@ -81,6 +81,11 @@ export interface Inspection {
   turo_trip_id: number | null;
   reservation_id: string | null;
   car_name: string;
+  /** Resolved server-side: the linked trip's plate, falling back to matching the
+   *  car by VIN / plate / name. Set even for manual issues with no trip. */
+  plate?: string | null;
+  /** Car model year, resolved the same way — used to title the card. */
+  car_year?: number | string | null;
   source: "turo_return" | "manual" | string;
   assigned_to: string;
   status: "new" | "in_progress" | "completed" | "no_issues";

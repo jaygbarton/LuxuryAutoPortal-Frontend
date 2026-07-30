@@ -1015,7 +1015,9 @@ export function TuroInspectionTab() {
                         typeLabel="Turo / Inspection"
                         reservationId={insp.reservation_id || trip?.reservationId}
                         carName={insp.car_name}
-                        plate={trip?.plateNumber}
+                        // Inspection's own resolved plate first, so rows whose trip
+                        // link is missing still show one (see CarInspectionsTab).
+                        plate={insp.plate || trip?.plateNumber}
                         tripStart={trip ? formatDate(trip.tripStart) : null}
                         tripEnd={trip ? formatDate(trip.tripEnd) : null}
                         pickupLocation={pickupLocation}

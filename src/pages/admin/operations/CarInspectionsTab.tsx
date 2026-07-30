@@ -587,7 +587,10 @@ export function CarInspectionsTab() {
                         typeLabel="Car Issue"
                         reservationId={insp.reservation_id || trip?.reservationId}
                         carName={insp.car_name}
-                        plate={trip?.plateNumber}
+                        // Prefer the inspection's own plate: the API resolves it by
+                        // matching the car (VIN / plate / name), so manual Car Issues
+                        // — which have no linked trip — still show a plate.
+                        plate={insp.plate || trip?.plateNumber}
                         assignedTo={insp.assigned_to}
                         tripStart={trip ? formatDate(trip.tripStart) : formatDate(insp.inspection_date)}
                         tripEnd={trip ? formatDate(trip.tripEnd) : null}
