@@ -27,6 +27,8 @@ import {
   History,
   Map,
   PlusCircle,
+  Route,
+  ShieldAlert,
   Star,
   TrendingDown,
   TrendingUp,
@@ -89,6 +91,7 @@ export function ClientPageLinks() {
   //   Row 1: Earnings | History | Totals
   //   Row 2: Graphs and Charts Report | Maintenance | NADA Depreciation Schedule
   //   Row 3: Payment History
+  //   Row 4: Vehicle Trip History | Driving Behavior
   const reportLinks = [
     { href: carPath("earnings"),       icon: DollarSign,   label: "Earnings" },
     { href: "/client/trip-history",    icon: History,      label: "History" },
@@ -100,6 +103,9 @@ export function ClientPageLinks() {
     { href: carPath("depreciation"),   icon: TrendingDown, label: "NADA Depreciation Schedule" },
 
     { href: carPath("payments"),       icon: CreditCard,   label: "Payment History" },
+
+    { href: "/client/vehicle-trips",    icon: Route,       label: "Vehicle Trip History" },
+    { href: "/client/vehicle-behavior", icon: ShieldAlert,  label: "Driving Behavior" },
   ];
 
   //   Row 1: Off-boarding Form | Book Your Car | Training Manual | News & Media

@@ -28,6 +28,8 @@ import {
   UserPlus,
   Map,
   CalendarOff,
+  Route,
+  ShieldAlert,
 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { differenceInDays } from "date-fns";
@@ -451,6 +453,9 @@ export default function ClientDashboard() {
     { href: carHref("depreciation"),   icon: TrendingDown, label: "NADA Depreciation Schedule" },
 
     { href: carHref("payments"),       icon: CreditCard,   label: "Payment History" },
+
+    { href: "/client/vehicle-trips",    icon: Route,       label: "Vehicle Trip History" },
+    { href: "/client/vehicle-behavior", icon: ShieldAlert,  label: "Driving Behavior" },
   ];
 
   const supportLinks = [
