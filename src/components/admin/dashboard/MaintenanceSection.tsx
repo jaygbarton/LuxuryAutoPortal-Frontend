@@ -122,11 +122,18 @@ function LoadingSkeleton() {
   );
 }
 
+// Must mirror the full status vocabulary the Operations Maintenance tab writes
+// (maintenance_tasks.status). A short list here silently dropped rows from the
+// filter dropdown and made the inline StatusSelect render a blank/wrong value
+// for statuses it didn't know about (e.g. damage_reported).
 const MAINT_STATUS_OPTIONS = [
   { value: "new", label: "New" },
+  { value: "damage_reported", label: "Maintenance Reported" },
+  { value: "in_review", label: "In Review" },
   { value: "in_progress", label: "In Progress" },
+  { value: "in_repair", label: "In Repair" },
   { value: "completed", label: "Completed" },
-  { value: "delivered", label: "Delivered" },
+  { value: "charged_customer", label: "Charged Customer" },
 ];
 
 /**
@@ -171,7 +178,7 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
   const { data, isLoading } = useQuery<MaintenanceResponse>({
     queryKey: ["/api/operations/maintenance"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/operations/maintenance?limit=50"), {
+      const res = await fetch(buildApiUrl("/api/operations/maintenance?limit=5000"), {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch maintenance tasks");
@@ -210,7 +217,9 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
         .some(v => v && v.toLowerCase().includes(q)));
     }
     if (statusFilter === HIDE_COMPLETED_FILTER) {
-      f = f.filter(t => String(t.status ?? "").toLowerCase() !== "completed");
+      // "charged_customer" is the other terminal status — it's finished work
+      // too, so Active must hide it alongside "completed".
+      f = f.filter(t => !["completed", "charged_customer"].includes(String(t.status ?? "").toLowerCase()));
     } else if (statusFilter !== "all") {
       f = f.filter(t => t.status === statusFilter);
     }
@@ -219,7 +228,7 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
         day != null && (!fromDate || day >= fromDate) && (!toDate || day <= toDate);
       f = f.filter(t => inRange(toMtDate(t.trip_start)) || inRange(toMtDate(t.trip_end)));
     }
-    return f.slice(0, 20);
+    return f;
   }, [allTasks, search, statusFilter, fromDate, toDate]);
 
   const isFiltered = search || statusFilter !== HIDE_COMPLETED_FILTER || fromDate || toDate;
@@ -265,6 +274,9 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
         <LoadingSkeleton />
       ) : (
         <div className="mt-4">
+          <div className="text-xs text-gray-500 mb-2">
+            Showing {displayTasks.length} of {allTasks.length}
+          </div>
           {displayTasks.length === 0 ? (
             <div className="rounded-md bg-gray-50 border border-gray-200 px-6 py-8 text-center">
               <p className="text-sm text-gray-500">{isFiltered ? "No matching results." : "No maintenance tasks found"}</p>

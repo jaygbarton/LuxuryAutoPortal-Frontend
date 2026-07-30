@@ -89,6 +89,10 @@ function formatDate(dateStr: string): string {
   }
 }
 
+/** Dashboard default: full list minus Completed (status code 3). */
+const HIDE_COMPLETED_FILTER = "__not_completed__";
+const COMPLETED_STATUS_CODE = "3";
+
 const TASK_STATUS_OPTIONS = [
   { value: 0, label: "Not Started" },
   { value: 1, label: "In Progress" },
@@ -181,7 +185,10 @@ export default function TaskManagementSection() {
   }
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  // Match the HR Task Management page: hide Completed by default, per Cathy's
+  // policy. A sentinel (rather than a silent hardcoded filter) keeps it visible
+  // in the dropdown and lets "Clear all" reset back to it.
+  const [statusFilter, setStatusFilter] = useState(HIDE_COMPLETED_FILTER);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
@@ -197,7 +204,9 @@ export default function TaskManagementSection() {
       f = f.filter(t => [t.task_timer_name, t.task_timer_description, t.task_timer_goal, t.task_timer_car_name]
         .some(v => v && v.toLowerCase().includes(q)));
     }
-    if (statusFilter !== "all") {
+    if (statusFilter === HIDE_COMPLETED_FILTER) {
+      f = f.filter(t => String(t.task_timer_status ?? 0) !== COMPLETED_STATUS_CODE);
+    } else if (statusFilter !== "all") {
       f = f.filter(t => String(t.task_timer_status ?? 0) === statusFilter);
     }
     if (fromDate || toDate) {
@@ -215,10 +224,15 @@ export default function TaskManagementSection() {
         return true;
       });
     }
-    return f.slice(0, 25);
+    return f;
   }, [tasks, search, statusFilter, fromDate, toDate]);
 
-  const isFiltered = search || statusFilter !== "all" || fromDate || toDate;
+  // Dashboard shows the most-relevant slice; the count line below says how many
+  // matched in total so a cap never reads as "that's everything".
+  const DASHBOARD_ROW_CAP = 25;
+  const visibleTasks = sortedTasks.slice(0, DASHBOARD_ROW_CAP);
+
+  const isFiltered = search || statusFilter !== HIDE_COMPLETED_FILTER || fromDate || toDate;
 
   const STATUS_FILTER_OPTIONS = [
     { value: "0", label: "Not Started" },
@@ -242,6 +256,7 @@ export default function TaskManagementSection() {
         </div>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
           className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]">
+          <option value={HIDE_COMPLETED_FILTER}>Active (hide Completed)</option>
           <option value="all">All Statuses</option>
           {STATUS_FILTER_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
@@ -258,7 +273,8 @@ export default function TaskManagementSection() {
         {isFiltered && (
           <>
             <span className="text-xs text-gray-500">{sortedTasks.length} result{sortedTasks.length !== 1 ? "s" : ""}</span>
-            <button onClick={() => { setSearch(""); setStatusFilter("all"); setFromDate(""); setToDate(""); }} className="text-xs text-[#B8860B] hover:underline">Clear all</button>
+            {/* Clear returns to the dashboard default (Completed hidden), not "all". */}
+            <button onClick={() => { setSearch(""); setStatusFilter(HIDE_COMPLETED_FILTER); setFromDate(""); setToDate(""); }} className="text-xs text-[#B8860B] hover:underline">Clear all</button>
           </>
         )}
       </div>
@@ -267,13 +283,16 @@ export default function TaskManagementSection() {
         <LoadingSkeleton />
       ) : (
         <div className="mt-4">
-          {sortedTasks.length === 0 ? (
+          <div className="text-xs text-gray-500 mb-2">
+            Showing {visibleTasks.length} of {sortedTasks.length}
+          </div>
+          {visibleTasks.length === 0 ? (
             <div className="rounded-md bg-[#111111] px-6 py-8 text-center">
               <p className="text-sm text-white/60">{isFiltered ? "No matching results." : "No tasks found"}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {sortedTasks.map((task) => {
+              {visibleTasks.map((task) => {
                 const name = task.task_timer_name || "";
                 const desc = task.task_timer_description || "";
                 const repeat = task.task_timer_recurrence
