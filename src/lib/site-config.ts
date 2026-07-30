@@ -17,9 +17,9 @@ export const SITE_TAGLINE =
 
 export const SITE_STATS = [
   { label: "Trips Taken", value: "22,924" },
-  { label: "Star Rating", value: "5" },
-  { label: "Cars For Sale", value: "10" },
-  { label: "Rental Vehicles", value: "142" },
+  { label: "5-Star Google Reviews", value: "2,800+" },
+  { label: "Turo Rating", value: "4.9" },
+  { label: "Turo Host", value: "All-Star" },
 ] as const;
 
 export const LEGAL_LINKS = {
@@ -31,7 +31,7 @@ export const LEGAL_LINKS = {
 export const SOCIAL_LINKS = [
   { name: "Facebook", href: "https://www.facebook.com/Goldenluxuryauto/" },
   { name: "Instagram", href: "https://www.instagram.com/goldenluxuryauto/?hl=en" },
-  { name: "Yelp", href: "https://www.yelp.com/biz/golden-luxury-auto-salt-lake-city" },
+  { name: "YouTube", href: "https://www.youtube.com/@goldenluxuryauto" },
   { name: "Pinterest", href: "https://ph.pinterest.com/goldenluxuryauto/" },
   { name: "LinkedIn", href: "https://linkedin.com/company/golden-luxury-auto" },
   { name: "Google", href: "https://share.google/RGquoSnT9QCjNI8ZH" },

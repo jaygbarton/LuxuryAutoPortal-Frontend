@@ -4,6 +4,7 @@ import { Hero } from "@/components/home/hero";
 import { FeaturedCars } from "@/components/home/featured-cars";
 import { Services } from "@/components/home/services";
 import { CTASection } from "@/components/home/cta-section";
+import { SiteStatsStrip } from "@/components/layout/site-stats-strip";
 
 function VideoSection() {
   return (
@@ -25,6 +26,9 @@ function VideoSection() {
             referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen
           />
+        </div>
+        <div className="mt-6">
+          <SiteStatsStrip />
         </div>
       </div>
     </section>

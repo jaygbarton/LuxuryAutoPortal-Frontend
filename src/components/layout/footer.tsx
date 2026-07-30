@@ -1,6 +1,8 @@
 import { Link } from "wouter";
-import { Mail, Phone, MapPin, Clock, Facebook, Instagram, Linkedin, Star, Route, Car, BadgeDollarSign } from "lucide-react";
-import { SITE_CONTACT, SITE_TAGLINE, SITE_STATS, LEGAL_LINKS, SOCIAL_LINKS } from "@/lib/site-config";
+import { Mail, Phone, MapPin, Clock, Facebook, Instagram, Linkedin } from "lucide-react";
+import { FaGoogle, FaPinterestP, FaYoutube } from "react-icons/fa";
+import { SITE_CONTACT, SITE_TAGLINE, LEGAL_LINKS, SOCIAL_LINKS } from "@/lib/site-config";
+import { SiteStatsStrip } from "@/components/layout/site-stats-strip";
 
 const quickLinks = [
   { href: "/fleet", label: "Our Fleet" },
@@ -19,17 +21,12 @@ const SOCIAL_ICONS: Record<string, typeof Facebook> = {
   LinkedIn: Linkedin,
 };
 
-const STAT_ICONS = [Route, Star, BadgeDollarSign, Car];
-
 const socialIconFor = (social: { name: string; href: string }) => {
   if (social.href.toLowerCase().includes("linkedin.com")) return Linkedin;
+  if (social.name === "YouTube") return FaYoutube;
+  if (social.name === "Pinterest") return FaPinterestP;
+  if (social.name === "Google") return FaGoogle;
   return SOCIAL_ICONS[social.name];
-};
-
-const socialInitial = (name: string) => {
-  if (name === "Pinterest") return "P";
-  if (name === "Yelp") return "Y";
-  return name.charAt(0);
 };
 
 export function Footer() {
@@ -83,7 +80,7 @@ export function Footer() {
                     {Icon ? (
                       <Icon className="w-4 h-4" />
                     ) : (
-                      <span className="text-xs font-bold">{socialInitial(s.name)}</span>
+                      <span className="text-xs font-bold">{s.name.charAt(0)}</span>
                     )}
                   </a>
                 );
@@ -185,30 +182,8 @@ export function Footer() {
           </div>
         </div>
 
-        <div
-          className="mt-10 grid grid-cols-2 lg:grid-cols-4 gap-3 rounded-sm p-3"
-          style={{ background: "#1C1C1C" }}
-        >
-          {SITE_STATS.map((stat, index) => {
-            const Icon = STAT_ICONS[index] ?? BadgeDollarSign;
-            return (
-              <div
-                key={stat.label}
-                className="flex items-center gap-3 px-3 py-4"
-                style={{ border: "1px solid rgba(212, 160, 23, 0.35)" }}
-              >
-                <Icon className="w-5 h-5 shrink-0" style={{ color: "#D4A017" }} />
-                <div>
-                  <div className="text-xl font-bold leading-none" style={{ color: "#FFFDF8" }}>
-                    {stat.value}
-                  </div>
-                  <div className="mt-1 text-xs uppercase tracking-wider" style={{ color: "#D9C37A" }}>
-                    {stat.label}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="mt-10">
+          <SiteStatsStrip />
         </div>
 
         {/* Bottom bar */}
