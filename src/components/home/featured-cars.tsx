@@ -27,6 +27,13 @@ type FeaturedMode = "previous-month" | "top-performing";
 
 const PLACEHOLDER_IMG =
   "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
+const TURO_VEHICLES_URL = "https://turo.com/us/en/drivers/4325673/vehicles";
+
+function scrollToTopOnNavigate() {
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+  window.setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }), 0);
+}
 
 /** Hide placeholder/junk values ("No Data", "N/A", etc.) instead of printing them. */
 function cleanVal(v: string | null | undefined): string {
@@ -203,7 +210,7 @@ export function FeaturedCars() {
                 onboarding page and our team will review the details with you.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Link href="/onboarding">
+                <Link href="/onboarding" onClick={scrollToTopOnNavigate}>
                   <button
                     className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-bold transition-all"
                     style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
@@ -213,7 +220,7 @@ export function FeaturedCars() {
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </Link>
-                <Link href="/contact">
+                <Link href="/contact" onClick={scrollToTopOnNavigate}>
                   <button
                     className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold transition-all"
                     style={{ border: "1.5px solid #D4A017", color: "#8B6914", background: "transparent" }}
@@ -243,26 +250,26 @@ export function FeaturedCars() {
                 the vehicle's Turo listing when you are ready.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <a href="https://rent.goldenluxuryauto.com/start-block" target="_blank" rel="noopener noreferrer">
+                <Link href="/fleet" onClick={scrollToTopOnNavigate}>
                   <button
                     className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-bold transition-all"
                     style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
-                    data-testid="button-rental-turo"
-                  >
-                    Book on Turo
-                    <ExternalLink className="h-4 w-4" />
-                  </button>
-                </a>
-                <Link href="/fleet">
-                  <button
-                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold transition-all"
-                    style={{ border: "1.5px solid #D4A017", color: "#8B6914", background: "transparent" }}
                     data-testid="button-rental-fleet"
                   >
                     Our Fleet
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </Link>
+                <a href={TURO_VEHICLES_URL} target="_blank" rel="noopener noreferrer">
+                  <button
+                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold transition-all"
+                    style={{ border: "1.5px solid #D4A017", color: "#8B6914", background: "transparent" }}
+                    data-testid="button-rental-turo"
+                  >
+                    Book on Turo
+                    <ExternalLink className="h-4 w-4" />
+                  </button>
+                </a>
               </div>
             </div>
           </div>
