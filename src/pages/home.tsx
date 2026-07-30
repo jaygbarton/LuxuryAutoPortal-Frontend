@@ -28,7 +28,7 @@ function VideoSection() {
           />
         </div>
         <div className="mt-6">
-          <SiteStatsStrip />
+          <SiteStatsStrip variant="dark" />
         </div>
       </div>
     </section>
