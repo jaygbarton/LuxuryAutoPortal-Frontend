@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ExternalLink, Calendar, Users, Loader2 } from "lucide-react";
+import { ArrowRight, ExternalLink, Calendar, Users, Loader2, Car, ClipboardCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
@@ -183,19 +183,89 @@ export function FeaturedCars() {
           </p>
         )}
 
-        <div className="text-center mt-12">
-          <Link href="/fleet">
-            <button
-              className="inline-flex items-center gap-2 px-8 py-3 rounded-lg text-sm font-semibold transition-all duration-300"
-              style={{ background: "none", border: "2px solid #D4A017", color: "#8B6914" }}
-              onMouseEnter={(e) => { const el = e.currentTarget as HTMLButtonElement; el.style.background = "linear-gradient(135deg, #D4A017, #E8B830)"; el.style.color = "#1A0E00"; el.style.boxShadow = "0 4px 20px rgba(212,160,23,0.3)"; }}
-              onMouseLeave={(e) => { const el = e.currentTarget as HTMLButtonElement; el.style.background = "none"; el.style.color = "#8B6914"; el.style.boxShadow = "none"; }}
-              data-testid="button-view-all-fleet"
-            >
-              View All Vehicles
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </Link>
+        <div className="mt-16 overflow-hidden rounded-xl border" style={{ borderColor: "#E8D4A0", background: "#FFFFFF" }}>
+          <div className="grid min-h-[360px] grid-cols-1 lg:grid-cols-2">
+            <div className="flex flex-col justify-center p-8 lg:p-12" style={{ background: "#FFFDF8" }}>
+              <div
+                className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg"
+                style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
+              >
+                <ClipboardCheck className="h-6 w-6" />
+              </div>
+              <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: "#C49000" }}>
+                Vehicle Management
+              </p>
+              <h3 className="mb-4 font-serif text-3xl font-bold" style={{ color: "#1C1C1C" }}>
+                List your vehicle with us
+              </h3>
+              <p className="mb-8 max-w-xl text-base leading-7" style={{ color: "#4A4A4A" }}>
+                Have a vehicle you want managed for rentals? Start with our owner
+                onboarding page and our team will review the details with you.
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link href="/onboarding">
+                  <button
+                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-bold transition-all"
+                    style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
+                    data-testid="button-management-get-started"
+                  >
+                    Get Started
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </Link>
+                <Link href="/contact">
+                  <button
+                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold transition-all"
+                    style={{ border: "1.5px solid #D4A017", color: "#8B6914", background: "transparent" }}
+                    data-testid="button-management-info"
+                  >
+                    Info
+                  </button>
+                </Link>
+              </div>
+            </div>
+
+            <div className="flex flex-col justify-center border-t p-8 lg:border-l lg:border-t-0 lg:p-12" style={{ borderColor: "#E8D4A0", background: "#FFFFFF" }}>
+              <div
+                className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg"
+                style={{ background: "#1C1C1C", color: "#E8B830" }}
+              >
+                <Car className="h-6 w-6" />
+              </div>
+              <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: "#C49000" }}>
+                Rent a Vehicle
+              </p>
+              <h3 className="mb-4 font-serif text-3xl font-bold" style={{ color: "#1C1C1C" }}>
+                Find a car for your trip
+              </h3>
+              <p className="mb-8 max-w-xl text-base leading-7" style={{ color: "#4A4A4A" }}>
+                Browse our available vehicles, compare the options, and book through
+                the vehicle's Turo listing when you are ready.
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <a href="https://rent.goldenluxuryauto.com/start-block" target="_blank" rel="noopener noreferrer">
+                  <button
+                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-bold transition-all"
+                    style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
+                    data-testid="button-rental-turo"
+                  >
+                    Book on Turo
+                    <ExternalLink className="h-4 w-4" />
+                  </button>
+                </a>
+                <Link href="/fleet">
+                  <button
+                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold transition-all"
+                    style={{ border: "1.5px solid #D4A017", color: "#8B6914", background: "transparent" }}
+                    data-testid="button-rental-fleet"
+                  >
+                    Our Fleet
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
