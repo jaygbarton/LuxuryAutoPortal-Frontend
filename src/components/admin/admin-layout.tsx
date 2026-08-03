@@ -784,7 +784,11 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       // every component re-mounts, /api/auth/me is re-fetched fresh, and the
       // sidebar + page contents reflect the new role from the very first
       // paint.
-      const target = role.isEmployee ? "/staff/dashboard" : "/dashboard";
+      const target = role.isAdmin
+        ? "/dashboard"
+        : role.isEmployee
+          ? "/staff/dashboard"
+          : "/dashboard";
       window.location.assign(target);
     } catch (e: any) {
       console.error("Switch role failed:", e);
