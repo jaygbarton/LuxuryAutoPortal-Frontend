@@ -22,7 +22,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SITE_CONTACT } from "@/lib/site-config";
 
-type PageKey = "detail-shop" | "deals" | "jobs" | "testimonials" | "reviews" | "reviews-options" | "extras";
+type PageKey =
+  | "detail-shop"
+  | "deals"
+  | "jobs"
+  | "testimonials"
+  | "reviews"
+  | "reviews-options"
+  | "extras"
+  | "suggested-cars";
 
 type DetailPackage = {
   name: string;
@@ -45,6 +53,12 @@ type Extra = {
   quantity: string;
   description: string;
   imageUrl: string;
+};
+
+type SuggestedCarPartner = {
+  name: string;
+  imageUrl: string;
+  websiteHref: string;
 };
 
 const pageMeta: Record<PageKey, {
@@ -125,6 +139,16 @@ const pageMeta: Record<PageKey, {
     primaryHref: "/fleet",
     secondaryCta: "Ask A Question",
     secondaryHref: "/contact",
+  },
+  "suggested-cars": {
+    eyebrow: "Suggested Cars",
+    title: "Suggested Cars For Our Program",
+    description:
+      "Connect with our fleet dealer partners when you want to trade in or finance a qualifying vehicle for the Golden Luxury Auto program.",
+    primaryCta: "Request Car Information",
+    primaryHref: "#request-car-information",
+    secondaryCta: "List Your Car",
+    secondaryHref: "/onboarding",
   },
 };
 
@@ -298,13 +322,67 @@ const deals: Deal[] = [
   },
 ];
 
-const jobRequirements = [
-  "High standards, strong drive, and accountability",
-  "Strong interpersonal, verbal, and written English",
-  "Valid driver's license and car insurance",
-  "Self-starter who can work without constant supervision",
-  "Strong time management in changing schedules",
-  "Coachable, creative, proactive, and team-oriented",
+const suggestedCarPartners: SuggestedCarPartner[] = [
+  {
+    name: "Performance Ford Bountiful",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/3-1-768x439.png",
+    websiteHref: "https://www.performancefordbountiful.com",
+  },
+  {
+    name: "Audi Salt Lake City",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Barry-Robertson-768x439.png",
+    websiteHref: "https://www.audisaltlakecity.com",
+  },
+  {
+    name: "BMW of Murray",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Jeffery-Simena-768x439.png",
+    websiteHref: "https://www.bmwofmurray.com/",
+  },
+  {
+    name: "Jerry Seiner Nissan Salt Lake",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Ashley-768x439.png",
+    websiteHref: "https://www.seinernsl.com/",
+  },
+  {
+    name: "Jerry Seiner Cadillac",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Chris--768x439.png",
+    websiteHref: "https://www.jerryseinercadillac.com/",
+  },
+  {
+    name: "Toyota Bountiful",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Thomas-Honton-1-768x439.png",
+    websiteHref: "https://www.toyotabountiful.com",
+  },
+  {
+    name: "Lexus of Murray",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Johnny-Dee-768x439.png",
+    websiteHref: "https://www.lexusofmurray.com/",
+  },
+  {
+    name: "Larry H. Miller Chevrolet",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Donovan-Marrit-768x439.png",
+    websiteHref: "https://www.larryhmillerchevrolet.com/",
+  },
+  {
+    name: "Tim Dahle INFINITI",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Suzie-768x439.png",
+    websiteHref: "https://www.timdahleinfiniti.com/",
+  },
+  {
+    name: "Land Rover Lehi",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Bradley-768x439.png",
+    websiteHref: "https://www.landroverlehi.com/",
+  },
+  {
+    name: "Land Rover Lehi",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/11-768x439.png",
+    websiteHref: "https://www.landroverlehi.com/",
+  },
+  {
+    name: "Salt Lake Valley Chrysler Dodge Jeep Ram",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2026/01/Charles-Ziska-768x439.png",
+    websiteHref: "https://www.saltlakevalleychryslerdodgeramjeep.com/",
+  },
 ];
 
 const extras: Extra[] = [
@@ -715,44 +793,177 @@ export function JobsPage() {
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
           eyebrow="Now Hiring"
-          title="Car Washers Wanted"
-          description="Golden Luxury Auto is hiring car washers to help keep the rental fleet clean, ready, and on schedule."
+          title="Car Detailers / Drivers / Fleet Tech"
+          description="Full & Part-time"
         />
         <Card className="border-border bg-card">
-          <CardContent className="grid gap-6 p-6 lg:grid-cols-[auto_1fr_auto] lg:items-center lg:p-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
-              <BriefcaseBusiness className="h-5 w-5 text-primary" />
+          <CardContent className="p-6 lg:p-8">
+            <div className="grid gap-6 lg:grid-cols-[auto_1fr_auto] lg:items-start">
+              <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
+                <BriefcaseBusiness className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-semibold text-foreground">Car Detailers / Drivers / Fleet Tech</h3>
+                <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-primary">
+                  <span className="rounded-md bg-primary/10 px-3 py-1">Full & Part-time</span>
+                  <span className="rounded-md bg-primary/10 px-3 py-1">30-50 hours a month</span>
+                  <span className="rounded-md bg-primary/10 px-3 py-1">30-50 hours a week</span>
+                </div>
+              </div>
+              <Link href="/contact">
+                <Button className="w-full lg:w-auto">
+                  Apply Now
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
-            <div>
-              <h3 className="text-xl font-semibold text-foreground">Car Washer / Detail Support</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Help prepare vehicles for guests, clean interiors and exteriors, support the detail team, and keep cars moving through the lot with care and urgency.
-              </p>
+
+            <div className="mt-8 space-y-5 text-sm leading-7 text-muted-foreground">
+              <p>Senior Detailers and Drivers create the client's first impression of the company & are a crucial part of our organization to allow us to fulfill our mission.</p>
+              <p>Your daily task will include preparing cars for rentals, cleaning and detailing cars on a schedule, dropping cars off to clients, filling out forms, going to various auto shops, checking in cars after rentals, and other similar tasks. Our culture is energetic, driven, and friendly. We collaborate and help each other grow and succeed (A Rising Tide Raises All Ships).</p>
+              <p>All the materials, scheduling, and systems are pre-built and you will receive daily, training to master them and continuously fine-tune your skills.</p>
+              <p>Golden Luxury Auto's senior detailers are to focus entirely on client experience and making sure each rental is ready to go. Our detailers are the face of the company many times.</p>
+              <p>In that, senior detailers are expected to, for lack of a better word, hustle.</p>
+              <p>We expect our detailers to work as long and as hard as it takes to meet their goals and finish each task they start.</p>
             </div>
-            <Link href="/contact">
-              <Button className="w-full lg:w-auto">
-                Apply Now
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
           </CardContent>
         </Card>
       </section>
 
       <section className="bg-muted/45 px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <SectionHeader eyebrow="Team Standard" title="What future roles will require" />
+          <SectionHeader eyebrow="Requirements" title="Requirements" />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {jobRequirements.map((item) => (
+            {[
+              "The most important requirement to us is mindset & drive - you hold yourself accountable to the highest standards of performance and are resilient in the face of failure or rejection.",
+              "Strong interpersonal, verbal, and written communication skills in English.",
+              "Self-starter - you are comfortable working alone, managing your schedule and meeting deadlines without direct supervision. You are your own boss in many ways.",
+              "Have a valid drivers license and car insurance.",
+              "Strong time-management and organizational skills under ever-changing schedules.",
+              "Creative - you find yourself coming up with new creative ideas.",
+              "Coachable - you are excited to participate in ongoing training and constantly push yourself to get better and better.",
+              "Team player - you are able to collaborate with a small team, ask for help when needed, and complete tasks as required.",
+              "Proactive - you strive to get ahead of a problem or start a conversation, instead of waiting for the right time or opportunity to come to you.",
+            ].map((item) => (
               <div key={item} className="flex items-start gap-3 rounded-md border border-border bg-card p-4 text-sm text-foreground">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 {item}
               </div>
             ))}
           </div>
+          <Card className="mt-6 border-border bg-card">
+            <CardContent className="p-6">
+              <p className="text-sm font-semibold text-primary">3K - 7K/month</p>
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                OTE paid weekly A pre-agreed hourly pay will be paid and will be increased over time with the company and who well of a job our detailers do. There will also be bonus incentives to hit each month and ways to earn more money than your base pay.
+              </p>
+              <Link href="/contact" className="mt-5 inline-flex">
+                <Button>
+                  Apply Now
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         </div>
       </section>
       <ContactBand title="Interested in joining the detail team? Reach out today." label="Careers" />
+    </PageShell>
+  );
+}
+
+export function SuggestedCarsPage() {
+  return (
+    <PageShell page="suggested-cars">
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <SectionHeader
+          eyebrow="Fleet Dealer Partners"
+          title="Connect with our fleet dealer partners"
+          description="These suggested cars and partner contacts are here for owners who want to trade in or finance a qualifying vehicle for the program."
+        />
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {suggestedCarPartners.map((partner, index) => (
+            <Card key={`${partner.name}-${partner.imageUrl}`} className="overflow-hidden border-border bg-card">
+              <CardContent className="flex h-full flex-col p-0">
+                <div className="aspect-[1050/600] bg-muted">
+                  <img
+                    src={partner.imageUrl}
+                    alt={partner.name}
+                    className="h-full w-full object-cover"
+                    loading={index < 3 ? "eager" : "lazy"}
+                  />
+                </div>
+                <div className="flex flex-1 flex-col p-5">
+                  <h3 className="text-lg font-semibold text-foreground">{partner.name}</h3>
+                  <p className="mt-3 flex-1 text-sm leading-6 text-muted-foreground">
+                    Ask about vehicles that may qualify for the Golden Luxury Auto program.
+                  </p>
+                  <a href={partner.websiteHref} target="_blank" rel="noreferrer" className="mt-5">
+                    <Button className="w-full">
+                      Get More Info
+                      <ExternalLink className="ml-2 h-4 w-4" />
+                    </Button>
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section id="request-car-information" className="bg-muted/45 px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+          <div>
+            <SectionHeader
+              eyebrow="Request Car Information"
+              title="Request Car Information"
+              description="Please complete the form to receive detailed information about this vehicle, including specifications, pricing, and availability. Our team will respond promptly."
+            />
+            <div className="grid gap-3 text-sm text-foreground">
+              <a href={`mailto:${SITE_CONTACT.emails[0]}`} className="flex items-center gap-3 rounded-md border border-border bg-card p-4 transition-colors hover:border-primary">
+                <Mail className="h-4 w-4 text-primary" />
+                {SITE_CONTACT.emails[0]}
+              </a>
+              <a href={SITE_CONTACT.phoneHref} className="flex items-center gap-3 rounded-md border border-border bg-card p-4 transition-colors hover:border-primary">
+                <Phone className="h-4 w-4 text-primary" />
+                {SITE_CONTACT.phone}
+              </a>
+              <div className="flex items-center gap-3 rounded-md border border-border bg-card p-4">
+                <MapPin className="h-4 w-4 text-primary" />
+                {SITE_CONTACT.address[0]}, {SITE_CONTACT.address[1]}
+              </div>
+            </div>
+          </div>
+
+          <Card className="border-border bg-card">
+            <CardContent className="p-6 lg:p-8">
+              <form className="grid gap-4" action="/contact">
+                <label className="grid gap-2 text-sm font-medium text-foreground">
+                  Name
+                  <input className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary" name="name" />
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-foreground">
+                  Phone
+                  <input className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary" name="phone" />
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-foreground">
+                  Email
+                  <input className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary" name="email" type="email" />
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-foreground">
+                  Car
+                  <input className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary" name="car" />
+                </label>
+                <Button type="submit" className="mt-2">
+                  Contact Us
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+      <ContactBand title="Have a car in mind? The team can help you review the fit." label="Suggested Cars" />
     </PageShell>
   );
 }

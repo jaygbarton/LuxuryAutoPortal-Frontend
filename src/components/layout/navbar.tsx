@@ -14,6 +14,7 @@ const navLinks = [
   { href: "/testimonials", label: "Testimonials", icon: Star },
   { href: "/jobs", label: "Jobs", icon: BriefcaseBusiness },
   { href: "/onboarding", label: "List Your Car", icon: FileText },
+  { href: "/suggested-cars", label: "Suggested Cars", icon: Car },
   { href: "/contact", label: "Contact", icon: Phone },
 ];
 

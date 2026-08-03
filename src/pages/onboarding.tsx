@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -408,6 +409,15 @@ export default function Onboarding() {
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </a>
+                    <div className="rounded-md border border-primary/20 bg-primary/10 p-4">
+                      <p className="text-sm font-semibold leading-6 text-foreground">
+                        dont have a qualifiying car? trade in or finance a new one and well help you pay it off!
+                      </p>
+                      <Link href="/suggested-cars" className="mt-3 inline-flex items-center text-sm font-semibold text-primary">
+                        View Suggested Cars
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </div>
                     <div className="grid gap-3">
                       {[
                         "We review your vehicle fit and income potential.",
@@ -427,7 +437,7 @@ export default function Onboarding() {
 
             <section>
               <div className="mb-5">
-                <h2 className="text-2xl font-semibold text-foreground">Vehicle Intake</h2>
+                <h2 className="text-2xl font-semibold text-foreground">Onboarding Form</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Share the details our team needs to review your vehicle.
                 </p>
