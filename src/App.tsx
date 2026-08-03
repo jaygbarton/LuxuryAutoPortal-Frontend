@@ -11,6 +11,7 @@ import Onboarding from "@/pages/onboarding";
 import Contact from "@/pages/contact";
 import {
   DealsPage,
+  DetailShopAppointmentPage,
   DetailShopPage,
   ExtrasPage,
   JobsPage,
@@ -132,6 +133,7 @@ function Router() {
       */}
       <Route path="/" component={Home} />
       <Route path="/fleet" component={Fleet} />
+      <Route path="/detail-shop/book" component={DetailShopAppointmentPage} />
       <Route path="/detail-shop" component={DetailShopPage} />
       <Route path="/deals" component={DealsPage} />
       <Route path="/jobs" component={JobsPage} />

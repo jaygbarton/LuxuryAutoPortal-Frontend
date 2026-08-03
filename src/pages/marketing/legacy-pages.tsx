@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
+import { useForm } from "react-hook-form";
 import { Link } from "wouter";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   ArrowRight,
   BadgePercent,
@@ -21,7 +24,19 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import { SITE_CONTACT } from "@/lib/site-config";
+import { buildApiUrl } from "@/lib/queryClient";
 
 type PageKey = "detail-shop" | "deals" | "jobs" | "testimonials" | "extras";
 
@@ -66,9 +81,9 @@ const pageMeta: Record<PageKey, {
     eyebrow: "Detail Shop",
     title: "Premium Car Cleaning & Detailing",
     description:
-      "Bring the vehicle to our shop or schedule service while you travel. The V1 service menu is now rebuilt with the cleaner, modern V3 look.",
-    primaryCta: "Schedule A Cleaning",
-    primaryHref: "/contact",
+      "Bring the vehicle to our shop or schedule service while you travel. Professional detailing packages are organized here with clean pricing and a polished GLA booking path.",
+    primaryCta: "Book An Appointment",
+    primaryHref: "/detail-shop/book",
     secondaryCta: "View Packages",
     secondaryHref: "#packages",
   },
@@ -96,7 +111,7 @@ const pageMeta: Record<PageKey, {
     eyebrow: "Testimonials",
     title: "What Clients Say About GLA",
     description:
-      "A modern testimonial wall for guest, owner, and partner proof from the older website.",
+      "A modern testimonial wall for guest, owner, and partner proof.",
     primaryCta: "See The Fleet",
     primaryHref: "/fleet",
     secondaryCta: "Leave A Message",
@@ -106,7 +121,7 @@ const pageMeta: Record<PageKey, {
     eyebrow: "Trip Extras",
     title: "Add-Ons For A Better Rental",
     description:
-      "Travel lighter with ski racks, child seats, coolers, WiFi, prepaid fuel, and other trip add-ons from the old Extras page.",
+      "Travel lighter with ski racks, child seats, coolers, WiFi, prepaid fuel, and other trip add-ons.",
     primaryCta: "Book With Extras",
     primaryHref: "/fleet",
     secondaryCta: "Ask A Question",
@@ -258,8 +273,16 @@ const testimonials = [
   },
 ];
 
-function PageShell({ page, children }: { page: PageKey; children: ReactNode }) {
-  const meta = pageMeta[page];
+function PageShell({
+  page,
+  children,
+  ctaOverride,
+}: {
+  page: PageKey;
+  children: ReactNode;
+  ctaOverride?: Partial<Pick<(typeof pageMeta)[PageKey], "primaryCta" | "primaryHref" | "secondaryCta" | "secondaryHref">>;
+}) {
+  const meta = { ...pageMeta[page], ...ctaOverride };
 
   return (
     <div className="min-h-screen bg-background">
@@ -348,7 +371,7 @@ export function DetailShopPage() {
         <SectionHeader
           eyebrow="Packages + Pricing"
           title="Rental-ready detail work with clear options"
-          description="Cleanliness is still the standard. These packages modernize the old V1 detail shop menu without changing the core offer."
+          description="Cleanliness is still the standard. These packages make the service menu clear without changing the core offer."
         />
         <div className="grid gap-6 lg:grid-cols-2">
           {detailPackages.map((item) => (
@@ -399,6 +422,239 @@ export function DetailShopPage() {
   );
 }
 
+const appointmentSchema = z.object({
+  name: z.string().min(2, "Name is required"),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().min(7, "Phone is required"),
+  vehicle: z.string().min(2, "Vehicle is required"),
+  service: z.string().min(2, "Service is required"),
+  preferredDate: z.string().min(1, "Preferred date is required"),
+  preferredTime: z.string().min(1, "Preferred time is required"),
+  notes: z.string().optional(),
+});
+
+type AppointmentFormData = z.infer<typeof appointmentSchema>;
+
+export function DetailShopAppointmentPage() {
+  const { toast } = useToast();
+
+  const form = useForm<AppointmentFormData>({
+    resolver: zodResolver(appointmentSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      vehicle: "",
+      service: "",
+      preferredDate: "",
+      preferredTime: "",
+      notes: "",
+    },
+  });
+
+  const onSubmit = async (data: AppointmentFormData) => {
+    try {
+      const message = [
+        "Detail shop appointment request",
+        `Vehicle: ${data.vehicle}`,
+        `Service: ${data.service}`,
+        `Preferred date: ${data.preferredDate}`,
+        `Preferred time: ${data.preferredTime}`,
+        data.notes ? `Notes: ${data.notes}` : "",
+      ].filter(Boolean).join("\n");
+
+      const response = await fetch(buildApiUrl("/api/contact"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          subject: "Detail Shop Appointment Request",
+          message,
+        }),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send request");
+      }
+
+      toast({
+        title: "Appointment Request Sent",
+        description: "The GLA team will confirm timing and availability.",
+      });
+      form.reset();
+    } catch {
+      toast({
+        title: "Couldn't send request",
+        description: "Please call or email the detail shop team directly.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <PageShell
+      page="detail-shop"
+      ctaOverride={{
+        primaryCta: "View Packages",
+        primaryHref: "/detail-shop#packages",
+        secondaryCta: "Contact Team",
+        secondaryHref: "/contact",
+      }}
+    >
+      <section className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8 lg:py-20">
+        <div>
+          <SectionHeader
+            eyebrow="Appointment Request"
+            title="Schedule detail service with the GLA team"
+            description="Send the vehicle, service, and timing details. The team will confirm availability before the appointment is locked."
+          />
+          <div className="space-y-4">
+            {[
+              "Presidential and Executive detail packages",
+              "Odor, pet, leather, headlight, wax, shampoo, ceramic, and paint correction add-ons",
+              "Shop scheduling for rental vehicles, owner vehicles, and travel timing",
+            ].map((item) => (
+              <div key={item} className="flex items-start gap-3 rounded-md border border-border bg-card p-4 text-sm text-foreground">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <Card className="border-border bg-card">
+          <CardContent className="p-6 lg:p-8">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Your name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone</FormLabel>
+                        <FormControl>
+                          <Input type="tel" placeholder="(801) 346-1394" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="you@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="vehicle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vehicle</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Year, make, model" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="service"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Service</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Executive detail, odor removal, ceramic..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="preferredDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="preferredTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Time</FormLabel>
+                          <FormControl>
+                            <Input type="time" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Add pickup/dropoff timing, condition notes, or anything the team should know."
+                          className="min-h-[140px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" size="lg" className="w-full sm:w-auto">
+                  Send Appointment Request
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </section>
+      <ContactBand title="Prefer to call or email? The team can schedule it directly." label="Detail Shop" />
+    </PageShell>
+  );
+}
+
 export function DealsPage() {
   return (
     <PageShell page="deals">
@@ -406,7 +662,7 @@ export function DealsPage() {
         <SectionHeader
           eyebrow="Current Offers"
           title="Guest deals in one clean place"
-          description="The old deals content is now organized for quick scanning, with the GLA rental offer featured first."
+          description="Guest rental offers and local partner discounts are organized for quick scanning, with the GLA rental offer featured first."
         />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {deals.map((deal, index) => (
@@ -439,7 +695,7 @@ export function JobsPage() {
         <SectionHeader
           eyebrow="Open Roles"
           title="Built for people who can move"
-          description="The old career copy is now tightened into scannable role cards while keeping the same expectations: drive, communication, coachability, and follow-through."
+          description="Career opportunities are tightened into scannable role cards with clear expectations: drive, communication, coachability, and follow-through."
         />
         <div className="grid gap-6 lg:grid-cols-3">
           {jobs.map((job) => (
@@ -499,7 +755,7 @@ export function TestimonialsPage() {
         <SectionHeader
           eyebrow="Testimonial Wall"
           title="Proof from the people we serve"
-          description="The old testimonial page had the right purpose but almost no page body. V3 now has a polished testimonial wall ready for live review feeds or video embeds when we connect them."
+          description="A polished testimonial wall for guest, owner, and partner proof, ready for live review feeds or video embeds when we connect them."
         />
         <div className="grid gap-6 md:grid-cols-2">
           {testimonials.map((item) => (
@@ -537,7 +793,7 @@ export function ExtrasPage() {
         <SectionHeader
           eyebrow="Available Extras"
           title="Travel lighter, arrive prepared"
-          description="The V1 extras list has been rebuilt into a clean add-on catalog for guests."
+          description="Trip add-ons are rebuilt into a clean catalog for guests."
         />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {extras.map((item) => (
