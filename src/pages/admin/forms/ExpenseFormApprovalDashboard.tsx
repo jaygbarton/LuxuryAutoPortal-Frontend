@@ -67,6 +67,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   income: "Income & Expenses",
 };
 
+const APPROVAL_DASHBOARD_LIMIT = 5000;
+
 /** Searchable car picker keyed by numeric id (matches editForm.carId). The
  *  plain shadcn <Select> it replaces has no text input in its dropdown, so
  *  typing did nothing against a 100+ car list — this uses cmdk's built-in
@@ -640,7 +642,7 @@ export default function ExpenseFormApprovalDashboard({
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const limit = APPROVAL_DASHBOARD_LIMIT;
   const [selectedSubmission, setSelectedSubmission] =
     useState<Submission | null>(null);
   const [viewReceiptsOpen, setViewReceiptsOpen] = useState(false);
@@ -1621,33 +1623,10 @@ export default function ExpenseFormApprovalDashboard({
         </div>
       )}
 
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Page {pagination.page} of {pagination.totalPages} (
-            {pagination.total} total)
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="border-border text-primary"
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pagination.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="border-border text-primary"
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+      {!isLoading && !isError && pagination.total > 0 && (
+        <p className="text-sm text-muted-foreground">
+          Showing {submissions.length} of {pagination.total} total
+        </p>
       )}
 
       {/* History Dialog */}
