@@ -62,6 +62,10 @@ const STATUS_OPTIONS = [
   { value: "no_issues", label: "No Issues", className: "bg-emerald-100 text-emerald-700" },
 ];
 
+/** Dashboard default: show only inspections that still need attention. */
+const OPEN_STATUS_FILTER = "__open__";
+const OPEN_STATUSES = ["new", "in_progress"];
+
 function statusMeta(v: string | undefined | null) {
   return (
     STATUS_OPTIONS.find((s) => s.value === String(v ?? "").toLowerCase()) ??
@@ -194,7 +198,9 @@ export default function TuroInspectionsSection() {
   );
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  // Completed / No Issues are resolved work. Keep them available under the
+  // explicit status filters, but remove them from the default dashboard view.
+  const [statusFilter, setStatusFilter] = useState(OPEN_STATUS_FILTER);
   const [assignedToFilter, setAssignedToFilter] = useState("all");
   // Default to last 30 days so stale old-trip stubs don't flood the dashboard.
   // User can clear the filter to see all history.
@@ -219,7 +225,11 @@ export default function TuroInspectionsSection() {
     // the two dashboard sections don't show the same rows twice.
     f = f.filter(t => t.source === "turo_return");
     if (search.trim()) { const q = search.toLowerCase(); f = f.filter(t => Object.values(t).some(v => v != null && String(v).toLowerCase().includes(q))); }
-    if (statusFilter !== "all") f = f.filter(t => t.status === statusFilter);
+    if (statusFilter === OPEN_STATUS_FILTER) {
+      f = f.filter(t => OPEN_STATUSES.includes(String(t.status ?? "").toLowerCase()));
+    } else if (statusFilter !== "all") {
+      f = f.filter(t => t.status === statusFilter);
+    }
     if (assignedToFilter !== "all") f = f.filter(t => (t.assigned_to ?? "").trim() === assignedToFilter);
     // Single date RANGE [From, To]: keep inspections whose trip START OR trip
     // END falls within the range (single day = From==To). Compare MT
@@ -241,8 +251,9 @@ export default function TuroInspectionsSection() {
     return f.slice(0, 30);
   }, [allInspections, search, statusFilter, assignedToFilter, rangeFrom, rangeTo]);
 
-  const isFiltered = search || statusFilter !== "all" || assignedToFilter !== "all" || rangeFrom || rangeTo;
-  function clearAll() { setSearch(""); setStatusFilter("all"); setAssignedToFilter("all"); setRangeFrom(""); setRangeTo(""); }
+  const isFiltered = search || statusFilter !== OPEN_STATUS_FILTER || assignedToFilter !== "all" || rangeFrom || rangeTo;
+  // Clear returns to active work, rather than bringing resolved rows back.
+  function clearAll() { setSearch(""); setStatusFilter(OPEN_STATUS_FILTER); setAssignedToFilter("all"); setRangeFrom(""); setRangeTo(""); }
 
   return (
     <div className="mb-8">
@@ -257,6 +268,7 @@ export default function TuroInspectionsSection() {
           {search && <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
         </div>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]">
+          <option value={OPEN_STATUS_FILTER}>Open (New + In Progress)</option>
           <option value="all">All Statuses</option>
           {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
