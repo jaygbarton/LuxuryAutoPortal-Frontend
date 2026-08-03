@@ -35,6 +35,8 @@ type Deal = {
   offer: string;
   title: string;
   description: string;
+  imageUrl: string;
+  websiteHref?: string;
 };
 
 type Extra = {
@@ -42,6 +44,7 @@ type Extra = {
   price: string;
   quantity: string;
   description: string;
+  imageUrl: string;
 };
 
 const pageMeta: Record<PageKey, {
@@ -117,7 +120,7 @@ const pageMeta: Record<PageKey, {
     eyebrow: "Trip Extras",
     title: "Add-Ons For A Better Rental",
     description:
-      "Travel lighter with ski racks, child seats, coolers, mobile WiFi, prepaid fuel, and practical trip add-ons.",
+      "Travel lighter with ski racks, child seats, coolers, prepaid fuel, cleaning, and practical trip add-ons.",
     primaryCta: "Book With Extras",
     primaryHref: "/fleet",
     secondaryCta: "Ask A Question",
@@ -168,15 +171,117 @@ const detailAddOns = [
 ];
 
 const deals: Deal[] = [
-  { offer: "Up To 15% Off", title: "5+ Day Car Rental", description: "Book a car for five days or more and save on longer Utah trips. Offer available for qualifying United States bookings and rentals until 12/15/2025." },
-  { offer: "10% Off", title: "Costa Vida", description: "Enjoy a local dining discount through the Gateway partner program." },
-  { offer: "Free Dessert", title: "Fleming's", description: "Free dessert with the purchase of two entrees." },
-  { offer: "$20 Free", title: "Dave & Buster's", description: "Buy $20 in gameplay and receive an additional $20 free." },
-  { offer: "10% Off", title: "Tuscanos Brazilian Grill", description: "Enjoy 10% off dining." },
-  { offer: "10% Off", title: "The Bruce Scottish Sports Pub", description: "Enjoy 10% off dining, excluding specials." },
-  { offer: "15% Off", title: "Sweet Rolled Tacos", description: "Enjoy 15% off." },
-  { offer: "$10 Off", title: "Kiln", description: "$10 off weekday day passes from 9 AM to 5 PM." },
-  { offer: "Free Cookie", title: "SkinnyFATS", description: "Free cookie with any purchase inside Hallpass Food Hall." },
+  {
+    offer: "Up To 15% Off",
+    title: "5+ Day Car Rental",
+    description: "Book a car for five days or more and save on longer Utah trips. Offer available for qualifying United States bookings and rentals until 12/15/2025.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/08/banner-benz.webp",
+  },
+  {
+    offer: "10% Off",
+    title: "Costa Vida",
+    description: "Enjoy 10% off.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/costa-v-1-1024x830.webp",
+    websiteHref: "https://www.costavida.com/",
+  },
+  {
+    offer: "Free Dessert",
+    title: "Fleming's Free Dessert",
+    description: "Free dessert with the purchase of two entrees.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/flem-1024x399.jpg",
+    websiteHref: "https://www.flemingssteakhouse.com/",
+  },
+  {
+    offer: "$20 Free",
+    title: "Dave & Buster's",
+    description: "Buy $20 gameplay, receive an additional $20 free.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/dave-1024x576.jpg",
+    websiteHref: "https://www.daveandbusters.com/us/en/about/locations/salt-lake-city",
+  },
+  {
+    offer: "10% Off",
+    title: "Tuscanos Brazilian Grill",
+    description: "Enjoy 10% off.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/tusc.jpg",
+    websiteHref: "https://www.tucanos.com/location/slc",
+  },
+  {
+    offer: "10% Off",
+    title: "The Bruce Scottish Sports Pub",
+    description: "Enjoy 10% off dining. Excludes specials.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/bruce.jpg",
+    websiteHref: "https://www.brucepub.com/",
+  },
+  {
+    offer: "10% Off",
+    title: "Pop Drinks",
+    description: "Enjoy 10% off.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/pop-1-1024x1024.png",
+    websiteHref: "https://atthegateway.com/gatewaylocal/",
+  },
+  {
+    offer: "15% Off",
+    title: "Sweet Rolled Tacos",
+    description: "Enjoy 15% off.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/sweet_rolled_tacos_black.png",
+    websiteHref: "https://www.sweetrolledtacos.com/",
+  },
+  {
+    offer: "10% Off",
+    title: "Urban Arts Gallery",
+    description: "Enjoy 10% off purchases over $75.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/urb-1024x1024.webp",
+    websiteHref: "https://www.urbanartsgallery.org/",
+  },
+  {
+    offer: "10% Off",
+    title: "Pearl Milk Tea Club",
+    description: "Enjoy 10% off.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/pearl.png",
+    websiteHref: "https://atthegateway.com/directory/dining/pearl-milk-tea-club/",
+  },
+  {
+    offer: "$10 Off",
+    title: "Kiln",
+    description: "$10 off day passes. Valid 9 AM to 5 PM, Monday through Friday.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/kiln-1024x710.webp",
+    websiteHref: "https://kiln.com/communities/salt-lake-city/",
+  },
+  {
+    offer: "25% Off",
+    title: "Borboleta",
+    description: "25% off first appointment, 10% off all following appointments, and 10% off retail products.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/borb.png",
+    websiteHref: "https://atthegateway.com/directory/office-living/borboleta/",
+  },
+  {
+    offer: "Free Cookie",
+    title: "SkinnyFATS in Hallpass Food Hall",
+    description: "Free cookie with any purchase.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/skinny.jpg",
+    websiteHref: "https://skinnyfats.com/portfolio-item/skinnyfats-hall-pass/",
+  },
+  {
+    offer: "10% Off",
+    title: "The Store Fine Foods & Market",
+    description: "Enjoy 10% off salad and hot bar.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/ss.webp",
+    websiteHref: "https://www.thestorefinefoods.com/",
+  },
+  {
+    offer: "$5 Off",
+    title: "WOSB Collective",
+    description: "$5 off purchases over $25.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/wos.jpg",
+    websiteHref: "https://atthegateway.com/calendars/grl-pwr-market-wosb-collective/",
+  },
+  {
+    offer: "10% Off",
+    title: "Hawaii Fluid Art",
+    description: "Enjoy 10% off any booked experience.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/09/hawaii.jpg",
+    websiteHref: "https://hawaiifluidart.com/",
+  },
 ];
 
 const jobRequirements = [
@@ -189,16 +294,76 @@ const jobRequirements = [
 ];
 
 const extras: Extra[] = [
-  { name: "Ski Racks", price: "$20/day", quantity: "1", description: "Works for four pairs of skis or two snowboards." },
-  { name: "Stroller", price: "$20/day", quantity: "1", description: "A basic folding stroller ready with your rental." },
-  { name: "Car Seat", price: "$20/day", quantity: "4", description: "Toddler car seat for roughly ages 1-3." },
-  { name: "Booster Seat", price: "$20/day", quantity: "4", description: "Booster seat for roughly ages 3-5." },
-  { name: "Infant Car Seat", price: "$20/day", quantity: "4", description: "Infant car seat for roughly 1 month-1 year." },
-  { name: "Cooler", price: "$10/day", quantity: "6", description: "Cooler options ranging from smaller personal coolers to 48-can sizes." },
-  { name: "Lawn Chair", price: "$10/day", quantity: "2", description: "Folding lawn chairs with cup holders and storage bags." },
-  { name: "Prepaid Fuel", price: "$150/trip", quantity: "1", description: "Return the car without stopping to refuel." },
-  { name: "Post Trip Cleaning", price: "$50/day", quantity: "1", description: "Return the car hassle-free. Does not cover upholstery, spills, stains, pet hair, or smoke removal." },
-  { name: "NetGear Mobile WiFi", price: "$25/day", quantity: "1", description: "Private WiFi connection for laptops, tablets, and phones while traveling." },
+  {
+    name: "Ski Racks",
+    price: "$20/day",
+    quantity: "1",
+    description: "Works for four pairs of skis or two snowboards.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/08/extra-1.jpg",
+  },
+  {
+    name: "Stroller",
+    price: "$20/day",
+    quantity: "1",
+    description: "A basic folding stroller ready with your rental.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/08/extra-2-289x300.jpg",
+  },
+  {
+    name: "Car Seat",
+    price: "$20/day",
+    quantity: "4",
+    description: "Toddler car seat for roughly ages 1-3.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/08/extra-3-300x300.webp",
+  },
+  {
+    name: "Booster Seat",
+    price: "$20/day",
+    quantity: "4",
+    description: "Booster seat for roughly ages 3-5.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/08/extra-4-300x180.webp",
+  },
+  {
+    name: "Infant Car Seat",
+    price: "$20/day",
+    quantity: "4",
+    description: "Infant car seat for roughly 1 month-1 year.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/08/extra-5-218x300.webp",
+  },
+  {
+    name: "Cooler",
+    price: "$10/day",
+    quantity: "6",
+    description: "Cooler options ranging from smaller personal coolers to 48-can sizes.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/08/extra-6-300x228.webp",
+  },
+  {
+    name: "Personal Cooler",
+    price: "$10/day",
+    quantity: "6",
+    description: "Smaller cooler option for lighter trips and personal items.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/08/extra-7-300x240.webp",
+  },
+  {
+    name: "Lawn Chair",
+    price: "$10/day",
+    quantity: "2",
+    description: "Folding lawn chairs with cup holders and storage bags.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/08/extra-8-300x300.webp",
+  },
+  {
+    name: "Prepaid Fuel",
+    price: "$150/trip",
+    quantity: "1",
+    description: "Return the car without stopping to refuel.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/08/extra-9-300x266.webp",
+  },
+  {
+    name: "Post Trip Cleaning",
+    price: "$50/day",
+    quantity: "1",
+    description: "Return the car hassle-free. Does not cover upholstery, spills, stains, pet hair, or smoke removal.",
+    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/08/extra-10-300x266.webp",
+  },
 ];
 
 const testimonialVideos = [
@@ -501,16 +666,24 @@ export function DealsPage() {
           {deals.map((deal, index) => (
             <Card key={`${deal.title}-${deal.offer}`} className={`border-border bg-card ${index === 0 ? "sm:col-span-2 lg:col-span-1" : ""}`}>
               <CardContent className="flex h-full flex-col p-6">
+                <div className="mb-5 aspect-[4/3] overflow-hidden rounded-md bg-muted">
+                  <img
+                    src={deal.imageUrl}
+                    alt={deal.title}
+                    className="h-full w-full object-cover"
+                    loading={index < 3 ? "eager" : "lazy"}
+                  />
+                </div>
                 <div className="mb-5 flex items-start justify-between gap-4">
                   <span className="rounded-md bg-primary/10 px-3 py-1 text-sm font-bold text-primary">{deal.offer}</span>
                   <BadgePercent className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground">{deal.title}</h3>
                 <p className="mt-3 flex-1 text-sm leading-6 text-muted-foreground">{deal.description}</p>
-                <Link href={index === 0 ? "/fleet" : "/contact"} className="mt-6 inline-flex items-center text-sm font-semibold text-primary">
-                  {index === 0 ? "Book Now" : "Ask For Details"}
+                <CtaLink href={index === 0 ? "/fleet" : deal.websiteHref || "/contact"} className="mt-6 inline-flex items-center text-sm font-semibold text-primary">
+                  {index === 0 ? "Book Now" : "Website"}
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+                </CtaLink>
               </CardContent>
             </Card>
           ))}
@@ -726,7 +899,15 @@ export function ExtrasPage() {
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {extras.map((item) => (
             <Card key={item.name} className="border-border bg-card">
-              <CardContent className="p-6">
+              <CardContent className="flex h-full flex-col p-6">
+                <div className="mb-5 aspect-[4/3] overflow-hidden rounded-md bg-muted">
+                  <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
                 <div className="mb-5 flex items-start justify-between gap-4">
                   <div>
                     <h3 className="text-xl font-semibold text-foreground">{item.name}</h3>
@@ -736,7 +917,7 @@ export function ExtrasPage() {
                     <CarFront className="h-5 w-5 text-primary" />
                   </div>
                 </div>
-                <p className="text-sm leading-6 text-muted-foreground">{item.description}</p>
+                <p className="flex-1 text-sm leading-6 text-muted-foreground">{item.description}</p>
                 <p className="mt-5 inline-flex rounded-md bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
                   Quantity: {item.quantity}
                 </p>
