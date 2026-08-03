@@ -5203,7 +5203,7 @@ function CategorySection({
 
 interface CategoryRowProps {
   label: string;
-  /** Optional red italic note rendered next to the label (e.g. "100% Host Share"). */
+  /** Optional gold italic note rendered next to the label (e.g. "100% Host Share"). */
   splitLabel?: string;
   values: number[];
   percentageValues?: number[]; // For split rows, this stores the percentage
@@ -5389,7 +5389,7 @@ function CategoryRow({
           <div className="flex items-center gap-1.5">
             <span className="truncate">{label}</span>
             {splitLabel && (
-              <span className="truncate italic text-red-600 font-medium">
+              <span className="truncate italic text-[#B8860B] font-medium">
                 {splitLabel}
               </span>
             )}
@@ -5416,7 +5416,7 @@ function CategoryRow({
           <div className="flex items-center gap-1.5">
             <span className="truncate">{label}</span>
             {splitLabel && (
-              <span className="truncate italic text-red-600 font-medium">
+              <span className="truncate italic text-[#B8860B] font-medium">
                 {splitLabel}
               </span>
             )}
