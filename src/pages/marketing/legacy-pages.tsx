@@ -9,8 +9,6 @@ import {
   BriefcaseBusiness,
   CarFront,
   Check,
-  CircleDollarSign,
-  Clock,
   ExternalLink,
   Mail,
   MapPin,
@@ -53,14 +51,6 @@ type Deal = {
   description: string;
 };
 
-type Job = {
-  title: string;
-  schedule: string;
-  pay: string;
-  summary: string;
-  responsibilities: string[];
-};
-
 type Extra = {
   name: string;
   price: string;
@@ -91,7 +81,7 @@ const pageMeta: Record<PageKey, {
     eyebrow: "Deals",
     title: "Rental & Local Partner Discounts",
     description:
-      "A clean place for GLA rental offers and local discounts guests can use around Salt Lake City.",
+      "Explore current rental offers and local Salt Lake City partner discounts available to Golden Luxury Auto guests.",
     primaryCta: "Book A Car",
     primaryHref: "/fleet",
     secondaryCta: "Ask About Deals",
@@ -101,9 +91,9 @@ const pageMeta: Record<PageKey, {
     eyebrow: "Careers",
     title: "Careers At Golden Luxury Auto",
     description:
-      "Detailers, drivers, fleet techs, assistants, and sales roles for people who move fast, communicate clearly, and care about the client experience.",
-    primaryCta: "Apply Now",
-    primaryHref: "/employee-form",
+      "We are not accepting applications right now. When new roles open, this page will be updated with available positions and next steps.",
+    primaryCta: "View Fleet",
+    primaryHref: "/fleet",
     secondaryCta: "Contact Us",
     secondaryHref: "/contact",
   },
@@ -111,7 +101,7 @@ const pageMeta: Record<PageKey, {
     eyebrow: "Testimonials",
     title: "What Clients Say About GLA",
     description:
-      "A modern testimonial wall for guest, owner, and partner proof.",
+      "Guest, owner, and partner feedback from people who trust Golden Luxury Auto with rentals and vehicle management.",
     primaryCta: "See The Fleet",
     primaryHref: "/fleet",
     secondaryCta: "Leave A Message",
@@ -121,7 +111,7 @@ const pageMeta: Record<PageKey, {
     eyebrow: "Trip Extras",
     title: "Add-Ons For A Better Rental",
     description:
-      "Travel lighter with ski racks, child seats, coolers, WiFi, prepaid fuel, and other trip add-ons.",
+      "Travel lighter with ski racks, child seats, coolers, mobile WiFi, prepaid fuel, and practical trip add-ons.",
     primaryCta: "Book With Extras",
     primaryHref: "/fleet",
     secondaryCta: "Ask A Question",
@@ -181,51 +171,6 @@ const deals: Deal[] = [
   { offer: "15% Off", title: "Sweet Rolled Tacos", description: "Enjoy 15% off." },
   { offer: "$10 Off", title: "Kiln", description: "$10 off weekday day passes from 9 AM to 5 PM." },
   { offer: "Free Cookie", title: "SkinnyFATS", description: "Free cookie with any purchase inside Hallpass Food Hall." },
-];
-
-const jobs: Job[] = [
-  {
-    title: "Car Detailers / Drivers / Fleet Tech",
-    schedule: "Full & part-time · 30-50 hours a month or week",
-    pay: "3K-7K/month potential",
-    summary:
-      "Prepare rentals, clean and detail cars, drop vehicles off to clients, complete forms, coordinate shop visits, check in returned cars, and protect the first impression every guest gets.",
-    responsibilities: [
-      "Detail and stage vehicles on schedule",
-      "Deliver and recover vehicles",
-      "Complete rental and inspection forms",
-      "Coordinate auto shop runs",
-      "Move with urgency while keeping the client experience polished",
-    ],
-  },
-  {
-    title: "Personal Assistant",
-    schedule: "Full & part-time · 30-50 hours a month or week",
-    pay: "Hourly plus growth incentives",
-    summary:
-      "Support appointments, client calls, vehicle handoffs, forms, shop runs, rental check-ins, and daily operating details inside a fast-moving team.",
-    responsibilities: [
-      "Schedule appointments and follow up with clients",
-      "Support vehicle deliveries and returns",
-      "Handle forms and task follow-through",
-      "Coordinate with shops and internal staff",
-      "Keep communication tight and friendly",
-    ],
-  },
-  {
-    title: "Sales Representative",
-    schedule: "Full & part-time",
-    pay: "Competitive pay with high earning potential",
-    summary:
-      "Qualify inbound leads, run intro and demo calls, follow up in the pipeline, and help prospects understand whether the GLA program is a strong fit.",
-    responsibilities: [
-      "Qualify new leads and book calls",
-      "Run demos and close good-fit clients",
-      "Follow up with old pipeline leads",
-      "Give marketing feedback on lead quality",
-      "Train, role play, and improve daily",
-    ],
-  },
 ];
 
 const jobRequirements = [
@@ -662,7 +607,7 @@ export function DealsPage() {
         <SectionHeader
           eyebrow="Current Offers"
           title="Guest deals in one clean place"
-          description="Guest rental offers and local partner discounts are organized for quick scanning, with the GLA rental offer featured first."
+          description="Rental specials and partner offers are listed here so guests can plan more of the trip in one place."
         />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {deals.map((deal, index) => (
@@ -693,46 +638,34 @@ export function JobsPage() {
     <PageShell page="jobs">
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
-          eyebrow="Open Roles"
-          title="Built for people who can move"
-          description="Career opportunities are tightened into scannable role cards with clear expectations: drive, communication, coachability, and follow-through."
+          eyebrow="Hiring Status"
+          title="No positions available at the moment"
+          description="Golden Luxury Auto is not accepting applications right now. This page will be updated when a public role opens."
         />
-        <div className="grid gap-6 lg:grid-cols-3">
-          {jobs.map((job) => (
-            <Card key={job.title} className="border-border bg-card">
-              <CardContent className="flex h-full flex-col p-6">
-                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-md bg-primary/10">
-                  <BriefcaseBusiness className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground">{job.title}</h3>
-                <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-                  <p className="flex items-center gap-2"><Clock className="h-4 w-4 text-primary" />{job.schedule}</p>
-                  <p className="flex items-center gap-2"><CircleDollarSign className="h-4 w-4 text-primary" />{job.pay}</p>
-                </div>
-                <p className="mt-5 text-sm leading-6 text-muted-foreground">{job.summary}</p>
-                <div className="mt-5 space-y-2">
-                  {job.responsibilities.map((item) => (
-                    <p key={item} className="flex items-start gap-2 text-sm text-foreground">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      {item}
-                    </p>
-                  ))}
-                </div>
-                <Link href="/employee-form" className="mt-6">
-                  <Button className="w-full">
-                    Apply Now
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card className="border-border bg-card">
+          <CardContent className="grid gap-6 p-6 lg:grid-cols-[auto_1fr_auto] lg:items-center lg:p-8">
+            <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
+              <BriefcaseBusiness className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-foreground">Applications are currently closed</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Hiring paperwork is shared only with confirmed hires. Public applicants should check this page later for official openings.
+              </p>
+            </div>
+            <Link href="/fleet">
+              <Button variant="outline" className="w-full lg:w-auto">
+                View Fleet
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </section>
 
       <section className="bg-muted/45 px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <SectionHeader eyebrow="Requirements" title="What we look for" />
+          <SectionHeader eyebrow="Team Standard" title="What future roles will require" />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {jobRequirements.map((item) => (
               <div key={item} className="flex items-start gap-3 rounded-md border border-border bg-card p-4 text-sm text-foreground">
@@ -743,7 +676,7 @@ export function JobsPage() {
           </div>
         </div>
       </section>
-      <ContactBand title="Apply through the employee form and we’ll route it." label="Careers" />
+      <ContactBand title="No public roles are open right now." label="Careers" />
     </PageShell>
   );
 }
@@ -755,7 +688,7 @@ export function TestimonialsPage() {
         <SectionHeader
           eyebrow="Testimonial Wall"
           title="Proof from the people we serve"
-          description="A polished testimonial wall for guest, owner, and partner proof, ready for live review feeds or video embeds when we connect them."
+          description="A quick look at the kind of experience guests and vehicle owners expect from the GLA team."
         />
         <div className="grid gap-6 md:grid-cols-2">
           {testimonials.map((item) => (
@@ -793,7 +726,7 @@ export function ExtrasPage() {
         <SectionHeader
           eyebrow="Available Extras"
           title="Travel lighter, arrive prepared"
-          description="Trip add-ons are rebuilt into a clean catalog for guests."
+          description="Choose practical add-ons for ski trips, family travel, airport pickups, and longer Utah stays."
         />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {extras.map((item) => (
