@@ -9,6 +9,13 @@ import Home from "@/pages/home";
 import Fleet from "@/pages/fleet";
 import Onboarding from "@/pages/onboarding";
 import Contact from "@/pages/contact";
+import {
+  DealsPage,
+  DetailShopPage,
+  ExtrasPage,
+  JobsPage,
+  TestimonialsPage,
+} from "@/pages/marketing/legacy-pages";
 import NotFound from "@/pages/not-found";
 import AdminLogin from "@/pages/admin/login";
 import AdminDashboard from "@/pages/admin/dashboard";
@@ -125,6 +132,11 @@ function Router() {
       */}
       <Route path="/" component={Home} />
       <Route path="/fleet" component={Fleet} />
+      <Route path="/detail-shop" component={DetailShopPage} />
+      <Route path="/deals" component={DealsPage} />
+      <Route path="/jobs" component={JobsPage} />
+      <Route path="/testimonials" component={TestimonialsPage} />
+      <Route path="/extras" component={ExtrasPage} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/contact" component={Contact} />
       <Route path="/sign-contract/:token" component={SignContract} />

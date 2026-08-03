@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Menu, X, Car, Phone, FileText, Home } from "lucide-react";
+import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { authMeQueryFn } from "@/lib/queryClient";
 
 const navLinks = [
   { href: "/", label: "Home", icon: Home },
   { href: "/fleet", label: "Our Fleet", icon: Car },
+  { href: "/detail-shop", label: "Detail Shop", icon: Sparkles },
+  { href: "/extras", label: "Extras", icon: PlusCircle },
+  { href: "/deals", label: "Deals", icon: BadgePercent },
+  { href: "/testimonials", label: "Testimonials", icon: Star },
+  { href: "/jobs", label: "Jobs", icon: BriefcaseBusiness },
   { href: "/onboarding", label: "Get Started", icon: FileText },
   { href: "/contact", label: "Contact", icon: Phone },
 ];
@@ -54,23 +59,22 @@ export function Navbar() {
           </Link>
 
           {/* Desktop nav links */}
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-0.5">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="px-4 py-2 text-sm font-medium transition-colors relative group"
+                className="px-2.5 xl:px-3 py-2 text-sm font-medium transition-colors relative group"
                 style={{
                   color: location === link.href ? "#C49000" : "#4A4A4A",
                   textDecoration: "none",
-                  letterSpacing: "0.3px",
                 }}
                 data-testid={`link-nav-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
               >
                 {link.label}
                 <span
                   className={cn(
-                    "absolute bottom-0 left-4 right-4 h-0.5 transition-transform origin-left",
+                    "absolute bottom-0 left-2.5 right-2.5 xl:left-3 xl:right-3 h-0.5 transition-transform origin-left",
                     location === link.href ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
                   )}
                   style={{ background: "#D4A017", borderRadius: "1px" }}

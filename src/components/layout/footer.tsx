@@ -6,6 +6,11 @@ import { SiteStatsStrip } from "@/components/layout/site-stats-strip";
 
 const quickLinks = [
   { href: "/fleet", label: "Our Fleet" },
+  { href: "/detail-shop", label: "Detail Shop" },
+  { href: "/extras", label: "Extras" },
+  { href: "/deals", label: "Deals" },
+  { href: "/testimonials", label: "Testimonials" },
+  { href: "/jobs", label: "Jobs" },
   { href: "/onboarding", label: "Get Started" },
   { href: "/contact", label: "Contact Us" },
 ];
