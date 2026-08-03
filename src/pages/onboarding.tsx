@@ -119,7 +119,7 @@ const onboardingSchema = z
 type OnboardingFormData = z.infer<typeof onboardingSchema>;
 
 const steps = [
-  { id: 1, title: "GOLDEN LUXURY AUTO'S NEW CLIENT ONBOARDING FORM" },
+  { id: 1, title: "LIST YOUR CAR STARTER INFO" },
   { id: 2, title: "OWNER INFORMATION" },
   { id: 3, title: "VEHICLE INFORMATION" },
   { id: 4, title: "VEHICLE INSURANCE INFO" },
@@ -367,26 +367,71 @@ export default function Onboarding() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-20 lg:pt-24 pb-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-8 flex flex-col items-center">
-            <img
-              src="/logo.png"
-              alt="Golden Luxury Auto"
-              className="h-[120px] md:h-[150px] w-auto object-contain mb-4 drop-shadow-[0_0_12px_rgba(234,235,128,0.4)]"
-            />
-            <div className="w-full max-w-3xl mb-6 overflow-hidden rounded-lg border border-primary/20 bg-card shadow-lg">
-              <div className="aspect-video">
-                <iframe
-                  src="https://www.youtube.com/embed/zyhzeXvCp8U?start=1"
-                  title="Golden Luxury Auto Client Onboarding"
-                  className="h-full w-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              </div>
-            </div>
-            <p className="text-muted-foreground text-center">Client Onboarding Form</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-10 text-center lg:text-left">
+            <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-3">
+              List Your Car
+            </p>
+            <h1 className="font-serif text-4xl lg:text-5xl font-light text-foreground">
+              Turn your vehicle into managed rental income
+            </h1>
+            <p className="mt-4 max-w-3xl text-muted-foreground">
+              Golden Luxury Auto handles guest scheduling, pickup and drop-off, cleaning, maintenance coordination, and monthly owner reporting.
+            </p>
           </div>
+
+          <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+            <aside className="lg:sticky lg:top-24">
+              <Card className="overflow-hidden border-border bg-card">
+                <CardContent className="p-0">
+                  <div className="aspect-video bg-black">
+                    <iframe
+                      src="https://www.youtube.com/embed/zyhzeXvCp8U?start=1"
+                      title="Golden Luxury Auto List Your Car"
+                      className="h-full w-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  </div>
+                  <div className="space-y-6 p-6 lg:p-8">
+                    <div>
+                      <h2 className="font-serif text-3xl font-light text-foreground">
+                        Have questions?
+                      </h2>
+                      <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                        Book a consultation with the GLA team before completing the vehicle form.
+                      </p>
+                    </div>
+                    <a href="https://rent.goldenluxuryauto.com/book-a-call-lyc" target="_blank" rel="noreferrer">
+                      <Button size="lg" className="w-full">
+                        Book A Consulting Appointment
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </a>
+                    <div className="grid gap-3">
+                      {[
+                        "We review your vehicle fit and income potential.",
+                        "You keep ownership while GLA manages the rental process.",
+                        "Monthly reporting keeps revenue and expenses clear.",
+                      ].map((item) => (
+                        <div key={item} className="flex items-start gap-3 text-sm text-foreground">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </aside>
+
+            <section>
+              <div className="mb-5">
+                <h2 className="text-2xl font-semibold text-foreground">Vehicle Intake</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Share the details our team needs to review your vehicle.
+                </p>
+              </div>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -2050,6 +2095,8 @@ export default function Onboarding() {
               </div>
             </form>
           </Form>
+            </section>
+          </div>
         </div>
       </main>
       <Footer />

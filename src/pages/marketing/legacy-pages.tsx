@@ -80,9 +80,9 @@ const pageMeta: Record<PageKey, {
     eyebrow: "Careers",
     title: "Careers At Golden Luxury Auto",
     description:
-      "We are not accepting applications right now. When new roles open, this page will be updated with available positions and next steps.",
-    primaryCta: "View Fleet",
-    primaryHref: "/fleet",
+      "Join the Golden Luxury Auto operations team and help keep every rental clean, prepared, and ready for the next guest.",
+    primaryCta: "Apply Now",
+    primaryHref: "/contact",
     secondaryCta: "Contact Us",
     secondaryHref: "/contact",
   },
@@ -130,8 +130,22 @@ const pageMeta: Record<PageKey, {
 
 const detailPackages: DetailPackage[] = [
   {
+    name: "Basic Detail",
+    price: "Small $145 · Medium $165 · Large $185",
+    description:
+      "A practical cleanup for vehicles that need a lighter reset before the next trip, with the essentials handled cleanly and efficiently.",
+    features: [
+      "Exterior hand wash",
+      "Wheels and tires cleaned",
+      "Interior vacuum",
+      "Console and cup holders wiped down",
+      "Windows and mirrors cleaned",
+      "Rental-ready finishing check",
+    ],
+  },
+  {
     name: "Presidential Detail",
-    price: "Small $425 · Medium $450 · Large $475",
+    price: "Small $325 · Medium $350 · Large $375",
     description:
       "A full exterior and interior reset with foam bath, wheel and jamb cleaning, light polish, carnauba wax, deep vacuum, low-liquid shampoo, plastics, vinyl, leather, vents, mirrors, and glass.",
     features: [
@@ -145,7 +159,7 @@ const detailPackages: DetailPackage[] = [
   },
   {
     name: "Executive Detail",
-    price: "Small $305 · Medium $355 · Large $390",
+    price: "Small $205 · Medium $225 · Large $240",
     description:
       "A high-standard rental-ready detail with presoak, two-bucket hand wash, wheel cleaning, dressed trim and tires, vacuuming, shampooing, disinfected surfaces, and streak-free glass.",
     features: [
@@ -584,7 +598,7 @@ export function DetailShopAppointmentPage() {
             <SectionHeader
               eyebrow="Live Booking"
               title="Choose the detail appointment flow"
-              description="These are the live booking paths used by the detail shop. Guests can choose airport lot cleaning or at-home service, then pick an available time in the embedded calendar."
+              description="Choose airport lot cleaning or at-home service, then pick an available time."
             />
             <div className="grid gap-4">
               {detailBookingLinks.map((item) => (
@@ -616,7 +630,7 @@ export function DetailShopAppointmentPage() {
           <Card className="overflow-hidden border-border bg-card">
             <CardContent className="p-0">
               <div className="border-b border-border p-5">
-                <p className="text-sm font-semibold uppercase tracking-widest text-primary">Calendar Embed</p>
+                <p className="text-sm font-semibold uppercase tracking-widest text-primary">Book Online</p>
                 <h2 className="mt-2 font-serif text-2xl font-light text-foreground">Airport parking lot detail calendar</h2>
               </div>
               <iframe
@@ -637,6 +651,7 @@ export function DetailShopAppointmentPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
               "Presidential and Executive detail packages",
+              "Basic detail packages for lighter cleanup needs",
               "Odor, pet, leather, headlight, wax, shampoo, ceramic, and paint correction add-ons",
               "Shop scheduling for rental vehicles, owner vehicles, and travel timing",
             ].map((item) => (
@@ -699,9 +714,9 @@ export function JobsPage() {
     <PageShell page="jobs">
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
-          eyebrow="Hiring Status"
-          title="No positions available at the moment"
-          description="Golden Luxury Auto is not accepting applications right now. This page will be updated when a public role opens."
+          eyebrow="Now Hiring"
+          title="Car Washers Wanted"
+          description="Golden Luxury Auto is hiring car washers to help keep the rental fleet clean, ready, and on schedule."
         />
         <Card className="border-border bg-card">
           <CardContent className="grid gap-6 p-6 lg:grid-cols-[auto_1fr_auto] lg:items-center lg:p-8">
@@ -709,14 +724,14 @@ export function JobsPage() {
               <BriefcaseBusiness className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-foreground">Applications are currently closed</h3>
+              <h3 className="text-xl font-semibold text-foreground">Car Washer / Detail Support</h3>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Hiring paperwork is shared only with confirmed hires. Public applicants should check this page later for official openings.
+                Help prepare vehicles for guests, clean interiors and exteriors, support the detail team, and keep cars moving through the lot with care and urgency.
               </p>
             </div>
-            <Link href="/fleet">
-              <Button variant="outline" className="w-full lg:w-auto">
-                View Fleet
+            <Link href="/contact">
+              <Button className="w-full lg:w-auto">
+                Apply Now
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -737,7 +752,7 @@ export function JobsPage() {
           </div>
         </div>
       </section>
-      <ContactBand title="No public roles are open right now." label="Careers" />
+      <ContactBand title="Interested in joining the detail team? Reach out today." label="Careers" />
     </PageShell>
   );
 }

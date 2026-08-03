@@ -13,7 +13,7 @@ const navLinks = [
   { href: "/deals", label: "Deals", icon: BadgePercent },
   { href: "/testimonials", label: "Testimonials", icon: Star },
   { href: "/jobs", label: "Jobs", icon: BriefcaseBusiness },
-  { href: "/onboarding", label: "Get Started", icon: FileText },
+  { href: "/onboarding", label: "List Your Car", icon: FileText },
   { href: "/contact", label: "Contact", icon: Phone },
 ];
 
@@ -130,7 +130,7 @@ export function Navbar() {
                 }}
                 data-testid="button-get-started"
               >
-                Get Started
+                List Your Car
               </button>
             </Link>
           </div>
@@ -205,7 +205,7 @@ export function Navbar() {
                 onClick={() => setIsOpen(false)}
                 data-testid="button-mobile-get-started"
               >
-                Get Started
+                List Your Car
               </button>
             </Link>
           </div>

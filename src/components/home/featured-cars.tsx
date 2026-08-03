@@ -216,7 +216,7 @@ export function FeaturedCars() {
                     style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
                     data-testid="button-management-get-started"
                   >
-                    Get Started
+                    List Your Car
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </Link>

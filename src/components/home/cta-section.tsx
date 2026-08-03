@@ -70,7 +70,7 @@ export function CTASection() {
               }}
               data-testid="button-cta-get-started"
             >
-              Get Started
+              List Your Car
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </button>
           </Link>
