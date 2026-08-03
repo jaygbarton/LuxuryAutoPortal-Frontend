@@ -111,29 +111,6 @@ export function Navbar() {
                 {isLoggedIn ? "Dashboard" : "Login"}
               </button>
             </Link>
-            <Link href="/onboarding">
-              <button
-                className="px-6 py-2 rounded-lg text-sm font-bold transition-all duration-300"
-                style={{
-                  background: "linear-gradient(135deg, #D4A017, #E8B830)",
-                  color: "#1A0E00",
-                  border: "none",
-                }}
-                onMouseEnter={(e) => {
-                  const el = e.currentTarget as HTMLButtonElement;
-                  el.style.background = "linear-gradient(135deg, #C49000, #D4A017)";
-                  el.style.boxShadow = "0 4px 20px rgba(212,160,23,0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  const el = e.currentTarget as HTMLButtonElement;
-                  el.style.background = "linear-gradient(135deg, #D4A017, #E8B830)";
-                  el.style.boxShadow = "none";
-                }}
-                data-testid="button-get-started"
-              >
-                List Your Car
-              </button>
-            </Link>
           </div>
 
           {/* Mobile hamburger */}
@@ -193,20 +170,6 @@ export function Navbar() {
                 data-testid="button-mobile-login"
               >
                 {isLoggedIn ? "Dashboard" : "Login"}
-              </button>
-            </Link>
-            <Link href="/onboarding" className="w-full">
-              <button
-                className="w-full py-3 rounded-lg text-sm font-bold transition-all"
-                style={{
-                  background: "linear-gradient(135deg, #D4A017, #E8B830)",
-                  color: "#1A0E00",
-                  border: "none",
-                }}
-                onClick={() => setIsOpen(false)}
-                data-testid="button-mobile-get-started"
-              >
-                List Your Car
               </button>
             </Link>
           </div>
