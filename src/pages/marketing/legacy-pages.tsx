@@ -1,42 +1,28 @@
 import type { ReactNode } from "react";
-import { useForm } from "react-hook-form";
 import { Link } from "wouter";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   ArrowRight,
   BadgePercent,
   BriefcaseBusiness,
+  CalendarDays,
   CarFront,
   Check,
   ExternalLink,
   Mail,
   MapPin,
+  MessageSquareText,
   Phone,
+  PlayCircle,
   ShieldCheck,
   Sparkles,
-  Star,
-  Users,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
 import { SITE_CONTACT } from "@/lib/site-config";
-import { buildApiUrl } from "@/lib/queryClient";
 
-type PageKey = "detail-shop" | "deals" | "jobs" | "testimonials" | "extras";
+type PageKey = "detail-shop" | "deals" | "jobs" | "testimonials" | "reviews" | "reviews-options" | "extras";
 
 type DetailPackage = {
   name: string;
@@ -101,11 +87,31 @@ const pageMeta: Record<PageKey, {
     eyebrow: "Testimonials",
     title: "What Clients Say About GLA",
     description:
-      "Guest, owner, and partner feedback from people who trust Golden Luxury Auto with rentals and vehicle management.",
-    primaryCta: "See The Fleet",
-    primaryHref: "/fleet",
-    secondaryCta: "Leave A Message",
-    secondaryHref: "/contact",
+      "Real client video testimonials and review links from people who trust Golden Luxury Auto with rentals and vehicle management.",
+    primaryCta: "Watch Testimonials",
+    primaryHref: "#video-testimonials",
+    secondaryCta: "Leave A Review",
+    secondaryHref: "/reviews",
+  },
+  reviews: {
+    eyebrow: "Reviews",
+    title: "Share Your GLA Experience",
+    description:
+      "Choose the best place to leave a public review or send private feedback directly to the team.",
+    primaryCta: "Review Options",
+    primaryHref: "/reviews-options",
+    secondaryCta: "Send Feedback",
+    secondaryHref: "https://forms.gle/Zy9QgGFjSsVUwYw26",
+  },
+  "reviews-options": {
+    eyebrow: "Review Options",
+    title: "Leave A Public Review",
+    description:
+      "Pick the review platform you prefer. Every review helps future guests know what to expect from Golden Luxury Auto.",
+    primaryCta: "Google Review",
+    primaryHref: "https://share.google/DoBc0jrr0SkT8Ggqg",
+    secondaryCta: "Back To Testimonials",
+    secondaryHref: "/testimonials",
   },
   extras: {
     eyebrow: "Trip Extras",
@@ -195,26 +201,39 @@ const extras: Extra[] = [
   { name: "NetGear Mobile WiFi", price: "$25/day", quantity: "1", description: "Private WiFi connection for laptops, tablets, and phones while traveling." },
 ];
 
-const testimonials = [
+const testimonialVideos = [
+  { id: "KMBnH3Bg4Qg", title: "Client Testimonial 1" },
+  { id: "nLOSfS22EhE", title: "Client Testimonial 2" },
+  { id: "Z0D8S5yujiY", title: "Client Testimonial 3" },
+  { id: "7Q-wuiwVO5w", title: "Client Testimonial 4" },
+  { id: "Yq51rooYhQc", title: "Client Testimonial 5" },
+  { id: "70MQFyLmrQI", title: "Client Testimonial 6" },
+  { id: "D0CrLFe2-5E", title: "Client Testimonial 7" },
+  { id: "rLf1tGVPtKE", title: "Client Testimonial 8" },
+  { id: "ObR2xef_rXw", title: "Client Testimonial 9" },
+  { id: "hc9LFgJff6Q", title: "Client Testimonial 10" },
+  { id: "mZJpHZZVcbo", title: "Client Testimonial 11" },
+  { id: "GIIRsz0IA6s", title: "Client Testimonial 12" },
+  { id: "Mv6VcoLXPPs", title: "Client Testimonial 13" },
+];
+
+const reviewLinks = [
+  { label: "Review On Google", href: "https://share.google/DoBc0jrr0SkT8Ggqg" },
+  { label: "Review On Facebook", href: "https://www.facebook.com/Goldenluxuryauto/reviews" },
+  { label: "Review On Yelp", href: "https://www.yelp.com/biz/golden-luxury-auto-salt-lake-city" },
+  { label: "Subscribe On YouTube", href: "https://www.youtube.com/@goldenluxuryauto" },
+];
+
+const detailBookingLinks = [
   {
-    name: "Guest Experience",
-    quote:
-      "The car was clean, easy to pick up, and the team made the whole trip simple from start to finish.",
+    label: "Airport Parking Lot",
+    href: "https://detail.goldenluxuryauto.com/pick-up",
+    description: "Use the live booking calendar for vehicles cleaned at the airport parking lot.",
   },
   {
-    name: "Vehicle Owner",
-    quote:
-      "Golden Luxury Auto handles the details, communication, and rental flow so the car can perform without becoming another job for me.",
-  },
-  {
-    name: "Airport Traveler",
-    quote:
-      "Pickup was clear, the vehicle felt premium, and support was easy to reach when I had a timing question.",
-  },
-  {
-    name: "Repeat Client",
-    quote:
-      "Every rental feels consistent. Clean vehicle, fast answers, and a professional process.",
+    label: "At Home Cleaning",
+    href: "https://detail.goldenluxuryauto.com/at-home-detail1",
+    description: "Use the live at-home booking flow with the detail shop calendar and service details.",
   },
 ];
 
@@ -248,18 +267,18 @@ function PageShell({
                 {meta.description}
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link href={meta.primaryHref}>
+                <CtaLink href={meta.primaryHref}>
                   <Button size="lg" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto">
                     {meta.primaryCta}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                </Link>
+                </CtaLink>
                 {meta.secondaryCta && meta.secondaryHref ? (
-                  <Link href={meta.secondaryHref}>
+                  <CtaLink href={meta.secondaryHref}>
                     <Button size="lg" variant="outline" className="w-full border-white/30 bg-white/5 text-white hover:bg-white/10 hover:text-white sm:w-auto">
                       {meta.secondaryCta}
                     </Button>
-                  </Link>
+                  </CtaLink>
                 ) : null}
               </div>
             </div>
@@ -279,6 +298,22 @@ function SectionHeader({ eyebrow, title, description }: { eyebrow: string; title
       <h2 className="font-serif text-3xl font-light text-foreground lg:text-4xl">{title}</h2>
       {description ? <p className="mt-3 max-w-2xl text-muted-foreground">{description}</p> : null}
     </div>
+  );
+}
+
+function CtaLink({ href, children, className }: { href: string; children: ReactNode; className?: string }) {
+  if (href.startsWith("http")) {
+    return (
+      <a href={href} target="_blank" rel="noreferrer" className={className}>
+        {children}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
   );
 }
 
@@ -367,78 +402,7 @@ export function DetailShopPage() {
   );
 }
 
-const appointmentSchema = z.object({
-  name: z.string().min(2, "Name is required"),
-  email: z.string().email("Valid email is required"),
-  phone: z.string().min(7, "Phone is required"),
-  vehicle: z.string().min(2, "Vehicle is required"),
-  service: z.string().min(2, "Service is required"),
-  preferredDate: z.string().min(1, "Preferred date is required"),
-  preferredTime: z.string().min(1, "Preferred time is required"),
-  notes: z.string().optional(),
-});
-
-type AppointmentFormData = z.infer<typeof appointmentSchema>;
-
 export function DetailShopAppointmentPage() {
-  const { toast } = useToast();
-
-  const form = useForm<AppointmentFormData>({
-    resolver: zodResolver(appointmentSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      vehicle: "",
-      service: "",
-      preferredDate: "",
-      preferredTime: "",
-      notes: "",
-    },
-  });
-
-  const onSubmit = async (data: AppointmentFormData) => {
-    try {
-      const message = [
-        "Detail shop appointment request",
-        `Vehicle: ${data.vehicle}`,
-        `Service: ${data.service}`,
-        `Preferred date: ${data.preferredDate}`,
-        `Preferred time: ${data.preferredTime}`,
-        data.notes ? `Notes: ${data.notes}` : "",
-      ].filter(Boolean).join("\n");
-
-      const response = await fetch(buildApiUrl("/api/contact"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          subject: "Detail Shop Appointment Request",
-          message,
-        }),
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to send request");
-      }
-
-      toast({
-        title: "Appointment Request Sent",
-        description: "The GLA team will confirm timing and availability.",
-      });
-      form.reset();
-    } catch {
-      toast({
-        title: "Couldn't send request",
-        description: "Please call or email the detail shop team directly.",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <PageShell
       page="detail-shop"
@@ -449,14 +413,63 @@ export function DetailShopAppointmentPage() {
         secondaryHref: "/contact",
       }}
     >
-      <section className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8 lg:py-20">
-        <div>
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
+          <div>
+            <SectionHeader
+              eyebrow="Live Booking"
+              title="Choose the detail appointment flow"
+              description="These are the live booking paths used by the detail shop. Guests can choose airport lot cleaning or at-home service, then pick an available time in the embedded calendar."
+            />
+            <div className="grid gap-4">
+              {detailBookingLinks.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group rounded-md border border-border bg-card p-5 transition-colors hover:border-primary"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                      <CalendarDays className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">{item.label}</h3>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                      <span className="mt-4 inline-flex items-center text-sm font-semibold text-primary">
+                        Open full booking page
+                        <ExternalLink className="ml-2 h-4 w-4" />
+                      </span>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+
+          <Card className="overflow-hidden border-border bg-card">
+            <CardContent className="p-0">
+              <div className="border-b border-border p-5">
+                <p className="text-sm font-semibold uppercase tracking-widest text-primary">Calendar Embed</p>
+                <h2 className="mt-2 font-serif text-2xl font-light text-foreground">Airport parking lot detail calendar</h2>
+              </div>
+              <iframe
+                src="https://detail.goldenluxuryauto.com/pick-up"
+                title="Golden Luxury Auto detail shop booking calendar"
+                className="h-[760px] w-full border-0 bg-white"
+                loading="lazy"
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-12">
           <SectionHeader
-            eyebrow="Appointment Request"
-            title="Schedule detail service with the GLA team"
-            description="Send the vehicle, service, and timing details. The team will confirm availability before the appointment is locked."
+            eyebrow="Services"
+            title="Detail packages and add-ons available for booking"
           />
-          <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
               "Presidential and Executive detail packages",
               "Odor, pet, leather, headlight, wax, shampoo, ceramic, and paint correction add-ons",
@@ -469,131 +482,6 @@ export function DetailShopAppointmentPage() {
             ))}
           </div>
         </div>
-
-        <Card className="border-border bg-card">
-          <CardContent className="p-6 lg:p-8">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Your name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone</FormLabel>
-                        <FormControl>
-                          <Input type="tel" placeholder="(801) 346-1394" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="you@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="vehicle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Vehicle</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Year, make, model" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="service"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Service</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Executive detail, odor removal, ceramic..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="preferredDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="preferredTime"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Time</FormLabel>
-                          <FormControl>
-                            <Input type="time" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Notes</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Add pickup/dropoff timing, condition notes, or anything the team should know."
-                          className="min-h-[140px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" size="lg" className="w-full sm:w-auto">
-                  Send Appointment Request
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
       </section>
       <ContactBand title="Prefer to call or email? The team can schedule it directly." label="Detail Shop" />
     </PageShell>
@@ -684,37 +572,144 @@ export function JobsPage() {
 export function TestimonialsPage() {
   return (
     <PageShell page="testimonials">
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+      <section id="video-testimonials" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
-          eyebrow="Testimonial Wall"
-          title="Proof from the people we serve"
-          description="A quick look at the kind of experience guests and vehicle owners expect from the GLA team."
+          eyebrow="Video Testimonials"
+          title="Real client stories from the testimonial wall"
+          description="The testimonial videos from the public GLA library are embedded here so guests can hear directly from past clients."
         />
-        <div className="grid gap-6 md:grid-cols-2">
-          {testimonials.map((item) => (
-            <Card key={item.name} className="border-border bg-card">
-              <CardContent className="p-6 lg:p-8">
-                <div className="mb-5 flex gap-1 text-primary">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-current" />
-                  ))}
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {testimonialVideos.map((video) => (
+            <Card key={video.id} className="overflow-hidden border-border bg-card">
+              <CardContent className="p-0">
+                <div className="aspect-video bg-black">
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${video.id}`}
+                    title={video.title}
+                    className="h-full w-full border-0"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
                 </div>
-                <p className="text-lg leading-8 text-foreground">"{item.quote}"</p>
-                <div className="mt-6 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                    <Users className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">Golden Luxury Auto</p>
-                  </div>
+                <div className="flex items-center gap-3 p-5">
+                  <PlayCircle className="h-5 w-5 text-primary" />
+                  <p className="font-semibold text-foreground">{video.title}</p>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       </section>
+
+      <section className="bg-muted/45 px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeader
+            eyebrow="Review Links"
+            title="Public review paths from GLA"
+            description="Guests who want to share their experience can choose the platform that fits them best."
+          />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {reviewLinks.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-md border border-border bg-card p-5 transition-colors hover:border-primary"
+              >
+                <MessageSquareText className="h-5 w-5 text-primary" />
+                <h3 className="mt-4 font-semibold text-foreground">{item.label}</h3>
+                <span className="mt-4 inline-flex items-center text-sm font-semibold text-primary">
+                  Open Link
+                  <ExternalLink className="ml-2 h-4 w-4" />
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
       <ContactBand title="Want to experience the same standard?" label="Testimonials" />
+    </PageShell>
+  );
+}
+
+export function ReviewsPage() {
+  return (
+    <PageShell page="reviews">
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <SectionHeader
+          eyebrow="Share Feedback"
+          title="Choose public review or private feedback"
+          description="Happy guests can leave a public review. If something needs direct attention, the private feedback form goes straight to the team."
+        />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="border-border bg-card">
+            <CardContent className="flex h-full flex-col p-6 lg:p-8">
+              <MessageSquareText className="h-7 w-7 text-primary" />
+              <h3 className="mt-5 text-2xl font-semibold text-foreground">Great experience</h3>
+              <p className="mt-3 flex-1 text-sm leading-6 text-muted-foreground">
+                Choose a public platform and share the experience with future Golden Luxury Auto guests.
+              </p>
+              <Link href="/reviews-options" className="mt-6">
+                <Button size="lg" className="w-full sm:w-auto">
+                  Review Options
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+          <Card className="border-border bg-card">
+            <CardContent className="flex h-full flex-col p-6 lg:p-8">
+              <Mail className="h-7 w-7 text-primary" />
+              <h3 className="mt-5 text-2xl font-semibold text-foreground">Send private feedback</h3>
+              <p className="mt-3 flex-1 text-sm leading-6 text-muted-foreground">
+                Send details directly to the GLA team when the conversation should stay private.
+              </p>
+              <a href="https://forms.gle/Zy9QgGFjSsVUwYw26" target="_blank" rel="noreferrer" className="mt-6">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                  Feedback Form
+                  <ExternalLink className="ml-2 h-4 w-4" />
+                </Button>
+              </a>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+      <ContactBand title="Thank you for taking the time to review Golden Luxury Auto." label="Reviews" />
+    </PageShell>
+  );
+}
+
+export function ReviewsOptionsPage() {
+  return (
+    <PageShell page="reviews-options">
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <SectionHeader
+          eyebrow="Public Review Options"
+          title="Choose where to leave the review"
+          description="These are the official review and social links carried over from the GLA review flow."
+        />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {reviewLinks.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-md border border-border bg-card p-6 transition-colors hover:border-primary"
+            >
+              <MessageSquareText className="h-6 w-6 text-primary" />
+              <h3 className="mt-5 text-lg font-semibold text-foreground">{item.label}</h3>
+              <span className="mt-5 inline-flex items-center text-sm font-semibold text-primary">
+                Continue
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </span>
+            </a>
+          ))}
+        </div>
+      </section>
+      <ContactBand title="Need help before leaving a review? Contact the team directly." label="Reviews" />
     </PageShell>
   );
 }

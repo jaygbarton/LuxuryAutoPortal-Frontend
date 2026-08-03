@@ -15,6 +15,8 @@ import {
   DetailShopPage,
   ExtrasPage,
   JobsPage,
+  ReviewsOptionsPage,
+  ReviewsPage,
   TestimonialsPage,
 } from "@/pages/marketing/legacy-pages";
 import NotFound from "@/pages/not-found";
@@ -138,6 +140,8 @@ function Router() {
       <Route path="/deals" component={DealsPage} />
       <Route path="/jobs" component={JobsPage} />
       <Route path="/testimonials" component={TestimonialsPage} />
+      <Route path="/reviews-options" component={ReviewsOptionsPage} />
+      <Route path="/reviews" component={ReviewsPage} />
       <Route path="/extras" component={ExtrasPage} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/contact" component={Contact} />
