@@ -54,9 +54,20 @@ export default function ContractManagement() {
     localStorage.setItem("contracts_limit", itemsPerPage.toString());
   }, [itemsPerPage]);
 
+  // "Show All" bypasses pagination entirely (single fetch, capped at the
+  // backend's max of 1000 — well above the current ~400 contract count).
+  const SHOW_ALL_LIMIT = 1000;
+  const [showAll, setShowAll] = useState<boolean>(() => localStorage.getItem("contracts_show_all") === "true");
+
+  useEffect(() => {
+    localStorage.setItem("contracts_show_all", showAll.toString());
+  }, [showAll]);
+
+  const effectiveLimit = showAll ? SHOW_ALL_LIMIT : itemsPerPage;
+
   useEffect(() => {
     setPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, showAll]);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -71,12 +82,12 @@ export default function ContractManagement() {
       totalPages: number;
     };
   }>({
-    queryKey: ["lyc-contracts", searchQuery, page, itemsPerPage],
+    queryKey: ["lyc-contracts", searchQuery, page, effectiveLimit],
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: itemsPerPage.toString(),
+        limit: effectiveLimit.toString(),
   });
       if (searchQuery) {
         params.append("search", searchQuery);
@@ -417,23 +428,41 @@ export default function ContractManagement() {
 
               {/* Pagination */}
               {contractsData.pagination && (
-                <TablePagination
-                  totalItems={contractsData.pagination.total}
-                  itemsPerPage={itemsPerPage}
-                  currentPage={page}
-                  onPageChange={(newPage) => {
-                    setPage(newPage);
-                    window.scrollTo({
-                      top: 0,
-                      behavior: "smooth",
-                    });
-                  }}
-                  onItemsPerPageChange={(newLimit) => {
-                    setItemsPerPage(newLimit);
-                    setPage(1);
-                  }}
-                  isLoading={isLoading}
-                />
+                <>
+                  <div className="flex items-center px-6 py-3 bg-card border-t border-border">
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showAll}
+                        onChange={(e) => {
+                          setShowAll(e.target.checked);
+                          setPage(1);
+                        }}
+                        className="h-4 w-4 rounded border-border accent-[#D3BC8D]"
+                      />
+                      Show all {contractsData.pagination.total} contracts (no pagination)
+                    </label>
+                  </div>
+                  {!showAll && (
+                    <TablePagination
+                      totalItems={contractsData.pagination.total}
+                      itemsPerPage={itemsPerPage}
+                      currentPage={page}
+                      onPageChange={(newPage) => {
+                        setPage(newPage);
+                        window.scrollTo({
+                          top: 0,
+                          behavior: "smooth",
+                        });
+                      }}
+                      onItemsPerPageChange={(newLimit) => {
+                        setItemsPerPage(newLimit);
+                        setPage(1);
+                      }}
+                      isLoading={isLoading}
+                    />
+                  )}
+                </>
               )}
             </>
           ) : (
