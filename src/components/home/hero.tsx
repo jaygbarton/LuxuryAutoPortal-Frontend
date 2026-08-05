@@ -111,7 +111,7 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
           </div>
         ) : location ? (
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href={location.fleetPath}>
+            <Link href="/">
             <Button
               size="lg"
               className="min-w-[180px] group font-bold"
@@ -120,9 +120,9 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
                 color: "#1A0E00",
                 border: "none",
               }}
-              data-testid="button-explore-fleet"
+              data-testid="button-switch-location"
             >
-              Explore Fleet
+              Switch Location
               <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>
