@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
+import { formatMonthDayYear } from "@/lib/date-format";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, HandCoins, RefreshCw, Loader2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -76,12 +77,7 @@ const PAYRUN_STATUS_MAP: Record<
 };
 
 function formatDate(s: string) {
-  if (!s) return "—";
-  try {
-    return new Date(s).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
-  } catch {
-    return s;
-  }
+  return formatMonthDayYear(s);
 }
 
 function money(v: string | number | null | undefined) {

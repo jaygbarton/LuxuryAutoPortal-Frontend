@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
 import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { authMeQueryFn } from "@/lib/queryClient";
 import { getPublicLocationFromPath, withLocationPath } from "@/lib/location-config";
+import { UserAccountMenu } from "@/components/layout/user-account-menu";
 
 const navLinks = [
   { href: "/", label: "Home", icon: Home },
@@ -32,15 +31,6 @@ export function Navbar() {
     if (link.href === "/suggested-cars") return publicLocation.availablePages.suggestedCars;
     return true;
   });
-
-  // Check if user is already logged in
-  const { data: authData } = useQuery<{ user?: any }>({
-    queryKey: ["/api/auth/me"],
-    queryFn: authMeQueryFn,
-    retry: false,
-    staleTime: 1000 * 60 * 5,
-  });
-  const isLoggedIn = !!authData?.user;
 
   return (
     <>
@@ -98,44 +88,21 @@ export function Navbar() {
             })}
           </div>
 
-          {/* Desktop action buttons */}
           <div className="hidden lg:flex items-center gap-3">
-            <Link href={isLoggedIn ? "/dashboard" : "/admin/login"}>
-              <button
-                className="px-5 py-2 rounded-lg text-sm font-medium transition-all duration-300"
-                style={{
-                  background: "none",
-                  border: "1.5px solid #E5E5E5",
-                  color: "#1C1C1C",
-                }}
-                onMouseEnter={(e) => {
-                  const el = e.currentTarget as HTMLButtonElement;
-                  el.style.borderColor = "#D4A017";
-                  el.style.color = "#C49000";
-                  el.style.background = "#FDF8EE";
-                }}
-                onMouseLeave={(e) => {
-                  const el = e.currentTarget as HTMLButtonElement;
-                  el.style.borderColor = "#E5E5E5";
-                  el.style.color = "#1C1C1C";
-                  el.style.background = "none";
-                }}
-                data-testid="button-login"
-              >
-                {isLoggedIn ? "Dashboard" : "Login"}
-              </button>
-            </Link>
+            <UserAccountMenu context="public" />
           </div>
 
-          {/* Mobile hamburger */}
-          <button
-            className="lg:hidden p-2"
-            style={{ color: "#1C1C1C" }}
-            onClick={() => setIsOpen(!isOpen)}
-            data-testid="button-mobile-menu"
-          >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          <div className="lg:hidden flex items-center gap-2">
+            <UserAccountMenu context="public" className="h-9 w-9" />
+            <button
+              className="p-2"
+              style={{ color: "#1C1C1C" }}
+              onClick={() => setIsOpen(!isOpen)}
+              data-testid="button-mobile-menu"
+            >
+              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
       </div>
     </nav>
@@ -173,21 +140,6 @@ export function Navbar() {
               </Link>
             );
           })}
-          <div
-            className="mt-6 pt-6 space-y-2"
-            style={{ borderTop: "1px solid #E8D4A0" }}
-          >
-            <Link href={isLoggedIn ? "/dashboard" : "/admin/login"} className="w-full">
-              <button
-                className="w-full py-3 rounded-lg text-sm font-medium transition-all"
-                style={{ background: "none", border: "1.5px solid #E8D4A0", color: "#C49000" }}
-                onClick={() => setIsOpen(false)}
-                data-testid="button-mobile-login"
-              >
-                {isLoggedIn ? "Dashboard" : "Login"}
-              </button>
-            </Link>
-          </div>
         </div>
       )}
     </>

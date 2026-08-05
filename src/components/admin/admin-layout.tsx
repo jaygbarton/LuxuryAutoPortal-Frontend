@@ -50,6 +50,7 @@ import { ViewAsClientBanner } from "./ViewAsClientBanner";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient, buildApiUrl } from "@/lib/queryClient";
 import { AuthGuard } from "./auth-guard";
+import { UserAccountMenu } from "@/components/layout/user-account-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1029,7 +1030,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
             <NotificationBell />
             {user && (
               <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-[120px] sm:max-w-none">
+                <span className="hidden sm:inline text-xs sm:text-sm text-muted-foreground truncate max-w-[120px] sm:max-w-none">
                   {user.firstName} {user.lastName}{" "}
                   <span className="hidden sm:inline">({user.roleName})</span>
                 </span>
@@ -1072,6 +1073,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                   )}
               </div>
             )}
+            <UserAccountMenu context="app" />
           </div>
         </header>
 

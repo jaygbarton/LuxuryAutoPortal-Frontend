@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
+import { formatMonthDayYearTime } from "@/lib/date-format";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -29,27 +30,7 @@ import { Plus, Edit, Trash2, History } from "lucide-react";
 import type { OperationTask, TaskType, TaskStatus, TuroTrip } from "./types";
 
 const formatDate = (dateStr: string | null): string => {
-  if (!dateStr) return "--";
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return (
-      d.toLocaleDateString("en-US", {
-        timeZone: "America/Denver",
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      }) +
-      ", " +
-      d.toLocaleTimeString("en-US", {
-        timeZone: "America/Denver",
-        hour: "numeric",
-        minute: "2-digit",
-      })
-    );
-  } catch {
-    return dateStr;
-  }
+  return formatMonthDayYearTime(dateStr, "--");
 };
 
 const formatCurrency = (n: number | null | undefined): string => {

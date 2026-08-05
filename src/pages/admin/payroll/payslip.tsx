@@ -17,6 +17,7 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { buildApiUrl } from "@/lib/queryClient";
+import { formatMonthDayYear } from "@/lib/date-format";
 import { ArrowLeft, Printer, Loader2 } from "lucide-react";
 
 interface EmployeeLookupRow {
@@ -60,16 +61,7 @@ interface PayslipData {
 }
 
 function formatDate(s: string) {
-  if (!s) return "—";
-  try {
-    return new Date(s).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return s;
-  }
+  return formatMonthDayYear(s);
 }
 
 function formatCurrency(s: string | number) {

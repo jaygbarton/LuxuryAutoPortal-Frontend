@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Edit, FileText, Loader2, Upload, Download, Wand2, CalendarX, Filter, FileSpreadsheet, CheckCircle2, X, AlertTriangle, Search, ChevronDown, Check, Lock } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { buildApiUrl } from "@/lib/queryClient";
+import { formatMonthDayYear } from "@/lib/date-format";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -73,27 +74,13 @@ const formatCurrency = (value: number): string => {
 };
 
 const formatDate = (dateStr: string | null): string => {
-  if (!dateStr) return "--";
-  try {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return dateStr;
-  }
+  return formatMonthDayYear(dateStr, "--");
 };
 
 const formatYearMonth = (yearMonth: string): string => {
   try {
     const [year, month] = yearMonth.split("-");
-    const date = new Date(parseInt(year), parseInt(month) - 1);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-    });
+    return `${String(parseInt(month)).padStart(2, "0")}/${year}`;
   } catch {
     return yearMonth;
   }

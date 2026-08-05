@@ -16,6 +16,7 @@ import { Loader2, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { DashboardRecordCard } from "@/components/admin/dashboard";
+import { formatMonthDayYearTime } from "@/lib/date-format";
 
 interface ClientTrip {
   id: number;
@@ -37,17 +38,7 @@ interface CarOption {
 }
 
 function fmt(dateStr: string | null): string {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleString("en-US", {
-    timeZone: "America/Denver",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return formatMonthDayYearTime(dateStr);
 }
 
 function statusBadgeClass(status: string | null) {

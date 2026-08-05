@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Wrench, ExternalLink } from "lucide-react";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
+import { formatMonthDayYear } from "@/lib/date-format";
 
 interface ClientMaintenance {
   id: number;
@@ -38,15 +39,7 @@ interface ClientMaintenance {
 }
 
 function fmt(dateStr: string | null): string {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleString("en-US", {
-    timeZone: "America/Denver",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return formatMonthDayYear(dateStr);
 }
 
 const STATUS_LABELS: Record<string, string> = {

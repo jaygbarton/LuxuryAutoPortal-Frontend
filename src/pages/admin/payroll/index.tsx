@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { buildApiUrl } from "@/lib/queryClient";
+import { formatMonthDayYear } from "@/lib/date-format";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Search, Pencil, Trash2 } from "lucide-react";
 import { TableRowSkeleton } from "@/components/ui/skeletons";
@@ -75,16 +76,7 @@ const PAYRUN_STATUS_MAP: Record<
 };
 
 function formatDate(s: string) {
-  if (!s) return "—";
-  try {
-    return new Date(s).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return s;
-  }
+  return formatMonthDayYear(s);
 }
 
 function formatCurrency(s: string) {

@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { buildApiUrl, buildUploadApiUrl } from "@/lib/queryClient";
+import { formatMonthDayYear, formatMonthDayYearTime } from "@/lib/date-format";
 import { EmployeeDocumentImage } from "@/components/admin/EmployeeDocumentImage";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, Image, List, Loader2, RefreshCw, Upload } from "lucide-react";
@@ -70,15 +71,7 @@ interface Employee {
 }
 
 function formatDate(dateString: string) {
-  try {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return "—";
-  }
+  return formatMonthDayYear(dateString);
 }
 
 function unspecified(val: string | null | undefined): string {
@@ -91,19 +84,7 @@ function formatCurrency(val: string | number | null | undefined): string {
 }
 
 function formatDateTime(dateString: string | null | undefined): string {
-  if (!dateString) return "—";
-  try {
-    const d = new Date(dateString);
-    return d.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
+  return formatMonthDayYearTime(dateString);
 }
 
 export default function StaffMyInfoSection() {

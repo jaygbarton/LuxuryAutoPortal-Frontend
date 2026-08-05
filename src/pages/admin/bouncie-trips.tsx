@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { buildApiUrl } from "@/lib/queryClient";
+import { formatMonthDayYearTime } from "@/lib/date-format";
 import {
   Select,
   SelectContent,
@@ -77,23 +78,7 @@ function formatDuration(secs: number | null): string {
 }
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "—";
-  return (
-    d.toLocaleDateString("en-US", {
-      timeZone: "America/Denver",
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    }) +
-    ", " +
-    d.toLocaleTimeString("en-US", {
-      timeZone: "America/Denver",
-      hour: "numeric",
-      minute: "2-digit",
-    })
-  );
+  return formatMonthDayYearTime(dateStr);
 }
 
 function vehicleName(trip: StoredTrip): string {
