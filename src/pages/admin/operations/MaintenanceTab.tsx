@@ -99,7 +99,9 @@ const calculateDaysRented = (
 };
 
 /** Car Owner Approval Status chip for the Maintenance table. Shows
- *  Email Sent / Approved / Declined (with reason + self-pickup on hover). */
+ *  Email Sent / Approved / Declined, plus the requested/responded timestamps
+ *  and (when declined) the reason directly in the cell — not just on hover,
+ *  since a hidden decline reason was hard to find at a glance. */
 function OwnerApprovalBadge({ rec }: { rec: MaintenanceRecord }) {
   const s = rec.owner_approval_status || "not_sent";
   if (s === "not_sent") {
@@ -130,13 +132,24 @@ function OwnerApprovalBadge({ rec }: { rec: MaintenanceRecord }) {
   };
   const m = map[s] || map.email_sent;
   const wantsPickup = rec.owner_wants_pickup === 1 || rec.owner_wants_pickup === true;
-  const title =
-    s === "declined"
-      ? `Reason: ${rec.owner_decline_reason || "—"}${wantsPickup ? "\nOwner will pick up the vehicle to self-manage (block-off forms required)." : ""}`
-      : undefined;
   return (
-    <span className="inline-flex flex-col items-start gap-0.5" title={title}>
+    <span className="inline-flex flex-col items-start gap-0.5">
       <Badge className={`${m.cls} border-0 text-xs font-medium`}>{m.label}</Badge>
+      {rec.approval_email_sent_at && (
+        <span className="text-[10px] text-muted-foreground">
+          Requested: {formatDateTime(rec.approval_email_sent_at)}
+        </span>
+      )}
+      {rec.owner_responded_at && (s === "approved" || s === "declined") && (
+        <span className="text-[10px] text-muted-foreground">
+          Responded: {formatDateTime(rec.owner_responded_at)}
+        </span>
+      )}
+      {s === "declined" && (
+        <span className="text-[10px] text-red-400 max-w-[220px] whitespace-normal">
+          Reason: {rec.owner_decline_reason || "—"}
+        </span>
+      )}
       {s === "declined" && wantsPickup && (
         <span className="text-[10px] text-amber-500">Self-pickup</span>
       )}

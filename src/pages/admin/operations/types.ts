@@ -239,6 +239,8 @@ export interface MaintenanceRecord {
    *  not email them, so owner_approval_status stays "not_sent" by design. */
   owner_has_app_access?: 0 | 1 | boolean | null;
   owner_responded_at?: string | null;
+  /** When the owner-approval request email was sent (Day 0 of the SOP cadence). */
+  approval_email_sent_at?: string | null;
 }
 
 export type TaskType = "cleaning" | "delivery" | "pickup" | "refuel" | "mechanic" | "windshield" | "license_plate" | "airport";
