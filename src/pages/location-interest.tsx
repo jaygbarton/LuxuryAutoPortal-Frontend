@@ -102,6 +102,25 @@ export default function LocationInterest({ location }: { location: PublicLocatio
 
         <section className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:px-8 lg:py-20">
           <div className="space-y-4">
+            <Card className="overflow-hidden border-border bg-card">
+              <CardContent className="p-0">
+                <div className="aspect-video bg-black">
+                  <iframe
+                    src="https://www.youtube.com/embed/zyhzeXvCp8U?start=1"
+                    title="Golden Luxury Auto car sharing program"
+                    className="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                </div>
+                <div className="p-5">
+                  <h2 className="font-semibold text-foreground">Car Sharing Program</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    Watch how Golden Luxury Auto manages vehicles for owners before joining the launch list.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
             {[
               { icon: Bell, title: "Launch Notification", text: `Get notified when ${location.cityState} starts accepting vehicles.` },
               { icon: Car, title: "Vehicle Owner Interest", text: "Tell us what you may want to list so the team can follow up cleanly." },
