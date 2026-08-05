@@ -114,6 +114,11 @@ export default function PaymentsMainPage() {
   const devMode = new URLSearchParams(window.location.search).get("dev") === "1";
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(30);
+  // "Show All" bypasses pagination for the current filters (capped at the
+  // backend's max of 2000 so an unfiltered fetch can't pull all ~13k rows).
+  const SHOW_ALL_LIMIT = 2000;
+  const [showAll, setShowAll] = useState(false);
+  const effectivePageSize = showAll ? SHOW_ALL_LIMIT : pageSize;
 
   const [isFilter, setIsFilter] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -214,7 +219,7 @@ export default function PaymentsMainPage() {
       carFilter,
       carActivityFilter,
       page,
-      pageSize,
+      effectivePageSize,
       sortOrder,
     ],
     queryFn: async () => {
@@ -230,7 +235,7 @@ export default function PaymentsMainPage() {
           carId: carFilter || undefined,
           carActiveStatus: carActivityFilter,
           page,
-          limit: pageSize,
+          limit: effectivePageSize,
           sortOrder,
         }),
       });
@@ -545,7 +550,7 @@ export default function PaymentsMainPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [filterStatus, startMonth, endMonth, carFilter, carActivityFilter, pageSize]);
+  }, [filterStatus, startMonth, endMonth, carFilter, carActivityFilter, pageSize, showAll]);
 
   // Close the car dropdown when the user clicks outside it
   useEffect(() => {
@@ -923,7 +928,7 @@ export default function PaymentsMainPage() {
                           key={payment.payments_aid}
                           className="border-b border-border/60 hover:bg-muted/40 transition-colors"
                         >
-                          <td className="px-3 py-3 text-muted-foreground text-xs align-middle">{(page - 1) * pageSize + index + 1}.</td>
+                          <td className="px-3 py-3 text-muted-foreground text-xs align-middle">{(page - 1) * effectivePageSize + index + 1}.</td>
                           <td className="px-3 py-3 align-middle">
                             <Badge
                               style={{
@@ -1048,69 +1053,93 @@ export default function PaymentsMainPage() {
 
           {/* Pagination footer pinned inside the card */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 border-t border-border bg-card">
-            <div className="text-xs text-muted-foreground">
-              {totalPayments > 0 ? (
-                <>
-                  Showing{" "}
-                  <span className="font-semibold text-foreground">
-                    {(page - 1) * pageSize + 1}
+            <div className="flex items-center gap-4">
+              <div className="text-xs text-muted-foreground">
+                {totalPayments > 0 ? (
+                  showAll ? (
+                    <>
+                      Showing all{" "}
+                      <span className="font-semibold text-foreground">{totalPayments}</span>{" "}
+                      payment{totalPayments === 1 ? "" : "s"}
+                      {totalPayments >= SHOW_ALL_LIMIT && (
+                        <span className="text-yellow-600"> (capped at {SHOW_ALL_LIMIT} — narrow filters to see more)</span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      Showing{" "}
+                      <span className="font-semibold text-foreground">
+                        {(page - 1) * effectivePageSize + 1}
+                      </span>
+                      {"–"}
+                      <span className="font-semibold text-foreground">
+                        {Math.min(page * effectivePageSize, totalPayments)}
+                      </span>{" "}
+                      of{" "}
+                      <span className="font-semibold text-foreground">{totalPayments}</span>{" "}
+                      payment{totalPayments === 1 ? "" : "s"}
+                    </>
+                  )
+                ) : (
+                  <>No payments to display</>
+                )}
+              </div>
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={showAll}
+                  onChange={(e) => setShowAll(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-border accent-primary"
+                />
+                Show all (current filters)
+              </label>
+            </div>
+            {!showAll && (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Rows</Label>
+                  <Select
+                    value={String(pageSize)}
+                    onValueChange={(v) => setPageSize(parseInt(v, 10))}
+                  >
+                    <SelectTrigger className="bg-background border-border text-foreground w-[72px] h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border text-foreground">
+                      {[10, 30, 50, 100, 200].map((n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {n}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1 || isLoadingPayments}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    className="h-8 px-3 bg-background border-border text-foreground hover:bg-muted disabled:opacity-40"
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap px-2">
+                    Page <span className="font-semibold text-foreground">{page}</span> of{" "}
+                    <span className="font-semibold text-foreground">{totalPages}</span>
                   </span>
-                  {"–"}
-                  <span className="font-semibold text-foreground">
-                    {Math.min(page * pageSize, totalPayments)}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-semibold text-foreground">{totalPayments}</span>{" "}
-                  payment{totalPayments === 1 ? "" : "s"}
-                </>
-              ) : (
-                <>No payments to display</>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Label className="text-xs text-muted-foreground whitespace-nowrap">Rows</Label>
-                <Select
-                  value={String(pageSize)}
-                  onValueChange={(v) => setPageSize(parseInt(v, 10))}
-                >
-                  <SelectTrigger className="bg-background border-border text-foreground w-[72px] h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border text-foreground">
-                    {[10, 30, 50, 100, 200].map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= totalPages || isLoadingPayments}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    className="h-8 px-3 bg-background border-border text-foreground hover:bg-muted disabled:opacity-40"
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1 || isLoadingPayments}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="h-8 px-3 bg-background border-border text-foreground hover:bg-muted disabled:opacity-40"
-                >
-                  Previous
-                </Button>
-                <span className="text-xs text-muted-foreground whitespace-nowrap px-2">
-                  Page <span className="font-semibold text-foreground">{page}</span> of{" "}
-                  <span className="font-semibold text-foreground">{totalPages}</span>
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages || isLoadingPayments}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className="h-8 px-3 bg-background border-border text-foreground hover:bg-muted disabled:opacity-40"
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 

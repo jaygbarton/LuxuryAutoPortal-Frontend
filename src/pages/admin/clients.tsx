@@ -103,6 +103,10 @@ export default function ClientsPage() {
   const [onlineFilter, setOnlineFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   
+  // "Show All" bypasses pagination entirely (single fetch, capped at the
+  // backend's max of 500 — well above the current ~255 client count).
+  const SHOW_ALL_LIMIT = 500;
+
   // Load items per page from localStorage, default to 10
   const [itemsPerPage, setItemsPerPage] = useState<ItemsPerPage>(() => {
     const saved = localStorage.getItem("clients_limit");
@@ -113,6 +117,14 @@ export default function ClientsPage() {
   useEffect(() => {
     localStorage.setItem("clients_limit", itemsPerPage.toString());
   }, [itemsPerPage]);
+
+  const [showAll, setShowAll] = useState<boolean>(() => localStorage.getItem("clients_show_all") === "true");
+
+  useEffect(() => {
+    localStorage.setItem("clients_show_all", showAll.toString());
+  }, [showAll]);
+
+  const effectiveLimit = showAll ? SHOW_ALL_LIMIT : itemsPerPage;
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -165,7 +177,7 @@ export default function ClientsPage() {
       totalPages: number;
     };
   }>({
-    queryKey: ["/api/clients", searchQuery, statusFilter, onlineFilter, page, itemsPerPage],
+    queryKey: ["/api/clients", searchQuery, statusFilter, onlineFilter, page, effectiveLimit],
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -176,7 +188,7 @@ export default function ClientsPage() {
       if (statusFilter !== "all") params.append("status", statusFilter);
       if (onlineFilter !== "all") params.append("onlineStatus", onlineFilter);
       params.append("page", page.toString());
-      params.append("limit", itemsPerPage.toString());
+      params.append("limit", effectiveLimit.toString());
 
       const url = buildApiUrl(`/api/clients?${params.toString()}`);
       const response = await fetch(url, {
@@ -189,7 +201,7 @@ export default function ClientsPage() {
           return {
             success: true,
             data: [],
-            pagination: { page: 1, limit: itemsPerPage, total: 0, totalPages: 0 },
+            pagination: { page: 1, limit: effectiveLimit, total: 0, totalPages: 0 },
           };
         }
         const errorData = await response.json().catch(() => ({ error: "Database connection failed" }));
@@ -1139,22 +1151,40 @@ export default function ClientsPage() {
 
             {/* Pagination */}
             {pagination && pagination.total > 0 && (
-              <TablePagination
-                totalItems={pagination.total}
-                itemsPerPage={itemsPerPage}
-                currentPage={Math.min(page, pagination.totalPages)} // Ensure page doesn't exceed totalPages
-                onPageChange={(newPage) => {
-                  // Validate page number
-                  const validPage = Math.max(1, Math.min(newPage, pagination.totalPages));
-                  setPage(validPage);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                onItemsPerPageChange={(newLimit) => {
-                  setItemsPerPage(newLimit);
-                  setPage(1); // Reset to first page when changing limit
-                }}
-                isLoading={isLoading}
-              />
+              <>
+                <div className="flex items-center px-6 py-3 bg-card border-t border-border">
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showAll}
+                      onChange={(e) => {
+                        setShowAll(e.target.checked);
+                        setPage(1);
+                      }}
+                      className="h-4 w-4 rounded border-border accent-[#D3BC8D]"
+                    />
+                    Show all {pagination.total} clients (no pagination)
+                  </label>
+                </div>
+                {!showAll && (
+                  <TablePagination
+                    totalItems={pagination.total}
+                    itemsPerPage={itemsPerPage}
+                    currentPage={Math.min(page, pagination.totalPages)} // Ensure page doesn't exceed totalPages
+                    onPageChange={(newPage) => {
+                      // Validate page number
+                      const validPage = Math.max(1, Math.min(newPage, pagination.totalPages));
+                      setPage(validPage);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    onItemsPerPageChange={(newLimit) => {
+                      setItemsPerPage(newLimit);
+                      setPage(1); // Reset to first page when changing limit
+                    }}
+                    isLoading={isLoading}
+                  />
+                )}
+              </>
             )}
           </CardContent>
         </Card>

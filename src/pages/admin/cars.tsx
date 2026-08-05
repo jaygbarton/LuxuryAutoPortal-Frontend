@@ -143,11 +143,22 @@ export default function CarsPage() {
   const [clientSearch, setClientSearch] = useState("");
   const [isExporting, setIsExporting] = useState(false);
 
+  // "Show All" bypasses pagination entirely (single fetch, capped at the
+  // backend's max of 1000 — well above the current ~315 car fleet size).
+  const SHOW_ALL_LIMIT = 1000;
+
   // Load items per page from localStorage, default to 10
   const [itemsPerPage, setItemsPerPage] = useState<ItemsPerPage>(() => {
     const saved = localStorage.getItem("cars_limit");
     return (saved ? parseInt(saved) : 10) as ItemsPerPage;
   });
+  const [showAll, setShowAll] = useState<boolean>(() => localStorage.getItem("cars_show_all") === "true");
+
+  useEffect(() => {
+    localStorage.setItem("cars_show_all", showAll.toString());
+  }, [showAll]);
+
+  const effectiveLimit = showAll ? SHOW_ALL_LIMIT : itemsPerPage;
 
   // Save to localStorage when itemsPerPage changes
   useEffect(() => {
@@ -220,8 +231,8 @@ export default function CarsPage() {
     };
   }>({
     queryKey: isClient
-      ? ["/api/client/cars", statusFilter, searchQuery, page, itemsPerPage]
-      : ["/api/cars", statusFilter, searchQuery, page, itemsPerPage],
+      ? ["/api/client/cars", statusFilter, searchQuery, page, effectiveLimit]
+      : ["/api/cars", statusFilter, searchQuery, page, effectiveLimit],
     placeholderData: keepPreviousData,
     queryFn: async () => {
       if (isClient) {
@@ -331,16 +342,16 @@ export default function CarsPage() {
             });
           });
         const total = filteredCars.length;
-        const totalPages = Math.max(1, Math.ceil(total / itemsPerPage));
-        const startIndex = (page - 1) * itemsPerPage;
-        const paginatedCars = filteredCars.slice(startIndex, startIndex + itemsPerPage);
+        const totalPages = Math.max(1, Math.ceil(total / effectiveLimit));
+        const startIndex = (page - 1) * effectiveLimit;
+        const paginatedCars = filteredCars.slice(startIndex, startIndex + effectiveLimit);
 
         return {
           success: true,
           data: paginatedCars,
           pagination: {
             page,
-            limit: itemsPerPage,
+            limit: effectiveLimit,
             total,
             totalPages,
           },
@@ -355,7 +366,7 @@ export default function CarsPage() {
         params.append("search", searchQuery);
       }
       params.append("page", page.toString());
-      params.append("limit", itemsPerPage.toString());
+      params.append("limit", effectiveLimit.toString());
       const url = buildApiUrl(`/api/cars?${params.toString()}`);
       const response = await fetch(url, {
         credentials: "include",
@@ -921,7 +932,7 @@ export default function CarsPage() {
                       const uniqueKey = `car-${car.id}-${index}-${car.vin || 'no-vin'}`;
 
                       // Calculate global row number across all pages
-                      const globalRowNumber = (page - 1) * itemsPerPage + index + 1;
+                      const globalRowNumber = (page - 1) * effectiveLimit + index + 1;
 
                       return (
                         <tr
@@ -1100,20 +1111,38 @@ export default function CarsPage() {
 
             {/* Pagination */}
             {carsData?.pagination && (
-              <TablePagination
-                totalItems={carsData.pagination.total}
-                itemsPerPage={itemsPerPage}
-                currentPage={page}
-                onPageChange={(newPage) => {
-                  setPage(newPage);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                onItemsPerPageChange={(newLimit) => {
-                  setItemsPerPage(newLimit);
-                  setPage(1); // Reset to first page when changing limit
-                }}
-                isLoading={isLoading}
-              />
+              <>
+                <div className="flex items-center px-6 py-3 bg-card border-t border-border">
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showAll}
+                      onChange={(e) => {
+                        setShowAll(e.target.checked);
+                        setPage(1);
+                      }}
+                      className="h-4 w-4 rounded border-border accent-[#D3BC8D]"
+                    />
+                    Show all {carsData.pagination.total} cars (no pagination)
+                  </label>
+                </div>
+                {!showAll && (
+                  <TablePagination
+                    totalItems={carsData.pagination.total}
+                    itemsPerPage={itemsPerPage}
+                    currentPage={page}
+                    onPageChange={(newPage) => {
+                      setPage(newPage);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    onItemsPerPageChange={(newLimit) => {
+                      setItemsPerPage(newLimit);
+                      setPage(1); // Reset to first page when changing limit
+                    }}
+                    isLoading={isLoading}
+                  />
+                )}
+              </>
             )}
           </CardContent>
         </Card>
