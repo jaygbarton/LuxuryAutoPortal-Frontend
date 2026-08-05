@@ -8,7 +8,7 @@ import { CTASection } from "@/components/home/cta-section";
 import { SiteStatsStrip } from "@/components/layout/site-stats-strip";
 import { type PublicLocation } from "@/lib/location-config";
 import { Link } from "wouter";
-import { ArrowRight, Car, ClipboardCheck, ExternalLink, Star } from "lucide-react";
+import { ArrowRight, Car, ClipboardCheck, ExternalLink, Star, UserPlus } from "lucide-react";
 
 const TURO_VEHICLES_URL = "https://turo.com/us/en/drivers/4325673/vehicles";
 
@@ -256,11 +256,29 @@ function ComingSoon({ location }: { location: PublicLocation }) {
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/70">
               Golden Luxury Auto is preparing this location.
             </p>
-            <div className="mt-10">
+            <div className="mx-auto mt-8 max-w-2xl rounded-md border border-white/10 bg-white/[0.06] p-6">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#D4A017]/15 text-[#E8B830]">
+                <UserPlus className="h-5 w-5" />
+              </div>
+              <h2 className="font-serif text-2xl font-bold">Interested in listing a vehicle in this location?</h2>
+              <p className="mt-3 text-sm leading-6 text-white/68">
+                Join the launch list and we will notify you when {location.cityState} is ready for vehicle owners.
+              </p>
+              <Link href={`${location.path}/list-your-vehicle`}>
+                <button
+                  className="mt-5 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-bold transition-all"
+                  style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
+                >
+                  Join Vehicle Owner List
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </Link>
+            </div>
+            <div className="mt-8">
               <Link href="/">
                 <button
                   className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-bold transition-all"
-                  style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
+                  style={{ border: "1px solid rgba(232,184,48,0.45)", color: "#E8B830", background: "transparent" }}
                 >
                   Select Location
                   <ArrowRight className="h-4 w-4" />

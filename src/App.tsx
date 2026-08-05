@@ -1,4 +1,5 @@
-import { Switch, Route, Redirect } from "wouter";
+import { useEffect } from "react";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient, getApiBaseUrl } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,6 +10,7 @@ import Home from "@/pages/home";
 import Fleet from "@/pages/fleet";
 import Onboarding from "@/pages/onboarding";
 import Contact from "@/pages/contact";
+import LocationInterest from "@/pages/location-interest";
 import {
   DealsPage,
   DetailShopAppointmentPage,
@@ -144,6 +146,9 @@ function Router() {
       </Route>
       <Route path="/myrtle-beach-nc">
         <Home location={PUBLIC_LOCATIONS.myrtle} />
+      </Route>
+      <Route path="/myrtle-beach-nc/list-your-vehicle">
+        <LocationInterest location={PUBLIC_LOCATIONS.myrtle} />
       </Route>
       <Route path="/fleet">
         <Fleet location={PUBLIC_LOCATIONS.slc} />
@@ -499,6 +504,22 @@ function Router() {
   );
 }
 
+function ScrollToTopOnRouteChange() {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const hasHash = window.location.hash.length > 1;
+    if (hasHash) return;
+
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+  }, [location]);
+
+  return null;
+}
+
 function App() {
   // Dev-only: log initialization (never log secrets like API keys or reCAPTCHA key)
   if (import.meta.env.DEV && typeof window !== "undefined") {
@@ -522,6 +543,7 @@ function App() {
         <TooltipProvider>
           <TutorialProvider>
             <Toaster />
+            <ScrollToTopOnRouteChange />
             <Router />
           </TutorialProvider>
         </TooltipProvider>
