@@ -1,7 +1,8 @@
 import { Shield, Truck, Headphones, FileCheck, Sparkles, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import type { PublicLocation } from "@/lib/location-config";
 
-const services = [
+const services = (location: PublicLocation) => [
   {
     icon: Shield,
     title: "Vehicle Readiness",
@@ -10,7 +11,7 @@ const services = [
   {
     icon: Truck,
     title: "Local Delivery Options",
-    description: "Pickup and delivery options may be available around the Salt Lake City area.",
+    description: `Pickup and delivery options may be available around the ${location.name} area.`,
   },
   {
     icon: Headphones,
@@ -34,7 +35,7 @@ const services = [
   },
 ];
 
-export function Services() {
+export function Services({ location }: { location: PublicLocation }) {
   return (
     <section className="py-20 lg:py-28" style={{ background: "#fff" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -61,7 +62,7 @@ export function Services() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {services.map((service, index) => {
+          {services(location).map((service, index) => {
             const Icon = service.icon;
             return (
               <Card

@@ -1,8 +1,10 @@
 import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { Mail, Phone, MapPin, Clock, Facebook, Instagram, Linkedin } from "lucide-react";
 import { FaGoogle, FaPinterestP, FaYoutube } from "react-icons/fa";
 import { SITE_CONTACT, SITE_TAGLINE, LEGAL_LINKS, SOCIAL_LINKS } from "@/lib/site-config";
 import { SiteStatsStrip } from "@/components/layout/site-stats-strip";
+import { getPublicLocationFromPath, withLocationPath } from "@/lib/location-config";
 
 const quickLinks = [
   { href: "/fleet", label: "Our Fleet" },
@@ -36,6 +38,17 @@ const socialIconFor = (social: { name: string; href: string }) => {
 };
 
 export function Footer() {
+  const [location] = useLocation();
+  const publicLocation = getPublicLocationFromPath(location);
+  const links = quickLinks.filter((link) => {
+    if (!publicLocation) return true;
+    if (link.href === "/detail-shop") return publicLocation.availablePages.detailShop;
+    if (link.href === "/deals") return publicLocation.availablePages.deals;
+    if (link.href === "/jobs") return publicLocation.availablePages.jobs;
+    if (link.href === "/suggested-cars") return publicLocation.availablePages.suggestedCars;
+    return true;
+  });
+
   return (
     <footer
       style={{
@@ -48,7 +61,7 @@ export function Footer() {
 
           {/* Brand column */}
           <div className="lg:col-span-1">
-            <Link href="/" className="flex flex-col mb-4" data-testid="link-footer-logo">
+            <Link href={publicLocation?.path ?? "/"} className="flex flex-col mb-4" data-testid="link-footer-logo">
               <span
                 className="font-serif text-xl font-bold"
                 style={{ color: "#1C1C1C" }}
@@ -103,10 +116,10 @@ export function Footer() {
               Quick Links
             </h3>
             <ul className="space-y-3">
-              {quickLinks.map((link) => (
+              {links.map((link) => (
                 <li key={link.href}>
                   <Link
-                    href={link.href}
+                    href={withLocationPath(link.href, publicLocation)}
                     className="text-sm transition-colors"
                     style={{ color: "#4A4A4A", textDecoration: "none" }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#C49000"; }}

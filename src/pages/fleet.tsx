@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
+import { PUBLIC_LOCATIONS, fleetCarBelongsToLocation, type PublicLocation } from "@/lib/location-config";
 
 // Public fleet vehicle shape returned by GET /api/public/fleet — only the
 // non-sensitive display fields plus the public Turo link.
@@ -172,7 +173,7 @@ function CarCard({ car }: { car: FleetCar }) {
   );
 }
 
-export default function Fleet() {
+export default function Fleet({ location = PUBLIC_LOCATIONS.slc }: { location?: PublicLocation }) {
   const [search, setSearch] = useState("");
   const [selectedMakes, setSelectedMakes] = useState<string[]>([]);
   const [selectedYears, setSelectedYears] = useState<string[]>([]);
@@ -190,7 +191,10 @@ export default function Fleet() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const cars = useMemo(() => data?.data ?? [], [data]);
+  const cars = useMemo(
+    () => (data?.data ?? []).filter((car) => fleetCarBelongsToLocation(car.turoLink, location)),
+    [data, location],
+  );
 
   // Filter options derived live from the active fleet.
   const makes = useMemo(
@@ -253,10 +257,10 @@ export default function Fleet() {
               Our Collection
             </p>
             <h1 className="font-serif text-4xl lg:text-5xl font-light text-foreground mb-4">
-              Luxury Fleet
+              {location.cityState} Fleet
             </h1>
             <p className="max-w-2xl mx-auto text-muted-foreground">
-              Browse active vehicles available through Golden Luxury Auto.
+              Browse active vehicles available through Golden Luxury Auto in {location.cityState}.
             </p>
           </div>
 

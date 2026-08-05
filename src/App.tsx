@@ -126,6 +126,7 @@ import NoticeBoardManagementPage from "@/pages/admin/notice-board";
 import NotificationsPage from "@/pages/admin/notifications";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { RequireRole } from "@/components/admin/require-role";
+import { PUBLIC_LOCATIONS } from "@/lib/location-config";
 
 function Router() {
   return (
@@ -135,7 +136,38 @@ function Router() {
         Declared first so they match before the catch-all protected group below.
       */}
       <Route path="/" component={Home} />
-      <Route path="/fleet" component={Fleet} />
+      <Route path="/salt-lake-city">
+        <Home location={PUBLIC_LOCATIONS.slc} />
+      </Route>
+      <Route path="/wilmington-nc">
+        <Home location={PUBLIC_LOCATIONS.wilmington} />
+      </Route>
+      <Route path="/fleet">
+        <Fleet location={PUBLIC_LOCATIONS.slc} />
+      </Route>
+      <Route path="/salt-lake-city/fleet">
+        <Fleet location={PUBLIC_LOCATIONS.slc} />
+      </Route>
+      <Route path="/wilmington-nc/fleet">
+        <Fleet location={PUBLIC_LOCATIONS.wilmington} />
+      </Route>
+      <Route path="/salt-lake-city/detail-shop/book" component={DetailShopAppointmentPage} />
+      <Route path="/salt-lake-city/detail-shop" component={DetailShopPage} />
+      <Route path="/salt-lake-city/deals" component={DealsPage} />
+      <Route path="/salt-lake-city/jobs" component={JobsPage} />
+      <Route path="/salt-lake-city/suggested-cars" component={SuggestedCarsPage} />
+      <Route path="/salt-lake-city/testimonials" component={TestimonialsPage} />
+      <Route path="/salt-lake-city/reviews-options" component={ReviewsOptionsPage} />
+      <Route path="/salt-lake-city/reviews" component={ReviewsPage} />
+      <Route path="/salt-lake-city/extras" component={ExtrasPage} />
+      <Route path="/salt-lake-city/onboarding" component={Onboarding} />
+      <Route path="/salt-lake-city/contact" component={Contact} />
+      <Route path="/wilmington-nc/testimonials" component={TestimonialsPage} />
+      <Route path="/wilmington-nc/reviews-options" component={ReviewsOptionsPage} />
+      <Route path="/wilmington-nc/reviews" component={ReviewsPage} />
+      <Route path="/wilmington-nc/extras" component={ExtrasPage} />
+      <Route path="/wilmington-nc/onboarding" component={Onboarding} />
+      <Route path="/wilmington-nc/contact" component={Contact} />
       <Route path="/detail-shop/book" component={DetailShopAppointmentPage} />
       <Route path="/detail-shop" component={DetailShopPage} />
       <Route path="/deals" component={DealsPage} />

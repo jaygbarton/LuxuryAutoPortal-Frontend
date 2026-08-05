@@ -1,7 +1,8 @@
 import { Link } from "wouter";
 import { ArrowRight, Phone } from "lucide-react";
+import type { PublicLocation } from "@/lib/location-config";
 
-export function CTASection() {
+export function CTASection({ location }: { location: PublicLocation }) {
   return (
     <section className="py-20 lg:py-28 relative overflow-hidden">
       <div
@@ -48,7 +49,7 @@ export function CTASection() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/onboarding">
+          <Link href={`${location.path}/onboarding`}>
             <button
               className="inline-flex items-center gap-2 min-w-[200px] justify-center px-8 py-4 rounded-lg text-sm font-bold transition-all duration-300 group"
               style={{

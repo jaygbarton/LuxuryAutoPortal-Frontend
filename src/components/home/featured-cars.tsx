@@ -5,6 +5,7 @@ import { ArrowRight, ExternalLink, Calendar, Users, Loader2, Car, ClipboardCheck
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
+import { fleetCarBelongsToLocation, type PublicLocation } from "@/lib/location-config";
 
 // Top-3 featured vehicles come from GET /api/public/fleet/featured — the top
 // active cars by the PREVIOUS month's rental income. Auto-updates monthly.
@@ -42,7 +43,7 @@ function cleanVal(v: string | null | undefined): string {
   return /^(no data|n\/a|na|--|-|none|null|undefined)$/i.test(s) ? "" : s;
 }
 
-function CarCard({ car }: { car: FeaturedCar }) {
+function CarCard({ car, location }: { car: FeaturedCar; location: PublicLocation }) {
   const imgSrc = car.photo ? getProxiedImageUrl(car.photo) : PLACEHOLDER_IMG;
   return (
     <Card
@@ -103,7 +104,7 @@ function CarCard({ car }: { car: FeaturedCar }) {
             </button>
           </a>
         ) : (
-          <Link href="/fleet">
+          <Link href={location.fleetPath}>
             <button
               className="w-full py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold transition-all duration-300 group/btn"
               style={{ border: "1.5px solid #E8D4A0", background: "#FDF8EE", color: "#8B6914" }}
@@ -120,20 +121,21 @@ function CarCard({ car }: { car: FeaturedCar }) {
   );
 }
 
-export function FeaturedCars() {
+export function FeaturedCars({ location }: { location: PublicLocation }) {
   const [mode, setMode] = useState<FeaturedMode>("previous-month");
 
   const { data, isLoading } = useQuery<{ success: boolean; data: FeaturedCar[] }>({
-    queryKey: ["/api/public/fleet/featured", mode],
+    queryKey: ["/api/public/fleet/featured", mode, location.id],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl(`/api/public/fleet/featured?mode=${mode}`));
+      const path = location.id === "wilmington" ? "/api/public/fleet" : `/api/public/fleet/featured?mode=${mode}`;
+      const res = await fetch(buildApiUrl(path));
       if (!res.ok) throw new Error("Failed to load featured vehicles");
       return res.json();
     },
     staleTime: 1000 * 60 * 30,
   });
 
-  const cars = data?.data ?? [];
+  const cars = (data?.data ?? []).filter((car) => fleetCarBelongsToLocation(car.turoLink, location));
 
   return (
     <section id="featured-fleet" className="py-20 lg:py-28" style={{ background: "#FFFDF8" }}>
@@ -150,7 +152,7 @@ export function FeaturedCars() {
               ? "Our top-performing vehicles from the previous month — updated automatically."
               : "Our top-performing vehicles by broader backend performance — updated automatically."}
           </p>
-          <div className="mt-6 inline-flex rounded-lg border p-1" style={{ borderColor: "#E8D4A0", background: "#FFF8E8" }}>
+          {location.id === "slc" ? <div className="mt-6 inline-flex rounded-lg border p-1" style={{ borderColor: "#E8D4A0", background: "#FFF8E8" }}>
             {([
               ["previous-month", "Top Monthly Performing"],
               ["top-performing", "Top Performing"],
@@ -171,7 +173,7 @@ export function FeaturedCars() {
                 </button>
               );
             })}
-          </div>
+          </div> : null}
         </div>
 
         {isLoading ? (
@@ -181,12 +183,12 @@ export function FeaturedCars() {
         ) : cars.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {cars.map((car) => (
-              <CarCard key={car.id} car={car} />
+              <CarCard key={car.id} car={car} location={location} />
             ))}
           </div>
         ) : (
           <p className="text-center" style={{ color: "#808080" }}>
-            Explore our full collection below.
+            Explore the {location.cityState} collection below.
           </p>
         )}
 
@@ -210,7 +212,7 @@ export function FeaturedCars() {
                 onboarding page and our team will review the details with you.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Link href="/onboarding" onClick={scrollToTopOnNavigate}>
+                <Link href={`${location.path}/onboarding`} onClick={scrollToTopOnNavigate}>
                   <button
                     className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-bold transition-all"
                     style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
@@ -220,7 +222,7 @@ export function FeaturedCars() {
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </Link>
-                <Link href="/contact" onClick={scrollToTopOnNavigate}>
+                <Link href={`${location.path}/contact`} onClick={scrollToTopOnNavigate}>
                   <button
                     className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold transition-all"
                     style={{ border: "1.5px solid #D4A017", color: "#8B6914", background: "transparent" }}
@@ -250,7 +252,7 @@ export function FeaturedCars() {
                 the vehicle's Turo listing when you are ready.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Link href="/fleet" onClick={scrollToTopOnNavigate}>
+                <Link href={location.fleetPath} onClick={scrollToTopOnNavigate}>
                   <button
                     className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-bold transition-all"
                     style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
@@ -260,7 +262,7 @@ export function FeaturedCars() {
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </Link>
-                <a href={TURO_VEHICLES_URL} target="_blank" rel="noopener noreferrer">
+                <a href={location.turoFleetUrl || TURO_VEHICLES_URL} target="_blank" rel="noopener noreferrer">
                   <button
                     className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-semibold transition-all"
                     style={{ border: "1.5px solid #D4A017", color: "#8B6914", background: "transparent" }}

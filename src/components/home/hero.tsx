@@ -1,8 +1,9 @@
 import { Link } from "wouter";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { PublicLocation } from "@/lib/location-config";
 
-export function Hero() {
+export function Hero({ location }: { location: PublicLocation }) {
   const scrollToFleet = () => {
     document.getElementById("featured-fleet")?.scrollIntoView({ behavior: "smooth" });
   };
@@ -43,7 +44,7 @@ export function Hero() {
             className="text-sm font-semibold tracking-wide"
             style={{ color: "#E8B830", letterSpacing: "1px" }}
           >
-            Salt Lake City Car Rentals
+            {location.cityState} Car Rentals
           </span>
         </div>
 
@@ -65,11 +66,11 @@ export function Hero() {
 
         <p className="max-w-2xl mx-auto text-lg sm:text-xl leading-relaxed mb-10" style={{ color: "rgba(255,255,255,0.7)" }}>
           Browse a practical selection of premium vehicles for trips, events, airport
-          travel, and everyday transportation around Utah.
+          travel, and everyday transportation around {location.name}.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/fleet">
+          <Link href={location.fleetPath}>
             <Button
               size="lg"
               className="min-w-[180px] group font-bold"
@@ -84,7 +85,7 @@ export function Hero() {
               <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>
-          <Link href="/contact">
+          <Link href={`${location.path}/contact`}>
             <Button
               size="lg"
               variant="outline"
