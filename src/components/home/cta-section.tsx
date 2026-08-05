@@ -4,7 +4,7 @@ import type { PublicLocation } from "@/lib/location-config";
 
 export function CTASection({ location }: { location: PublicLocation }) {
   return (
-    <section className="py-20 lg:py-28 relative overflow-hidden">
+    <section className="relative overflow-hidden py-14 lg:py-20">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
