@@ -13,6 +13,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import type { CarServiceDue } from "./types";
 
 // Staleness thresholds (days) for the two headline service types. Anything
@@ -139,6 +141,7 @@ export function ServiceDueTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Car</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Plate</TableHead>
                   <TableHead>Last Oil Change</TableHead>
                   <TableHead>Last Tires</TableHead>
@@ -152,6 +155,19 @@ export function ServiceDueTab() {
                       <Link href={`/admin/cars/${r.car_id}/maintenance`} className="text-[#D3BC8D] hover:underline">
                         {r.car_name || `Car #${r.car_id}`}
                       </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-xs font-medium",
+                          r.car_status === "ACTIVE"
+                            ? "bg-green-500/20 text-green-700 border-green-500/30"
+                            : "bg-gray-500/20 text-gray-700 border-gray-500/30"
+                        )}
+                      >
+                        {r.car_status}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{r.car_plate || "--"}</TableCell>
                     <TableCell>

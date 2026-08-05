@@ -171,6 +171,7 @@ export interface CarServiceDue {
   car_id: number;
   car_name: string;
   car_plate: string | null;
+  car_status: "ACTIVE" | "INACTIVE";
   last_oil_change: string | null;
   last_tires: string | null;
   last_any_service: string | null;
