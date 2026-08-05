@@ -8,7 +8,7 @@ export function CTASection({ location }: { location: PublicLocation }) {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: "url('/bmw-x6-cta.jpg')",
+          backgroundImage: "url('/bmw-x6-cta-enhanced.png')",
         }}
       >
         <div

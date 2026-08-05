@@ -62,6 +62,15 @@ type SuggestedCarPartner = {
   websiteHref: string;
 };
 
+type JobListing = {
+  title: string;
+  status: "Now Hiring" | "Not Hiring Right Now";
+  schedule: string[];
+  description: string[];
+  requirements: string[];
+  pay?: string;
+};
+
 const pageMeta: Record<PageKey, {
   eyebrow: string;
   title: string;
@@ -207,6 +216,57 @@ const detailAddOns = [
   { name: "Shampoo Carpets", price: "$190", description: "Professional carpet shampoo cleaning." },
   { name: "Ceramic Coating", price: "Custom Quote", description: "Exterior polymer protection against paint damage." },
   { name: "Paint Correction", price: "Custom Quote", description: "Mechanical leveling of clear coat or paint to reduce swirls and light scratches." },
+];
+
+const jobListings: JobListing[] = [
+  {
+    title: "Car Detailers / Drivers / Fleet Tech",
+    status: "Now Hiring",
+    schedule: ["Full & Part-time", "30-50 hours a month", "30-50 hours a week"],
+    pay: "$16-21/hr depending on experience",
+    description: [
+      "Detailers and drivers create the client's first impression of Golden Luxury Auto and keep each rental ready for the next guest.",
+      "Daily work includes preparing vehicles for rentals, cleaning and detailing cars on schedule, dropping cars off to clients, filling out forms, going to auto shops, checking cars in after rentals, and similar fleet tasks.",
+      "All materials, scheduling, and systems are pre-built, with training to help the team keep improving.",
+    ],
+    requirements: [
+      "Mindset and drive with high personal standards.",
+      "Strong communication skills.",
+      "Valid driver's license and car insurance.",
+      "Strong time-management under changing schedules.",
+      "Coachable, proactive, and comfortable working with a small team.",
+    ],
+  },
+  {
+    title: "Personal Assistant",
+    status: "Not Hiring Right Now",
+    schedule: ["Full & Part-time", "Position displayed for future openings"],
+    description: [
+      "Personal assistants support the guest experience and day-to-day operations across appointments, client calls, drop-offs, forms, shop visits, rental check-ins, and similar tasks.",
+      "This role is for organized, friendly, high-energy operators who can keep moving through a changing schedule.",
+    ],
+    requirements: [
+      "Strong interpersonal, verbal, and written communication skills.",
+      "Self-starter with strong organization and time-management.",
+      "Valid driver's license and car insurance.",
+      "Creative, coachable, proactive, and team-oriented.",
+    ],
+  },
+  {
+    title: "Sales Representative",
+    status: "Not Hiring Right Now",
+    schedule: ["Full & Part-time", "Position displayed for future openings"],
+    description: [
+      "Sales representatives qualify inbound leads, follow up with prospects, demonstrate the vehicle management program, and help the right clients move forward.",
+      "This role works closely with marketing and operations so client expectations match the actual GLA program.",
+    ],
+    requirements: [
+      "Strong communication and follow-up discipline.",
+      "Comfort taking intro calls, demo calls, and pipeline follow-up.",
+      "Driven, coachable, and willing to train consistently.",
+      "Able to give feedback on lead quality and client fit.",
+    ],
+  },
 ];
 
 const deals: Deal[] = [
@@ -482,19 +542,6 @@ const reviewLinks = [
   { label: "Subscribe On YouTube", href: "https://www.youtube.com/@goldenluxuryauto" },
 ];
 
-const detailBookingLinks = [
-  {
-    label: "Airport Parking Lot",
-    href: "https://detail.goldenluxuryauto.com/pick-up",
-    description: "Use the live booking calendar for vehicles cleaned at the airport parking lot.",
-  },
-  {
-    label: "At Home Cleaning",
-    href: "https://detail.goldenluxuryauto.com/at-home-detail1",
-    description: "Use the live at-home booking flow with the detail shop calendar and service details.",
-  },
-];
-
 function PageShell({
   page,
   children,
@@ -676,33 +723,21 @@ export function DetailShopAppointmentPage() {
           <div>
             <SectionHeader
               eyebrow="Live Booking"
-              title="Choose the detail appointment flow"
-              description="Choose airport lot cleaning or at-home service, then pick an available time."
+              title="Book a detail appointment"
+              description="Use the live calendar to pick an available detail appointment time without leaving the GLA site."
             />
-            <div className="grid gap-4">
-              {detailBookingLinks.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="group rounded-md border border-border bg-card p-5 transition-colors hover:border-primary"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                      <CalendarDays className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">{item.label}</h3>
-                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
-                      <span className="mt-4 inline-flex items-center text-sm font-semibold text-primary">
-                        Open full booking page
-                        <ExternalLink className="ml-2 h-4 w-4" />
-                      </span>
-                    </div>
-                  </div>
-                </a>
-              ))}
+            <div className="rounded-md border border-border bg-card p-5">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                  <CalendarDays className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Detail calendar</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    Select the date and time that works for your detail appointment.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -713,7 +748,7 @@ export function DetailShopAppointmentPage() {
                 <h2 className="mt-2 font-serif text-2xl font-light text-foreground">Airport parking lot detail calendar</h2>
               </div>
               <iframe
-                src="https://detail.goldenluxuryauto.com/pick-up"
+                src="https://api.leadconnectorhq.com/widget/booking/koQOgzFBXBNtPzVJwPXW"
                 title="Golden Luxury Auto detail shop booking calendar"
                 className="h-[760px] w-full border-0 bg-white"
                 loading="lazy"
@@ -729,7 +764,8 @@ export function DetailShopAppointmentPage() {
           />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              "Presidential and Executive detail packages",
+              "Presidential detail package",
+              "Executive detail package",
               "Basic detail packages for lighter cleanup needs",
               "Odor, pet, leather, headlight, wax, shampoo, ceramic, and paint correction add-ons",
               "Shop scheduling for rental vehicles, owner vehicles, and travel timing",
@@ -793,79 +829,81 @@ export function JobsPage() {
     <PageShell page="jobs">
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
-          eyebrow="Now Hiring"
-          title="Car Detailers / Drivers / Fleet Tech"
-          description="Full & Part-time"
+          eyebrow="Careers"
+          title="Careers At Golden Luxury Auto"
+          description="We keep the full position list visible here. The detail team is the only role hiring right now."
         />
-        <Card className="border-border bg-card">
-          <CardContent className="p-6 lg:p-8">
-            <div className="grid gap-6 lg:grid-cols-[auto_1fr_auto] lg:items-start">
-              <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
-                <BriefcaseBusiness className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-semibold text-foreground">Car Detailers / Drivers / Fleet Tech</h3>
-                <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-primary">
-                  <span className="rounded-md bg-primary/10 px-3 py-1">Full & Part-time</span>
-                  <span className="rounded-md bg-primary/10 px-3 py-1">30-50 hours a month</span>
-                  <span className="rounded-md bg-primary/10 px-3 py-1">30-50 hours a week</span>
+        <div className="grid gap-5 lg:grid-cols-3">
+          {jobListings.map((job) => (
+            <Card key={job.title} className={`border-border bg-card ${job.status === "Now Hiring" ? "lg:col-span-3" : ""}`}>
+              <CardContent className="flex h-full flex-col p-6 lg:p-8">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                      <BriefcaseBusiness className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h3 className="text-2xl font-semibold text-foreground">{job.title}</h3>
+                        <span
+                          className={`rounded-md px-3 py-1 text-xs font-bold uppercase tracking-wide ${
+                            job.status === "Now Hiring"
+                              ? "bg-primary/10 text-primary"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {job.status}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-primary">
+                        {job.schedule.map((item) => (
+                          <span key={item} className="rounded-md bg-primary/10 px-3 py-1">{item}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  {job.status === "Now Hiring" ? (
+                    <Link href="/contact">
+                      <Button className="w-full lg:w-auto">
+                        Apply Now
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                  ) : null}
                 </div>
-              </div>
-              <Link href="/contact">
-                <Button className="w-full lg:w-auto">
-                  Apply Now
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
 
-            <div className="mt-8 space-y-5 text-sm leading-7 text-muted-foreground">
-              <p>Detailers and Drivers create the client's first impression of the company & are a crucial part of our organization to allow us to fulfill our mission.</p>
-              <p>Your daily task will include preparing cars for rentals, cleaning and detailing cars on a schedule, dropping cars off to clients, filling out forms, going to various auto shops, checking in cars after rentals, and other similar tasks. Our culture is energetic, driven, and friendly. We collaborate and help each other grow and succeed (A Rising Tide Raises All Ships).</p>
-              <p>All the materials, scheduling, and systems are pre-built and you will receive daily, training to master them and continuously fine-tune your skills.</p>
-              <p>Golden Luxury Auto's detailers are to focus entirely on client experience and making sure each rental is ready to go. Our detailers are the face of the company many times.</p>
-              <p>In that, detailers are expected to, for lack of a better word, hustle.</p>
-              <p>We expect our detailers to work as long and as hard as it takes to meet their goals and finish each task they start.</p>
-            </div>
-          </CardContent>
-        </Card>
+                <div className="mt-7 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+                  <div className="space-y-4 text-sm leading-7 text-muted-foreground">
+                    {job.description.map((item) => (
+                      <p key={item}>{item}</p>
+                    ))}
+                    {job.pay ? <p className="font-semibold text-primary">{job.pay}</p> : null}
+                  </div>
+                  <div>
+                    <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-primary">Requirements</p>
+                    <div className="grid gap-3">
+                      {job.requirements.map((item) => (
+                        <div key={item} className="flex items-start gap-3 rounded-md border border-border bg-background/60 p-3 text-sm text-foreground">
+                          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </section>
 
       <section className="bg-muted/45 px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <SectionHeader eyebrow="Requirements" title="Requirements" />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              "The most important requirement to us is mindset & drive - you hold yourself accountable to the highest standards of performance and are resilient in the face of failure or rejection.",
-              "Strong interpersonal, verbal, and written communication skills in English.",
-              "Self-starter - you are comfortable working alone, managing your schedule and meeting deadlines without direct supervision. You are your own boss in many ways.",
-              "Have a valid drivers license and car insurance.",
-              "Strong time-management and organizational skills under ever-changing schedules.",
-              "Creative - you find yourself coming up with new creative ideas.",
-              "Coachable - you are excited to participate in ongoing training and constantly push yourself to get better and better.",
-              "Team player - you are able to collaborate with a small team, ask for help when needed, and complete tasks as required.",
-              "Proactive - you strive to get ahead of a problem or start a conversation, instead of waiting for the right time or opportunity to come to you.",
-            ].map((item) => (
-              <div key={item} className="flex items-start gap-3 rounded-md border border-border bg-card p-4 text-sm text-foreground">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                {item}
-              </div>
-            ))}
-          </div>
-          <Card className="mt-6 border-border bg-card">
-            <CardContent className="p-6">
-              <p className="text-sm font-semibold text-primary">$16-21/hr depending on experience</p>
-              <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                OTE paid weekly A pre-agreed hourly pay will be paid and will be increased over time with the company and who well of a job our detailers do. There will also be bonus incentives to hit each month and ways to earn more money than your base pay.
-              </p>
-              <Link href="/contact" className="mt-5 inline-flex">
-                <Button>
-                  Apply Now
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <SectionHeader
+            eyebrow="About Golden Luxury Auto"
+            title="Car rental and vehicle management in Salt Lake City"
+            description="Golden Luxury Auto is a car rental and management company with rental operations, managed vehicles, thousands of 5-star reviews, and Turo Power Host experience."
+          />
         </div>
       </section>
       <ContactBand title="Interested in joining the detail team? Reach out today." label="Careers" />

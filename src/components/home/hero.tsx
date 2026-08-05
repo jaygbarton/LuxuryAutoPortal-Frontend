@@ -73,7 +73,7 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
         {mode === "hub" ? (
           <div className="mx-auto max-w-4xl">
             <p className="mb-4 text-xs font-bold uppercase tracking-[3px]" style={{ color: "#E8B830" }}>
-              Select Location
+              Select Location to Continue
             </p>
             <div className="grid gap-3 sm:grid-cols-3">
               {locations.map((item) => (
