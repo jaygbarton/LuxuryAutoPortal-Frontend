@@ -24,7 +24,7 @@ export function Navbar() {
   const [location] = useLocation();
   const publicLocation = getPublicLocationFromPath(location);
   const links = navLinks.filter((link) => {
-    if (!publicLocation) return true;
+    if (!publicLocation) return link.href === "/" || link.href === "/contact";
     if (link.href === "/detail-shop") return publicLocation.availablePages.detailShop;
     if (link.href === "/deals") return publicLocation.availablePages.deals;
     if (link.href === "/jobs") return publicLocation.availablePages.jobs;

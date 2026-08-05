@@ -338,7 +338,7 @@ export default function Fleet({ location = PUBLIC_LOCATIONS.slc }: { location?: 
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <p className="text-sm text-muted-foreground">
-                Showing <span className="text-foreground font-medium">{filteredCars.length}</span> vehicles
+                Showing <span className="text-foreground font-medium">{filteredCars.length}</span> {filteredCars.length === 1 ? "vehicle" : "vehicles"}
               </p>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Sort</span>
