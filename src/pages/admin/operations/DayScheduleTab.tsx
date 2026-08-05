@@ -122,7 +122,7 @@ function todayMTDate(): string {
 function formatDisplayDate(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
   return new Intl.DateTimeFormat("en-US", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
+    weekday: "long", year: "numeric", month: "2-digit", day: "2-digit",
     timeZone: "UTC",
   }).format(new Date(Date.UTC(y, m - 1, d)));
 }
@@ -162,7 +162,7 @@ function fmtTripDateTime(dt: string | null): string {
   if (!datePart || !timePart) return dt;
   const [y, mo, d] = datePart.split("-").map(Number);
   const dateLabel = new Intl.DateTimeFormat("en-US", {
-    weekday: "short", month: "short", day: "numeric", timeZone: "UTC",
+    weekday: "short", month: "2-digit", day: "2-digit", timeZone: "UTC",
   }).format(new Date(Date.UTC(y, mo - 1, d)));
   return `${dateLabel}, ${fmt12(timePart)}`;
 }

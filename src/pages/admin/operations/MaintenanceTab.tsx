@@ -45,8 +45,8 @@ const formatDate = (dateStr: string | null): string => {
     return d.toLocaleDateString("en-US", {
       timeZone: "America/Denver",
       weekday: "short",
-      month: "short",
-      day: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   } catch {
     return dateStr;
@@ -62,8 +62,8 @@ const formatDateTime = (dateStr: string | null): string => {
       d.toLocaleDateString("en-US", {
         timeZone: "America/Denver",
         weekday: "short",
-        month: "short",
-        day: "numeric",
+        month: "2-digit",
+        day: "2-digit",
       }) +
       ", " +
       d.toLocaleTimeString("en-US", {

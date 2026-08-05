@@ -31,8 +31,8 @@ function formatDate(iso: string | null): string {
     if (isNaN(d.getTime())) return "Never";
     return d.toLocaleDateString("en-US", {
       timeZone: "America/Denver",
-      month: "short",
-      day: "numeric",
+      month: "2-digit",
+      day: "2-digit",
       year: "numeric",
     });
   } catch {

@@ -530,7 +530,7 @@ function formatUtahDate(value: string | null | undefined): string {
   return d.toLocaleDateString("en-US", {
     timeZone: "UTC",
     year: "numeric",
-    month: "short",
+    month: "2-digit",
     day: "2-digit",
   });
 }
@@ -542,7 +542,7 @@ function formatUtahDateTime(value: string | null | undefined): string {
   return d.toLocaleString("en-US", {
     timeZone: UTAH_TZ,
     year: "numeric",
-    month: "short",
+    month: "2-digit",
     day: "2-digit",
     hour: "numeric",
     minute: "2-digit",

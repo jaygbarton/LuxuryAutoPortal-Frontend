@@ -829,7 +829,7 @@ export default function AdminsPage() {
                           </Badge>
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-muted-foreground text-xs sm:text-sm hidden lg:table-cell">
-                          {format(new Date(user.createdAt), "MMM d, yyyy")}
+                          {format(new Date(user.createdAt), "MM/dd/yyyy")}
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 text-right">
                           <div className="flex items-center justify-end gap-1 sm:gap-2">

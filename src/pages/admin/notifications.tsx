@@ -35,8 +35,8 @@ function formatTime(d: string) {
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
   return date.toLocaleString("en-US", {
     timeZone: "America/Denver",
-    month: "short",
-    day: "numeric",
+    month: "2-digit",
+    day: "2-digit",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",

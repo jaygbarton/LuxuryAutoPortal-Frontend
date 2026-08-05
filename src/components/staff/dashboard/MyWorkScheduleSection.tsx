@@ -181,7 +181,7 @@ export default function MyWorkScheduleSection() {
   const monthLabel = (() => {
     const [y, m] = month.split("-").map(Number);
     return new Date(y, (m ?? 1) - 1).toLocaleDateString("en-US", {
-      month: "long",
+      month: "2-digit",
       year: "numeric",
     });
   })();

@@ -150,5 +150,5 @@ export function formatDateForDisplay(originalDate: string): string {
   const [y, m, d] = originalDate.split("-");
   if (!y || !m || !d) return originalDate;
   const date = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
-  return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 }

@@ -82,7 +82,7 @@ const formatDate = (dateStr: string | null): string => {
   try {
     const d = new Date(`${dateStr.slice(0, 10)}T00:00:00`);
     if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
   } catch {
     return dateStr;
   }
@@ -94,7 +94,7 @@ const formatDateTime = (dateStr: string | null): string => {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
     return (
-      d.toLocaleDateString("en-US", { timeZone: "America/Denver", month: "short", day: "numeric", year: "numeric" }) +
+      d.toLocaleDateString("en-US", { timeZone: "America/Denver", month: "2-digit", day: "2-digit", year: "numeric" }) +
       ", " +
       d.toLocaleTimeString("en-US", { timeZone: "America/Denver", hour: "numeric", minute: "2-digit" })
     );

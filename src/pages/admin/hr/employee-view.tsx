@@ -95,8 +95,8 @@ function formatDate(dateString: string) {
   try {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
-      month: "short",
-      day: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   } catch {
     return "—";
@@ -130,7 +130,7 @@ function formatDateTime(dateString: string | null | undefined): string {
   try {
     const d = new Date(dateString);
     return d.toLocaleString("en-US", {
-      month: "short",
+      month: "2-digit",
       day: "2-digit",
       year: "numeric",
       hour: "2-digit",

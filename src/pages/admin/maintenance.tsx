@@ -16,7 +16,7 @@ function formatDate(d: string | null | undefined): string {
   if (!d) return "—";
   try {
     return new Date(d).toLocaleDateString("en-US", {
-      timeZone: "America/Denver", month: "short", day: "numeric", year: "numeric",
+      timeZone: "America/Denver", month: "2-digit", day: "2-digit", year: "numeric",
     });
   } catch { return d; }
 }

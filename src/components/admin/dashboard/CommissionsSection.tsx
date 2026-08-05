@@ -70,7 +70,7 @@ function getMonthRange(offset: number): {
   const lastDay = new Date(year, month + 1, 0);
 
   const pad = (n: number) => String(n).padStart(2, "0");
-  const label = `${firstDay.toLocaleString("en-US", { month: "long" })} ${year}`;
+  const label = `${firstDay.toLocaleString("en-US", { month: "2-digit" })} ${year}`;
   const dateFrom = `${year}-${pad(month + 1)}-${pad(firstDay.getDate())}`;
   const dateTo = `${year}-${pad(month + 1)}-${pad(lastDay.getDate())}`;
 

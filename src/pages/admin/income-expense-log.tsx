@@ -71,8 +71,8 @@ export default function IncomeExpenseLogPage() {
       date.toLocaleDateString("en-US", {
         timeZone: "America/Denver",
         weekday: "short",
-        month: "short",
-        day: "numeric",
+        month: "2-digit",
+        day: "2-digit",
       }) +
       ", " +
       date.toLocaleTimeString("en-US", {

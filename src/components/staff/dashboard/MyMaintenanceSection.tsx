@@ -37,8 +37,8 @@ function formatDate(dateStr: string | null | undefined): string {
   if (isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("en-US", {
     timeZone: "America/Denver",
-    month: "short",
-    day: "numeric",
+    month: "2-digit",
+    day: "2-digit",
     year: "numeric",
   });
 }
@@ -51,8 +51,8 @@ function formatDateTime(dateStr: string | null | undefined): string {
     d.toLocaleDateString("en-US", {
       timeZone: "America/Denver",
       weekday: "short",
-      month: "short",
-      day: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     }) +
     ", " +
     d.toLocaleTimeString("en-US", {

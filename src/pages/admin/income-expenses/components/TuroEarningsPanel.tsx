@@ -175,19 +175,19 @@ export function TuroEarningsPanel({ carId, year }: Props) {
                 <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
                   <img
                     src={resolveSrc(row.image_url)}
-                    alt={`Turo earnings ${MONTHS_SHORT[row.month - 1]} ${row.year}`}
+                    alt={`Turo earnings ${String(row.month).padStart(2, "0")}/${row.year}`}
                     loading="lazy"
                     className="h-full w-full object-cover group-hover:scale-105 transition-transform"
                   />
                 </div>
                 <span className="text-xs font-medium text-center pb-1.5 w-full">
-                  {MONTHS_SHORT[row.month - 1]} {row.year}
+                  {String(row.month).padStart(2, "0")}/{row.year}
                 </span>
               </button>
               {/* Delete button */}
               <button
                 type="button"
-                onClick={() => { if (confirm(`Delete ${MONTHS_SHORT[row.month - 1]} ${row.year} screenshot?`)) deleteMutation.mutate(row.id); }}
+                onClick={() => { if (confirm(`Delete ${String(row.month).padStart(2, "0")}/${row.year} screenshot?`)) deleteMutation.mutate(row.id); }}
                 className="absolute top-1.5 right-1.5 hidden group-hover:flex items-center justify-center w-6 h-6 rounded-full bg-destructive/90 text-destructive-foreground hover:bg-destructive transition-colors"
                 title="Delete screenshot"
               >
@@ -204,7 +204,7 @@ export function TuroEarningsPanel({ carId, year }: Props) {
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <h4 className="font-semibold">
-                  Turo Earnings — {MONTHS_SHORT[preview.month - 1]} {preview.year}
+                  Turo Earnings — {String(preview.month).padStart(2, "0")}/{preview.year}
                 </h4>
                 <Button
                   size="sm"
@@ -217,7 +217,7 @@ export function TuroEarningsPanel({ carId, year }: Props) {
               </div>
               <img
                 src={resolveSrc(preview.image_url)}
-                alt={`Turo earnings ${MONTHS_SHORT[preview.month - 1]} ${preview.year}`}
+                alt={`Turo earnings ${String(preview.month).padStart(2, "0")}/${preview.year}`}
                 className="w-full h-auto rounded-md"
               />
             </div>

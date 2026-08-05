@@ -329,7 +329,7 @@ export default function StaffTaskManagement() {
                             {item.task_timer_created
                               ? new Date(item.task_timer_created).toLocaleDateString(
                                   "en-US",
-                                  { year: "numeric", month: "short", day: "2-digit" },
+                                  { year: "numeric", month: "2-digit", day: "2-digit" },
                                 )
                               : "--"}
                           </TableCell>

@@ -1490,8 +1490,8 @@ export default function CarDetailPage() {
     try {
       return new Date(dateString).toLocaleDateString("en-US", {
         year: "numeric",
-        month: "long",
-        day: "numeric",
+        month: "2-digit",
+        day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
       });
@@ -2825,7 +2825,7 @@ export default function CarDetailPage() {
                         ? Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
                         : null;
                       const fmtDate = (d: Date | null) =>
-                        d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "-";
+                        d ? d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }) : "-";
                       return (
                         <tr key={trip.id} className="border-b border-border hover:bg-muted/30 transition-colors">
                           <td className="px-4 py-2 font-mono text-xs">{trip.reservationId || "-"}</td>

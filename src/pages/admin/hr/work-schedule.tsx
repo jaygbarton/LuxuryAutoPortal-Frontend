@@ -362,7 +362,7 @@ function AddEditModal({
   };
 
   const pending = createMutation.isPending || updateMutation.isPending;
-  const dateLabel = cell ? new Date(cell.originalDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "";
+  const dateLabel = cell ? new Date(cell.originalDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }) : "";
   const isSelectedOnLeave = !!(
     selectedEmployee &&
     leavesOnDay.some((l) => l.employee_id === selectedEmployee.employee_aid)
@@ -541,7 +541,7 @@ function ViewMoreModal({
 }) {
   const code = cell?.originalDateCode ?? "";
   const { data: list = [], isLoading } = useWorkSchedByCode(code, 0);
-  const dateLabel = cell ? new Date(cell.originalDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "";
+  const dateLabel = cell ? new Date(cell.originalDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }) : "";
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>

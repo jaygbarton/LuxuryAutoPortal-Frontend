@@ -959,16 +959,16 @@ export default function TuroTripsPage() {
   // the admin's browser timezone.
   const MT_DATETIME_FMT = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Denver",
-    month: "short",
-    day: "numeric",
+    month: "2-digit",
+    day: "2-digit",
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
   });
   const MT_DATE_FMT = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Denver",
-    month: "short",
-    day: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   });
 
   const formatInMt = (dateStr: string, fmt: Intl.DateTimeFormat) => {

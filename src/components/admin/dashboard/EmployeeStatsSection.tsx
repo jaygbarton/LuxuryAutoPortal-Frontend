@@ -62,7 +62,7 @@ function getDaysInMonth(month: number, year: number): number {
 
 function getMonthLabel(month: number, year: number): string {
   const date = new Date(year, month - 1); // month is 1-indexed
-  return date.toLocaleString("default", { month: "long", year: "numeric" });
+  return date.toLocaleString("default", { month: "2-digit", year: "numeric" });
 }
 
 // ── Loading skeleton ─────────────────────────────────────────────────────

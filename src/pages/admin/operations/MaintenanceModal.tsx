@@ -31,7 +31,7 @@ interface CarAvailability {
 function formatMt(dateStr: string): string {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString("en-US", { timeZone: "America/Denver", month: "short", day: "numeric" }) +
+  return d.toLocaleDateString("en-US", { timeZone: "America/Denver", month: "2-digit", day: "2-digit" }) +
     ", " + d.toLocaleTimeString("en-US", { timeZone: "America/Denver", hour: "numeric", minute: "2-digit" });
 }
 

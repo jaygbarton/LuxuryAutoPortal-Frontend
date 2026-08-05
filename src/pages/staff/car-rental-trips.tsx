@@ -38,8 +38,8 @@ function formatDate(d: string | undefined, fallback = "--") {
       x.toLocaleDateString("en-US", {
         timeZone: "America/Denver",
         weekday: "short",
-        month: "short",
-        day: "numeric",
+        month: "2-digit",
+        day: "2-digit",
       }) +
       ", " +
       x.toLocaleTimeString("en-US", {

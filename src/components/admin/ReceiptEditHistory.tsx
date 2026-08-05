@@ -32,7 +32,7 @@ function fmtWhen(iso: string): string {
   try {
     return new Date(iso).toLocaleString("en-US", {
       timeZone: "America/Denver",
-      month: "short", day: "numeric", year: "numeric",
+      month: "2-digit", day: "2-digit", year: "numeric",
       hour: "numeric", minute: "2-digit",
     });
   } catch {

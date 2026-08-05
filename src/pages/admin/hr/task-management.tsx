@@ -77,7 +77,7 @@ function formatCreatedAt(s: string | null | undefined): string {
   return d.toLocaleString("en-US", {
     timeZone: "America/Denver",
     year: "numeric",
-    month: "short",
+    month: "2-digit",
     day: "2-digit",
     hour: "numeric",
     minute: "2-digit",
@@ -1646,8 +1646,8 @@ function formatDateTime(s: string | null | undefined): string {
     if (Number.isNaN(d.getTime())) return s;
     return d.toLocaleString("en-US", {
       year: "numeric",
-      month: "short",
-      day: "numeric",
+      month: "2-digit",
+      day: "2-digit",
       hour: "numeric",
       minute: "2-digit",
     });

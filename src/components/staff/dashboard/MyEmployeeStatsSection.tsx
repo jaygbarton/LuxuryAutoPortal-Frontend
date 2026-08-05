@@ -45,7 +45,7 @@ function getDaysInMonth(month: number, year: number): number {
 }
 
 function monthLabel(month: number, year: number): string {
-  return new Date(year, month - 1).toLocaleString("default", { month: "long", year: "numeric" });
+  return new Date(year, month - 1).toLocaleString("default", { month: "2-digit", year: "numeric" });
 }
 
 export default function MyEmployeeStatsSection() {

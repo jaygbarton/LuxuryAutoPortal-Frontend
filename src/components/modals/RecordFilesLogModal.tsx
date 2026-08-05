@@ -196,7 +196,7 @@ export function RecordFilesLogModal({
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return fallback;
-      return format(date, "MMM dd, yyyy");
+      return format(date, "MM/dd/yyyy");
     } catch {
       return fallback;
     }
@@ -350,7 +350,7 @@ export function RecordFilesLogModal({
                           {log.carBacklogCreated
                             ? format(
                                 new Date(log.carBacklogCreated),
-                                "MMM dd, yyyy HH:mm"
+                                "MM/dd/yyyy HH:mm"
                               )
                             : "N/A"}
                         </td>

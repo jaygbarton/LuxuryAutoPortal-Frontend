@@ -91,7 +91,7 @@ const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
   try {
     const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    return date.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
   } catch {
     return dateStr;
   }
@@ -101,7 +101,7 @@ const formatYearMonth = (yearMonth: string): string => {
   try {
     const [year, month] = yearMonth.split("-");
     const date = new Date(parseInt(year), parseInt(month) - 1);
-    return date.toLocaleDateString("en-US", { year: "numeric", month: "long" });
+    return date.toLocaleDateString("en-US", { year: "numeric", month: "2-digit" });
   } catch {
     return yearMonth;
   }

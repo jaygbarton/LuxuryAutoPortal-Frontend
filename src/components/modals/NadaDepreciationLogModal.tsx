@@ -202,7 +202,7 @@ export function NadaDepreciationLogModal({
     try {
       const [year, month] = dateStr.split("-");
       const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-      return format(date, "MMM yyyy");
+      return format(date, "MM/yyyy");
     } catch {
       return dateStr;
     }
@@ -358,7 +358,7 @@ export function NadaDepreciationLogModal({
                         {log.carBacklogCreated
                           ? format(
                               new Date(log.carBacklogCreated),
-                              "MMM dd, yyyy HH:mm"
+                              "MM/dd/yyyy HH:mm"
                             )
                           : "N/A"}
                         </td>

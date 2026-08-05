@@ -147,8 +147,8 @@ function formatDate(dateString: string) {
   try {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
-      month: "short",
-      day: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   } catch {
     return "N/A";

@@ -29,7 +29,7 @@ const formatYearMonth = (yearMonth: string): string => {
   try {
     const [year, month] = yearMonth.split("-");
     const date = new Date(parseInt(year), parseInt(month) - 1);
-    return date.toLocaleDateString("en-US", { year: "numeric", month: "long" });
+    return date.toLocaleDateString("en-US", { year: "numeric", month: "2-digit" });
   } catch {
     return yearMonth;
   }

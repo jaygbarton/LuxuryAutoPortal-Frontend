@@ -344,7 +344,7 @@ export default function CoHostsPage() {
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-sm text-muted-foreground hidden lg:table-cell">
-                          {format(new Date(ch.created_at), "MMM d, yyyy")}
+                          {format(new Date(ch.created_at), "MM/dd/yyyy")}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
@@ -423,7 +423,7 @@ export default function CoHostsPage() {
                 Co-Host Application — {viewCoHost.first_name} {viewCoHost.last_name}
               </DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                {viewCoHost.co_host_number} · Submitted {format(new Date(viewCoHost.created_at), "MMM d, yyyy")}
+                {viewCoHost.co_host_number} · Submitted {format(new Date(viewCoHost.created_at), "MM/dd/yyyy")}
               </DialogDescription>
             </DialogHeader>
 

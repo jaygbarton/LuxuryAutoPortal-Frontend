@@ -413,8 +413,8 @@ export default function BouncieDevicesPage() {
     new Date(dateString).toLocaleDateString("en-US", {
       timeZone: "America/Denver",
       year: "numeric",
-      month: "short",
-      day: "numeric",
+      month: "2-digit",
+      day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -627,7 +627,7 @@ export default function BouncieDevicesPage() {
                                 <span className="text-xs text-muted-foreground">
                                   {new Date(device.liveData.lastSeen).toLocaleString("en-US", {
                                     timeZone: "America/Denver",
-                                    month: "short", day: "numeric",
+                                    month: "2-digit", day: "2-digit",
                                     hour: "numeric", minute: "2-digit",
                                   })}
                                 </span>

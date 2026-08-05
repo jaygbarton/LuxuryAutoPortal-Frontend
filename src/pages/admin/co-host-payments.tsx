@@ -34,7 +34,7 @@ function formatYearMonth(ym: string): string {
   try {
     const [year, month] = ym.split("-");
     return new Date(Number(year), Number(month) - 1).toLocaleDateString("en-US", {
-      month: "long",
+      month: "2-digit",
       year: "numeric",
     });
   } catch {
@@ -153,8 +153,8 @@ function EditableDateCell({
   const displayDate = payment.payments_invoice_date
     ? new Date(payment.payments_invoice_date).toLocaleDateString("en-US", {
         timeZone: "America/Denver",
-        month: "short",
-        day: "numeric",
+        month: "2-digit",
+        day: "2-digit",
         year: "numeric",
       })
     : "—";
@@ -424,8 +424,8 @@ export default function CoHostPaymentsPage() {
                             p.payments_invoice_date
                               ? new Date(p.payments_invoice_date).toLocaleDateString("en-US", {
                                   timeZone: "America/Denver",
-                                  month: "short",
-                                  day: "numeric",
+                                  month: "2-digit",
+                                  day: "2-digit",
                                   year: "numeric",
                                 })
                               : "—"

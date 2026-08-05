@@ -23,8 +23,8 @@ function formatDate(d: string | undefined, fallback = "--") {
       ? fallback
       : x.toLocaleDateString("en-US", {
           year: "numeric",
-          month: "short",
-          day: "numeric",
+          month: "2-digit",
+          day: "2-digit",
         });
   } catch {
     return fallback;

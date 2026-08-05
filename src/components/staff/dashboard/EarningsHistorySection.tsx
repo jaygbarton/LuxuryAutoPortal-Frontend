@@ -61,8 +61,8 @@ function periodLabel(row: PayslipRow): string {
     const from = new Date(row.payrun_date_from);
     const to = new Date(row.payrun_date_to);
     if (!isNaN(from.getTime()) && !isNaN(to.getTime())) {
-      const fromStr = from.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
-      const toStr = to.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
+      const fromStr = from.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" });
+      const toStr = to.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" });
       const yearStr = to.getFullYear();
       return `${fromStr} - ${toStr}, ${yearStr}`;
     }
@@ -70,7 +70,7 @@ function periodLabel(row: PayslipRow): string {
   if (row.payrun_list_created) {
     const d = new Date(row.payrun_list_created);
     if (!isNaN(d.getTime())) {
-      const dStr = d.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
+      const dStr = d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" });
       return `${dStr}, ${d.getFullYear()}`;
     }
   }

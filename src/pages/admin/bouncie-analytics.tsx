@@ -122,7 +122,7 @@ function MiniBarChart({ data }: { data: DailyMile[] }) {
       <div className="flex items-end gap-0.5" style={{ height: CHART_HEIGHT_PX }}>
         {recentDays.map((d) => {
           const barH = Math.max(Math.round((n(d.miles) / maxMiles) * CHART_HEIGHT_PX), 6);
-          const label = new Date(d.day).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          const label = new Date(d.day).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" });
           return (
             <div
               key={d.day}
@@ -134,8 +134,8 @@ function MiniBarChart({ data }: { data: DailyMile[] }) {
         })}
       </div>
       <div className="flex justify-between text-xs text-muted-foreground">
-        <span>{new Date(recentDays[0].day).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-        <span>{new Date(recentDays[recentDays.length - 1].day).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+        <span>{new Date(recentDays[0].day).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" })}</span>
+        <span>{new Date(recentDays[recentDays.length - 1].day).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" })}</span>
       </div>
     </div>
   );

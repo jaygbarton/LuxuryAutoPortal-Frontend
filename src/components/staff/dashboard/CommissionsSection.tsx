@@ -237,7 +237,7 @@ export default function CommissionsSection() {
                       {(listData?.data?.records ?? []).map((rec) => (
                         <tr key={rec.id} className="bg-white border-y border-[#D3BC8D]">
                           <td className="px-3 py-1.5 text-black">
-                            {rec.date ? new Date(rec.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                            {rec.date ? new Date(rec.date).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }) : "—"}
                           </td>
                           <td className="px-3 py-1.5 text-black">{rec.type || "—"}</td>
                           <td className="px-3 py-1.5 text-right font-mono text-black">{fmt$(rec.amount)}</td>

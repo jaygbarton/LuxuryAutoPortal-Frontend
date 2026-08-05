@@ -83,7 +83,7 @@ function truncate(text: string, max: number): string {
 
 function formatDate(dateStr: string): string {
   try {
-    return format(new Date(dateStr), "MMMM d, yyyy");
+    return format(new Date(dateStr), "MM/dd/yyyy");
   } catch {
     return dateStr;
   }

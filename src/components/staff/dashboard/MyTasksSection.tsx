@@ -53,7 +53,7 @@ function statusLabel(v: number | undefined): string {
 function fmtDate(s: string | undefined): string {
   if (!s) return "—";
   const d = new Date(s);
-  return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+  return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 }
 
 // task_timer_created is a UTC DATETIME ("YYYY-MM-DD HH:mm:ss"); show it in
@@ -69,7 +69,7 @@ function fmtCreatedAt(s: string | undefined): string {
   return d.toLocaleString("en-US", {
     timeZone: "America/Denver",
     year: "numeric",
-    month: "short",
+    month: "2-digit",
     day: "2-digit",
     hour: "numeric",
     minute: "2-digit",

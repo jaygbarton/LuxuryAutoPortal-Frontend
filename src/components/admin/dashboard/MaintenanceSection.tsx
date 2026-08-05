@@ -58,14 +58,14 @@ function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return "—";
-  return format(d, "MMM d, yyyy");
+  return format(d, "MM/dd/yyyy");
 }
 
 function formatDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return "—";
-  return format(d, "MMM d, yyyy h:mm a");
+  return format(d, "MM/dd/yyyy h:mm a");
 }
 
 function formatCurrency(val: number | null | undefined): string {

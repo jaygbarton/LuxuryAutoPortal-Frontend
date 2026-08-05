@@ -79,13 +79,13 @@ export function TuroEarningsSection({ carId, year }: Props) {
               <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
                 <img
                   src={resolveSrc(row.image_url)}
-                  alt={`Turo earnings ${MONTHS_SHORT[row.month - 1]} ${row.year}`}
+                  alt={`Turo earnings ${String(row.month).padStart(2, "0")}/${row.year}`}
                   loading="lazy"
                   className="h-full w-full object-cover group-hover:scale-105 transition-transform"
                 />
               </div>
               <span className="text-xs font-medium text-center pb-1.5">
-                {MONTHS_SHORT[row.month - 1]} {row.year}
+                {String(row.month).padStart(2, "0")}/{row.year}
               </span>
             </button>
           ))}
@@ -97,11 +97,11 @@ export function TuroEarningsSection({ carId, year }: Props) {
           {preview && (
             <div className="flex flex-col gap-2">
               <h4 className="font-semibold">
-                Turo Earnings — {MONTHS_SHORT[preview.month - 1]} {preview.year}
+                Turo Earnings — {String(preview.month).padStart(2, "0")}/{preview.year}
               </h4>
               <img
                 src={resolveSrc(preview.image_url)}
-                alt={`Turo earnings ${MONTHS_SHORT[preview.month - 1]} ${preview.year}`}
+                alt={`Turo earnings ${String(preview.month).padStart(2, "0")}/${preview.year}`}
                 className="w-full h-auto rounded-md"
               />
             </div>

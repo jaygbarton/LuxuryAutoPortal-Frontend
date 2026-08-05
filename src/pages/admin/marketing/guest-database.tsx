@@ -153,8 +153,8 @@ export default function GuestDatabasePage() {
 
   const MT_DATETIME_FMT = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Denver",
-    month: "short",
-    day: "numeric",
+    month: "2-digit",
+    day: "2-digit",
     hour: "numeric",
     minute: "2-digit",
     hour12: true,

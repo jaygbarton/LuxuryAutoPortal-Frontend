@@ -38,8 +38,8 @@ const formatDateTime = (dateStr: string | null): string => {
       d.toLocaleDateString("en-US", {
         timeZone: "America/Denver",
         weekday: "short",
-        month: "short",
-        day: "numeric",
+        month: "2-digit",
+        day: "2-digit",
         year: "numeric",
       }) +
       ", " +

@@ -60,7 +60,7 @@ function utahDate(d: string | null | undefined): string {
   return x.toLocaleDateString("en-US", {
     timeZone: UTAH_TZ,
     year: "numeric",
-    month: "long",
+    month: "2-digit",
     day: "2-digit",
   });
 }
