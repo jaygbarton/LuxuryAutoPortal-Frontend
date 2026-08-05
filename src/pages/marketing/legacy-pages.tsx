@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   ArrowRight,
   BadgePercent,
@@ -21,6 +21,7 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SITE_CONTACT } from "@/lib/site-config";
+import { getPublicLocationFromPath } from "@/lib/location-config";
 
 type PageKey =
   | "detail-shop"
@@ -819,11 +820,11 @@ export function JobsPage() {
             </div>
 
             <div className="mt-8 space-y-5 text-sm leading-7 text-muted-foreground">
-              <p>Senior Detailers and Drivers create the client's first impression of the company & are a crucial part of our organization to allow us to fulfill our mission.</p>
+              <p>Detailers and Drivers create the client's first impression of the company & are a crucial part of our organization to allow us to fulfill our mission.</p>
               <p>Your daily task will include preparing cars for rentals, cleaning and detailing cars on a schedule, dropping cars off to clients, filling out forms, going to various auto shops, checking in cars after rentals, and other similar tasks. Our culture is energetic, driven, and friendly. We collaborate and help each other grow and succeed (A Rising Tide Raises All Ships).</p>
               <p>All the materials, scheduling, and systems are pre-built and you will receive daily, training to master them and continuously fine-tune your skills.</p>
-              <p>Golden Luxury Auto's senior detailers are to focus entirely on client experience and making sure each rental is ready to go. Our detailers are the face of the company many times.</p>
-              <p>In that, senior detailers are expected to, for lack of a better word, hustle.</p>
+              <p>Golden Luxury Auto's detailers are to focus entirely on client experience and making sure each rental is ready to go. Our detailers are the face of the company many times.</p>
+              <p>In that, detailers are expected to, for lack of a better word, hustle.</p>
               <p>We expect our detailers to work as long and as hard as it takes to meet their goals and finish each task they start.</p>
             </div>
           </CardContent>
@@ -853,7 +854,7 @@ export function JobsPage() {
           </div>
           <Card className="mt-6 border-border bg-card">
             <CardContent className="p-6">
-              <p className="text-sm font-semibold text-primary">3K - 7K/month</p>
+              <p className="text-sm font-semibold text-primary">$16-21/hr depending on experience</p>
               <p className="mt-3 text-sm leading-7 text-muted-foreground">
                 OTE paid weekly A pre-agreed hourly pay will be paid and will be increased over time with the company and who well of a job our detailers do. There will also be bonus incentives to hit each month and ways to earn more money than your base pay.
               </p>
@@ -1114,6 +1115,12 @@ export function ReviewsOptionsPage() {
 }
 
 export function ExtrasPage() {
+  const [pathname] = useLocation();
+  const location = getPublicLocationFromPath(pathname);
+  const visibleExtras = location?.id === "wilmington"
+    ? extras.filter((item) => item.name !== "Ski Racks")
+    : extras;
+
   return (
     <PageShell page="extras">
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
@@ -1123,7 +1130,7 @@ export function ExtrasPage() {
           description="Choose practical add-ons for ski trips, family travel, airport pickups, and longer Utah stays."
         />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {extras.map((item) => (
+          {visibleExtras.map((item) => (
             <Card key={item.name} className="border-border bg-card">
               <CardContent className="flex h-full flex-col p-6">
                 <div className="mb-5 aspect-[4/3] overflow-hidden rounded-md bg-muted">

@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ArrowRight, Phone } from "lucide-react";
+import { ArrowRight, Car, Phone } from "lucide-react";
 import type { PublicLocation } from "@/lib/location-config";
 
 export function CTASection({ location }: { location: PublicLocation }) {
@@ -8,7 +8,7 @@ export function CTASection({ location }: { location: PublicLocation }) {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?ixlib=rb-4.0.3&auto=format&fit=crop&w=2574&q=80')`,
+          backgroundImage: "url('/bmw-x6-cta.jpg')",
         }}
       >
         <div
@@ -73,6 +73,32 @@ export function CTASection({ location }: { location: PublicLocation }) {
             >
               List Your Car
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </button>
+          </Link>
+          <Link href={location.fleetPath}>
+            <button
+              className="inline-flex items-center gap-2 min-w-[200px] justify-center px-8 py-4 rounded-lg text-sm font-bold transition-all duration-300"
+              style={{
+                background: "rgba(255,255,255,0.96)",
+                border: "1px solid rgba(255,255,255,0.35)",
+                color: "#1A0E00",
+              }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget as HTMLButtonElement;
+                el.style.background = "#ffffff";
+                el.style.boxShadow = "0 8px 32px rgba(255,255,255,0.22)";
+                el.style.transform = "translateY(-2px)";
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget as HTMLButtonElement;
+                el.style.background = "rgba(255,255,255,0.96)";
+                el.style.boxShadow = "none";
+                el.style.transform = "translateY(0)";
+              }}
+              data-testid="button-cta-rent-car"
+            >
+              <Car className="w-4 h-4" />
+              Rent a Car
             </button>
           </Link>
           <a href="tel:+1234567890">
