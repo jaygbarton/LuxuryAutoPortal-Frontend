@@ -22,6 +22,7 @@ interface FeaturedCar {
   vehicleTrim: string | null;
   photo: string | null;
   turoLink: string | null;
+  locationTag?: string | null;
 }
 
 type FeaturedMode = "previous-month" | "top-performing";
@@ -135,7 +136,7 @@ export function FeaturedCars({ location }: { location: PublicLocation }) {
     staleTime: 1000 * 60 * 30,
   });
 
-  const cars = (data?.data ?? []).filter((car) => fleetCarBelongsToLocation(car.turoLink, location));
+  const cars = (data?.data ?? []).filter((car) => fleetCarBelongsToLocation(car.turoLink, location, car.locationTag));
 
   return (
     <section id="featured-fleet" className="py-20 lg:py-28" style={{ background: "#FFFDF8" }}>

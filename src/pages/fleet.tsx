@@ -39,6 +39,7 @@ interface FleetCar {
   vehicleTrim: string | null;
   photo: string | null;
   turoLink: string | null;
+  locationTag?: string | null;
   performanceIncome?: number | null;
 }
 
@@ -192,7 +193,7 @@ export default function Fleet({ location = PUBLIC_LOCATIONS.slc }: { location?: 
   });
 
   const cars = useMemo(
-    () => (data?.data ?? []).filter((car) => fleetCarBelongsToLocation(car.turoLink, location)),
+    () => (data?.data ?? []).filter((car) => fleetCarBelongsToLocation(car.turoLink, location, car.locationTag)),
     [data, location],
   );
 

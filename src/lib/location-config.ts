@@ -1,4 +1,4 @@
-export type PublicLocationId = "hub" | "slc" | "wilmington";
+export type PublicLocationId = "hub" | "slc" | "wilmington" | "myrtle";
 
 export type PublicLocation = {
   id: PublicLocationId;
@@ -8,7 +8,9 @@ export type PublicLocation = {
   path: string;
   fleetPath: string;
   fleetSlugs: string[];
+  locationTag: string;
   turoFleetUrl: string;
+  comingSoon?: boolean;
   availablePages: {
     detailShop: boolean;
     deals: boolean;
@@ -26,6 +28,7 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
     path: "/salt-lake-city",
     fleetPath: "/salt-lake-city/fleet",
     fleetSlugs: ["salt-lake-city-ut"],
+    locationTag: "slc",
     turoFleetUrl: "https://turo.com/us/en/drivers/4325673/vehicles",
     availablePages: {
       detailShop: true,
@@ -42,7 +45,26 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
     path: "/wilmington-nc",
     fleetPath: "/wilmington-nc/fleet",
     fleetSlugs: ["leland-nc", "wilmington-nc"],
+    locationTag: "wilmington",
     turoFleetUrl: "https://turo.com/us/en/drivers/4325673/vehicles",
+    availablePages: {
+      detailShop: false,
+      deals: false,
+      jobs: false,
+      suggestedCars: false,
+    },
+  },
+  myrtle: {
+    id: "myrtle",
+    name: "Myrtle Beach",
+    shortName: "Myrtle Beach",
+    cityState: "Myrtle Beach, NC",
+    path: "/myrtle-beach-nc",
+    fleetPath: "/myrtle-beach-nc/fleet",
+    fleetSlugs: ["myrtle-beach-nc", "myrtle-beach-sc"],
+    locationTag: "myrtle",
+    turoFleetUrl: "https://turo.com/us/en/drivers/4325673/vehicles",
+    comingSoon: true,
     availablePages: {
       detailShop: false,
       deals: false,
@@ -53,6 +75,7 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
 };
 
 export function getPublicLocationFromPath(pathname: string): PublicLocation | null {
+  if (pathname.startsWith(PUBLIC_LOCATIONS.myrtle.path)) return PUBLIC_LOCATIONS.myrtle;
   if (pathname.startsWith(PUBLIC_LOCATIONS.wilmington.path)) return PUBLIC_LOCATIONS.wilmington;
   if (pathname.startsWith(PUBLIC_LOCATIONS.slc.path)) return PUBLIC_LOCATIONS.slc;
   return null;
@@ -65,8 +88,13 @@ export function withLocationPath(href: string, location: PublicLocation | null):
   return `${location.path}${href}`;
 }
 
-export function fleetCarBelongsToLocation(turoLink: string | null | undefined, location: PublicLocation | null): boolean {
+export function fleetCarBelongsToLocation(
+  turoLink: string | null | undefined,
+  location: PublicLocation | null,
+  locationTag?: string | null,
+): boolean {
   if (!location) return true;
+  if (locationTag && locationTag.toLowerCase() === location.locationTag) return true;
   const link = (turoLink ?? "").toLowerCase();
   return location.fleetSlugs.some((slug) => link.includes(`/united-states/${slug}/`));
 }

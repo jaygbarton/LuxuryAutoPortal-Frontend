@@ -1,12 +1,13 @@
 import { Link } from "wouter";
-import { ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronDown, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { PublicLocation } from "@/lib/location-config";
+import { PUBLIC_LOCATIONS, type PublicLocation } from "@/lib/location-config";
 
-export function Hero({ location }: { location: PublicLocation }) {
+export function Hero({ location, mode = "location" }: { location?: PublicLocation; mode?: "hub" | "location" }) {
   const scrollToFleet = () => {
     document.getElementById("featured-fleet")?.scrollIntoView({ behavior: "smooth" });
   };
+  const locations = [PUBLIC_LOCATIONS.slc, PUBLIC_LOCATIONS.wilmington, PUBLIC_LOCATIONS.myrtle];
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -44,7 +45,7 @@ export function Hero({ location }: { location: PublicLocation }) {
             className="text-sm font-semibold tracking-wide"
             style={{ color: "#E8B830", letterSpacing: "1px" }}
           >
-            {location.cityState} Car Rentals
+            {mode === "hub" ? "Salt Lake City Car Rentals" : `${location?.cityState} Car Rentals`}
           </span>
         </div>
 
@@ -66,11 +67,51 @@ export function Hero({ location }: { location: PublicLocation }) {
 
         <p className="max-w-2xl mx-auto text-lg sm:text-xl leading-relaxed mb-10" style={{ color: "rgba(255,255,255,0.7)" }}>
           Browse a practical selection of premium vehicles for trips, events, airport
-          travel, and everyday transportation around {location.name}.
+          travel, and everyday transportation around {mode === "hub" ? "Utah" : location?.name}.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href={location.fleetPath}>
+        {mode === "hub" ? (
+          <div className="mx-auto max-w-4xl">
+            <p className="mb-4 text-xs font-bold uppercase tracking-[3px]" style={{ color: "#E8B830" }}>
+              Select Location
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {locations.map((item) => (
+                <Link key={item.id} href={item.path}>
+                  <button
+                    className="group flex min-h-[84px] w-full items-center justify-between rounded-lg border px-5 py-4 text-left transition-all"
+                    style={{
+                      background: "rgba(255,255,255,0.08)",
+                      borderColor: "rgba(232,184,48,0.35)",
+                      color: "#fff",
+                    }}
+                    data-testid={`button-location-${item.id}`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <span
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md"
+                        style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
+                      >
+                        <MapPin className="h-5 w-5" />
+                      </span>
+                      <span>
+                        <span className="block font-semibold">{item.cityState}</span>
+                        {item.comingSoon ? (
+                          <span className="mt-1 block text-xs font-medium" style={{ color: "rgba(255,255,255,0.62)" }}>
+                            Coming Soon
+                          </span>
+                        ) : null}
+                      </span>
+                    </span>
+                    <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" />
+                  </button>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : location ? (
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link href={location.fleetPath}>
             <Button
               size="lg"
               className="min-w-[180px] group font-bold"
@@ -100,10 +141,11 @@ export function Hero({ location }: { location: PublicLocation }) {
               Contact Us
             </Button>
           </Link>
-        </div>
+          </div>
+        ) : null}
       </div>
 
-      <div className="hidden sm:block absolute bottom-10 left-1/2 -translate-x-1/2 z-10">
+      {mode === "location" ? <div className="hidden sm:block absolute bottom-10 left-1/2 -translate-x-1/2 z-10">
         <button
           onClick={scrollToFleet}
           className="flex flex-col items-center gap-2 transition-colors group"
@@ -113,7 +155,7 @@ export function Hero({ location }: { location: PublicLocation }) {
           <span className="text-xs tracking-widest uppercase">Scroll to explore</span>
           <ChevronDown className="w-5 h-5 animate-bounce" />
         </button>
-      </div>
+      </div> : null}
     </section>
   );
 }

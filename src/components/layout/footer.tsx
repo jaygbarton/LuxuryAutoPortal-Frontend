@@ -42,6 +42,7 @@ export function Footer() {
   const publicLocation = getPublicLocationFromPath(location);
   const links = quickLinks.filter((link) => {
     if (!publicLocation) return link.href === "/contact";
+    if (publicLocation.comingSoon) return false;
     if (link.href === "/detail-shop") return publicLocation.availablePages.detailShop;
     if (link.href === "/deals") return publicLocation.availablePages.deals;
     if (link.href === "/jobs") return publicLocation.availablePages.jobs;
