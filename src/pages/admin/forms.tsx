@@ -86,7 +86,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { buildApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import {
   TablePagination,
   ItemsPerPage,
@@ -3225,7 +3225,7 @@ export default function FormsPage() {
                             (() => {
                               const documentUrl =
                                 data.insuranceCardUrl.startsWith("http")
-                                  ? data.insuranceCardUrl
+                                  ? getProxiedImageUrl(data.insuranceCardUrl)
                                   : buildApiUrl(data.insuranceCardUrl);
                               const isPdf = isPdfDocument(
                                 data.insuranceCardUrl,
@@ -3328,7 +3328,7 @@ export default function FormsPage() {
                               {driversLicenseUrlsArray.map(
                                 (url: string, index: number) => {
                                   const documentUrl = url.startsWith("http")
-                                    ? url
+                                    ? getProxiedImageUrl(url)
                                     : buildApiUrl(url);
                                   const isPdf = isPdfDocument(url);
 
