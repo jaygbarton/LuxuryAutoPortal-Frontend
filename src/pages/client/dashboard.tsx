@@ -267,12 +267,15 @@ export default function ClientDashboard() {
   }>({
     queryKey: ["/api/operations/maintenance", carId],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/operations/maintenance?limit=100"), {
-        credentials: "include",
-      });
+      if (!carId) return { success: false, data: [] };
+      const res = await fetch(
+        buildApiUrl(`/api/operations/maintenance?carId=${carId}&limit=100`),
+        { credentials: "include" },
+      );
       if (!res.ok) return { success: false, data: [] };
       return res.json();
     },
+    enabled: !!carId,
     retry: false,
   });
 
