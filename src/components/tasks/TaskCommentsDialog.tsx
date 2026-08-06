@@ -10,7 +10,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Paperclip, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { buildApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface TaskComment {
@@ -30,7 +30,18 @@ interface TaskComment {
   author_id: number | null;
   author_name: string;
   body: string;
+  photos: string | null;
   created_at: string;
+}
+
+function parsePhotos(photos: string | null): string[] {
+  if (!photos) return [];
+  try {
+    const parsed = JSON.parse(photos);
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
 }
 
 interface Props {
@@ -66,7 +77,10 @@ export default function TaskCommentsDialog({ taskId, taskName, onClose }: Props)
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [body, setBody] = useState("");
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [fullScreenPhoto, setFullScreenPhoto] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data, isLoading } = useQuery<{
     success: boolean;
@@ -94,12 +108,14 @@ export default function TaskCommentsDialog({ taskId, taskName, onClose }: Props)
   }, [comments.length]);
 
   const postComment = useMutation({
-    mutationFn: async (text: string) => {
+    mutationFn: async ({ text, files }: { text: string; files: File[] }) => {
+      const form = new FormData();
+      form.append("body", text);
+      for (const f of files) form.append("photos", f);
       const r = await fetch(buildApiUrl(`/api/tasks/${taskId}/comments`), {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: text }),
+        body: form,
       });
       const json = await r.json().catch(() => null);
       if (!r.ok || !json?.success) {
@@ -109,6 +125,7 @@ export default function TaskCommentsDialog({ taskId, taskName, onClose }: Props)
     },
     onSuccess: () => {
       setBody("");
+      setPendingFiles([]);
       queryClient.invalidateQueries({ queryKey: ["task-comments", taskId] });
     },
     onError: (e: any) => {
@@ -122,8 +139,18 @@ export default function TaskCommentsDialog({ taskId, taskName, onClose }: Props)
 
   function submit() {
     const trimmed = body.trim();
-    if (!trimmed) return;
-    postComment.mutate(trimmed);
+    if (!trimmed && pendingFiles.length === 0) return;
+    postComment.mutate({ text: trimmed, files: pendingFiles });
+  }
+
+  function addFiles(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    const images = Array.from(fileList).filter((f) => f.type.startsWith("image/"));
+    setPendingFiles((prev) => [...prev, ...images].slice(0, 10));
+  }
+
+  function removePendingFile(index: number) {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
   return (
@@ -174,15 +201,57 @@ export default function TaskCommentsDialog({ taskId, taskName, onClose }: Props)
                     {formatWhen(c.created_at)}
                   </span>
                 </div>
-                <p className="text-sm whitespace-pre-wrap break-words">
-                  {c.body}
-                </p>
+                {c.body && (
+                  <p className="text-sm whitespace-pre-wrap break-words">
+                    {c.body}
+                  </p>
+                )}
+                {parsePhotos(c.photos).length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {parsePhotos(c.photos).map((url, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setFullScreenPhoto(getProxiedImageUrl(url))}
+                        className="block"
+                        title="View photo"
+                      >
+                        <img
+                          src={getProxiedImageUrl(url)}
+                          alt={`Attachment ${i + 1}`}
+                          className="w-16 h-16 object-cover rounded border border-border hover:opacity-80 transition-opacity"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))
           )}
         </div>
 
         <div className="border-t border-border px-6 py-3 space-y-2">
+          {pendingFiles.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {pendingFiles.map((file, i) => (
+                <div key={i} className="relative">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={file.name}
+                    className="w-14 h-14 object-cover rounded border border-border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePendingFile(i)}
+                    className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center"
+                    title="Remove"
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <Textarea
             placeholder="Write a comment…"
             value={body}
@@ -196,14 +265,38 @@ export default function TaskCommentsDialog({ taskId, taskName, onClose }: Props)
               }
             }}
           />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              addFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] text-muted-foreground">
-              {body.length}/4000 · ⌘/Ctrl+Enter to send
-            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-primary"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={pendingFiles.length >= 10}
+                title="Attach photos"
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+              <span className="text-[11px] text-muted-foreground">
+                {body.length}/4000 · ⌘/Ctrl+Enter to send
+              </span>
+            </div>
             <Button
               size="sm"
               onClick={submit}
-              disabled={!body.trim() || postComment.isPending}
+              disabled={(!body.trim() && pendingFiles.length === 0) || postComment.isPending}
               className="gap-1"
             >
               {postComment.isPending ? (
@@ -216,6 +309,26 @@ export default function TaskCommentsDialog({ taskId, taskName, onClose }: Props)
           </div>
         </div>
       </DialogContent>
+
+      {fullScreenPhoto && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setFullScreenPhoto(null)}
+        >
+          <img
+            src={fullScreenPhoto}
+            alt="Attachment full size"
+            className="max-w-full max-h-full object-contain"
+          />
+          <button
+            type="button"
+            onClick={() => setFullScreenPhoto(null)}
+            className="absolute top-4 right-4 text-white bg-white/10 hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
     </Dialog>
   );
 }

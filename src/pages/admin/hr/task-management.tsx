@@ -536,9 +536,10 @@ export default function AdminHrTaskManagement() {
 
   const allRows = data?.data ?? [];
 
-  // Build unique assigned-to names for the filter dropdown from loaded data
+  // Build unique individual assignee names for the filter dropdown — one
+  // entry per person, not one per distinct combination of co-assignees.
   const assignedToOptions = Array.from(
-    new Set(allRows.map((r) => getAssignedName(r)).filter((n) => n && n !== "—"))
+    new Set(allRows.flatMap((r) => getAssignedNames(r)).filter(Boolean))
   ).sort();
 
   const filteredRows = allRows.filter((r) => {
@@ -548,7 +549,9 @@ export default function AdminHrTaskManagement() {
     } else if (filterStatus !== "all" && rowStatus !== filterStatus) {
       return false;
     }
-    if (filterAssignedTo !== "all" && getAssignedName(r) !== filterAssignedTo) return false;
+    // Match if the selected person is ANY of the task's assignees, not just
+    // an exact match on the full joined "A, B, C" display string.
+    if (filterAssignedTo !== "all" && !getAssignedNames(r).includes(filterAssignedTo)) return false;
     return true;
   });
 
@@ -786,9 +789,9 @@ export default function AdminHrTaskManagement() {
 
   const isBusy = createMutation.isPending || updateMutation.isPending;
 
-  // Parse assigned employee name for display.
-  // Priority: emp_list JSON names → employee map lookup by ID → raw ID → "—"
-  function getAssignedName(task: any): string {
+  // Parse assigned employee names for a task, individually.
+  // Priority: emp_list JSON names → employee map lookup by ID → raw ID → [].
+  function getAssignedNames(task: any): string[] {
     if (task.task_timer_emp_list) {
       try {
         const parsed = JSON.parse(task.task_timer_emp_list);
@@ -802,15 +805,21 @@ export default function AdminHrTaskManagement() {
               return employeeMap.get(id) || id;
             })
             .filter(Boolean);
-          if (names.length > 0) return names.join(", ");
+          if (names.length > 0) return names;
         }
       } catch {}
     }
     // Fall back to looking up the raw emp_id in the employee map
     if (task.task_timer_emp_id) {
-      return employeeMap.get(String(task.task_timer_emp_id)) || task.task_timer_emp_id;
+      return [employeeMap.get(String(task.task_timer_emp_id)) || task.task_timer_emp_id];
     }
-    return "—";
+    return [];
+  }
+
+  // Display string for the "Assigned To" column — every assignee, joined.
+  function getAssignedName(task: any): string {
+    const names = getAssignedNames(task);
+    return names.length > 0 ? names.join(", ") : "—";
   }
 
   // Parse photo URLs stored as JSON in task_timer_photos
