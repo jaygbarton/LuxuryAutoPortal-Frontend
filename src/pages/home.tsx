@@ -247,26 +247,26 @@ function ComingSoon({ location }: { location: PublicLocation }) {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-20 lg:pt-24">
-        <section className="flex min-h-[calc(100vh-68px)] items-center bg-[#0A0A0A] text-white">
-          <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 lg:px-8">
-            <p className="mb-4 text-xs font-bold uppercase tracking-[3px]" style={{ color: "#E8B830" }}>
+        <section className="flex min-h-[calc(100svh-68px)] items-center bg-[#0A0A0A] text-white">
+          <div className="mx-auto max-w-4xl px-4 py-10 text-center sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[2px] sm:mb-4 sm:tracking-[3px]" style={{ color: "#E8B830" }}>
               {location.cityState}
             </p>
-            <h1 className="font-serif text-4xl font-bold sm:text-6xl">Coming Soon</h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/70">
+            <h1 className="font-serif text-3xl font-bold sm:text-6xl">Coming Soon</h1>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-white/70 sm:mt-6 sm:text-lg sm:leading-8">
               Golden Luxury Auto is preparing this location.
             </p>
-            <div className="mx-auto mt-8 max-w-2xl rounded-md border border-white/10 bg-white/[0.06] p-6">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#D4A017]/15 text-[#E8B830]">
+            <div className="mx-auto mt-6 max-w-2xl rounded-md border border-white/10 bg-white/[0.06] p-4 sm:mt-8 sm:p-6">
+              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#D4A017]/15 text-[#E8B830] sm:mb-4 sm:h-12 sm:w-12">
                 <UserPlus className="h-5 w-5" />
               </div>
-              <h2 className="font-serif text-2xl font-bold">Interested in listing a vehicle in this location?</h2>
+              <h2 className="font-serif text-xl font-bold sm:text-2xl">Interested in listing a vehicle in this location?</h2>
               <p className="mt-3 text-sm leading-6 text-white/68">
                 Join the launch list and we will notify you when {location.cityState} is ready for vehicle owners.
               </p>
               <Link href={`${location.path}/list-your-vehicle`}>
                 <button
-                  className="mt-5 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-bold transition-all"
+                  className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold transition-all sm:min-h-[48px] sm:w-auto sm:px-6"
                   style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
                 >
                   Join Vehicle Owner List
@@ -274,10 +274,10 @@ function ComingSoon({ location }: { location: PublicLocation }) {
                 </button>
               </Link>
             </div>
-            <div className="mt-8">
+            <div className="mt-6 sm:mt-8">
               <Link href="/">
                 <button
-                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg px-6 text-sm font-bold transition-all"
+                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-5 text-sm font-bold transition-all sm:min-h-[48px] sm:px-6"
                   style={{ border: "1px solid rgba(232,184,48,0.45)", color: "#E8B830", background: "transparent" }}
                 >
                   Select Location

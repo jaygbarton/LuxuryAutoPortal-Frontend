@@ -15,7 +15,7 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
   ];
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section className="relative flex min-h-[100svh] items-center justify-center overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -30,10 +30,9 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
         />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-20">
-        {/* Badge */}
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-6 pt-20 text-center sm:px-6 sm:pb-8 sm:pt-24 lg:px-8 lg:pt-20">
         <div
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8"
+          className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full px-3 py-2 sm:mb-8 sm:px-4"
           style={{
             background: "rgba(212,160,23,0.15)",
             border: "1px solid rgba(212,160,23,0.4)",
@@ -47,18 +46,17 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
             }}
           />
           <span
-            className="text-sm font-semibold tracking-wide"
+            className="truncate text-xs font-semibold tracking-wide sm:text-sm"
             style={{ color: "#E8B830", letterSpacing: "1px" }}
           >
-            {mode === "hub" ? "Salt Lake City Car Rentals" : `${location?.cityState} Car Rentals`}
+            {mode === "hub" ? "Golden Luxury Auto Locations" : `${location?.cityState} Car Rentals`}
           </span>
         </div>
 
-        {/* Headline */}
-        <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl font-bold leading-tight text-white mb-6">
+        <h1 className="mb-3 font-serif text-2xl font-bold leading-tight text-white sm:mb-6 sm:text-6xl lg:text-7xl">
           Experience
           <span
-            className="block mt-2"
+            className="mt-1 block sm:mt-2"
             style={{
               background: "linear-gradient(135deg, #E8B830, #F0D060, #D4A017)",
               WebkitBackgroundClip: "text",
@@ -70,21 +68,21 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
           </span>
         </h1>
 
-        <p className="max-w-2xl mx-auto text-lg sm:text-xl leading-relaxed mb-10" style={{ color: "rgba(255,255,255,0.7)" }}>
+        <p className="mx-auto mb-5 max-w-2xl text-sm leading-6 sm:mb-10 sm:text-xl sm:leading-relaxed" style={{ color: "rgba(255,255,255,0.7)" }}>
           Browse a practical selection of premium vehicles for trips, events, airport
-          travel, and everyday transportation around {mode === "hub" ? "Utah" : location?.name}.
+          travel, and everyday transportation {mode === "hub" ? "across active and upcoming locations" : `around ${location?.name}`}.
         </p>
 
         {mode === "hub" ? (
-          <div className="mx-auto max-w-4xl">
-            <p className="mb-4 text-xs font-bold uppercase tracking-[3px]" style={{ color: "#E8B830" }}>
+          <div className="mx-auto max-w-5xl">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[2px] sm:mb-4 sm:tracking-[3px]" style={{ color: "#E8B830" }}>
               Select Location to Continue
             </p>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
               {locations.map((item) => (
                 <Link key={item.id} href={item.path}>
                   <button
-                    className="group flex min-h-[84px] w-full items-center justify-between rounded-lg border px-5 py-4 text-left transition-all"
+                    className="group flex min-h-[54px] w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-all sm:min-h-[84px] sm:px-5 sm:py-4"
                     style={{
                       background: "rgba(255,255,255,0.08)",
                       borderColor: "rgba(232,184,48,0.35)",
@@ -94,15 +92,15 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
                   >
                     <span className="flex items-center gap-3">
                       <span
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md sm:h-10 sm:w-10"
                         style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
                       >
-                        <MapPin className="h-5 w-5" />
+                        <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
                       </span>
-                      <span>
-                        <span className="block font-semibold">{item.cityState}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold sm:text-base">{item.cityState}</span>
                         {item.comingSoon ? (
-                          <span className="mt-1 block text-xs font-medium" style={{ color: "rgba(255,255,255,0.62)" }}>
+                          <span className="block text-xs font-medium sm:mt-1" style={{ color: "rgba(255,255,255,0.62)" }}>
                             Coming Soon
                           </span>
                         ) : null}

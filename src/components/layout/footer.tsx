@@ -73,7 +73,7 @@ export function Footer() {
                 className="text-xs font-bold tracking-widest"
                 style={{ color: "#D4A017", letterSpacing: "2.5px" }}
               >
-                GALLERY
+                CAR RENTALS
               </span>
             </Link>
             <p className="text-sm leading-relaxed" style={{ color: "#4A4A4A" }}>

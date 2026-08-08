@@ -13,7 +13,7 @@ export const SITE_CONTACT = {
 };
 
 export const SITE_TAGLINE =
-  "Golden Luxury Auto manages premium rentals for guests and vehicle owners in Utah.";
+  "Golden Luxury Auto manages premium rentals for guests and vehicle owners in active and upcoming markets.";
 
 export const SITE_STATS = [
   { label: "Trips Taken", value: "22,924" },

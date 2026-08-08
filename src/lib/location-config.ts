@@ -61,7 +61,7 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
     cityState: "Myrtle Beach, SC",
     path: "/myrtle-beach-sc",
     fleetPath: "/myrtle-beach-sc/fleet",
-    fleetSlugs: ["myrtle-beach-nc", "myrtle-beach-sc"],
+    fleetSlugs: ["myrtle-beach-sc"],
     locationTag: "myrtle",
     turoFleetUrl: "https://turo.com/us/en/drivers/4325673/vehicles",
     comingSoon: true,
@@ -95,7 +95,6 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
 export function getPublicLocationFromPath(pathname: string): PublicLocation | null {
   if (pathname.startsWith(PUBLIC_LOCATIONS.charleston.path)) return PUBLIC_LOCATIONS.charleston;
   if (pathname.startsWith(PUBLIC_LOCATIONS.myrtle.path)) return PUBLIC_LOCATIONS.myrtle;
-  if (pathname.startsWith("/myrtle-beach-nc")) return PUBLIC_LOCATIONS.myrtle;
   if (pathname.startsWith(PUBLIC_LOCATIONS.wilmington.path)) return PUBLIC_LOCATIONS.wilmington;
   if (pathname.startsWith(PUBLIC_LOCATIONS.slc.path)) return PUBLIC_LOCATIONS.slc;
   return null;

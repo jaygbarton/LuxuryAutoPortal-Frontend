@@ -273,7 +273,7 @@ const deals: Deal[] = [
   {
     offer: "Up To 15% Off",
     title: "5+ Day Car Rental",
-    description: "Book a car for five days or more and save on longer Utah trips. Offer available for qualifying United States bookings and rentals until 12/15/2025.",
+    description: "Book a car for five days or more and save on longer qualifying rentals. Ask the team to confirm current availability before booking.",
     imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/08/banner-benz.webp",
   },
   {
@@ -1158,6 +1158,9 @@ export function ExtrasPage() {
   const visibleExtras = location?.id === "wilmington"
     ? extras.filter((item) => item.name !== "Ski Racks")
     : extras;
+  const extrasDescription = location?.id === "wilmington"
+    ? "Choose practical add-ons for beach trips, family travel, airport pickups, and longer coastal stays."
+    : "Choose practical add-ons for ski trips, family travel, airport pickups, and longer stays.";
 
   return (
     <PageShell page="extras">
@@ -1165,7 +1168,7 @@ export function ExtrasPage() {
         <SectionHeader
           eyebrow="Available Extras"
           title="Travel lighter, arrive prepared"
-          description="Choose practical add-ons for ski trips, family travel, airport pickups, and longer Utah stays."
+          description={extrasDescription}
         />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {visibleExtras.map((item) => (

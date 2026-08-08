@@ -147,16 +147,10 @@ function Router() {
       <Route path="/myrtle-beach-sc/list-your-vehicle">
         <LocationInterest location={PUBLIC_LOCATIONS.myrtle} />
       </Route>
-      <Route path="/myrtle-beach-nc/list-your-vehicle">
-        <LocationInterest location={PUBLIC_LOCATIONS.myrtle} />
-      </Route>
       <Route path="/charleston-sc/list-your-vehicle">
         <LocationInterest location={PUBLIC_LOCATIONS.charleston} />
       </Route>
       <Route path="/myrtle-beach-sc">
-        <Home location={PUBLIC_LOCATIONS.myrtle} />
-      </Route>
-      <Route path="/myrtle-beach-nc">
         <Home location={PUBLIC_LOCATIONS.myrtle} />
       </Route>
       <Route path="/charleston-sc">
@@ -172,9 +166,6 @@ function Router() {
         <Fleet location={PUBLIC_LOCATIONS.wilmington} />
       </Route>
       <Route path="/myrtle-beach-sc/fleet">
-        <Home location={PUBLIC_LOCATIONS.myrtle} />
-      </Route>
-      <Route path="/myrtle-beach-nc/fleet">
         <Home location={PUBLIC_LOCATIONS.myrtle} />
       </Route>
       <Route path="/charleston-sc/fleet">
