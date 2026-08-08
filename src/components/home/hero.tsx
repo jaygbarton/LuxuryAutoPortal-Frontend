@@ -7,7 +7,12 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
   const scrollToFleet = () => {
     document.getElementById("featured-fleet")?.scrollIntoView({ behavior: "smooth" });
   };
-  const locations = [PUBLIC_LOCATIONS.slc, PUBLIC_LOCATIONS.wilmington, PUBLIC_LOCATIONS.myrtle];
+  const locations = [
+    PUBLIC_LOCATIONS.slc,
+    PUBLIC_LOCATIONS.wilmington,
+    PUBLIC_LOCATIONS.myrtle,
+    PUBLIC_LOCATIONS.charleston,
+  ];
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -75,7 +80,7 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
             <p className="mb-4 text-xs font-bold uppercase tracking-[3px]" style={{ color: "#E8B830" }}>
               Select Location to Continue
             </p>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {locations.map((item) => (
                 <Link key={item.id} href={item.path}>
                   <button

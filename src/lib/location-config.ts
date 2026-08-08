@@ -1,4 +1,4 @@
-export type PublicLocationId = "hub" | "slc" | "wilmington" | "myrtle";
+export type PublicLocationId = "hub" | "slc" | "wilmington" | "myrtle" | "charleston";
 
 export type PublicLocation = {
   id: PublicLocationId;
@@ -58,11 +58,29 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
     id: "myrtle",
     name: "Myrtle Beach",
     shortName: "Myrtle Beach",
-    cityState: "Myrtle Beach, NC",
-    path: "/myrtle-beach-nc",
-    fleetPath: "/myrtle-beach-nc/fleet",
+    cityState: "Myrtle Beach, SC",
+    path: "/myrtle-beach-sc",
+    fleetPath: "/myrtle-beach-sc/fleet",
     fleetSlugs: ["myrtle-beach-nc", "myrtle-beach-sc"],
     locationTag: "myrtle",
+    turoFleetUrl: "https://turo.com/us/en/drivers/4325673/vehicles",
+    comingSoon: true,
+    availablePages: {
+      detailShop: false,
+      deals: false,
+      jobs: false,
+      suggestedCars: false,
+    },
+  },
+  charleston: {
+    id: "charleston",
+    name: "Charleston",
+    shortName: "Charleston",
+    cityState: "Charleston, SC",
+    path: "/charleston-sc",
+    fleetPath: "/charleston-sc/fleet",
+    fleetSlugs: ["charleston-sc"],
+    locationTag: "charleston",
     turoFleetUrl: "https://turo.com/us/en/drivers/4325673/vehicles",
     comingSoon: true,
     availablePages: {
@@ -75,7 +93,9 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
 };
 
 export function getPublicLocationFromPath(pathname: string): PublicLocation | null {
+  if (pathname.startsWith(PUBLIC_LOCATIONS.charleston.path)) return PUBLIC_LOCATIONS.charleston;
   if (pathname.startsWith(PUBLIC_LOCATIONS.myrtle.path)) return PUBLIC_LOCATIONS.myrtle;
+  if (pathname.startsWith("/myrtle-beach-nc")) return PUBLIC_LOCATIONS.myrtle;
   if (pathname.startsWith(PUBLIC_LOCATIONS.wilmington.path)) return PUBLIC_LOCATIONS.wilmington;
   if (pathname.startsWith(PUBLIC_LOCATIONS.slc.path)) return PUBLIC_LOCATIONS.slc;
   return null;
