@@ -14,8 +14,8 @@ export function SiteStatsStrip({ variant = "light" }: SiteStatsStripProps) {
     <div
       className="grid grid-cols-2 gap-px overflow-hidden rounded-[6px] lg:grid-cols-4"
       style={{
-        background: isDark ? "linear-gradient(135deg, rgba(212,160,23,0.55), rgba(255,255,255,0.16), rgba(212,160,23,0.26))" : "#D7D2C7",
-        boxShadow: isDark ? "0 18px 60px rgba(0, 0, 0, 0.28)" : "0 14px 45px rgba(28, 28, 28, 0.08)",
+        background: isDark ? "rgba(255,255,255,0.18)" : "#D7D2C7",
+        boxShadow: isDark ? "none" : "0 14px 45px rgba(28, 28, 28, 0.08)",
       }}
     >
       {SITE_STATS.map((stat, index) => {
@@ -25,7 +25,7 @@ export function SiteStatsStrip({ variant = "light" }: SiteStatsStripProps) {
             key={stat.label}
             className="relative flex min-h-[92px] items-center gap-3 overflow-hidden px-4 py-4"
             style={{
-              background: isDark ? "linear-gradient(135deg, #171717, #101010)" : "linear-gradient(135deg, #FBFAF7, #F0ECE4)",
+              background: isDark ? "rgba(0,0,0,0.18)" : "linear-gradient(135deg, #FBFAF7, #F0ECE4)",
             }}
           >
             <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-[#D4A017]/10" />

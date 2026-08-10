@@ -20,27 +20,38 @@ function scrollToTopOnNavigate() {
 
 function ServiceSplitSection({ location }: { location: PublicLocation }) {
   return (
-    <section className="relative overflow-hidden bg-[#090909] py-10 text-white lg:py-14">
+    <section className="relative overflow-hidden py-10 text-white lg:py-14">
+      <div className="absolute inset-0 grid lg:grid-cols-2">
+        <div className="relative min-h-[520px] lg:min-h-0">
+          <img
+            src="/list-your-car-key-handoff.jpg"
+            alt=""
+            className="h-full w-full object-cover"
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 bg-black/35" />
+        </div>
+        <div className="relative min-h-[520px] lg:min-h-0">
+          <img
+            src="/rent-a-car-interior.jpg"
+            alt=""
+            className="h-full w-full object-cover"
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 bg-black/35" />
+        </div>
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-b from-black/42 via-black/18 to-black/55" />
+      <div className="absolute inset-y-0 left-1/2 hidden w-px bg-white/18 lg:block" />
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4A017]/45 to-transparent" />
-      <div className="absolute left-0 top-24 h-[360px] w-[24vw] bg-gradient-to-r from-[#D4A017]/12 to-transparent" />
-      <div className="absolute bottom-20 right-0 h-[360px] w-[24vw] bg-gradient-to-l from-white/7 to-transparent" />
       <div className="relative mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-10">
         <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
-          <article className="group grid min-h-[480px] overflow-hidden rounded-[6px] bg-[#111] shadow-[0_24px_90px_rgba(0,0,0,0.35)] ring-1 ring-white/10 lg:min-h-[540px] lg:grid-rows-[0.95fr_0.85fr]">
-            <div className="relative min-h-[230px] overflow-hidden">
-              <img
-                src="/list-your-car-key-handoff.jpg"
-                alt="Vehicle key handoff for Golden Luxury Auto vehicle management"
-                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
-            </div>
-            <div className="relative flex flex-col justify-center p-7 sm:p-9 lg:p-10">
+          <article className="grid min-h-[480px] overflow-hidden rounded-[6px] bg-transparent ring-1 ring-white/18 lg:min-h-[540px]">
+            <div className="relative flex flex-col justify-end p-7 sm:p-9 lg:p-10">
               <div className="absolute left-0 top-8 h-16 w-1 bg-[#D4A017]" />
               <div
                 className="mb-6 flex h-12 w-12 items-center justify-center rounded-sm"
-                style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
+                style={{ background: "rgba(212,160,23,0.82)", color: "#1A0E00" }}
               >
                 <ClipboardCheck className="h-6 w-6" />
               </div>
@@ -78,21 +89,12 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
             </div>
           </article>
 
-          <article className="group grid min-h-[480px] overflow-hidden rounded-[6px] bg-[#151515] shadow-[0_24px_90px_rgba(0,0,0,0.35)] ring-1 ring-white/10 lg:min-h-[540px] lg:grid-rows-[0.95fr_0.85fr]">
-            <div className="relative min-h-[230px] overflow-hidden">
-              <img
-                src="/rent-a-car-interior.jpg"
-                alt="Luxury rental vehicle interior"
-                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            </div>
-            <div className="relative flex flex-col justify-center bg-[#151515] p-7 sm:p-9 lg:p-10">
+          <article className="grid min-h-[480px] overflow-hidden rounded-[6px] bg-transparent ring-1 ring-white/18 lg:min-h-[540px]">
+            <div className="relative flex flex-col justify-end p-7 sm:p-9 lg:p-10">
               <div className="absolute left-0 top-8 h-16 w-1 bg-white/70" />
               <div
                 className="mb-6 flex h-12 w-12 items-center justify-center rounded-sm"
-                style={{ background: "#FFFFFF", color: "#8B6914" }}
+                style={{ background: "rgba(255,255,255,0.82)", color: "#8B6914" }}
               >
                 <Car className="h-6 w-6" />
               </div>
@@ -198,7 +200,7 @@ function HomeTestimonialsSection() {
           </div>
         </div>
 
-        <div className="relative min-h-[250px] overflow-hidden rounded-[6px] border border-white/10 bg-[#111]">
+        <div className="relative min-h-[250px] overflow-hidden rounded-[6px] border border-white/12 bg-transparent">
           {homeTestimonials.map((item, index) => (
             <article
               key={item.name}
