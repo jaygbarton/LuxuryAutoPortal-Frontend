@@ -35,10 +35,22 @@ export function SiteStatsStrip({ variant = "light" }: SiteStatsStripProps) {
               <Icon className="h-5 w-5" style={{ color: "#C49000" }} />
             </div>
             <div className="relative">
-              <div className="text-xl font-bold leading-none" style={{ color: isDark ? "#FFFFFF" : "#1C1C1C" }}>
+              <div
+                className="text-xl font-bold leading-none"
+                style={{
+                  color: isDark ? "#FFFFFF" : "#1C1C1C",
+                  textShadow: isDark ? "0 1px 2px rgba(0,0,0,0.95), 0 0 7px rgba(0,0,0,0.82)" : undefined,
+                }}
+              >
                 {stat.value}
               </div>
-              <div className="mt-1 text-xs uppercase tracking-wider" style={{ color: isDark ? "rgba(255, 255, 255, 0.62)" : "#4A4A4A" }}>
+              <div
+                className="mt-1 text-xs uppercase tracking-wider"
+                style={{
+                  color: isDark ? "rgba(255, 255, 255, 0.8)" : "#4A4A4A",
+                  textShadow: isDark ? "0 1px 2px rgba(0,0,0,0.95), 0 0 7px rgba(0,0,0,0.82)" : undefined,
+                }}
+              >
                 {stat.label}
               </div>
             </div>

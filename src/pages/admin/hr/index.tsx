@@ -1,7 +1,7 @@
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users } from "lucide-react";
+import { FileText, Users } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function HumanResourcesPage() {
@@ -20,6 +20,26 @@ export default function HumanResourcesPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="bg-card border-border">
+            <CardContent className="p-5 flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h2 className="text-foreground font-semibold">Applications</h2>
+                <p className="text-muted-foreground text-sm">
+                  Review, download, archive, or delete public job applications.
+                </p>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <FileText className="w-6 h-6 text-primary" />
+                <Button
+                  onClick={() => setLocation("/admin/hr/applications")}
+                  className="bg-primary text-primary-foreground hover:bg-primary/80"
+                >
+                  Open
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="bg-card border-border">
             <CardContent className="p-5 flex items-start justify-between gap-4">
               <div className="space-y-1">
@@ -44,4 +64,3 @@ export default function HumanResourcesPage() {
     </AdminLayout>
   );
 }
-

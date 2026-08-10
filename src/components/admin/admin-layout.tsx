@@ -253,6 +253,12 @@ const allSidebarItems: SidebarItem[] = [
     roles: ["admin"],
     children: [
       {
+        href: "/admin/hr/applications",
+        label: "Applications",
+        icon: FileText,
+        roles: ["admin"],
+      },
+      {
         href: "/admin/hr/employees",
         label: "Employees",
         icon: Users,
@@ -520,6 +526,7 @@ const coHostSidebarItems: SidebarItem[] = [
     label: "Human Resources",
     icon: Briefcase,
     children: [
+      { href: "/admin/hr/applications", label: "Applications", icon: FileText },
       { href: "/admin/hr/employees", label: "Employees", icon: Users },
       { href: "/admin/hr/work-schedule", label: "Work Schedule", icon: Clock },
       { href: "/admin/hr/task-management", label: "Task Management", icon: Briefcase },

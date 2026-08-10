@@ -11,6 +11,7 @@ import { Link } from "wouter";
 import { ArrowRight, Car, ClipboardCheck, ExternalLink, UserPlus } from "lucide-react";
 
 const TURO_VEHICLES_URL = "https://turo.com/us/en/drivers/4325673/vehicles";
+const readableTextShadow = "0 1px 2px rgba(0,0,0,0.95), 0 0 7px rgba(0,0,0,0.82)";
 
 function scrollToTopOnNavigate() {
   window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -20,8 +21,8 @@ function scrollToTopOnNavigate() {
 
 function ServiceSplitSection({ location }: { location: PublicLocation }) {
   return (
-    <section className="relative overflow-hidden py-10 text-white lg:py-14">
-      <div className="absolute inset-0 grid lg:grid-cols-2">
+    <section className="relative overflow-hidden bg-black text-white lg:py-14">
+      <div className="absolute inset-0 hidden lg:grid lg:grid-cols-2">
         <div className="relative min-h-[520px] lg:min-h-0">
           <img
             src="/list-your-car-key-handoff-enhanced.png"
@@ -44,9 +45,16 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
       <div className="absolute inset-0 bg-gradient-to-b from-black/28 via-black/8 to-black/44" />
       <div className="absolute inset-y-0 left-1/2 hidden w-px bg-white/18 lg:block" />
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4A017]/45 to-transparent" />
-      <div className="relative mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-10">
-        <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
-          <article className="grid min-h-[480px] place-items-center overflow-hidden rounded-[6px] bg-transparent p-4 lg:min-h-[540px]">
+      <div className="relative mx-auto max-w-[1500px] lg:px-10">
+        <div className="grid lg:grid-cols-2 lg:gap-6">
+          <article className="relative grid min-h-[430px] place-items-center overflow-hidden bg-transparent p-4 sm:min-h-[460px] lg:min-h-[540px]">
+            <img
+              src="/list-your-car-key-handoff-enhanced.png"
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover lg:hidden"
+              aria-hidden="true"
+            />
+            <div className="absolute inset-0 bg-black/12 lg:hidden" />
             <div className="relative w-full max-w-[560px] rounded-[6px] border border-white/25 bg-white/[0.045] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_22px_80px_rgba(0,0,0,0.28)] backdrop-blur-md sm:p-9 lg:p-10">
               <div className="absolute left-0 top-8 h-16 w-1 bg-[#D4A017]" />
               <div
@@ -55,13 +63,13 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
               >
                 <ClipboardCheck className="h-6 w-6" />
               </div>
-              <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: "#E8B830" }}>
+              <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: "#E8B830", textShadow: readableTextShadow }}>
                 Vehicle Management
               </p>
-              <h2 className="mb-4 font-serif text-3xl font-bold text-white sm:text-4xl">
+              <h2 className="mb-4 font-serif text-3xl font-bold text-white sm:text-4xl" style={{ textShadow: readableTextShadow }}>
                 List your vehicle with us
               </h2>
-              <p className="mb-6 max-w-xl text-base leading-7 text-white/70">
+              <p className="mb-6 max-w-xl text-sm leading-6 text-white/82 sm:text-base sm:leading-7" style={{ textShadow: readableTextShadow }}>
                 Have a vehicle you want managed for rentals? Start with our owner
                 onboarding page and our team will review the details with you.
               </p>
@@ -89,7 +97,14 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
             </div>
           </article>
 
-          <article className="grid min-h-[480px] place-items-center overflow-hidden rounded-[6px] bg-transparent p-4 lg:min-h-[540px]">
+          <article className="relative grid min-h-[430px] place-items-center overflow-hidden bg-transparent p-4 sm:min-h-[460px] lg:min-h-[540px]">
+            <img
+              src="/rent-a-car-interior.jpg"
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover lg:hidden"
+              aria-hidden="true"
+            />
+            <div className="absolute inset-0 bg-black/18 lg:hidden" />
             <div className="relative w-full max-w-[560px] rounded-[6px] border border-white/25 bg-white/[0.045] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_22px_80px_rgba(0,0,0,0.28)] backdrop-blur-md sm:p-9 lg:p-10">
               <div className="absolute left-0 top-8 h-16 w-1 bg-white/70" />
               <div
@@ -98,13 +113,13 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
               >
                 <Car className="h-6 w-6" />
               </div>
-              <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: "#E8B830" }}>
+              <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: "#E8B830", textShadow: readableTextShadow }}>
                 Rent a Vehicle
               </p>
-              <h2 className="mb-4 font-serif text-3xl font-bold text-white sm:text-4xl">
+              <h2 className="mb-4 font-serif text-3xl font-bold text-white sm:text-4xl" style={{ textShadow: readableTextShadow }}>
                 Find a car for your trip
               </h2>
-              <p className="mb-6 max-w-xl text-base leading-7 text-white/70">
+              <p className="mb-6 max-w-xl text-sm leading-6 text-white/82 sm:text-base sm:leading-7" style={{ textShadow: readableTextShadow }}>
                 Browse our available vehicles, compare the options, and book through
                 the vehicle's Turo listing when you are ready.
               </p>
@@ -133,7 +148,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
             </div>
           </article>
         </div>
-        <div className="mt-6">
+        <div className="bg-black px-4 py-4 sm:px-6 lg:mt-6 lg:bg-transparent lg:p-0">
           <SiteStatsStrip variant="dark" />
         </div>
       </div>

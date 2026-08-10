@@ -57,6 +57,7 @@ import IncomeExpenseLogPage from "@/pages/admin/income-expense-log";
 import SettingsPage from "@/pages/admin/settings";
 import OperationsPage from "@/pages/admin/operations";
 import HumanResourcesPage from "@/pages/admin/hr";
+import HrApplicationsPage from "@/pages/admin/hr/applications";
 import EmployeesPage from "@/pages/admin/hr/employees";
 import EmployeeViewPage from "@/pages/admin/hr/employee-view";
 import WorkSchedulePage from "@/pages/admin/hr/work-schedule";
@@ -435,6 +436,9 @@ function Router() {
             </Route>
             <Route path="/admin/bouncie-analytics">
               <RequireRole roles={["isAdmin"]}><BouncieAnalyticsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/hr/applications">
+              <RequireRole roles={["isAdmin"]}><HrApplicationsPage /></RequireRole>
             </Route>
             <Route path="/admin/hr">
               <RequireRole roles={["isAdmin"]}><HumanResourcesPage /></RequireRole>
