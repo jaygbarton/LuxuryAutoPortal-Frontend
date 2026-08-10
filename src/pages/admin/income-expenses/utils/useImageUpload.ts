@@ -100,16 +100,22 @@ export function useImageUpload(carId: number, year: string, category: string, fi
     }
 
     try {
-      const response = await fetch(
-        buildApiUrl(`/api/income-expense/images/${imageId}`),
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
-      );
+      // Cell-upload receipts have a plain numeric id; form-submission
+      // receipts carry "form-<submissionId>-<index>" and live in a
+      // different table (expense_form_submission.receipt_urls), so they go
+      // through a different delete route.
+      const formMatch = imageId.match(/^form-(\d+)-(\d+)$/);
+      const url = formMatch
+        ? buildApiUrl(`/api/income-expense/form-receipts/${formMatch[1]}/${formMatch[2]}`)
+        : buildApiUrl(`/api/income-expense/images/${imageId}`);
+      const response = await fetch(url, {
+        method: "DELETE",
+        credentials: "include",
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to delete image");
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error || "Failed to delete image");
       }
 
       // Remove from UI immediately
