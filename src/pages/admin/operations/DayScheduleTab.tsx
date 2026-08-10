@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical } from "lucide-react";
+import { PhotoUpload } from "./PhotoUpload";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,7 @@ interface DayEvent {
   trip_end_mt: string | null;
   pickup_location: string | null;
   dropoff_location: string | null;
+  photos: string[] | null;
 }
 
 interface WorkShift {
@@ -321,6 +323,19 @@ function EventCard({
         )}
         {event.notes && (
           <div className="text-xs text-muted-foreground truncate">{event.notes}</div>
+        )}
+        {/* Photos from the underlying inspection/maintenance record — lets the
+            morning-meeting review "back-track" what was actually done that day. */}
+        {event.photos && event.photos.length > 0 && (
+          <div onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
+            <PhotoUpload
+              photos={event.photos}
+              onPhotosChange={() => {}}
+              entityType={event.type === "maintenance" ? "maintenance" : "inspection"}
+              disabled
+              compact
+            />
+          </div>
         )}
       </div>
     </div>
