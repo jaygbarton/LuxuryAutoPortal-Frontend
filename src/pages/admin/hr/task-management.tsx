@@ -340,6 +340,9 @@ const EMPTY_FORM = {
   // task_timer_emp_list as a JSON array.
   assignedEmployees: [] as { id: string; name: string }[],
   assigneeName: "", // user who created / assigned (free text)
+  // Planned/allotted hours for the task — a duration estimate for planning,
+  // distinct from actual logged time. Free text so the input can be blank.
+  estimatedHours: "",
 };
 
 const EMPTY_RECURRENCE = {
@@ -708,6 +711,10 @@ export default function AdminHrTaskManagement() {
       task_timer_status: String(task.task_timer_status ?? 0),
       assignedEmployees,
       assigneeName: task.task_timer_goal || "", // reuse goal field for assignee name
+      estimatedHours:
+        task.task_timer_estimated_hours != null
+          ? String(task.task_timer_estimated_hours)
+          : "",
     });
     setModalOpen(true);
   }
@@ -767,6 +774,8 @@ export default function AdminHrTaskManagement() {
             )
           : "[]",
       task_timer_goal: form.assigneeName,
+      task_timer_estimated_hours:
+        form.estimatedHours.trim() === "" ? null : Number(form.estimatedHours),
     };
     if (recurrence.type !== "none") {
       payload.recurrence = {
@@ -1036,6 +1045,7 @@ export default function AdminHrTaskManagement() {
                           )}
                         </button>
                       </TableHead>
+                      <TableHead className="font-medium whitespace-nowrap">Est. Hrs</TableHead>
                       <TableHead className="font-medium">Status</TableHead>
                       <TableHead className="font-medium">Description</TableHead>
                       <TableHead className="font-medium">Photos</TableHead>
@@ -1071,6 +1081,9 @@ export default function AdminHrTaskManagement() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                           {r.task_timer_date_end || "—"}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {r.task_timer_estimated_hours != null ? `${r.task_timer_estimated_hours}h` : "—"}
                         </TableCell>
                         <TableCell>
                           <InlineStatusSelect
@@ -1292,6 +1305,25 @@ export default function AdminHrTaskManagement() {
                   setForm((f) => ({
                     ...f,
                     task_timer_date_end: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            {/* Estimated Hours */}
+            <div>
+              <Label>Estimated Hours</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.25"
+                placeholder="e.g. 2.5"
+                className="mt-1"
+                value={form.estimatedHours}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    estimatedHours: e.target.value,
                   }))
                 }
               />
@@ -1529,6 +1561,12 @@ export default function AdminHrTaskManagement() {
               <p>
                 <span className="font-medium">Due date:</span>{" "}
                 {viewTask.task_timer_date_end || "--"}
+              </p>
+              <p>
+                <span className="font-medium">Estimated hours:</span>{" "}
+                {viewTask.task_timer_estimated_hours != null
+                  ? `${viewTask.task_timer_estimated_hours}h`
+                  : "--"}
               </p>
               <p>
                 <span className="font-medium">Status:</span>{" "}

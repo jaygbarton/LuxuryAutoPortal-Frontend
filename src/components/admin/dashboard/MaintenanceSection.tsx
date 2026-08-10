@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { format } from "date-fns";
-import { Search, X } from "lucide-react";
+import { Search, X, Wrench } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader, DashboardRecordCard, CarPhotoCell } from "@/components/admin/dashboard";
 
@@ -175,6 +176,7 @@ function StatusSelect({ id, value }: { id: number; value: string }) {
 }
 
 export default function MaintenanceSection(_props: MaintenanceSectionProps) {
+  const [, setLocation] = useLocation();
   const { data, isLoading } = useQuery<MaintenanceResponse>({
     queryKey: ["/api/operations/maintenance"],
     queryFn: async () => {
@@ -236,6 +238,15 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
   return (
     <div className="mb-8">
       <SectionHeader title="MAINTENANCE" />
+
+      <button
+        type="button"
+        onClick={() => setLocation("/admin/operations?tab=service-due")}
+        className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-[#B8860B] hover:underline"
+      >
+        <Wrench className="h-3.5 w-3.5" />
+        View Service Due Report (last oil change & tire dates per car) →
+      </button>
 
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2 mb-3 mt-2">

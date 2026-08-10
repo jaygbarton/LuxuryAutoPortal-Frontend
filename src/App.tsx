@@ -57,6 +57,7 @@ import HumanResourcesPage from "@/pages/admin/hr";
 import EmployeesPage from "@/pages/admin/hr/employees";
 import EmployeeViewPage from "@/pages/admin/hr/employee-view";
 import WorkSchedulePage from "@/pages/admin/hr/work-schedule";
+import ScheduleTimelinePage from "@/pages/admin/hr/schedule-timeline";
 import AdminHrTaskManagement from "@/pages/admin/hr/task-management";
 import AdminHrTime from "@/pages/admin/hr/time";
 import AdminHrTimeOff from "@/pages/admin/hr/time-off";
@@ -435,6 +436,9 @@ function Router() {
             </Route>
             <Route path="/admin/hr/work-schedule">
               <RequireRole roles={["isAdmin"]}><WorkSchedulePage /></RequireRole>
+            </Route>
+            <Route path="/admin/hr/schedule-timeline">
+              <RequireRole roles={["isAdmin"]}><ScheduleTimelinePage /></RequireRole>
             </Route>
             <Route path="/admin/hr/employees/view">
               <RequireRole roles={["isAdmin"]}><EmployeeViewPage /></RequireRole>

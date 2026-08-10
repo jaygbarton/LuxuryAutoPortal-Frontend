@@ -44,6 +44,7 @@ import {
   Newspaper,
   ExternalLink,
   Megaphone,
+  CalendarDays,
 } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { ViewAsClientBanner } from "./ViewAsClientBanner";
@@ -261,6 +262,12 @@ const allSidebarItems: SidebarItem[] = [
         href: "/admin/hr/work-schedule",
         label: "Work Schedule",
         icon: Clock,
+        roles: ["admin"],
+      },
+      {
+        href: "/admin/hr/schedule-timeline",
+        label: "Schedule Overview",
+        icon: CalendarDays,
         roles: ["admin"],
       },
       {
