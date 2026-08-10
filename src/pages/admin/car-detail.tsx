@@ -298,6 +298,7 @@ export default function CarDetailPage() {
   const [insuranceCardPreview, setInsuranceCardPreview] = useState<string | null>(null);
   const [driversLicenseFiles, setDriversLicenseFiles] = useState<File[]>([]);
   const [driversLicensePreviews, setDriversLicensePreviews] = useState<string[]>([]);
+  const [downloadingStatement, setDownloadingStatement] = useState(false);
 
   // Helper function to check if a URL is a PDF
   const isPdfDocument = (url: string): boolean => {
@@ -1173,6 +1174,37 @@ export default function CarDetailPage() {
     }
   };
 
+  const handleDownloadStatement = async () => {
+    if (!carId) return;
+    setDownloadingStatement(true);
+    try {
+      const res = await fetch(buildApiUrl(`/api/cars/${carId}/statement-of-account`), {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to generate statement");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Statement of Account - ${car?.makeModel ?? carId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast({
+        title: "Download failed",
+        description: err?.message ?? "Could not generate the statement of account.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingStatement(false);
+    }
+  };
+
   const handleEditClick = () => {
     if (!car) return;
     
@@ -1553,13 +1585,28 @@ export default function CarDetailPage() {
             </div>
           </div>
           {isAdmin && (
-            <Button
-              onClick={handleEditClick}
-              className="bg-primary text-primary-foreground hover:bg-primary/80 w-full sm:w-auto shrink-0"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
-            </Button>
+            <div className="flex gap-2 w-full sm:w-auto shrink-0">
+              <Button
+                variant="outline"
+                onClick={handleDownloadStatement}
+                disabled={downloadingStatement}
+                className="flex-1 sm:flex-initial"
+              >
+                {downloadingStatement ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <FileText className="w-4 h-4 mr-2" />
+                )}
+                Statement of Account
+              </Button>
+              <Button
+                onClick={handleEditClick}
+                className="bg-primary text-primary-foreground hover:bg-primary/80 flex-1 sm:flex-initial"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+            </div>
           )}
         </div>
 
