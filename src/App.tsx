@@ -16,11 +16,14 @@ import {
   DetailShopAppointmentPage,
   DetailShopPage,
   ExtrasPage,
+  JobApplicationPage,
   JobsPage,
+  PrivacyPolicyPage,
   ReviewsOptionsPage,
   ReviewsPage,
   SuggestedCarsPage,
   TestimonialsPage,
+  TermsPage,
 } from "@/pages/marketing/legacy-pages";
 import NotFound from "@/pages/not-found";
 import AdminLogin from "@/pages/admin/login";
@@ -175,6 +178,7 @@ function Router() {
       <Route path="/salt-lake-city/detail-shop/book" component={DetailShopAppointmentPage} />
       <Route path="/salt-lake-city/detail-shop" component={DetailShopPage} />
       <Route path="/salt-lake-city/deals" component={DealsPage} />
+      <Route path="/salt-lake-city/jobs/apply" component={JobApplicationPage} />
       <Route path="/salt-lake-city/jobs" component={JobsPage} />
       <Route path="/salt-lake-city/suggested-cars" component={SuggestedCarsPage} />
       <Route path="/salt-lake-city/testimonials" component={TestimonialsPage} />
@@ -192,7 +196,11 @@ function Router() {
       <Route path="/detail-shop/book" component={DetailShopAppointmentPage} />
       <Route path="/detail-shop" component={DetailShopPage} />
       <Route path="/deals" component={DealsPage} />
+      <Route path="/jobs/apply" component={JobApplicationPage} />
       <Route path="/jobs" component={JobsPage} />
+      <Route path="/privacy-policy" component={PrivacyPolicyPage} />
+      <Route path="/terms-and-conditions" component={TermsPage} />
+      <Route path="/terms" component={TermsPage} />
       <Route path="/testimonials" component={TestimonialsPage} />
       <Route path="/reviews-options" component={ReviewsOptionsPage} />
       <Route path="/reviews" component={ReviewsPage} />

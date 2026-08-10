@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type FormEvent, type ReactNode, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   ArrowRight,
@@ -8,6 +8,7 @@ import {
   CarFront,
   Check,
   ExternalLink,
+  FileText,
   Mail,
   MapPin,
   MessageSquareText,
@@ -15,6 +16,7 @@ import {
   PlayCircle,
   ShieldCheck,
   Sparkles,
+  Upload,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
@@ -22,12 +24,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SITE_CONTACT } from "@/lib/site-config";
 import { getPublicLocationFromPath } from "@/lib/location-config";
+import { buildApiUrl } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { RotatingGoogleReviews } from "@/components/reviews/rotating-google-reviews";
 
 type PageKey =
   | "detail-shop"
   | "deals"
   | "jobs"
+  | "job-application"
+  | "privacy-policy"
+  | "terms-and-conditions"
   | "testimonials"
   | "reviews"
   | "reviews-options"
@@ -65,7 +72,6 @@ type SuggestedCarPartner = {
 
 type JobListing = {
   title: string;
-  status: "Now Hiring" | "Not Hiring Right Now";
   schedule: string[];
   description: string[];
   requirements: string[];
@@ -107,9 +113,39 @@ const pageMeta: Record<PageKey, {
     description:
       "Join the Golden Luxury Auto operations team and help keep every rental clean, prepared, and ready for the next guest.",
     primaryCta: "Apply Now",
-    primaryHref: "/contact",
+    primaryHref: "/jobs/apply",
     secondaryCta: "Contact Us",
     secondaryHref: "/contact",
+  },
+  "job-application": {
+    eyebrow: "Apply",
+    title: "Apply To Golden Luxury Auto",
+    description:
+      "Upload your application details, resume, driver's license, and supporting documents for the role that fits you.",
+    primaryCta: "View Open Roles",
+    primaryHref: "/jobs",
+    secondaryCta: "Contact Us",
+    secondaryHref: "/contact",
+  },
+  "privacy-policy": {
+    eyebrow: "Privacy",
+    title: "Privacy Policy",
+    description:
+      "How Golden Luxury Auto collects, uses, and protects guest, owner, applicant, and website information.",
+    primaryCta: "Contact Us",
+    primaryHref: "/contact",
+    secondaryCta: "Terms Of Service",
+    secondaryHref: "/terms-and-conditions",
+  },
+  "terms-and-conditions": {
+    eyebrow: "Terms",
+    title: "Terms Of Service",
+    description:
+      "The terms that apply when using the Golden Luxury Auto website, submitting forms, and contacting the team.",
+    primaryCta: "Contact Us",
+    primaryHref: "/contact",
+    secondaryCta: "Privacy Policy",
+    secondaryHref: "/privacy-policy",
   },
   testimonials: {
     eyebrow: "Testimonials",
@@ -222,7 +258,6 @@ const detailAddOns = [
 const jobListings: JobListing[] = [
   {
     title: "Car Detailer",
-    status: "Now Hiring",
     schedule: ["Full & Part-time", "30-50 hours a week"],
     pay: "$16-21/hr depending on experience",
     description: [
@@ -240,7 +275,6 @@ const jobListings: JobListing[] = [
   },
   {
     title: "Driver",
-    status: "Now Hiring",
     schedule: ["Full & Part-time", "30-50 hours a month", "Changing pickup and drop-off schedule"],
     pay: "$16-21/hr depending on experience",
     description: [
@@ -258,7 +292,6 @@ const jobListings: JobListing[] = [
   },
   {
     title: "Fleet Tech",
-    status: "Now Hiring",
     schedule: ["Full & Part-time", "30-50 hours a week", "Operations and shop coordination"],
     pay: "$18-25/hr depending on experience",
     description: [
@@ -276,33 +309,32 @@ const jobListings: JobListing[] = [
   },
   {
     title: "Personal Assistant",
-    status: "Not Hiring Right Now",
-    schedule: ["Full & Part-time", "Position displayed for future openings"],
+    schedule: ["Full & Part-time", "Flexible operations support"],
     description: [
       "Personal assistants support the guest experience and day-to-day operations across appointments, client calls, drop-offs, forms, shop visits, rental check-ins, and similar tasks.",
       "This role is for organized, friendly, high-energy operators who can keep moving through a changing schedule.",
     ],
     requirements: [
       "Valid driver's license and car insurance required.",
+      "LinkedIn profile requested with application.",
       "Strong interpersonal, verbal, and written communication skills.",
       "Self-starter with strong organization and time-management.",
       "Creative, coachable, proactive, and team-oriented.",
     ],
   },
   {
-    title: "Sales Representative",
-    status: "Not Hiring Right Now",
-    schedule: ["Full & Part-time", "Position displayed for future openings"],
+    title: "Marketing",
+    schedule: ["Full & Part-time", "Content, outreach, and campaigns"],
     description: [
-      "Sales representatives qualify inbound leads, follow up with prospects, demonstrate the vehicle management program, and help the right clients move forward.",
-      "This role works closely with marketing and operations so client expectations match the actual GLA program.",
+      "Marketing team members help Golden Luxury Auto stay visible with the right renters, vehicle owners, partners, and local audiences.",
+      "Daily work can include content support, campaign follow-up, lead response, partnership outreach, review assets, and practical marketing tasks that connect directly to rentals and vehicle management.",
     ],
     requirements: [
       "Valid driver's license and car insurance required.",
-      "Strong communication and follow-up discipline.",
-      "Comfort taking intro calls, demo calls, and pipeline follow-up.",
-      "Driven, coachable, and willing to train consistently.",
-      "Able to give feedback on lead quality and client fit.",
+      "LinkedIn profile requested with application.",
+      "Strong writing, communication, and follow-up discipline.",
+      "Comfortable with content, social channels, and lead response.",
+      "Creative, coachable, proactive, and willing to train consistently.",
     ],
   },
 ];
@@ -869,30 +901,19 @@ export function JobsPage() {
         <SectionHeader
           eyebrow="Careers"
           title="Careers At Golden Luxury Auto"
-          description="We keep the full position list visible here. Car detailers, drivers, and fleet techs are hiring now."
+          description="Review the roles below and apply directly through the Golden Luxury Auto careers form."
         />
-        <div className="grid gap-5 lg:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {jobListings.map((job) => (
             <Card key={job.title} className="border-border bg-card">
-              <CardContent className="flex h-full flex-col p-6 lg:p-8">
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <CardContent className="flex h-full flex-col p-5 lg:p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex items-start gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-primary/10">
                       <BriefcaseBusiness className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="text-2xl font-semibold text-foreground">{job.title}</h3>
-                        <span
-                          className={`rounded-md px-3 py-1 text-xs font-bold uppercase tracking-wide ${
-                            job.status === "Now Hiring"
-                              ? "bg-primary/10 text-primary"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {job.status}
-                        </span>
-                      </div>
+                      <h3 className="text-2xl font-semibold text-foreground">{job.title}</h3>
                       <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-primary">
                         {job.schedule.map((item) => (
                           <span key={item} className="rounded-md bg-primary/10 px-3 py-1">{item}</span>
@@ -900,17 +921,15 @@ export function JobsPage() {
                       </div>
                     </div>
                   </div>
-                  {job.status === "Now Hiring" ? (
-                    <Link href="/contact">
-                      <Button className="w-full lg:w-auto">
-                        Apply Now
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  ) : null}
+                  <Link href={`/jobs/apply?position=${encodeURIComponent(job.title)}`}>
+                    <Button className="w-full sm:w-auto">
+                      Apply Now
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
                 </div>
 
-                <div className="mt-7 grid gap-6">
+                <div className="mt-5 grid gap-5">
                   <div className="space-y-4 text-sm leading-7 text-muted-foreground">
                     {job.description.map((item) => (
                       <p key={item}>{item}</p>
@@ -947,6 +966,254 @@ export function JobsPage() {
       <ContactBand title="Interested in joining the operations team? Reach out today." label="Careers" />
     </PageShell>
   );
+}
+
+const applicationRoles = jobListings.map((job) => job.title);
+
+function FieldLabel({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <label className={`grid min-w-0 gap-2 text-sm font-medium text-foreground ${className}`}>
+      {label}
+      {children}
+    </label>
+  );
+}
+
+const fieldClass =
+  "min-h-[44px] w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary";
+
+export function JobApplicationPage() {
+  const { toast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const initialRole = useMemo(() => {
+    if (typeof window === "undefined") return applicationRoles[0];
+    const position = new URLSearchParams(window.location.search).get("position");
+    return position && applicationRoles.includes(position) ? position : applicationRoles[0];
+  }, []);
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      const response = await fetch(buildApiUrl("/api/job-application"), {
+        method: "POST",
+        body: new FormData(event.currentTarget),
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Application failed");
+      setSubmitted(true);
+      event.currentTarget.reset();
+      toast({
+        title: "Application Sent",
+        description: "The GLA team received the application and documents.",
+      });
+    } catch {
+      toast({
+        title: "Application not sent",
+        description: `Please email the application documents to ${SITE_CONTACT.emails[0]}.`,
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <PageShell page="job-application">
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <div className="grid gap-6 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
+          <Card className="border-border bg-card">
+            <CardContent className="p-6">
+              <BriefcaseBusiness className="h-7 w-7 text-primary" />
+              <h2 className="mt-4 font-serif text-3xl font-light text-foreground">Application checklist</h2>
+              <div className="mt-5 grid gap-3 text-sm text-muted-foreground">
+                {[
+                  "First and last name",
+                  "Date of birth",
+                  "Resume upload",
+                  "Driver's license upload",
+                  "Optional supporting documents",
+                  "LinkedIn profile for Personal Assistant and Marketing",
+                ].map((item) => (
+                  <div key={item} className="flex items-start gap-3 rounded-md border border-border bg-background/60 p-3">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border bg-card">
+            <CardContent className="p-5 sm:p-6 lg:p-7">
+              {submitted ? (
+                <div className="mb-5 rounded-md border border-primary/25 bg-primary/10 p-4 text-sm font-medium text-foreground">
+                  Application submitted. The team will review it and follow up directly.
+                </div>
+              ) : null}
+              <form className="grid gap-5" encType="multipart/form-data" onSubmit={onSubmit}>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <FieldLabel label="First Name">
+                    <input className={fieldClass} name="firstName" required autoComplete="given-name" />
+                  </FieldLabel>
+                  <FieldLabel label="Last Name">
+                    <input className={fieldClass} name="lastName" required autoComplete="family-name" />
+                  </FieldLabel>
+                  <FieldLabel label="Date Of Birth">
+                    <input className={fieldClass} name="dateOfBirth" type="date" required />
+                  </FieldLabel>
+                  <FieldLabel label="Role">
+                    <select className={fieldClass} name="position" defaultValue={initialRole} required>
+                      {applicationRoles.map((role) => (
+                        <option key={role} value={role}>{role}</option>
+                      ))}
+                    </select>
+                  </FieldLabel>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <FieldLabel label="Email" className="xl:col-span-2">
+                    <input className={fieldClass} name="email" type="email" required autoComplete="email" />
+                  </FieldLabel>
+                  <FieldLabel label="Phone">
+                    <input className={fieldClass} name="phone" type="tel" required autoComplete="tel" />
+                  </FieldLabel>
+                  <FieldLabel label="LinkedIn Profile">
+                    <input className={fieldClass} name="linkedin" type="url" placeholder="linkedin.com/in/..." />
+                  </FieldLabel>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <FieldLabel label="Resume">
+                    <span className="grid min-h-[110px] min-w-0 content-center gap-2 rounded-md border border-dashed border-primary/35 bg-background p-4 text-sm text-muted-foreground">
+                      <FileText className="h-5 w-5 text-primary" />
+                      <input className="w-full max-w-full text-xs" name="resume" type="file" accept=".pdf,.doc,.docx,image/*" required />
+                    </span>
+                  </FieldLabel>
+                  <FieldLabel label="Driver's License">
+                    <span className="grid min-h-[110px] min-w-0 content-center gap-2 rounded-md border border-dashed border-primary/35 bg-background p-4 text-sm text-muted-foreground">
+                      <FileText className="h-5 w-5 text-primary" />
+                      <input className="w-full max-w-full text-xs" name="driversLicense" type="file" accept=".pdf,image/*" required />
+                    </span>
+                  </FieldLabel>
+                  <FieldLabel label="Optional Documents">
+                    <span className="grid min-h-[110px] min-w-0 content-center gap-2 rounded-md border border-dashed border-primary/35 bg-background p-4 text-sm text-muted-foreground">
+                      <Upload className="h-5 w-5 text-primary" />
+                      <input className="w-full max-w-full text-xs" name="optionalDocuments" type="file" accept=".pdf,.doc,.docx,image/*" multiple />
+                    </span>
+                  </FieldLabel>
+                </div>
+
+                <FieldLabel label="Notes">
+                  <textarea
+                    className="min-h-[96px] rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
+                    name="notes"
+                    placeholder="Availability, experience, or anything the team should know."
+                  />
+                </FieldLabel>
+
+                <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={submitting}>
+                  {submitting ? "Sending..." : "Submit Application"}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+    </PageShell>
+  );
+}
+
+const privacySections = [
+  {
+    title: "Information We Collect",
+    body: "We collect information submitted through this website, including contact details, rental questions, vehicle owner details, application materials, uploaded documents, and communication preferences.",
+  },
+  {
+    title: "How We Use It",
+    body: "We use submitted information to respond to inquiries, review rental or vehicle management requests, process job applications, schedule appointments, improve service quality, and operate Golden Luxury Auto.",
+  },
+  {
+    title: "Documents And Uploads",
+    body: "Files uploaded through application and owner forms are used for review, verification, and operations. Access is limited to team members who need the information for legitimate business purposes.",
+  },
+  {
+    title: "Sharing",
+    body: "We do not sell personal information. We may share information with service providers, booking platforms, payment tools, legal advisors, or operations partners when needed to provide service or comply with law.",
+  },
+  {
+    title: "Security",
+    body: "We use reasonable safeguards for submitted information, but no website or email system can be guaranteed completely secure. Contact the team directly if sensitive information needs special handling.",
+  },
+  {
+    title: "Contact",
+    body: `Questions about privacy can be sent to ${SITE_CONTACT.emails[0]} or ${SITE_CONTACT.phone}.`,
+  },
+];
+
+const termsSections = [
+  {
+    title: "Website Use",
+    body: "This website provides information about Golden Luxury Auto rentals, vehicle management, details, extras, careers, and contact paths. Information may change as availability, pricing, and operations change.",
+  },
+  {
+    title: "Bookings And Platforms",
+    body: "Vehicle booking details, guest eligibility, trip changes, fees, protection plans, and platform rules may be handled through third-party booking platforms such as Turo when applicable.",
+  },
+  {
+    title: "Form Submissions",
+    body: "By submitting a form, you confirm that the information is accurate and that Golden Luxury Auto may contact you about the request, application, vehicle, rental, or service inquiry.",
+  },
+  {
+    title: "Uploads",
+    body: "Only submit documents you are authorized to provide. Uploaded files must not contain malicious code, misleading information, or documents belonging to another person without permission.",
+  },
+  {
+    title: "No Guarantee",
+    body: "Submitting an inquiry, application, or vehicle management request does not guarantee approval, employment, rental availability, pricing, or acceptance into any program.",
+  },
+  {
+    title: "Contact",
+    body: `Questions about these terms can be sent to ${SITE_CONTACT.emails[0]} or ${SITE_CONTACT.phone}.`,
+  },
+];
+
+function LegalPage({ page, sections }: { page: "privacy-policy" | "terms-and-conditions"; sections: typeof privacySections }) {
+  return (
+    <PageShell page={page}>
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {sections.map((section) => (
+            <Card key={section.title} className="border-border bg-card">
+              <CardContent className="p-6">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                <h2 className="mt-4 text-xl font-semibold text-foreground">{section.title}</h2>
+                <p className="mt-3 text-sm leading-7 text-muted-foreground">{section.body}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+    </PageShell>
+  );
+}
+
+export function PrivacyPolicyPage() {
+  return <LegalPage page="privacy-policy" sections={privacySections} />;
+}
+
+export function TermsPage() {
+  return <LegalPage page="terms-and-conditions" sections={termsSections} />;
 }
 
 export function SuggestedCarsPage() {

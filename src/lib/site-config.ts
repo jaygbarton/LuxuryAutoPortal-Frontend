@@ -23,8 +23,8 @@ export const SITE_STATS = [
 ] as const;
 
 export const LEGAL_LINKS = {
-  privacy: "https://goldenluxuryauto.com/privacy-policy",
-  terms: "https://goldenluxuryauto.com/terms-and-conditions/",
+  privacy: "/privacy-policy",
+  terms: "/terms-and-conditions",
 };
 
 // Public social profiles for the footer. Update hrefs as accounts are confirmed.

@@ -216,11 +216,9 @@ export function Footer() {
           </p>
           <div className="flex items-center gap-6">
             {legalLinks.map((link) => (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="text-xs transition-colors"
                 style={{ color: "#808080" }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#C49000"; }}
@@ -228,7 +226,7 @@ export function Footer() {
                 data-testid={`link-footer-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
           </div>
         </div>

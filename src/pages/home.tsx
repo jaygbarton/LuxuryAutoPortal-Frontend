@@ -47,7 +47,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
       <div className="relative mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-10">
         <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
           <article className="grid min-h-[480px] place-items-center overflow-hidden rounded-[6px] bg-transparent p-4 lg:min-h-[540px]">
-            <div className="relative w-full max-w-[560px] rounded-[6px] border border-white/30 bg-white/[0.12] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_22px_80px_rgba(0,0,0,0.28)] backdrop-blur-2xl sm:p-9 lg:p-10">
+            <div className="relative w-full max-w-[560px] rounded-[6px] border border-white/25 bg-white/[0.09] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_22px_80px_rgba(0,0,0,0.28)] backdrop-blur-2xl sm:p-9 lg:p-10">
               <div className="absolute left-0 top-8 h-16 w-1 bg-[#D4A017]" />
               <div
                 className="mb-6 flex h-12 w-12 items-center justify-center rounded-sm"
@@ -90,7 +90,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
           </article>
 
           <article className="grid min-h-[480px] place-items-center overflow-hidden rounded-[6px] bg-transparent p-4 lg:min-h-[540px]">
-            <div className="relative w-full max-w-[560px] rounded-[6px] border border-white/30 bg-white/[0.12] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_22px_80px_rgba(0,0,0,0.28)] backdrop-blur-2xl sm:p-9 lg:p-10">
+            <div className="relative w-full max-w-[560px] rounded-[6px] border border-white/25 bg-white/[0.09] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_22px_80px_rgba(0,0,0,0.28)] backdrop-blur-2xl sm:p-9 lg:p-10">
               <div className="absolute left-0 top-8 h-16 w-1 bg-white/70" />
               <div
                 className="mb-6 flex h-12 w-12 items-center justify-center rounded-sm"
