@@ -252,19 +252,44 @@ export default function Fleet({ location = PUBLIC_LOCATIONS.slc }: { location?: 
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-20 lg:pt-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center mb-12">
-            <p className="text-sm font-medium text-primary tracking-widest uppercase mb-3">
-              Our Collection
-            </p>
-            <h1 className="font-serif text-4xl lg:text-5xl font-light text-foreground mb-4">
-              {location.cityState} Fleet
-            </h1>
-            <p className="max-w-2xl mx-auto text-muted-foreground">
-              Browse active vehicles available through Golden Luxury Auto in {location.cityState}.
-            </p>
+        <section className="relative overflow-hidden border-b border-border bg-[#0A0A0A] text-white">
+          <div className="absolute inset-0 opacity-35">
+            <img
+              src="/gateway-buildings-hero.jpg"
+              alt=""
+              className="h-full w-full object-cover"
+              style={{ objectPosition: "center bottom" }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-black/35" />
           </div>
+          <div className="relative mx-auto grid min-h-[440px] max-w-7xl content-end px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+            <div className="max-w-3xl">
+              <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">Our Collection</p>
+              <h1 className="font-serif text-4xl font-light leading-tight text-white sm:text-5xl lg:text-6xl">
+                Browse Our Fleet
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-white/75 sm:text-lg">
+                Browse active vehicles available through Golden Luxury Auto in {location.cityState}.
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <a href={location.turoFleetUrl} target="_blank" rel="noopener noreferrer">
+                  <Button size="lg" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto">
+                    View Jay's Turo Fleet
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </Button>
+                </a>
+                <a href="#fleet-list">
+                  <Button size="lg" variant="outline" className="w-full border-white/30 bg-white/5 text-white hover:bg-white/10 hover:text-white sm:w-auto">
+                    Browse On Site
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
 
+        <div id="fleet-list" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div>
             {/* Top filter bar: search on the left, filter button on the right. */}
             <div className="flex flex-col md:flex-row md:items-end gap-4 mb-8">

@@ -616,10 +616,14 @@ function PageShell({
   page,
   children,
   ctaOverride,
+  heroImage = "/homepage-hero-escalade.jpg",
+  heroImagePosition = "center center",
 }: {
   page: PageKey;
   children: ReactNode;
   ctaOverride?: Partial<Pick<(typeof pageMeta)[PageKey], "primaryCta" | "primaryHref" | "secondaryCta" | "secondaryHref">>;
+  heroImage?: string;
+  heroImagePosition?: string;
 }) {
   const meta = { ...pageMeta[page], ...ctaOverride };
 
@@ -629,7 +633,7 @@ function PageShell({
       <main className="pt-20 lg:pt-24">
         <section className="relative overflow-hidden border-b border-border bg-[#0A0A0A] text-white">
           <div className="absolute inset-0 opacity-35">
-            <img src="/homepage-hero-escalade.jpg" alt="" className="h-full w-full object-cover" />
+            <img src={heroImage} alt="" className="h-full w-full object-cover" style={{ objectPosition: heroImagePosition }} />
             <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-black/35" />
           </div>
           <div className="relative mx-auto grid min-h-[440px] max-w-7xl content-end px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
@@ -855,7 +859,7 @@ export function DetailShopAppointmentPage() {
 
 export function DealsPage() {
   return (
-    <PageShell page="deals">
+    <PageShell page="deals" heroImage="/gateway-buildings-hero.jpg" heroImagePosition="center bottom">
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
           eyebrow="Current Offers"
