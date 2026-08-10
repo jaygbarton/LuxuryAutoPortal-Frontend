@@ -9,11 +9,12 @@
 export const COMMISSION_TYPES = [
   "Parking Airport",
   "Uber & Lyft",
+  "Uber Ride",
   "Electric - Reimbursed",
   "Gas - Reimbursed",
   "Uber - Reimbursed",
   "Ski Rack's",
-  "New Car 1%",
+  "Car Management Split",
   "New Car - Onboard",
   "Relist Car",
   "Annual Inspections",

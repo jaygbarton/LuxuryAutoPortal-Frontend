@@ -12,7 +12,7 @@ import { useIncomeExpense } from "../context/IncomeExpenseContext";
 import EditableCell, { FORM_AWARE_CATEGORIES } from "./EditableCell";
 import ReceiptViewerModal from "./ReceiptViewerModal";
 import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import type { IncomeExpenseData } from "../types";
 import {
@@ -133,6 +133,7 @@ export default function IncomeExpenseTable({
   const isReadOnly =
     isEmployeeView || location.startsWith("/admin/income-expenses");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const {
     data,
@@ -4908,6 +4909,22 @@ export default function IncomeExpenseTable({
         isLoading={isReceiptViewerLoading}
         monthLabel={receiptViewer ? MONTHS[receiptViewer.month - 1] : ""}
         year={year}
+        canDelete={!isReadOnly}
+        onDeleted={() => {
+          queryClient.invalidateQueries({
+            queryKey: [
+              "/api/income-expense/images",
+              carId,
+              year,
+              receiptViewer?.month,
+              receiptViewer?.category,
+              receiptViewer?.field,
+            ],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["/api/income-expense/images/summary", carId, year],
+          });
+        }}
       />
     </div>
   );

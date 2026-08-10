@@ -1,7 +1,15 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { formatCurrency } from "@/components/admin/dashboard/utils";
 import { useCoHost } from "@/hooks/use-co-host";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -37,9 +45,10 @@ const PREFERRED_ORDER = ["Bynn", "Jen", "Armando", "Adam", "Olavo", "Matthew", "
 const EXPENSE_TYPES = [
   "Parking Airport",
   "Uber & Lyft",
+  "Uber Ride",
   "Electric/Gas/Uber - Reimbursed",
   "Ski Rack's",
-  "New Car 1%",
+  "Car Management Split",
   "New Car - Onboard",
   "Relist Car",
   "Annual Inspections",
@@ -56,25 +65,14 @@ const EXPENSE_TYPES = [
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
-function getMonthRange(offset: number): {
-  label: string;
-  dateFrom: string;
-  dateTo: string;
-} {
-  const now = new Date();
-  const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-  const year = d.getFullYear();
-  const month = d.getMonth();
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from(
+  { length: CURRENT_YEAR + 1 - 2023 + 1 },
+  (_, i) => String(2023 + i),
+);
 
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const label = `${firstDay.toLocaleString("en-US", { month: "2-digit" })} ${year}`;
-  const dateFrom = `${year}-${pad(month + 1)}-${pad(firstDay.getDate())}`;
-  const dateTo = `${year}-${pad(month + 1)}-${pad(lastDay.getDate())}`;
-
-  return { label, dateFrom, dateTo };
+function getYearRange(year: number): { dateFrom: string; dateTo: string } {
+  return { dateFrom: `${year}-01-01`, dateTo: `${year}-12-31` };
 }
 
 // Normalize legacy/variant commission type names to the canonical EXPENSE_TYPES labels.
@@ -89,7 +87,8 @@ const TYPE_ALIASES: Record<string, string> = {
   "ski rack":                        "Ski Rack's",
   "ski racks":                       "Ski Rack's",
   "ski rack's":                      "Ski Rack's",
-  "new car 1%":                      "New Car 1%",
+  "new car 1%":                      "Car Management Split",
+  "car management split":            "Car Management Split",
   "new car - onboard":               "New Car - Onboard",
   "new car onboard":                 "New Car - Onboard",
   "relist car":                      "Relist Car",
@@ -113,45 +112,40 @@ function normalizeType(raw: string): string {
   return TYPE_ALIASES[key] ?? raw.trim();
 }
 
-function buildMatrix(
+const MONTH_LABELS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/**
+ * Bucket commission rows by (employee, type, month) for one year, so each
+ * employee's table can show all 12 months of the selected year at once.
+ */
+function buildEmployeeMatrix(
   data: CommissionRow[],
-  employeeNames: string[],
-): { matrix: Record<string, Record<string, number>>; totals: Record<string, number> } {
-  const matrix: Record<string, Record<string, number>> = {};
-  const totals: Record<string, number> = {};
-
-  for (const type of EXPENSE_TYPES) {
-    matrix[type] = {};
-    for (const name of employeeNames) {
-      matrix[type][name] = 0;
-    }
-  }
-
-  for (const name of employeeNames) {
-    totals[name] = 0;
-  }
+  employeeName: string,
+): { matrix: Record<string, number[]>; totals: number[] } {
+  const matrix: Record<string, number[]> = {};
+  for (const type of EXPENSE_TYPES) matrix[type] = Array(12).fill(0);
+  const totals = Array(12).fill(0);
 
   for (const row of data) {
     const type = normalizeType(row.commissions_type || "");
     const name = row.fullname || row.commissions_account_owner_name || "";
     const amount = parseFloat(row.commissions_amount) || 0;
-
     if (!matrix[type]) continue; // unknown type — skip
 
-    // Exact match first, then case-insensitive
-    if (employeeNames.includes(name)) {
-      matrix[type][name] += amount;
-      totals[name] += amount;
-    } else {
-      const matched = employeeNames.find(
-        (n) => n.toLowerCase() === name.toLowerCase() ||
-               name.toLowerCase().startsWith(n.toLowerCase()),
-      );
-      if (matched) {
-        matrix[type][matched] += amount;
-        totals[matched] += amount;
-      }
-    }
+    const isMatch =
+      name === employeeName ||
+      name.toLowerCase() === employeeName.toLowerCase() ||
+      name.toLowerCase().startsWith(employeeName.toLowerCase());
+    if (!isMatch) continue;
+
+    const d = new Date(row.commissions_date);
+    if (isNaN(d.getTime())) continue;
+    const month = d.getMonth();
+    matrix[type][month] += amount;
+    totals[month] += amount;
   }
 
   return { matrix, totals };
@@ -161,9 +155,9 @@ function buildMatrix(
 
 function LoadingSkeleton() {
   return (
-    <div className="flex flex-wrap gap-4">
+    <div className="space-y-6">
       {[0, 1].map((i) => (
-        <div key={i} className="flex-1 min-w-[300px]">
+        <div key={i}>
           <div className="rounded-t-lg bg-black px-4 py-2">
             <div className="h-4 w-32 animate-pulse rounded bg-gray-700" />
           </div>
@@ -180,22 +174,24 @@ function LoadingSkeleton() {
 
 // ── Matrix Table ─────────────────────────────────────────────────────────
 
+/** One employee's commission matrix: type rows × 12 month columns, for the selected year. */
 function MatrixTable({
-  monthLabel,
+  employeeName,
+  year,
   data,
-  employeeNames,
 }: {
-  monthLabel: string;
+  employeeName: string;
+  year: string;
   data: CommissionRow[] | undefined;
-  employeeNames: string[];
 }) {
   const rows = data ?? [];
-  const { matrix, totals } = buildMatrix(rows, employeeNames);
+  const { matrix, totals } = buildEmployeeMatrix(rows, employeeName);
+  const grandTotal = totals.reduce((s, v) => s + v, 0);
 
   return (
-    <div className="flex-1 min-w-[300px]">
+    <div>
       <h3 className="text-lg font-bold uppercase tracking-wide text-black mb-3">
-        COMMISSIONS {monthLabel}
+        {employeeName} — Commissions {year}
       </h3>
       <div className="overflow-x-auto">
         <table className="w-full border-y border-[#D3BC8D] border-collapse">
@@ -204,49 +200,52 @@ function MatrixTable({
               <th className="px-3 py-2 text-center text-xs font-bold uppercase text-white">
                 Type
               </th>
-              {employeeNames.map((name) => (
+              {MONTH_LABELS.map((m) => (
                 <th
-                  key={name}
+                  key={m}
                   className="px-3 py-2 text-center text-xs font-bold uppercase text-white"
                 >
-                  {name}
+                  {m}
                 </th>
               ))}
+              <th className="px-3 py-2 text-center text-xs font-bold uppercase text-white">
+                Total
+              </th>
             </tr>
           </thead>
           <tbody>
             {EXPENSE_TYPES.map((type) => {
+              const monthly = matrix[type] ?? Array(12).fill(0);
+              const typeTotal = monthly.reduce((s, v) => s + v, 0);
               return (
-                <tr
-                  key={type}
-                  className="bg-white border-y border-[#D3BC8D]"
-                >
+                <tr key={type} className="bg-white border-y border-[#D3BC8D]">
                   <td className="whitespace-nowrap px-3 py-2 text-center text-sm text-gray-900">
                     {type}
                   </td>
-                  {employeeNames.map((name) => (
+                  {monthly.map((val, i) => (
                     <td
-                      key={name}
+                      key={i}
                       className="px-3 py-2 text-center text-sm text-gray-900"
                     >
-                      {matrix[type]?.[name]
-                        ? formatCurrency(matrix[type][name])
-                        : "—"}
+                      {val ? formatCurrency(val) : "—"}
                     </td>
                   ))}
+                  <td className="px-3 py-2 text-center text-sm font-semibold text-gray-900">
+                    {typeTotal ? formatCurrency(typeTotal) : "—"}
+                  </td>
                 </tr>
               );
             })}
             <tr className="bg-[#D3BC8D] font-bold border-y border-[#D3BC8D]">
               <td className="px-3 py-2 text-center text-sm text-black">TOTAL</td>
-              {employeeNames.map((name) => (
-                <td
-                  key={name}
-                  className="px-3 py-2 text-center text-sm text-black"
-                >
-                  {totals[name] > 0 ? formatCurrency(totals[name]) : "—"}
+              {totals.map((val, i) => (
+                <td key={i} className="px-3 py-2 text-center text-sm text-black">
+                  {val > 0 ? formatCurrency(val) : "—"}
                 </td>
               ))}
+              <td className="px-3 py-2 text-center text-sm text-black">
+                {grandTotal > 0 ? formatCurrency(grandTotal) : "—"}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -328,18 +327,16 @@ function useActiveEmployeeNames(isCoHost: boolean): string[] {
 // ── Main component ───────────────────────────────────────────────────────
 
 export default function CommissionsSection() {
-  const current = getMonthRange(0);
-  const prev = getMonthRange(-1);
+  const [year, setYear] = useState(String(CURRENT_YEAR));
   const { isCoHost } = useCoHost();
   const employeeNames = useActiveEmployeeNames(isCoHost);
+  const { dateFrom, dateTo } = getYearRange(Number(year));
 
-  const currentQuery = useQuery<CommissionsApiResponse>({
-    queryKey: ["/api/payroll/commissions", "current-month", current.dateFrom, current.dateTo],
+  const yearQuery = useQuery<CommissionsApiResponse>({
+    queryKey: ["/api/payroll/commissions", "year", year],
     queryFn: async () => {
       const res = await fetch(
-        buildApiUrl(
-          `/api/payroll/commissions?dateFrom=${current.dateFrom}&dateTo=${current.dateTo}&limit=500`,
-        ),
+        buildApiUrl(`/api/payroll/commissions?dateFrom=${dateFrom}&dateTo=${dateTo}&limit=2000`),
         { credentials: "include" },
       );
       if (!res.ok) throw new Error(`Failed to fetch commissions: ${res.status}`);
@@ -347,42 +344,42 @@ export default function CommissionsSection() {
     },
   });
 
-  const prevQuery = useQuery<CommissionsApiResponse>({
-    queryKey: ["/api/payroll/commissions", "prev-month", prev.dateFrom, prev.dateTo],
-    queryFn: async () => {
-      const res = await fetch(
-        buildApiUrl(
-          `/api/payroll/commissions?dateFrom=${prev.dateFrom}&dateTo=${prev.dateTo}&limit=500`,
-        ),
-        { credentials: "include" },
-      );
-      if (!res.ok) throw new Error(`Failed to fetch commissions: ${res.status}`);
-      return res.json();
-    },
-  });
-
-  const isLoading = currentQuery.isLoading || prevQuery.isLoading;
+  const isLoading = yearQuery.isLoading;
   const noTeam = isCoHost && !isLoading && employeeNames.length === 0;
 
   return (
     <div className="mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <h2 className="text-base font-semibold leading-tight">Commissions</h2>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Year</span>
+          <Select value={year} onValueChange={setYear}>
+            <SelectTrigger className="w-28">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {YEAR_OPTIONS.map((y) => (
+                <SelectItem key={y} value={y}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
       <div className="mt-2">
         {isLoading ? (
           <LoadingSkeleton />
         ) : noTeam ? (
           <p className="text-sm text-muted-foreground">No team members linked to your co-host account.</p>
         ) : (
-          <div className="flex flex-wrap gap-4">
-            <MatrixTable
-              monthLabel={prev.label}
-              data={prevQuery.data?.data}
-              employeeNames={employeeNames}
-            />
-            <MatrixTable
-              monthLabel={current.label}
-              data={currentQuery.data?.data}
-              employeeNames={employeeNames}
-            />
+          <div className="space-y-6">
+            {employeeNames.map((name) => (
+              <MatrixTable
+                key={name}
+                employeeName={name}
+                year={year}
+                data={yearQuery.data?.data}
+              />
+            ))}
           </div>
         )}
       </div>

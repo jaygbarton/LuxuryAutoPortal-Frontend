@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Loader2, Image as ImageIcon, ExternalLink } from "lucide-react";
+import { X, Loader2, Image as ImageIcon, ExternalLink, Trash2 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 
 /**
@@ -10,7 +10,17 @@ import { buildApiUrl } from "@/lib/queryClient";
  * blank. We instead fetch the bytes with credentials and render an object URL,
  * which works same- or cross-origin, and show an explicit fallback on error.
  */
-function ReceiptThumb({ url, filename }: { url: string; filename: string }) {
+function ReceiptThumb({
+  url,
+  filename,
+  onDelete,
+  deleting,
+}: {
+  url: string;
+  filename: string;
+  onDelete?: () => void;
+  deleting?: boolean;
+}) {
   const fullUrl = url.startsWith("/") ? buildApiUrl(url) : url;
   // Form-submission receipts carry no real filename ("Form receipt #123"), so
   // we can't rely on a ".pdf" suffix to know it's a PDF. We fetch the bytes and
@@ -53,39 +63,60 @@ function ReceiptThumb({ url, filename }: { url: string; filename: string }) {
   }, [fullUrl, nameIsPdf]);
 
   return (
-    <a
-      href={fullUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block border border-border rounded-lg overflow-hidden hover:border-primary transition-colors"
-      title={`Open ${filename}`}
-    >
-      {isPdf ? (
-        <div className="flex items-center justify-center h-40 bg-background text-sm text-muted-foreground">
-          <ImageIcon className="w-5 h-5 mr-2" /> {filename || "PDF receipt"}
+    <div className="relative block border border-border rounded-lg overflow-hidden hover:border-primary transition-colors">
+      <a
+        href={fullUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block"
+        title={`Open ${filename}`}
+      >
+        {isPdf ? (
+          <div className="flex items-center justify-center h-40 bg-background text-sm text-muted-foreground">
+            <ImageIcon className="w-5 h-5 mr-2" /> {filename || "PDF receipt"}
+          </div>
+        ) : failed ? (
+          <div className="flex flex-col items-center justify-center h-40 bg-background text-xs text-muted-foreground gap-1 px-2 text-center">
+            <ExternalLink className="w-5 h-5" />
+            <span>Couldn't load preview.</span>
+            <span className="text-primary underline">Open in new tab</span>
+          </div>
+        ) : objectUrl ? (
+          <img
+            src={objectUrl}
+            alt={filename || "Receipt"}
+            className="w-full h-40 object-cover bg-background"
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-40 bg-background text-muted-foreground">
+            <Loader2 className="w-5 h-5 animate-spin" />
+          </div>
+        )}
+        <div className="px-2 py-1 text-xs text-muted-foreground truncate">
+          {filename || "Receipt"}
         </div>
-      ) : failed ? (
-        <div className="flex flex-col items-center justify-center h-40 bg-background text-xs text-muted-foreground gap-1 px-2 text-center">
-          <ExternalLink className="w-5 h-5" />
-          <span>Couldn't load preview.</span>
-          <span className="text-primary underline">Open in new tab</span>
-        </div>
-      ) : objectUrl ? (
-        <img
-          src={objectUrl}
-          alt={filename || "Receipt"}
-          className="w-full h-40 object-cover bg-background"
-          onError={() => setFailed(true)}
-        />
-      ) : (
-        <div className="flex items-center justify-center h-40 bg-background text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin" />
-        </div>
+      </a>
+      {onDelete && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onDelete();
+          }}
+          disabled={deleting}
+          title="Remove this receipt"
+          className="absolute top-1.5 right-1.5 p-1.5 rounded-full bg-black/60 text-white hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {deleting ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Trash2 className="w-3.5 h-3.5" />
+          )}
+        </button>
       )}
-      <div className="px-2 py-1 text-xs text-muted-foreground truncate">
-        {filename || "Receipt"}
-      </div>
-    </a>
+    </div>
   );
 }
 
@@ -96,14 +127,19 @@ interface ReceiptViewerModalProps {
   isLoading: boolean;
   monthLabel: string;
   year: string | number;
+  /** Show a remove button on each receipt and let the admin/co-host delete
+   *  it. Omit (default false) to keep the viewer read-only — e.g. on
+   *  Earnings, where upload/delete deliberately stays in the I&E editor. */
+  canDelete?: boolean;
+  /** Called after a receipt is successfully deleted so the caller can
+   *  refetch (e.g. invalidate the images query). */
+  onDeleted?: () => void;
 }
 
 /**
- * View-only receipt viewer, opened by clicking a value cell that has
- * receipts. Shared between Earnings and Income & Expenses so both surfaces
- * offer the same "click the amount to see the receipt" affordance for
- * clients (who never get the full edit modal — upload/delete stays admin/
- * co-host-only, in the I&E editor).
+ * Receipt viewer, opened by clicking a value cell that has receipts. Shared
+ * between Earnings (read-only) and Income & Expenses (canDelete) so both
+ * surfaces offer the same "click the amount to see the receipt" affordance.
  */
 export default function ReceiptViewerModal({
   viewer,
@@ -112,8 +148,39 @@ export default function ReceiptViewerModal({
   isLoading,
   monthLabel,
   year,
+  canDelete = false,
+  onDeleted,
 }: ReceiptViewerModalProps) {
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
   if (!viewer) return null;
+
+  const handleDelete = async (imageId: string) => {
+    if (!window.confirm("Remove this receipt? This can't be undone.")) return;
+    setError(null);
+    setDeletingId(imageId);
+    try {
+      // Cell-upload receipts have a plain numeric id; form-submission
+      // receipts carry "form-<submissionId>-<index>" and live in a
+      // different table, so they go through a different delete route.
+      const formMatch = imageId.match(/^form-(\d+)-(\d+)$/);
+      const url = formMatch
+        ? buildApiUrl(`/api/income-expense/form-receipts/${formMatch[1]}/${formMatch[2]}`)
+        : buildApiUrl(`/api/income-expense/images/${imageId}`);
+      const res = await fetch(url, { method: "DELETE", credentials: "include" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || "Failed to remove receipt");
+      }
+      onDeleted?.();
+    } catch (e: any) {
+      setError(e?.message || "Failed to remove receipt");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
@@ -134,6 +201,11 @@ export default function ReceiptViewerModal({
             <X className="w-5 h-5" />
           </button>
         </div>
+        {error && (
+          <div className="mb-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+            {error}
+          </div>
+        )}
         {isLoading ? (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading receipts…
@@ -145,7 +217,13 @@ export default function ReceiptViewerModal({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {images.map((img) => (
-              <ReceiptThumb key={img.id} url={img.url} filename={img.filename} />
+              <ReceiptThumb
+                key={img.id}
+                url={img.url}
+                filename={img.filename}
+                onDelete={canDelete ? () => handleDelete(img.id) : undefined}
+                deleting={deletingId === img.id}
+              />
             ))}
           </div>
         )}

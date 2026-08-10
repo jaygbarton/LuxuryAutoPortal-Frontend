@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
 import { COMMISSION_TYPES } from "@/lib/commissionTypes";
+import { CommissionTypeCombobox } from "@/pages/admin/payroll/CommissionTypeCombobox";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2, Search, ChevronDown, X, HandCoins } from "lucide-react";
 import { useRef, useEffect } from "react";
@@ -184,6 +185,8 @@ export default function PayrollCommissionsPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
+  const [employeeFilter, setEmployeeFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [paidFilter, setPaidFilter] = useState<string>("all");
@@ -204,19 +207,37 @@ export default function PayrollCommissionsPage() {
 
   const params = new URLSearchParams();
   if (search.trim()) params.set("search", search.trim());
+  if (employeeFilter !== "all") params.set("employeeId", employeeFilter);
+  if (typeFilter !== "all") params.set("type", typeFilter);
   if (dateFrom) params.set("dateFrom", dateFrom);
   if (dateTo) params.set("dateTo", dateTo);
   if (paidFilter !== "all") params.set("commissions_is_paid", paidFilter);
   params.set("limit", "100");
 
   const { data, isLoading } = useQuery<{ success: boolean; data: CommissionRow[]; total: number }>({
-    queryKey: ["/api/payroll/commissions", search, dateFrom, dateTo, paidFilter],
+    queryKey: ["/api/payroll/commissions", search, employeeFilter, typeFilter, dateFrom, dateTo, paidFilter],
     queryFn: async () => {
       const res = await fetch(buildApiUrl(`/api/payroll/commissions?${params}`), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
     },
   });
+
+  const { data: allEmployeesResult } = useQuery<{ success: boolean; data: { employee_aid: number; employee_first_name?: string; employee_last_name?: string }[] }>({
+    queryKey: ["/api/employees", "commission-filter"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/employees?limit=500"), { credentials: "include" });
+      if (!res.ok) return { success: false, data: [] };
+      return res.json();
+    },
+  });
+  const filterEmployees = (allEmployeesResult?.data ?? [])
+    .map((e) => ({
+      id: e.employee_aid,
+      name: `${e.employee_first_name ?? ""} ${e.employee_last_name ?? ""}`.trim(),
+    }))
+    .filter((e) => e.name)
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const { data: employeeSearchResult } = useQuery<{ success: boolean; data: { employee_aid: number; fullname: string }[] }>({
     queryKey: ["/api/admin/work-sched/search-employee", employeeSearch],
@@ -370,7 +391,7 @@ export default function PayrollCommissionsPage() {
         <Card>
           <CardHeader className="pb-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end gap-3">
-              <div className="space-y-1 col-span-full lg:col-auto lg:min-w-[260px] lg:flex-1">
+              <div className="space-y-1 col-span-full lg:col-auto lg:min-w-[220px] lg:flex-1">
                 <label className="text-xs text-muted-foreground">Search</label>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -381,6 +402,34 @@ export default function PayrollCommissionsPage() {
                     className="pl-8 w-full"
                   />
                 </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Employee</label>
+                <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+                  <SelectTrigger className="w-full lg:w-40">
+                    <SelectValue placeholder="All employees" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All employees</SelectItem>
+                    {filterEmployees.map((e) => (
+                      <SelectItem key={e.id} value={String(e.id)}>{e.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Type</label>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-full lg:w-44">
+                    <SelectValue placeholder="All types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All types</SelectItem>
+                    {COMMISSION_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">From</label>
@@ -595,29 +644,10 @@ export default function PayrollCommissionsPage() {
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select
-                  value={form.commissions_type || undefined}
-                  onValueChange={(v) => setForm((f) => ({ ...f, commissions_type: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Preserve a legacy/free-text value (e.g. when editing an
-                        older row) that isn't in the canonical list. */}
-                    {form.commissions_type &&
-                      !COMMISSION_TYPES.includes(form.commissions_type as (typeof COMMISSION_TYPES)[number]) && (
-                        <SelectItem value={form.commissions_type}>
-                          {form.commissions_type}
-                        </SelectItem>
-                      )}
-                    {COMMISSION_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <CommissionTypeCombobox
+                  value={form.commissions_type}
+                  onChange={(v) => setForm((f) => ({ ...f, commissions_type: v }))}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Amount</Label>
