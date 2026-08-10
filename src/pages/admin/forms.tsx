@@ -372,6 +372,18 @@ export default function FormsPage() {
     localStorage.setItem("submissions_limit", itemsPerPage.toString());
   }, [itemsPerPage]);
 
+  // "Show All" bypasses pagination entirely (single fetch, capped at 1000).
+  const SUBMISSIONS_SHOW_ALL_LIMIT = 1000;
+  const [showAllSubmissions, setShowAllSubmissions] = useState<boolean>(
+    () => localStorage.getItem("submissions_show_all") === "true"
+  );
+
+  useEffect(() => {
+    localStorage.setItem("submissions_show_all", showAllSubmissions.toString());
+  }, [showAllSubmissions]);
+
+  const effectiveSubmissionsLimit = showAllSubmissions ? SUBMISSIONS_SHOW_ALL_LIMIT : itemsPerPage;
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -500,12 +512,12 @@ export default function FormsPage() {
       totalPages: number;
     };
   }>({
-    queryKey: ["onboarding-submissions", searchQuery, page, itemsPerPage],
+    queryKey: ["onboarding-submissions", searchQuery, page, effectiveSubmissionsLimit],
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: itemsPerPage.toString(),
+        limit: effectiveSubmissionsLimit.toString(),
       });
       if (searchQuery) {
         params.append("search", searchQuery);
@@ -2328,29 +2340,43 @@ export default function FormsPage() {
 
                                     {/* Pagination */}
                                     {submissionsData.pagination && (
-                                      <TablePagination
-                                        totalItems={
-                                          submissionsData.pagination.total
-                                        }
-                                        itemsPerPage={itemsPerPage}
-                                        currentPage={page}
-                                        onPageChange={(newPage) => {
-                                          setPage(newPage);
-                                          window.scrollTo({
-                                            top: 0,
-                                            behavior: "smooth",
-                                          });
-                                          window.scrollTo({
-                                            top: 0,
-                                            behavior: "smooth",
-                                          });
-                                        }}
-                                        onItemsPerPageChange={(newLimit) => {
-                                          setItemsPerPage(newLimit);
-                                          setPage(1); // Reset to first page when changing limit
-                                        }}
-                                        isLoading={isLoadingSubmissions}
-                                      />
+                                      <>
+                                        <div className="flex items-center px-6 py-3 bg-card border-t border-border">
+                                          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                                            <input
+                                              type="checkbox"
+                                              checked={showAllSubmissions}
+                                              onChange={(e) => {
+                                                setShowAllSubmissions(e.target.checked);
+                                                setPage(1);
+                                              }}
+                                              className="h-4 w-4 rounded border-border accent-[#D3BC8D]"
+                                            />
+                                            Show all {submissionsData.pagination.total} submissions (no pagination)
+                                          </label>
+                                        </div>
+                                        {!showAllSubmissions && (
+                                          <TablePagination
+                                            totalItems={
+                                              submissionsData.pagination.total
+                                            }
+                                            itemsPerPage={itemsPerPage}
+                                            currentPage={page}
+                                            onPageChange={(newPage) => {
+                                              setPage(newPage);
+                                              window.scrollTo({
+                                                top: 0,
+                                                behavior: "smooth",
+                                              });
+                                            }}
+                                            onItemsPerPageChange={(newLimit) => {
+                                              setItemsPerPage(newLimit);
+                                              setPage(1); // Reset to first page when changing limit
+                                            }}
+                                            isLoading={isLoadingSubmissions}
+                                          />
+                                        )}
+                                      </>
                                     )}
                                   </div>
                                 ) : (
