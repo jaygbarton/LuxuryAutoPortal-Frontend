@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,6 +68,7 @@ const STATUS_TABS = [
 ];
 
 const LIMIT = 20;
+const SHOW_ALL_LIMIT = 1000;
 
 export default function ClientTripHistory() {
   const [page, setPage] = useState(1);
@@ -77,6 +78,15 @@ export default function ClientTripHistory() {
   const [carFilter, setCarFilter] = useState("all");
   const [tripFrom, setTripFrom] = useState("");
   const [tripTo, setTripTo] = useState("");
+  const [showAll, setShowAll] = useState<boolean>(
+    () => localStorage.getItem("client_trip_history_show_all") === "true"
+  );
+
+  useEffect(() => {
+    localStorage.setItem("client_trip_history_show_all", showAll.toString());
+  }, [showAll]);
+
+  const effectiveLimit = showAll ? SHOW_ALL_LIMIT : LIMIT;
 
   // Debounce search input
   const handleSearchChange = (val: string) => {
@@ -89,7 +99,7 @@ export default function ClientTripHistory() {
   const hasFilters =
     debouncedSearch || statusFilter !== "all" || carFilter !== "all" || tripFrom || tripTo;
 
-  const params = new URLSearchParams({ page: String(page), limit: String(LIMIT) });
+  const params = new URLSearchParams({ page: String(page), limit: String(effectiveLimit) });
   if (debouncedSearch) params.set("q", debouncedSearch);
   if (statusFilter !== "all") params.set("status", statusFilter);
   if (carFilter !== "all") params.set("car", carFilter);
@@ -102,7 +112,7 @@ export default function ClientTripHistory() {
     total: number;
     cars?: CarOption[];
   }>({
-    queryKey: ["/api/client/trips", page, debouncedSearch, statusFilter, carFilter, tripFrom, tripTo],
+    queryKey: ["/api/client/trips", page, effectiveLimit, debouncedSearch, statusFilter, carFilter, tripFrom, tripTo],
     queryFn: async () => {
       const res = await fetch(buildApiUrl(`/api/client/trips?${params}`), {
         credentials: "include",
@@ -115,7 +125,7 @@ export default function ClientTripHistory() {
   const trips = data?.data ?? [];
   const total = data?.total ?? 0;
   const cars = data?.cars ?? [];
-  const totalPages = Math.max(1, Math.ceil(total / LIMIT));
+  const totalPages = Math.max(1, Math.ceil(total / effectiveLimit));
 
   function clearFilters() {
     setSearch("");
@@ -317,29 +327,45 @@ export default function ClientTripHistory() {
                   })}
                 </div>
 
-                {totalPages > 1 && (
+                {total > 0 && (
                   <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-                    <span>
-                      Page {page} of {totalPages} ({total} trips)
-                    </span>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages}
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showAll}
+                        onChange={(e) => {
+                          setShowAll(e.target.checked);
+                          setPage(1);
+                        }}
+                        className="h-4 w-4 rounded border-border accent-[#D3BC8D]"
+                      />
+                      Show all {total} trips (no pagination)
+                    </label>
+                    {!showAll && (
+                      <div className="flex items-center gap-3">
+                        <span>
+                          Page {page} of {totalPages} ({total} trips)
+                        </span>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </>

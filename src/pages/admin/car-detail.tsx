@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ClientSelectCombobox } from "./ClientSelectCombobox";
 
 /**
  * Extract Turo vehicle ID from a Turo listing URL.
@@ -415,7 +416,7 @@ export default function CarDetailPage() {
   const { data: allClientsData } = useQuery<{ success: boolean; data: any[] }>({
     queryKey: ["/api/clients", "picker"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/clients?limit=200"), { credentials: "include" });
+      const res = await fetch(buildApiUrl("/api/clients?limit=500"), { credentials: "include" });
       if (!res.ok) return { success: false, data: [] };
       return res.json();
     },
@@ -3410,25 +3411,11 @@ export default function CarDetailPage() {
                         <FormItem>
                           <FormLabel className="text-muted-foreground">Assigned Client (Owner)</FormLabel>
                           <FormControl>
-                            <Select
+                            <ClientSelectCombobox
+                              clients={allClients}
                               value={field.value || "__none__"}
-                              onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
-                            >
-                              <SelectTrigger className="bg-card border-border text-foreground">
-                                <SelectValue placeholder="— Unassigned —" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">— Unassigned —</SelectItem>
-                                {allClients.map((c: any) => {
-                                  const name = `${c.firstName || ""} ${c.lastName || ""}`.trim() || c.email || `Client #${c.id}`;
-                                  return (
-                                    <SelectItem key={c.id} value={String(c.id)}>
-                                      {name}
-                                    </SelectItem>
-                                  );
-                                })}
-                              </SelectContent>
-                            </Select>
+                              onChange={(v) => field.onChange(v === "__none__" ? "" : v)}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
