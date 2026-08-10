@@ -21,6 +21,7 @@ import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarIssueTypesCell } from "./CarIssueTypesCell";
 import { FuelReturnedCell } from "./FuelReturnedCell";
 import { GasLevelCells } from "./GasLevelCells";
+import { OperationEditHistoryList } from "@/components/admin/OperationEditHistory";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -661,7 +662,7 @@ export function CarInspectionsTab() {
 
       {historyModalOpen && historyInspection && (
         <Dialog open={historyModalOpen} onOpenChange={setHistoryModalOpen}>
-          <DialogContent className="bg-card border-border text-foreground max-w-md">
+          <DialogContent className="bg-card border-border text-foreground max-w-lg">
             <DialogHeader>
               <DialogTitle className="text-foreground">Edit History</DialogTitle>
             </DialogHeader>
@@ -685,6 +686,12 @@ export function CarInspectionsTab() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Moved to Maintenance</span>
                 <span className="text-foreground">{isMovedToMaintenance(historyInspection.id) ? "Yes" : "No"}</span>
+              </div>
+            </div>
+            <div className="border-t border-border pt-3 mt-1">
+              <h4 className="text-sm font-medium text-foreground mb-1">Edit Log</h4>
+              <div className="max-h-[40vh] overflow-y-auto">
+                <OperationEditHistoryList entityType="inspection" entityId={historyInspection.id} />
               </div>
             </div>
           </DialogContent>

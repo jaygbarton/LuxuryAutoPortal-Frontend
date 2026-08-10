@@ -39,6 +39,7 @@ import { PhotoUpload } from "./PhotoUpload";
 import { VIOLATION_TYPES } from "../forms/TicketViolationSubmission";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, ChevronsUpDown, Check } from "lucide-react";
+import { OperationEditHistory } from "@/components/admin/OperationEditHistory";
 
 interface TicketViolation {
   tv_aid: number;
@@ -593,6 +594,7 @@ export function TicketViolationTab() {
                     <Button variant="ghost" size="sm" onClick={() => { setEditing(r); setModalOpen(true); }} className="text-muted-foreground hover:text-primary h-7 px-2" title="Edit">
                       <Edit className="w-3.5 h-3.5" />
                     </Button>
+                    <OperationEditHistory entityType="ticket_violation" entityId={r.tv_aid} />
                     <Button variant="ghost" size="sm" onClick={() => setDeleting(r)} className="text-muted-foreground hover:text-red-700 h-7 px-2" title="Delete">
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>

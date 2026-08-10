@@ -27,6 +27,7 @@ import { GasLevelCells } from "./GasLevelCells";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, History } from "lucide-react";
+import { OperationEditHistoryList } from "@/components/admin/OperationEditHistory";
 import type { OperationTask, TaskType, TaskStatus, TuroTrip } from "./types";
 
 const formatDate = (dateStr: string | null): string => {
@@ -562,7 +563,7 @@ export function TripTasksTab() {
 
       {historyModalOpen && historyTask && (
         <Dialog open={historyModalOpen} onOpenChange={setHistoryModalOpen}>
-          <DialogContent className="bg-card border-border text-foreground max-w-md">
+          <DialogContent className="bg-card border-border text-foreground max-w-lg">
             <DialogHeader>
               <DialogTitle className="text-foreground">
                 Edit History
@@ -596,6 +597,12 @@ export function TripTasksTab() {
                 <span className="text-foreground">
                   {historyTask.assigned_to}
                 </span>
+              </div>
+            </div>
+            <div className="border-t border-border pt-3 mt-1">
+              <h4 className="text-sm font-medium text-foreground mb-1">Edit Log</h4>
+              <div className="max-h-[40vh] overflow-y-auto">
+                <OperationEditHistoryList entityType="task" entityId={historyTask.id} />
               </div>
             </div>
           </DialogContent>

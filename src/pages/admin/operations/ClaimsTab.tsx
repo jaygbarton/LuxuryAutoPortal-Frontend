@@ -28,6 +28,7 @@ import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Plus, Edit, Trash2 } from "lucide-react";
+import { OperationEditHistory } from "@/components/admin/OperationEditHistory";
 import type { Claim } from "./types";
 
 const formatDateTime = (dateStr: string | null): string => {
@@ -305,6 +306,7 @@ export function ClaimsTab() {
                     <Button variant="ghost" size="sm" onClick={() => { setEditingClaim(claim); setModalOpen(true); }} className="text-muted-foreground hover:text-primary h-7 px-2" title="Edit">
                       <Edit className="w-3.5 h-3.5" />
                     </Button>
+                    <OperationEditHistory entityType="claim" entityId={claim.id} />
                     <Button variant="ghost" size="sm" onClick={() => { setDeletingClaim(claim); setDeleteModalOpen(true); }} className="text-muted-foreground hover:text-red-700 h-7 px-2" title="Delete">
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>

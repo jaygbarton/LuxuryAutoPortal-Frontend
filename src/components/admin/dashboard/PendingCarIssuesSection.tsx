@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { MaintenanceModal } from "@/pages/admin/operations/MaintenanceModal";
+import { OperationEditHistoryList } from "@/components/admin/OperationEditHistory";
 
 type Severity = "low" | "normal" | "urgent";
 
@@ -281,11 +282,11 @@ export default function PendingCarIssuesSection() {
                         </div>
                       </td>
                     </tr>
-                    {isOpen && row.contributions && row.contributions.length > 0 && (
+                    {isOpen && (
                       <tr className="bg-gray-50">
                         <td colSpan={8} className="px-6 py-3">
                           <div className="space-y-3">
-                            {row.contributions.map((c) => (
+                            {row.contributions && row.contributions.map((c) => (
                               <div key={c.id} className="rounded border border-gray-200 bg-white p-3">
                                 <div className="flex items-center justify-between text-xs text-gray-500">
                                   <span className="font-semibold text-gray-700">
@@ -317,6 +318,10 @@ export default function PendingCarIssuesSection() {
                                 )}
                               </div>
                             ))}
+                            <div className="rounded border border-gray-200 bg-white p-3">
+                              <h4 className="mb-1 text-xs font-semibold uppercase text-gray-500">Edit Log</h4>
+                              <OperationEditHistoryList entityType="car_pending_issue" entityId={row.id} />
+                            </div>
                           </div>
                         </td>
                       </tr>
