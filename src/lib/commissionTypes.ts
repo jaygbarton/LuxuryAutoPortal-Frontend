@@ -27,6 +27,11 @@ export const COMMISSION_TYPES = [
   "Maintenance",
   "Exit Parking Ticket",
   "Last Minute Commissions",
+  "Turo Negative Review Removal",
+  "Miles Charges",
+  "Late Return",
+  "Turo Positive Reviews",
+  "Turo Claims",
 ] as const;
 
 export type CommissionType = (typeof COMMISSION_TYPES)[number];

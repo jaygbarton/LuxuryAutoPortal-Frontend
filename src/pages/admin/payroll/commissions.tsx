@@ -82,11 +82,30 @@ interface MatrixRow {
  */
 function CommissionsMatrix() {
   const [year, setYear] = useState(String(CURRENT_YEAR));
+  const [employeeFilter, setEmployeeFilter] = useState<string>("all");
+
+  const { data: allEmployeesResult } = useQuery<{ success: boolean; data: { employee_aid: number; employee_first_name?: string; employee_last_name?: string }[] }>({
+    queryKey: ["/api/employees", "commission-filter"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/employees?limit=500"), { credentials: "include" });
+      if (!res.ok) return { success: false, data: [] };
+      return res.json();
+    },
+  });
+  const filterEmployees = (allEmployeesResult?.data ?? [])
+    .map((e) => ({
+      id: e.employee_aid,
+      name: `${e.employee_first_name ?? ""} ${e.employee_last_name ?? ""}`.trim(),
+    }))
+    .filter((e) => e.name)
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const { data, isLoading } = useQuery<{ success: boolean; data: { rows: MatrixRow[] } }>({
-    queryKey: ["/api/payroll/commissions/matrix", year],
+    queryKey: ["/api/payroll/commissions/matrix", year, employeeFilter],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl(`/api/payroll/commissions/matrix?year=${year}`), {
+      const params = new URLSearchParams({ year });
+      if (employeeFilter !== "all") params.set("employeeId", employeeFilter);
+      const res = await fetch(buildApiUrl(`/api/payroll/commissions/matrix?${params}`), {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to load commissions matrix");
@@ -120,9 +139,23 @@ function CommissionsMatrix() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold leading-tight">Total Commissions by Month</h2>
-            <p className="text-muted-foreground text-sm">All employees, summed by commission type.</p>
+            <p className="text-muted-foreground text-sm">
+              {employeeFilter === "all" ? "All employees, summed by commission type." : "Summed by commission type."}
+            </p>
           </div>
           <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Employee</span>
+            <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All employees</SelectItem>
+                {filterEmployees.map((e) => (
+                  <SelectItem key={e.id} value={String(e.id)}>{e.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <span className="text-xs text-muted-foreground">Year</span>
             <Select value={year} onValueChange={setYear}>
               <SelectTrigger className="w-28">

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { formatCurrency } from "@/components/admin/dashboard/utils";
 import { useCoHost } from "@/hooks/use-co-host";
+import { COMMISSION_TYPES } from "@/lib/commissionTypes";
 import {
   Select,
   SelectContent,
@@ -42,26 +43,11 @@ interface CommissionsApiResponse {
 // and new hires appear automatically. See `useActiveEmployeeNames`.
 const PREFERRED_ORDER = ["Bynn", "Jen", "Armando", "Adam", "Olavo", "Matthew", "Cathy"];
 
-const EXPENSE_TYPES = [
-  "Parking Airport",
-  "Uber & Lyft",
-  "Uber Ride",
-  "Electric/Gas/Uber - Reimbursed",
-  "Ski Rack's",
-  "Car Management Split",
-  "New Car - Onboard",
-  "Relist Car",
-  "Annual Inspections",
-  "Insurance",
-  "Car Registrations",
-  "Car Swap",
-  "Zero Parking Fee",
-  "Invoice",
-  "Bouncie",
-  "Maintenance",
-  "Exit Parking Ticket",
-  "Last Minute Commissions",
-];
+// Single source of truth: the Payroll → Commissions page's Add/Edit
+// dropdown (see @/lib/commissionTypes.ts). A hardcoded copy here previously
+// drifted out of sync (e.g. combined "Electric/Gas/Uber - Reimbursed" into
+// one column), silently folding real commission rows into the wrong type.
+const EXPENSE_TYPES: readonly string[] = COMMISSION_TYPES;
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -81,9 +67,15 @@ const TYPE_ALIASES: Record<string, string> = {
   "parking airport":                 "Parking Airport",
   "uber":                            "Uber & Lyft",
   "uber & lyft":                     "Uber & Lyft",
-  "electric, gas, uber - reimbursed":"Electric/Gas/Uber - Reimbursed",
-  "electric/gas/uber - reimbursed":  "Electric/Gas/Uber - Reimbursed",
-  "electric gas uber reimbursed":    "Electric/Gas/Uber - Reimbursed",
+  "uber ride":                       "Uber Ride",
+  "electric":                        "Electric - Reimbursed",
+  "electric - reimbursed":           "Electric - Reimbursed",
+  "electric reimbursed":             "Electric - Reimbursed",
+  "gas":                             "Gas - Reimbursed",
+  "gas - reimbursed":                "Gas - Reimbursed",
+  "gas reimbursed":                  "Gas - Reimbursed",
+  "uber - reimbursed":               "Uber - Reimbursed",
+  "uber reimbursed":                 "Uber - Reimbursed",
   "ski rack":                        "Ski Rack's",
   "ski racks":                       "Ski Rack's",
   "ski rack's":                      "Ski Rack's",
