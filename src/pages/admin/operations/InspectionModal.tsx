@@ -86,9 +86,12 @@ export function InspectionModal({
   const isEdit = !!inspection;
 
   const { data: employeesData } = useQuery({
-    queryKey: ["/api/employees"],
+    queryKey: ["/api/employees", "picker"],
     queryFn: async () => {
-      const res = await fetch(buildApiUrl("/api/employees"), { credentials: "include" });
+      // Default limit is 10 — without this the "Inspected By" dropdown
+      // silently cuts off after the first 10 employees (sorted by last
+      // name), missing anyone alphabetically past that point.
+      const res = await fetch(buildApiUrl("/api/employees?limit=500"), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch employees");
       return res.json();
     },
