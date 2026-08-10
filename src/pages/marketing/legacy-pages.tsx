@@ -918,11 +918,6 @@ export function JobsPage() {
                     </div>
                     <div>
                       <h3 className="text-2xl font-semibold text-foreground">{job.title}</h3>
-                      <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-primary">
-                        {job.schedule.map((item) => (
-                          <span key={item} className="rounded-md bg-primary/10 px-3 py-1">{item}</span>
-                        ))}
-                      </div>
                     </div>
                   </div>
                   <Link href={`/jobs/apply?position=${encodeURIComponent(job.title)}`}>
@@ -978,14 +973,19 @@ function FieldLabel({
   label,
   children,
   className = "",
+  required = false,
 }: {
   label: string;
   children: ReactNode;
   className?: string;
+  required?: boolean;
 }) {
   return (
     <label className={`grid min-w-0 gap-2 text-sm font-medium text-foreground ${className}`}>
-      {label}
+      <span>
+        {label}
+        {required ? <span className="ml-1 text-primary">*</span> : null}
+      </span>
       {children}
     </label>
   );
@@ -998,14 +998,25 @@ export function JobApplicationPage() {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [formReady, setFormReady] = useState(false);
   const initialRole = useMemo(() => {
     if (typeof window === "undefined") return applicationRoles[0];
     const position = new URLSearchParams(window.location.search).get("position");
     return position && applicationRoles.includes(position) ? position : applicationRoles[0];
   }, []);
+  const [selectedRole, setSelectedRole] = useState(initialRole);
+  const requiresLinkedIn = selectedRole === "Personal Assistant" || selectedRole === "Marketing";
+
+  const updateFormReady = (form: HTMLFormElement) => {
+    window.requestAnimationFrame(() => setFormReady(form.checkValidity()));
+  };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!event.currentTarget.checkValidity()) {
+      event.currentTarget.reportValidity();
+      return;
+    }
     setSubmitting(true);
     try {
       const response = await fetch(buildApiUrl("/api/job-application"), {
@@ -1038,21 +1049,17 @@ export function JobApplicationPage() {
           <Card className="border-border bg-card">
             <CardContent className="p-6">
               <BriefcaseBusiness className="h-7 w-7 text-primary" />
-              <h2 className="mt-4 font-serif text-3xl font-light text-foreground">Application checklist</h2>
-              <div className="mt-5 grid gap-3 text-sm text-muted-foreground">
-                {[
-                  "First and last name",
-                  "Date of birth",
-                  "Resume upload",
-                  "Driver's license upload",
-                  "Optional supporting documents",
-                  "LinkedIn profile for Personal Assistant and Marketing",
-                ].map((item) => (
-                  <div key={item} className="flex items-start gap-3 rounded-md border border-border bg-background/60 p-3">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    {item}
-                  </div>
-                ))}
+              <h2 className="mt-4 font-serif text-3xl font-light text-foreground">After You Apply</h2>
+              <div className="mt-5 space-y-4 text-sm leading-7 text-muted-foreground">
+                <p>
+                  Golden Luxury Auto reviews every application against the role, our operating standards, and the goals of the company.
+                </p>
+                <p>
+                  We will contact you if we think you are a good fit for our company, the open position, and the way our team works.
+                </p>
+                <p>
+                  Fields marked with <span className="font-semibold text-primary">*</span> are required before submission.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -1064,19 +1071,34 @@ export function JobApplicationPage() {
                   Application submitted. The team will review it and follow up directly.
                 </div>
               ) : null}
-              <form className="grid gap-5" encType="multipart/form-data" onSubmit={onSubmit}>
+              <form
+                className="grid gap-5"
+                encType="multipart/form-data"
+                onSubmit={onSubmit}
+                onInput={(event) => updateFormReady(event.currentTarget)}
+                onChange={(event) => updateFormReady(event.currentTarget)}
+              >
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  <FieldLabel label="First Name">
+                  <FieldLabel label="First Name" required>
                     <input className={fieldClass} name="firstName" required autoComplete="given-name" />
                   </FieldLabel>
-                  <FieldLabel label="Last Name">
+                  <FieldLabel label="Last Name" required>
                     <input className={fieldClass} name="lastName" required autoComplete="family-name" />
                   </FieldLabel>
-                  <FieldLabel label="Date Of Birth">
+                  <FieldLabel label="Date Of Birth" required>
                     <input className={fieldClass} name="dateOfBirth" type="date" required />
                   </FieldLabel>
-                  <FieldLabel label="Role">
-                    <select className={fieldClass} name="position" defaultValue={initialRole} required>
+                  <FieldLabel label="Role" required>
+                    <select
+                      className={fieldClass}
+                      name="position"
+                      value={selectedRole}
+                      required
+                      onChange={(event) => {
+                        setSelectedRole(event.target.value);
+                        updateFormReady(event.currentTarget.form!);
+                      }}
+                    >
                       {applicationRoles.map((role) => (
                         <option key={role} value={role}>{role}</option>
                       ))}
@@ -1085,25 +1107,31 @@ export function JobApplicationPage() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  <FieldLabel label="Email" className="xl:col-span-2">
+                  <FieldLabel label="Email" className="xl:col-span-2" required>
                     <input className={fieldClass} name="email" type="email" required autoComplete="email" />
                   </FieldLabel>
-                  <FieldLabel label="Phone">
+                  <FieldLabel label="Phone" required>
                     <input className={fieldClass} name="phone" type="tel" required autoComplete="tel" />
                   </FieldLabel>
-                  <FieldLabel label="LinkedIn Profile">
-                    <input className={fieldClass} name="linkedin" type="url" placeholder="linkedin.com/in/..." />
+                  <FieldLabel label="LinkedIn Profile" required={requiresLinkedIn}>
+                    <input
+                      className={fieldClass}
+                      name="linkedin"
+                      type="url"
+                      placeholder={requiresLinkedIn ? "https://linkedin.com/in/..." : "Optional"}
+                      required={requiresLinkedIn}
+                    />
                   </FieldLabel>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-3">
-                  <FieldLabel label="Resume">
+                  <FieldLabel label="Resume" required>
                     <span className="grid min-h-[110px] min-w-0 content-center gap-2 rounded-md border border-dashed border-primary/35 bg-background p-4 text-sm text-muted-foreground">
                       <FileText className="h-5 w-5 text-primary" />
                       <input className="w-full max-w-full text-xs" name="resume" type="file" accept=".pdf,.doc,.docx,image/*" required />
                     </span>
                   </FieldLabel>
-                  <FieldLabel label="Driver's License">
+                  <FieldLabel label="Driver's License" required>
                     <span className="grid min-h-[110px] min-w-0 content-center gap-2 rounded-md border border-dashed border-primary/35 bg-background p-4 text-sm text-muted-foreground">
                       <FileText className="h-5 w-5 text-primary" />
                       <input className="w-full max-w-full text-xs" name="driversLicense" type="file" accept=".pdf,image/*" required />
@@ -1125,7 +1153,7 @@ export function JobApplicationPage() {
                   />
                 </FieldLabel>
 
-                <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={submitting}>
+                <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={submitting || !formReady}>
                   {submitting ? "Sending..." : "Submit Application"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -1138,75 +1166,134 @@ export function JobApplicationPage() {
   );
 }
 
-const privacySections = [
+type LegalSection = {
+  title: string;
+  body: string[];
+};
+
+const privacySections: LegalSection[] = [
   {
-    title: "Information We Collect",
-    body: "We collect information submitted through this website, including contact details, rental questions, vehicle owner details, application materials, uploaded documents, and communication preferences.",
+    title: "1. Information We Collect",
+    body: [
+      "Golden Luxury Auto may collect information you provide through this website, including your name, email address, phone number, rental questions, vehicle owner details, job application information, uploaded documents, and any message or form content you choose to submit.",
+      "When you use the website, basic technical information may also be collected automatically, including device type, browser type, pages visited, referral source, approximate location derived from technical data, and similar website analytics information.",
+    ],
   },
   {
-    title: "How We Use It",
-    body: "We use submitted information to respond to inquiries, review rental or vehicle management requests, process job applications, schedule appointments, improve service quality, and operate Golden Luxury Auto.",
+    title: "2. How We Use Information",
+    body: [
+      "We use submitted information to respond to inquiries, review rental requests, evaluate vehicle management opportunities, process job applications, schedule appointments, provide customer service, operate the business, improve the website, and protect Golden Luxury Auto, guests, vehicle owners, applicants, and staff.",
+      "We may contact you by phone, text message, email, or other reasonable communication methods based on the information you provide and the nature of your request.",
+    ],
   },
   {
-    title: "Documents And Uploads",
-    body: "Files uploaded through application and owner forms are used for review, verification, and operations. Access is limited to team members who need the information for legitimate business purposes.",
+    title: "3. Documents And Uploads",
+    body: [
+      "Documents uploaded through employment, owner, or operations forms may include resumes, driver's licenses, insurance documents, vehicle information, photos, or other supporting materials.",
+      "Uploaded files are used for review, verification, hiring, rental, vehicle management, operational, insurance, or compliance purposes. Access is limited to team members, service providers, or advisors who need the information for legitimate business purposes.",
+    ],
   },
   {
-    title: "Sharing",
-    body: "We do not sell personal information. We may share information with service providers, booking platforms, payment tools, legal advisors, or operations partners when needed to provide service or comply with law.",
+    title: "4. Sharing And Disclosure",
+    body: [
+      "We do not sell personal information. We may share information with service providers, booking platforms, payment processors, software vendors, insurance providers, legal or professional advisors, operations partners, or government authorities when necessary to provide service, operate the business, protect rights and property, or comply with applicable law.",
+      "Third-party platforms may maintain their own privacy policies and terms. Golden Luxury Auto is not responsible for the independent practices of third-party websites or platforms.",
+    ],
   },
   {
-    title: "Security",
-    body: "We use reasonable safeguards for submitted information, but no website or email system can be guaranteed completely secure. Contact the team directly if sensitive information needs special handling.",
+    title: "5. Security And Retention",
+    body: [
+      "We use reasonable administrative, technical, and operational safeguards designed to protect submitted information. No website, file upload, email, or electronic storage method can be guaranteed completely secure.",
+      "We retain information for as long as reasonably needed for business, legal, tax, insurance, hiring, operational, dispute-resolution, and compliance purposes, unless a longer retention period is required or permitted by law.",
+    ],
   },
   {
-    title: "Contact",
-    body: `Questions about privacy can be sent to ${SITE_CONTACT.emails[0]} or ${SITE_CONTACT.phone}.`,
+    title: "6. Your Choices And Contact",
+    body: [
+      "You may contact us to request review, correction, or deletion of information you submitted, subject to legal, operational, insurance, fraud-prevention, and recordkeeping requirements.",
+      `Questions about this Privacy Policy can be sent to ${SITE_CONTACT.emails[0]} or ${SITE_CONTACT.phone}.`,
+    ],
   },
 ];
 
-const termsSections = [
+const termsSections: LegalSection[] = [
   {
-    title: "Website Use",
-    body: "This website provides information about Golden Luxury Auto rentals, vehicle management, details, extras, careers, and contact paths. Information may change as availability, pricing, and operations change.",
+    title: "1. Acceptance Of Terms",
+    body: [
+      "By accessing or using this website, submitting a form, uploading documents, or contacting Golden Luxury Auto through the website, you agree to these Terms and Conditions.",
+      "If you do not agree, do not use the website or submit information through it.",
+    ],
   },
   {
-    title: "Bookings And Platforms",
-    body: "Vehicle booking details, guest eligibility, trip changes, fees, protection plans, and platform rules may be handled through third-party booking platforms such as Turo when applicable.",
+    title: "2. Website Information",
+    body: [
+      "This website provides general information about Golden Luxury Auto rentals, vehicle management, detailing, extras, careers, contact options, and related services.",
+      "Availability, pricing, vehicle listings, offers, job openings, policies, and operational details may change without notice. Website content is not a binding offer unless confirmed in writing by Golden Luxury Auto or through an applicable booking platform.",
+    ],
   },
   {
-    title: "Form Submissions",
-    body: "By submitting a form, you confirm that the information is accurate and that Golden Luxury Auto may contact you about the request, application, vehicle, rental, or service inquiry.",
+    title: "3. Bookings And Third-Party Platforms",
+    body: [
+      "Some vehicle bookings, guest eligibility requirements, trip modifications, fees, protection plans, cancellations, payments, disputes, and platform rules may be controlled by third-party platforms such as Turo or other service providers.",
+      "When a third-party platform is used, that platform's terms, policies, fees, rules, and decisions may apply in addition to any Golden Luxury Auto policies.",
+    ],
   },
   {
-    title: "Uploads",
-    body: "Only submit documents you are authorized to provide. Uploaded files must not contain malicious code, misleading information, or documents belonging to another person without permission.",
+    title: "4. Forms, Applications, And Uploads",
+    body: [
+      "By submitting a form or application, you confirm that the information is accurate, current, and submitted by you or with proper authorization. Golden Luxury Auto may contact you about the request, application, vehicle, rental, service inquiry, or related business purpose.",
+      "Only submit documents you are authorized to provide. Uploaded files must not contain malicious code, false information, misleading content, or documents belonging to another person without permission.",
+    ],
   },
   {
-    title: "No Guarantee",
-    body: "Submitting an inquiry, application, or vehicle management request does not guarantee approval, employment, rental availability, pricing, or acceptance into any program.",
+    title: "5. No Guarantee",
+    body: [
+      "Submitting an inquiry, job application, owner request, vehicle management request, or service request does not guarantee approval, employment, rental availability, pricing, financing, acceptance into a program, or any specific business outcome.",
+      "Golden Luxury Auto may decline requests or applications at its discretion, subject to applicable law.",
+    ],
   },
   {
-    title: "Contact",
-    body: `Questions about these terms can be sent to ${SITE_CONTACT.emails[0]} or ${SITE_CONTACT.phone}.`,
+    title: "6. Limitation Of Liability And Contact",
+    body: [
+      "To the fullest extent permitted by law, Golden Luxury Auto is not liable for indirect, incidental, consequential, special, exemplary, or punitive damages arising from website use, third-party platforms, unavailable vehicles, interrupted service, errors, or user-submitted information.",
+      `Questions about these Terms and Conditions can be sent to ${SITE_CONTACT.emails[0]} or ${SITE_CONTACT.phone}.`,
+    ],
   },
 ];
 
-function LegalPage({ page, sections }: { page: "privacy-policy" | "terms-and-conditions"; sections: typeof privacySections }) {
+function LegalPage({ page, sections }: { page: "privacy-policy" | "terms-and-conditions"; sections: LegalSection[] }) {
+  const title = page === "privacy-policy" ? "Privacy Policy" : "Terms And Conditions";
+
   return (
     <PageShell page={page}>
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <article className="mx-auto max-w-4xl rounded-md border border-border bg-card p-6 shadow-sm sm:p-8 lg:p-10">
+          <div className="border-b border-border pb-6">
+            <p className="text-sm font-semibold uppercase tracking-widest text-primary">Golden Luxury Auto</p>
+            <h2 className="mt-3 font-serif text-3xl font-light text-foreground sm:text-4xl">{title}</h2>
+            <p className="mt-3 text-sm text-muted-foreground">Last updated: August 10, 2026</p>
+            <p className="mt-5 text-sm leading-7 text-muted-foreground">
+              This document is intended to state the website policy and terms for Golden Luxury Auto in a formal, readable format. It should be reviewed by legal counsel for final jurisdiction-specific compliance.
+            </p>
+          </div>
+          <div className="mt-8 grid gap-8">
           {sections.map((section) => (
-            <Card key={section.title} className="border-border bg-card">
-              <CardContent className="p-6">
+            <section key={section.title}>
+              <div className="flex items-start gap-3">
                 <ShieldCheck className="h-5 w-5 text-primary" />
-                <h2 className="mt-4 text-xl font-semibold text-foreground">{section.title}</h2>
-                <p className="mt-3 text-sm leading-7 text-muted-foreground">{section.body}</p>
-              </CardContent>
-            </Card>
+                <div>
+                  <h3 className="text-xl font-semibold text-foreground">{section.title}</h3>
+                  <div className="mt-3 space-y-3 text-sm leading-7 text-muted-foreground">
+                    {section.body.map((paragraph) => (
+                      <p key={paragraph}>{paragraph}</p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
           ))}
-        </div>
+          </div>
+        </article>
       </section>
     </PageShell>
   );
