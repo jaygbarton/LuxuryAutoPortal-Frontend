@@ -185,6 +185,17 @@ export default function EmployeesPage() {
     localStorage.setItem("employees_limit", itemsPerPage.toString());
   }, [itemsPerPage]);
 
+  const EMPLOYEES_SHOW_ALL_LIMIT = 500;
+  const [showAllEmployees, setShowAllEmployees] = useState<boolean>(
+    () => localStorage.getItem("employees_show_all") === "true"
+  );
+
+  useEffect(() => {
+    localStorage.setItem("employees_show_all", showAllEmployees.toString());
+  }, [showAllEmployees]);
+
+  const effectiveEmployeesLimit = showAllEmployees ? EMPLOYEES_SHOW_ALL_LIMIT : itemsPerPage;
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -215,14 +226,14 @@ export default function EmployeesPage() {
     data: Employee[];
     pagination: { page: number; limit: number; total: number; totalPages: number };
   }>({
-    queryKey: ["/api/employees", searchQuery, statusFilter, page, itemsPerPage],
+    queryKey: ["/api/employees", searchQuery, statusFilter, page, effectiveEmployeesLimit],
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchQuery && searchQuery.trim()) params.append("search", searchQuery.trim());
       if (statusFilter !== "all") params.append("status", statusFilter);
       params.append("page", page.toString());
-      params.append("limit", itemsPerPage.toString());
+      params.append("limit", effectiveEmployeesLimit.toString());
       const url = buildApiUrl(`/api/employees?${params.toString()}`);
       const response = await fetch(url, { credentials: "include" });
       if (!response.ok) {
@@ -1070,21 +1081,39 @@ export default function EmployeesPage() {
             </div>
 
             {pagination && pagination.total > 0 && (
-              <TablePagination
-                totalItems={pagination.total}
-                itemsPerPage={itemsPerPage}
-                currentPage={Math.min(page, pagination.totalPages)}
-                onPageChange={(newPage) => {
-                  const validPage = Math.max(1, Math.min(newPage, pagination.totalPages));
-                  setPage(validPage);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                onItemsPerPageChange={(newLimit) => {
-                  setItemsPerPage(newLimit);
-                  setPage(1);
-                }}
-                isLoading={isLoading}
-              />
+              <>
+                <div className="flex items-center px-6 py-3 bg-card border-t border-border">
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showAllEmployees}
+                      onChange={(e) => {
+                        setShowAllEmployees(e.target.checked);
+                        setPage(1);
+                      }}
+                      className="h-4 w-4 rounded border-border accent-[#D3BC8D]"
+                    />
+                    Show all {pagination.total} employees (no pagination)
+                  </label>
+                </div>
+                {!showAllEmployees && (
+                  <TablePagination
+                    totalItems={pagination.total}
+                    itemsPerPage={itemsPerPage}
+                    currentPage={Math.min(page, pagination.totalPages)}
+                    onPageChange={(newPage) => {
+                      const validPage = Math.max(1, Math.min(newPage, pagination.totalPages));
+                      setPage(validPage);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    onItemsPerPageChange={(newLimit) => {
+                      setItemsPerPage(newLimit);
+                      setPage(1);
+                    }}
+                    isLoading={isLoading}
+                  />
+                )}
+              </>
             )}
           </CardContent>
         </Card>
