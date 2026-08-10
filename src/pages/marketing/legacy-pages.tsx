@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SITE_CONTACT } from "@/lib/site-config";
 import { getPublicLocationFromPath } from "@/lib/location-config";
+import { RotatingGoogleReviews } from "@/components/reviews/rotating-google-reviews";
 
 type PageKey =
   | "detail-shop"
@@ -220,19 +221,55 @@ const detailAddOns = [
 
 const jobListings: JobListing[] = [
   {
-    title: "Car Detailers / Drivers / Fleet Tech",
+    title: "Car Detailer",
     status: "Now Hiring",
-    schedule: ["Full & Part-time", "30-50 hours a month", "30-50 hours a week"],
+    schedule: ["Full & Part-time", "30-50 hours a week"],
     pay: "$16-21/hr depending on experience",
     description: [
-      "Detailers and drivers create the client's first impression of Golden Luxury Auto and keep each rental ready for the next guest.",
-      "Daily work includes preparing vehicles for rentals, cleaning and detailing cars on schedule, dropping cars off to clients, filling out forms, going to auto shops, checking cars in after rentals, and similar fleet tasks.",
+      "Car detailers create the client's first impression of Golden Luxury Auto and keep each rental clean, polished, and ready for the next guest.",
+      "Daily work includes preparing vehicles for rentals, cleaning and detailing cars on schedule, checking cars in after rentals, filling out forms, and keeping the detail workflow moving.",
       "All materials, scheduling, and systems are pre-built, with training to help the team keep improving.",
     ],
     requirements: [
+      "Valid driver's license and car insurance required.",
       "Mindset and drive with high personal standards.",
       "Strong communication skills.",
-      "Valid driver's license and car insurance.",
+      "Strong time-management under changing schedules.",
+      "Coachable, proactive, and comfortable working with a small team.",
+    ],
+  },
+  {
+    title: "Driver",
+    status: "Now Hiring",
+    schedule: ["Full & Part-time", "30-50 hours a month", "Changing pickup and drop-off schedule"],
+    pay: "$16-21/hr depending on experience",
+    description: [
+      "Drivers handle the guest-facing movement that keeps rentals on schedule and clients confident.",
+      "Daily work includes dropping cars off to clients, picking vehicles up, going to auto shops, checking cars in after rentals, completing forms, and supporting fleet movement as schedules change.",
+      "This role fits someone reliable, calm, and organized who can represent Golden Luxury Auto well in the field.",
+    ],
+    requirements: [
+      "Valid driver's license and car insurance required.",
+      "Strong communication skills.",
+      "Strong time-management under changing schedules.",
+      "Comfortable driving and parking a range of vehicle sizes.",
+      "Coachable, proactive, and comfortable working with a small team.",
+    ],
+  },
+  {
+    title: "Fleet Tech",
+    status: "Now Hiring",
+    schedule: ["Full & Part-time", "30-50 hours a week", "Operations and shop coordination"],
+    pay: "$18-25/hr depending on experience",
+    description: [
+      "Fleet techs help keep the rental fleet ready, documented, and moving through maintenance, shop visits, inspections, and rental turns.",
+      "Daily work includes preparing vehicles for rentals, checking cars in after rentals, coordinating shop runs, completing fleet forms, helping with vehicle readiness, and supporting similar fleet tasks.",
+      "This role is for someone hands-on, detail-oriented, and comfortable solving practical vehicle issues before they become guest problems.",
+    ],
+    requirements: [
+      "Valid driver's license and car insurance required.",
+      "Strong communication skills.",
+      "Basic vehicle knowledge or willingness to learn quickly.",
       "Strong time-management under changing schedules.",
       "Coachable, proactive, and comfortable working with a small team.",
     ],
@@ -246,9 +283,9 @@ const jobListings: JobListing[] = [
       "This role is for organized, friendly, high-energy operators who can keep moving through a changing schedule.",
     ],
     requirements: [
+      "Valid driver's license and car insurance required.",
       "Strong interpersonal, verbal, and written communication skills.",
       "Self-starter with strong organization and time-management.",
-      "Valid driver's license and car insurance.",
       "Creative, coachable, proactive, and team-oriented.",
     ],
   },
@@ -261,6 +298,7 @@ const jobListings: JobListing[] = [
       "This role works closely with marketing and operations so client expectations match the actual GLA program.",
     ],
     requirements: [
+      "Valid driver's license and car insurance required.",
       "Strong communication and follow-up discipline.",
       "Comfort taking intro calls, demo calls, and pipeline follow-up.",
       "Driven, coachable, and willing to train consistently.",
@@ -831,11 +869,11 @@ export function JobsPage() {
         <SectionHeader
           eyebrow="Careers"
           title="Careers At Golden Luxury Auto"
-          description="We keep the full position list visible here. The detail team is the only role hiring right now."
+          description="We keep the full position list visible here. Car detailers, drivers, and fleet techs are hiring now."
         />
         <div className="grid gap-5 lg:grid-cols-3">
           {jobListings.map((job) => (
-            <Card key={job.title} className={`border-border bg-card ${job.status === "Now Hiring" ? "lg:col-span-3" : ""}`}>
+            <Card key={job.title} className="border-border bg-card">
               <CardContent className="flex h-full flex-col p-6 lg:p-8">
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex items-start gap-4">
@@ -872,7 +910,7 @@ export function JobsPage() {
                   ) : null}
                 </div>
 
-                <div className="mt-7 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+                <div className="mt-7 grid gap-6">
                   <div className="space-y-4 text-sm leading-7 text-muted-foreground">
                     {job.description.map((item) => (
                       <p key={item}>{item}</p>
@@ -906,7 +944,7 @@ export function JobsPage() {
           />
         </div>
       </section>
-      <ContactBand title="Interested in joining the detail team? Reach out today." label="Careers" />
+      <ContactBand title="Interested in joining the operations team? Reach out today." label="Careers" />
     </PageShell>
   );
 }
@@ -1010,6 +1048,7 @@ export function SuggestedCarsPage() {
 export function TestimonialsPage() {
   return (
     <PageShell page="testimonials">
+      <RotatingGoogleReviews surface="light" className="border-b border-border" />
       <section id="video-testimonials" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
           eyebrow="Video Testimonials"

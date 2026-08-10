@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Hero } from "@/components/home/hero";
@@ -6,9 +5,10 @@ import { FeaturedCars } from "@/components/home/featured-cars";
 import { Services } from "@/components/home/services";
 import { CTASection } from "@/components/home/cta-section";
 import { SiteStatsStrip } from "@/components/layout/site-stats-strip";
+import { RotatingGoogleReviews } from "@/components/reviews/rotating-google-reviews";
 import { type PublicLocation } from "@/lib/location-config";
 import { Link } from "wouter";
-import { ArrowRight, Car, ClipboardCheck, ExternalLink, Star, UserPlus } from "lucide-react";
+import { ArrowRight, Car, ClipboardCheck, ExternalLink, UserPlus } from "lucide-react";
 
 const TURO_VEHICLES_URL = "https://turo.com/us/en/drivers/4325673/vehicles";
 
@@ -24,7 +24,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
       <div className="absolute inset-0 grid lg:grid-cols-2">
         <div className="relative min-h-[520px] lg:min-h-0">
           <img
-            src="/list-your-car-key-handoff.jpg"
+            src="/list-your-car-key-handoff-enhanced.png"
             alt=""
             className="h-full w-full object-cover"
             aria-hidden="true"
@@ -46,12 +46,12 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4A017]/45 to-transparent" />
       <div className="relative mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-10">
         <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
-          <article className="grid min-h-[480px] overflow-hidden rounded-[6px] bg-transparent ring-1 ring-white/18 lg:min-h-[540px]">
-            <div className="relative flex flex-col justify-end p-7 sm:p-9 lg:p-10">
+          <article className="grid min-h-[480px] place-items-center overflow-hidden rounded-[6px] bg-transparent p-4 lg:min-h-[540px]">
+            <div className="relative w-full max-w-[560px] rounded-[6px] border border-white/30 bg-white/[0.12] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_22px_80px_rgba(0,0,0,0.28)] backdrop-blur-2xl sm:p-9 lg:p-10">
               <div className="absolute left-0 top-8 h-16 w-1 bg-[#D4A017]" />
               <div
                 className="mb-6 flex h-12 w-12 items-center justify-center rounded-sm"
-                style={{ background: "rgba(212,160,23,0.82)", color: "#1A0E00" }}
+                style={{ background: "rgba(212,160,23,0.72)", color: "#1A0E00", backdropFilter: "blur(18px)" }}
               >
                 <ClipboardCheck className="h-6 w-6" />
               </div>
@@ -89,12 +89,12 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
             </div>
           </article>
 
-          <article className="grid min-h-[480px] overflow-hidden rounded-[6px] bg-transparent ring-1 ring-white/18 lg:min-h-[540px]">
-            <div className="relative flex flex-col justify-end p-7 sm:p-9 lg:p-10">
+          <article className="grid min-h-[480px] place-items-center overflow-hidden rounded-[6px] bg-transparent p-4 lg:min-h-[540px]">
+            <div className="relative w-full max-w-[560px] rounded-[6px] border border-white/30 bg-white/[0.12] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_22px_80px_rgba(0,0,0,0.28)] backdrop-blur-2xl sm:p-9 lg:p-10">
               <div className="absolute left-0 top-8 h-16 w-1 bg-white/70" />
               <div
                 className="mb-6 flex h-12 w-12 items-center justify-center rounded-sm"
-                style={{ background: "rgba(255,255,255,0.82)", color: "#8B6914" }}
+                style={{ background: "rgba(255,255,255,0.62)", color: "#8B6914", backdropFilter: "blur(18px)" }}
               >
                 <Car className="h-6 w-6" />
               </div>
@@ -135,97 +135,6 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
         </div>
         <div className="mt-6">
           <SiteStatsStrip variant="dark" />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const homeTestimonials = [
-  {
-    name: "Sinthia Kabir",
-    date: "15/08/2025",
-    quote:
-      "I had a great experience with their service. They have clear instructions I had no issues finding the car. They drop the car within very short notice which was really helpful. Car was clean and smells great. I will definitely book with them again.",
-  },
-  {
-    name: "Melissa Rose Stoltzfus",
-    date: "08/08/2025",
-    quote: "Great experience, will use them again when in the area.",
-  },
-  {
-    name: "Faatupuinati Muliumu",
-    date: "22/08/2025",
-    quote:
-      "First class service, highly recommended. The service was impeccable, had a last minute trip to Salt Lake City for a family event and Jay and his team went above and beyond.",
-  },
-  {
-    name: "Tony LoPresto",
-    date: "15/08/2025",
-    quote: "We had a great experience renting in Salt Lake City! It could not have been an easier experience. 5 stars!",
-  },
-];
-
-function HomeTestimonialsSection() {
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setActiveIndex((index) => (index + 1) % homeTestimonials.length);
-    }, 4200);
-
-    return () => window.clearInterval(timer);
-  }, []);
-
-  return (
-    <section className="overflow-hidden bg-[#0A0A0A] px-4 py-14 text-white sm:px-6 lg:px-8 lg:py-16">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-[3px]" style={{ color: "#E8B830" }}>
-              Customer Testimonials
-            </p>
-            <h2 className="font-serif text-3xl font-bold sm:text-4xl">What guests say after the trip</h2>
-          </div>
-          <div className="flex gap-2">
-            {homeTestimonials.map((item, index) => (
-              <button
-                key={item.name}
-                aria-label={`Show testimonial from ${item.name}`}
-                onClick={() => setActiveIndex(index)}
-                className="h-2.5 w-8 rounded-full transition-all"
-                style={{ background: index === activeIndex ? "#D4A017" : "rgba(255,255,255,0.22)" }}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="relative min-h-[250px] overflow-hidden rounded-[6px] border border-white/12 bg-transparent">
-          {homeTestimonials.map((item, index) => (
-            <article
-              key={item.name}
-              className="absolute inset-0 grid content-center gap-5 p-7 transition-all duration-700 sm:p-10 lg:p-12"
-              style={{
-                opacity: index === activeIndex ? 1 : 0,
-                transform: `translateX(${(index - activeIndex) * 18}px)`,
-                pointerEvents: index === activeIndex ? "auto" : "none",
-              }}
-            >
-              <div className="flex items-center gap-1">
-                {Array.from({ length: 5 }).map((_, starIndex) => (
-                  <Star key={starIndex} className="h-5 w-5 fill-[#D4A017] text-[#D4A017]" />
-                ))}
-              </div>
-              <p className="max-w-5xl text-xl leading-8 text-white/82 sm:text-2xl sm:leading-10">
-                "{item.quote}"
-              </p>
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className="font-bold text-white">{item.name}</span>
-                <span className="h-1 w-1 rounded-full bg-[#D4A017]" />
-                <span className="text-white/58">{item.date}</span>
-              </div>
-            </article>
-          ))}
         </div>
       </div>
     </section>
@@ -308,7 +217,7 @@ export default function Home({ location }: { location?: PublicLocation }) {
         <FeaturedCars location={location} />
         <Services location={location} />
         <CTASection location={location} />
-        <HomeTestimonialsSection />
+        <RotatingGoogleReviews surface="dark" />
       </main>
       <Footer />
     </div>
