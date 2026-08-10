@@ -127,7 +127,9 @@ function CommissionsMatrix() {
   const extraRows: MatrixRow[] = apiRows
     .filter((r) => !knownLower.has(r.type.toLowerCase()))
     .map((r) => ({ type: r.type, monthly: r.monthly, total: r.monthly.reduce((s, v) => s + v, 0) }));
-  const rows = [...baseRows, ...extraRows];
+  // Display alphabetically (A–Z by type) — the Add Commission dropdown keeps
+  // COMMISSION_TYPES' own order; only this table's row order is sorted.
+  const rows = [...baseRows, ...extraRows].sort((a, b) => a.type.localeCompare(b.type));
 
   const grandMonthly = Array(12).fill(0);
   for (const row of rows) for (let i = 0; i < 12; i++) grandMonthly[i] += row.monthly[i] || 0;
