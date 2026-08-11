@@ -1,6 +1,7 @@
-import { ensureTables, query, requireBackendAdmin } from "../../../../_jobApplications.js";
+import { ensureTables, hasDatabaseConfig, proxyToAuthoritative, query, requireBackendAdmin } from "../../../../_jobApplications.js";
 
 export default async function handler(req, res) {
+  if (!hasDatabaseConfig()) return proxyToAuthoritative(req, res);
   if (!(await requireBackendAdmin(req, res))) return;
   if (req.method !== "PATCH") {
     res.status(405).json({ success: false, error: "Method not allowed" });

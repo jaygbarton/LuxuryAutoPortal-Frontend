@@ -1,6 +1,7 @@
 import mysql from "mysql2/promise";
 
 const BACKEND_URL = "https://luxuryautoportal-replit-1.onrender.com";
+const AUTHORITATIVE_FRONTEND_URL = "https://luxury-auto-portal-frontend.vercel.app";
 
 const dbConfig = {
   host: process.env.MYSQL_HOST,
@@ -28,6 +29,27 @@ export function getPool() {
 
 export function hasDatabaseConfig() {
   return Boolean(dbConfig.host && dbConfig.user && dbConfig.password && dbConfig.database);
+}
+
+export async function proxyToAuthoritative(req, res) {
+  const target = new URL(req.url || "/", AUTHORITATIVE_FRONTEND_URL);
+  const headers = {};
+  if (req.headers.cookie) headers.cookie = req.headers.cookie;
+  if (req.headers["content-type"]) headers["content-type"] = req.headers["content-type"];
+
+  const init = { method: req.method, headers };
+  if (!["GET", "HEAD"].includes(req.method) && req.body && Object.keys(req.body).length) {
+    init.body = JSON.stringify(req.body);
+    headers["content-type"] = "application/json";
+  }
+
+  const response = await fetch(target, init);
+  res.status(response.status);
+  for (const header of ["content-type", "content-disposition"]) {
+    const value = response.headers.get(header);
+    if (value) res.setHeader(header, value);
+  }
+  res.send(Buffer.from(await response.arrayBuffer()));
 }
 
 export async function query(sql, params = []) {
