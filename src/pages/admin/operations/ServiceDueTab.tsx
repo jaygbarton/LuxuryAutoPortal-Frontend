@@ -227,7 +227,7 @@ export function ServiceDueTab() {
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium">
-                      <Link href={`/admin/cars/${r.car_id}/maintenance`} className="text-[#D3BC8D] hover:underline">
+                      <Link href={`/admin/cars/${r.car_id}/income-expense`} className="text-[#D3BC8D] hover:underline">
                         {r.car_name || `Car #${r.car_id}`}
                       </Link>
                     </TableCell>
