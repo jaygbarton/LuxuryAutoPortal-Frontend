@@ -784,7 +784,7 @@ export function DayScheduleTab() {
   const durationMutation = useMutation({
     mutationFn: async (body: { type: DayEventType; eventId: number; minutes: number | null }) => {
       const res = await fetch(buildApiUrl(`/api/operations/day-schedule/duration`), {
-        method: "PATCH",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(body),
@@ -814,7 +814,7 @@ export function DayScheduleTab() {
       fullname?: string | null;
     }) => {
       const res = await fetch(buildApiUrl(`/api/operations/day-schedule/driver`), {
-        method: "PATCH",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(body),
