@@ -903,7 +903,7 @@ export default function StaffTime() {
               </p>
 
               <div className="space-y-3">
-                {SHIFT_QUESTIONS.filter((q) => ["energy_today", "grateful_for"].includes(q.id)).map((q) => {
+                {SHIFT_QUESTIONS.map((q) => {
                   return (
                     <div key={q.id} className="space-y-1">
                       <Label htmlFor={`q-${q.id}`}>
