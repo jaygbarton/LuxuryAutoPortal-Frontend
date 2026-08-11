@@ -15,7 +15,7 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
   ];
 
   return (
-    <section className="relative flex min-h-[92svh] items-center justify-center overflow-hidden">
+    <section className="relative flex min-h-[100svh] items-center justify-center overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -54,10 +54,10 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
           </span>
         </div>
 
-        <h1 className="mb-4 max-w-4xl font-serif text-4xl font-light leading-tight text-white sm:mb-6 sm:text-6xl lg:text-7xl">
+        <h1 className="mb-4 max-w-4xl font-serif text-4xl font-light leading-[1.12] text-white sm:mb-6 sm:text-6xl lg:text-7xl">
           Premium vehicle rentals
           <span
-            className="mt-1 block sm:mt-2"
+            className="mt-1 block pb-2 sm:mt-2"
             style={{
               background: "linear-gradient(135deg, #E8B830, #F0D060, #D4A017)",
               WebkitBackgroundClip: "text",

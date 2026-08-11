@@ -9,6 +9,70 @@ function getNumeric(value) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
+async function listDocuments(applicationId) {
+  return query(
+    `SELECT
+       job_application_document_aid,
+       job_application_id,
+       field_name,
+       original_name,
+       mime_type,
+       file_size,
+       uploaded_at
+     FROM job_application_documents
+     WHERE job_application_id = ?
+     ORDER BY job_application_document_aid ASC`,
+    [applicationId],
+  );
+}
+
+async function attachDocuments(applications) {
+  const ids = applications.map((app) => Number(app.job_application_aid)).filter(Boolean);
+  if (!ids.length) return applications;
+
+  const documents = await query(
+    `SELECT
+       job_application_document_aid,
+       job_application_id,
+       field_name,
+       original_name,
+       mime_type,
+       file_size,
+       uploaded_at
+     FROM job_application_documents
+     WHERE job_application_id IN (${ids.map(() => "?").join(",")})
+     ORDER BY job_application_id ASC, job_application_document_aid ASC`,
+    ids,
+  );
+  const documentsByApplication = new Map();
+  for (const document of documents) {
+    const key = Number(document.job_application_id);
+    const list = documentsByApplication.get(key) || [];
+    list.push(document);
+    documentsByApplication.set(key, list);
+  }
+  return applications.map((application) => ({
+    ...application,
+    documents: documentsByApplication.get(Number(application.job_application_aid)) || [],
+  }));
+}
+
+async function setArchived(res, applicationId, archived) {
+  await query(
+    `UPDATE job_applications
+     SET is_archived = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE job_application_aid = ?`,
+    [archived ? 1 : 0, archived ? "archived" : "reviewed", applicationId],
+  );
+  res.json({ success: true, message: archived ? "Application archived" : "Application restored" });
+}
+
+async function deleteApplication(res, applicationId) {
+  await query(`DELETE FROM job_application_documents WHERE job_application_id = ?`, [applicationId]);
+  await query(`DELETE FROM job_applications WHERE job_application_aid = ?`, [applicationId]);
+  res.json({ success: true, message: "Application deleted" });
+}
+
 export default async function handler(req, res) {
   if (!hasDatabaseConfig()) return proxyToAuthoritative(req, res);
   if (!(await requireBackendAdmin(req, res))) return;
@@ -21,21 +85,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    const documents = await query(
-      `SELECT
-         job_application_document_aid,
-         job_application_id,
-         field_name,
-         original_name,
-         mime_type,
-         file_size,
-         uploaded_at
-       FROM job_application_documents
-       WHERE job_application_id = ?
-       ORDER BY job_application_document_aid ASC`,
-      [applicationId],
-    );
-    res.json({ success: true, documents });
+    res.json({ success: true, documents: await listDocuments(applicationId) });
     return;
   }
 
@@ -77,14 +127,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    const archived = req.body?.archived !== false;
-    await query(
-      `UPDATE job_applications
-       SET is_archived = ?, status = ?, updated_at = CURRENT_TIMESTAMP
-       WHERE job_application_aid = ?`,
-      [archived ? 1 : 0, archived ? "archived" : "reviewed", applicationId],
-    );
-    res.json({ success: true, message: archived ? "Application archived" : "Application restored" });
+    await setArchived(res, applicationId, req.body?.archived !== false);
     return;
   }
 
@@ -95,9 +138,29 @@ export default async function handler(req, res) {
       return;
     }
 
-    await query(`DELETE FROM job_application_documents WHERE job_application_id = ?`, [applicationId]);
-    await query(`DELETE FROM job_applications WHERE job_application_aid = ?`, [applicationId]);
-    res.json({ success: true, message: "Application deleted" });
+    await deleteApplication(res, applicationId);
+    return;
+  }
+
+  if (req.method === "POST" && getString(req.query.action) === "archive") {
+    const applicationId = getNumeric(req.body?.id || req.query.id || req.query.applicationId);
+    if (!applicationId) {
+      res.status(400).json({ success: false, error: "Invalid application ID" });
+      return;
+    }
+
+    await setArchived(res, applicationId, req.body?.archived !== false);
+    return;
+  }
+
+  if (req.method === "POST" && getString(req.query.action) === "delete") {
+    const applicationId = getNumeric(req.body?.id || req.query.id || req.query.applicationId);
+    if (!applicationId) {
+      res.status(400).json({ success: false, error: "Invalid application ID" });
+      return;
+    }
+
+    await deleteApplication(res, applicationId);
     return;
   }
 
@@ -147,5 +210,5 @@ export default async function handler(req, res) {
      LIMIT 300`,
     params,
   );
-  res.json({ success: true, applications });
+  res.json({ success: true, applications: await attachDocuments(applications) });
 }

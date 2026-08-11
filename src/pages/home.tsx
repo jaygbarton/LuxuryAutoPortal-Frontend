@@ -27,7 +27,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
             Rental Operations + Vehicle Management
           </p>
           <h2 className="font-serif text-3xl font-light leading-tight sm:text-4xl lg:text-5xl">
-            One company, two clean paths.
+            One company, two businesses.
           </h2>
           <p className="mt-4 text-base leading-7 text-white/68">
             Rent from the fleet or put your vehicle into a managed program built for real day-to-day operations.

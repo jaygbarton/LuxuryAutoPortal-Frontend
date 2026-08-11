@@ -25,6 +25,7 @@ type JobApplication = {
   submitted_at: string;
   updated_at: string;
   document_count: number;
+  documents?: JobApplicationDocument[];
 };
 
 type JobApplicationDocument = {
@@ -107,8 +108,8 @@ export default function HrApplicationsPage() {
 
   const archiveMutation = useMutation({
     mutationFn: async ({ id, archived }: { id: number; archived: boolean }) => {
-      const res = await fetch(buildApiUrl(`/api/admin/hr/job-applications?id=${id}`), {
-        method: "PATCH",
+      const res = await fetch(buildApiUrl(`/api/admin/hr/job-applications?action=archive&id=${id}`), {
+        method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, archived }),
@@ -127,8 +128,8 @@ export default function HrApplicationsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(buildApiUrl(`/api/admin/hr/job-applications?id=${id}`), {
-        method: "DELETE",
+      const res = await fetch(buildApiUrl(`/api/admin/hr/job-applications?action=delete&id=${id}`), {
+        method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
@@ -146,7 +147,7 @@ export default function HrApplicationsPage() {
     },
   });
 
-  const documents = documentsData?.documents ?? [];
+  const documents = documentsData?.documents ?? selected?.documents ?? [];
 
   return (
     <AdminLayout>
