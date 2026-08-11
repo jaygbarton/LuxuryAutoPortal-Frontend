@@ -5,16 +5,17 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical, LayoutList, Rows3 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical, LayoutList, Rows3, Plus } from "lucide-react";
 import { PhotoUpload } from "./PhotoUpload";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type DayEventType =
-  | "pickup" | "delivery" | "cleaning" | "refuel"
+  | "pickup" | "delivery" | "cleaning" | "refuel" | "custom"
   | "mechanic" | "windshield" | "license_plate" | "airport"
-  | "maintenance" | "inspection" | "block_off"
+  | "maintenance" | "task_driver" | "maintenance_driver"
+  | "inspection" | "block_off"
   | "owner_pickup" | "owner_dropoff"
   | "trip_start" | "trip_end";
 
@@ -43,6 +44,9 @@ interface DayEvent {
   dropoff_location: string | null;
   photos: string[] | null;
   duration_minutes: number | null;
+  driver_assignment_type?: "employee" | "uber" | "na" | null;
+  driver_assigned_to?: string | null;
+  driver_assigned_to_id?: number | null;
 }
 
 interface WorkShift {
@@ -65,20 +69,23 @@ const TASK_STATUSES = ["new", "in_progress", "completed", "delivered"];
 const INSPECTION_STATUSES = ["new", "in_progress", "completed", "no_issues"];
 const MAINTENANCE_STATUSES = ["new", "in_progress", "completed"];
 
-const OPERATION_TASK_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup", "refuel", "mechanic", "windshield", "license_plate", "airport"];
+const OPERATION_TASK_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup", "refuel", "custom", "mechanic", "windshield", "license_plate", "airport"];
 
 // Event types that carry an editable estimated_duration_minutes column on the
 // backend (see setEventDuration in dayScheduleService.ts). Trip Start/End,
 // Inspections, Block Offs, and Calendar Events already have real start/end
 // timing and can't be assigned a duration.
-const DURATION_EDITABLE_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup", "refuel", "maintenance"];
+const DURATION_EDITABLE_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup", "refuel", "custom", "maintenance"];
 
 // Event types assignable via the on-card employee picker / drag-and-drop.
 // Matches ASSIGNABLE_TYPES in routes/operations.ts.
 const ASSIGNEE_EDITABLE_TYPES: DayEventType[] = [
   "cleaning", "delivery", "pickup", "refuel", "mechanic", "windshield", "license_plate", "airport",
-  "maintenance", "inspection", "block_off", "trip_start", "trip_end",
+  "custom", "maintenance", "task_driver", "maintenance_driver",
+  "inspection", "block_off", "owner_pickup", "owner_dropoff", "trip_start", "trip_end",
 ];
+
+const DRIVER_EDITABLE_TYPES: DayEventType[] = ["pickup", "delivery", "maintenance"];
 
 function statusOptionsFor(type: DayEventType): string[] | null {
   if (OPERATION_TASK_TYPES.includes(type)) return TASK_STATUSES;
@@ -107,6 +114,8 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string
   "Drop Off":              { bg: "bg-rose-600",    text: "text-white", border: "border-rose-700" },
   "Cleaning":              { bg: "bg-teal-500",    text: "text-white", border: "border-teal-600" },
   "Refuel Run":            { bg: "bg-orange-500",  text: "text-white", border: "border-orange-600" },
+  "Custom Entry":          { bg: "bg-stone-700",   text: "text-white", border: "border-stone-800" },
+  "Driver":                { bg: "bg-amber-600",   text: "text-white", border: "border-amber-700" },
   "Mechanical Run":        { bg: "bg-red-500",     text: "text-white", border: "border-red-600" },
   "Car Inspection":        { bg: "bg-yellow-500",  text: "text-white", border: "border-yellow-600" },
   "Windshield Run":        { bg: "bg-purple-500",  text: "text-white", border: "border-purple-600" },
@@ -230,6 +239,7 @@ function EventCard({
   onAssign,
   onUnassign,
   onDurationChange,
+  onDriverChange,
   showAssignee = false,
 }: {
   event: DayEvent;
@@ -245,12 +255,21 @@ function EventCard({
   onAssign: (event: DayEvent, employeeId: number, fullname: string) => void;
   onUnassign: (event: DayEvent) => void;
   onDurationChange: (event: DayEvent, minutes: number | null) => void;
+  onDriverChange: (
+    event: DayEvent,
+    assignmentType: "employee" | "uber" | "na" | null,
+    employeeId?: number | null,
+    fullname?: string | null,
+  ) => void;
 }) {
   const c = colorFor(event.category);
   const badgeClass = STATUS_BADGE[event.status ?? ""] ?? "bg-gray-100 text-gray-700 border-gray-300";
   const statusOptions = statusOptionsFor(event.type);
   const canEditAssignee = ASSIGNEE_EDITABLE_TYPES.includes(event.type);
   const canEditDuration = DURATION_EDITABLE_TYPES.includes(event.type);
+  const canEditDriver = DRIVER_EDITABLE_TYPES.includes(event.type);
+  const [driverModeDraft, setDriverModeDraft] = useState<"employee" | "uber" | "na" | "">("");
+  const driverMode = driverModeDraft || event.driver_assignment_type || "";
 
   return (
     <div
@@ -305,7 +324,7 @@ function EventCard({
             </span>
           ) : null}
         </div>
-        {(canEditAssignee || canEditDuration) && (
+        {(canEditAssignee || canEditDuration || canEditDriver) && (
           <div
             className="flex items-center gap-2 flex-wrap pt-0.5"
             onClick={(e) => e.stopPropagation()}
@@ -341,6 +360,60 @@ function EventCard({
                 />
                 <span>min</span>
               </label>
+            )}
+            {canEditDriver && (
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="text-[10px] text-muted-foreground">Driver</span>
+                <Select
+                  value={driverMode}
+                  onValueChange={(val) => {
+                    if (val === "employee") {
+                      setDriverModeDraft("employee");
+                      return;
+                    }
+                    setDriverModeDraft("");
+                    onDriverChange(event, val === "clear" ? null : (val as "uber" | "na"));
+                  }}
+                >
+                  <SelectTrigger className="h-6 w-24 text-[10px] px-2">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="clear">Clear</SelectItem>
+                    <SelectItem value="employee">Employee</SelectItem>
+                    <SelectItem value="uber">Uber</SelectItem>
+                    <SelectItem value="na">N/A</SelectItem>
+                  </SelectContent>
+                </Select>
+                {driverMode === "employee" && (
+                  <div className="w-36">
+                    <EmployeeSelectCombobox
+                      value={event.driver_assigned_to ?? ""}
+                      onChange={() => {}}
+                      onSelectEmployee={(emp) => {
+                        if (emp) {
+                          const fullname = [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`;
+                          onDriverChange(event, "employee", emp.employee_aid, fullname);
+                        } else {
+                          onDriverChange(event, null);
+                        }
+                      }}
+                      placeholder="Driver"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            {event.type === "cleaning" && event.status !== "completed" && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-[10px]"
+                onClick={() => onStatusChange(event.type, event.id, "completed")}
+              >
+                Already completed
+              </Button>
             )}
           </div>
         )}
@@ -446,6 +519,7 @@ function EmployeeSection({
   onAssignEvent,
   onUnassignEvent,
   onDurationChange,
+  onDriverChange,
 }: {
   empKey: string;
   emp: EmpInfo;
@@ -456,6 +530,12 @@ function EmployeeSection({
   onAssignEvent: (event: DayEvent, employeeId: number, fullname: string) => void;
   onUnassignEvent: (event: DayEvent) => void;
   onDurationChange: (event: DayEvent, minutes: number | null) => void;
+  onDriverChange: (
+    event: DayEvent,
+    assignmentType: "employee" | "uber" | "na" | null,
+    employeeId?: number | null,
+    fullname?: string | null,
+  ) => void;
 }) {
   const sorted = [...events].sort((a, b) => timeKey(a.start_time).localeCompare(timeKey(b.start_time)));
   const [dragOver, setDragOver] = useState(false);
@@ -525,6 +605,7 @@ function EmployeeSection({
               onAssign={onAssignEvent}
               onUnassign={onUnassignEvent}
               onDurationChange={onDurationChange}
+              onDriverChange={onDriverChange}
             />
           ))
         )}
@@ -604,6 +685,15 @@ export function DayScheduleTab() {
   // set = no filter (show everything), matching today's default behavior.
   const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"employee" | "timeline">("employee");
+  const [showAddEntry, setShowAddEntry] = useState(false);
+  const [entryType, setEntryType] = useState<"refuel" | "custom">("refuel");
+  const [entryCarName, setEntryCarName] = useState("");
+  const [entryTime, setEntryTime] = useState(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  });
+  const [entryNotes, setEntryNotes] = useState("");
+  const [entryEmployee, setEntryEmployee] = useState<{ id: number | null; name: string }>({ id: null, name: "" });
 
   function toggleCategoryFilter(category: string) {
     setActiveCategories((prev) => {
@@ -691,6 +781,74 @@ export function DayScheduleTab() {
   function handleDurationChange(event: DayEvent, minutes: number | null) {
     durationMutation.mutate({ type: event.type, eventId: event.id, minutes });
   }
+
+  const driverMutation = useMutation({
+    mutationFn: async (body: {
+      type: DayEventType;
+      eventId: number;
+      assignmentType: "employee" | "uber" | "na" | null;
+      employeeId?: number | null;
+      fullname?: string | null;
+    }) => {
+      const res = await fetch(buildApiUrl(`/api/operations/day-schedule/driver`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to update driver");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
+    },
+    onError: (e: Error) => toast({ variant: "destructive", title: "Couldn't update driver", description: e.message }),
+  });
+
+  function handleDriverChange(
+    event: DayEvent,
+    assignmentType: "employee" | "uber" | "na" | null,
+    employeeId: number | null = null,
+    fullname: string | null = null,
+  ) {
+    driverMutation.mutate({ type: event.type, eventId: event.id, assignmentType, employeeId, fullname });
+  }
+
+  const addEntryMutation = useMutation({
+    mutationFn: async () => {
+      const scheduledAt = new Date(`${date}T${entryTime || "09:00"}:00`).toISOString();
+      const res = await fetch(buildApiUrl(`/api/operations/day-schedule/entry`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          entryType,
+          carName: entryCarName,
+          scheduledAt,
+          notes: entryNotes,
+          employeeId: entryEmployee.id,
+          fullname: entryEmployee.name,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to add entry");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
+      setShowAddEntry(false);
+      setEntryCarName("");
+      setEntryNotes("");
+      setEntryEmployee({ id: null, name: "" });
+      toast({ title: "Entry added" });
+    },
+    onError: (e: Error) => toast({ variant: "destructive", title: "Couldn't add entry", description: e.message }),
+  });
 
   const statusMutation = useMutation({
     mutationFn: async ({ type, id, status }: { type: DayEventType; id: number; status: string }) => {
@@ -802,6 +960,10 @@ export function DayScheduleTab() {
         <Button variant="outline" size="sm" onClick={() => setDate(todayMTDate())}>
           Today
         </Button>
+        <Button variant="default" size="sm" onClick={() => setShowAddEntry((v) => !v)}>
+          <Plus className="w-4 h-4 mr-1" />
+          Add Entry
+        </Button>
 
         {/* View toggle: group by employee (default), or a single flat list
             sorted by time across everyone. */}
@@ -826,6 +988,75 @@ export function DayScheduleTab() {
           </button>
         </div>
       </div>
+
+      {showAddEntry && (
+        <div className="border border-border rounded-lg bg-background p-3">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Type</span>
+              <Select value={entryType} onValueChange={(v) => setEntryType(v as "refuel" | "custom")}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="refuel">Refuel Run</SelectItem>
+                  <SelectItem value="custom">Custom Entry</SelectItem>
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="space-y-1 md:col-span-2">
+              <span className="text-xs font-medium text-muted-foreground">Car</span>
+              <input
+                value={entryCarName}
+                onChange={(e) => setEntryCarName(e.target.value)}
+                placeholder="Car refueled or worked on"
+                className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Time</span>
+              <input
+                type="time"
+                value={entryTime}
+                onChange={(e) => setEntryTime(e.target.value)}
+                className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm"
+              />
+            </label>
+            <label className="space-y-1 md:col-span-2">
+              <span className="text-xs font-medium text-muted-foreground">Employee</span>
+              <EmployeeSelectCombobox
+                value={entryEmployee.name}
+                onChange={(name) => setEntryEmployee((prev) => ({ ...prev, name }))}
+                onSelectEmployee={(emp) => {
+                  if (!emp) {
+                    setEntryEmployee({ id: null, name: "" });
+                    return;
+                  }
+                  const fullname = [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`;
+                  setEntryEmployee({ id: emp.employee_aid, name: fullname });
+                }}
+                placeholder="Optional"
+              />
+            </label>
+            <label className="space-y-1 md:col-span-5">
+              <span className="text-xs font-medium text-muted-foreground">Notes</span>
+              <input
+                value={entryNotes}
+                onChange={(e) => setEntryNotes(e.target.value)}
+                placeholder="Details"
+                className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm"
+              />
+            </label>
+            <Button
+              type="button"
+              disabled={!entryCarName.trim() || addEntryMutation.isPending}
+              onClick={() => addEntryMutation.mutate()}
+            >
+              Save Entry
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Summary badges — click to filter the task list down to that category;
           click again (or the same legend entry) to clear it. */}
@@ -882,6 +1113,7 @@ export function DayScheduleTab() {
                     onAssignEvent={assignEventTo}
                     onUnassignEvent={unassignEvent}
                     onDurationChange={handleDurationChange}
+                    onDriverChange={handleDriverChange}
                   />
                 ))
               )
@@ -901,6 +1133,7 @@ export function DayScheduleTab() {
                     onAssign={assignEventTo}
                     onUnassign={unassignEvent}
                     onDurationChange={handleDurationChange}
+                    onDriverChange={handleDriverChange}
                   />
                 ))}
               </div>

@@ -282,7 +282,6 @@ export function TaskAssignmentModal({
                 <SelectItem value="cleaning">Cleaning</SelectItem>
                 <SelectItem value="delivery">Drop Off</SelectItem>
                 <SelectItem value="pickup">Pick Up</SelectItem>
-                <SelectItem value="airport">Pick Up</SelectItem>
                 <SelectItem value="refuel">Refuel</SelectItem>
                 <SelectItem value="mechanic">Mechanic Run</SelectItem>
                 <SelectItem value="windshield">Windshield Run</SelectItem>
