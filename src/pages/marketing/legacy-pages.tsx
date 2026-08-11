@@ -1024,17 +1024,20 @@ export function JobApplicationPage() {
         body: new FormData(event.currentTarget),
         credentials: "include",
       });
-      if (!response.ok) throw new Error("Application failed");
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.error || "Application failed");
+      }
       setSubmitted(true);
       event.currentTarget.reset();
       toast({
         title: "Application Sent",
         description: "The GLA team received the application and documents.",
       });
-    } catch {
+    } catch (error) {
       toast({
         title: "Application not sent",
-        description: `Please email the application documents to ${SITE_CONTACT.emails[0]}.`,
+        description: error instanceof Error ? error.message : "The application could not be saved to HR Applications.",
         variant: "destructive",
       });
     } finally {
