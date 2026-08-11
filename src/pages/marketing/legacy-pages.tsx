@@ -994,7 +994,79 @@ function FieldLabel({
 const fieldClass =
   "min-h-[44px] w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary";
 
-const JOB_APPLICATION_ENDPOINT = "https://luxuryautoportal-replit-1.onrender.com/api/job-application";
+const DOCUMENT_CHUNK_SIZE = 700 * 1024;
+
+function firstFile(input: FormDataEntryValue | null): File | null {
+  return input instanceof File && input.size > 0 ? input : null;
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary);
+}
+
+async function compressImageFile(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || file.size <= 1.5 * 1024 * 1024) return file;
+
+  const imageUrl = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = imageUrl;
+    });
+    const maxSide = 1800;
+    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(img.width * scale));
+    canvas.height = Math.max(1, Math.round(img.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+    context.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+    if (!blob || blob.size >= file.size) return file;
+    const baseName = file.name.replace(/\.[^.]+$/, "") || "document";
+    return new File([blob], `${baseName}.jpg`, { type: "image/jpeg" });
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
+}
+
+async function uploadApplicationDocument(applicationId: number, fieldName: string, file: File) {
+  const preparedFile = await compressImageFile(file);
+  const totalChunks = Math.max(1, Math.ceil(preparedFile.size / DOCUMENT_CHUNK_SIZE));
+  const uploadId = `${applicationId}-${fieldName}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
+    const start = chunkIndex * DOCUMENT_CHUNK_SIZE;
+    const chunk = preparedFile.slice(start, start + DOCUMENT_CHUNK_SIZE);
+    const response = await fetch(buildApiUrl("/api/job-application/document-chunk"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        applicationId,
+        uploadId,
+        fieldName,
+        originalName: preparedFile.name,
+        mimeType: preparedFile.type || "application/octet-stream",
+        fileSize: preparedFile.size,
+        chunkIndex,
+        totalChunks,
+        chunkBase64: arrayBufferToBase64(await chunk.arrayBuffer()),
+      }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => null);
+      throw new Error(error?.error || "Failed to save application document");
+    }
+  }
+}
 
 export function JobApplicationPage() {
   const { toast } = useToast();
@@ -1022,15 +1094,45 @@ export function JobApplicationPage() {
     }
     setSubmitting(true);
     try {
-      const response = await fetch(JOB_APPLICATION_ENDPOINT, {
-        method: "POST",
-        body: new FormData(form),
-        credentials: "include",
-      });
-      if (!response.ok) {
-        const error = await response.json().catch(() => null);
-        throw new Error(error?.error || "Application failed");
+      const formData = new FormData(form);
+      const resume = firstFile(formData.get("resume"));
+      const driversLicense = firstFile(formData.get("driversLicense"));
+      if (!resume || !driversLicense) {
+        throw new Error("Resume and driver's license are required");
       }
+
+      const startResponse = await fetch(buildApiUrl("/api/job-application/start"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          firstName: formData.get("firstName"),
+          lastName: formData.get("lastName"),
+          dateOfBirth: formData.get("dateOfBirth"),
+          position: formData.get("position"),
+          email: formData.get("email"),
+          phone: formData.get("phone"),
+          linkedin: formData.get("linkedin"),
+          notes: formData.get("notes"),
+        }),
+      });
+      if (!startResponse.ok) {
+        const error = await startResponse.json().catch(() => null);
+        throw new Error(error?.error || "Failed to save application to HR Applications");
+      }
+      const startPayload = await startResponse.json();
+      const applicationId = Number(startPayload.applicationId);
+      if (!Number.isFinite(applicationId)) {
+        throw new Error("Failed to save application to HR Applications");
+      }
+
+      await uploadApplicationDocument(applicationId, "resume", resume);
+      await uploadApplicationDocument(applicationId, "driversLicense", driversLicense);
+      const optionalDocuments = formData.getAll("optionalDocuments").filter((entry): entry is File => entry instanceof File && entry.size > 0);
+      for (const file of optionalDocuments) {
+        await uploadApplicationDocument(applicationId, "optionalDocuments", file);
+      }
+
       setSubmitted(true);
       form.reset();
       setFormReady(false);
