@@ -1,8 +1,11 @@
 import {
   cleanString,
   ensureTables,
+  hasDatabaseConfig,
   query,
 } from "../_jobApplications.js";
+
+const AUTHORITATIVE_START_ENDPOINT = "https://luxury-auto-portal-frontend.vercel.app/api/job-application/start";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -11,6 +14,17 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (!hasDatabaseConfig()) {
+      const response = await fetch(AUTHORITATIVE_START_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req.body || {}),
+      });
+      const payload = await response.json().catch(() => null);
+      res.status(response.status).json(payload || { error: response.ok ? undefined : "Failed to save application to HR Applications" });
+      return;
+    }
+
     const data = {
       firstName: cleanString(req.body?.firstName, 80),
       lastName: cleanString(req.body?.lastName, 80),

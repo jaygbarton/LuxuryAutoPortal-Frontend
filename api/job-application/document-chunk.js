@@ -2,8 +2,11 @@ import {
   cleanFileName,
   cleanString,
   ensureTables,
+  hasDatabaseConfig,
   query,
 } from "../_jobApplications.js";
+
+const AUTHORITATIVE_CHUNK_ENDPOINT = "https://luxury-auto-portal-frontend.vercel.app/api/job-application/document-chunk";
 
 async function ensureChunkTable() {
   await ensureTables();
@@ -32,6 +35,17 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (!hasDatabaseConfig()) {
+      const response = await fetch(AUTHORITATIVE_CHUNK_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req.body || {}),
+      });
+      const payload = await response.json().catch(() => null);
+      res.status(response.status).json(payload || { error: response.ok ? undefined : "Failed to save application document" });
+      return;
+    }
+
     const applicationId = Number(req.body?.applicationId);
     const uploadId = cleanString(req.body?.uploadId, 80);
     const fieldName = cleanString(req.body?.fieldName, 80);
