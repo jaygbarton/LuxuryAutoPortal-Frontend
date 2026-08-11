@@ -26,6 +26,10 @@ export function getPool() {
   return pool;
 }
 
+export function hasDatabaseConfig() {
+  return Boolean(dbConfig.host && dbConfig.user && dbConfig.password && dbConfig.database);
+}
+
 export async function query(sql, params = []) {
   const [rows] = await getPool().execute(sql, params);
   return rows;
@@ -101,4 +105,3 @@ export async function requireBackendAdmin(req, res) {
   }
   return true;
 }
-

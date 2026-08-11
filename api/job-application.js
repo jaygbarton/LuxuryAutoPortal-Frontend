@@ -4,8 +4,11 @@ import {
   cleanFileName,
   cleanString,
   ensureTables,
+  hasDatabaseConfig,
   query,
 } from "./_jobApplications.js";
+
+const AUTHORITATIVE_APPLICATION_ENDPOINT = "https://luxury-auto-portal-frontend.vercel.app/api/job-application";
 
 export const config = {
   api: {
@@ -47,6 +50,30 @@ async function fileToRecord(file, fallbackFieldName) {
   };
 }
 
+async function forwardApplication(data, docs) {
+  const form = new FormData();
+  form.append("firstName", data.firstName);
+  form.append("lastName", data.lastName);
+  form.append("dateOfBirth", data.dateOfBirth);
+  form.append("position", data.position);
+  form.append("email", data.email);
+  form.append("phone", data.phone);
+  if (data.linkedin) form.append("linkedin", data.linkedin);
+  if (data.notes) form.append("notes", data.notes);
+  for (const doc of docs) {
+    form.append(doc.fieldName, new Blob([doc.buffer], { type: doc.mimeType }), doc.originalName);
+  }
+  const response = await fetch(AUTHORITATIVE_APPLICATION_ENDPOINT, {
+    method: "POST",
+    body: form,
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(payload?.error || "Forwarded application save failed");
+  }
+  return payload;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -83,6 +110,12 @@ export default async function handler(req, res) {
 
     if (docs.length < 2 || !docs.some((d) => d.fieldName === "resume") || !docs.some((d) => d.fieldName === "driversLicense")) {
       res.status(400).json({ error: "Resume and driver's license are required" });
+      return;
+    }
+
+    if (!hasDatabaseConfig()) {
+      const payload = await forwardApplication(data, docs);
+      res.status(201).json(payload);
       return;
     }
 
