@@ -269,6 +269,7 @@ function EventCard({
   const canEditDuration = DURATION_EDITABLE_TYPES.includes(event.type);
   const canEditDriver = DRIVER_EDITABLE_TYPES.includes(event.type);
   const [driverModeDraft, setDriverModeDraft] = useState<"employee" | "uber" | "na" | "">("");
+  const [showAlreadyCleanBy, setShowAlreadyCleanBy] = useState(false);
   const driverMode = driverModeDraft || event.driver_assignment_type || "";
 
   return (
@@ -323,6 +324,20 @@ function EventCard({
               {event.status.replace(/_/g, " ")}
             </span>
           ) : null}
+          {event.type === "cleaning" && event.status !== "completed" && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-5 px-2 text-[10px]"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAlreadyCleanBy((v) => !v);
+              }}
+            >
+              Already clean?
+            </Button>
+          )}
         </div>
         {(canEditAssignee || canEditDuration || canEditDriver) && (
           <div
@@ -404,16 +419,24 @@ function EventCard({
                 )}
               </div>
             )}
-            {event.type === "cleaning" && event.status !== "completed" && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-6 px-2 text-[10px]"
-                onClick={() => onStatusChange(event.type, event.id, "completed")}
-              >
-                Already completed
-              </Button>
+            {event.type === "cleaning" && event.status !== "completed" && showAlreadyCleanBy && (
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="text-[10px] text-muted-foreground">Completed by:</span>
+                <div className="w-36">
+                  <EmployeeSelectCombobox
+                    value={event.assigned_to ?? ""}
+                    onChange={() => {}}
+                    onSelectEmployee={(emp) => {
+                      if (!emp) return;
+                      const fullname = [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`;
+                      onAssign(event, emp.employee_aid, fullname);
+                      onStatusChange(event.type, event.id, "completed");
+                      setShowAlreadyCleanBy(false);
+                    }}
+                    placeholder="Select employee"
+                  />
+                </div>
+              </div>
             )}
           </div>
         )}
