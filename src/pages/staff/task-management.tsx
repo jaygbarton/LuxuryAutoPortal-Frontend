@@ -35,6 +35,8 @@ interface TaskItem {
   task_timer_aid?: number | string;
   task_timer_date_start?: string;
   task_timer_date_end?: string;
+  /** Optional due time, "HH:mm" wall-clock (no timezone conversion needed). */
+  task_timer_start_time?: string;
   task_timer_emp_list?: string;
   task_timer_emp_id?: string;
   task_timer_name?: string;
@@ -57,6 +59,27 @@ function formatDate(dateStr: string | undefined, fallback = "--") {
   } catch {
     return fallback;
   }
+}
+
+// task_timer_start_time is a plain "HH:mm" wall-clock string, not a stored
+// UTC value — no timezone conversion needed, unlike formatDate above.
+function formatDueTime12h(s: string | undefined): string | null {
+  if (!s) return null;
+  const match = /^(\d{1,2}):(\d{2})/.exec(s.trim());
+  if (!match) return null;
+  const hour24 = Number(match[1]);
+  const minute = match[2];
+  if (Number.isNaN(hour24) || hour24 < 0 || hour24 > 23) return null;
+  const period = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${hour12}:${minute} ${period}`;
+}
+
+function formatDueDateTime(dateStr: string | undefined, timeStr: string | undefined, fallback = "--") {
+  const datePart = formatDate(dateStr, "");
+  if (!datePart) return fallback;
+  const timePart = formatDueTime12h(timeStr);
+  return timePart ? `${datePart} ${timePart}` : datePart;
 }
 
 /**
@@ -341,7 +364,7 @@ export default function StaffTaskManagement() {
                             {getAssignedToDisplay(item.task_timer_emp_list)}
                           </TableCell>
                           <TableCell className="text-sm whitespace-nowrap">
-                            {formatDate(item.task_timer_date_end)}
+                            {formatDueDateTime(item.task_timer_date_end, item.task_timer_start_time)}
                           </TableCell>
                           <TableCell className="text-center">
                             {/* Employees can change the status of tasks they
@@ -469,7 +492,7 @@ export default function StaffTaskManagement() {
               <p>
                 <span className="font-medium">Date range:</span>{" "}
                 {formatDate(viewItem.task_timer_date_start)} to{" "}
-                {formatDate(viewItem.task_timer_date_end)}
+                {formatDueDateTime(viewItem.task_timer_date_end, viewItem.task_timer_start_time)}
               </p>
               <p>
                 <span className="font-medium">Status:</span>{" "}

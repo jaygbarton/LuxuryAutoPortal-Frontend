@@ -84,6 +84,21 @@ function formatCreatedAt(s: string | null | undefined): string {
   });
 }
 
+// task_timer_start_time is a plain "HH:mm" wall-clock string typed directly
+// into an <input type="time">, not a stored UTC value — no timezone
+// conversion needed, unlike formatCreatedAt above.
+function formatDueTime12h(s: string | null | undefined): string | null {
+  if (!s) return null;
+  const match = /^(\d{1,2}):(\d{2})/.exec(String(s).trim());
+  if (!match) return null;
+  const hour24 = Number(match[1]);
+  const minute = match[2];
+  if (Number.isNaN(hour24) || hour24 < 0 || hour24 > 23) return null;
+  const period = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${hour12}:${minute} ${period}`;
+}
+
 // ─── Status helpers ───────────────────────────────────────────────────────────
 
 /**
@@ -333,6 +348,7 @@ function PhotoRow({
 const EMPTY_FORM = {
   task_timer_name: "",
   task_timer_date_end: "", // due date
+  task_timer_start_time: "", // optional due time, "HH:mm"
   task_timer_description: "",
   task_timer_status: "0", // "new"
   // One or more assigned employees. The first is treated as the primary
@@ -707,6 +723,7 @@ export default function AdminHrTaskManagement() {
     setForm({
       task_timer_name: task.task_timer_name || "",
       task_timer_date_end: task.task_timer_date_end || "",
+      task_timer_start_time: task.task_timer_start_time || "",
       task_timer_description: task.task_timer_description || "",
       task_timer_status: String(task.task_timer_status ?? 0),
       assignedEmployees,
@@ -762,6 +779,7 @@ export default function AdminHrTaskManagement() {
       task_timer_name: form.task_timer_name.trim(),
       task_timer_date_end: form.task_timer_date_end,
       task_timer_date_start: form.task_timer_date_end, // same for compat
+      task_timer_start_time: form.task_timer_start_time,
       task_timer_description: form.task_timer_description.trim(),
       task_timer_status: parseInt(form.task_timer_status, 10),
       // Primary assignee = first selected (keeps the indexed emp_id filter
@@ -1080,7 +1098,9 @@ export default function AdminHrTaskManagement() {
                           {getAssignedName(r)}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {r.task_timer_date_end || "—"}
+                          {r.task_timer_date_end
+                            ? `${r.task_timer_date_end}${formatDueTime12h(r.task_timer_start_time) ? ` ${formatDueTime12h(r.task_timer_start_time)}` : ""}`
+                            : "—"}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                           {r.task_timer_estimated_hours != null ? `${r.task_timer_estimated_hours}h` : "—"}
@@ -1305,6 +1325,22 @@ export default function AdminHrTaskManagement() {
                   setForm((f) => ({
                     ...f,
                     task_timer_date_end: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            {/* Due Time (optional) */}
+            <div>
+              <Label>Due Time</Label>
+              <Input
+                type="time"
+                className="mt-1"
+                value={form.task_timer_start_time}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    task_timer_start_time: e.target.value,
                   }))
                 }
               />
@@ -1560,7 +1596,9 @@ export default function AdminHrTaskManagement() {
               </p>
               <p>
                 <span className="font-medium">Due date:</span>{" "}
-                {viewTask.task_timer_date_end || "--"}
+                {viewTask.task_timer_date_end
+                  ? `${viewTask.task_timer_date_end}${formatDueTime12h(viewTask.task_timer_start_time) ? ` ${formatDueTime12h(viewTask.task_timer_start_time)}` : ""}`
+                  : "--"}
               </p>
               <p>
                 <span className="font-medium">Estimated hours:</span>{" "}

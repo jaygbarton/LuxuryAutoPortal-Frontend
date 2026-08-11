@@ -17,12 +17,22 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { CarServiceDue } from "./types";
 
-// Staleness thresholds (days) for the two headline service types. Anything
-// past DUE reads amber; past OVERDUE reads red; never-serviced always reads red.
-const THRESHOLDS: Record<"oil_change" | "tires", { due: number; overdue: number }> = {
-  oil_change: { due: 90, overdue: 180 },   // ~3mo / ~6mo
+type ServiceKind = "oil_change" | "tires" | "brakes" | "windshield";
+
+// Staleness thresholds (days) per service type. Anything past DUE reads amber;
+// past OVERDUE reads red; never-serviced always reads red. Brakes/windshield
+// wear much slower than oil/tires, so they get longer windows — flag for
+// Cathy to adjust if these defaults don't match real service intervals.
+const THRESHOLDS: Record<ServiceKind, { due: number; overdue: number }> = {
+  oil_change: { due: 90, overdue: 180 },    // ~3mo / ~6mo
   tires: { due: 180, overdue: 365 },        // ~6mo / ~1yr
+  brakes: { due: 180, overdue: 365 },       // ~6mo / ~1yr
+  windshield: { due: 365, overdue: 730 },   // ~1yr / ~2yr
 };
+
+// Registration is a countdown to a future expiration date, not a "days
+// since" figure — inverted sense from THRESHOLDS above.
+const REGISTRATION_THRESHOLDS = { overdue: 0, due: 30 } as const; // expired, or expiring within 30 days
 
 function formatDate(iso: string | null): string {
   if (!iso) return "Never";
@@ -40,11 +50,20 @@ function formatDate(iso: string | null): string {
   }
 }
 
-function staleness(days: number | null, kind: "oil_change" | "tires"): "red" | "amber" | "green" {
+function staleness(days: number | null, kind: ServiceKind): "red" | "amber" | "green" {
   if (days == null) return "red";
   const t = THRESHOLDS[kind];
   if (days >= t.overdue) return "red";
   if (days >= t.due) return "amber";
+  return "green";
+}
+
+// Registration counts DOWN to a future expiration date (negative = expired),
+// the inverse of staleness() above which counts UP from a past service date.
+function registrationStatus(daysUntil: number | null): "red" | "amber" | "green" {
+  if (daysUntil == null) return "red";
+  if (daysUntil <= REGISTRATION_THRESHOLDS.overdue) return "red";
+  if (daysUntil <= REGISTRATION_THRESHOLDS.due) return "amber";
   return "green";
 }
 
@@ -61,13 +80,37 @@ function ServiceCell({
 }: {
   date: string | null;
   days: number | null;
-  kind: "oil_change" | "tires";
+  kind: ServiceKind;
 }) {
   const level = staleness(days, kind);
   return (
     <div className="flex flex-col gap-0.5">
       <span className={`inline-flex w-fit items-center rounded border px-1.5 py-0.5 text-xs font-medium ${STALE_CLASSES[level]}`}>
         {days == null ? "Never serviced" : `${days} day${days === 1 ? "" : "s"} ago`}
+      </span>
+      <span className="text-xs text-muted-foreground">{formatDate(date)}</span>
+    </div>
+  );
+}
+
+function RegistrationCell({
+  date,
+  daysUntil,
+}: {
+  date: string | null;
+  daysUntil: number | null;
+}) {
+  const level = registrationStatus(daysUntil);
+  const label =
+    daysUntil == null
+      ? "No expiration on file"
+      : daysUntil < 0
+        ? `Expired ${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? "" : "s"} ago`
+        : `Due in ${daysUntil} day${daysUntil === 1 ? "" : "s"}`;
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className={`inline-flex w-fit items-center rounded border px-1.5 py-0.5 text-xs font-medium ${STALE_CLASSES[level]}`}>
+        {label}
       </span>
       <span className="text-xs text-muted-foreground">{formatDate(date)}</span>
     </div>
@@ -100,6 +143,9 @@ export function ServiceDueTab() {
 
   const overdueOilCount = rows.filter((r) => staleness(r.days_since_oil_change, "oil_change") === "red").length;
   const overdueTireCount = rows.filter((r) => staleness(r.days_since_tires, "tires") === "red").length;
+  const overdueBrakesCount = rows.filter((r) => staleness(r.days_since_brakes, "brakes") === "red").length;
+  const overdueWindshieldCount = rows.filter((r) => staleness(r.days_since_windshield, "windshield") === "red").length;
+  const expiringRegistrationCount = rows.filter((r) => registrationStatus(r.days_until_registration_expiration) !== "green").length;
 
   return (
     <div className="space-y-6">
@@ -112,10 +158,13 @@ export function ServiceDueTab() {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <SummaryCard label="Cars Tracked" value={String(rows.length)} variant="dark" />
         <SummaryCard label="Oil Change Overdue" value={String(overdueOilCount)} variant="gold" />
         <SummaryCard label="Tires Overdue" value={String(overdueTireCount)} variant="white" />
+        <SummaryCard label="Brakes Overdue" value={String(overdueBrakesCount)} variant="gold" />
+        <SummaryCard label="Windshield Overdue" value={String(overdueWindshieldCount)} variant="white" />
+        <SummaryCard label="Registration Expiring" value={String(expiringRegistrationCount)} variant="gold" />
       </div>
 
       <div className="bg-card border border-border rounded-lg p-4">
@@ -145,6 +194,9 @@ export function ServiceDueTab() {
                   <TableHead>Plate</TableHead>
                   <TableHead>Last Oil Change</TableHead>
                   <TableHead>Last Tires</TableHead>
+                  <TableHead>Last Brakes</TableHead>
+                  <TableHead>Last Windshield</TableHead>
+                  <TableHead>Registration</TableHead>
                   <TableHead>Last Any Service</TableHead>
                 </TableRow>
               </TableHeader>
@@ -175,6 +227,15 @@ export function ServiceDueTab() {
                     </TableCell>
                     <TableCell>
                       <ServiceCell date={r.last_tires} days={r.days_since_tires} kind="tires" />
+                    </TableCell>
+                    <TableCell>
+                      <ServiceCell date={r.last_brakes} days={r.days_since_brakes} kind="brakes" />
+                    </TableCell>
+                    <TableCell>
+                      <ServiceCell date={r.last_windshield} days={r.days_since_windshield} kind="windshield" />
+                    </TableCell>
+                    <TableCell>
+                      <RegistrationCell date={r.registration_expiration} daysUntil={r.days_until_registration_expiration} />
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDate(r.last_any_service)}

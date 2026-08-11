@@ -265,6 +265,7 @@ export function MaintenanceTab({
           rec.task_description,
           rec.assigned_to,
           rec.repair_shop,
+          rec.repair_shop_license,
           rec.status,
           rec.notes,
           rec.inspection_car_issue_types?.join(" "),
@@ -745,6 +746,7 @@ export function MaintenanceTab({
                       { label: "Car Issues", value: <CarIssueTypesCell types={rec.inspection_car_issue_types} /> },
                       { label: "Owner Approval", value: <OwnerApprovalBadge rec={rec} /> },
                       { label: "Repair Shop", value: rec.repair_shop || "--" },
+                      { label: "Repair Shop License #", value: rec.repair_shop_license || "--" },
                       { label: "Actions", value: actionsEl },
                     ]}
                   />

@@ -174,10 +174,17 @@ export interface CarServiceDue {
   car_status: "ACTIVE" | "INACTIVE";
   last_oil_change: string | null;
   last_tires: string | null;
+  last_brakes: string | null;
+  last_windshield: string | null;
   last_any_service: string | null;
   days_since_oil_change: number | null;
   days_since_tires: number | null;
+  days_since_brakes: number | null;
+  days_since_windshield: number | null;
   days_since_any_service: number | null;
+  registration_expiration: string | null;
+  /** Days until registration_expiration; negative = already expired. */
+  days_until_registration_expiration: number | null;
 }
 
 export interface MaintenanceRecord {
@@ -197,6 +204,7 @@ export interface MaintenanceRecord {
   notes: string | null;
   photos: string[];
   repair_shop: string | null;
+  repair_shop_license: string | null;
   google_event_id: string | null;
   created_at: string;
   updated_at: string;

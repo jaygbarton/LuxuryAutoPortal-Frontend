@@ -120,6 +120,7 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
     notes: record?.notes || prefill?.notes || "",
     photos: record?.photos || prefill?.photos || [],
     repair_shop: record?.repair_shop || "",
+    repair_shop_license: record?.repair_shop_license || "",
   });
 
 
@@ -138,6 +139,7 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
         notes: record.notes || "",
         photos: record.photos || [],
         repair_shop: record.repair_shop || "",
+        repair_shop_license: record.repair_shop_license || "",
       });
     } else if (prefill) {
       setFormData((prev) => ({
@@ -331,6 +333,16 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
               onChange={(e) => setFormData({ ...formData, repair_shop: e.target.value })}
               className="bg-card border-border text-foreground mt-1"
               placeholder="Shop name / location"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-muted-foreground">Repair Shop License #</label>
+            <Input
+              value={formData.repair_shop_license}
+              onChange={(e) => setFormData({ ...formData, repair_shop_license: e.target.value })}
+              className="bg-card border-border text-foreground mt-1"
+              placeholder="Shop/mechanic license or certification number"
             />
           </div>
 
