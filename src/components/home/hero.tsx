@@ -15,7 +15,7 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
   ];
 
   return (
-    <section className="relative flex min-h-[100svh] items-center justify-center overflow-hidden">
+    <section className="relative flex min-h-[92svh] items-center justify-center overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -25,16 +25,17 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
         <div
           className="absolute inset-0"
           style={{
-            background: "linear-gradient(180deg, rgba(15,12,8,0.4), rgba(15,12,8,0.75) 60%, rgba(15,12,8,0.95))",
+            background:
+              "linear-gradient(90deg, rgba(7,6,4,0.76) 0%, rgba(7,6,4,0.46) 42%, rgba(7,6,4,0.16) 100%), linear-gradient(180deg, rgba(7,6,4,0.24), rgba(7,6,4,0.58))",
           }}
         />
       </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-6 pt-20 text-center sm:px-6 sm:pb-8 sm:pt-24 lg:px-8 lg:pt-20">
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-12 pt-24 text-left sm:px-6 sm:pb-16 sm:pt-28 lg:px-8 lg:pt-24">
         <div
           className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full px-3 py-2 sm:mb-8 sm:px-4"
           style={{
-            background: "rgba(212,160,23,0.15)",
+            background: "rgba(212,160,23,0.14)",
             border: "1px solid rgba(212,160,23,0.4)",
           }}
         >
@@ -47,14 +48,14 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
           />
           <span
             className="truncate text-xs font-semibold tracking-wide sm:text-sm"
-            style={{ color: "#E8B830", letterSpacing: "1px" }}
+            style={{ color: "#E8B830" }}
           >
-            {mode === "hub" ? "Golden Luxury Auto Locations" : `${location?.cityState} Car Rentals`}
+            {mode === "hub" ? "Golden Luxury Auto Locations" : `${location?.cityState} Premium Vehicle Rentals`}
           </span>
         </div>
 
-        <h1 className="mb-3 font-serif text-2xl font-bold leading-tight text-white sm:mb-6 sm:text-6xl lg:text-7xl">
-          Experience
+        <h1 className="mb-4 max-w-4xl font-serif text-4xl font-light leading-tight text-white sm:mb-6 sm:text-6xl lg:text-7xl">
+          Premium vehicle rentals
           <span
             className="mt-1 block sm:mt-2"
             style={{
@@ -64,17 +65,16 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
               backgroundClip: "text",
             }}
           >
-            Luxury Car Rentals
+            managed with precision.
           </span>
         </h1>
 
-        <p className="mx-auto mb-5 max-w-2xl text-sm leading-6 sm:mb-10 sm:text-xl sm:leading-relaxed" style={{ color: "rgba(255,255,255,0.7)" }}>
-          Browse a practical selection of premium vehicles for trips, events, airport
-          travel, and everyday transportation {mode === "hub" ? "across active and upcoming locations" : `around ${location?.name}`}.
+        <p className="mb-7 max-w-2xl text-base leading-7 sm:mb-10 sm:text-xl sm:leading-8" style={{ color: "rgba(255,255,255,0.76)" }}>
+          Rent from a curated fleet, or put your vehicle into a managed program built around clean operations, real scheduling, and guest-ready presentation {mode === "hub" ? "across active and upcoming locations" : `around ${location?.name}`}.
         </p>
 
         {mode === "hub" ? (
-          <div className="mx-auto max-w-5xl">
+          <div className="max-w-5xl">
             <p className="mb-3 text-xs font-bold uppercase tracking-[2px] sm:mb-4 sm:tracking-[3px]" style={{ color: "#E8B830" }}>
               Select Location to Continue
             </p>
@@ -113,7 +113,7 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
             </div>
           </div>
         ) : location ? (
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
             <Link href="/">
             <Button
               size="lg"

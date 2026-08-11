@@ -632,9 +632,15 @@ function PageShell({
       <Navbar />
       <main className="pt-20 lg:pt-24">
         <section className="relative overflow-hidden border-b border-border bg-[#0A0A0A] text-white">
-          <div className="absolute inset-0 opacity-35">
+          <div className="absolute inset-0">
             <img src={heroImage} alt="" className="h-full w-full object-cover" style={{ objectPosition: heroImagePosition }} />
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-black/35" />
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(90deg, rgba(6,6,5,0.78) 0%, rgba(6,6,5,0.56) 44%, rgba(6,6,5,0.16) 100%), linear-gradient(180deg, rgba(6,6,5,0.08), rgba(6,6,5,0.46))",
+              }}
+            />
           </div>
           <div className="relative mx-auto grid min-h-[440px] max-w-7xl content-end px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
             <div className="max-w-3xl">

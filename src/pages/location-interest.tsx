@@ -79,9 +79,15 @@ export default function LocationInterest({ location }: { location: PublicLocatio
       <Navbar />
       <main className="pt-20 lg:pt-24">
         <section className="relative overflow-hidden bg-[#0A0A0A] text-white">
-          <div className="absolute inset-0 opacity-35">
+          <div className="absolute inset-0">
             <img src="/homepage-hero-escalade.jpg" alt="" className="h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/85 to-black/35" />
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(90deg, rgba(6,6,5,0.78) 0%, rgba(6,6,5,0.56) 44%, rgba(6,6,5,0.16) 100%), linear-gradient(180deg, rgba(6,6,5,0.08), rgba(6,6,5,0.46))",
+              }}
+            />
           </div>
           <div className="relative mx-auto grid min-h-[420px] max-w-7xl content-end px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
             <Link href={location.path} className="mb-8 inline-flex w-fit items-center text-sm font-semibold text-[#E8B830]">

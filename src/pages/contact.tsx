@@ -98,49 +98,38 @@ export default function Contact() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-20 lg:pt-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center mb-12">
-            <p className="text-sm font-medium text-primary tracking-widest uppercase mb-3">
-              Get In Touch
-            </p>
-            <h1 className="font-serif text-4xl lg:text-5xl font-light text-foreground mb-4">
-              Contact Us
-            </h1>
-            <p className="max-w-2xl mx-auto text-muted-foreground">
-              Have questions about a vehicle, rental timing, or pickup details?
-              Our team is here to help.
-            </p>
+        <section className="relative overflow-hidden bg-[#070707] text-white">
+          <div className="absolute inset-0">
+            <img
+              src="/homepage-hero-escalade.jpg"
+              alt=""
+              className="h-full w-full object-cover"
+              style={{ objectPosition: "center center" }}
+              aria-hidden="true"
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(90deg, rgba(5,5,4,0.86) 0%, rgba(5,5,4,0.72) 43%, rgba(5,5,4,0.18) 100%), linear-gradient(180deg, rgba(5,5,4,0.10), rgba(5,5,4,0.52))",
+              }}
+            />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-            <div className="lg:col-span-1 space-y-6">
-              {contactInfo.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <Card key={index} className="bg-card border-border">
-                    <CardContent className="p-6 flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                        <Icon className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-foreground mb-1">
-                          {item.title}
-                        </h3>
-                        {item.details.map((detail, i) => (
-                          <p key={i} className="text-sm text-muted-foreground">
-                            {detail}
-                          </p>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+          <div className="relative mx-auto grid min-h-[520px] max-w-7xl items-end px-4 py-14 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14 lg:px-8 lg:py-20">
+            <div className="max-w-2xl pb-4 lg:pb-8">
+              <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">Contact Golden Luxury Auto</p>
+              <h1 className="font-serif text-4xl font-light leading-tight text-white sm:text-5xl lg:text-6xl">
+                Rental and vehicle management help, handled directly.
+              </h1>
+              <p className="mt-5 max-w-xl text-base leading-7 text-white/76 sm:text-lg">
+                Send the trip, vehicle, owner, or partnership details and the team will route it to the right workflow.
+              </p>
             </div>
 
-            <Card className="lg:col-span-2 bg-card border-border">
-              <CardContent className="p-6 lg:p-8">
-                <h2 className="text-xl font-semibold text-foreground mb-6">
+            <Card className="border-white/15 bg-white/[0.92] shadow-2xl backdrop-blur-md">
+              <CardContent className="p-5 sm:p-6 lg:p-8">
+                <h2 className="mb-6 text-xl font-semibold text-[#171717]">
                   Send Us a Message
                 </h2>
                 <Form {...form}>
@@ -151,12 +140,12 @@ export default function Contact() {
                         name="name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Name</FormLabel>
+                            <FormLabel className="text-[#171717]">Name</FormLabel>
                             <FormControl>
                               <Input
                                 placeholder="Your name"
                                 {...field}
-                                className="bg-background border-white/20"
+                                className="border-[#D8D2C3] bg-white text-[#171717]"
                                 data-testid="input-contact-name"
                               />
                             </FormControl>
@@ -169,13 +158,13 @@ export default function Contact() {
                         name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Email</FormLabel>
+                            <FormLabel className="text-[#171717]">Email</FormLabel>
                             <FormControl>
                               <Input
                                 type="email"
                                 placeholder="you@example.com"
                                 {...field}
-                                className="bg-background border-white/20"
+                                className="border-[#D8D2C3] bg-white text-[#171717]"
                                 data-testid="input-contact-email"
                               />
                             </FormControl>
@@ -188,13 +177,13 @@ export default function Contact() {
                         name="phone"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Phone (Optional)</FormLabel>
+                            <FormLabel className="text-[#171717]">Phone (Optional)</FormLabel>
                             <FormControl>
                               <Input
                                 type="tel"
                                 placeholder="+1 (234) 567-890"
                                 {...field}
-                                className="bg-background border-white/20"
+                                className="border-[#D8D2C3] bg-white text-[#171717]"
                                 data-testid="input-contact-phone"
                               />
                             </FormControl>
@@ -207,12 +196,12 @@ export default function Contact() {
                         name="subject"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Subject</FormLabel>
+                            <FormLabel className="text-[#171717]">Subject</FormLabel>
                             <FormControl>
                               <Input
                                 placeholder="How can we help?"
                                 {...field}
-                                className="bg-background border-white/20"
+                                className="border-[#D8D2C3] bg-white text-[#171717]"
                                 data-testid="input-contact-subject"
                               />
                             </FormControl>
@@ -226,12 +215,12 @@ export default function Contact() {
                       name="message"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Message</FormLabel>
+                          <FormLabel className="text-[#171717]">Message</FormLabel>
                           <FormControl>
                             <Textarea
                               placeholder="Tell us what you're looking for..."
                               {...field}
-                              className="bg-background border-white/20 min-h-[160px]"
+                              className="min-h-[160px] border-[#D8D2C3] bg-white text-[#171717]"
                               data-testid="textarea-contact-message"
                             />
                           </FormControl>
@@ -248,7 +237,34 @@ export default function Contact() {
               </CardContent>
             </Card>
           </div>
-        </div>
+        </section>
+
+        <section className="border-b border-border bg-[#F7F4EC] px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {contactInfo.map((item, index) => {
+              const Icon = item.icon;
+              return (
+                <Card key={index} className="border-[#E2D8BF] bg-white">
+                  <CardContent className="flex items-start gap-4 p-5">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                      <Icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="mb-1 font-medium text-[#171717]">
+                        {item.title}
+                      </h3>
+                      {item.details.map((detail, i) => (
+                        <p key={i} className="text-sm text-[#5D574A]">
+                          {detail}
+                        </p>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
       </main>
       <Footer />
     </div>

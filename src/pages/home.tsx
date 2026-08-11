@@ -30,7 +30,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
             className="h-full w-full object-cover"
             aria-hidden="true"
           />
-          <div className="absolute inset-0 bg-black/18" />
+          <div className="absolute inset-0 bg-black/10" />
         </div>
         <div className="relative min-h-[520px] lg:min-h-0">
           <img
@@ -39,10 +39,10 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
             className="h-full w-full object-cover"
             aria-hidden="true"
           />
-          <div className="absolute inset-0 bg-black/24" />
+          <div className="absolute inset-0 bg-black/12" />
         </div>
       </div>
-      <div className="absolute inset-0 bg-gradient-to-b from-black/28 via-black/8 to-black/44" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/18 via-black/5 to-black/30" />
       <div className="absolute inset-y-0 left-1/2 hidden w-px bg-white/18 lg:block" />
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4A017]/45 to-transparent" />
       <div className="relative mx-auto max-w-[1500px] lg:px-10">
@@ -54,7 +54,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
               className="absolute inset-0 h-full w-full object-cover lg:hidden"
               aria-hidden="true"
             />
-            <div className="absolute inset-0 bg-black/12 lg:hidden" />
+            <div className="absolute inset-0 bg-black/8 lg:hidden" />
             <div className="relative w-full max-w-[560px] rounded-[6px] border border-white/25 bg-white/[0.045] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_22px_80px_rgba(0,0,0,0.28)] backdrop-blur-md sm:p-9 lg:p-10">
               <div className="absolute left-0 top-8 h-16 w-1 bg-[#D4A017]" />
               <div
@@ -104,7 +104,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
               className="absolute inset-0 h-full w-full object-cover lg:hidden"
               aria-hidden="true"
             />
-            <div className="absolute inset-0 bg-black/18 lg:hidden" />
+            <div className="absolute inset-0 bg-black/10 lg:hidden" />
             <div className="relative w-full max-w-[560px] rounded-[6px] border border-white/25 bg-white/[0.045] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_22px_80px_rgba(0,0,0,0.28)] backdrop-blur-md sm:p-9 lg:p-10">
               <div className="absolute left-0 top-8 h-16 w-1 bg-white/70" />
               <div

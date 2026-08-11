@@ -14,7 +14,8 @@ export function CTASection({ location }: { location: PublicLocation }) {
         <div
           className="absolute inset-0"
           style={{
-            background: "linear-gradient(180deg, rgba(28,20,8,0.55), rgba(28,20,8,0.88))",
+            background:
+              "linear-gradient(90deg, rgba(12,9,4,0.74) 0%, rgba(12,9,4,0.46) 48%, rgba(12,9,4,0.16) 100%), linear-gradient(180deg, rgba(12,9,4,0.14), rgba(12,9,4,0.58))",
           }}
         />
       </div>
