@@ -17,17 +17,20 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { CarServiceDue } from "./types";
 
-type ServiceKind = "oil_change" | "tires" | "brakes" | "windshield";
+type ServiceKind = "oil_change" | "tires" | "brakes" | "windshield" | "mechanic" | "license_registration";
 
 // Staleness thresholds (days) per service type. Anything past DUE reads amber;
-// past OVERDUE reads red; never-serviced always reads red. Brakes/windshield
-// wear much slower than oil/tires, so they get longer windows — flag for
-// Cathy to adjust if these defaults don't match real service intervals.
+// past OVERDUE reads red; never-serviced always reads red. Brakes/windshield/
+// mechanic/license wear much slower than oil/tires, so they get longer
+// windows — flag for Cathy to adjust if these defaults don't match real
+// service intervals.
 const THRESHOLDS: Record<ServiceKind, { due: number; overdue: number }> = {
-  oil_change: { due: 90, overdue: 180 },    // ~3mo / ~6mo
-  tires: { due: 180, overdue: 365 },        // ~6mo / ~1yr
-  brakes: { due: 180, overdue: 365 },       // ~6mo / ~1yr
-  windshield: { due: 365, overdue: 730 },   // ~1yr / ~2yr
+  oil_change: { due: 90, overdue: 180 },          // ~3mo / ~6mo
+  tires: { due: 180, overdue: 365 },              // ~6mo / ~1yr
+  brakes: { due: 180, overdue: 365 },             // ~6mo / ~1yr
+  windshield: { due: 365, overdue: 730 },         // ~1yr / ~2yr
+  mechanic: { due: 180, overdue: 365 },           // ~6mo / ~1yr
+  license_registration: { due: 365, overdue: 400 }, // ~1yr, matches annual renewal
 };
 
 // Registration is a countdown to a future expiration date, not a "days
@@ -145,6 +148,8 @@ export function ServiceDueTab() {
   const overdueTireCount = rows.filter((r) => staleness(r.days_since_tires, "tires") === "red").length;
   const overdueBrakesCount = rows.filter((r) => staleness(r.days_since_brakes, "brakes") === "red").length;
   const overdueWindshieldCount = rows.filter((r) => staleness(r.days_since_windshield, "windshield") === "red").length;
+  const overdueMechanicCount = rows.filter((r) => staleness(r.days_since_mechanic, "mechanic") === "red").length;
+  const overdueLicenseRegCount = rows.filter((r) => staleness(r.days_since_license_registration, "license_registration") === "red").length;
   const expiringRegistrationCount = rows.filter((r) => registrationStatus(r.days_until_registration_expiration) !== "green").length;
 
   return (
@@ -152,18 +157,20 @@ export function ServiceDueTab() {
       <div className="flex items-center justify-between">
         <SectionHeader
           title="Service Due"
-          subtitle="Last completed maintenance per car — sorted with the most overdue first."
+          subtitle="Last serviced per car, from Income & Expenses records — sorted with the most overdue first."
           variant="plain"
           className="mb-0"
         />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
         <SummaryCard label="Cars Tracked" value={String(rows.length)} variant="dark" />
         <SummaryCard label="Oil Change Overdue" value={String(overdueOilCount)} variant="gold" />
         <SummaryCard label="Tires Overdue" value={String(overdueTireCount)} variant="white" />
         <SummaryCard label="Brakes Overdue" value={String(overdueBrakesCount)} variant="gold" />
         <SummaryCard label="Windshield Overdue" value={String(overdueWindshieldCount)} variant="white" />
+        <SummaryCard label="Mechanic Overdue" value={String(overdueMechanicCount)} variant="gold" />
+        <SummaryCard label="License & Reg. Overdue" value={String(overdueLicenseRegCount)} variant="white" />
         <SummaryCard label="Registration Expiring" value={String(expiringRegistrationCount)} variant="gold" />
       </div>
 
@@ -189,25 +196,23 @@ export function ServiceDueTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Car</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Car</TableHead>
                   <TableHead>Plate</TableHead>
+                  <TableHead>VIN #</TableHead>
                   <TableHead>Last Oil Change</TableHead>
                   <TableHead>Last Tires</TableHead>
                   <TableHead>Last Brakes</TableHead>
                   <TableHead>Last Windshield</TableHead>
-                  <TableHead>Registration</TableHead>
+                  <TableHead>Last Mechanic</TableHead>
+                  <TableHead>Last License &amp; Reg.</TableHead>
+                  <TableHead>Registration Expiration</TableHead>
                   <TableHead>Last Any Service</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((r) => (
                   <TableRow key={r.car_id}>
-                    <TableCell className="font-medium">
-                      <Link href={`/admin/cars/${r.car_id}/maintenance`} className="text-[#D3BC8D] hover:underline">
-                        {r.car_name || `Car #${r.car_id}`}
-                      </Link>
-                    </TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
@@ -221,7 +226,13 @@ export function ServiceDueTab() {
                         {r.car_status}
                       </Badge>
                     </TableCell>
+                    <TableCell className="font-medium">
+                      <Link href={`/admin/cars/${r.car_id}/maintenance`} className="text-[#D3BC8D] hover:underline">
+                        {r.car_name || `Car #${r.car_id}`}
+                      </Link>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{r.car_plate || "--"}</TableCell>
+                    <TableCell className="text-muted-foreground font-mono text-xs">{r.car_vin || "--"}</TableCell>
                     <TableCell>
                       <ServiceCell date={r.last_oil_change} days={r.days_since_oil_change} kind="oil_change" />
                     </TableCell>
@@ -233,6 +244,12 @@ export function ServiceDueTab() {
                     </TableCell>
                     <TableCell>
                       <ServiceCell date={r.last_windshield} days={r.days_since_windshield} kind="windshield" />
+                    </TableCell>
+                    <TableCell>
+                      <ServiceCell date={r.last_mechanic} days={r.days_since_mechanic} kind="mechanic" />
+                    </TableCell>
+                    <TableCell>
+                      <ServiceCell date={r.last_license_registration} days={r.days_since_license_registration} kind="license_registration" />
                     </TableCell>
                     <TableCell>
                       <RegistrationCell date={r.registration_expiration} daysUntil={r.days_until_registration_expiration} />

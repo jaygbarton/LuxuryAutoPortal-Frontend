@@ -171,16 +171,21 @@ export interface CarServiceDue {
   car_id: number;
   car_name: string;
   car_plate: string | null;
+  car_vin: string | null;
   car_status: "ACTIVE" | "INACTIVE";
   last_oil_change: string | null;
   last_tires: string | null;
   last_brakes: string | null;
   last_windshield: string | null;
+  last_mechanic: string | null;
+  last_license_registration: string | null;
   last_any_service: string | null;
   days_since_oil_change: number | null;
   days_since_tires: number | null;
   days_since_brakes: number | null;
   days_since_windshield: number | null;
+  days_since_mechanic: number | null;
+  days_since_license_registration: number | null;
   days_since_any_service: number | null;
   registration_expiration: string | null;
   /** Days until registration_expiration; negative = already expired. */

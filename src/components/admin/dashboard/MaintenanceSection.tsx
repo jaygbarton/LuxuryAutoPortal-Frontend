@@ -245,7 +245,7 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
         className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-[#B8860B] hover:underline"
       >
         <Wrench className="h-3.5 w-3.5" />
-        View Service Due Report (last oil change & tire dates per car) →
+        View Service Due Report (oil, tires, brakes, windshield, mechanic, license & registration) →
       </button>
 
       {/* Filter bar */}
