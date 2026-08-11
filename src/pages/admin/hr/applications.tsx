@@ -96,7 +96,7 @@ export default function HrApplicationsPage() {
     queryKey: ["/api/admin/hr/job-applications", selected?.job_application_aid, "documents"],
     queryFn: async () => {
       const res = await fetch(
-        buildApiUrl(`/api/admin/hr/job-applications/${selected!.job_application_aid}/documents`),
+        buildApiUrl(`/api/admin/hr/job-applications?action=documents&id=${selected!.job_application_aid}`),
         { credentials: "include" },
       );
       if (!res.ok) throw new Error("Failed to load application documents");
@@ -107,11 +107,11 @@ export default function HrApplicationsPage() {
 
   const archiveMutation = useMutation({
     mutationFn: async ({ id, archived }: { id: number; archived: boolean }) => {
-      const res = await fetch(buildApiUrl(`/api/admin/hr/job-applications/${id}/archive`), {
+      const res = await fetch(buildApiUrl(`/api/admin/hr/job-applications?id=${id}`), {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ archived }),
+        body: JSON.stringify({ id, archived }),
       });
       if (!res.ok) throw new Error("Failed to update application");
       return res.json();
@@ -127,9 +127,11 @@ export default function HrApplicationsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(buildApiUrl(`/api/admin/hr/job-applications/${id}`), {
+      const res = await fetch(buildApiUrl(`/api/admin/hr/job-applications?id=${id}`), {
         method: "DELETE",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
       });
       if (!res.ok) throw new Error("Failed to delete application");
       return res.json();
@@ -317,7 +319,7 @@ export default function HrApplicationsPage() {
                               </div>
                             </div>
                             <a
-                              href={buildApiUrl(`/api/admin/hr/job-application-documents/${doc.job_application_document_aid}/download`)}
+                              href={buildApiUrl(`/api/admin/hr/job-applications?action=download&documentId=${doc.job_application_document_aid}`)}
                               target="_blank"
                               rel="noopener noreferrer"
                             >

@@ -11,7 +11,6 @@ import { Link } from "wouter";
 import { ArrowRight, Car, ClipboardCheck, ExternalLink, UserPlus } from "lucide-react";
 
 const TURO_VEHICLES_URL = "https://turo.com/us/en/drivers/4325673/vehicles";
-const readableTextShadow = "0 1px 2px rgba(0,0,0,0.95), 0 0 7px rgba(0,0,0,0.82)";
 
 function scrollToTopOnNavigate() {
   window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -21,134 +20,105 @@ function scrollToTopOnNavigate() {
 
 function ServiceSplitSection({ location }: { location: PublicLocation }) {
   return (
-    <section className="relative overflow-hidden bg-black text-white lg:py-14">
-      <div className="absolute inset-0 hidden lg:grid lg:grid-cols-2">
-        <div className="relative min-h-[520px] lg:min-h-0">
-          <img
-            src="/list-your-car-key-handoff-enhanced.png"
-            alt=""
-            className="h-full w-full object-cover"
-            aria-hidden="true"
-          />
-          <div className="absolute inset-0 bg-black/10" />
+    <section className="bg-[#0A0A0A] text-white">
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <div className="mb-10 max-w-3xl">
+          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#D4A017]">
+            Rental Operations + Vehicle Management
+          </p>
+          <h2 className="font-serif text-3xl font-light leading-tight sm:text-4xl lg:text-5xl">
+            One company, two clean paths.
+          </h2>
+          <p className="mt-4 text-base leading-7 text-white/68">
+            Rent from the fleet or put your vehicle into a managed program built for real day-to-day operations.
+          </p>
         </div>
-        <div className="relative min-h-[520px] lg:min-h-0">
-          <img
-            src="/rent-a-car-interior.jpg"
-            alt=""
-            className="h-full w-full object-cover"
-            aria-hidden="true"
-          />
-          <div className="absolute inset-0 bg-black/12" />
-        </div>
-      </div>
-      <div className="absolute inset-0 bg-gradient-to-b from-black/18 via-black/5 to-black/30" />
-      <div className="absolute inset-y-0 left-1/2 hidden w-px bg-white/18 lg:block" />
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4A017]/45 to-transparent" />
-      <div className="relative mx-auto max-w-[1500px] lg:px-10">
-        <div className="grid lg:grid-cols-2 lg:gap-6">
-          <article className="relative grid min-h-[430px] place-items-center overflow-hidden bg-transparent p-4 sm:min-h-[460px] lg:min-h-[540px]">
-            <img
-              src="/list-your-car-key-handoff-enhanced.png"
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover lg:hidden"
-              aria-hidden="true"
-            />
-            <div className="absolute inset-0 bg-black/8 lg:hidden" />
-            <div className="relative w-full max-w-[560px] rounded-[6px] border border-white/25 bg-white/[0.045] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_22px_80px_rgba(0,0,0,0.28)] backdrop-blur-md sm:p-9 lg:p-10">
-              <div className="absolute left-0 top-8 h-16 w-1 bg-[#D4A017]" />
-              <div
-                className="mb-6 flex h-12 w-12 items-center justify-center rounded-sm"
-                style={{ background: "rgba(212,160,23,0.72)", color: "#1A0E00", backdropFilter: "blur(18px)" }}
-              >
-                <ClipboardCheck className="h-6 w-6" />
-              </div>
-              <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: "#E8B830", textShadow: readableTextShadow }}>
-                Vehicle Management
-              </p>
-              <h2 className="mb-4 font-serif text-3xl font-bold text-white sm:text-4xl" style={{ textShadow: readableTextShadow }}>
-                List your vehicle with us
-              </h2>
-              <p className="mb-6 max-w-xl text-sm leading-6 text-white/82 sm:text-base sm:leading-7" style={{ textShadow: readableTextShadow }}>
-                Have a vehicle you want managed for rentals? Start with our owner
-                onboarding page and our team will review the details with you.
-              </p>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Link href={`${location.path}/onboarding`} onClick={scrollToTopOnNavigate}>
-                  <button
-                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-sm px-6 text-sm font-bold transition-all hover:-translate-y-0.5"
-                    style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
-                    data-testid="button-management-get-started"
-                  >
-                    List Your Car
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                </Link>
-                <Link href={`${location.path}/contact`} onClick={scrollToTopOnNavigate}>
-                  <button
-                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-sm px-6 text-sm font-semibold transition-all hover:bg-white/5"
-                    style={{ border: "1.5px solid #D4A017", color: "#E8B830", background: "transparent" }}
-                    data-testid="button-management-info"
-                  >
-                    Info
-                  </button>
-                </Link>
-              </div>
-            </div>
-          </article>
 
-          <article className="relative grid min-h-[430px] place-items-center overflow-hidden bg-transparent p-4 sm:min-h-[460px] lg:min-h-[540px]">
-            <img
-              src="/rent-a-car-interior.jpg"
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover lg:hidden"
-              aria-hidden="true"
-            />
-            <div className="absolute inset-0 bg-black/10 lg:hidden" />
-            <div className="relative w-full max-w-[560px] rounded-[6px] border border-white/25 bg-white/[0.045] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_22px_80px_rgba(0,0,0,0.28)] backdrop-blur-md sm:p-9 lg:p-10">
-              <div className="absolute left-0 top-8 h-16 w-1 bg-white/70" />
-              <div
-                className="mb-6 flex h-12 w-12 items-center justify-center rounded-sm"
-                style={{ background: "rgba(255,255,255,0.62)", color: "#8B6914", backdropFilter: "blur(18px)" }}
-              >
-                <Car className="h-6 w-6" />
-              </div>
-              <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: "#E8B830", textShadow: readableTextShadow }}>
-                Rent a Vehicle
-              </p>
-              <h2 className="mb-4 font-serif text-3xl font-bold text-white sm:text-4xl" style={{ textShadow: readableTextShadow }}>
-                Find a car for your trip
-              </h2>
-              <p className="mb-6 max-w-xl text-sm leading-6 text-white/82 sm:text-base sm:leading-7" style={{ textShadow: readableTextShadow }}>
-                Browse our available vehicles, compare the options, and book through
-                the vehicle's Turo listing when you are ready.
-              </p>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Link href={location.fleetPath} onClick={scrollToTopOnNavigate}>
-                  <button
-                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-sm px-6 text-sm font-bold transition-all hover:-translate-y-0.5"
-                    style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
-                    data-testid="button-rental-fleet"
-                  >
-                    Our Fleet
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                </Link>
-                <a href={location.turoFleetUrl || TURO_VEHICLES_URL} target="_blank" rel="noopener noreferrer">
-                  <button
-                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-sm px-6 text-sm font-semibold transition-all hover:bg-white/5"
-                    style={{ border: "1.5px solid #D4A017", color: "#E8B830", background: "transparent" }}
-                    data-testid="button-rental-turo"
-                  >
-                    Book on Turo
-                    <ExternalLink className="h-4 w-4" />
-                  </button>
-                </a>
-              </div>
-            </div>
-          </article>
+        <div className="grid gap-8 lg:grid-cols-2">
+          {[
+            {
+              eyebrow: "Vehicle Management",
+              title: "List your vehicle with GLA",
+              copy:
+                "Owners get a managed rental program with fleet presentation, trip coordination, and ongoing operations handled by the team.",
+              image: "/list-your-car-key-handoff-enhanced.png",
+              icon: ClipboardCheck,
+              primary: "List Your Car",
+              primaryHref: `${location.path}/onboarding`,
+              secondary: "Management Info",
+              secondaryHref: `${location.path}/contact`,
+              testId: "button-management-get-started",
+            },
+            {
+              eyebrow: "Rent a Vehicle",
+              title: "Book a premium rental",
+              copy:
+                "Guests can browse the fleet, compare the right fit, and book through the vehicle listing with clear trip support.",
+              image: "/rent-a-car-interior.jpg",
+              icon: Car,
+              primary: "Our Fleet",
+              primaryHref: location.fleetPath,
+              secondary: "Book on Turo",
+              secondaryHref: location.turoFleetUrl || TURO_VEHICLES_URL,
+              testId: "button-rental-fleet",
+              externalSecondary: true,
+            },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <article key={item.eyebrow} className="overflow-hidden rounded-md border border-white/12 bg-white/[0.035]">
+                <div className="relative aspect-[16/9] overflow-hidden">
+                  <img src={item.image} alt="" className="h-full w-full object-cover" aria-hidden="true" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/42 via-black/12 to-transparent" />
+                </div>
+                <div className="p-6 sm:p-8">
+                  <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-sm bg-[#D4A017] text-[#1A0E00]">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#D4A017]">{item.eyebrow}</p>
+                  <h3 className="font-serif text-3xl font-light leading-tight">{item.title}</h3>
+                  <p className="mt-4 max-w-xl text-sm leading-6 text-white/68 sm:text-base sm:leading-7">{item.copy}</p>
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                    <Link href={item.primaryHref} onClick={scrollToTopOnNavigate}>
+                      <button
+                        className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-sm px-6 text-sm font-bold transition-all hover:-translate-y-0.5"
+                        style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
+                        data-testid={item.testId}
+                      >
+                        {item.primary}
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
+                    </Link>
+                    {item.externalSecondary ? (
+                      <a href={item.secondaryHref} target="_blank" rel="noopener noreferrer">
+                        <button
+                          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-sm px-6 text-sm font-semibold transition-all hover:bg-white/5"
+                          style={{ border: "1px solid rgba(212,160,23,0.8)", color: "#E8B830", background: "transparent" }}
+                          data-testid="button-rental-turo"
+                        >
+                          {item.secondary}
+                          <ExternalLink className="h-4 w-4" />
+                        </button>
+                      </a>
+                    ) : (
+                      <Link href={item.secondaryHref} onClick={scrollToTopOnNavigate}>
+                        <button
+                          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-sm px-6 text-sm font-semibold transition-all hover:bg-white/5"
+                          style={{ border: "1px solid rgba(212,160,23,0.8)", color: "#E8B830", background: "transparent" }}
+                          data-testid="button-management-info"
+                        >
+                          {item.secondary}
+                        </button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
-        <div className="bg-black px-4 py-4 sm:px-6 lg:mt-6 lg:bg-transparent lg:p-0">
+
+        <div className="mt-10">
           <SiteStatsStrip variant="dark" />
         </div>
       </div>
