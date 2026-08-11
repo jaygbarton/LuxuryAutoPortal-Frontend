@@ -15,7 +15,6 @@ import {
   Sparkles,
   Wrench,
   Fuel,
-  Calendar,
 } from "lucide-react";
 
 // ─── Types (mirror /api/operations/day-schedule) ──────────────────────────────
@@ -23,7 +22,8 @@ import {
 type DayEventType =
   | "pickup" | "delivery" | "cleaning" | "refuel"
   | "maintenance" | "inspection" | "block_off"
-  | "trip_start" | "trip_end" | "calendar_event";
+  | "owner_pickup" | "owner_dropoff"
+  | "trip_start" | "trip_end";
 
 interface DayEvent {
   id: number;
@@ -58,17 +58,13 @@ interface DayScheduleResult {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, string> = {
-  "Trip Start": "bg-emerald-600",
-  "Trip End": "bg-rose-600",
-  "Pickup Run": "bg-blue-500",
-  "Delivery Run": "bg-indigo-500",
+  "Pick Up": "bg-emerald-600",
+  "Drop Off": "bg-rose-600",
   "Cleaning": "bg-teal-500",
   "Refuel Run": "bg-orange-500",
   "Mechanical Run": "bg-red-500",
   "Car Inspection": "bg-yellow-500",
   "Windshield Run": "bg-purple-500",
-  "Owner Rental": "bg-pink-500",
-  "Calendar Event": "bg-violet-600",
 };
 
 const DONE_STATUSES = new Set([
@@ -313,7 +309,6 @@ const TASK_ICON: Record<string, React.ReactNode> = {
   delivery: <MapPin className="w-3.5 h-3.5" />,
   refuel: <Fuel className="w-3.5 h-3.5" />,
   maintenance: <Wrench className="w-3.5 h-3.5" />,
-  calendar_event: <Calendar className="w-3.5 h-3.5" />,
 };
 
 const TASK_BG: Record<string, string> = {
@@ -496,22 +491,6 @@ function TimelineCard({
           ) : null}
         </div>
 
-        {/* Calendar event title + time range */}
-        {e.type === "calendar_event" && e.detail && (
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5 text-lg font-semibold text-foreground">
-              <Calendar className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
-              <span>{e.detail}</span>
-            </div>
-            {e.end_time && e.end_time !== e.start_time && (
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                <span>{fmt12(e.start_time)} <ArrowRight className="w-3 h-3 inline" /> {fmt12(e.end_time)}</span>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Car */}
         {e.car_name && (
           <div className="flex items-center gap-1.5 text-lg text-foreground">
@@ -521,8 +500,7 @@ function TimelineCard({
           </div>
         )}
 
-        {/* Res / guest / assigned — skip for calendar events */}
-        {e.type !== "calendar_event" && (
+        {/* Res / guest / assigned */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-base text-muted-foreground">
           {e.reservation_id && (
             <span>
@@ -539,7 +517,6 @@ function TimelineCard({
             )}
           </span>
         </div>
-        )}
 
         {/* Trip window (shows full date+time when cross-day) */}
         {(e.trip_start_mt || e.trip_end_mt) && (
@@ -579,11 +556,8 @@ function TimelineCard({
             <span>{e.extras}</span>
           </div>
         )}
-        {e.detail && e.type !== "calendar_event" && (
+        {e.detail && (
           <div className="text-base text-muted-foreground italic">{e.detail}</div>
-        )}
-        {e.type === "calendar_event" && e.notes && (
-          <div className="text-sm text-muted-foreground">{e.notes}</div>
         )}
 
         {/* Linked tasks (cleaning, pickup, delivery, refuel) */}
@@ -644,7 +618,7 @@ function TimelineCard({
             );
           }
 
-          if (e.type === "block_off") {
+          if (e.type === "block_off" || e.type === "owner_pickup" || e.type === "owner_dropoff") {
             return (
               <div className="flex justify-end pt-1">
                 <label
@@ -674,24 +648,6 @@ function TimelineCard({
                     checked={isDone}
                     disabled={toggling(e.id)}
                     onCheckedChange={() => onToggle(e.id, isDone)}
-                    className="w-5 h-5"
-                  />
-                  <span>Completed</span>
-                </label>
-              </div>
-            );
-          }
-
-          if (e.type === "calendar_event") {
-            return (
-              <div className="flex justify-end pt-1">
-                <label
-                  className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none"
-                  onClick={(ev) => ev.stopPropagation()}
-                >
-                  <Checkbox
-                    checked={locallyDone}
-                    onCheckedChange={onToggleLocal}
                     className="w-5 h-5"
                   />
                   <span>Completed</span>

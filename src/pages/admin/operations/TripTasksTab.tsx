@@ -332,8 +332,8 @@ export function TripTasksTab() {
                   <SelectItem value="no-refuel">All (excl. Refuel)</SelectItem>
                   <SelectItem value="all">All (incl. Refuel)</SelectItem>
                   <SelectItem value="cleaning">Cleaning</SelectItem>
-                  <SelectItem value="delivery">Delivery</SelectItem>
-                  <SelectItem value="pickup">Pickup</SelectItem>
+                  <SelectItem value="delivery">Drop Off</SelectItem>
+                  <SelectItem value="pickup">Pick Up</SelectItem>
                   <SelectItem value="refuel">Refuel Only</SelectItem>
                 </SelectContent>
               </Select>

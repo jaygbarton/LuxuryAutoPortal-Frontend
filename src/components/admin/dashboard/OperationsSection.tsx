@@ -138,6 +138,12 @@ function statusMeta(v: string | undefined | null) {
   );
 }
 
+function taskTypeLabel(type: OperationTask["task_type"]): string {
+  if (type === "delivery") return "Drop Off";
+  if (type === "pickup") return "Pick Up";
+  return type.replace(/_/g, " ");
+}
+
 // Assignment chip for cleaning / delivery / pickup
 function AssignmentChip({
   icon: Icon,
@@ -386,10 +392,10 @@ export default function OperationsSection() {
           {groups.map((g) => (
             <div
               key={g.key}
-              className="flex items-stretch rounded-lg overflow-hidden border border-blue-200 bg-white shadow-sm"
+              className="flex items-stretch rounded-lg overflow-hidden border border-[#D3BC8D]/50 bg-white shadow-sm"
             >
               {/* Accent bar */}
-              <div className="w-1.5 flex-shrink-0 bg-blue-500" />
+              <div className="w-1.5 flex-shrink-0 bg-[#B8860B]" />
 
               <div className="flex-1 min-w-0 px-3 py-2.5 space-y-2">
                 {/* Header: reservation + trip dates */}
@@ -441,7 +447,7 @@ export default function OperationsSection() {
                   </div>
                 )}
 
-                {/* ── Assignment chips: Cleaning · Delivery · Pickup ── */}
+                {/* ── Assignment chips: Cleaning · Drop Off · Pick Up ── */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
                   <AssignmentChip
                     icon={Sparkles}
@@ -452,10 +458,10 @@ export default function OperationsSection() {
                   />
                   <AssignmentChip
                     icon={Truck}
-                    label="Delivery"
+                    label="Drop Off"
                     task={g.delivery}
-                    iconColor="text-blue-600"
-                    bgColor="bg-blue-50"
+                    iconColor="text-rose-600"
+                    bgColor="bg-rose-50"
                   />
                   <AssignmentChip
                     icon={Package}
@@ -491,7 +497,7 @@ export default function OperationsSection() {
                       const sm = statusMeta(t.status);
                       return (
                         <div key={t.id} className="flex items-center gap-1.5">
-                          <span className="text-[11px] text-muted-foreground capitalize">{t.task_type}:</span>
+                          <span className="text-[11px] text-muted-foreground capitalize">{taskTypeLabel(t.task_type)}:</span>
                           <Select
                             value={sm.value}
                             onValueChange={(v) => updateStatus.mutate({ id: t.id, status: v })}

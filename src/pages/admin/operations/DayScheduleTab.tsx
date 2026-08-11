@@ -15,6 +15,7 @@ type DayEventType =
   | "pickup" | "delivery" | "cleaning" | "refuel"
   | "mechanic" | "windshield" | "license_plate" | "airport"
   | "maintenance" | "inspection" | "block_off"
+  | "owner_pickup" | "owner_dropoff"
   | "trip_start" | "trip_end";
 
 interface DayEvent {
@@ -102,17 +103,14 @@ function statusEndpointFor(type: DayEventType, id: number): { url: string; metho
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  "Trip Start":            { bg: "bg-emerald-600", text: "text-white", border: "border-emerald-700" },
-  "Trip End":              { bg: "bg-rose-600",    text: "text-white", border: "border-rose-700" },
-  "Pickup Run":            { bg: "bg-blue-500",    text: "text-white", border: "border-blue-600" },
-  "Delivery Run":          { bg: "bg-indigo-500",  text: "text-white", border: "border-indigo-600" },
+  "Pick Up":               { bg: "bg-emerald-600", text: "text-white", border: "border-emerald-700" },
+  "Drop Off":              { bg: "bg-rose-600",    text: "text-white", border: "border-rose-700" },
   "Cleaning":              { bg: "bg-teal-500",    text: "text-white", border: "border-teal-600" },
   "Refuel Run":            { bg: "bg-orange-500",  text: "text-white", border: "border-orange-600" },
   "Mechanical Run":        { bg: "bg-red-500",     text: "text-white", border: "border-red-600" },
   "Car Inspection":        { bg: "bg-yellow-500",  text: "text-white", border: "border-yellow-600" },
   "Windshield Run":        { bg: "bg-purple-500",  text: "text-white", border: "border-purple-600" },
   "License Plate Run":     { bg: "bg-cyan-600",    text: "text-white", border: "border-cyan-700" },
-  "Owner Rental":          { bg: "bg-pink-500",    text: "text-white", border: "border-pink-600" },
 };
 
 const STATUS_BADGE: Record<string, string> = {
