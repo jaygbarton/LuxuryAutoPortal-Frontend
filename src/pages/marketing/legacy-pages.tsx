@@ -994,6 +994,8 @@ function FieldLabel({
 const fieldClass =
   "min-h-[44px] w-full min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary";
 
+const JOB_APPLICATION_ENDPOINT = "https://luxuryautoportal-replit-1.onrender.com/api/job-application";
+
 export function JobApplicationPage() {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
@@ -1020,7 +1022,7 @@ export function JobApplicationPage() {
     }
     setSubmitting(true);
     try {
-      const response = await fetch(buildApiUrl("/api/job-application"), {
+      const response = await fetch(JOB_APPLICATION_ENDPOINT, {
         method: "POST",
         body: new FormData(form),
         credentials: "include",
