@@ -60,7 +60,7 @@ interface DayScheduleResult {
 const CATEGORY_COLORS: Record<string, string> = {
   "Trip Start": "bg-emerald-600",
   "Trip End": "bg-rose-600",
-  "Airport / Pickup Run": "bg-blue-500",
+  "Pickup Run": "bg-blue-500",
   "Delivery Run": "bg-indigo-500",
   "Cleaning": "bg-teal-500",
   "Refuel Run": "bg-orange-500",
