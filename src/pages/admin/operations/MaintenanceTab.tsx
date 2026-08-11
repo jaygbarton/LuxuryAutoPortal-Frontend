@@ -436,7 +436,7 @@ export function MaintenanceTab({
     ["in_review", "in_progress", "in_repair", "damage_reported"].includes(r.status)
   ).length;
   const completedCount = rawRecords.filter((r) =>
-    ["completed", "charged_customer"].includes(r.status)
+    ["completed", "completed_no_receipt", "charged_customer"].includes(r.status)
   ).length;
 
   return (
@@ -493,6 +493,9 @@ export function MaintenanceTab({
                     <SelectItem value="in_progress">In Progress</SelectItem>
                     <SelectItem value="in_repair">In Repair</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="completed_no_receipt">
+                      Completed-No Receipt Yet
+                    </SelectItem>
                     <SelectItem value="charged_customer">
                       Charged Customer
                     </SelectItem>
@@ -607,6 +610,8 @@ export function MaintenanceTab({
 
                 const statusAccent = rec.status === "completed" || rec.status === "charged_customer"
                   ? { bg: "bg-green-600", border: "border-green-300" }
+                  : rec.status === "completed_no_receipt"
+                  ? { bg: "bg-lime-500", border: "border-lime-300" }
                   : rec.status === "in_repair" || rec.status === "in_progress"
                   ? { bg: "bg-amber-500", border: "border-amber-300" }
                   : rec.status === "damage_reported"
@@ -630,6 +635,7 @@ export function MaintenanceTab({
                       <SelectItem value="in_progress">In Progress</SelectItem>
                       <SelectItem value="in_repair">In Repair</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="completed_no_receipt">Completed-No Receipt Yet</SelectItem>
                       <SelectItem value="charged_customer">Charged Customer</SelectItem>
                     </SelectContent>
                   </Select>

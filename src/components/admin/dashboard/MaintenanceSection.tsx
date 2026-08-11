@@ -134,6 +134,7 @@ const MAINT_STATUS_OPTIONS = [
   { value: "in_progress", label: "In Progress" },
   { value: "in_repair", label: "In Repair" },
   { value: "completed", label: "Completed" },
+  { value: "completed_no_receipt", label: "Completed-No Receipt Yet" },
   { value: "charged_customer", label: "Charged Customer" },
 ];
 
@@ -219,9 +220,9 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
         .some(v => v && v.toLowerCase().includes(q)));
     }
     if (statusFilter === HIDE_COMPLETED_FILTER) {
-      // "charged_customer" is the other terminal status — it's finished work
-      // too, so Active must hide it alongside "completed".
-      f = f.filter(t => !["completed", "charged_customer"].includes(String(t.status ?? "").toLowerCase()));
+      // "completed_no_receipt" and "charged_customer" are the other terminal
+      // statuses — finished work too, so Active must hide them alongside "completed".
+      f = f.filter(t => !["completed", "completed_no_receipt", "charged_customer"].includes(String(t.status ?? "").toLowerCase()));
     } else if (statusFilter !== "all") {
       f = f.filter(t => t.status === statusFilter);
     }

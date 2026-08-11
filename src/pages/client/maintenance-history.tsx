@@ -49,6 +49,7 @@ const STATUS_LABELS: Record<string, string> = {
   in_progress: "In Progress",
   in_repair: "In Repair",
   completed: "Completed",
+  completed_no_receipt: "Completed-No Receipt Yet",
   charged_customer: "Charged Customer",
 };
 
