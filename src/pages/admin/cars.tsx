@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
+import { PUBLIC_LOCATIONS } from "@/lib/location-config";
 import { cn } from "@/lib/utils";
 import { Plus, Edit, Search, X, ExternalLink, Car as CarIcon, Check, ChevronsUpDown, Download } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -93,6 +94,10 @@ interface Car {
   adminTuroLink?: string | null;
   isActive?: number; // car_is_active value: 0=management, 1=own, 2=off_ride, 3=off_ride
   managementStatus?: "management" | "own" | "off_ride";
+  // Public fleet location tag (car_public_location) + derived City/State
+  locationTag?: string | null;
+  city?: string | null;
+  state?: string | null;
   owner?: {
     firstName: string;
     lastName: string;
@@ -128,6 +133,12 @@ const carSchema = z.object({
 
 type CarFormData = z.infer<typeof carSchema>;
 
+// Distinct states from the same PUBLIC_LOCATIONS tag map that drives
+// car_public_location, for the State filter dropdown below.
+const STATE_FILTER_OPTIONS = Array.from(
+  new Set(Object.values(PUBLIC_LOCATIONS).map((loc) => loc.cityState.split(", ")[1]))
+).sort();
+
 export default function CarsPage() {
   const [, setLocation] = useLocation();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -135,6 +146,7 @@ export default function CarsPage() {
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [stateFilter, setStateFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [isLastActiveCarDialogOpen, setIsLastActiveCarDialogOpen] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<"ACTIVE" | "INACTIVE" | null>(null);
@@ -232,7 +244,7 @@ export default function CarsPage() {
   }>({
     queryKey: isClient
       ? ["/api/client/cars", statusFilter, searchQuery, page, effectiveLimit]
-      : ["/api/cars", statusFilter, searchQuery, page, effectiveLimit],
+      : ["/api/cars", statusFilter, stateFilter, searchQuery, page, effectiveLimit],
     placeholderData: keepPreviousData,
     queryFn: async () => {
       if (isClient) {
@@ -362,6 +374,9 @@ export default function CarsPage() {
       if (statusFilter !== "all") {
         params.append("status", statusFilter);
       }
+      if (stateFilter !== "all") {
+        params.append("state", stateFilter);
+      }
       if (searchQuery) {
         params.append("search", searchQuery);
       }
@@ -391,6 +406,7 @@ export default function CarsPage() {
     try {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.append("status", statusFilter);
+      if (stateFilter !== "all") params.append("state", stateFilter);
       if (searchQuery) params.append("search", searchQuery);
       params.append("page", "1");
       params.append("limit", "1000");
@@ -404,7 +420,7 @@ export default function CarsPage() {
       const headers = [
         "VIN", "Plate", "Year", "Make", "Model/Specs",
         "Status", "Management", "Owner", "Owner Email", "Contact",
-        "Gas", "Tire Size", "Oil Type", "Turo Link", "Admin Turo Link",
+        "City", "State", "Gas", "Tire Size", "Oil Type", "Turo Link", "Admin Turo Link",
       ];
       const esc = (v: unknown): string => {
         const s = v === null || v === undefined ? "" : String(v);
@@ -416,7 +432,7 @@ export default function CarsPage() {
       const rows = list.map((c) => [
         c.vin, c.licensePlate, c.year, c.make, c.model,
         c.status, c.managementStatus, ownerName(c), c.owner?.email,
-        c.contactPhone ?? c.owner?.phone, c.fuelType, c.tireSize, c.oilType,
+        c.contactPhone ?? c.owner?.phone, c.city, c.state, c.fuelType, c.tireSize, c.oilType,
         c.turoLink, c.adminTuroLink,
       ].map(esc).join(","));
 
@@ -791,7 +807,7 @@ export default function CarsPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Search by VIN, Plate, Owner, Make/Model/Year..."
+                  placeholder="Search by VIN, Plate, Owner, Make/Model/Year, City/State..."
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -814,6 +830,25 @@ export default function CarsPage() {
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="ACTIVE">ACTIVE</SelectItem>
                   <SelectItem value="INACTIVE">INACTIVE</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={stateFilter}
+                onValueChange={(value) => {
+                  setStateFilter(value);
+                  setPage(1); // Reset to first page on filter change
+                }}
+              >
+                <SelectTrigger className="w-full md:w-[200px] bg-card border-border text-foreground">
+                  <SelectValue placeholder="Filter by state" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground">
+                  <SelectItem value="all">All States</SelectItem>
+                  {STATE_FILTER_OPTIONS.map((state) => (
+                    <SelectItem key={state} value={state}>
+                      {state}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {searchQuery && (
@@ -869,6 +904,12 @@ export default function CarsPage() {
                     </th>
                     <th className="text-center text-[10px] sm:text-xs font-semibold text-foreground uppercase tracking-wider px-1.5 sm:px-2 py-2 sm:py-3 hidden lg:table-cell">
                       Plate #
+                    </th>
+                    <th className="text-center text-[10px] sm:text-xs font-semibold text-foreground uppercase tracking-wider px-1.5 sm:px-2 py-2 sm:py-3 hidden lg:table-cell">
+                      City
+                    </th>
+                    <th className="text-center text-[10px] sm:text-xs font-semibold text-foreground uppercase tracking-wider px-1.5 sm:px-2 py-2 sm:py-3 hidden lg:table-cell">
+                      State
                     </th>
                     <th className="text-center text-[10px] sm:text-xs font-semibold text-foreground uppercase tracking-wider px-1.5 sm:px-2 py-2 sm:py-3 hidden lg:table-cell">
                       Gas
@@ -1048,6 +1089,12 @@ export default function CarsPage() {
                           </td>
                           <td className="text-center text-muted-foreground text-xs sm:text-sm px-1.5 sm:px-2 py-2 sm:py-3 align-middle hidden lg:table-cell">
                             {car.licensePlate || "N/A"}
+                          </td>
+                          <td className="text-center text-muted-foreground text-xs sm:text-sm px-1.5 sm:px-2 py-2 sm:py-3 align-middle hidden lg:table-cell">
+                            {car.city || "N/A"}
+                          </td>
+                          <td className="text-center text-muted-foreground text-xs sm:text-sm px-1.5 sm:px-2 py-2 sm:py-3 align-middle hidden lg:table-cell">
+                            {car.state || "N/A"}
                           </td>
                           <td className="text-center text-muted-foreground text-xs sm:text-sm px-1.5 sm:px-2 py-2 sm:py-3 align-middle hidden lg:table-cell">
                             {car.fuelType || "N/A"}
