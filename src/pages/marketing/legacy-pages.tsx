@@ -1013,15 +1013,16 @@ export function JobApplicationPage() {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!event.currentTarget.checkValidity()) {
-      event.currentTarget.reportValidity();
+    const form = event.currentTarget;
+    if (!form.checkValidity()) {
+      form.reportValidity();
       return;
     }
     setSubmitting(true);
     try {
       const response = await fetch(buildApiUrl("/api/job-application"), {
         method: "POST",
-        body: new FormData(event.currentTarget),
+        body: new FormData(form),
         credentials: "include",
       });
       if (!response.ok) {
@@ -1029,7 +1030,8 @@ export function JobApplicationPage() {
         throw new Error(error?.error || "Application failed");
       }
       setSubmitted(true);
-      event.currentTarget.reset();
+      form.reset();
+      setFormReady(false);
       toast({
         title: "Application Sent",
         description: "The GLA team received the application and documents.",
