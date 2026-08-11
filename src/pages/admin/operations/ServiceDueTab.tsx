@@ -14,6 +14,14 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { CarServiceDue } from "./types";
 
@@ -36,6 +44,36 @@ const THRESHOLDS: Record<ServiceKind, { due: number; overdue: number }> = {
 // Registration is a countdown to a future expiration date, not a "days
 // since" figure — inverted sense from THRESHOLDS above.
 const REGISTRATION_THRESHOLDS = { overdue: 0, due: 30 } as const; // expired, or expiring within 30 days
+
+// Category filter options — "all" shows every car; any other value narrows
+// the table down to cars that are due or overdue (amber/red) in that one
+// category, using the same days_since_*/staleness() logic as its column.
+type CategoryFilter = "all" | ServiceKind | "registration";
+const CATEGORY_FILTER_OPTIONS: { value: CategoryFilter; label: string }[] = [
+  { value: "all", label: "All Categories" },
+  { value: "oil_change", label: "Oil Change" },
+  { value: "tires", label: "Tires" },
+  { value: "brakes", label: "Brakes" },
+  { value: "windshield", label: "Windshield" },
+  { value: "mechanic", label: "Mechanic" },
+  { value: "license_registration", label: "License & Registration" },
+  { value: "registration", label: "Registration Expiration" },
+];
+
+/** True if the row is due/overdue (amber or red) in the selected category. */
+function matchesCategoryFilter(r: CarServiceDue, category: CategoryFilter): boolean {
+  if (category === "all") return true;
+  if (category === "registration") return registrationStatus(r.days_until_registration_expiration) !== "green";
+  const daysByKind: Record<ServiceKind, number | null> = {
+    oil_change: r.days_since_oil_change,
+    tires: r.days_since_tires,
+    brakes: r.days_since_brakes,
+    windshield: r.days_since_windshield,
+    mechanic: r.days_since_mechanic,
+    license_registration: r.days_since_license_registration,
+  };
+  return staleness(daysByKind[category], category) !== "green";
+}
 
 function formatDate(iso: string | null): string {
   if (!iso) return "Never";
@@ -122,6 +160,10 @@ function RegistrationCell({
 
 export function ServiceDueTab() {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "ACTIVE" | "INACTIVE">("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const { data, isLoading, error } = useQuery<{ success: boolean; data: CarServiceDue[] }>({
     queryKey: ["/api/operations/maintenance/service-due"],
@@ -136,13 +178,44 @@ export function ServiceDueTab() {
 
   const rows = data?.data ?? [];
 
+  const hasActiveFilters = statusFilter !== "all" || categoryFilter !== "all" || !!dateFrom || !!dateTo;
+  function clearFilters() {
+    setStatusFilter("all");
+    setCategoryFilter("all");
+    setDateFrom("");
+    setDateTo("");
+  }
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) =>
-      [r.car_name, r.car_plate].filter(Boolean).join(" ").toLowerCase().includes(q),
-    );
-  }, [rows, search]);
+    return rows.filter((r) => {
+      if (q && ![r.car_name, r.car_plate].filter(Boolean).join(" ").toLowerCase().includes(q)) return false;
+      if (statusFilter !== "all" && r.car_status !== statusFilter) return false;
+      if (!matchesCategoryFilter(r, categoryFilter)) return false;
+      if (dateFrom || dateTo) {
+        // Date range applies to the category's own "last serviced" date when
+        // one is picked; otherwise to Last Any Service, matching whichever
+        // date column is the meaningful one for the current view.
+        const iso = categoryFilter === "all"
+          ? r.last_any_service
+          : categoryFilter === "registration"
+            ? r.registration_expiration
+            : ({
+                oil_change: r.last_oil_change,
+                tires: r.last_tires,
+                brakes: r.last_brakes,
+                windshield: r.last_windshield,
+                mechanic: r.last_mechanic,
+                license_registration: r.last_license_registration,
+              } as Record<ServiceKind, string | null>)[categoryFilter];
+        if (!iso) return false;
+        const day = iso.slice(0, 10);
+        if (dateFrom && day < dateFrom) return false;
+        if (dateTo && day > dateTo) return false;
+      }
+      return true;
+    });
+  }, [rows, search, statusFilter, categoryFilter, dateFrom, dateTo]);
 
   const overdueOilCount = rows.filter((r) => staleness(r.days_since_oil_change, "oil_change") === "red").length;
   const overdueTireCount = rows.filter((r) => staleness(r.days_since_tires, "tires") === "red").length;
@@ -175,14 +248,65 @@ export function ServiceDueTab() {
       </div>
 
       <div className="bg-card border border-border rounded-lg p-4">
-        <div className="mb-4 flex flex-col gap-1 max-w-sm">
-          <label className="text-muted-foreground text-xs">Search</label>
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Car name or plate..."
-            className="bg-card border-border text-foreground h-9"
-          />
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end gap-3">
+          <div className="space-y-1 col-span-full lg:col-auto lg:min-w-[220px] lg:flex-1">
+            <label className="text-muted-foreground text-xs">Search</label>
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Car name or plate..."
+              className="bg-card border-border text-foreground h-9"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-muted-foreground text-xs">Status</label>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+              <SelectTrigger className="bg-card border-border text-foreground w-full lg:w-36 h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border text-foreground">
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="INACTIVE">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-muted-foreground text-xs">Category</label>
+            <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as CategoryFilter)}>
+              <SelectTrigger className="bg-card border-border text-foreground w-full lg:w-48 h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border text-foreground">
+                {CATEGORY_FILTER_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-muted-foreground text-xs">Serviced From</label>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="bg-card border-border text-foreground h-9 w-full lg:w-40"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-muted-foreground text-xs">Serviced To</label>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="bg-card border-border text-foreground h-9 w-full lg:w-40"
+            />
+          </div>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" className="h-9" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          )}
         </div>
 
         {isLoading ? (
