@@ -731,7 +731,7 @@ function ContactBand({ title = "Ready to move forward?", label = "Contact Golden
 
 export function DetailShopPage() {
   return (
-    <PageShell page="detail-shop">
+    <PageShell page="detail-shop" heroImage="/rent-a-car-interior.jpg" heroImagePosition="center center">
       <section id="packages" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
           eyebrow="Packages + Pricing"
@@ -791,6 +791,8 @@ export function DetailShopAppointmentPage() {
   return (
     <PageShell
       page="detail-shop"
+      heroImage="/rent-a-car-interior.jpg"
+      heroImagePosition="center center"
       ctaOverride={{
         primaryCta: "View Packages",
         primaryHref: "/detail-shop#packages",
@@ -1675,7 +1677,7 @@ export function ExtrasPage() {
     : "Choose practical add-ons for ski trips, family travel, airport pickups, and longer stays.";
 
   return (
-    <PageShell page="extras">
+    <PageShell page="extras" heroImage="/extras-child-seat-interior.jpg" heroImagePosition="center center">
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
           eyebrow="Available Extras"
