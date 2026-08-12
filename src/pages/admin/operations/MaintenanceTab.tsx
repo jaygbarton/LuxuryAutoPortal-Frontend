@@ -48,6 +48,7 @@ const formatDate = (dateStr: string | null): string => {
       weekday: "short",
       month: "2-digit",
       day: "2-digit",
+      year: "numeric",
     });
   } catch {
     return dateStr;
@@ -65,6 +66,7 @@ const formatDateTime = (dateStr: string | null): string => {
         weekday: "short",
         month: "2-digit",
         day: "2-digit",
+        year: "numeric",
       }) +
       ", " +
       d.toLocaleTimeString("en-US", {
