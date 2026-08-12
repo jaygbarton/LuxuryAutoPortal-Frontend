@@ -34,18 +34,20 @@ export function CarScheduleImage({
   carName,
   className = "",
   size = 360,
+  hideBelowMd = true,
 }: {
   carPhoto: string | null | undefined;
   carName?: string | null;
   className?: string;
   size?: number;
+  hideBelowMd?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
   const url = parseCarPhotoUrl(carPhoto);
   if (!url || failed) return null;
 
   return (
-    <div className={`hidden shrink-0 overflow-hidden rounded-md border border-border bg-muted md:block ${className}`}>
+    <div className={`${hideBelowMd ? "hidden md:block" : ""} shrink-0 overflow-hidden rounded-md border border-border bg-muted ${className}`}>
       <img
         src={toDisplaySrc(url, size)}
         alt={carName ? `${carName} photo` : "Vehicle photo"}

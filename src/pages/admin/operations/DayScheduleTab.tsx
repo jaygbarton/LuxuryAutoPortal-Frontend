@@ -278,77 +278,105 @@ function EventCard({
     <div
       draggable
       onDragStart={(e) => setDragData(e, event)}
-      className={`group/event flex items-stretch rounded-lg overflow-hidden border ${c.border} shadow-sm cursor-grab active:cursor-grabbing`}
+      className={`group/event flex flex-col overflow-hidden rounded-lg border ${c.border} shadow-sm cursor-grab active:cursor-grabbing sm:flex-row sm:items-stretch`}
     >
       {/* Color bar */}
-      <div className={`w-1.5 flex-shrink-0 ${c.bg}`} />
+      <div className={`h-1.5 w-full flex-shrink-0 ${c.bg} sm:h-auto sm:w-1.5`} />
 
       {/* Time gutter */}
-      <div className="w-20 flex-shrink-0 flex flex-col items-end justify-center px-1.5 py-2 bg-muted/30 border-r border-border text-[10px] text-muted-foreground leading-tight text-right">
+      <div className="flex w-full flex-shrink-0 items-center justify-between gap-2 border-b border-border bg-muted/30 px-2.5 py-2 text-[11px] leading-tight text-muted-foreground sm:w-20 sm:flex-col sm:items-end sm:justify-center sm:border-b-0 sm:border-r sm:px-1.5 sm:text-right sm:text-[10px]">
         <span>{formatDateCompact(date)}</span>
         {event.start_time ? (
-          <>
+          <span className="flex items-center gap-1.5 sm:flex-col sm:items-end sm:gap-0">
             <span className="font-medium text-foreground">{fmt12(event.start_time)}</span>
             {event.end_time && <span>{fmt12(event.end_time)}</span>}
-          </>
+          </span>
         ) : (
           <span className="italic">No time</span>
         )}
       </div>
 
       {/* Content */}
-      <div className={`relative flex-1 min-w-0 px-2 py-2 space-y-0.5 ${event.car_photo ? "md:pr-40 lg:pr-52" : ""}`}>
-        <div className="flex items-center gap-2 flex-wrap">
-          <GripVertical className="w-3 h-3 flex-shrink-0 text-muted-foreground/40 group-hover/event:text-muted-foreground" />
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${c.bg} ${c.text}`}>
-            {event.category}
-          </span>
-          {statusOptions ? (
-            <span onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
-              <Select
-                value={event.status ?? "new"}
-                onValueChange={(val) => onStatusChange(event.type, event.id, val)}
-              >
-                <SelectTrigger className={`h-5 text-[10px] px-1.5 py-0 rounded border cursor-pointer ${badgeClass} w-auto min-w-0 gap-1`}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map((s) => (
-                    <SelectItem key={s} value={s} className="text-xs">
-                      {s.replace(/_/g, " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </span>
-          ) : event.status ? (
-            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${badgeClass}`}>
-              {event.status.replace(/_/g, " ")}
-            </span>
-          ) : null}
-          {event.type === "cleaning" && event.status !== "completed" && (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-5 px-2 text-[10px]"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowAlreadyCleanBy((v) => !v);
-              }}
-            >
-              Already clean?
-            </Button>
-          )}
+      <div className={`relative flex-1 min-w-0 space-y-1 px-2.5 py-2.5 ${event.car_photo ? "md:pr-40 lg:pr-52" : ""}`}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <GripVertical className="hidden h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/event:text-muted-foreground sm:block" />
+              <span className={`text-[11px] font-semibold px-2 py-1 rounded sm:px-1.5 sm:py-0.5 sm:text-[10px] ${c.bg} ${c.text}`}>
+                {event.category}
+              </span>
+              {statusOptions ? (
+                <span onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
+                  <Select
+                    value={event.status ?? "new"}
+                    onValueChange={(val) => onStatusChange(event.type, event.id, val)}
+                  >
+                    <SelectTrigger className={`h-8 min-w-[7rem] cursor-pointer gap-1 rounded border px-2 py-0 text-[11px] sm:h-5 sm:min-w-0 sm:w-auto sm:px-1.5 sm:text-[10px] ${badgeClass}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map((s) => (
+                        <SelectItem key={s} value={s} className="text-xs">
+                          {s.replace(/_/g, " ")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </span>
+              ) : event.status ? (
+                <span className={`text-[11px] px-2 py-1 rounded border sm:px-1.5 sm:py-0.5 sm:text-[10px] ${badgeClass}`}>
+                  {event.status.replace(/_/g, " ")}
+                </span>
+              ) : null}
+              {event.type === "cleaning" && event.status !== "completed" && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 text-[11px] sm:h-5 sm:text-[10px]"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAlreadyCleanBy((v) => !v);
+                  }}
+                >
+                  Already clean?
+                </Button>
+              )}
+            </div>
+            <div className="space-y-0.5 sm:hidden">
+              {event.car_name && (
+                <div className="flex items-start gap-1.5 text-sm text-foreground">
+                  <Car className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 font-semibold leading-snug">
+                    {event.car_name}
+                    {event.plate && <span className="font-normal text-muted-foreground"> · {event.plate}</span>}
+                  </span>
+                </div>
+              )}
+              {(event.reservation_id || event.guest_name) && (
+                <div className="text-xs text-muted-foreground">
+                  {event.reservation_id && <span><span className="font-medium text-foreground">Res:</span> {event.reservation_id}</span>}
+                  {event.reservation_id && event.guest_name && <span> · </span>}
+                  {event.guest_name && <span>{event.guest_name}</span>}
+                </div>
+              )}
+            </div>
+          </div>
+          <CarScheduleImage
+            carPhoto={event.car_photo}
+            carName={event.car_name}
+            className="h-20 w-28 max-[430px]:hidden md:hidden"
+            hideBelowMd={false}
+          />
         </div>
         {(canEditAssignee || canEditDuration || canEditDriver) && (
           <div
-            className="flex items-center gap-2 flex-wrap pt-0.5"
+            className="grid grid-cols-1 gap-2 pt-1 min-[430px]:grid-cols-2 md:flex md:flex-wrap md:items-center"
             onClick={(e) => e.stopPropagation()}
             onDragStart={(e) => e.stopPropagation()}
           >
             {canEditAssignee && (
-              <div className="w-36">
+              <div className="w-full md:w-36">
                 <EmployeeSelectCombobox
                   value={event.assigned_to ?? ""}
                   onChange={() => {}}
@@ -361,7 +389,7 @@ function EventCard({
               </div>
             )}
             {canEditDuration && (
-              <label className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <label className="flex h-9 items-center gap-1 rounded-md border border-border bg-background px-2 text-[11px] text-muted-foreground md:h-auto md:border-0 md:bg-transparent md:px-0 md:text-[10px]">
                 <Clock className="w-3 h-3" />
                 <input
                   type="number"
@@ -373,14 +401,14 @@ function EventCard({
                     const raw = e.target.value.trim();
                     onDurationChange(event, raw === "" ? null : Math.max(0, Number(raw)));
                   }}
-                  className="w-14 h-6 px-1 rounded border border-border bg-background text-foreground text-[10px]"
+                  className="h-7 w-16 rounded border border-border bg-background px-1 text-[11px] text-foreground md:h-6 md:w-14 md:text-[10px]"
                 />
                 <span>min</span>
               </label>
             )}
             {canEditDriver && (
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-[10px] text-muted-foreground">Driver</span>
+              <div className="flex w-full items-center gap-1.5 min-[430px]:col-span-2 md:w-auto md:flex-wrap">
+                <span className="text-[11px] text-muted-foreground md:text-[10px]">Driver</span>
                 <Select
                   value={driverMode}
                   onValueChange={(val) => {
@@ -392,7 +420,7 @@ function EventCard({
                     onDriverChange(event, val === "clear" ? null : (val as "uber" | "na"));
                   }}
                 >
-                  <SelectTrigger className="h-6 w-24 text-[10px] px-2">
+                  <SelectTrigger className="h-9 w-28 px-2 text-[11px] md:h-6 md:w-24 md:text-[10px]">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
@@ -403,7 +431,7 @@ function EventCard({
                   </SelectContent>
                 </Select>
                 {driverMode === "employee" && (
-                  <div className="w-36">
+                  <div className="min-w-0 flex-1 md:w-36 md:flex-none">
                     <EmployeeSelectCombobox
                       value={event.driver_assigned_to ?? ""}
                       onChange={() => {}}
@@ -422,9 +450,9 @@ function EventCard({
               </div>
             )}
             {event.type === "cleaning" && event.status !== "completed" && showAlreadyCleanBy && (
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-[10px] text-muted-foreground">Completed by:</span>
-                <div className="w-36">
+              <div className="flex items-center gap-1 flex-wrap min-[430px]:col-span-2">
+                <span className="text-[11px] text-muted-foreground md:text-[10px]">Completed by:</span>
+                <div className="min-w-0 flex-1 md:w-36 md:flex-none">
                   <EmployeeSelectCombobox
                     value={event.assigned_to ?? ""}
                     onChange={() => {}}
@@ -451,19 +479,19 @@ function EventCard({
           </div>
         )}
         {event.car_name && (
-          <div className="flex items-center gap-1 text-xs text-foreground">
+          <div className="hidden items-center gap-1 text-xs text-foreground sm:flex">
             <Car className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
             <span className="font-medium">{event.car_name}</span>
             {event.plate && <span className="text-muted-foreground">· {event.plate}</span>}
           </div>
         )}
         {event.reservation_id && (
-          <div className="text-xs text-muted-foreground">
+          <div className="hidden text-xs text-muted-foreground sm:block">
             <span className="font-medium text-foreground">Res:</span> {event.reservation_id}
           </div>
         )}
         {event.guest_name && (
-          <div className="text-xs text-muted-foreground">{event.guest_name}</div>
+          <div className="hidden text-xs text-muted-foreground sm:block">{event.guest_name}</div>
         )}
         {event.extras && (
           <div className="animate-pulse inline-flex items-center gap-1 text-xs font-medium text-amber-900 bg-amber-300 rounded px-1.5 py-0.5 w-fit">
@@ -596,7 +624,7 @@ function EmployeeSection({
       }`}
     >
       {/* Employee header */}
-      <div className="flex items-center gap-3 px-3 py-2 bg-muted border-b border-border">
+      <div className="flex items-center gap-2 px-3 py-2 bg-muted border-b border-border sm:gap-3">
         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
           <User className="w-3.5 h-3.5 text-primary" />
         </div>
@@ -616,13 +644,13 @@ function EmployeeSection({
             <div className="text-[10px] text-muted-foreground italic">No shift on record</div>
           )}
         </div>
-        <Badge variant="outline" className="text-xs">
+        <Badge variant="outline" className="ml-auto text-xs">
           {events.length} task{events.length !== 1 ? "s" : ""}
         </Badge>
       </div>
 
       {/* Event list */}
-      <div className="p-2 space-y-1.5 bg-background">
+      <div className="p-2 space-y-2 bg-background sm:space-y-1.5">
         {sorted.length === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-3 italic">No tasks scheduled</div>
         ) : (
@@ -968,40 +996,40 @@ export function DayScheduleTab() {
   }, {});
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 overflow-x-hidden">
       {/* Date nav */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <Button variant="outline" size="sm" onClick={() => setDate((d) => shiftDate(d, -1))}>
+      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:flex sm:flex-wrap sm:gap-3">
+        <Button variant="outline" size="sm" className="h-10 w-10 p-0 sm:h-9 sm:w-auto sm:px-3" onClick={() => setDate((d) => shiftDate(d, -1))}>
           <ChevronLeft className="w-4 h-4" />
         </Button>
-        <div className="flex items-center gap-2">
+        <div className="min-w-0 flex items-center justify-center gap-2 sm:justify-start">
           <CalendarDays className="w-4 h-4 text-muted-foreground" />
-          <span className="font-semibold text-sm">{formatDisplayDate(date)}</span>
+          <span className="truncate text-sm font-semibold">{formatDisplayDate(date)}</span>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setDate((d) => shiftDate(d, 1))}>
+        <Button variant="outline" size="sm" className="h-10 w-10 p-0 sm:h-9 sm:w-auto sm:px-3" onClick={() => setDate((d) => shiftDate(d, 1))}>
           <ChevronRight className="w-4 h-4" />
         </Button>
         <input
           type="date"
           value={date}
           onChange={(e) => e.target.value && setDate(e.target.value)}
-          className="border border-border rounded px-2 py-1 text-sm bg-background text-foreground"
+          className="col-span-3 h-10 min-w-0 rounded border border-border bg-background px-2 py-1 text-sm text-foreground sm:col-span-1 sm:h-9"
         />
-        <Button variant="outline" size="sm" onClick={() => setDate(todayMTDate())}>
+        <Button variant="outline" size="sm" className="h-10 sm:h-9" onClick={() => setDate(todayMTDate())}>
           Today
         </Button>
-        <Button variant="default" size="sm" onClick={() => setShowAddEntry((v) => !v)}>
+        <Button variant="default" size="sm" className="col-span-2 h-10 sm:col-span-1 sm:h-9" onClick={() => setShowAddEntry((v) => !v)}>
           <Plus className="w-4 h-4 mr-1" />
           Add Entry
         </Button>
 
         {/* View toggle: group by employee (default), or a single flat list
             sorted by time across everyone. */}
-        <div className="ml-auto inline-flex rounded-md border border-border overflow-hidden">
+        <div className="col-span-3 grid grid-cols-2 overflow-hidden rounded-md border border-border sm:col-span-1 sm:ml-auto sm:inline-flex">
           <button
             type="button"
             onClick={() => setViewMode("employee")}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors ${
+            className={`inline-flex h-10 items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors sm:h-auto ${
               viewMode === "employee" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"
             }`}
           >
@@ -1010,7 +1038,7 @@ export function DayScheduleTab() {
           <button
             type="button"
             onClick={() => setViewMode("timeline")}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border-l border-border transition-colors ${
+            className={`inline-flex h-10 items-center justify-center gap-1.5 border-l border-border px-2.5 py-1.5 text-xs font-medium transition-colors sm:h-auto ${
               viewMode === "timeline" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"
             }`}
           >
@@ -1091,7 +1119,7 @@ export function DayScheduleTab() {
       {/* Summary badges — click to filter the task list down to that category;
           click again (or the same legend entry) to clear it. */}
       {Object.keys(categoryCounts).length > 0 && (
-        <div className="flex flex-wrap gap-2 items-center">
+        <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
           {Object.entries(categoryCounts).map(([cat, count]) => {
             const c = colorFor(cat);
             const active = activeCategories.has(cat);
@@ -1100,7 +1128,7 @@ export function DayScheduleTab() {
                 type="button"
                 key={cat}
                 onClick={() => toggleCategoryFilter(cat)}
-                className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${c.bg} ${c.text} font-medium transition-opacity cursor-pointer hover:opacity-80 ${
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium ${c.bg} ${c.text} transition-opacity cursor-pointer hover:opacity-80 sm:py-1 ${
                   activeCategories.size > 0 && !active ? "opacity-40" : ""
                 } ${active ? "ring-2 ring-offset-1 ring-foreground/60" : ""}`}
                 title={active ? `Click to clear the ${cat} filter` : `Click to filter by ${cat}`}
@@ -1110,7 +1138,7 @@ export function DayScheduleTab() {
             );
           })}
           {activeCategories.size > 0 && (
-            <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setActiveCategories(new Set())}>
+            <Button variant="ghost" size="sm" className="h-8 shrink-0 text-xs sm:h-6" onClick={() => setActiveCategories(new Set())}>
               Clear filter
             </Button>
           )}
@@ -1197,7 +1225,7 @@ export function DayScheduleTab() {
                   <Badge variant="destructive" className="text-[10px] px-1.5 py-0">{unassigned.length}</Badge>
                 )}
               </div>
-              <div className="p-2 space-y-1.5 max-h-80 overflow-y-auto">
+              <div className="p-2 space-y-1.5 max-h-[55vh] overflow-y-auto lg:max-h-80">
                 {unassigned.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-3">
                     {unassignOver ? "Drop to unassign" : "All events assigned ✓ — drag a task here to unassign"}
