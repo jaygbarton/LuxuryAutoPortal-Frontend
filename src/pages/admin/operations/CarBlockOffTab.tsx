@@ -48,7 +48,7 @@ interface CarBlockOff {
   delivery_assigned_to_id: number | null;
   retrieval_assigned_to: string | null;
   retrieval_assigned_to_id: number | null;
-  status: "new" | "car_not_available" | "car_blocked_off";
+  status: "new" | "car_not_available" | "car_blocked_off" | "update_requested";
   notes: string | null;
   created_at: string;
 }
@@ -65,6 +65,7 @@ const STATUS_OPTIONS = [
   { value: "new", label: "New", className: "bg-gray-100 text-gray-700 border-gray-200" },
   { value: "car_blocked_off", label: "Car Blocked Off", className: "bg-amber-100 text-amber-700 border-amber-200" },
   { value: "car_not_available", label: "Car Not Available", className: "bg-red-100 text-red-700 border-red-200" },
+  { value: "update_requested", label: "Update Requested", className: "bg-blue-100 text-blue-700 border-blue-200" },
 ];
 
 const REASON_LABELS: Record<string, string> = {

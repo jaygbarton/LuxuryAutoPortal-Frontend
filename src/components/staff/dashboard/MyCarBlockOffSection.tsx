@@ -28,6 +28,7 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
   new:               { label: "New",               cls: "bg-gray-100 text-gray-700 border-gray-200" },
   car_blocked_off:   { label: "Car Blocked Off",   cls: "bg-amber-100 text-amber-700 border-amber-200" },
   car_not_available: { label: "Car Not Available", cls: "bg-red-100 text-red-700 border-red-200" },
+  update_requested:  { label: "Update Requested",  cls: "bg-blue-100 text-blue-700 border-blue-200" },
   // Legacy statuses (pre-merge) still rendered for any historical rows.
   block_off_started: { label: "Car Blocked Off",   cls: "bg-amber-100 text-amber-700 border-amber-200" },
   blocked_off_ended: { label: "Car Blocked Off",   cls: "bg-amber-100 text-amber-700 border-amber-200" },

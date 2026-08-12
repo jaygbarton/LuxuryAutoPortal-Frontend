@@ -18,7 +18,15 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
-import { CalendarOff, Car, Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarOff, Car, Search, Trash2, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,7 +70,7 @@ interface CarBlockOff {
   dropoff_location: string | null;
   dropoff_submitted_at: string | null;
   assigned_to: string | null;
-  status: "new" | "car_not_available" | "car_blocked_off";
+  status: "new" | "car_not_available" | "car_blocked_off" | "update_requested";
   notes: string | null;
   created_at: string;
 }
@@ -79,6 +87,7 @@ const STATUS_META: Record<string, { label: string; className: string }> = {
   new: { label: "New", className: "bg-gray-100 text-gray-700 border-gray-200" },
   car_blocked_off: { label: "Car Blocked Off", className: "bg-amber-100 text-amber-700 border-amber-200" },
   car_not_available: { label: "Car Not Available", className: "bg-red-100 text-red-700 border-red-200" },
+  update_requested: { label: "Update Requested", className: "bg-blue-100 text-blue-700 border-blue-200" },
   // Legacy statuses (pre-merge) still rendered for any historical rows.
   block_off_started: { label: "Car Blocked Off", className: "bg-amber-100 text-amber-700 border-amber-200" },
   blocked_off_ended: { label: "Car Blocked Off", className: "bg-amber-100 text-amber-700 border-amber-200" },
@@ -111,6 +120,12 @@ function fmtDateTime(v: string | null | undefined) {
   } catch {
     return v;
   }
+}
+
+/** DB datetime (stored as-entered Mountain time) → datetime-local input value. */
+function toInputValue(v: string | null | undefined) {
+  if (!v) return "";
+  return String(v).replace(" ", "T").replace(/Z$/, "").slice(0, 16);
 }
 
 // ── Car selector ──────────────────────────────────────────────────────────────
@@ -233,6 +248,23 @@ export default function CarBlockOffPage() {
   const limit = 20;
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
+  // Edit-details modal state (admin edits in place; client edit → "Update Requested")
+  const [editRecord, setEditRecord] = useState<CarBlockOff | null>(null);
+  const [editPickupDate, setEditPickupDate] = useState("");
+  const [editBlockOffEnd, setEditBlockOffEnd] = useState("");
+  const [editPickupLocation, setEditPickupLocation] = useState("");
+  const [editDropoffDate, setEditDropoffDate] = useState("");
+  const [editDropoffLocation, setEditDropoffLocation] = useState("");
+
+  const openEdit = (s: CarBlockOff) => {
+    setEditRecord(s);
+    setEditPickupDate(toInputValue(s.pickup_date));
+    setEditBlockOffEnd(toInputValue(s.block_off_end_date));
+    setEditPickupLocation(s.pickup_location ?? "");
+    setEditDropoffDate(toInputValue(s.dropoff_date));
+    setEditDropoffLocation(s.dropoff_location ?? "");
+  };
+
   // Pre-fill owner name from session
   const { data: meData } = useQuery<{ user?: { firstName?: string; lastName?: string; isAdmin?: boolean } }>({
     queryKey: ["/api/auth/me"],
@@ -348,6 +380,52 @@ export default function CarBlockOffPage() {
       setDeleteId(null);
     },
   });
+
+  // Edit-details mutation. Admin edits apply in place; a client edit flips the
+  // status to "Update Requested" server-side and notifies the GLA team.
+  const editMutation = useMutation({
+    mutationFn: async () => {
+      if (!editRecord) throw new Error("No record selected");
+      const res = await fetch(buildApiUrl(`/api/car-block-off/submissions/${editRecord.id}/details`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pickupDate: editPickupDate,
+          blockOffEndDate: editBlockOffEnd || null,
+          pickupLocation: editPickupLocation,
+          dropoffDate: editDropoffDate || null,
+          dropoffLocation: editDropoffLocation || null,
+        }),
+      });
+      const body = await res.json();
+      if (!body.success) throw new Error(body.error || "Failed to update");
+    },
+    onSuccess: () => {
+      toast({
+        title: isAdmin ? "Updated" : "Update requested",
+        description: isAdmin
+          ? "Block-off details updated."
+          : 'Your changes were saved and the status was set to "Update Requested". The GLA team has been notified.',
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/car-block-off/submissions"] });
+      setEditRecord(null);
+    },
+    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editPickupDate || !editPickupLocation) {
+      toast({ title: "Missing fields", description: "Pick Up date and location are required.", variant: "destructive" });
+      return;
+    }
+    if (editBlockOffEnd && new Date(editBlockOffEnd) <= new Date(editPickupDate)) {
+      toast({ title: "Invalid dates", description: "Block Off End must be after the Pick Up date/time.", variant: "destructive" });
+      return;
+    }
+    editMutation.mutate();
+  };
 
   // Status-change mutation (admin edits the block-off status inline).
   const statusMutation = useMutation({
@@ -620,6 +698,7 @@ export default function CarBlockOffPage() {
                   <SelectItem value="new">New</SelectItem>
                   <SelectItem value="car_blocked_off">Car Blocked Off</SelectItem>
                   <SelectItem value="car_not_available">Car Not Available</SelectItem>
+                  <SelectItem value="update_requested">Update Requested</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -682,6 +761,15 @@ export default function CarBlockOffPage() {
                       )}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openEdit(s)}
+                        className="text-muted-foreground hover:text-foreground h-7 w-7 p-0"
+                        title="Edit dates & locations"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
                       {isAdmin && (
                         <Button
                           size="sm"
@@ -718,6 +806,68 @@ export default function CarBlockOffPage() {
           )}
         </div>
       </div>
+
+      {/* Edit details modal */}
+      <Dialog open={editRecord !== null} onOpenChange={(open) => !open && setEditRecord(null)}>
+        <DialogContent className="bg-card border-border text-foreground sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Block-Off Details</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {editRecord && `${editRecord.car_name}${editRecord.plate_number ? ` (${editRecord.plate_number})` : ""} — ${editRecord.owner_name}`}
+              {!isAdmin && (
+                <span className="block mt-1">
+                  Saving will set the status to <strong>Update Requested</strong> and notify the GLA team.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-muted-foreground text-sm">Pick Up Date & Time *</Label>
+                <Input type="datetime-local" value={editPickupDate}
+                  onChange={(e) => setEditPickupDate(e.target.value)}
+                  className="bg-card border-border text-foreground" />
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-sm">Block Off End Date & Time</Label>
+                <Input type="datetime-local" value={editBlockOffEnd} min={editPickupDate || undefined}
+                  onChange={(e) => setEditBlockOffEnd(e.target.value)}
+                  className="bg-card border-border text-foreground" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-muted-foreground text-sm">Pick Up Location *</Label>
+              <Input value={editPickupLocation}
+                onChange={(e) => setEditPickupLocation(e.target.value)}
+                className="bg-card border-border text-foreground" placeholder="Address or description" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-muted-foreground text-sm">Drop Off Date & Time</Label>
+                <Input type="datetime-local" value={editDropoffDate}
+                  onChange={(e) => setEditDropoffDate(e.target.value)}
+                  className="bg-card border-border text-foreground" />
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-sm">Drop Off Location</Label>
+                <Input value={editDropoffLocation}
+                  onChange={(e) => setEditDropoffLocation(e.target.value)}
+                  className="bg-card border-border text-foreground" placeholder="Address or description" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditRecord(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/80"
+                disabled={editMutation.isPending}>
+                {editMutation.isPending ? "Saving..." : isAdmin ? "Save Changes" : "Request Update"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirmation */}
       <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
