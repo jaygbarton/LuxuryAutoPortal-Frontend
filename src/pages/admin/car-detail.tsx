@@ -393,22 +393,30 @@ export default function CarDetailPage() {
 
   const onboarding = onboardingData?.success ? onboardingData?.data : null;
 
-  // Fetch rental history (turo trips) for this car by plate number
+  // Fetch rental history (turo trips) for this car by plate number and VIN.
+  // The VIN is required, not just a nice-to-have: several cars share a
+  // placeholder plate ("TEMP") while awaiting real plates, so a plate-only
+  // lookup can pull in another car's trips entirely. The backend trusts the
+  // VIN over a placeholder plate specifically to avoid that cross-match.
   const carPlate = car?.licensePlate || null;
+  const carVin = car?.vin || null;
   const { data: rentalHistoryData, isLoading: isLoadingRentalHistory } = useQuery<{
     success: boolean;
     data: any[];
     total: number;
   }>({
-    queryKey: ["/api/turo-trips", "plate", carPlate],
+    queryKey: ["/api/turo-trips", "plate", carPlate, "vin", carVin],
     queryFn: async () => {
-      if (!carPlate) throw new Error("No plate");
-      const url = buildApiUrl(`/api/turo-trips?plate=${encodeURIComponent(carPlate)}&limit=200&offset=0`);
+      if (!carPlate && !carVin) throw new Error("No plate or VIN");
+      const params = new URLSearchParams({ limit: "200", offset: "0" });
+      if (carPlate) params.set("plate", carPlate);
+      if (carVin) params.set("vin", carVin);
+      const url = buildApiUrl(`/api/turo-trips?${params.toString()}`);
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) return { success: false, data: [], total: 0 };
       return res.json();
     },
-    enabled: !!carPlate,
+    enabled: !!(carPlate || carVin),
     retry: false,
   });
   const rentalTrips: any[] = rentalHistoryData?.data ?? [];
@@ -2823,22 +2831,24 @@ export default function CarDetailPage() {
         </Card>
         )}
 
-        {/* Rental History — trips matched by plate number (V #) */}
+        {/* Rental History — trips matched by plate number and/or VIN */}
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="text-primary text-lg flex items-center gap-2">
               Rental History
-              {carPlate && (
+              {(carPlate || carVin) && (
                 <span className="text-sm font-normal text-muted-foreground">
-                  V # / Plate: {carPlate}
+                  {carPlate && `Plate: ${carPlate}`}
+                  {carPlate && carVin && " · "}
+                  {carVin && `VIN: ${carVin}`}
                 </span>
               )}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {!carPlate ? (
+            {!carPlate && !carVin ? (
               <p className="text-muted-foreground text-center py-8 px-6">
-                No plate number on file — add a license plate to see rental history.
+                No plate number or VIN on file — add one to see rental history.
               </p>
             ) : isLoadingRentalHistory ? (
               <div className="flex justify-center py-8">
@@ -2846,7 +2856,7 @@ export default function CarDetailPage() {
               </div>
             ) : rentalTrips.length === 0 ? (
               <p className="text-muted-foreground text-center py-8 px-6">
-                No trips found for plate {carPlate}.
+                No trips found for this car.
               </p>
             ) : (
               <div className="overflow-x-auto">
