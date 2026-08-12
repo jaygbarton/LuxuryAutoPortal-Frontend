@@ -365,7 +365,8 @@ function EventCard({
           <CarScheduleImage
             carPhoto={event.car_photo}
             carName={event.car_name}
-            className="h-20 w-28 max-[430px]:hidden md:hidden"
+            className="h-16 w-24 md:hidden"
+            size={240}
             hideBelowMd={false}
           />
         </div>
@@ -619,7 +620,7 @@ function EmployeeSection({
       }}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
-      className={`border rounded-lg overflow-hidden transition-colors ${
+      className={`border rounded-lg overflow-hidden transition-colors ${sorted.length === 0 ? "hidden md:block" : ""} ${
         dragOver ? "border-primary ring-2 ring-primary/40 bg-primary/5" : "border-border"
       }`}
     >
