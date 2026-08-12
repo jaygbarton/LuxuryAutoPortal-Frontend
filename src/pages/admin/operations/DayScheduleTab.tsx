@@ -278,7 +278,7 @@ function EventCard({
     <div
       draggable
       onDragStart={(e) => setDragData(e, event)}
-      className={`group/event flex flex-col overflow-hidden rounded-lg border ${c.border} shadow-sm cursor-grab active:cursor-grabbing sm:flex-row sm:items-stretch`}
+      className={`group/event flex flex-col rounded-lg border ${c.border} shadow-sm cursor-grab active:cursor-grabbing sm:flex-row sm:items-stretch`}
     >
       {/* Color bar */}
       <div className={`h-1.5 w-full flex-shrink-0 ${c.bg} sm:h-auto sm:w-1.5`} />
@@ -362,14 +362,15 @@ function EventCard({
               )}
             </div>
           </div>
-          <CarScheduleImage
-            carPhoto={event.car_photo}
-            carName={event.car_name}
-            className="h-16 w-24 md:hidden"
-            size={240}
-            hideBelowMd={false}
-          />
         </div>
+        <CarScheduleImage
+          carPhoto={event.car_photo}
+          carName={event.car_name}
+          className="h-32 w-full md:hidden"
+          size={360}
+          hideBelowMd={false}
+          fit="contain"
+        />
         {(canEditAssignee || canEditDuration || canEditDriver) && (
           <div
             className="grid grid-cols-1 gap-2 pt-1 min-[430px]:grid-cols-2 md:flex md:flex-wrap md:items-center"
@@ -480,10 +481,10 @@ function EventCard({
           </div>
         )}
         {event.car_name && (
-          <div className="hidden items-center gap-1 text-xs text-foreground sm:flex">
+          <div className="hidden min-w-0 items-start gap-1 text-xs text-foreground sm:flex">
             <Car className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
-            <span className="font-medium">{event.car_name}</span>
-            {event.plate && <span className="text-muted-foreground">· {event.plate}</span>}
+            <span className="min-w-0 break-words font-medium">{event.car_name}</span>
+            {event.plate && <span className="shrink-0 text-muted-foreground">· {event.plate}</span>}
           </div>
         )}
         {event.reservation_id && (
@@ -526,16 +527,16 @@ function EventCard({
 
         {/* Generic location (non-trip events: e.g. cleaning's own scheduled location, repair shop) — only when no trip endpoints shown */}
         {event.location && !event.pickup_location && !event.dropoff_location && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="flex items-start gap-1 text-xs text-muted-foreground">
             <MapPin className="w-3 h-3 flex-shrink-0" />
-            <span className="truncate">{event.location}</span>
+            <span className="break-words">{event.location}</span>
           </div>
         )}
         {event.detail && (
-          <div className="text-xs text-muted-foreground italic">{event.detail}</div>
+          <div className="text-xs text-muted-foreground italic break-words">{event.detail}</div>
         )}
         {event.notes && (
-          <div className="text-xs text-muted-foreground truncate">{event.notes}</div>
+          <div className="text-xs text-muted-foreground break-words">{event.notes}</div>
         )}
         {/* Photos from the underlying inspection/maintenance record — lets the
             morning-meeting review "back-track" what was actually done that day. */}
@@ -554,6 +555,7 @@ function EventCard({
           carPhoto={event.car_photo}
           carName={event.car_name}
           className="absolute bottom-2 right-2 top-2 w-36 lg:w-48"
+          fit="contain"
         />
       </div>
     </div>

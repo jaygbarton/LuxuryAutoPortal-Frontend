@@ -35,12 +35,14 @@ export function CarScheduleImage({
   className = "",
   size = 360,
   hideBelowMd = true,
+  fit = "cover",
 }: {
   carPhoto: string | null | undefined;
   carName?: string | null;
   className?: string;
   size?: number;
   hideBelowMd?: boolean;
+  fit?: "cover" | "contain";
 }) {
   const [failed, setFailed] = useState(false);
   const url = parseCarPhotoUrl(carPhoto);
@@ -51,7 +53,7 @@ export function CarScheduleImage({
       <img
         src={toDisplaySrc(url, size)}
         alt={carName ? `${carName} photo` : "Vehicle photo"}
-        className="h-full w-full object-cover"
+        className={`h-full w-full ${fit === "contain" ? "object-contain" : "object-cover"}`}
         loading="lazy"
         onError={() => setFailed(true)}
       />

@@ -436,7 +436,7 @@ function TimelineCard({
 
   return (
     <div
-      className={`flex items-stretch rounded-lg overflow-hidden border shadow-sm ${
+      className={`flex items-stretch rounded-lg border shadow-sm ${
         isDone ? "border-border bg-zinc-900/80 opacity-70" : u.row
       }`}
     >
@@ -495,10 +495,10 @@ function TimelineCard({
 
         {/* Car */}
         {e.car_name && (
-          <div className="flex items-center gap-1.5 text-lg text-foreground">
+          <div className="flex min-w-0 items-start gap-1.5 text-lg text-foreground">
             <Car className="w-4 h-4 flex-shrink-0 text-muted-foreground" />
-            <span className="font-semibold">{e.car_name}</span>
-            {e.plate && <span className="text-muted-foreground text-base">· {e.plate}</span>}
+            <span className="min-w-0 break-words font-semibold">{e.car_name}</span>
+            {e.plate && <span className="shrink-0 text-muted-foreground text-base">· {e.plate}</span>}
           </div>
         )}
 
@@ -546,20 +546,20 @@ function TimelineCard({
           </div>
         )}
         {e.location && !e.pickup_location && !e.dropoff_location && (
-          <div className="flex items-center gap-1.5 text-base text-muted-foreground">
+          <div className="flex items-start gap-1.5 text-base text-muted-foreground">
             <MapPin className="w-4 h-4 flex-shrink-0" />
-            <span className="truncate">{e.location}</span>
+            <span className="break-words">{e.location}</span>
           </div>
         )}
         {/* Extras */}
         {e.extras && (
-          <div className="flex items-center gap-1.5 text-base text-muted-foreground">
+          <div className="flex items-start gap-1.5 text-base text-muted-foreground">
             <Sparkles className="w-4 h-4 flex-shrink-0" />
-            <span>{e.extras}</span>
+            <span className="break-words">{e.extras}</span>
           </div>
         )}
         {e.detail && (
-          <div className="text-base text-muted-foreground italic">{e.detail}</div>
+          <div className="text-base text-muted-foreground italic break-words">{e.detail}</div>
         )}
 
         {/* Linked tasks (cleaning, pickup, delivery, refuel) */}
@@ -665,6 +665,7 @@ function TimelineCard({
           carName={e.car_name}
           className="absolute bottom-2.5 right-3 top-2.5 w-48 xl:w-64"
           size={520}
+          fit="contain"
         />
       </div>
     </div>
