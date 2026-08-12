@@ -62,6 +62,12 @@ function fmtMoney(n: number): string {
   return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/** Non-zero amounts stand out from the sea of $0.00 rows; negative amounts are flagged red instead of green. */
+function amountColorClass(n: number): string {
+  if (!n) return "";
+  return n < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400";
+}
+
 const CURRENT_YEAR = new Date().getFullYear();
 const MATRIX_YEAR_OPTIONS = Array.from(
   { length: CURRENT_YEAR + 1 - 2023 + 1 },
@@ -194,17 +200,17 @@ function CommissionsMatrix() {
                   <tr key={idx} className="hover:bg-muted/20">
                     <td className="md:sticky md:left-0 z-10 bg-card min-w-[200px] px-3 py-1.5 font-medium">{row.type}</td>
                     {row.monthly.map((val, mIdx) => (
-                      <td key={mIdx} className="px-2 py-1.5 text-right font-mono">{fmtMoney(val || 0)}</td>
+                      <td key={mIdx} className={`px-2 py-1.5 text-right font-mono ${val ? `${amountColorClass(val)} font-semibold` : ""}`}>{fmtMoney(val || 0)}</td>
                     ))}
-                    <td className="px-2 py-1.5 text-right font-mono font-semibold">{fmtMoney(row.total)}</td>
+                    <td className={`px-2 py-1.5 text-right font-mono font-semibold ${amountColorClass(row.total)}`}>{fmtMoney(row.total)}</td>
                   </tr>
                 ))}
                 <tr className="border-t-2 bg-muted/40 font-semibold">
                   <td className="md:sticky md:left-0 z-10 bg-muted/40 min-w-[200px] px-3 py-2">TOTAL</td>
                   {grandMonthly.map((val, mIdx) => (
-                    <td key={mIdx} className="px-2 py-2 text-right font-mono">{fmtMoney(val)}</td>
+                    <td key={mIdx} className={`px-2 py-2 text-right font-mono ${amountColorClass(val)}`}>{fmtMoney(val)}</td>
                   ))}
-                  <td className="px-2 py-2 text-right font-mono">{fmtMoney(grandTotal)}</td>
+                  <td className={`px-2 py-2 text-right font-mono ${amountColorClass(grandTotal)}`}>{fmtMoney(grandTotal)}</td>
                 </tr>
               </tbody>
             </table>
