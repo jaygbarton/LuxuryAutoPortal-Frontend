@@ -67,6 +67,8 @@ const SHIFT_QUESTIONS: ShiftQuestion[] = [
   { id: "how_many_cars_re_parked", label: "How Many Cars Re-Parked?", type: "numeric" },
   { id: "how_many_gas_station_trip", label: "How Many Gas Station Trips?", type: "numeric" },
   { id: "how_many_trip_swaps_client_location", label: "How Many Trip Swaps – Client?", type: "numeric" },
+  { id: "how_many_uber_ride", label: "How Many Uber Ride?", type: "numeric" },
+  { id: "how_many_last_minute_booking", label: "How Many Last Minute Booking?", type: "numeric" },
   { id: "how_many_auto_body_pick_up_or_drop_off", label: "How Many Auto Body Pick Up?", type: "numeric" },
   { id: "how_many_mechanic_pick_up_or_drop_off", label: "How Many Mechanic Pick Up?", type: "numeric" },
   { id: "how_many_oil_lube_pick_up_or_drop_off", label: "How Many Oil & Lube Pick Up?", type: "numeric" },
