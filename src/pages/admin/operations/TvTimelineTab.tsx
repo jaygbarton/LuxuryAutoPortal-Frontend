@@ -16,6 +16,7 @@ import {
   Wrench,
   Fuel,
 } from "lucide-react";
+import { CarScheduleImage } from "./CarScheduleImage";
 
 // ─── Types (mirror /api/operations/day-schedule) ──────────────────────────────
 
@@ -48,6 +49,7 @@ interface DayEvent {
   trip_end_mt: string | null;
   pickup_location: string | null;
   dropoff_location: string | null;
+  car_photo: string | null;
 }
 
 interface DayScheduleResult {
@@ -471,7 +473,7 @@ function TimelineCard({
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 px-3 py-2.5 space-y-1.5">
+      <div className={`relative flex-1 min-w-0 px-3 py-2.5 space-y-1.5 ${e.car_photo ? "md:pr-56 xl:pr-72" : ""}`}>
         {/* Badge row */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className={`text-sm font-semibold px-2 py-0.5 rounded text-white ${accent}`}>
@@ -658,6 +660,12 @@ function TimelineCard({
 
           return null;
         })()}
+        <CarScheduleImage
+          carPhoto={e.car_photo}
+          carName={e.car_name}
+          className="absolute bottom-2.5 right-3 top-2.5 w-48 xl:w-64"
+          size={520}
+        />
       </div>
     </div>
   );

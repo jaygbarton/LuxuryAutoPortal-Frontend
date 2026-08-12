@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical, LayoutList, Rows3, Plus } from "lucide-react";
 import { PhotoUpload } from "./PhotoUpload";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
+import { CarScheduleImage } from "./CarScheduleImage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ interface DayEvent {
   pickup_location: string | null;
   dropoff_location: string | null;
   photos: string[] | null;
+  car_photo: string | null;
   duration_minutes: number | null;
   driver_assignment_type?: "employee" | "uber" | "na" | null;
   driver_assigned_to?: string | null;
@@ -295,7 +297,7 @@ function EventCard({
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 px-2 py-2 space-y-0.5">
+      <div className={`relative flex-1 min-w-0 px-2 py-2 space-y-0.5 ${event.car_photo ? "md:pr-40 lg:pr-52" : ""}`}>
         <div className="flex items-center gap-2 flex-wrap">
           <GripVertical className="w-3 h-3 flex-shrink-0 text-muted-foreground/40 group-hover/event:text-muted-foreground" />
           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${c.bg} ${c.text}`}>
@@ -519,6 +521,11 @@ function EventCard({
             />
           </div>
         )}
+        <CarScheduleImage
+          carPhoto={event.car_photo}
+          carName={event.car_name}
+          className="absolute bottom-2 right-2 top-2 w-36 lg:w-48"
+        />
       </div>
     </div>
   );
