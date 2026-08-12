@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -35,6 +35,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { buildApiUrl, buildUploadApiUrl } from "@/lib/queryClient";
+import { getPublicLocationFromPath, withLocationPath } from "@/lib/location-config";
 
 const onboardingSchema = z
   .object({
@@ -142,6 +143,9 @@ export default function Onboarding() {
   const [isDraggingLicense, setIsDraggingLicense] = useState(false);
   const { toast } = useToast();
   const { salesReps } = useSalesReps();
+  const [currentPath] = useLocation();
+  const publicLocation = getPublicLocationFromPath(currentPath);
+  const suggestedCarsHref = withLocationPath("/suggested-cars", publicLocation);
 
   const form = useForm<OnboardingFormData, any, OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
@@ -226,16 +230,6 @@ export default function Onboarding() {
   };
 
   const onSubmit = async (data: OnboardingFormData) => {
-    console.log("=".repeat(80));
-    console.log("🌐 [FRONTEND] Form submission started");
-    console.log("📋 [FRONTEND] Form data keys:", Object.keys(data));
-    console.log("📋 [FRONTEND] Sample form data:", {
-      firstNameOwner: data.firstNameOwner,
-      emailOwner: data.emailOwner,
-      vehicleMake: data.vehicleMake,
-      vehicleModel: data.vehicleModel,
-    });
-
     setIsSubmitting(true);
     try {
       // Use upload URL when sending FormData so multipart body is forwarded correctly in dev
@@ -286,14 +280,8 @@ export default function Onboarding() {
         credentials: "include",
       });
 
-      // console.log("📥 [FRONTEND] Response received");
-      // console.log("📊 [FRONTEND] Response status:", response.status);
-      // console.log("📊 [FRONTEND] Response statusText:", response.statusText);
-      // console.log("📊 [FRONTEND] Response ok:", response.ok);
-
       if (!response.ok) {
         const error = await response.json();
-        // console.error("❌ [FRONTEND] Response error:", error);
         
         // If error has a specific field (like VIN duplicate), set form error
         if (error.field && error.message) {
@@ -306,20 +294,10 @@ export default function Onboarding() {
         throw new Error(error.message || "Submission failed");
       }
 
-      const responseData = await response.json();
-      // Log summary only, not full data
-      // console.log("✅ [FRONTEND] Submission successful, ID:", responseData.id);
-      // console.log("=".repeat(80));
+      await response.json();
 
       setIsSubmitted(true);
-      // Thank you page is rendered inline below (lines 339-372)
     } catch (error: any) {
-      // console.error("❌ [FRONTEND] Submission error:");
-      // console.error("Error type:", error?.constructor?.name);
-      // console.error("Error message:", error.message);
-      // console.error("Error stack:", error.stack);
-      // console.log("=".repeat(80));
-
       toast({
         title: "Submission Failed",
         description: error.message || "Please try again later.",
@@ -368,19 +346,37 @@ export default function Onboarding() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-20 lg:pt-24 pb-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-10 text-center lg:text-left">
-            <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-3">
-              List Your Car
-            </p>
-            <h1 className="font-serif text-4xl lg:text-5xl font-light text-foreground">
-              Turn your vehicle into managed rental income
-            </h1>
-            <p className="mt-4 max-w-3xl text-muted-foreground">
-              Golden Luxury Auto handles guest scheduling, pickup and drop-off, cleaning, maintenance coordination, and monthly owner reporting.
-            </p>
+        <section className="relative overflow-hidden border-b border-border bg-[#0A0A0A] text-white">
+          <div className="absolute inset-0">
+            <img
+              src="/list-your-car-key-handoff-enhanced.png"
+              alt=""
+              className="h-full w-full object-cover"
+              style={{ objectPosition: "center center" }}
+              aria-hidden="true"
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(90deg, rgba(6,6,5,0.82) 0%, rgba(6,6,5,0.58) 44%, rgba(6,6,5,0.16) 100%), linear-gradient(180deg, rgba(6,6,5,0.08), rgba(6,6,5,0.46))",
+              }}
+            />
           </div>
+          <div className="relative mx-auto grid min-h-[440px] max-w-7xl content-end px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+            <div className="max-w-3xl">
+              <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">List Your Car</p>
+              <h1 className="font-serif text-4xl font-light leading-tight text-white sm:text-5xl lg:text-6xl">
+                Let us manage your vehicle
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-white/75 sm:text-lg">
+                Have a car sitting in your garage 90% of the year? Currently financing, or looking to purchase a new vehicle? Let us turn your car into a cash-flowing asset!
+              </p>
+            </div>
+          </div>
+        </section>
 
+        <div className="max-w-7xl mx-auto px-4 pt-12 sm:px-6 lg:px-8 lg:pt-16">
           <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
             <aside className="lg:sticky lg:top-24">
               <Card className="overflow-hidden border-border bg-card">
@@ -411,9 +407,9 @@ export default function Onboarding() {
                     </a>
                     <div className="rounded-md border border-primary/20 bg-primary/10 p-4">
                       <p className="text-sm font-semibold leading-6 text-foreground">
-                        dont have a qualifiying car? trade in or finance a new one and well help you pay it off!
+                        Don't have a qualifying car? Trade in or finance a new one and we'll help you pay it off.
                       </p>
-                      <Link href="/suggested-cars" className="mt-3 inline-flex items-center text-sm font-semibold text-primary">
+                      <Link href={suggestedCarsHref} className="mt-3 inline-flex items-center text-sm font-semibold text-primary">
                         View Suggested Cars
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>

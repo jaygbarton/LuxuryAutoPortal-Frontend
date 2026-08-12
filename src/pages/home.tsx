@@ -8,7 +8,7 @@ import { SiteStatsStrip } from "@/components/layout/site-stats-strip";
 import { RotatingGoogleReviews } from "@/components/reviews/rotating-google-reviews";
 import { type PublicLocation } from "@/lib/location-config";
 import { Link } from "wouter";
-import { ArrowRight, Car, ClipboardCheck, ExternalLink, UserPlus } from "lucide-react";
+import { ArrowRight, Car, ClipboardCheck, ExternalLink, Sparkles, UserPlus } from "lucide-react";
 
 const TURO_VEHICLES_URL = "https://turo.com/us/en/drivers/4325673/vehicles";
 
@@ -40,7 +40,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
               eyebrow: "Vehicle Management",
               title: "List your vehicle with GLA",
               copy:
-                "Owners get a managed rental program with fleet presentation, trip coordination, and ongoing operations handled by the team.",
+                "We'll manage the rental process while you sit back and reap the benefits.",
               image: "/list-your-car-key-handoff-enhanced.png",
               icon: ClipboardCheck,
               primary: "List Your Car",
@@ -51,15 +51,17 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
             },
             {
               eyebrow: "Rent a Vehicle",
-              title: "Book a premium rental",
+              title: "Premium rental or detail",
               copy:
-                "Guests can browse the fleet, compare the right fit, and book through the vehicle listing with clear trip support.",
+                "Guests can browse the fleet, compare the right fit, or book a clean detail appointment through the GLA site.",
               image: "/rent-a-car-interior.jpg",
               icon: Car,
               primary: "Our Fleet",
               primaryHref: location.fleetPath,
               secondary: "Book on Turo",
               secondaryHref: location.turoFleetUrl || TURO_VEHICLES_URL,
+              tertiary: "Detail Shop",
+              tertiaryHref: `${location.path}/detail-shop`,
               testId: "button-rental-fleet",
               externalSecondary: true,
             },
@@ -111,6 +113,17 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
                         </button>
                       </Link>
                     )}
+                    {item.tertiary && item.tertiaryHref ? (
+                      <Link href={item.tertiaryHref} onClick={scrollToTopOnNavigate}>
+                        <button
+                          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-sm bg-white px-6 text-sm font-bold text-[#171717] transition-all hover:-translate-y-0.5 hover:bg-white/90"
+                          data-testid="button-rental-detail"
+                        >
+                          {item.tertiary}
+                          <Sparkles className="h-4 w-4" />
+                        </button>
+                      </Link>
+                    ) : null}
                   </div>
                 </div>
               </article>
