@@ -6,7 +6,6 @@ import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -234,7 +233,6 @@ export default function CarBlockOffPage() {
   // "Car Block Off End" submission can still correct this once the car is
   // actually returned.
   const [plannedDropoffLocation, setPlannedDropoffLocation] = useState("");
-  const [notes, setNotes] = useState("");
 
   // Drop-off form state
   const [blockOffId, setBlockOffId] = useState("");
@@ -322,7 +320,7 @@ export default function CarBlockOffPage() {
           pickupLocation,
           blockOffEndDate,
           dropoffLocation: plannedDropoffLocation,
-          notes: notes || null,
+          notes: null,
         }),
       });
       const body = await res.json();
@@ -334,7 +332,7 @@ export default function CarBlockOffPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/car-block-off/submissions"] });
       setCarIdStr(""); setCarName(""); setPlateNumber(""); setReason("personal_use");
       setReasonOther(""); setPickupDate(""); setBlockOffEndDate(""); setPickupLocation("");
-      setPlannedDropoffLocation(""); setNotes("");
+      setPlannedDropoffLocation("");
     },
     onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
@@ -487,36 +485,46 @@ export default function CarBlockOffPage() {
           </p>
         </div>
 
-        {/* Toggle */}
-        <div className="flex rounded-lg border border-border overflow-hidden w-fit">
-          <button
-            type="button"
-            onClick={() => setMode("start")}
-            className={`px-6 py-3 text-sm font-medium transition-colors ${
-              mode === "start"
-                ? "bg-primary text-primary-foreground"
-                : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            <Car className="w-4 h-4 inline mr-2" />
-            Car Block Off Start — Car Owner Pick Up
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("end")}
-            className={`px-6 py-3 text-sm font-medium transition-colors border-l border-border ${
-              mode === "end"
-                ? "bg-primary text-primary-foreground"
-                : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
-            }`}
-          >
-            <CalendarOff className="w-4 h-4 inline mr-2" />
-            Car Block Off End — Car Owner Drop Off
-          </button>
-        </div>
+        {/* Toggle — admin keeps the separate Start/End workflow; clients and
+            co-hosts get a single merged "Pick up and Drop Off" tab instead. */}
+        {isAdmin ? (
+          <div className="flex rounded-lg border border-border overflow-hidden w-fit">
+            <button
+              type="button"
+              onClick={() => setMode("start")}
+              className={`px-6 py-3 text-sm font-medium transition-colors ${
+                mode === "start"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <Car className="w-4 h-4 inline mr-2" />
+              Car Block Off Start — Car Owner Pick Up
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("end")}
+              className={`px-6 py-3 text-sm font-medium transition-colors border-l border-border ${
+                mode === "end"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <CalendarOff className="w-4 h-4 inline mr-2" />
+              Car Block Off End — Car Owner Drop Off
+            </button>
+          </div>
+        ) : (
+          <div className="flex rounded-lg border border-border overflow-hidden w-fit">
+            <button type="button" className="px-6 py-3 text-sm font-medium bg-primary text-primary-foreground">
+              <CalendarOff className="w-4 h-4 inline mr-2" />
+              Car Owner - Pick up and Drop Off
+            </button>
+          </div>
+        )}
 
         {/* Pickup Form */}
-        {mode === "start" && (
+        {(isAdmin ? mode === "start" : true) && (
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-foreground text-lg">Car Block Off Start – Car Owner Pick Up</CardTitle>
@@ -624,12 +632,6 @@ export default function CarBlockOffPage() {
                   )}
                 </div>
 
-                <div>
-                  <Label className="text-muted-foreground text-sm">Notes</Label>
-                  <Textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-                    className="bg-card border-border text-foreground" rows={3} placeholder="Optional notes..." />
-                </div>
-
                 <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/80"
                   disabled={submitPickup.isPending}>
                   {submitPickup.isPending ? "Submitting..." : "Submit Car Block Off Start"}
@@ -640,7 +642,7 @@ export default function CarBlockOffPage() {
         )}
 
         {/* Drop-off Form */}
-        {mode === "end" && (
+        {(isAdmin ? mode === "end" : true) && (
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-foreground text-lg">Car Block Off End – Car Owner Drop Off</CardTitle>
