@@ -164,6 +164,7 @@ export function ServiceDueTab() {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [carSort, setCarSort] = useState<"asc" | "desc">("asc");
 
   const { data, isLoading, error } = useQuery<{ success: boolean; data: CarServiceDue[] }>({
     queryKey: ["/api/operations/maintenance/service-due"],
@@ -216,6 +217,15 @@ export function ServiceDueTab() {
       return true;
     });
   }, [rows, search, statusFilter, categoryFilter, dateFrom, dateTo]);
+
+  const sorted = useMemo(() => {
+    const copy = [...filtered];
+    copy.sort((a, b) => {
+      const cmp = (a.car_name || "").localeCompare(b.car_name || "");
+      return carSort === "asc" ? cmp : -cmp;
+    });
+    return copy;
+  }, [filtered, carSort]);
 
   const overdueOilCount = rows.filter((r) => staleness(r.days_since_oil_change, "oil_change") === "red").length;
   const overdueTireCount = rows.filter((r) => staleness(r.days_since_tires, "tires") === "red").length;
@@ -313,29 +323,34 @@ export function ServiceDueTab() {
           <p className="text-center py-12 text-muted-foreground">Loading service history...</p>
         ) : error ? (
           <p className="text-center py-12 text-destructive">Failed to load service-due report.</p>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <p className="text-center py-12 text-muted-foreground">No cars found.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="rounded-md border [&>div]:max-h-[calc(100vh-360px)] [&>div]:overflow-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Car</TableHead>
-                  <TableHead>Plate</TableHead>
-                  <TableHead>VIN #</TableHead>
-                  <TableHead>Last Oil Change</TableHead>
-                  <TableHead>Last Tires</TableHead>
-                  <TableHead>Last Brakes</TableHead>
-                  <TableHead>Last Windshield</TableHead>
-                  <TableHead>Last Mechanic</TableHead>
-                  <TableHead>Last License &amp; Reg.</TableHead>
-                  <TableHead>Registration Expiration</TableHead>
-                  <TableHead>Last Any Service</TableHead>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Status</TableHead>
+                  <TableHead
+                    className="sticky top-0 z-20 bg-muted whitespace-nowrap cursor-pointer select-none hover:bg-muted/70"
+                    onClick={() => setCarSort((s) => (s === "asc" ? "desc" : "asc"))}
+                  >
+                    Car {carSort === "asc" ? "▲" : "▼"}
+                  </TableHead>
+                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Plate</TableHead>
+                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">VIN #</TableHead>
+                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Last Oil Change</TableHead>
+                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Last Tires</TableHead>
+                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Last Brakes</TableHead>
+                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Last Windshield</TableHead>
+                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Last Mechanic</TableHead>
+                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Last License &amp; Reg.</TableHead>
+                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Registration Expiration</TableHead>
+                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Last Any Service</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((r) => (
+                {sorted.map((r) => (
                   <TableRow key={r.car_id}>
                     <TableCell>
                       <Badge
