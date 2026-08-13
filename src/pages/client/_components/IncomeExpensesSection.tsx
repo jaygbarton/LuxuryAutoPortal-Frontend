@@ -103,7 +103,7 @@ export function IncomeExpensesSection({
           <table className="w-full min-w-[480px] border-y border-[#D3BC8D] border-collapse" style={{ tableLayout: "fixed" }}>
             <colgroup>
               <col style={{ width: "128px" }} />
-              <col /><col /><col />
+              <col /><col /><col /><col />
             </colgroup>
             <thead>
               <tr style={{ backgroundColor: "#1a1a1a" }} className="border-y border-[#D3BC8D]">
@@ -111,11 +111,12 @@ export function IncomeExpensesSection({
                 <th className="text-white font-bold text-xs py-3 px-3 text-center">Car owner rental income</th>
                 <th className="text-white font-bold text-xs py-3 px-3 text-center">Car owner expenses</th>
                 <th className="text-white font-bold text-xs py-3 px-3 text-center">Car owner split</th>
+                <th className="text-white font-bold text-xs py-3 px-3 text-center">Ave / Days Rented</th>
               </tr>
             </thead>
             <tbody>
               {isLoadingIncome || isLoadingTrips ? (
-                <tr><td colSpan={4} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin text-[#d3bc8d] mx-auto" /></td></tr>
+                <tr><td colSpan={5} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin text-[#d3bc8d] mx-auto" /></td></tr>
               ) : (
                 <>
                   {monthlyTripData.map((row) => (
@@ -126,6 +127,7 @@ export function IncomeExpensesSection({
                       <td className="text-sm py-2 px-3 text-center text-black">{fmt(row.income)}</td>
                       <td className="text-sm py-2 px-3 text-center text-black">{fmt(row.expenses)}</td>
                       <td className="text-sm py-2 px-3 text-center font-medium text-black">{fmt(row.profit)}</td>
+                      <td className="text-sm py-2 px-3 text-center text-black">{row.days > 0 ? fmt(row.income / row.days) : "—"}</td>
                     </tr>
                   ))}
                   <tr style={{ backgroundColor: "#D3BC8D" }} className="border-y border-[#D3BC8D]">
@@ -133,6 +135,7 @@ export function IncomeExpensesSection({
                     <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{fmt(yearTotals.income)}</td>
                     <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{fmt(yearTotals.expenses)}</td>
                     <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{fmt(yearTotals.profit)}</td>
+                    <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{yearTotals.days > 0 ? fmt(yearTotals.income / yearTotals.days) : "—"}</td>
                   </tr>
                 </>
               )}

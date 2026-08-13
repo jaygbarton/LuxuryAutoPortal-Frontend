@@ -2,6 +2,7 @@ import React from "react";
 import { AlertCircle } from "lucide-react";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { fmtDate } from "./utils";
 import type { ClientCar, MaintenanceRecord } from "./types";
@@ -9,6 +10,22 @@ import type { ClientCar, MaintenanceRecord } from "./types";
 interface MaintenanceCardProps {
   maintenanceRecords: MaintenanceRecord[];
   activeCar?: ClientCar;
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  new: "New",
+  in_progress: "In Progress",
+  in_repair: "In Repair",
+  completed: "Completed",
+  completed_no_receipt: "Completed – No Receipt",
+  damage_reported: "Maintenance Reported",
+  in_review: "In Review",
+};
+
+function statusLabel(status?: string): string {
+  if (!status) return "—";
+  const normalized = status.toLowerCase().replace(/\s+/g, "_");
+  return STATUS_LABELS[normalized] ?? status;
 }
 
 export function MaintenanceCard({ maintenanceRecords, activeCar }: MaintenanceCardProps) {
@@ -25,6 +42,9 @@ export function MaintenanceCard({ maintenanceRecords, activeCar }: MaintenanceCa
             <TableHeader>
               <TableRow style={{ backgroundColor: "#1a1a1a" }}>
                 <TableHead className="text-white font-semibold text-xs py-3">Maintenance</TableHead>
+                <TableHead className="text-white font-semibold text-xs py-3">Scheduled</TableHead>
+                <TableHead className="text-white font-semibold text-xs py-3">Due Date</TableHead>
+                <TableHead className="text-white font-semibold text-xs py-3">Status</TableHead>
                 <TableHead className="text-white font-semibold text-xs py-3">Date Completed</TableHead>
               </TableRow>
             </TableHeader>
@@ -32,6 +52,17 @@ export function MaintenanceCard({ maintenanceRecords, activeCar }: MaintenanceCa
               {maintenanceRecords.map((record, i) => (
                 <TableRow key={i} className="border-border hover:bg-muted/30">
                   <TableCell className="text-sm py-2 text-black">{record.maintenanceType ?? record.type ?? "—"}</TableCell>
+                  <TableCell className="text-sm py-2 text-black">{fmtDate(record.scheduledDate)}</TableCell>
+                  <TableCell className="text-sm py-2 text-black">{fmtDate(record.dueDate)}</TableCell>
+                  <TableCell className="text-sm py-2 text-black">
+                    {record.status ? (
+                      <Badge variant="outline" className="text-xs font-medium">
+                        {statusLabel(record.status)}
+                      </Badge>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
                   <TableCell className="text-sm py-2 text-black">
                     {fmtDate(record.dateCompleted ?? record.date_completed)}
                   </TableCell>

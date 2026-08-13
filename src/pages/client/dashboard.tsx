@@ -321,6 +321,8 @@ export default function ClientDashboard() {
       records.push({
         maintenanceType: t.task_description ?? "Maintenance Task",
         dateCompleted: t.scheduled_date ?? t.due_date ?? undefined,
+        scheduledDate: t.scheduled_date ?? undefined,
+        dueDate: t.due_date ?? undefined,
         status: t.status ?? undefined,
       });
     }

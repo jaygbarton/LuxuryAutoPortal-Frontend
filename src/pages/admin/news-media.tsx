@@ -156,8 +156,8 @@ export default function NewsMediaPage() {
     page: number;
     limit: number;
   }>({
-    queryKey: isClient
-      ? ["/api/news-media/active", page, search]
+    queryKey: viewOnly
+      ? ["/api/news-media/active", page, search, isClient ? "client" : "cohost"]
       : ["/api/news-media", page, search, statusFilter],
     enabled: authResolved,
     queryFn: async () => {
@@ -167,7 +167,10 @@ export default function NewsMediaPage() {
       // Only include news/media rows (those whose title starts with the NEWS prefix).
       params.set("titlePrefix", NEWS_PREFIX);
       if (search.trim()) params.set("search", search.trim());
-      if (isClient) {
+      if (viewOnly) {
+        // Scope to this role's audience so internal-only items (e.g. commission
+        // structure explainers) never reach a client or co-host viewer.
+        params.set("audience", isClient ? "client" : "cohost");
         const res = await fetch(
           buildApiUrl(`/api/client-testimonials/active?${params}`),
           { credentials: "include" },

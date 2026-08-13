@@ -95,6 +95,8 @@ export interface MaintenanceRecord {
   maintenanceType?: string;
   dateCompleted?: string;
   date_completed?: string;
+  scheduledDate?: string;
+  dueDate?: string;
   status?: string;
   price?: number;
   remarks?: string;
