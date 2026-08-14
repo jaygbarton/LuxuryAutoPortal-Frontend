@@ -42,7 +42,8 @@ import {
   Upload,
   Trash2,
 } from "lucide-react";
-import { buildApiUrl, buildUploadApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, buildUploadApiUrl, authMeQueryFn } from "@/lib/queryClient";
+import { SensitiveValue } from "@/components/admin/SensitiveValue";
 import { cn } from "@/lib/utils";
 import { getOnlineStatusBadge, formatLastLogin } from "@/lib/onlineStatus";
 import {
@@ -135,6 +136,16 @@ export default function ClientDetailPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const clientId = params?.id ? parseInt(params.id, 10) : null;
+
+  // Only super admins may reveal the full SSN/EIN/bank numbers (Cathy's policy, Jul 2026).
+  const { data: currentSession } = useQuery<{ user?: { isSuperAdmin?: boolean } }>({
+    queryKey: ["/api/auth/me"],
+    queryFn: authMeQueryFn,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+  const isSuperAdmin = Boolean(currentSession?.user?.isSuperAdmin);
+
   const [activeSection, setActiveSection] = useState<Section>("profile");
 const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
   
@@ -1046,15 +1057,6 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                         return String(value);
                       };
 
-                      // Only the last 4 digits of an SSN are ever shown in the admin UI.
-                      const maskSSN = (value: any): string => {
-                        const str = value === null || value === undefined ? "" : String(value);
-                        const digitsOnly = str.replace(/\D/g, "");
-                        if (!digitsOnly) return "Not provided";
-                        const last4 = digitsOnly.slice(-4);
-                        return `•••-••-${last4}`;
-                      };
-
                       const formatDate = (dateStr: string | null | undefined): string => {
                         if (!dateStr) return "Not provided";
                         try {
@@ -1139,7 +1141,14 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                               </div>
                               <div>
                                 <span className="text-muted-foreground block mb-1">SSN:</span>
-                                <span className="text-foreground font-mono">{maskSSN(data.ssn)}</span>
+                                <SensitiveValue
+                                  masked={data.ssn}
+                                  entityType="onboarding"
+                                  field="ssn"
+                                  entityId={data.id}
+                                  canReveal={isSuperAdmin}
+                                  className="text-foreground"
+                                />
                               </div>
                               <div>
                                 <span className="text-muted-foreground block mb-1">Representative:</span>
@@ -1280,15 +1289,25 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                                       </div>
                                       <div>
                                         <span className="text-muted-foreground block mb-1">Routing Number:</span>
-                                        <span className="text-foreground font-mono">
-                                          {formatValue(bankInfo.banking_info_routing_number)}
-                                        </span>
+                                        <SensitiveValue
+                                          masked={bankInfo.banking_info_routing_number}
+                                          entityType="client_banking"
+                                          field="routing_number"
+                                          entityId={bankInfo.banking_info_aid}
+                                          canReveal={isSuperAdmin}
+                                          className="text-foreground"
+                                        />
                                       </div>
                                       <div>
                                         <span className="text-muted-foreground block mb-1">Account Number:</span>
-                                        <span className="text-foreground font-mono">
-                                          {formatValue(bankInfo.banking_info_account_number)}
-                                        </span>
+                                        <SensitiveValue
+                                          masked={bankInfo.banking_info_account_number}
+                                          entityType="client_banking"
+                                          field="account_number"
+                                          entityId={bankInfo.banking_info_aid}
+                                          canReveal={isSuperAdmin}
+                                          className="text-foreground"
+                                        />
                                       </div>
                                       {bankInfo.banking_info_business_name && (
                                         <div>
@@ -1301,17 +1320,27 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                                       {bankInfo.banking_info_ein && (
                                         <div>
                                           <span className="text-muted-foreground block mb-1">EIN:</span>
-                                          <span className="text-foreground font-mono">
-                                            {formatValue(bankInfo.banking_info_ein)}
-                                          </span>
+                                          <SensitiveValue
+                                            masked={bankInfo.banking_info_ein}
+                                            entityType="client_banking"
+                                            field="ein"
+                                            entityId={bankInfo.banking_info_aid}
+                                            canReveal={isSuperAdmin}
+                                            className="text-foreground"
+                                          />
                                         </div>
                                       )}
                                       {bankInfo.banking_info_ssn && (
                                         <div>
                                           <span className="text-muted-foreground block mb-1">SSN:</span>
-                                          <span className="text-foreground font-mono">
-                                            {maskSSN(bankInfo.banking_info_ssn)}
-                                          </span>
+                                          <SensitiveValue
+                                            masked={bankInfo.banking_info_ssn}
+                                            entityType="client_banking"
+                                            field="ssn"
+                                            entityId={bankInfo.banking_info_aid}
+                                            canReveal={isSuperAdmin}
+                                            className="text-foreground"
+                                          />
                                         </div>
                                       )}
                                     </div>
@@ -1490,13 +1519,27 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                               {client.bankRoutingNumber && (
                                 <div>
                                   <span className="text-muted-foreground block mb-1">Routing Number:</span>
-                                  <span className="text-foreground font-mono">{client.bankRoutingNumber}</span>
+                                  <SensitiveValue
+                                    masked={client.bankRoutingNumber}
+                                    entityType="client"
+                                    field="bank_routing_number"
+                                    entityId={clientId}
+                                    canReveal={isSuperAdmin}
+                                    className="text-foreground"
+                                  />
                                 </div>
                               )}
                               {client.bankAccountNumber && (
                                 <div>
                                   <span className="text-muted-foreground block mb-1">Account Number:</span>
-                                  <span className="text-foreground font-mono">{client.bankAccountNumber}</span>
+                                  <SensitiveValue
+                                    masked={client.bankAccountNumber}
+                                    entityType="client"
+                                    field="bank_account_number"
+                                    entityId={clientId}
+                                    canReveal={isSuperAdmin}
+                                    className="text-foreground"
+                                  />
                                 </div>
                               )}
                             </div>
