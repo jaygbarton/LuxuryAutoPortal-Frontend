@@ -38,6 +38,7 @@ import { StatusBadge } from "./StatusBadge";
 import { PhotoUpload } from "./PhotoUpload";
 import { VIOLATION_TYPES } from "../forms/TicketViolationSubmission";
 import { useToast } from "@/hooks/use-toast";
+import { toMtLocalInput, mtLocalInputToUtcDbString } from "@/lib/mt-datetime";
 import { Plus, Edit, Trash2, ChevronsUpDown, Check } from "lucide-react";
 import { OperationEditHistory } from "@/components/admin/OperationEditHistory";
 
@@ -167,7 +168,7 @@ function TicketViolationModal({
         tv_amount_due: record.tv_amount_due != null ? String(record.tv_amount_due) : "",
         tv_total_payment: record.tv_total_payment != null ? String(record.tv_total_payment) : "",
         tv_location: record.tv_location ?? "",
-        tv_datetime: record.tv_datetime ? record.tv_datetime.slice(0, 16).replace(" ", "T") : "",
+        tv_datetime: toMtLocalInput(record.tv_datetime),
         tv_description: record.tv_description ?? "",
         tv_status: record.tv_status || "new",
       });
@@ -208,6 +209,7 @@ function TicketViolationModal({
       const payload = {
         ...form,
         tv_car_id: form.tv_car_id ? Number(form.tv_car_id) : null,
+        tv_datetime: mtLocalInputToUtcDbString(form.tv_datetime),
       };
       const url = record
         ? buildApiUrl(`/api/admin/ticket-violations/${record.tv_aid}`)
