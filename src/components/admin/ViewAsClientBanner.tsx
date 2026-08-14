@@ -171,7 +171,7 @@ export function ViewAsClientBanner() {
     (viewingAsCoHost && stopCoHostMutation.isPending);
 
   return (
-    <div className="sticky top-0 z-30 -mx-3 sm:-mx-4 md:-mx-6 -mt-3 sm:-mt-4 md:-mt-6 mb-3 sm:mb-4 md:mb-6 border-b border-amber-500/40 bg-amber-500/15 backdrop-blur px-3 sm:px-4 md:px-6 py-2">
+    <div className="sticky top-0 z-[4000] -mx-3 sm:-mx-4 md:-mx-6 -mt-3 sm:-mt-4 md:-mt-6 mb-3 sm:mb-4 md:mb-6 border-b border-amber-500/40 bg-amber-500/15 backdrop-blur px-3 sm:px-4 md:px-6 py-2">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div className="flex items-center gap-2 text-sm text-amber-900 min-w-0">
           <Eye className="w-4 h-4 shrink-0" />
