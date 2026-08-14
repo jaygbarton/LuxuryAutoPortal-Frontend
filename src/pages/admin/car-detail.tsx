@@ -1866,6 +1866,16 @@ export default function CarDetailPage() {
                         </p>
                       </div>
 
+                      {/* Car Location */}
+                      <div className="text-center lg:min-w-[100px] min-w-0">
+                        <p className="text-xs text-muted-foreground mb-1.5">Car Location</p>
+                        <p className="text-foreground text-xs sm:text-sm font-medium">
+                          {car.locationTag && PUBLIC_LOCATIONS[car.locationTag as keyof typeof PUBLIC_LOCATIONS]
+                            ? PUBLIC_LOCATIONS[car.locationTag as keyof typeof PUBLIC_LOCATIONS].cityState
+                            : "N/A"}
+                        </p>
+                      </div>
+
                       {/* Online Status */}
                       <div className="text-center lg:min-w-[120px] min-w-0">
                         <p className="text-xs text-muted-foreground mb-1.5">Online Status</p>
