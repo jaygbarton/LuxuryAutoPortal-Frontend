@@ -1593,51 +1593,61 @@ export default function EarningsPage() {
                   />
                   <TableRow
                     label="Delivery Income"
+                    splitLabel="100% Host Share"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "deliveryIncome"))}
                     category="income" field="deliveryIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Electric Prepaid Income"
+                    splitLabel="100% Host Share"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "electricPrepaidIncome"))}
                     category="income" field="electricPrepaidIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Smoking Fines"
+                    splitLabel="10% Owner Share, 90% Host Share"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "smokingFines"))}
                     category="income" field="smokingFines" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Gas Prepaid Income"
+                    splitLabel="100% Host Share"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "gasPrepaidIncome"))}
                     category="income" field="gasPrepaidIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Ski Racks Income"
+                    splitLabel="100% Ski Racks Owner Share"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "skiRacksIncome"))}
                     category="income" field="skiRacksIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Miles Income"
+                    splitLabel="100% Owner Share"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "milesIncome"))}
                     category="income" field="milesIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Child Seat Income"
+                    splitLabel="100% Host Share"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "childSeatIncome"))}
                     category="income" field="childSeatIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Coolers Income"
+                    splitLabel="100% Host Share"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "coolersIncome"))}
                     category="income" field="coolersIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Income Insurance and Client Wrecks"
+                    splitLabel="100% Host Share"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "insuranceWreckIncome"))}
                     category="income" field="insuranceWreckIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
                   <TableRow
                     label="Other Income"
+                    splitLabel="100% Host Share"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], i + 1, "otherIncome"))}
                     category="income" field="otherIncome" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
@@ -2304,6 +2314,7 @@ function CategorySection({ title, isExpanded, onToggle, children }: CategorySect
 
 interface TableRowProps {
   label: string;
+  splitLabel?: string;
   values: number[];
   isInteger?: boolean;
   isTotal?: boolean;
@@ -2326,6 +2337,7 @@ interface TableRowProps {
 
 function TableRow({
   label,
+  splitLabel,
   values,
   isInteger = false,
   isTotal = false,
@@ -2353,6 +2365,11 @@ function TableRow({
         isTotal ? "text-primary bg-background" : "text-muted-foreground bg-card"
       )}>
         <span className="whitespace-normal break-words md:whitespace-nowrap">{label}</span>
+        {splitLabel && (
+          <span className="block truncate italic text-[#B8860B] font-medium text-xs">
+            {splitLabel}
+          </span>
+        )}
       </td>
       {displayValues.map((value, i) => {
         const cellValue = typeof value === 'number' && !isNaN(value) ? value : 0;
