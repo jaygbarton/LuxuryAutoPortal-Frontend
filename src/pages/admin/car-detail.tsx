@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ClientSelectCombobox } from "./ClientSelectCombobox";
+import { PUBLIC_LOCATIONS } from "@/lib/location-config";
 
 /**
  * Extract Turo vehicle ID from a Turo listing URL.
@@ -205,6 +206,9 @@ interface CarDetail {
   freeDealershipOilChanges?: string | null;
   oilPackageDetails?: string | null;
   dealershipAddress?: string | null;
+  locationTag?: string | null;
+  city?: string | null;
+  state?: string | null;
   vehicleFeatures?: string | string[] | null;
   tireSize?: string | null;
   oilType?: string | null;
@@ -239,6 +243,7 @@ const carSchema = z.object({
   freeDealershipOilChanges: z.string().optional(),
   oilPackageDetails: z.string().optional(),
   dealershipAddress: z.string().optional(),
+  locationTag: z.string().optional(),
   fuelType: z.string().optional(),
   tireSize: z.string().optional(),
   titleType: z.string().optional(),
@@ -706,6 +711,7 @@ export default function CarDetailPage() {
       freeDealershipOilChanges: "",
       oilPackageDetails: "",
       dealershipAddress: "",
+      locationTag: "",
       fuelType: "",
       tireSize: "",
       titleType: "",
@@ -762,6 +768,7 @@ export default function CarDetailPage() {
       formData.append("freeDealershipOilChanges", data.freeDealershipOilChanges || "");
       formData.append("oilPackageDetails", data.oilPackageDetails || "");
       formData.append("dealershipAddress", data.dealershipAddress || "");
+      formData.append("locationTag", data.locationTag || "");
       formData.append("fuelType", data.fuelType || "");
       formData.append("tireSize", data.tireSize || "");
       formData.append("titleType", data.titleType || "");
@@ -1286,6 +1293,7 @@ export default function CarDetailPage() {
       freeDealershipOilChanges: onboarding?.freeDealershipOilChanges || "",
       oilPackageDetails: (onboarding as any)?.oilPackageDetails || "",
       dealershipAddress: (onboarding as any)?.dealershipAddress || "",
+      locationTag: car.locationTag || "",
       fuelType: onboarding?.fuelType || car.fuelType || "",
       tireSize: onboarding?.tireSize || car.tireSize || "",
       titleType: onboarding?.titleType || "",
@@ -1716,6 +1724,14 @@ export default function CarDetailPage() {
                       <p className="text-foreground text-base break-words min-w-0">{formatValue(car.dealershipAddress)}</p>
                 </div>
                   )}
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground mb-1">Car Location</p>
+                    <p className="text-foreground text-base break-words min-w-0">
+                      {car.locationTag && PUBLIC_LOCATIONS[car.locationTag as keyof typeof PUBLIC_LOCATIONS]
+                        ? PUBLIC_LOCATIONS[car.locationTag as keyof typeof PUBLIC_LOCATIONS].cityState
+                        : "N/A"}
+                    </p>
+                  </div>
                   <div className="min-w-0">
                     <p className="text-xs text-muted-foreground mb-1">Registration Expiration</p>
                     <p className="text-foreground text-base break-words min-w-0">{car.registrationExpiration ? formatValue(car.registrationExpiration) : "N/A"}</p>
@@ -3330,7 +3346,32 @@ export default function CarDetailPage() {
                       </FormItem>
                     )}
                   />
-                  
+
+                  <FormField
+                    control={form.control}
+                    name="locationTag"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-muted-foreground">Car Location</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl>
+                            <SelectTrigger className="bg-card border-border text-foreground focus:border-primary">
+                              <SelectValue placeholder="Select a location" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {Object.values(PUBLIC_LOCATIONS).map((loc) => (
+                              <SelectItem key={loc.locationTag} value={loc.locationTag}>
+                                {loc.cityState}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <FormField
                     control={form.control}
                     name="fuelType"
