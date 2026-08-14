@@ -701,16 +701,16 @@ export default function CarBlockOffPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
-                  {["Car", "Owner", "Reason", "Pick Up Date", "Block Off End", "Pick Up Location", "Drop Off Date", "Drop Off Location", "Status", "Actions"].map((h) => (
+                  {["Car", "Owner", "Reason", "Pick Up Date", "Block Off End", "Pick Up Location", "Drop Off Location", "Status", "Actions"].map((h) => (
                     <th key={h} className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={10} className="px-3 py-8 text-center text-muted-foreground">Loading...</td></tr>
+                  <tr><td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">Loading...</td></tr>
                 ) : submissions.length === 0 ? (
-                  <tr><td colSpan={10} className="px-3 py-8 text-center text-muted-foreground">No submissions found.</td></tr>
+                  <tr><td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">No submissions found.</td></tr>
                 ) : submissions.map((s) => (
                   <tr key={s.id} className="border-b border-border hover:bg-muted/30 transition-colors">
                     <td className="px-3 py-2 whitespace-nowrap">
@@ -727,7 +727,6 @@ export default function CarBlockOffPage() {
                     <td className="px-3 py-2 whitespace-nowrap text-foreground text-xs">{fmtDateTime(s.pickup_date)}</td>
                     <td className="px-3 py-2 whitespace-nowrap text-foreground text-xs">{s.block_off_end_date ? fmtDateTime(s.block_off_end_date) : "—"}</td>
                     <td className="px-3 py-2 text-foreground">{s.pickup_location}</td>
-                    <td className="px-3 py-2 whitespace-nowrap text-foreground text-xs">{s.dropoff_date ? fmtDateTime(s.dropoff_date) : "—"}</td>
                     <td className="px-3 py-2 text-foreground">{s.dropoff_location ?? "—"}</td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {isAdmin ? (
