@@ -486,8 +486,8 @@ export default function CarBlockOffPage() {
         </div>
 
         {/* Toggle — admin keeps the separate Start/End workflow; clients and
-            co-hosts get a single merged "Pick up and Drop Off" tab instead. */}
-        {isAdmin ? (
+            co-hosts only submit the pick-up (start) form. */}
+        {isAdmin && (
           <div className="flex rounded-lg border border-border overflow-hidden w-fit">
             <button
               type="button"
@@ -514,17 +514,10 @@ export default function CarBlockOffPage() {
               Car Block Off End — Car Owner Drop Off
             </button>
           </div>
-        ) : (
-          <div className="flex rounded-lg border border-border overflow-hidden w-fit">
-            <button type="button" className="px-6 py-3 text-sm font-medium bg-primary text-primary-foreground">
-              <CalendarOff className="w-4 h-4 inline mr-2" />
-              Car Owner - Pick up and Drop Off
-            </button>
-          </div>
         )}
 
         {/* Pickup Form */}
-        {(isAdmin ? mode === "start" : true) && (
+        {(!isAdmin || mode === "start") && (
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-foreground text-lg">Car Block Off</CardTitle>
@@ -632,8 +625,8 @@ export default function CarBlockOffPage() {
           </Card>
         )}
 
-        {/* Drop-off Form */}
-        {(isAdmin ? mode === "end" : true) && (
+        {/* Drop-off Form — admin only; clients/co-hosts don't end block-offs */}
+        {isAdmin && mode === "end" && (
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-foreground text-lg">Car Block Off End – Car Owner Drop Off</CardTitle>
