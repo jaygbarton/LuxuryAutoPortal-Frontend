@@ -449,13 +449,13 @@ export default function CarBlockOffPage() {
   const handlePickupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (
-      !carName || !ownerName || !reason || !pickupDate || !blockOffEndDate ||
+      !carName || !ownerName || !reason || !pickupDate ||
       !pickupLocation || !plannedDropoffLocation
     ) {
       toast({ title: "Missing fields", description: "Please fill in all required fields.", variant: "destructive" });
       return;
     }
-    if (new Date(blockOffEndDate) <= new Date(pickupDate)) {
+    if (blockOffEndDate && new Date(blockOffEndDate) <= new Date(pickupDate)) {
       toast({ title: "Invalid dates", description: "Block Off End must be after the Pick Up date/time.", variant: "destructive" });
       return;
     }
@@ -527,7 +527,7 @@ export default function CarBlockOffPage() {
         {(isAdmin ? mode === "start" : true) && (
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-foreground text-lg">Car Block Off Start – Car Owner Pick Up</CardTitle>
+              <CardTitle className="text-foreground text-lg">Car Block Off</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePickupSubmit} className="space-y-4">
@@ -589,15 +589,6 @@ export default function CarBlockOffPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-muted-foreground text-sm">Block Off End Date & Time *</Label>
-                    <Input type="datetime-local" value={blockOffEndDate} min={pickupDate || undefined}
-                      onChange={(e) => setBlockOffEndDate(e.target.value)}
-                      className="bg-card border-border text-foreground" />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      When the car becomes available again, so we know how long it's blocked off.
-                    </p>
-                  </div>
-                  <div>
                     <Label className="text-muted-foreground text-sm">Drop Off Location *</Label>
                     <Input value={plannedDropoffLocation} onChange={(e) => setPlannedDropoffLocation(e.target.value)}
                       className="bg-card border-border text-foreground" placeholder="Address or description" />
@@ -634,7 +625,7 @@ export default function CarBlockOffPage() {
 
                 <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/80"
                   disabled={submitPickup.isPending}>
-                  {submitPickup.isPending ? "Submitting..." : "Submit Car Block Off Start"}
+                  {submitPickup.isPending ? "Submitting..." : "Submit Car Block Off"}
                 </Button>
               </form>
             </CardContent>
