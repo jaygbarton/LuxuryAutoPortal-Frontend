@@ -229,6 +229,7 @@ export function TripsOverviewTab() {
     task_type?: TaskType;
     trip_start?: string;
     trip_end?: string;
+    pickup_location?: string;
     return_location?: string;
     delivery_location?: string;
   }>({});
@@ -245,7 +246,7 @@ export function TripsOverviewTab() {
   // end-range. (Legacy two-single-day comment retained below for context.)
   // "Trip Start" = trips starting on that exact day (cars going out), "Trip Ends" = trips ending on
   // that exact day (cars coming back). Each works alone — leave either blank to
-  // skip it. This is the daily-ops model (assign cleaners/delivery/pickup for a
+  // skip it. This is the daily-ops model (assign cleaners/drop-off/pick-up for a
   // given day), not a booking-style From/To date range.
   const [rangeFrom, setRangeFrom] = useState<string>("");
   const [rangeTo, setRangeTo] = useState<string>("");
@@ -659,8 +660,9 @@ export function TripsOverviewTab() {
       task_type: taskType,
       trip_start: trip.tripStart,
       trip_end: trip.tripEnd,
+      pickup_location: trip.pickupLocation || "",
       return_location: trip.returnLocation || "",
-      delivery_location: trip.deliveryLocation || trip.pickupLocation || "",
+      delivery_location: trip.deliveryLocation || "",
     });
     setTaskModalOpen(true);
   };
@@ -930,8 +932,8 @@ export function TripsOverviewTab() {
                     const taskChips = (
                       <div className="flex items-center gap-2">
                         <TaskChip icon={Sparkles} task={cleaningTask} assignedColor="text-yellow-500" assignedBg="bg-yellow-500/10" labelEmpty="Assign Cleaning" labelAssigned="Edit Cleaning Task" labelDelete="Delete Cleaning Task" onAssign={() => openTaskModal(trip, "cleaning")} onEdit={() => { if (cleaningTask) { setEditingTask(cleaningTask); setEditModalOpen(true); } }} onDelete={() => cleaningTask && setConfirmDeleteTask(cleaningTask)} />
-                        <TaskChip icon={Truck} task={deliveryTask} assignedColor="text-blue-400" assignedBg="bg-blue-400/10" labelEmpty="Assign Delivery" labelAssigned="Edit Delivery Task" labelDelete="Delete Delivery Task" onAssign={() => openTaskModal(trip, "delivery")} onEdit={() => { if (deliveryTask) { setEditingTask(deliveryTask); setEditModalOpen(true); } }} onDelete={() => deliveryTask && setConfirmDeleteTask(deliveryTask)} />
-                        <TaskChip icon={Package} task={pickupTask} assignedColor="text-green-500" assignedBg="bg-green-500/10" labelEmpty="Assign Pickup" labelAssigned="Edit Pickup Task" labelDelete="Delete Pickup Task" onAssign={() => openTaskModal(trip, "pickup")} onEdit={() => { if (pickupTask) { setEditingTask(pickupTask); setEditModalOpen(true); } }} onDelete={() => pickupTask && setConfirmDeleteTask(pickupTask)} />
+                        <TaskChip icon={Truck} task={deliveryTask} assignedColor="text-blue-400" assignedBg="bg-blue-400/10" labelEmpty="Assign Drop Off" labelAssigned="Edit Drop Off Task" labelDelete="Delete Drop Off Task" onAssign={() => openTaskModal(trip, "delivery")} onEdit={() => { if (deliveryTask) { setEditingTask(deliveryTask); setEditModalOpen(true); } }} onDelete={() => deliveryTask && setConfirmDeleteTask(deliveryTask)} />
+                        <TaskChip icon={Package} task={pickupTask} assignedColor="text-green-500" assignedBg="bg-green-500/10" labelEmpty="Assign Pick Up" labelAssigned="Edit Pick Up Task" labelDelete="Delete Pick Up Task" onAssign={() => openTaskModal(trip, "pickup")} onEdit={() => { if (pickupTask) { setEditingTask(pickupTask); setEditModalOpen(true); } }} onDelete={() => pickupTask && setConfirmDeleteTask(pickupTask)} />
                         {/* Only offered when the fuel actually came back short —
                             or when a refuel task already exists, so it stays
                             editable even after the levels are corrected. */}
@@ -967,8 +969,8 @@ export function TripsOverviewTab() {
                         guestName={trip.guestName}
                         tripStart={tripDateCell(trip.tripStart, trip.status) as string}
                         tripEnd={tripDateCell(trip.tripEnd, trip.status) as string}
-                        pickupLocation={trip.pickupLocation || trip.deliveryLocation}
-                        dropoffLocation={trip.returnLocation || trip.deliveryLocation || trip.pickupLocation}
+                        pickupLocation={trip.returnLocation || trip.deliveryLocation || trip.pickupLocation}
+                        dropoffLocation={trip.pickupLocation || trip.deliveryLocation}
                         details={[
                           { label: "Car Name", value: carNameEl },
                           { label: "VIN #", value: vinEl },

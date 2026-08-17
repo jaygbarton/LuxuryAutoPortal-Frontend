@@ -514,8 +514,8 @@ export function CarInspectionsTab() {
                     const movedToMaint = isMovedToMaintenance(insp.id);
                     const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
                     const isManual = !trip;
-                    const pickupLocation = isManual ? null : (trip?.pickupLocation || trip?.deliveryLocation || null);
-                    const dropOffLocation = isManual ? null : (trip?.returnLocation ?? trip?.deliveryLocation ?? null);
+                    const pickupLocation = isManual ? null : (trip?.returnLocation ?? trip?.deliveryLocation ?? trip?.pickupLocation ?? null);
+                    const dropOffLocation = isManual ? null : (trip?.pickupLocation || trip?.deliveryLocation || null);
                     const daysRented = trip ? calculateDaysRented(trip.tripStart, trip.tripEnd) : null;
                     const earnings = trip ? (trip.status?.toLowerCase() === "cancelled" ? trip.cancelledEarnings : trip.earnings) : null;
 

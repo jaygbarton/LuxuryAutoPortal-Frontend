@@ -35,6 +35,7 @@ interface TaskAssignmentModalProps {
     task_type?: TaskType;
     trip_start?: string;
     trip_end?: string;
+    pickup_location?: string;
     return_location?: string;
     delivery_location?: string;
   };
@@ -46,7 +47,7 @@ function computeDefaults(
   tripEnd?: string,
 ): { scheduledDate: string; dueDate: string } {
   if (taskType === "delivery") {
-    // Delivery: both default to trip start
+    // Drop Off: both default to trip start
     const d = toMtLocalInput(tripStart);
     return { scheduledDate: d, dueDate: d };
   }
@@ -55,10 +56,10 @@ function computeDefaults(
     const d = toMtLocalInput(tripEnd);
     return { scheduledDate: d, dueDate: d };
   }
-  // Cleaning: scheduled = trip start, due = trip end
+  // Cleaning is for the outgoing drop-off, so it follows trip start.
   return {
     scheduledDate: toMtLocalInput(tripStart),
-    dueDate: toMtLocalInput(tripEnd),
+    dueDate: toMtLocalInput(tripStart),
   };
 }
 
@@ -111,10 +112,12 @@ export function TaskAssignmentModal({
       );
 
       let defaultLocation = "";
-      if (taskType === "pickup" && prefill.return_location) {
-        defaultLocation = prefill.return_location;
+      if (taskType === "pickup") {
+        defaultLocation = prefill.return_location || prefill.delivery_location || prefill.pickup_location || "";
       } else if (taskType === "delivery") {
-        defaultLocation = prefill.delivery_location || prefill.return_location || "";
+        defaultLocation = prefill.pickup_location || prefill.delivery_location || "";
+      } else if (taskType === "cleaning") {
+        defaultLocation = prefill.pickup_location || prefill.delivery_location || "";
       }
 
       setFormData((prev) => ({
@@ -141,9 +144,11 @@ export function TaskAssignmentModal({
       );
       let defaultLocation = formData.scheduled_location;
       if (formData.task_type === "pickup") {
-        defaultLocation = prefill.return_location || "";
+        defaultLocation = prefill.return_location || prefill.delivery_location || prefill.pickup_location || "";
       } else if (formData.task_type === "delivery") {
-        defaultLocation = prefill.delivery_location || prefill.return_location || "";
+        defaultLocation = prefill.pickup_location || prefill.delivery_location || "";
+      } else if (formData.task_type === "cleaning") {
+        defaultLocation = prefill.pickup_location || prefill.delivery_location || "";
       }
       setFormData((prev) => ({
         ...prev,

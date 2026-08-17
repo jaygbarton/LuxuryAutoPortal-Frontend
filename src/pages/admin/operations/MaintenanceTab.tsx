@@ -578,8 +578,8 @@ export function MaintenanceTab({
                       plateNumber: rec.trip_plate_number ?? clientTrip?.plateNumber ?? null,
                     }
                   : clientTrip;
-                const pickupLocation = trip?.pickupLocation || trip?.deliveryLocation || null;
-                const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? trip?.pickupLocation ?? null;
+                const pickupLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? trip?.pickupLocation ?? null;
+                const dropOffLocation = trip?.pickupLocation || trip?.deliveryLocation || null;
                 const daysRented = trip ? calculateDaysRented(trip.tripStart, trip.tripEnd) : null;
                 const tripEarnings = trip
                   ? (trip.status?.toLowerCase() === "cancelled" ? trip.cancelledEarnings : trip.earnings)

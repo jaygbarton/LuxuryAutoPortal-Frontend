@@ -347,8 +347,8 @@ export function NoCarIssuesTab() {
                 ) : (
                   pagedInspections.map((insp) => {
                     const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
-                    const pickupLocation = trip?.pickupLocation || trip?.deliveryLocation || "--";
-                    const dropOffLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? "--";
+                    const pickupLocation = trip?.returnLocation ?? trip?.deliveryLocation ?? trip?.pickupLocation ?? "--";
+                    const dropOffLocation = trip?.pickupLocation || trip?.deliveryLocation || "--";
                     const daysRented = trip ? calculateDaysRented(trip.tripStart, trip.tripEnd) : null;
                     const earnings = trip
                       ? (trip.status?.toLowerCase() === "cancelled"
