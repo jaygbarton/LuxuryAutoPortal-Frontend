@@ -253,6 +253,7 @@ export function ClaimsTab() {
                   <SelectItem value="estimate_requested">Estimate Requested</SelectItem>
                   <SelectItem value="estimate_sent_to_turo">Invoiced Guest</SelectItem>
                   <SelectItem value="turo_managed">Turo Managed</SelectItem>
+                  <SelectItem value="not_qualified">Not Qualified</SelectItem>
                   <SelectItem value="resolved">Resolved</SelectItem>
                   <SelectItem value="not_resolved">Not Resolved</SelectItem>
                 </SelectContent>
@@ -279,6 +280,8 @@ export function ClaimsTab() {
                     ? { bg: "bg-blue-500", border: "border-blue-300" }
                     : claim.status === "turo_managed"
                     ? { bg: "bg-indigo-500", border: "border-indigo-300" }
+                    : claim.status === "not_qualified"
+                    ? { bg: "bg-red-600", border: "border-red-300" }
                     : claim.status === "new"
                     ? { bg: "bg-slate-500", border: "border-slate-300" }
                     : { bg: "bg-amber-500", border: "border-amber-300" };
@@ -296,6 +299,7 @@ export function ClaimsTab() {
                       <SelectItem value="estimate_requested">Estimate Requested</SelectItem>
                       <SelectItem value="estimate_sent_to_turo">Invoiced Guest</SelectItem>
                       <SelectItem value="turo_managed">Turo Managed</SelectItem>
+                      <SelectItem value="not_qualified">Not Qualified</SelectItem>
                       <SelectItem value="resolved">Resolved</SelectItem>
                       <SelectItem value="not_resolved">Not Resolved</SelectItem>
                     </SelectContent>

@@ -115,6 +115,7 @@ export type ClaimStatus =
   | "estimate_requested"
   | "estimate_sent_to_turo"
   | "turo_managed"
+  | "not_qualified"
   | "resolved"
   | "not_resolved";
 
