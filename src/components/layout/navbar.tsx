@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle, Navigation } from "lucide-react";
+import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle, Navigation, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPublicLocationFromPath, withLocationPath } from "@/lib/location-config";
 import { UserAccountMenu } from "@/components/layout/user-account-menu";
@@ -21,6 +21,7 @@ const navLinks = [
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isPagesOpen, setIsPagesOpen] = useState(false);
   const [location] = useLocation();
   const publicLocation = getPublicLocationFromPath(location);
   const links = navLinks.filter((link) => {
@@ -32,6 +33,9 @@ export function Navbar() {
     if (link.href === "/suggested-cars") return publicLocation.availablePages.suggestedCars;
     return true;
   });
+  const primaryLinks = links.filter((link) => link.href === "/" || link.href === "/fleet" || link.href === "/contact");
+  const pageLinks = links.filter((link) => !primaryLinks.some((primary) => primary.href === link.href));
+  const isPagesActive = pageLinks.some((link) => location === withLocationPath(link.href, publicLocation));
 
   return (
     <>
@@ -63,7 +67,89 @@ export function Navbar() {
 
           {/* Desktop nav links */}
           <div className="hidden lg:flex items-center gap-0.5">
-            {links.map((link) => {
+            {primaryLinks.slice(0, 2).map((link) => {
+              const href = withLocationPath(link.href, publicLocation);
+              return (
+              <Link
+                key={link.href}
+                href={href}
+                className="px-2.5 xl:px-3 py-2 text-sm font-medium transition-colors relative group"
+                style={{
+                  color: location === href ? "#C49000" : "#4A4A4A",
+                  textDecoration: "none",
+                }}
+                data-testid={`link-nav-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                {link.label}
+                <span
+                  className={cn(
+                    "absolute bottom-0 left-2.5 right-2.5 xl:left-3 xl:right-3 h-0.5 transition-transform origin-left",
+                    location === href ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                  )}
+                  style={{ background: "#D4A017", borderRadius: "1px" }}
+                />
+              </Link>
+              );
+            })}
+            {pageLinks.length > 0 && (
+              <div
+                className="relative"
+                onMouseEnter={() => setIsPagesOpen(true)}
+                onMouseLeave={() => setIsPagesOpen(false)}
+              >
+                <button
+                  type="button"
+                  className="relative flex items-center gap-1 px-2.5 py-2 text-sm font-medium transition-colors xl:px-3"
+                  style={{
+                    color: isPagesActive || isPagesOpen ? "#C49000" : "#4A4A4A",
+                  }}
+                  onClick={() => setIsPagesOpen((open) => !open)}
+                  onFocus={() => setIsPagesOpen(true)}
+                  data-testid="button-nav-pages"
+                >
+                  Pages
+                  <ChevronDown className={cn("h-4 w-4 transition-transform", isPagesOpen ? "rotate-180" : "rotate-0")} />
+                  <span
+                    className={cn(
+                      "absolute bottom-0 left-2.5 right-2.5 h-0.5 origin-left transition-transform xl:left-3 xl:right-3",
+                      isPagesActive || isPagesOpen ? "scale-x-100" : "scale-x-0"
+                    )}
+                    style={{ background: "#D4A017", borderRadius: "1px" }}
+                  />
+                </button>
+
+                {isPagesOpen && (
+                  <div
+                    className="absolute left-1/2 top-full z-[70] mt-3 w-[260px] -translate-x-1/2 rounded-md border bg-white p-2 shadow-[0_18px_50px_rgba(0,0,0,0.16)]"
+                    style={{ borderColor: "#E8D4A0" }}
+                  >
+                    {pageLinks.map((link) => {
+                      const Icon = link.icon;
+                      const href = withLocationPath(link.href, publicLocation);
+                      const active = location === href;
+                      return (
+                        <Link
+                          key={link.href}
+                          href={href}
+                          className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors"
+                          style={{
+                            color: active ? "#C49000" : "#4A4A4A",
+                            background: active ? "#FDF8EE" : "transparent",
+                            textDecoration: "none",
+                          }}
+                          onClick={() => setIsPagesOpen(false)}
+                          data-testid={`link-nav-pages-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="min-w-0 truncate">{link.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            {primaryLinks.slice(2).map((link) => {
               const href = withLocationPath(link.href, publicLocation);
               return (
               <Link
