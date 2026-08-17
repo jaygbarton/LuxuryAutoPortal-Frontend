@@ -449,13 +449,13 @@ export default function CarBlockOffPage() {
   const handlePickupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (
-      !carName || !ownerName || !reason || !pickupDate ||
+      !carName || !ownerName || !reason || !pickupDate || !blockOffEndDate ||
       !pickupLocation || !plannedDropoffLocation
     ) {
       toast({ title: "Missing fields", description: "Please fill in all required fields.", variant: "destructive" });
       return;
     }
-    if (blockOffEndDate && new Date(blockOffEndDate) <= new Date(pickupDate)) {
+    if (new Date(blockOffEndDate) <= new Date(pickupDate)) {
       toast({ title: "Invalid dates", description: "Block Off End must be after the Pick Up date/time.", variant: "destructive" });
       return;
     }
@@ -581,6 +581,15 @@ export default function CarBlockOffPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Block Off End (Drop Off) Date & Time *</Label>
+                    <Input type="datetime-local" value={blockOffEndDate} min={pickupDate || undefined}
+                      onChange={(e) => setBlockOffEndDate(e.target.value)}
+                      className="bg-card border-border text-foreground" />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      When the car becomes available again, so we know how long it's blocked off.
+                    </p>
+                  </div>
                   <div>
                     <Label className="text-muted-foreground text-sm">Drop Off Location *</Label>
                     <Input value={plannedDropoffLocation} onChange={(e) => setPlannedDropoffLocation(e.target.value)}
