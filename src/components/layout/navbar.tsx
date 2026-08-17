@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle } from "lucide-react";
+import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPublicLocationFromPath, withLocationPath } from "@/lib/location-config";
 import { UserAccountMenu } from "@/components/layout/user-account-menu";
@@ -8,6 +8,7 @@ import { UserAccountMenu } from "@/components/layout/user-account-menu";
 const navLinks = [
   { href: "/", label: "Home", icon: Home },
   { href: "/fleet", label: "Our Fleet", icon: Car },
+  { href: "/pick-up-and-drop-off", label: "Pick Up/Drop Off", icon: Navigation },
   { href: "/detail-shop", label: "Detail Shop", icon: Sparkles },
   { href: "/extras", label: "Extras", icon: PlusCircle },
   { href: "/deals", label: "Deals", icon: BadgePercent },

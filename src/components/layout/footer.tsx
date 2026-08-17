@@ -8,6 +8,7 @@ import { getPublicLocationFromPath, withLocationPath } from "@/lib/location-conf
 
 const quickLinks = [
   { href: "/fleet", label: "Our Fleet" },
+  { href: "/pick-up-and-drop-off", label: "Pick Up And Drop Off" },
   { href: "/detail-shop", label: "Detail Shop" },
   { href: "/extras", label: "Extras" },
   { href: "/deals", label: "Deals" },

@@ -7,12 +7,17 @@ import {
   CalendarDays,
   CarFront,
   Check,
+  CircleDollarSign,
   ExternalLink,
   FileText,
+  KeyRound,
   Mail,
   MapPin,
   MessageSquareText,
+  Navigation,
+  ParkingCircle,
   Phone,
+  Plane,
   PlayCircle,
   ShieldCheck,
   Sparkles,
@@ -38,6 +43,7 @@ type PageKey =
   | "testimonials"
   | "reviews"
   | "reviews-options"
+  | "pickup-dropoff"
   | "extras"
   | "suggested-cars";
 
@@ -68,6 +74,20 @@ type SuggestedCarPartner = {
   name: string;
   imageUrl: string;
   websiteHref: string;
+};
+
+type InstructionCard = {
+  title: string;
+  price: string;
+  category: "pick-up" | "drop-off";
+  icon: typeof Plane;
+  videoId: string;
+  address?: string;
+  summary: string;
+  sections: {
+    title: string;
+    items: string[];
+  }[];
 };
 
 type JobListing = {
@@ -176,6 +196,16 @@ const pageMeta: Record<PageKey, {
     primaryHref: "https://share.google/DoBc0jrr0SkT8Ggqg",
     secondaryCta: "Back To Testimonials",
     secondaryHref: "/testimonials",
+  },
+  "pickup-dropoff": {
+    eyebrow: "Guest Instructions",
+    title: "Pick Up And Drop Off",
+    description:
+      "Clear airport, hotel, curbside, custom delivery, and lock box instructions for Golden Luxury Auto guests.",
+    primaryCta: "Pick Up Options",
+    primaryHref: "#pick-up",
+    secondaryCta: "Drop Off Options",
+    secondaryHref: "#drop-off",
   },
   extras: {
     eyebrow: "Trip Extras",
@@ -516,6 +546,407 @@ const suggestedCarPartners: SuggestedCarPartner[] = [
   },
 ];
 
+const pickupDropoffHighlights = [
+  {
+    label: "Most Used",
+    title: "Diamond Parking Lot",
+    description: "The airport Lyft or Uber option is the free pickup and drop-off path most guests choose.",
+    icon: CircleDollarSign,
+  },
+  {
+    label: "Airport",
+    title: "Garage Level 2 G-4",
+    description: "Short-term parking garage instructions keep the car easy to locate and document.",
+    icon: ParkingCircle,
+  },
+  {
+    label: "Handled",
+    title: "Curbside + Hotel",
+    description: "Guest-facing handoffs are covered for airport curbside, hotels, and custom delivery.",
+    icon: Navigation,
+  },
+];
+
+const pickupDropoffVideos = [
+  { id: "6WOIehyNAZo", title: "Airport Pickup Options Overview" },
+  { id: "HVvY7j0fOHo", title: "Pick Up Airport Curbside" },
+  { id: "zY9RhCBWD4U", title: "Pick Up Hotel" },
+  { id: "HzjxCAtnYYg", title: "Custom Delivery Pickup" },
+  { id: "Ra0qn5JDko0", title: "Lock Box Instructions" },
+  { id: "HeVCWmd6Jao", title: "Drop Off Airport Garage" },
+  { id: "hMSKcZ2Qa8M", title: "Drop Off Diamond Parking" },
+  { id: "OmjBEl1OKJs", title: "Drop Off Airport Curbside" },
+  { id: "atz8AGWzM2s", title: "Drop Off Custom Location" },
+];
+
+const pickupInstructions: InstructionCard[] = [
+  {
+    title: "Pick Up Airport Garage Parking Lot - Custom Location",
+    price: "Varies + parking ticket",
+    category: "pick-up",
+    icon: ParkingCircle,
+    videoId: "6WOIehyNAZo",
+    address: "Garage Parking Level 2 G-4, 3920 W. Terminal Dr., Salt Lake City, Utah 84122",
+    summary: "Use Custom Delivery and enter the airport address to pick up in the short-term garage.",
+    sections: [
+      {
+        title: "Locating Car",
+        items: [
+          "Message us in the app when you land.",
+          "Follow Rental Car Pick-Up and Parking Garage signs.",
+          "Use the west skywalk when leaving baggage claim.",
+          "Check Trip Photos in the app for the exact parking location, typically Level 2, Column G-4.",
+          "The car will be unlocked or will unlock remotely. Keys and the exit ticket will be in the glovebox.",
+        ],
+      },
+      {
+        title: "Photos Required",
+        items: [
+          "All sides of the car, including odometer.",
+          "License plate selfie with your license by the plate.",
+          "Upload photos to the Messages section in the app.",
+        ],
+      },
+      {
+        title: "Final Steps",
+        items: [
+          "Check in on the app.",
+          "Prepare to pay a small airport exit fee, usually $35 or less.",
+        ],
+      },
+    ],
+  },
+  {
+    title: "Airport Lyft or Uber Pick-Up Diamond Parking Lot",
+    price: "Free",
+    category: "pick-up",
+    icon: CircleDollarSign,
+    videoId: "6WOIehyNAZo",
+    address: "50 South Redwood Road, Salt Lake City, Utah 84116",
+    summary: "Arrange Lyft, Uber, or your own transportation to the Diamond Airport Parking Lot.",
+    sections: [
+      {
+        title: "Locating Car",
+        items: [
+          "Go to 50 S. Redwood Road, Diamond Airport Parking Lot.",
+          "The car will be parked in front of the entrance to the parking lot.",
+          "Check Trip Photos in the app to see the exact location.",
+          "The car will be unlocked or will unlock remotely. Keys will be in an envelope in the glovebox.",
+        ],
+      },
+      {
+        title: "Photos Required",
+        items: [
+          "All sides of the car, including odometer.",
+          "License plate selfie with your license by the plate.",
+          "Upload photos to the Messages section in the app.",
+        ],
+      },
+      {
+        title: "Final Steps",
+        items: ["Check in on the app."],
+      },
+    ],
+  },
+  {
+    title: "Pick Up Airport Curbside",
+    price: "Varies",
+    category: "pick-up",
+    icon: Plane,
+    videoId: "HVvY7j0fOHo",
+    address: "Airport designated Turo curb / curbside location",
+    summary: "Message when you land and again after baggage claim so the host can meet you quickly.",
+    sections: [
+      {
+        title: "Locating Car At Turo Designated Curb",
+        items: [
+          "Message us in the app when your airplane lands and share your location.",
+          "After collecting luggage, message us again and start walking down the skywalk.",
+          "Follow Rental Car Counter signs. Walk past the rental counters, take the escalator down to the rental floor, turn right at the bottom, and walk west to the Turo designated curb.",
+          "Your host will give you the keys and inspect the car with you.",
+          "The vehicle and odometer will already be photographed for efficiency.",
+        ],
+      },
+      {
+        title: "Final Steps",
+        items: ["Check in on the app."],
+      },
+    ],
+  },
+  {
+    title: "Pick Up Hotel",
+    price: "Varies",
+    category: "pick-up",
+    icon: KeyRound,
+    videoId: "zY9RhCBWD4U",
+    address: "Hotel name and address",
+    summary: "Keys are handled through the front desk or bell captain with trip photos showing the car location.",
+    sections: [
+      {
+        title: "Receiving Car",
+        items: [
+          "Ask the front desk or bell captain for the keys.",
+          "Keys will be in an envelope with instructions.",
+          "Check Trip Photos in the app to see where the car is parked.",
+          "The vehicle has already been photographed, including exterior, odometer, and gas gauge.",
+        ],
+      },
+      {
+        title: "Final Steps",
+        items: [
+          "Take a picture of yourself by the license plate.",
+          "Take a selfie holding your driver's license next to the car's license plate.",
+          "Take pictures of the odometer and gas gauge.",
+          "Upload all photos to Trip Photos in the app.",
+        ],
+      },
+    ],
+  },
+  {
+    title: "Pick Up Custom Delivery Location - Airport Parking Garage",
+    price: "Varies",
+    category: "pick-up",
+    icon: Navigation,
+    videoId: "HzjxCAtnYYg",
+    address: "Custom delivery address, or 776 North Terminal Drive, SLC, Utah for Airport Short Term Parking Level 2 G-4",
+    summary: "Use Custom Delivery Address when the car is delivered to a specific airport or custom location.",
+    sections: [
+      {
+        title: "Receiving Car",
+        items: [
+          "Share your live location in the Turo app.",
+          "Look for your car out front at the delivery address.",
+          "Meet the driver at the location.",
+          "Have your driver's license ready for verification.",
+          "Keys will be handed to you in an envelope.",
+        ],
+      },
+      {
+        title: "Final Steps",
+        items: [
+          "Take a verification photo holding your license next to the car's license plate.",
+          "Complete check-in through the Turo app.",
+        ],
+      },
+    ],
+  },
+  {
+    title: "Pick Up Lock Box",
+    price: "Process",
+    category: "pick-up",
+    icon: KeyRound,
+    videoId: "Ra0qn5JDko0",
+    summary: "Use the lock box only after uploading your license and insurance card in the app.",
+    sections: [
+      {
+        title: "Before Arrival",
+        items: [
+          "Upload a copy of your license and insurance card in the app as soon as possible.",
+          "The lock box will be on the driver's side window.",
+          "The lock box code will be messaged after your license is uploaded.",
+        ],
+      },
+      {
+        title: "Final Steps",
+        items: [
+          "Take a picture standing by the license plate.",
+          "Take a picture of your driver's license in your hand with your face and the car license plate showing.",
+          "Take pictures of the odometer and gas gauge.",
+          "Upload all pictures under Trip Photos in the app.",
+        ],
+      },
+    ],
+  },
+];
+
+const dropoffInstructions: InstructionCard[] = [
+  {
+    title: "Drop Off Airport Garage Parking Lot - Custom Location",
+    price: "Varies + parking ticket",
+    category: "drop-off",
+    icon: ParkingCircle,
+    videoId: "HeVCWmd6Jao",
+    address: "Airport Short Term Parking, 3920 W. Terminal Dr., Salt Lake City, Utah 84122",
+    summary: "Choose the custom location when dropping off in the airport short-term garage.",
+    sections: [
+      {
+        title: "Parking Car",
+        items: [
+          "Follow signs for Airport Parking Garage.",
+          "Take a ticket, stay on Level 2, make a sharp left, and drive to the far west side near Column G-4.",
+          "Park on Level 2, far west side, as close to Column G-4 as possible.",
+          "Leave the car unlocked and place the keys in the glovebox.",
+          "Leave the parking ticket in the glovebox.",
+        ],
+      },
+      {
+        title: "Photos Required",
+        items: [
+          "Keys in glovebox with car unlocked.",
+          "Gas gauge and odometer.",
+          "Car exterior with column letter or number visible.",
+        ],
+      },
+      {
+        title: "Final Steps",
+        items: [
+          "Message us in the app with the exact parking location.",
+          "Upload the parking photo.",
+          "Check out in the app.",
+          "Leave a review in the Turo app and on social media.",
+        ],
+      },
+    ],
+  },
+  {
+    title: "Airport Lyft or Uber From Diamond Parking Lot",
+    price: "Free",
+    category: "drop-off",
+    icon: CircleDollarSign,
+    videoId: "hMSKcZ2Qa8M",
+    address: "50 South Redwood Road, Salt Lake City, Utah 84116",
+    summary: "Call Lyft or Uber before arriving to the Airport Diamond Parking Lot.",
+    sections: [
+      {
+        title: "Parking Car",
+        items: [
+          "Park in front of the building entrance.",
+          "Place keys in the booth lock box.",
+          "Do not lock the keys in the car.",
+        ],
+      },
+      {
+        title: "Photos Required",
+        items: [
+          "Keys dropped off in the booth lock box.",
+          "Gas gauge and odometer.",
+          "Car parking location.",
+          "Upload photos to the Messages section in the app.",
+        ],
+      },
+      {
+        title: "Final Steps",
+        items: [
+          "Message us in the app with the exact parking location.",
+          "Upload the parking photo.",
+          "Check out in the app.",
+          "Leave a review in the Turo app and on social media.",
+        ],
+      },
+    ],
+  },
+  {
+    title: "Drop Off Airport Curbside",
+    price: "Varies",
+    category: "drop-off",
+    icon: Plane,
+    videoId: "OmjBEl1OKJs",
+    address: "Airport Turo designated curb / curbside location",
+    summary: "Provide your estimated arrival time and meet the team member near the Turo curbside area.",
+    sections: [
+      {
+        title: "Arrival And Parking",
+        items: [
+          "Provide your estimated arrival time at the airport.",
+          "Follow signs for Car Rental Return on the left side of the street.",
+          "Drive past rental return locations and turn left into the circular area with Turo signs.",
+          "Message us when nearing the airport.",
+          "A team member will greet you, assist with luggage, and collect the keys.",
+        ],
+      },
+      {
+        title: "Final Steps",
+        items: [
+          "Check out in the app.",
+          "Leave a review in the Turo app and on social media.",
+        ],
+      },
+    ],
+  },
+  {
+    title: "Drop Off Hotel",
+    price: "Varies",
+    category: "drop-off",
+    icon: KeyRound,
+    videoId: "HeVCWmd6Jao",
+    address: "Hotel name and address",
+    summary: "Park at the hotel, hand keys to the front desk, and message the final parking details.",
+    sections: [
+      {
+        title: "Receiving Car",
+        items: [
+          "Message us in the app when you are about 10 minutes from parking the car.",
+          "Take a picture of where you parked and upload it to the Messages section of the trip.",
+          "Take the keys to the front desk in an envelope labeled Golden Luxury Auto.",
+          "Message us with the name of the person at the front desk who received the keys.",
+        ],
+      },
+      {
+        title: "Final Steps",
+        items: [
+          "Message us in the app with the exact parking location.",
+          "Upload the parking photo.",
+          "Check out in the app.",
+          "Leave a review in the Turo app and on social media.",
+        ],
+      },
+    ],
+  },
+  {
+    title: "Drop Off Custom Location",
+    price: "Varies",
+    category: "drop-off",
+    icon: Navigation,
+    videoId: "atz8AGWzM2s",
+    address: "Airport Short Term Level 2 G-4 or custom delivery address",
+    summary: "Use this when returning the car to a custom delivery address or airport short-term Level 2 G-4.",
+    sections: [
+      {
+        title: "Delivering Car",
+        items: [
+          "Contact us in the app 1 hour before drop-off.",
+          "Share your live location in the app.",
+          "Park the car safely at the designated delivery address.",
+          "Take pictures of the car and its location.",
+          "Upload photos to the Messages section in the app.",
+          "Wait for an employee to pick up the car.",
+        ],
+      },
+      {
+        title: "Final Steps",
+        items: [
+          "Message us in the app with the exact parking location.",
+          "Upload the parking photo.",
+          "Check out in the app.",
+          "Leave a review in the Turo app and on social media.",
+        ],
+      },
+    ],
+  },
+  {
+    title: "Lock Box",
+    price: "Process",
+    category: "drop-off",
+    icon: KeyRound,
+    videoId: "Ra0qn5JDko0",
+    summary: "Use lock box instructions when the trip is set up for a lock box return.",
+    sections: [
+      {
+        title: "Process",
+        items: [
+          "Upload a copy of your license and insurance card in the app as soon as possible.",
+          "The lock box will be on the driver's side window.",
+          "The lock box code will be messaged after your license is uploaded.",
+          "Take a picture standing by the license plate.",
+          "Take a picture of your driver's license in your hand with your face and the car license plate showing.",
+          "Take pictures of the odometer and gas gauge.",
+          "Upload all pictures under Trip Photos in the app.",
+        ],
+      },
+    ],
+  },
+];
+
 const extras: Extra[] = [
   {
     name: "Ski Racks",
@@ -699,6 +1130,21 @@ function CtaLink({ href, children, className }: { href: string; children: ReactN
     <Link href={href} className={className}>
       {children}
     </Link>
+  );
+}
+
+function YouTubeEmbed({ id, title }: { id: string; title: string }) {
+  return (
+    <div className="aspect-video overflow-hidden rounded-md bg-black">
+      <iframe
+        src={`https://www.youtube-nocookie.com/embed/${id}`}
+        title={title}
+        className="h-full w-full border-0"
+        loading="lazy"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+      />
+    </div>
   );
 }
 
@@ -1662,6 +2108,186 @@ export function ReviewsOptionsPage() {
         </div>
       </section>
       <ContactBand title="Need help before leaving a review? Contact the team directly." label="Reviews" />
+    </PageShell>
+  );
+}
+
+function InstructionPanel({ item }: { item: InstructionCard }) {
+  const Icon = item.icon;
+
+  return (
+    <Card className="overflow-hidden border-border bg-card">
+      <CardContent className="grid gap-0 p-0 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.82fr)]">
+        <div className="p-5 sm:p-6 lg:p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                <Icon className="h-5 w-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-widest text-primary">
+                  {item.category === "pick-up" ? "Pick Up" : "Drop Off"}
+                </p>
+                <h3 className="mt-2 text-2xl font-semibold leading-tight text-foreground">{item.title}</h3>
+              </div>
+            </div>
+            <span className="inline-flex w-fit shrink-0 rounded-md bg-primary/10 px-3 py-1 text-sm font-bold text-primary">
+              {item.price}
+            </span>
+          </div>
+
+          <p className="mt-5 text-sm leading-6 text-muted-foreground">{item.summary}</p>
+
+          {item.address ? (
+            <div className="mt-5 flex items-start gap-3 rounded-md border border-border bg-background/70 p-4 text-sm text-foreground">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <span className="break-words">{item.address}</span>
+            </div>
+          ) : null}
+
+          <div className="mt-6 grid gap-5">
+            {item.sections.map((section) => (
+              <div key={`${item.title}-${section.title}`}>
+                <h4 className="text-sm font-semibold uppercase tracking-widest text-foreground">{section.title}</h4>
+                <div className="mt-3 grid gap-2">
+                  {section.items.map((line) => (
+                    <div key={line} className="flex items-start gap-2 text-sm leading-6 text-muted-foreground">
+                      <Check className="mt-1 h-4 w-4 shrink-0 text-primary" />
+                      <span>{line}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <a
+            href={`https://youtu.be/${item.videoId}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-6 inline-flex items-center text-sm font-semibold text-primary"
+          >
+            Watch Video Instructions
+            <ExternalLink className="ml-2 h-4 w-4" />
+          </a>
+        </div>
+
+        <div className="border-t border-border bg-[#0A0A0A] p-4 lg:border-l lg:border-t-0 lg:p-5">
+          <YouTubeEmbed id={item.videoId} title={`${item.title} video instructions`} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function PickupDropoffPage() {
+  return (
+    <PageShell page="pickup-dropoff" heroImage="/pickup-dropoff-hero.webp" heroImagePosition="center center">
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
+        <div className="grid gap-5 md:grid-cols-3">
+          {pickupDropoffHighlights.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Card key={item.title} className="border-border bg-card">
+                <CardContent className="p-5">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                      <Icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-primary">{item.label}</p>
+                      <h3 className="mt-2 text-xl font-semibold text-foreground">{item.title}</h3>
+                      <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="bg-muted/45 px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
+          <div>
+            <SectionHeader
+              eyebrow="Airport Overview"
+              title="Start with the airport pickup options video"
+              description="The original overview video is kept from the old page. It explains the main airport pickup choices before guests choose the detailed instruction path below."
+            />
+            <div className="grid gap-3 text-sm text-foreground">
+              <a href="#pick-up" className="flex items-center gap-3 rounded-md border border-border bg-card p-4 transition-colors hover:border-primary">
+                <Plane className="h-4 w-4 text-primary" />
+                Pick Up Instructions
+              </a>
+              <a href="#drop-off" className="flex items-center gap-3 rounded-md border border-border bg-card p-4 transition-colors hover:border-primary">
+                <ParkingCircle className="h-4 w-4 text-primary" />
+                Drop Off Instructions
+              </a>
+              <Link href="/reviews" className="flex items-center gap-3 rounded-md border border-border bg-card p-4 transition-colors hover:border-primary">
+                <MessageSquareText className="h-4 w-4 text-primary" />
+                Review And Social Links
+              </Link>
+            </div>
+          </div>
+          <Card className="overflow-hidden border-border bg-card">
+            <CardContent className="p-0">
+              <YouTubeEmbed id="6WOIehyNAZo" title="Golden Luxury Auto airport pickup options overview" />
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      <section id="pick-up" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <SectionHeader
+          eyebrow="Pick Up"
+          title="Choose the right pickup path"
+          description="These instructions keep the original operating content from the old page, cleaned up into scannable guest steps."
+        />
+        <div className="grid gap-6">
+          {pickupInstructions.map((item) => (
+            <InstructionPanel key={item.title} item={item} />
+          ))}
+        </div>
+      </section>
+
+      <section id="drop-off" className="bg-muted/45 px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeader
+            eyebrow="Drop Off"
+            title="Return instructions by location"
+            description="Airport garage, Diamond lot, curbside, hotel, custom location, and lock box return steps are all available here."
+          />
+          <div className="grid gap-6">
+            {dropoffInstructions.map((item) => (
+              <InstructionPanel key={item.title} item={item} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <SectionHeader
+          eyebrow="Video Library"
+          title="All original video embeds"
+          description="The old page videos are preserved here as a compact library for quick reference."
+        />
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {pickupDropoffVideos.map((video) => (
+            <Card key={video.id} className="overflow-hidden border-border bg-card">
+              <CardContent className="p-0">
+                <YouTubeEmbed id={video.id} title={video.title} />
+                <div className="flex items-center gap-3 p-5">
+                  <PlayCircle className="h-5 w-5 text-primary" />
+                  <p className="font-semibold text-foreground">{video.title}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <ContactBand title="Need help choosing the right pickup or return option?" label="Pick Up And Drop Off" />
     </PageShell>
   );
 }

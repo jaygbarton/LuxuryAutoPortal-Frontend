@@ -18,6 +18,7 @@ import {
   ExtrasPage,
   JobApplicationPage,
   JobsPage,
+  PickupDropoffPage,
   PrivacyPolicyPage,
   ReviewsOptionsPage,
   ReviewsPage,
@@ -176,6 +177,7 @@ function Router() {
       <Route path="/charleston-sc/fleet">
         <Home location={PUBLIC_LOCATIONS.charleston} />
       </Route>
+      <Route path="/salt-lake-city/pick-up-and-drop-off" component={PickupDropoffPage} />
       <Route path="/salt-lake-city/detail-shop/book" component={DetailShopAppointmentPage} />
       <Route path="/salt-lake-city/detail-shop" component={DetailShopPage} />
       <Route path="/salt-lake-city/deals" component={DealsPage} />
@@ -196,6 +198,7 @@ function Router() {
       <Route path="/wilmington-nc/contact" component={Contact} />
       <Route path="/detail-shop/book" component={DetailShopAppointmentPage} />
       <Route path="/detail-shop" component={DetailShopPage} />
+      <Route path="/pick-up-and-drop-off" component={PickupDropoffPage} />
       <Route path="/deals" component={DealsPage} />
       <Route path="/jobs/apply" component={JobApplicationPage} />
       <Route path="/jobs" component={JobsPage} />
