@@ -73,7 +73,7 @@ export function Navbar() {
 
           {/* Desktop nav links */}
           <div className="hidden lg:flex items-center gap-0.5">
-            {primaryLinks.slice(0, 2).map((link) => {
+            {primaryLinks.filter((link) => link.href !== "/contact").map((link) => {
               const href = withLocationPath(link.href, publicLocation);
               return (
               <Link
@@ -126,7 +126,7 @@ export function Navbar() {
 
                 {isPagesOpen && (
                   <div
-                    className="absolute left-1/2 top-full z-[70] mt-3 w-[260px] -translate-x-1/2 rounded-md border bg-white p-2 shadow-[0_18px_50px_rgba(0,0,0,0.16)]"
+                    className="absolute left-1/2 top-full z-[70] w-[260px] -translate-x-1/2 rounded-md border bg-white p-2 shadow-[0_18px_50px_rgba(0,0,0,0.16)]"
                     style={{ borderColor: "#E8D4A0" }}
                   >
                     {pageLinks.map((link) => {
@@ -155,7 +155,7 @@ export function Navbar() {
                 )}
               </div>
             )}
-            {primaryLinks.slice(2).map((link) => {
+            {primaryLinks.filter((link) => link.href === "/contact").map((link) => {
               const href = withLocationPath(link.href, publicLocation);
               return (
               <Link
