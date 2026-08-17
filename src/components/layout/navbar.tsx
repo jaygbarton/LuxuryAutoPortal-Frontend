@@ -33,7 +33,13 @@ export function Navbar() {
     if (link.href === "/suggested-cars") return publicLocation.availablePages.suggestedCars;
     return true;
   });
-  const primaryLinks = links.filter((link) => link.href === "/" || link.href === "/fleet" || link.href === "/contact");
+  const primaryLinks = links.filter((link) =>
+    link.href === "/" ||
+    link.href === "/fleet" ||
+    link.href === "/detail-shop" ||
+    link.href === "/onboarding" ||
+    link.href === "/contact"
+  );
   const pageLinks = links.filter((link) => !primaryLinks.some((primary) => primary.href === link.href));
   const isPagesActive = pageLinks.some((link) => location === withLocationPath(link.href, publicLocation));
 
