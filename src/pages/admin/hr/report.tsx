@@ -37,6 +37,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   Tabs,
   TabsContent,
@@ -53,8 +62,9 @@ import {
 } from "@/components/ui/table";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { ChevronsUpDown, Check, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 
 type Period = "day" | "week" | "month" | "year";
 
@@ -120,6 +130,89 @@ function formatDate(d: string | null | undefined) {
   } catch {
     return "—";
   }
+}
+
+function employeeName(e: EmployeeOption): string {
+  return (
+    `${e.employee_first_name ?? ""} ${e.employee_last_name ?? ""}`.trim() ||
+    `Employee ${e.employee_aid}`
+  );
+}
+
+// ── Searchable employee dropdown (alphabetically sorted) ───────────────────
+
+function EmployeeSelectCombobox(props: {
+  employees: EmployeeOption[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const { employees, value, onChange } = props;
+  const [open, setOpen] = useState(false);
+
+  const sorted = useMemo(
+    () => [...employees].sort((a, b) => employeeName(a).localeCompare(employeeName(b))),
+    [employees]
+  );
+
+  const selected = sorted.find((e) => String(e.employee_aid) === value);
+  const label = value === "all" || !selected ? "All employees" : employeeName(selected);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full lg:w-56 justify-between font-normal"
+        >
+          <span className="truncate">{label}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="min-w-[220px] w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search employees..." />
+          <CommandList className="max-h-[280px]">
+            <CommandEmpty className="text-muted-foreground py-4 text-sm text-center">
+              No employees found.
+            </CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="all employees"
+                onSelect={() => {
+                  onChange("all");
+                  setOpen(false);
+                }}
+                className="cursor-pointer"
+              >
+                <Check className={cn("mr-2 h-4 w-4 shrink-0", value === "all" ? "opacity-100 text-primary" : "opacity-0")} />
+                <span>All employees</span>
+              </CommandItem>
+              {sorted.map((e) => {
+                const name = employeeName(e);
+                const isMatch = String(e.employee_aid) === value;
+                return (
+                  <CommandItem
+                    key={e.employee_aid}
+                    value={name}
+                    onSelect={() => {
+                      onChange(String(e.employee_aid));
+                      setOpen(false);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Check className={cn("mr-2 h-4 w-4 shrink-0", isMatch ? "opacity-100 text-primary" : "opacity-0")} />
+                    <span>{name}</span>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────
@@ -277,20 +370,11 @@ export default function AdminHrReport() {
               </div>
               <div className="space-y-1 col-span-full lg:col-auto">
                 <label className="text-xs text-muted-foreground">Employee</label>
-                <Select value={employeeId} onValueChange={setEmployeeId}>
-                  <SelectTrigger className="w-full lg:w-56">
-                    <SelectValue placeholder="All employees" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All employees</SelectItem>
-                    {employees.map((e) => (
-                      <SelectItem key={e.employee_aid} value={String(e.employee_aid)}>
-                        {`${e.employee_first_name ?? ""} ${e.employee_last_name ?? ""}`.trim() ||
-                          `Employee ${e.employee_aid}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EmployeeSelectCombobox
+                  employees={employees}
+                  value={employeeId}
+                  onChange={setEmployeeId}
+                />
               </div>
               <Button variant="outline" onClick={exportCsv} disabled={!stats} className="col-span-full lg:col-auto w-full lg:w-auto">
                 Export CSV
