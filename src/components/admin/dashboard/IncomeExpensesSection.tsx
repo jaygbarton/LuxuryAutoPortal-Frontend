@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart,
   Bar,
@@ -14,7 +15,10 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { Pencil, Check, X, Loader2 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 import { SectionHeader, SummaryCard } from "@/components/admin/dashboard";
 import {
   formatCurrency,
@@ -368,8 +372,12 @@ function HorizontalBarChart({ items }: HorizontalBarChartProps) {
 // ── Main component ─────────────────────────────────────────────────────
 
 export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpensesSectionProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const queryKey = ["/api/income-expense/all-cars", year];
+
   const { data, isLoading, isError } = useQuery<ApiResponse>({
-    queryKey: ["/api/income-expense/all-cars", year],
+    queryKey,
     queryFn: async () => {
       const res = await fetch(buildApiUrl(`/api/income-expense/all-cars/${year}`), {
         credentials: "include",
@@ -381,6 +389,42 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
 
   const ieData = data?.data;
   const fs = ieData?.formulaSetting;
+
+  // ── Available Cars manual override (fleet-wide, per month) ─────────
+  // Cathy: the computed number was wrong and she wants to type it herself.
+  // Saved on car_history with the car_id=0 sentinel (same convention as the
+  // global car_office_support_expenses rows) so it applies fleet-wide.
+  const [editingMonth, setEditingMonth] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState("");
+
+  const saveAvailableCars = useMutation({
+    mutationFn: async ({ month, value }: { month: number; value: number }) => {
+      const res = await fetch(buildApiUrl("/api/income-expense/history"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          carId: 0,
+          year: parseInt(year, 10),
+          month,
+          carsAvailableForRent: value,
+        }),
+      });
+      if (!res.ok) throw new Error(`Failed to save: ${res.status}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      setEditingMonth(null);
+    },
+    onError: () => {
+      toast({
+        title: "Failed to save",
+        description: "Available Cars could not be updated. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   // ── Compute aggregates ─────────────────────────────────────────────
 
@@ -456,7 +500,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     { key: "ownerSplit", label: "Car Owner Split", align: "right" as const },
     { key: "daysRented", label: "Days Rented", align: "right" as const },
     { key: "tripsTaken", label: "Trips Taken", align: "right" as const },
-    { key: "availableDays", label: "Available Days", align: "right" as const },
+    { key: "availableDays", label: "Available Cars", align: "right" as const },
     { key: "totalMiles", label: "Total Miles", align: "right" as const, tooltip: "Miles driven per month from Turo trips. Priority: odometer delta (end − start) → actual miles driven → pre-trip estimated distance." },
     { key: "fleetUtilization", label: "Fleet Utilization (%)", align: "right" as const },
     { key: "avgEarningsPerTrip", label: "Avg Earnings / Trips Taken", align: "right" as const },
@@ -487,7 +531,59 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
       ownerSplit: formatCurrency(mc.ownerIncome),
       daysRented: mc.daysRented.toLocaleString(),
       tripsTaken: mc.tripsTaken.toLocaleString(),
-      availableDays: availableDays.toLocaleString(),
+      availableDays: editingMonth === mc.month ? (
+        <span className="inline-flex items-center justify-end gap-1">
+          <Input
+            type="number"
+            min={0}
+            autoFocus
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            className="h-7 w-20 text-right text-sm"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              const value = parseInt(editValue, 10);
+              if (!isNaN(value) && value >= 0) {
+                saveAvailableCars.mutate({ month: mc.month, value });
+              }
+            }}
+            disabled={saveAvailableCars.isPending}
+            className="text-green-600 hover:text-green-700"
+            title="Save"
+          >
+            {saveAvailableCars.isPending ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Check className="w-3.5 h-3.5" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditingMonth(null)}
+            className="text-gray-400 hover:text-gray-600"
+            title="Cancel"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </span>
+      ) : (
+        <span className="inline-flex items-center justify-end gap-1.5">
+          {mc.carsAvailable.toLocaleString()}
+          <button
+            type="button"
+            onClick={() => {
+              setEditingMonth(mc.month);
+              setEditValue(String(mc.carsAvailable));
+            }}
+            className="text-gray-400 hover:text-gray-600"
+            title="Edit Available Cars"
+          >
+            <Pencil className="w-3 h-3" />
+          </button>
+        </span>
+      ),
       // Empty/future months are genuinely 0, not "unknown" — show 0 (not a "—"
       // dash) across every metric so the table reads consistently.
       totalMiles: mc.totalMiles.toLocaleString(),
@@ -510,6 +606,10 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     totalAvailableDaysAccurate > 0
       ? (totalDaysRented / totalAvailableDaysAccurate) * 100
       : 0;
+  // "Available Cars" totals row shows the year's average fleet size, not a
+  // sum of a per-month snapshot count (summing car counts across months is
+  // not a meaningful "total").
+  const avgCarsAvailable = totalCarsAvailable / 12;
   const yearAvgPerTrip =
     totalTripsTakenAll > 0 ? totalGross / totalTripsTakenAll : 0;
 
@@ -533,7 +633,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     ownerSplit: formatCurrency(totalOwnerIncome),
     daysRented: totalDaysRented.toLocaleString(),
     tripsTaken: totalTripsTakenAll.toLocaleString(),
-    availableDays: totalAvailableDaysAccurate.toLocaleString(),
+    availableDays: avgCarsAvailable.toLocaleString(undefined, { maximumFractionDigits: 1 }),
     totalMiles: totalMilesAll.toLocaleString(),
     fleetUtilization: `${yearUtilization.toFixed(2)}%`,
     avgEarningsPerTrip: formatCurrency(
