@@ -112,6 +112,26 @@ interface TripsSummary {
   totalMiles: number;
 }
 
+interface TuroApiSyncStatus {
+  auth?: {
+    hasJar: boolean;
+    hasRememberMe: boolean;
+    accessTokenExpiresAt: string | null;
+    expired: boolean;
+  };
+  lastSyncTime: string | null;
+  lastResult: {
+    success: boolean;
+    fetched: number;
+    reservations: number;
+    created: number;
+    updated: number;
+    unchanged: number;
+    errors: number;
+    error?: string;
+  } | null;
+}
+
 function calculateDaysRented(
   tripStart: string,
   tripEnd: string,
@@ -189,6 +209,8 @@ export default function TuroTripsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [importing, setImporting] = useState(false);
+  const [turoCookieOpen, setTuroCookieOpen] = useState(false);
+  const [turoCookieInput, setTuroCookieInput] = useState("");
   const itemsPerPage = 20;
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -286,6 +308,22 @@ export default function TuroTripsPage() {
     },
   });
 
+  const { data: apiSyncStatus, refetch: refetchApiSyncStatus } = useQuery<TuroApiSyncStatus>({
+    queryKey: ["/api/turo-trips/api-sync/status"],
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl("/api/turo-trips/api-sync/status"), {
+        credentials: "include",
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        const reason = data?.error || data?.message || `HTTP ${response.status}`;
+        throw new Error(reason);
+      }
+      return data;
+    },
+    retry: false,
+  });
+
   // Fetch cars so we can enrich Turo's bare "Make Model" string with the
   // car's year (e.g. "Lexus GX" → "2023 Lexus GX"). Turo emails don't ship
   // the year; we match by license plate first (unique) and fall back to a
@@ -380,6 +418,70 @@ export default function TuroTripsPage() {
     onError: (error: any) => {
       toast({
         title: "Sync failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const hostApiSyncMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(buildApiUrl("/api/turo-trips/api-sync"), {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        const reason = data?.error || data?.message || `HTTP ${response.status}`;
+        throw new Error(reason);
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips/api-sync/status"] });
+      toast({
+        title: "Host sync complete",
+        description: `${data.reservations ?? 0} reservations, ${data.created ?? 0} created, ${data.updated ?? 0} updated, ${data.errors ?? 0} errors.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Host sync failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const turoCookieMutation = useMutation({
+    mutationFn: async (cookie: string) => {
+      const response = await fetch(buildApiUrl("/api/turo-trips/api-sync/cookie"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cookie }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        const reason = data?.error || data?.message || `HTTP ${response.status}`;
+        throw new Error(reason);
+      }
+      return data;
+    },
+    onSuccess: async () => {
+      setTuroCookieInput("");
+      setTuroCookieOpen(false);
+      await refetchApiSyncStatus();
+      toast({
+        title: "Turo path refreshed",
+        description: "Saved the new Turo session. Run Host Sync now.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Turo refresh failed",
         description: error.message,
         variant: "destructive",
       });
@@ -1142,6 +1244,94 @@ export default function TuroTripsPage() {
             </Button>
           </div>
         </div>
+
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <Badge variant={apiSyncStatus?.auth?.hasJar ? "default" : "destructive"}>
+                  {apiSyncStatus?.auth?.hasJar ? "Turo Connected" : "Turo Disconnected"}
+                </Badge>
+                <Badge variant={apiSyncStatus?.auth?.expired ? "destructive" : "outline"}>
+                  {apiSyncStatus?.auth?.expired ? "Token Expired" : "Token Active"}
+                </Badge>
+                <span className="text-muted-foreground">
+                  Last host sync:{" "}
+                  {apiSyncStatus?.lastSyncTime
+                    ? new Date(apiSyncStatus.lastSyncTime).toLocaleString()
+                    : "Never"}
+                </span>
+                {apiSyncStatus?.lastResult?.error && (
+                  <span className="text-destructive">
+                    {apiSyncStatus.lastResult.error}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                {turoCookieOpen ? (
+                  <div className="flex flex-col gap-2 sm:min-w-[420px]">
+                    <Textarea
+                      value={turoCookieInput}
+                      onChange={(e) => setTuroCookieInput(e.target.value)}
+                      placeholder="Paste Turo Cookie header or copied cURL request"
+                      className="min-h-[78px] text-xs"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => turoCookieMutation.mutate(turoCookieInput)}
+                        disabled={!turoCookieInput.trim() || turoCookieMutation.isPending}
+                      >
+                        {turoCookieMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Save Turo Path"
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setTuroCookieOpen(false);
+                          setTuroCookieInput("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    onClick={() => setTuroCookieOpen(true)}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Refresh Turo Path
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={() => hostApiSyncMutation.mutate()}
+                  disabled={hostApiSyncMutation.isPending}
+                >
+                  {hostApiSyncMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Pulling...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Host Sync
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Summary Cards */}
         {summary && (
