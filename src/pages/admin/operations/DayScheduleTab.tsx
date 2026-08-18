@@ -17,7 +17,7 @@ type DayEventType =
   | "mechanic" | "windshield" | "license_plate" | "airport"
   | "maintenance" | "task_driver" | "maintenance_driver"
   | "inspection" | "block_off"
-  | "owner_pickup" | "owner_dropoff"
+  | "owner_pickup" | "owner_cleaning" | "owner_dropoff"
   | "trip_start" | "trip_end";
 
 interface DayEvent {
@@ -84,7 +84,7 @@ const DURATION_EDITABLE_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup
 const ASSIGNEE_EDITABLE_TYPES: DayEventType[] = [
   "cleaning", "delivery", "pickup", "refuel", "mechanic", "windshield", "license_plate", "airport",
   "custom", "maintenance", "task_driver", "maintenance_driver",
-  "inspection", "block_off", "owner_pickup", "owner_dropoff", "trip_start", "trip_end",
+  "inspection", "block_off", "owner_pickup", "owner_cleaning", "owner_dropoff", "trip_start", "trip_end",
 ];
 
 const DRIVER_EDITABLE_TYPES: DayEventType[] = ["pickup", "delivery", "maintenance"];
