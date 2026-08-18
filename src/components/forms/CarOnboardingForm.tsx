@@ -33,6 +33,7 @@ const carOnboardingSchema = z.object({
   plateNumber: z.string().min(1, "Plate number is required").max(50),
   dropOffDate: z.string().min(1, "Drop-off date is required"),
   dropOffTime: z.string().min(1, "Drop-off time is required"),
+  dropOffLocation: z.string().min(1, "Drop-off location is required"),
   dealershipAddress: z.string().optional(),
 });
 
@@ -98,6 +99,7 @@ export default function CarOnboardingForm() {
       plateNumber: "",
       dropOffDate: new Date().toISOString().split('T')[0],
       dropOffTime: "09:00",
+      dropOffLocation: "",
       dealershipAddress: "",
     },
   });
@@ -138,6 +140,7 @@ export default function CarOnboardingForm() {
         carMakeModelYear: data.carMakeModelYear,
         plateNumber: data.plateNumber,
         dropOffDate: dropOffDateTime,
+        dropOffLocation: data.dropOffLocation,
         carId: data.carId, // Include carId to update car status
         dealershipAddress: data.dealershipAddress || "",
       };
@@ -174,6 +177,7 @@ export default function CarOnboardingForm() {
         plateNumber: "",
         dropOffDate: now.toISOString().split('T')[0],
         dropOffTime: "09:00",
+        dropOffLocation: "",
         dealershipAddress: "",
       });
       setSelectedCarId("");
@@ -392,6 +396,25 @@ export default function CarOnboardingForm() {
                 )}
               />
             </div>
+
+            {/* Drop-off Location */}
+            <FormField
+              control={form.control}
+              name="dropOffLocation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground">Drop Off Location *</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="Address or description"
+                      className="bg-card border-border text-foreground focus:border-primary"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <Button
               type="submit"

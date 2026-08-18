@@ -1139,13 +1139,7 @@ export default function FormsPage() {
 
     const carBlockOffStartItem: FormItem = {
       id: "car-block-off-start",
-      title: "Car Block Off Start – Car Owner Pick Up",
-      icon: Car,
-      externalUrl: "/admin/car-block-off",
-    };
-    const carBlockOffEndItem: FormItem = {
-      id: "car-block-off-end",
-      title: "Car Block Off End – Car Owner Drop Off",
+      title: "Car Block Off Form",
       icon: Car,
       externalUrl: "/admin/car-block-off",
     };
@@ -1233,7 +1227,7 @@ export default function FormsPage() {
           id: "car-block-off-forms",
           title: "Car Block Off Form",
           icon: Car,
-          items: [carBlockOffStartItem, carBlockOffEndItem],
+          items: [carBlockOffStartItem],
         },
         {
           id: "car-repaired-forms",
@@ -1333,7 +1327,7 @@ export default function FormsPage() {
           id: "car-block-off-forms",
           title: "Car Block Off Form",
           icon: Car,
-          items: [carBlockOffStartItem, carBlockOffEndItem],
+          items: [carBlockOffStartItem],
         },
         {
           id: "parking-ticket-forms",

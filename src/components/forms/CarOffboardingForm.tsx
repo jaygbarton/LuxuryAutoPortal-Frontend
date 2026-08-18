@@ -33,6 +33,7 @@ const carOffboardingSchema = z.object({
   plateNumber: z.string().min(1, "Plate number is required").max(50),
   pickUpDate: z.string().min(1, "Pick-up date is required"),
   pickUpTime: z.string().min(1, "Pick-up time is required"),
+  pickUpLocation: z.string().min(1, "Pick-up location is required"),
   dealershipAddress: z.string().optional(),
 });
 
@@ -96,6 +97,7 @@ export default function CarOffboardingForm() {
       plateNumber: "",
       pickUpDate: new Date().toISOString().split('T')[0],
       pickUpTime: "09:00",
+      pickUpLocation: "",
       dealershipAddress: "",
     },
   });
@@ -136,6 +138,7 @@ export default function CarOffboardingForm() {
         carMakeModelYear: data.carMakeModelYear,
         plateNumber: data.plateNumber,
         pickUpDate: pickUpDateTime,
+        pickUpLocation: data.pickUpLocation,
         carId: data.carId, // Include carId to update car status
         dealershipAddress: data.dealershipAddress || "",
       };
@@ -172,6 +175,7 @@ export default function CarOffboardingForm() {
         plateNumber: "",
         pickUpDate: now.toISOString().split('T')[0],
         pickUpTime: "09:00",
+        pickUpLocation: "",
         dealershipAddress: "",
       });
       setSelectedCarId("");
@@ -390,6 +394,25 @@ export default function CarOffboardingForm() {
                 )}
               />
             </div>
+
+            {/* Pick-up Location */}
+            <FormField
+              control={form.control}
+              name="pickUpLocation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-muted-foreground">Pick Up Location *</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="Address or description"
+                      className="bg-card border-border text-foreground focus:border-primary"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <Button
               type="submit"

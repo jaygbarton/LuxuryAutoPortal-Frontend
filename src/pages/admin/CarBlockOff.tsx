@@ -17,7 +17,9 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
-import { CalendarOff, Car, Search, Trash2, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
+import { CalendarOff, Car, Search, Trash2, ChevronLeft, ChevronRight, Pencil, LogOut } from "lucide-react";
+import CarOnboardingForm from "@/components/forms/CarOnboardingForm";
+import CarOffboardingForm from "@/components/forms/CarOffboardingForm";
 import {
   Dialog,
   DialogContent,
@@ -215,7 +217,10 @@ export default function CarBlockOffPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Toggle between Start (pickup) and End (drop-off)
+  // Top-level tab: Car Block Off vs. Car On-boarding vs. Car Off-boarding
+  const [activeTab, setActiveTab] = useState<"block-off" | "car-on" | "car-off">("block-off");
+
+  // Toggle between Start (pickup) and End (drop-off), within the Block Off tab
   const [mode, setMode] = useState<"start" | "end">("start");
 
   // Pickup form state
@@ -485,6 +490,51 @@ export default function CarBlockOffPage() {
           </p>
         </div>
 
+        {/* Top-level tabs: Car Block Off / Car On-boarding / Car Off-boarding */}
+        <div className="flex rounded-lg border border-border overflow-hidden w-fit">
+          <button
+            type="button"
+            onClick={() => setActiveTab("block-off")}
+            className={`px-6 py-3 text-sm font-medium transition-colors ${
+              activeTab === "block-off"
+                ? "bg-primary text-primary-foreground"
+                : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
+          >
+            <CalendarOff className="w-4 h-4 inline mr-2" />
+            Car Block Off
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("car-on")}
+            className={`px-6 py-3 text-sm font-medium transition-colors border-l border-border ${
+              activeTab === "car-on"
+                ? "bg-primary text-primary-foreground"
+                : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
+          >
+            <Car className="w-4 h-4 inline mr-2" />
+            Car On-boarding
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("car-off")}
+            className={`px-6 py-3 text-sm font-medium transition-colors border-l border-border ${
+              activeTab === "car-off"
+                ? "bg-primary text-primary-foreground"
+                : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
+          >
+            <LogOut className="w-4 h-4 inline mr-2" />
+            Car Off-boarding
+          </button>
+        </div>
+
+        {activeTab === "car-on" && <CarOnboardingForm />}
+        {activeTab === "car-off" && <CarOffboardingForm />}
+
+        {activeTab === "block-off" && (
+        <>
         {/* Toggle — admin keeps the separate Start/End workflow; clients and
             co-hosts only submit the pick-up (start) form. */}
         {isAdmin && (
@@ -799,6 +849,8 @@ export default function CarBlockOffPage() {
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
 
       {/* Edit details modal */}
