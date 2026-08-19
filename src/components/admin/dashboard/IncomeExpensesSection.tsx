@@ -415,6 +415,11 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
+      // Available Cars is fleet-wide, and every per-car Income & Expenses page
+      // renders the same number in its HISTORY > Cars Available row. Drop the
+      // whole /api/income-expense prefix (key: [path, carId, year]) so an I&E
+      // tab that's already open doesn't keep showing the old value.
+      queryClient.invalidateQueries({ queryKey: ["/api/income-expense"] });
       setEditingMonth(null);
     },
     onError: () => {

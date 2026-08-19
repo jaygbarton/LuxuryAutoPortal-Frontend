@@ -230,6 +230,11 @@ export function IncomeExpenseProvider({
     });
     if (!isAllCars) {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/car", carId] });
+      // HISTORY > Cars Available is a FLEET-WIDE number: the backend mirrors it
+      // onto the car_id=0 sentinel row that the dashboard and every other car's
+      // page read from. So an edit here changes what those views show too, and
+      // invalidating only this car's key would leave them stale.
+      queryClient.invalidateQueries({ queryKey: ["/api/income-expense/all-cars", year] });
     }
   };
 
