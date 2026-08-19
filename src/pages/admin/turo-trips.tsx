@@ -1059,8 +1059,12 @@ export default function TuroTripsPage() {
   // The backend stores the resulting UTC instant; render it back in MT so the
   // table matches what the Turo email and the Turo app show, regardless of
   // the admin's browser timezone.
+  // The year is included: this table spans several years of trips (the oldest
+  // rows are from 2023), so a bare MM/DD Booking Date is ambiguous next to a
+  // Trip Start that does show its year.
   const MT_DATETIME_FMT = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Denver",
+    year: "numeric",
     month: "2-digit",
     day: "2-digit",
     hour: "numeric",
@@ -1069,6 +1073,7 @@ export default function TuroTripsPage() {
   });
   const MT_DATE_FMT = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Denver",
+    year: "numeric",
     month: "2-digit",
     day: "2-digit",
   });
