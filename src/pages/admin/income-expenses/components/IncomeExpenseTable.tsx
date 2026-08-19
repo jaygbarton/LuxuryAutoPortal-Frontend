@@ -4910,6 +4910,10 @@ export default function IncomeExpenseTable({
         monthLabel={receiptViewer ? MONTHS[receiptViewer.month - 1] : ""}
         year={year}
         canDelete={!isReadOnly}
+        // Service dates are per-car, so the editor is hidden on the aggregated
+        // All Cars view (there's no single car whose receipt date this is).
+        carId={isAllCars ? undefined : carId}
+        canEditServiceDate={!isAllCars}
         onDeleted={() => {
           queryClient.invalidateQueries({
             queryKey: [
