@@ -60,6 +60,7 @@ import {
   XCircle,
   Loader2,
   Upload,
+  Download,
   ChevronDown,
   Gauge,
   Repeat,
@@ -222,6 +223,138 @@ export default function TuroTripsPage() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // The filter params shared by the paginated table query and the CSV export,
+  // so an export always covers exactly the rows the current filters select
+  // (not just the page on screen).
+  const buildTripFilterParams = () => {
+    const params = new URLSearchParams();
+    if (statusFilters.length > 0) params.set("status", statusFilters.join(","));
+    if (vehicleSwapOnly) params.set("vehicleSwap", "true");
+    if (debouncedSearchQuery) params.set("q", debouncedSearchQuery);
+    if (rangeFrom || rangeTo) {
+      if (rangeFrom) {
+        params.set("startDate", rangeFrom);
+        params.set("tripEndFrom", rangeFrom);
+      }
+      if (rangeTo) {
+        params.set("endDate", rangeTo);
+        params.set("tripEndOn", rangeTo);
+      }
+      params.set("startOrEnd", "true");
+    }
+    if (bookingFrom) params.set("bookingFrom", bookingFrom);
+    if (bookingTo) params.set("bookingTo", bookingTo);
+    params.set("sortBy", sortBy);
+    params.set("sortDir", sortDir);
+    return params;
+  };
+
+  const [exporting, setExporting] = useState(false);
+
+  /**
+   * Export every trip matching the current filters to CSV.
+   *
+   * Cathy's use case is reconciling Total Miles against the dashboard, so the
+   * mileage columns (Total Miles / Miles Included / start+end odometer) are
+   * included alongside the identifying ones. Pulled in pages of 1000 because
+   * the table endpoint is paginated and the full set is ~14.5k rows.
+   */
+  const handleExportCsv = async () => {
+    setExporting(true);
+    try {
+      const PAGE = 1000;
+      const all: TuroTrip[] = [];
+      let offset = 0;
+      let total = Infinity;
+      while (offset < total) {
+        const params = buildTripFilterParams();
+        params.set("limit", String(PAGE));
+        params.set("offset", String(offset));
+        const res = await fetch(buildApiUrl(`/api/turo-trips?${params.toString()}`), {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error(`Failed to fetch trips (${res.status})`);
+        const body = await res.json();
+        const rows: TuroTrip[] = body?.data ?? [];
+        all.push(...rows);
+        total = Number(body?.total ?? rows.length);
+        if (rows.length === 0) break; // guard against a non-advancing loop
+        offset += PAGE;
+      }
+
+      // Excel reads a leading '=' / '+' / '-' / '@' as a formula, so prefix
+      // those with a single quote. Everything is quoted and inner quotes are
+      // doubled per RFC 4180.
+      const cell = (v: unknown) => {
+        if (v === null || v === undefined) return '""';
+        let str = String(v);
+        if (/^[=+\-@]/.test(str)) str = `'${str}`;
+        return `"${str.replace(/"/g, '""')}"`;
+      };
+      // Dates go out as plain ISO-ish MT text so Excel doesn't reinterpret them.
+      const dt = (v: string | null) => (v ? formatDateTime(v) : "");
+
+      const headers = [
+        "Reservation #", "Status", "Car Name", "Plate #", "VIN #",
+        "Booking Date", "Trip Start", "Trip End",
+        "Pick Up Location", "Drop Off Location",
+        "Guest Name", "Phone",
+        "Total Miles", "Miles Driven (Turo)", "Miles Included",
+        "Start Odometer", "End Odometer",
+        "Earnings", "Cancelled Earnings", "Vehicle Swap",
+      ];
+      const lines = [headers.map(cell).join(",")];
+      let totalMilesSum = 0;
+      for (const t of all) {
+        // "Total Miles" mirrors the table's own derivation — end minus start
+        // odometer — so the export reconciles against what's on screen. Blank
+        // when either reading is missing or the pair is inverted, rather than a
+        // misleading 0. `milesDriven` (what Turo reported) is exported beside it
+        // so a discrepancy between the two is visible.
+        const so = t.tripStartOdometer != null ? parseInt(String(t.tripStartOdometer), 10) : NaN;
+        const eo = t.tripEndOdometer != null ? parseInt(String(t.tripEndOdometer), 10) : NaN;
+        const totalMiles =
+          Number.isFinite(so) && Number.isFinite(eo) && eo >= so ? eo - so : null;
+        if (totalMiles != null) totalMilesSum += totalMiles;
+        lines.push([
+          t.reservationId, t.status, t.carName, t.plateNumber, t.vinNumber,
+          dt(t.dateBooked), dt(t.tripStart), dt(t.tripEnd),
+          t.pickupLocation, t.returnLocation,
+          t.guestName, t.phoneNumber,
+          totalMiles, t.milesDriven, t.milesIncluded,
+          t.tripStartOdometer, t.tripEndOdometer,
+          t.earnings, t.cancelledEarnings, t.vehicleSwap ? "Yes" : "",
+        ].map(cell).join(","));
+      }
+      // Trailing total row, so the miles figure to compare against the
+      // dashboard doesn't have to be summed by hand.
+      lines.push("");
+      lines.push([`TOTAL (${all.length} trips)`, "", "", "", "", "", "", "", "", "", "", "",
+        totalMilesSum, "", "", "", "", "", "", ""].map(cell).join(","));
+      // BOM so Excel opens UTF-8 correctly.
+      const blob = new Blob(["\uFEFF" + lines.join("\r\n")], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `turo-trips-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Export ready", description: `${all.length} trips exported.` });
+    } catch (e: any) {
+      toast({
+        title: "Export failed",
+        description: e?.message || "Could not export trips.",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Fetch trips with pagination
   const { data: tripsData, isLoading: isLoadingTrips } = useQuery<{
@@ -1159,6 +1292,20 @@ export default function TuroTripsPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={handleExportCsv}
+              disabled={exporting}
+              title="Export every trip matching the current filters to CSV"
+            >
+              {exporting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              {exporting ? "Exporting…" : "Export CSV"}
+            </Button>
             <Button variant="outline" className="w-full sm:w-auto" onClick={() => setImportOpen(true)}>
               <Upload className="w-4 h-4 mr-2" />
               Import from Turo
