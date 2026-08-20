@@ -2694,7 +2694,7 @@ export default function IncomeExpenseTable({
                 field="coolersIncome"
               />
               <CategoryRow
-                label="Income insurance and Client Wrecks"
+                label="Income Insurance and Client Wrecks"
                 splitLabel="100% Host Share"
                 values={MONTHS.map((_, i) =>
                   getMonthValue(

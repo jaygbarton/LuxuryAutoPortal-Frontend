@@ -149,7 +149,7 @@ export default function ModalEditIncomeExpense() {
     milesIncome: "Miles Income",
     childSeatIncome: "Child Seat Income",
     coolersIncome: "Coolers Income",
-    insuranceWreckIncome: "Income insurance and Client Wrecks",
+    insuranceWreckIncome: "Income Insurance and Client Wrecks",
     otherIncome: "Other Income",
     negativeBalanceCarryOver: "Negative Balance Carry Over",
     carPayment: "Car Payment",

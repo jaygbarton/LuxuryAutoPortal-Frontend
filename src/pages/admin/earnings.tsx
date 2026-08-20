@@ -2364,12 +2364,18 @@ function TableRow({
         "px-3 py-2 text-sm md:sticky md:left-0 z-[3] border-r border-border",
         isTotal ? "text-primary bg-background" : "text-muted-foreground bg-card"
       )}>
-        <span className="whitespace-normal break-words md:whitespace-nowrap">{label}</span>
-        {splitLabel && (
-          <span className="block truncate italic text-[#B8860B] font-medium text-xs">
-            {splitLabel}
-          </span>
-        )}
+        {/* Label + share note sit inline on one line, matching the Income &
+            Expenses table's CategoryRow. Previously the note was `block`, which
+            pushed it onto a second line and read as a different format from
+            I&E for the same rows. */}
+        <div className="flex items-center gap-1.5">
+          <span className="whitespace-normal break-words md:whitespace-nowrap">{label}</span>
+          {splitLabel && (
+            <span className="truncate italic text-[#B8860B] font-medium text-xs">
+              {splitLabel}
+            </span>
+          )}
+        </div>
       </td>
       {displayValues.map((value, i) => {
         const cellValue = typeof value === 'number' && !isNaN(value) ? value : 0;
