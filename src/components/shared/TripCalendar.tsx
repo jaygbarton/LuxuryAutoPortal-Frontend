@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,7 @@ interface CalendarResponse {
 }
 
 const DAY_MS = 86_400_000;
-const COL_W = 44;   // px per day column
+const MIN_COL_W = 44; // px per day column before it is allowed to stretch
 const ROW_H = 58;   // px per vehicle row (bar + price strip, like Turo)
 const LABEL_W = 190;
 const STEP_DAYS = 7; // arrows advance a week, like Turo's calendar
@@ -139,6 +139,28 @@ export function TripCalendar({ title }: { title?: string }) {
   // Bars are positioned by day offset from the window start. A trip that began
   // before the window is clamped to day 0 (and flagged) rather than dropped, so
   // an in-progress rental still shows the car as occupied.
+  // Day columns stretch to fill the container instead of leaving dead space to
+  // the right: at 7-21 days a fixed 44px column left hundreds of blank pixels.
+  // Below the minimum the grid overflows and scrolls horizontally as before.
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [viewportW, setViewportW] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const measure = () => setViewportW(el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const COL_W = useMemo(() => {
+    const available = viewportW - LABEL_W;
+    if (available <= 0) return MIN_COL_W;
+    return Math.max(MIN_COL_W, Math.floor(available / days));
+  }, [viewportW, days]);
+
   const barFor = (startIso: string, endIso: string | null) => {
     const winStart = anchor.getTime();
     const winEnd = addDays(anchor, days).getTime();
@@ -329,10 +351,11 @@ export function TripCalendar({ title }: { title?: string }) {
         </p>
       ) : (
         <div
+          ref={scrollRef}
           className="overflow-auto rounded-md border border-border"
           style={{ maxHeight: "calc(100vh - 260px)" }}
         >
-          <div style={{ minWidth: LABEL_W + days * COL_W }}>
+          <div style={{ width: LABEL_W + days * COL_W, minWidth: "100%" }}>
             {/* Header: day columns */}
             <div className="sticky top-0 z-20 flex border-b border-border bg-muted">
               <div
