@@ -4914,6 +4914,10 @@ export default function IncomeExpenseTable({
         // All Cars view (there's no single car whose receipt date this is).
         carId={isAllCars ? undefined : carId}
         canEditServiceDate={!isAllCars}
+        // Line-item split review is an edit action (it records a proposed
+        // category mapping), so it follows the same gate as delete. Employees
+        // and clients keep the read-only view.
+        canReviewSplit={!isReadOnly}
         onDeleted={() => {
           queryClient.invalidateQueries({
             queryKey: [

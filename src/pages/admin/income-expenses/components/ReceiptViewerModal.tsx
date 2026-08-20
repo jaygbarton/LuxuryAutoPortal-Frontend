@@ -123,7 +123,7 @@ function ReceiptThumb({
 interface ReceiptViewerModalProps {
   viewer: { month: number; category: string; field: string; label: string } | null;
   onClose: () => void;
-  images: { id: string; url: string; filename: string }[];
+  images: { id: string; url: string; filename: string; ocr?: ReceiptOcr | null }[];
   isLoading: boolean;
   monthLabel: string;
   year: string | number;
@@ -140,6 +140,12 @@ interface ReceiptViewerModalProps {
   /** Let the admin record the real service date printed on the receipt.
    *  Off by default so read-only surfaces (Earnings) stay read-only. */
   canEditServiceDate?: boolean;
+  /** Show the per-receipt line-item split reviewer and allow confirming it.
+   *  Off by default so read-only surfaces (Earnings, client views) only read. */
+  canReviewSplit?: boolean;
+  /** Amount currently entered in this cell, used only to flag a receipt whose
+   *  own total doesn't reconcile. Never written to. */
+  cellAmount?: number | null;
 }
 
 /**
@@ -158,6 +164,8 @@ export default function ReceiptViewerModal({
   onDeleted,
   carId,
   canEditServiceDate = false,
+  canReviewSplit = false,
+  cellAmount,
 }: ReceiptViewerModalProps) {
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -176,6 +184,8 @@ export default function ReceiptViewerModal({
           year={year}
           canDelete={canDelete}
           onDeleted={onDeleted}
+          canReviewSplit={canReviewSplit}
+          cellAmount={cellAmount}
           deletingId={deletingId}
           setDeletingId={setDeletingId}
           error={error}
@@ -320,6 +330,341 @@ function ServiceDateEditor({
   );
 }
 
+/**
+ * Vocabulary of I&E rows a receipt line item can be mapped into. Mirrors the
+ * backend OCR_FIELD_VOCABULARY in services/receiptOcrService.ts — keep in sync;
+ * the backend rejects a category/field pair it doesn't recognize.
+ */
+const OCR_FIELD_OPTIONS: { value: string; label: string }[] = [
+  { value: "cogs.autoBodyShopWreck", label: "COGS · Auto Body Shop / Wreck" },
+  { value: "cogs.alignment", label: "COGS · Alignment" },
+  { value: "cogs.battery", label: "COGS · Battery" },
+  { value: "cogs.brakes", label: "COGS · Brakes" },
+  { value: "cogs.carPayment", label: "COGS · Car Payment" },
+  { value: "cogs.carInsurance", label: "COGS · Car Insurance" },
+  { value: "cogs.carSeats", label: "COGS · Car Seats" },
+  { value: "cogs.cleaningSuppliesTools", label: "COGS · Cleaning Supplies / Tools" },
+  { value: "cogs.emissions", label: "COGS · Emissions" },
+  { value: "cogs.gpsSystem", label: "COGS · GPS System" },
+  { value: "cogs.keyFob", label: "COGS · Keys & Fob" },
+  { value: "cogs.laborCleaning", label: "COGS · Labor - Detailing" },
+  { value: "cogs.licenseRegistration", label: "COGS · License & Registration" },
+  { value: "cogs.mechanic", label: "COGS · Mechanic" },
+  { value: "cogs.oilLube", label: "COGS · Oil/Lube" },
+  { value: "cogs.parts", label: "COGS · Parts" },
+  { value: "cogs.skiRacks", label: "COGS · Ski Racks" },
+  { value: "cogs.tickets", label: "COGS · Tickets & Tolls" },
+  { value: "cogs.tiredAirStation", label: "COGS · Tired Air Station" },
+  { value: "cogs.tires", label: "COGS · Tires" },
+  { value: "cogs.towingImpoundFees", label: "COGS · Towing / Impound Fees" },
+  { value: "cogs.uberLyftLime", label: "COGS · Uber/Lyft/Lime" },
+  { value: "cogs.windshield", label: "COGS · Windshield" },
+  { value: "cogs.wipers", label: "COGS · Wipers" },
+  { value: "directDelivery.laborCleaning", label: "Direct Delivery · Labor - Cleaning" },
+  { value: "directDelivery.laborDelivery", label: "Direct Delivery · Labor - Delivery" },
+  { value: "directDelivery.parkingAirport", label: "Direct Delivery · Parking - Airport" },
+  { value: "directDelivery.parkingLot", label: "Direct Delivery · Parking - Lot" },
+  { value: "directDelivery.uberLyftLime", label: "Direct Delivery · Uber/Lyft/Lime" },
+  { value: "reimbursedBills.gasReimbursed", label: "Reimbursed Bills · Gas - Reimbursed" },
+  { value: "reimbursedBills.gasNotReimbursed", label: "Reimbursed Bills · Gas - Not Reimbursed" },
+  { value: "reimbursedBills.gasServiceRun", label: "Reimbursed Bills · Gas - Service Run" },
+  { value: "reimbursedBills.parkingAirport", label: "Reimbursed Bills · Parking Airport" },
+  { value: "reimbursedBills.uberLyftLimeReimbursed", label: "Reimbursed Bills · Uber/Lyft/Lime - Reimbursed" },
+  { value: "reimbursedBills.uberLyftLimeNotReimbursed", label: "Reimbursed Bills · Uber/Lyft/Lime - Not Reimbursed" },
+];
+
+export interface ReceiptOcrItem {
+  id: number;
+  description: string | null;
+  amount: number | null;
+  suggestedCategory: string | null;
+  suggestedField: string | null;
+  confirmedCategory: string | null;
+  confirmedField: string | null;
+  dismissed: boolean;
+}
+
+export interface ReceiptOcr {
+  id: number;
+  imageId: number;
+  vendor: string | null;
+  receiptDate: string | null;
+  total: number | null;
+  confidence: string | null;
+  status: string;
+  items: ReceiptOcrItem[];
+}
+
+const money = (n: number | null) =>
+  n === null || n === undefined ? "--" : `$${n.toFixed(2)}`;
+
+/**
+ * Shows what a receipt SAYS, and lets an admin confirm which I&E row each billed
+ * line belongs to.
+ *
+ * Why this exists: a receipt used to be an opaque attachment filed only by the
+ * cell it was dropped on, so a combined invoice — tires AND an oil change — could
+ * only be tracked as one of them. This surfaces the per-line split.
+ *
+ * Confirming a split never moves money. The amounts typed into the I&E cells stay
+ * authoritative; this records what the receipt itself breaks down to, and flags a
+ * receipt total that doesn't reconcile against the cell so someone can look.
+ */
+function ReceiptOcrPanel({
+  imageId,
+  ocr,
+  canEdit,
+  cellAmount,
+  onChanged,
+}: {
+  imageId: string;
+  ocr: ReceiptOcr | null | undefined;
+  canEdit: boolean;
+  cellAmount?: number | null;
+  onChanged?: () => void;
+}) {
+  const [local, setLocal] = React.useState<ReceiptOcr | null>(ocr ?? null);
+  const [reading, setReading] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [msg, setMsg] = React.useState<{ ok: boolean; text: string } | null>(null);
+  // Draft mapping per item id: "category.field", "" = unmapped, "__skip" = dismissed.
+  const [draft, setDraft] = React.useState<Record<number, string>>({});
+
+  React.useEffect(() => {
+    setLocal(ocr ?? null);
+    setMsg(null);
+    const next: Record<number, string> = {};
+    for (const it of ocr?.items || []) {
+      if (it.dismissed) next[it.id] = "__skip";
+      else if (it.confirmedCategory && it.confirmedField)
+        next[it.id] = `${it.confirmedCategory}.${it.confirmedField}`;
+      else if (it.suggestedCategory && it.suggestedField)
+        next[it.id] = `${it.suggestedCategory}.${it.suggestedField}`;
+      else next[it.id] = "";
+    }
+    setDraft(next);
+  }, [ocr]);
+
+  // Form-submission receipts ("form-<id>-<idx>") live in a different table and
+  // have no OCR row, so the reader doesn't apply to them.
+  const isCellUpload = /^\d+$/.test(imageId);
+  if (!isCellUpload) return null;
+
+  const readReceipt = async () => {
+    setReading(true);
+    setMsg(null);
+    try {
+      const res = await fetch(
+        buildApiUrl(`/api/income-expense/receipt-ocr/${imageId}/read`),
+        { method: "POST", credentials: "include" },
+      );
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "Could not read receipt");
+      setLocal(body.ocr || null);
+      if (!body.ocr?.items?.length) {
+        setMsg({ ok: false, text: "No line items could be read from this receipt." });
+      }
+      onChanged?.();
+    } catch (e: any) {
+      setMsg({ ok: false, text: e?.message || "Could not read receipt" });
+    } finally {
+      setReading(false);
+    }
+  };
+
+  const confirmSplit = async () => {
+    if (!local) return;
+    setSaving(true);
+    setMsg(null);
+    try {
+      const items = local.items.map((it) => {
+        const v = draft[it.id] ?? "";
+        if (v === "__skip") return { id: it.id, dismissed: true };
+        const [category, field] = v ? v.split(".") : [null, null];
+        return { id: it.id, category, field, dismissed: false };
+      });
+      const res = await fetch(
+        buildApiUrl(`/api/income-expense/receipt-ocr/${imageId}/confirm`),
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items }),
+        },
+      );
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "Could not save split");
+      setLocal(body.ocr || local);
+      setMsg({ ok: true, text: "Split confirmed." });
+      onChanged?.();
+    } catch (e: any) {
+      setMsg({ ok: false, text: e?.message || "Could not save split" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!local) {
+    return (
+      <div className="mt-2 flex items-center gap-2 border-t border-border pt-2">
+        <span className="text-[11px] text-muted-foreground">
+          This receipt hasn't been read yet.
+        </span>
+        {canEdit && (
+          <button
+            type="button"
+            onClick={readReceipt}
+            disabled={reading}
+            className="inline-flex items-center gap-1 text-[11px] text-primary underline hover:opacity-80 disabled:opacity-50"
+          >
+            {reading && <Loader2 className="h-3 w-3 animate-spin" />}
+            {reading ? "Reading…" : "Read receipt"}
+          </button>
+        )}
+        {msg && (
+          <span className={`text-[11px] ${msg.ok ? "text-green-600" : "text-red-600"}`}>
+            {msg.text}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  const lineSum = local.items
+    .filter((it) => (draft[it.id] ?? "") !== "__skip")
+    .reduce((s, it) => s + (it.amount || 0), 0);
+  // Reconciliation flag: the receipt's own total vs what's typed in this cell.
+  // Advisory only — we never correct the cell from here.
+  const mismatch =
+    typeof cellAmount === "number" &&
+    local.total !== null &&
+    Math.abs(local.total - cellAmount) > 0.01;
+  // A receipt whose lines map to more than one row is the combined-receipt case.
+  const mappedTargets = new Set(
+    local.items
+      .map((it) => draft[it.id] ?? "")
+      .filter((v) => v && v !== "__skip"),
+  );
+
+  return (
+    <div className="mt-2 border-t border-border pt-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        <span className="font-medium text-foreground">
+          {local.vendor || "Unknown vendor"}
+        </span>
+        {local.receiptDate && <span>{local.receiptDate}</span>}
+        <span>Receipt total {money(local.total)}</span>
+        {local.confidence === "low" && (
+          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-800">
+            Low confidence — check the lines
+          </span>
+        )}
+        {local.status === "reviewed" && (
+          <span className="rounded bg-green-100 px-1.5 py-0.5 text-green-800">Confirmed</span>
+        )}
+        {mappedTargets.size > 1 && (
+          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-blue-800">
+            Combined receipt · {mappedTargets.size} categories
+          </span>
+        )}
+        {canEdit && (
+          <button
+            type="button"
+            onClick={readReceipt}
+            disabled={reading}
+            className="inline-flex items-center gap-1 underline hover:text-primary disabled:opacity-50"
+          >
+            {reading && <Loader2 className="h-3 w-3 animate-spin" />}
+            {reading ? "Re-reading…" : "Re-read"}
+          </button>
+        )}
+      </div>
+
+      {mismatch && (
+        <p className="mt-1 text-[11px] text-amber-700">
+          Receipt total {money(local.total)} doesn't match the {money(cellAmount ?? null)} entered
+          in this cell — the cell amount is unchanged; review whether part of this receipt belongs
+          to another category.
+        </p>
+      )}
+
+      {local.items.length === 0 ? (
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          No line items were read from this receipt.
+        </p>
+      ) : (
+        <div className="mt-2 space-y-1">
+          {local.items.map((it) => {
+            const v = draft[it.id] ?? "";
+            const skipped = v === "__skip";
+            return (
+              <div key={it.id} className="flex items-center gap-2">
+                <span
+                  className={`min-w-0 flex-1 truncate text-[11px] ${skipped ? "text-muted-foreground line-through" : "text-foreground"}`}
+                  title={it.description || ""}
+                >
+                  {it.description || "(no description)"}
+                </span>
+                <span
+                  className={`w-20 text-right font-mono text-[11px] ${skipped ? "text-muted-foreground line-through" : "text-foreground"}`}
+                >
+                  {money(it.amount)}
+                </span>
+                <select
+                  value={v}
+                  disabled={!canEdit || saving}
+                  onChange={(e) =>
+                    setDraft((prev) => ({ ...prev, [it.id]: e.target.value }))
+                  }
+                  className="h-7 max-w-[16rem] flex-1 rounded border border-border bg-card px-1 text-[11px] text-foreground disabled:opacity-60"
+                >
+                  <option value="">— unassigned —</option>
+                  <option value="__skip">Skip (tax / fee / not a service)</option>
+                  {OCR_FIELD_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
+
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[11px] text-muted-foreground">
+              Lines total {money(Math.round(lineSum * 100) / 100)}
+              {local.total !== null && Math.abs(lineSum - local.total) > 0.01 && (
+                <> · differs from receipt total (tax/fees excluded)</>
+              )}
+            </span>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={confirmSplit}
+                disabled={saving}
+                className="inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+              >
+                {saving && <Loader2 className="h-3 w-3 animate-spin" />}
+                {saving ? "Saving…" : "Confirm split"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <p className="mt-1 text-[10px] text-muted-foreground">
+        Tracking only — confirming a split records what the receipt breaks down to. It does not
+        change the amounts entered in Income &amp; Expenses.
+      </p>
+      {msg && (
+        <p className={`mt-1 text-[11px] ${msg.ok ? "text-green-600" : "text-red-600"}`}>
+          {msg.text}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ReceiptViewerBody({
   viewer,
   onClose,
@@ -329,6 +674,8 @@ function ReceiptViewerBody({
   year,
   canDelete,
   onDeleted,
+  canReviewSplit,
+  cellAmount,
   deletingId,
   setDeletingId,
   error,
@@ -338,6 +685,8 @@ function ReceiptViewerBody({
   viewer: NonNullable<ReceiptViewerModalProps["viewer"]>;
   canDelete: boolean;
   onDeleted?: () => void;
+  canReviewSplit: boolean;
+  cellAmount?: number | null;
   deletingId: string | null;
   setDeletingId: (v: string | null) => void;
   error: string | null;
@@ -407,13 +756,21 @@ function ReceiptViewerBody({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {images.map((img) => (
-              <ReceiptThumb
-                key={img.id}
-                url={img.url}
-                filename={img.filename}
-                onDelete={canDelete ? () => handleDelete(img.id) : undefined}
-                deleting={deletingId === img.id}
-              />
+              <div key={img.id} className="flex flex-col">
+                <ReceiptThumb
+                  url={img.url}
+                  filename={img.filename}
+                  onDelete={canDelete ? () => handleDelete(img.id) : undefined}
+                  deleting={deletingId === img.id}
+                />
+                <ReceiptOcrPanel
+                  imageId={img.id}
+                  ocr={img.ocr}
+                  canEdit={canReviewSplit}
+                  cellAmount={cellAmount}
+                  onChanged={onDeleted}
+                />
+              </div>
             ))}
           </div>
         )}
