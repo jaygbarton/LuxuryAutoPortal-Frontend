@@ -99,6 +99,7 @@ import TrainingManualPage from "@/pages/admin/training-manual";
 import ClientTrainingManualPage from "@/pages/client/training-manual";
 import ClientDashboardPage from "@/pages/client/dashboard";
 import ClientTripHistoryPage from "@/pages/client/trip-history";
+import ClientTripCalendarPage from "@/pages/client/trip-calendar";
 import ClientMaintenanceHistoryPage from "@/pages/client/maintenance-history";
 import ClientOffboardingFormPage from "@/pages/client/offboarding-form";
 import DashboardRouter from "@/pages/dashboard-router";
@@ -124,6 +125,7 @@ import StaffCarRentalFormSubmit from "@/pages/staff/car-rental-form-submit";
 import StaffCommissionForm from "@/pages/staff/commission-form";
 import StaffCommissionFormMySubmissions from "@/pages/staff/commission-form-my-submissions";
 import TuroTripsPage from "@/pages/admin/turo-trips";
+import TripCalendarPage from "@/pages/admin/trip-calendar";
 import CarBlockOffPage from "@/pages/admin/CarBlockOff";
 import AdminTestimonialsPage from "@/pages/admin/testimonials";
 import AdminTuroGuidePage from "@/pages/admin/turo-guide";
@@ -297,6 +299,9 @@ function Router() {
             </Route>
             <Route path="/client/trip-history">
               <RequireRole roles={["isClient"]}><ClientTripHistoryPage /></RequireRole>
+            </Route>
+            <Route path="/client/trip-calendar">
+              <RequireRole roles={["isClient"]}><ClientTripCalendarPage /></RequireRole>
             </Route>
             <Route path="/client/maintenance-history">
               <RequireRole roles={["isClient"]}><ClientMaintenanceHistoryPage /></RequireRole>
@@ -502,6 +507,9 @@ function Router() {
             </Route>
             <Route path="/admin/turo-trips">
               <RequireRole roles={["isAdmin"]}><TuroTripsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/trip-calendar">
+              <RequireRole roles={["isAdmin", "isCoHost"]}><TripCalendarPage /></RequireRole>
             </Route>
             <Route path="/admin/testimonials">
               <RequireRole roles={["isAdmin", "isClient"]}><AdminTestimonialsPage /></RequireRole>

@@ -95,6 +95,12 @@ const allSidebarItems: SidebarItem[] = [
     icon: Route,
     roles: ["client"],
   },
+  {
+    href: "/client/trip-calendar",
+    label: "Booking Calendar",
+    icon: CalendarDays,
+    roles: ["client"],
+  },
   { href: "/admin/admins", label: "Admins", icon: Users, roles: ["admin"] },
   { href: "/admin/co-hosts", label: "Co-Hosts", icon: Users, roles: ["admin"] },
   { href: "/admin/my-co-host-cars", label: "My Co-Host Cars", icon: Car, roles: ["admin"] },
@@ -143,6 +149,12 @@ const allSidebarItems: SidebarItem[] = [
     href: "/admin/turo-trips",
     label: "Turo Trips",
     icon: Mail,
+    roles: ["admin"],
+  },
+  {
+    href: "/admin/trip-calendar",
+    label: "Trip Calendar",
+    icon: CalendarDays,
     roles: ["admin"],
   },
   {
@@ -502,6 +514,7 @@ const coHostSidebarItems: SidebarItem[] = [
   },
   { href: "/admin/totals", label: "Totals", icon: Calculator },
   { href: "/admin/turo-trips", label: "Turo Trips", icon: Mail },
+  { href: "/admin/trip-calendar", label: "Trip Calendar", icon: CalendarDays },
   {
     href: "/admin/bouncie",
     label: "BOUNCIE",
