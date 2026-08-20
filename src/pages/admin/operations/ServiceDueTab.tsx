@@ -190,7 +190,7 @@ export function ServiceDueTab() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
-      if (q && ![r.car_name, r.car_plate].filter(Boolean).join(" ").toLowerCase().includes(q)) return false;
+      if (q && ![r.car_name, r.car_plate, r.car_vin].filter(Boolean).join(" ").toLowerCase().includes(q)) return false;
       if (statusFilter !== "all" && r.car_status !== statusFilter) return false;
       if (!matchesCategoryFilter(r, categoryFilter)) return false;
       if (dateFrom || dateTo) {
@@ -264,7 +264,7 @@ export function ServiceDueTab() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Car name or plate..."
+              placeholder="Car name, plate, or VIN..."
               className="bg-card border-border text-foreground h-9"
             />
           </div>
