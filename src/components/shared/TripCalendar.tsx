@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight, AlertTriangle, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertTriangle, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CalendarCar {
@@ -11,6 +11,11 @@ interface CalendarCar {
   carName: string;
   plateNumber: string | null;
   carStatus: string | null;
+}
+interface CalendarPrice {
+  carId: number;
+  date: string;
+  amount: number;
 }
 interface CalendarTrip {
   id: number;
@@ -36,12 +41,13 @@ interface CalendarResponse {
   cars: CalendarCar[];
   trips: CalendarTrip[];
   blockOffs: CalendarBlockOff[];
+  prices: CalendarPrice[];
   sync: { lastSyncAt: string | null; hoursSinceSync: number | null; stale: boolean };
 }
 
 const DAY_MS = 86_400_000;
 const COL_W = 44;   // px per day column
-const ROW_H = 44;   // px per vehicle row
+const ROW_H = 58;   // px per vehicle row (bar + price strip, like Turo)
 const LABEL_W = 190;
 
 /** Local YYYY-MM-DD (never toISOString, which shifts across the UTC boundary). */
@@ -77,6 +83,15 @@ function fmtDateTime(iso: string): string {
   }
 }
 
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right font-medium text-foreground">{value}</dd>
+    </div>
+  );
+}
+
 /**
  * Turo-style vehicle timeline: one row per car, days across the top, and each
  * booking or owner block-off drawn as a bar spanning its start → end.
@@ -89,6 +104,12 @@ export function TripCalendar({ title }: { title?: string }) {
   const [anchor, setAnchor] = useState(() => startOfDay(new Date()));
   const [days, setDays] = useState(21);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "booked" | "free">("all");
+  const [selected, setSelected] = useState<
+    | { kind: "trip"; trip: CalendarTrip; car: CalendarCar }
+    | { kind: "block"; block: CalendarBlockOff; car: CalendarCar }
+    | null
+  >(null);
 
   const from = ymd(anchor);
   const to = ymd(addDays(anchor, days - 1));
@@ -131,15 +152,25 @@ export function TripCalendar({ title }: { title?: string }) {
   };
 
   const cars = useMemo(() => {
-    const list = data?.cars ?? [];
+    let list = data?.cars ?? [];
     const q = search.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter(
-      (c) =>
-        c.carName.toLowerCase().includes(q) ||
-        (c.plateNumber ?? "").toLowerCase().includes(q),
-    );
-  }, [data?.cars, search]);
+    if (q) {
+      list = list.filter(
+        (c) =>
+          c.carName.toLowerCase().includes(q) ||
+          (c.plateNumber ?? "").toLowerCase().includes(q),
+      );
+    }
+    if (statusFilter !== "all") {
+      // "Booked" / "Free" are relative to the window on screen, matching how
+      // Turo's Listing Status filter narrows the visible rows.
+      const booked = new Set((data?.trips ?? []).map((t) => Number(t.carId)));
+      list = list.filter((c) =>
+        statusFilter === "booked" ? booked.has(Number(c.carId)) : !booked.has(Number(c.carId)),
+      );
+    }
+    return list;
+  }, [data?.cars, data?.trips, search, statusFilter]);
 
   const tripsByCar = useMemo(() => {
     const m = new Map<number, CalendarTrip[]>();
@@ -162,6 +193,14 @@ export function TripCalendar({ title }: { title?: string }) {
     return m;
   }, [data?.blockOffs]);
 
+  // carId|YYYY-MM-DD -> nightly price, so each cell can print its own amount
+  // the way Turo shows a price under every date.
+  const priceMap = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of data?.prices ?? []) m.set(`${p.carId}|${p.date}`, p.amount);
+    return m;
+  }, [data?.prices]);
+
   const todayKey = ymd(startOfDay(new Date()));
 
   return (
@@ -177,6 +216,15 @@ export function TripCalendar({ title }: { title?: string }) {
             onChange={(e) => setSearch(e.target.value)}
             className="h-8 w-48 text-sm"
           />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+            className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+          >
+            <option value="all">All vehicles</option>
+            <option value="booked">Booked in view</option>
+            <option value="free">Free in view</option>
+          </select>
           <select
             value={days}
             onChange={(e) => setDays(parseInt(e.target.value, 10))}
@@ -288,21 +336,30 @@ export function TripCalendar({ title }: { title?: string }) {
                   </div>
 
                   <div className="relative flex-1">
-                    {/* Day grid lines */}
+                    {/* Day cells, each printing that car's nightly price the
+                        way Turo shows an amount under every date. */}
                     <div className="absolute inset-0 flex">
                       {dayList.map((d) => {
+                        const key = ymd(d);
                         const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-                        const isToday = ymd(d) === todayKey;
+                        const isToday = key === todayKey;
+                        const price = priceMap.get(`${car.carId}|${key}`);
                         return (
                           <div
-                            key={ymd(d)}
+                            key={key}
                             className={cn(
-                              "flex-shrink-0 border-l border-border/60",
+                              "flex flex-shrink-0 items-end justify-center border-l border-border/60 pb-1",
                               isWeekend && "bg-muted/40",
                               isToday && "bg-primary/5",
                             )}
                             style={{ width: COL_W }}
-                          />
+                          >
+                            {price != null && (
+                              <span className="text-[10px] leading-none text-muted-foreground">
+                                ${Math.round(price)}
+                              </span>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
@@ -316,8 +373,9 @@ export function TripCalendar({ title }: { title?: string }) {
                         <div
                           key={`b-${b.id}`}
                           title={`${REASON_LABEL[b.reason] ?? b.reason} — ${b.ownerName}\n${fmtDateTime(b.start)} → ${b.end ? fmtDateTime(b.end) : "ongoing"}`}
-                          className="absolute flex items-center overflow-hidden rounded border border-amber-400/70 bg-amber-100/80 px-2"
-                          style={{ left: pos.left + 3, width: pos.width, top: 6, height: ROW_H - 12 }}
+                          onClick={() => setSelected({ kind: "block", block: b, car })}
+                          className="absolute flex cursor-pointer items-center overflow-hidden rounded border border-amber-400/70 bg-amber-100/80 px-2 hover:brightness-95"
+                          style={{ left: pos.left + 3, width: pos.width, top: 6, height: ROW_H - 26 }}
                         >
                           <span className="truncate text-[10px] font-medium text-amber-900">
                             {REASON_LABEL[b.reason] ?? "Blocked off"}
@@ -333,15 +391,16 @@ export function TripCalendar({ title }: { title?: string }) {
                         <div
                           key={`t-${t.id}`}
                           title={`${t.guestName ?? "Guest"} · ${t.reservationId ?? ""}\n${fmtDateTime(t.tripStart)} → ${fmtDateTime(t.tripEnd)}\nStatus: ${t.status}`}
+                          onClick={() => setSelected({ kind: "trip", trip: t, car })}
                           className={cn(
-                            "absolute flex items-center overflow-hidden rounded px-2 shadow-sm",
+                            "absolute flex cursor-pointer items-center overflow-hidden rounded px-2 shadow-sm hover:brightness-125",
                             t.status === "ended"
                               ? "bg-gray-700 text-white"
                               : "bg-[#1f2937] text-white",
                             pos.clippedLeft && "rounded-l-none",
                             pos.clippedRight && "rounded-r-none",
                           )}
-                          style={{ left: pos.left + 3, width: pos.width, top: 8, height: ROW_H - 16 }}
+                          style={{ left: pos.left + 3, width: pos.width, top: 8, height: ROW_H - 30 }}
                         >
                           <span className="truncate text-[10px] font-medium">
                             {t.guestName ?? "Booked"}
@@ -357,6 +416,69 @@ export function TripCalendar({ title }: { title?: string }) {
         </div>
       )}
 
+      {selected && (
+        <div
+          className="fixed inset-0 z-50 flex justify-end bg-black/30"
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className="h-full w-full max-w-sm overflow-y-auto bg-card p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">
+                  {selected.kind === "trip" ? "Trip details" : "Owner block-off"}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {selected.car.carName} · {selected.car.plateNumber || "no plate"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelected(null)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {selected.kind === "trip" ? (
+              <dl className="space-y-2 text-sm">
+                <Row label="Guest" value={selected.trip.guestName ?? "—"} />
+                <Row label="Reservation" value={selected.trip.reservationId ?? "—"} />
+                <Row label="Starts" value={fmtDateTime(selected.trip.tripStart)} />
+                <Row label="Ends" value={fmtDateTime(selected.trip.tripEnd)} />
+                <Row label="Status" value={selected.trip.status} />
+                <div className="pt-3">
+                  <a
+                    href={`/admin/turo-trips?q=${encodeURIComponent(selected.trip.reservationId ?? "")}`}
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    Open in Turo Trips →
+                  </a>
+                </div>
+              </dl>
+            ) : (
+              <dl className="space-y-2 text-sm">
+                <Row label="Owner" value={selected.block.ownerName} />
+                <Row
+                  label="Reason"
+                  value={REASON_LABEL[selected.block.reason] ?? selected.block.reason}
+                />
+                <Row label="Starts" value={fmtDateTime(selected.block.start)} />
+                <Row
+                  label="Ends"
+                  value={selected.block.end ? fmtDateTime(selected.block.end) : "Ongoing"}
+                />
+                <Row label="Status" value={selected.block.status.replace(/_/g, " ")} />
+              </dl>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-5 rounded bg-[#1f2937]" /> Booked trip
@@ -367,6 +489,10 @@ export function TripCalendar({ title }: { title?: string }) {
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-5 rounded border border-amber-400 bg-amber-100" /> Owner block-off
         </span>
+        <span className="flex items-center gap-1.5">
+          <span className="text-[10px] text-muted-foreground">$00</span> Nightly listing price
+        </span>
+        <span className="ml-auto">Click any bar for details</span>
       </div>
     </div>
   );
