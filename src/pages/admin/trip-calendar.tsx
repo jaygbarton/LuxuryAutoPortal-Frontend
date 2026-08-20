@@ -9,7 +9,7 @@ import { TripCalendar } from "@/components/shared/TripCalendar";
 export default function TripCalendarPage() {
   return (
     <AdminLayout>
-      <TripCalendar title="Trip Calendar" />
+      <TripCalendar title="Trips Calendar" />
     </AdminLayout>
   );
 }

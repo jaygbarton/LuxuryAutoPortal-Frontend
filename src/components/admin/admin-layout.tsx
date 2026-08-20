@@ -153,7 +153,7 @@ const allSidebarItems: SidebarItem[] = [
   },
   {
     href: "/admin/trip-calendar",
-    label: "Trip Calendar",
+    label: "Trips Calendar",
     icon: CalendarDays,
     roles: ["admin"],
   },
@@ -514,7 +514,7 @@ const coHostSidebarItems: SidebarItem[] = [
   },
   { href: "/admin/totals", label: "Totals", icon: Calculator },
   { href: "/admin/turo-trips", label: "Turo Trips", icon: Mail },
-  { href: "/admin/trip-calendar", label: "Trip Calendar", icon: CalendarDays },
+  { href: "/admin/trip-calendar", label: "Trips Calendar", icon: CalendarDays },
   {
     href: "/admin/bouncie",
     label: "BOUNCIE",
