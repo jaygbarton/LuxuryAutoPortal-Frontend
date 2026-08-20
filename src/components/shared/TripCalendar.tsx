@@ -58,6 +58,7 @@ const MIN_COL_W = 44; // px per day column before it is allowed to stretch
 const ROW_H = 46;   // px per vehicle row
 const LABEL_W = 190;
 const STEP_DAYS = 7; // arrows advance a week, like Turo's calendar
+const MONTH_BAND_H = 26; // must match the day-number row's sticky offset
 
 /** Local YYYY-MM-DD (never toISOString, which shifts across the UTC boundary). */
 function ymd(d: Date): string {
@@ -85,7 +86,8 @@ function fmtDateTime(iso: string): string {
   try {
     return new Date(iso).toLocaleString("en-US", {
       timeZone: "America/Denver",
-      month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+      month: "short", day: "numeric", year: "numeric",
+      hour: "numeric", minute: "2-digit",
     });
   } catch {
     return iso;
@@ -263,6 +265,19 @@ export function TripCalendar({ title }: { title?: string }) {
     return `${fmt(first, !sameYear)} – ${fmt(last, true)}`;
   }, [anchor, days]);
 
+  // Runs of consecutive days sharing a month, so the header can draw one
+  // labelled band per month above the day numbers.
+  const monthBands = useMemo(() => {
+    const bands: { label: string; span: number }[] = [];
+    for (const d of dayList) {
+      const label = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      const last = bands[bands.length - 1];
+      if (last && last.label === label) last.span += 1;
+      else bands.push({ label, span: 1 });
+    }
+    return bands;
+  }, [dayList]);
+
   const todayKey = ymd(startOfDay(new Date()));
 
   return (
@@ -366,7 +381,29 @@ export function TripCalendar({ title }: { title?: string }) {
         >
           <div style={{ width: LABEL_W + days * COL_W, minWidth: "100%" }}>
             {/* Header: day columns */}
-            <div className="sticky top-0 z-20 flex border-b border-border bg-muted">
+            <div
+              className="sticky top-0 z-20 flex border-b border-border bg-muted"
+              style={{ height: MONTH_BAND_H }}
+            >
+              <div
+                className="z-30 flex-shrink-0 border-r border-border bg-muted md:sticky md:left-0"
+                style={{ width: LABEL_W }}
+              />
+              {monthBands.map((b) => (
+                <div
+                  key={b.label}
+                  className="flex flex-shrink-0 items-center justify-center border-l border-border text-[11px] font-semibold uppercase tracking-wide text-foreground"
+                  style={{ width: b.span * COL_W }}
+                >
+                  {b.label}
+                </div>
+              ))}
+            </div>
+
+            <div
+              className="sticky z-20 flex border-b border-border bg-muted"
+              style={{ top: MONTH_BAND_H }}
+            >
               <div
                 className="z-30 flex-shrink-0 border-r border-border bg-muted px-3 py-2 text-xs font-semibold uppercase text-muted-foreground md:sticky md:left-0"
                 style={{ width: LABEL_W }}
