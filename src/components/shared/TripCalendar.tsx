@@ -59,6 +59,9 @@ const ROW_H = 46;   // px per vehicle row
 const LABEL_W = 190;
 const STEP_DAYS = 7; // arrows advance a week, like Turo's calendar
 const MONTH_BAND_H = 26; // must match the day-number row's sticky offset
+// The admin shell's top bar is h-14 (56px). The detail panel starts below it so
+// it never overlaps the account controls.
+const HEADER_H = 56;
 
 /** Local YYYY-MM-DD (never toISOString, which shifts across the UTC boundary). */
 function ymd(d: Date): string {
@@ -562,10 +565,13 @@ export function TripCalendar({ title }: { title?: string }) {
       {selected && (
         <div
           // The app shell uses very high z-indexes (header z-[1500], sidebar
-          // z-[3000]); at z-50 the header painted over this panel and the card
-          // slid under it. Sit above both, and inset below the 56px header so
-          // the card never overlaps the account bar.
-          className="fixed inset-0 z-[3100] flex justify-end bg-black/40 p-3 pt-[60px] sm:p-4 sm:pt-[60px]"
+          // z-[3000]); at z-50 the header painted over this panel. Sit above
+          // both, and start the overlay BELOW the 56px header via an explicit
+          // top offset — padding alone did not work because the card's h-full
+          // resolved to the full-viewport parent and overflowed straight back
+          // under the header.
+          className="fixed inset-x-0 bottom-0 z-[3100] flex justify-end bg-black/40 p-3 sm:p-4"
+          style={{ top: HEADER_H }}
           onClick={() => setSelected(null)}
         >
           {/* Turo presents this as an inset, rounded, elevated card rather than
