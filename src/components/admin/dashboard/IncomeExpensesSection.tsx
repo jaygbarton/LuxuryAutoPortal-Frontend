@@ -20,6 +20,7 @@ import { buildApiUrl } from "@/lib/queryClient";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { SectionHeader, SummaryCard } from "@/components/admin/dashboard";
+import { AvailableCarsEditHistory } from "@/components/admin/dashboard/AvailableCarsEditHistory";
 import {
   formatCurrency,
   formatShortMonth,
@@ -587,6 +588,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
           >
             <Pencil className="w-3 h-3" />
           </button>
+          <AvailableCarsEditHistory year={year} month={mc.month} />
         </span>
       ),
       // Empty/future months are genuinely 0, not "unknown" — show 0 (not a "—"
