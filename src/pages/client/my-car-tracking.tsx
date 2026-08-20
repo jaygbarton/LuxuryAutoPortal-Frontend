@@ -498,6 +498,13 @@ export default function ClientCarTrackingPage() {
     queryFn: async () => {
       const res = await fetch(buildApiUrl("/api/bouncie/client-fleet"), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to load vehicle data");
+      // A failing/timed-out API rewrite used to fall through to the SPA
+      // catch-all and return index.html with a 502. Never treat a non-JSON
+      // body as fleet data — this endpoint gates which cars an owner may see.
+      const contentType = res.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json")) {
+        throw new Error("Vehicle data unavailable (unexpected response)");
+      }
       return res.json();
     },
     refetchInterval: LIVE_POLL_MS,

@@ -24,7 +24,7 @@
       "destination": "https://luxuryautoportal-replit-1.onrender.com/income-expense-images/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/|contracts/|signed-contracts/|car-photos/|income-expense-images/).*)",
       "destination": "/index.html"
     }
   ]
