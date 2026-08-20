@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -161,18 +161,25 @@ export function TripCalendar({ title }: { title?: string }) {
   // Day columns stretch to fill the container instead of leaving dead space to
   // the right: at 7-21 days a fixed 44px column left hundreds of blank pixels.
   // Below the minimum the grid overflows and scrolls horizontally as before.
-  const scrollRef = useRef<HTMLDivElement | null>(null);
   const [viewportW, setViewportW] = useState(0);
+  const roRef = useRef<ResizeObserver | null>(null);
 
-  useLayoutEffect(() => {
-    const el = scrollRef.current;
+  // A callback ref, not useRef + useLayoutEffect([]): the scroll container is
+  // rendered inside the isLoading branch, so on first paint it does not exist
+  // yet. A mount-only effect measured null, bailed out, and never re-ran once
+  // the grid appeared — leaving viewportW at 0 so every column fell back to the
+  // 44px minimum and the grid stopped short of the right edge.
+  const scrollRef = useCallback((el: HTMLDivElement | null) => {
+    roRef.current?.disconnect();
+    roRef.current = null;
     if (!el) return;
-    const measure = () => setViewportW(el.clientWidth);
-    measure();
-    const ro = new ResizeObserver(measure);
+    setViewportW(el.clientWidth);
+    const ro = new ResizeObserver(() => setViewportW(el.clientWidth));
     ro.observe(el);
-    return () => ro.disconnect();
+    roRef.current = ro;
   }, []);
+
+  useEffect(() => () => roRef.current?.disconnect(), []);
 
   const COL_W = useMemo(() => {
     const available = viewportW - LABEL_W;
