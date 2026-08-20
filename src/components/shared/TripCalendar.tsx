@@ -11,6 +11,7 @@ interface CalendarCar {
   carName: string;
   plateNumber: string | null;
   carStatus: string | null;
+  hasActivity?: boolean;
 }
 interface CalendarPrice {
   carId: number;
@@ -105,6 +106,9 @@ export function TripCalendar({ title }: { title?: string }) {
   const [days, setDays] = useState(21);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "booked" | "free">("all");
+  // 227 of ~327 cars are off-fleet, so default to active or the timeline opens
+  // as mostly blank rows.
+  const [fleetFilter, setFleetFilter] = useState<"active" | "inactive" | "all">("active");
   const [selected, setSelected] = useState<
     | { kind: "trip"; trip: CalendarTrip; car: CalendarCar }
     | { kind: "block"; block: CalendarBlockOff; car: CalendarCar }
@@ -161,6 +165,15 @@ export function TripCalendar({ title }: { title?: string }) {
           (c.plateNumber ?? "").toLowerCase().includes(q),
       );
     }
+    if (fleetFilter !== "all") {
+      list = list.filter((c) => {
+        const isActive = c.carStatus !== "off_fleet";
+        // An off-fleet car that still has a booking in view stays visible under
+        // "Active" — it is demonstrably in use, and hiding it reads as data loss.
+        if (fleetFilter === "active") return isActive || c.hasActivity;
+        return !isActive;
+      });
+    }
     if (statusFilter !== "all") {
       // "Booked" / "Free" are relative to the window on screen, matching how
       // Turo's Listing Status filter narrows the visible rows.
@@ -170,7 +183,7 @@ export function TripCalendar({ title }: { title?: string }) {
       );
     }
     return list;
-  }, [data?.cars, data?.trips, search, statusFilter]);
+  }, [data?.cars, data?.trips, search, statusFilter, fleetFilter]);
 
   const tripsByCar = useMemo(() => {
     const m = new Map<number, CalendarTrip[]>();
@@ -216,6 +229,15 @@ export function TripCalendar({ title }: { title?: string }) {
             onChange={(e) => setSearch(e.target.value)}
             className="h-8 w-48 text-sm"
           />
+          <select
+            value={fleetFilter}
+            onChange={(e) => setFleetFilter(e.target.value as typeof fleetFilter)}
+            className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+          >
+            <option value="active">Active cars</option>
+            <option value="inactive">Inactive cars</option>
+            <option value="all">All cars</option>
+          </select>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
@@ -274,12 +296,15 @@ export function TripCalendar({ title }: { title?: string }) {
           {search ? "No vehicles match your search." : "No vehicles to display."}
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-md border border-border">
+        <div
+          className="overflow-auto rounded-md border border-border"
+          style={{ maxHeight: "calc(100vh - 260px)" }}
+        >
           <div style={{ minWidth: LABEL_W + days * COL_W }}>
             {/* Header: day columns */}
-            <div className="flex border-b border-border bg-muted/50">
+            <div className="sticky top-0 z-20 flex border-b border-border bg-muted">
               <div
-                className="flex-shrink-0 px-3 py-2 text-xs font-semibold uppercase text-muted-foreground"
+                className="z-30 flex-shrink-0 border-r border-border bg-muted px-3 py-2 text-xs font-semibold uppercase text-muted-foreground md:sticky md:left-0"
                 style={{ width: LABEL_W }}
               >
                 Vehicle
@@ -324,7 +349,7 @@ export function TripCalendar({ title }: { title?: string }) {
                   style={{ height: ROW_H }}
                 >
                   <div
-                    className="flex flex-shrink-0 flex-col justify-center overflow-hidden px-3"
+                    className="z-10 flex flex-shrink-0 flex-col justify-center overflow-hidden border-r border-border bg-card px-3 md:sticky md:left-0"
                     style={{ width: LABEL_W }}
                   >
                     <div className="truncate text-xs font-medium text-foreground">
