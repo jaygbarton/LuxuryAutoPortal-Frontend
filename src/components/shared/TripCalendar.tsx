@@ -94,16 +94,31 @@ function fmtDateTime(iso: string): string {
   }
 }
 
-function Row({ label, value }: { label: string; value: string }) {
-  // Addresses are far too long for the side-by-side layout in a max-w-sm
-  // panel — they squash the label to one character per line. Stack those.
+function Row({
+  label,
+  value,
+  emphasis,
+}: {
+  label: string;
+  value: string;
+  /** Render the value larger — used for the money figure, as Turo does. */
+  emphasis?: boolean;
+}) {
+  // Addresses are far too long for the side-by-side layout in a ~380px panel —
+  // they squash the label to one character per line. Stack those instead.
   const stacked = value.length > 28;
   return (
-    <div className={stacked ? "space-y-0.5" : "flex justify-between gap-4"}>
-      <dt className="text-muted-foreground">{label}</dt>
+    <div
+      className={cn(
+        "border-b border-border/60 py-2 last:border-b-0",
+        stacked ? "space-y-0.5" : "flex items-baseline justify-between gap-4",
+      )}
+    >
+      <dt className="flex-shrink-0 text-xs text-muted-foreground">{label}</dt>
       <dd
         className={cn(
           "font-medium text-foreground",
+          emphasis ? "text-base font-semibold" : "text-sm",
           stacked ? "break-words" : "text-right",
         )}
       >
@@ -546,34 +561,49 @@ export function TripCalendar({ title }: { title?: string }) {
 
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex justify-end bg-black/30"
+          className="fixed inset-0 z-50 flex justify-end bg-black/40 p-3 sm:p-4"
           onClick={() => setSelected(null)}
         >
+          {/* Turo presents this as an inset, rounded, elevated card rather than
+              a flush-to-edge sheet — the gap and radius are what make it read
+              as a panel floating over the grid. */}
           <div
-            className="h-full w-full max-w-sm overflow-y-auto bg-card p-5 shadow-xl"
+            className="flex h-full w-full max-w-[380px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">
-                  {selected.kind === "trip" ? "Trip details" : "Owner block-off"}
+            <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+              <div className="min-w-0">
+                <span
+                  className={cn(
+                    "mb-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                    selected.kind === "trip"
+                      ? "bg-foreground/10 text-foreground"
+                      : "bg-amber-100 text-amber-900",
+                  )}
+                >
+                  {selected.kind === "trip" ? "Trip" : "Owner block-off"}
+                </span>
+                <h2 className="truncate text-sm font-semibold text-foreground">
+                  {selected.car.carName}
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  {selected.car.carName} · {selected.car.plateNumber || "no plate"}
+                  {selected.car.plateNumber || "no plate"}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setSelected(null)}
-                className="text-muted-foreground hover:text-foreground"
+                className="-mr-1 -mt-1 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="Close"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+
             {selected.kind === "trip" ? (
-              <dl className="space-y-2 text-sm">
+              <dl className="text-sm">
                 <Row label="Guest" value={selected.trip.guestName ?? "—"} />
                 <Row label="Reservation" value={selected.trip.reservationId ?? "—"} />
                 <Row label="Starts" value={fmtDateTime(selected.trip.tripStart)} />
@@ -588,6 +618,7 @@ export function TripCalendar({ title }: { title?: string }) {
                   }
                 />
                 <Row
+                  emphasis
                   label="Earnings"
                   value={
                     selected.trip.earnings != null
@@ -613,21 +644,9 @@ export function TripCalendar({ title }: { title?: string }) {
                   }
                 />
                 <Row label="Extras" value={selected.trip.extras || "None"} />
-                {/* Turo Trips is an admin/co-host page — a client has no access
-                    to it, so the link would only lead to a blocked route. */}
-                {data?.role !== "client" && (
-                  <div className="pt-3">
-                    <a
-                      href={`/admin/turo-trips?q=${encodeURIComponent(selected.trip.reservationId ?? "")}`}
-                      className="text-sm font-medium text-primary hover:underline"
-                    >
-                      Open in Turo Trips →
-                    </a>
-                  </div>
-                )}
               </dl>
             ) : (
-              <dl className="space-y-2 text-sm">
+              <dl className="text-sm">
                 <Row label="Owner" value={selected.block.ownerName} />
                 <Row
                   label="Reason"
@@ -640,6 +659,20 @@ export function TripCalendar({ title }: { title?: string }) {
                 />
                 <Row label="Status" value={selected.block.status.replace(/_/g, " ")} />
               </dl>
+            )}
+            </div>
+
+            {/* Turo Trips is an admin/co-host page — a client has no access to
+                it, so the link would only lead to a blocked route. */}
+            {selected.kind === "trip" && data?.role !== "client" && (
+              <div className="border-t border-border px-5 py-3">
+                <a
+                  href={`/admin/turo-trips?q=${encodeURIComponent(selected.trip.reservationId ?? "")}`}
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                >
+                  Open in Turo Trips →
+                </a>
+              </div>
             )}
           </div>
         </div>
