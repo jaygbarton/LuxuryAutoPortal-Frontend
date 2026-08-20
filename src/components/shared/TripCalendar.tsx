@@ -50,6 +50,7 @@ const DAY_MS = 86_400_000;
 const COL_W = 44;   // px per day column
 const ROW_H = 58;   // px per vehicle row (bar + price strip, like Turo)
 const LABEL_W = 190;
+const STEP_DAYS = 7; // arrows advance a week, like Turo's calendar
 
 /** Local YYYY-MM-DD (never toISOString, which shifts across the UTC boundary). */
 function ymd(d: Date): string {
@@ -214,6 +215,23 @@ export function TripCalendar({ title }: { title?: string }) {
     return m;
   }, [data?.prices]);
 
+  // Turo shows the window's month above the grid; span both when the range
+  // crosses a month boundary so the header never lies about what's on screen.
+  const rangeLabel = useMemo(() => {
+    const first = anchor;
+    const last = addDays(anchor, days - 1);
+    const fmt = (d: Date, withYear: boolean) =>
+      d.toLocaleDateString("en-US", {
+        month: "long",
+        ...(withYear ? { year: "numeric" } : {}),
+      });
+    if (first.getMonth() === last.getMonth() && first.getFullYear() === last.getFullYear()) {
+      return fmt(first, true);
+    }
+    const sameYear = first.getFullYear() === last.getFullYear();
+    return `${fmt(first, !sameYear)} – ${fmt(last, true)}`;
+  }, [anchor, days]);
+
   const todayKey = ymd(startOfDay(new Date()));
 
   return (
@@ -257,13 +275,23 @@ export function TripCalendar({ title }: { title?: string }) {
             <option value={21}>21 days</option>
             <option value={30}>30 days</option>
           </select>
-          <Button variant="outline" size="sm" onClick={() => setAnchor(addDays(anchor, -days))}>
+          <Button
+            variant="outline"
+            size="sm"
+            title="Previous week"
+            onClick={() => setAnchor(addDays(anchor, -STEP_DAYS))}
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" onClick={() => setAnchor(startOfDay(new Date()))}>
             Today
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setAnchor(addDays(anchor, days))}>
+          <Button
+            variant="outline"
+            size="sm"
+            title="Next week"
+            onClick={() => setAnchor(addDays(anchor, STEP_DAYS))}
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -282,6 +310,10 @@ export function TripCalendar({ title }: { title?: string }) {
           </div>
         </div>
       )}
+
+      <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-foreground">
+        {rangeLabel}
+      </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
