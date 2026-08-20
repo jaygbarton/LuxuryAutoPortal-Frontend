@@ -48,7 +48,7 @@ interface CalendarResponse {
 
 const DAY_MS = 86_400_000;
 const MIN_COL_W = 44; // px per day column before it is allowed to stretch
-const ROW_H = 58;   // px per vehicle row (bar + price strip, like Turo)
+const ROW_H = 46;   // px per vehicle row
 const LABEL_W = 190;
 const STEP_DAYS = 7; // arrows advance a week, like Turo's calendar
 
@@ -229,14 +229,6 @@ export function TripCalendar({ title }: { title?: string }) {
     return m;
   }, [data?.blockOffs]);
 
-  // carId|YYYY-MM-DD -> nightly price, so each cell can print its own amount
-  // the way Turo shows a price under every date.
-  const priceMap = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const p of data?.prices ?? []) m.set(`${p.carId}|${p.date}`, p.amount);
-    return m;
-  }, [data?.prices]);
-
   // Turo shows the window's month above the grid; span both when the range
   // crosses a month boundary so the header never lies about what's on screen.
   const rangeLabel = useMemo(() => {
@@ -416,30 +408,25 @@ export function TripCalendar({ title }: { title?: string }) {
                   </div>
 
                   <div className="relative flex-1">
-                    {/* Day cells, each printing that car's nightly price the
-                        way Turo shows an amount under every date. */}
+                    {/* Day cells — background grid only. Nightly prices are
+                        deliberately not rendered for now (rental_daily_prices
+                        covers only 64 of 89 active cars, so the strip read as
+                        missing data); the API still returns them. */}
                     <div className="absolute inset-0 flex">
                       {dayList.map((d) => {
                         const key = ymd(d);
                         const isWeekend = d.getDay() === 0 || d.getDay() === 6;
                         const isToday = key === todayKey;
-                        const price = priceMap.get(`${car.carId}|${key}`);
                         return (
                           <div
                             key={key}
                             className={cn(
-                              "flex flex-shrink-0 items-end justify-center border-l border-border/60 pb-1",
+                              "flex-shrink-0 border-l border-border/60",
                               isWeekend && "bg-muted/40",
                               isToday && "bg-primary/5",
                             )}
                             style={{ width: COL_W }}
-                          >
-                            {price != null && (
-                              <span className="text-[10px] leading-none text-muted-foreground">
-                                ${Math.round(price)}
-                              </span>
-                            )}
-                          </div>
+                          />
                         );
                       })}
                     </div>
@@ -455,7 +442,7 @@ export function TripCalendar({ title }: { title?: string }) {
                           title={`${REASON_LABEL[b.reason] ?? b.reason} — ${b.ownerName}\n${fmtDateTime(b.start)} → ${b.end ? fmtDateTime(b.end) : "ongoing"}`}
                           onClick={() => setSelected({ kind: "block", block: b, car })}
                           className="absolute flex cursor-pointer items-center overflow-hidden rounded border border-amber-400/70 bg-amber-100/80 px-2 hover:brightness-95"
-                          style={{ left: pos.left + 3, width: pos.width, top: 6, height: ROW_H - 26 }}
+                          style={{ left: pos.left + 3, width: pos.width, top: 6, height: ROW_H - 12 }}
                         >
                           <span className="truncate text-[10px] font-medium text-amber-900">
                             {REASON_LABEL[b.reason] ?? "Blocked off"}
@@ -480,7 +467,7 @@ export function TripCalendar({ title }: { title?: string }) {
                             pos.clippedLeft && "rounded-l-none",
                             pos.clippedRight && "rounded-r-none",
                           )}
-                          style={{ left: pos.left + 3, width: pos.width, top: 8, height: ROW_H - 30 }}
+                          style={{ left: pos.left + 3, width: pos.width, top: 8, height: ROW_H - 16 }}
                         >
                           <span className="truncate text-[10px] font-medium">
                             {t.guestName ?? "Booked"}
@@ -531,14 +518,18 @@ export function TripCalendar({ title }: { title?: string }) {
                 <Row label="Starts" value={fmtDateTime(selected.trip.tripStart)} />
                 <Row label="Ends" value={fmtDateTime(selected.trip.tripEnd)} />
                 <Row label="Status" value={selected.trip.status} />
-                <div className="pt-3">
-                  <a
-                    href={`/admin/turo-trips?q=${encodeURIComponent(selected.trip.reservationId ?? "")}`}
-                    className="text-sm font-medium text-primary hover:underline"
-                  >
-                    Open in Turo Trips →
-                  </a>
-                </div>
+                {/* Turo Trips is an admin/co-host page — a client has no access
+                    to it, so the link would only lead to a blocked route. */}
+                {data?.role !== "client" && (
+                  <div className="pt-3">
+                    <a
+                      href={`/admin/turo-trips?q=${encodeURIComponent(selected.trip.reservationId ?? "")}`}
+                      className="text-sm font-medium text-primary hover:underline"
+                    >
+                      Open in Turo Trips →
+                    </a>
+                  </div>
+                )}
               </dl>
             ) : (
               <dl className="space-y-2 text-sm">
@@ -568,9 +559,6 @@ export function TripCalendar({ title }: { title?: string }) {
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-5 rounded border border-amber-400 bg-amber-100" /> Owner block-off
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="text-[10px] text-muted-foreground">$00</span> Nightly listing price
         </span>
         <span className="ml-auto">Click any bar for details</span>
       </div>
