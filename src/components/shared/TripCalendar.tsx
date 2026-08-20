@@ -570,7 +570,7 @@ export function TripCalendar({ title }: { title?: string }) {
           // top offset — padding alone did not work because the card's h-full
           // resolved to the full-viewport parent and overflowed straight back
           // under the header.
-          className="fixed inset-x-0 bottom-0 z-[3100] flex justify-end bg-black/40 p-3 sm:p-4"
+          className="fixed inset-x-0 bottom-0 z-[3100] flex items-stretch justify-end bg-black/40 p-3 sm:p-4"
           style={{ top: HEADER_H }}
           onClick={() => setSelected(null)}
         >
@@ -578,7 +578,7 @@ export function TripCalendar({ title }: { title?: string }) {
               a flush-to-edge sheet — the gap and radius are what make it read
               as a panel floating over the grid. */}
           <div
-            className="flex h-full w-full max-w-[380px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+            className="flex min-h-0 w-full max-w-[380px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
@@ -610,7 +610,7 @@ export function TripCalendar({ title }: { title?: string }) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
 
             {selected.kind === "trip" ? (
               <dl className="text-sm">
