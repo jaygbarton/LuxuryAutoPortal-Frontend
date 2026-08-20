@@ -561,7 +561,11 @@ export function TripCalendar({ title }: { title?: string }) {
 
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex justify-end bg-black/40 p-3 sm:p-4"
+          // The app shell uses very high z-indexes (header z-[1500], sidebar
+          // z-[3000]); at z-50 the header painted over this panel and the card
+          // slid under it. Sit above both, and inset below the 56px header so
+          // the card never overlaps the account bar.
+          className="fixed inset-0 z-[3100] flex justify-end bg-black/40 p-3 pt-[60px] sm:p-4 sm:pt-[60px]"
           onClick={() => setSelected(null)}
         >
           {/* Turo presents this as an inset, rounded, elevated card rather than
