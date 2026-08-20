@@ -26,6 +26,13 @@ interface CalendarTrip {
   tripStart: string;
   tripEnd: string;
   status: string;
+  pickupLocation: string | null;
+  returnLocation: string | null;
+  deliveryLocation: string | null;
+  earnings: number | null;
+  daysRented: number | null;
+  milesIncluded: string | null;
+  extras: string | null;
 }
 interface CalendarBlockOff {
   id: number;
@@ -86,10 +93,20 @@ function fmtDateTime(iso: string): string {
 }
 
 function Row({ label, value }: { label: string; value: string }) {
+  // Addresses are far too long for the side-by-side layout in a max-w-sm
+  // panel — they squash the label to one character per line. Stack those.
+  const stacked = value.length > 28;
   return (
-    <div className="flex justify-between gap-4">
+    <div className={stacked ? "space-y-0.5" : "flex justify-between gap-4"}>
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right font-medium text-foreground">{value}</dd>
+      <dd
+        className={cn(
+          "font-medium text-foreground",
+          stacked ? "break-words" : "text-right",
+        )}
+      >
+        {value}
+      </dd>
     </div>
   );
 }
@@ -518,6 +535,40 @@ export function TripCalendar({ title }: { title?: string }) {
                 <Row label="Starts" value={fmtDateTime(selected.trip.tripStart)} />
                 <Row label="Ends" value={fmtDateTime(selected.trip.tripEnd)} />
                 <Row label="Status" value={selected.trip.status} />
+                <Row
+                  label="Days rented"
+                  value={
+                    selected.trip.daysRented != null
+                      ? `${selected.trip.daysRented} ${selected.trip.daysRented === 1 ? "day" : "days"}`
+                      : "—"
+                  }
+                />
+                <Row
+                  label="Earnings"
+                  value={
+                    selected.trip.earnings != null
+                      ? selected.trip.earnings.toLocaleString("en-US", {
+                          style: "currency",
+                          currency: "USD",
+                        })
+                      : "—"
+                  }
+                />
+                <Row label="Miles included" value={selected.trip.milesIncluded || "—"} />
+                <Row label="Pick up location" value={selected.trip.pickupLocation || "—"} />
+                <Row
+                  label="Drop off location"
+                  value={
+                    /* Turo emails often carry only one address. Fall back the
+                       same way the trip pages do rather than showing a dash
+                       when a delivery/pickup address is the known drop-off. */
+                    selected.trip.returnLocation ||
+                    selected.trip.deliveryLocation ||
+                    selected.trip.pickupLocation ||
+                    "—"
+                  }
+                />
+                <Row label="Extras" value={selected.trip.extras || "None"} />
                 {/* Turo Trips is an admin/co-host page — a client has no access
                     to it, so the link would only lead to a blocked route. */}
                 {data?.role !== "client" && (
