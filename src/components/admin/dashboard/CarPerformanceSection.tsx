@@ -128,6 +128,11 @@ export default function CarPerformanceSection({ year }: Props) {
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Days Rented</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Trips Taken</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Cars Available</th>
+                {/* Per-car, unlike "Cars Available" (a fleet-wide count that is
+                    identical on every row). This is the days each vehicle was
+                    actually on the fleet for the period — the per-vehicle
+                    yearly total, and the denominator of Fleet Utilization. */}
+                <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Available Days</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Fleet Utilization (%)</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Ave Earnings</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Avg Days Rented</th>
@@ -153,6 +158,7 @@ export default function CarPerformanceSection({ year }: Props) {
                   <td className="px-3 py-1.5 text-right">{r.daysRented}</td>
                   <td className="px-3 py-1.5 text-right">{r.tripsTaken}</td>
                   <td className="px-3 py-1.5 text-right">{r.carsAvailable}</td>
+                  <td className="px-3 py-1.5 text-right">{r.availableDays.toLocaleString()}</td>
                   <td className="px-3 py-1.5 text-right">{r.fleetUtilization.toFixed(2)}%</td>
                   <td className="px-3 py-1.5 text-right">{fmt(r.aveEarnings)}</td>
                   <td className="px-3 py-1.5 text-right">{r.avgDaysRented.toFixed(2)}</td>
@@ -170,6 +176,7 @@ export default function CarPerformanceSection({ year }: Props) {
                 <td className="px-3 py-2 text-right text-black">{totals.daysRented}</td>
                 <td className="px-3 py-2 text-right text-black">{totals.tripsTaken}</td>
                 <td className="px-3 py-2 text-right text-black">{totals.carsAvailable}</td>
+                <td className="px-3 py-2 text-right text-black">{totals.availableDays.toLocaleString()}</td>
                 <td className="px-3 py-2 text-right text-black">
                   {totals.availableDays > 0
                     ? ((totals.daysRented / totals.availableDays) * 100).toFixed(2) + "%"
