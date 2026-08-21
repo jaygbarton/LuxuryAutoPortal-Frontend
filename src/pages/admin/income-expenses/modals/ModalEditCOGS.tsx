@@ -16,6 +16,7 @@ import { useIncomeExpense } from "../context/IncomeExpenseContext";
 import FormReceiptInModal from "../components/FormReceiptInModal";
 import ReceiptUploadZone from "../components/ReceiptUploadZone";
 import AmountBreakdown from "../components/AmountBreakdown";
+import ServiceDateEditor from "../components/ServiceDateEditor";
 import { useImageUpload } from "../utils/useImageUpload";
 import { buildApiUrl } from "@/lib/queryClient";
 
@@ -169,11 +170,23 @@ export default function ModalEditCOGS() {
           </div>
 
           <div>
-            <Label className="text-muted-foreground text-xs">Date:</Label>
+            <Label className="text-muted-foreground text-xs">Month:</Label>
             <div className="text-foreground text-sm font-medium mt-1">
               {monthName} {year}
             </div>
           </div>
+
+          {/* Day-level service date, captured at the point the amount is
+              entered. The cell itself is keyed by month only, so without this
+              Operations > Service Due can only ever date this expense to the
+              1st — which is why its dates read as inaccurate. */}
+          <ServiceDateEditor
+            carId={carId}
+            year={parseInt(year)}
+            month={editingCell.month}
+            category={editingCell.category}
+            field={editingCell.field}
+          />
 
           <div>
             <Label className="text-muted-foreground text-xs">Manual Amount</Label>
