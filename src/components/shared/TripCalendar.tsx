@@ -58,6 +58,17 @@ const MIN_COL_W = 44; // px per day column before it is allowed to stretch
 const ROW_H = 46;   // px per vehicle row
 const LABEL_W = 190;
 const STEP_DAYS = 7; // arrows advance a week, like Turo's calendar
+/**
+ * Days of context shown BEFORE today when the calendar opens (or after "Today").
+ *
+ * The window used to start exactly at today, which read as a broken filter: a
+ * trip that started yesterday and is still out got clamped to the left edge
+ * with no visible start, and one that ended yesterday was missing altogether —
+ * "I don't see Aug 20 onwards" when today was the 21st. A booking calendar has
+ * to show the handful of days that are still operationally live, so anchor a
+ * few days back and let the range selector cover the rest.
+ */
+const LOOKBEHIND_DAYS = 3;
 const MONTH_BAND_H = 26; // must match the day-number row's sticky offset
 // The admin shell's top bar is h-14 (56px). The detail panel starts below it so
 // it never overlaps the account controls.
@@ -140,8 +151,14 @@ function Row({
  * heading. That keeps the visibility rule in exactly one place.
  */
 export function TripCalendar({ title }: { title?: string }) {
-  const [anchor, setAnchor] = useState(() => startOfDay(new Date()));
-  const [days, setDays] = useState(21);
+  // `anchor` is the first day drawn. `forwardDays` is what the range selector
+  // means — days from today onward — so picking "7 days" still gives a week of
+  // upcoming bookings rather than 4 days plus the lookbehind.
+  const [anchor, setAnchor] = useState(() =>
+    addDays(startOfDay(new Date()), -LOOKBEHIND_DAYS),
+  );
+  const [forwardDays, setForwardDays] = useState(21);
+  const days = forwardDays + LOOKBEHIND_DAYS;
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "booked" | "free">("all");
   // 227 of ~327 cars are off-fleet, so default to active or the timeline opens
@@ -337,8 +354,8 @@ export function TripCalendar({ title }: { title?: string }) {
             <option value="free">Free in view</option>
           </select>
           <select
-            value={days}
-            onChange={(e) => setDays(parseInt(e.target.value, 10))}
+            value={forwardDays}
+            onChange={(e) => setForwardDays(parseInt(e.target.value, 10))}
             className="h-8 rounded-md border border-input bg-background px-2 text-sm"
           >
             <option value={7}>7 days</option>
@@ -354,7 +371,14 @@ export function TripCalendar({ title }: { title?: string }) {
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setAnchor(startOfDay(new Date()))}>
+          <Button
+            variant="outline"
+            size="sm"
+            title="Back to today"
+            onClick={() =>
+              setAnchor(addDays(startOfDay(new Date()), -LOOKBEHIND_DAYS))
+            }
+          >
             Today
           </Button>
           <Button

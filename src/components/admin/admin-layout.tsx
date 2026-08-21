@@ -372,22 +372,33 @@ const allSidebarItems: SidebarItem[] = [
     roles: ["admin"],
   },
   {
-    href: "/admin/view-as-employee",
-    label: "View as Employee",
+    // Grouped under one collapsible parent: the three impersonation entries are
+    // the same action against a different role, and as siblings they took three
+    // slots at the very bottom of an already-long sidebar.
+    href: "/admin/view-as",
+    label: "View As",
     icon: Eye,
     roles: ["admin"],
-  },
-  {
-    href: "/admin/view-as-client",
-    label: "View as Client",
-    icon: Eye,
-    roles: ["admin"],
-  },
-  {
-    href: "/admin/view-as-co-host",
-    label: "View as Co-Host",
-    icon: Eye,
-    roles: ["admin"],
+    children: [
+      {
+        href: "/admin/view-as-employee",
+        label: "View as Employee",
+        icon: Eye,
+        roles: ["admin"],
+      },
+      {
+        href: "/admin/view-as-client",
+        label: "View as Client",
+        icon: Eye,
+        roles: ["admin"],
+      },
+      {
+        href: "/admin/view-as-co-host",
+        label: "View as Co-Host",
+        icon: Eye,
+        roles: ["admin"],
+      },
+    ],
   },
 ];
 
