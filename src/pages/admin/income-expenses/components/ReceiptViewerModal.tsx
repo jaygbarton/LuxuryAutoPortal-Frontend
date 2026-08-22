@@ -532,8 +532,9 @@ function ReceiptOcrPanel({
       )}
 
       <p className="mt-1 text-[10px] text-muted-foreground">
-        Tracking only — confirming a split records what the receipt breaks down to. It does not
-        change the amounts entered in Income &amp; Expenses.
+        Confirming a split records what the receipt breaks down to and marks each service it
+        covers as done on {String.fromCharCode(8220)}Service Due{String.fromCharCode(8221)}, dated
+        from this receipt. It does not change the amounts entered in Income &amp; Expenses.
       </p>
       {msg && (
         <p className={`mt-1 text-[11px] ${msg.ok ? "text-green-600" : "text-red-600"}`}>
