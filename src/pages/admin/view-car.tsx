@@ -2,7 +2,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
-import { ArrowLeft, ChevronRight, ChevronLeft, ExternalLink, Pencil, X, Check, ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronRight, ChevronLeft, ExternalLink, Pencil, X, Check, ChevronDown, FileText } from "lucide-react";
 import { authMeQueryFn, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
@@ -65,6 +65,8 @@ export default function ViewCarPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  const [downloadingStatement, setDownloadingStatement] = useState(false);
+
   // Get user data to check role
   const { data: userData } = useQuery<{ user?: any }>({
     queryKey: ["/api/auth/me"],
@@ -74,6 +76,7 @@ export default function ViewCarPage() {
 
   const user = userData?.user;
   const isClient = user?.isClient === true;
+  const isAdmin = user?.isAdmin === true;
 
   const { data, isLoading, error } = useQuery<{
     success: boolean;
@@ -252,6 +255,40 @@ export default function ViewCarPage() {
   const tireSize = onboarding?.tireSize || car.tireSize || "N/A";
   const oilType = onboarding?.oilType || car.oilType || "N/A";
 
+  // Statement of Account PDF (admin only) — the export lives here because this
+  // is the car page the Cars list actually links to; /admin/cars/:id is not
+  // reachable from normal navigation.
+  const handleDownloadStatement = async () => {
+    if (!carId) return;
+    setDownloadingStatement(true);
+    try {
+      const res = await fetch(buildApiUrl(`/api/cars/${carId}/statement-of-account`), {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Failed to generate statement");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Statement of Account - ${carName || carId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast({
+        title: "Download failed",
+        description: err?.message ?? "Could not generate the statement of account.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingStatement(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="flex flex-col min-h-full overflow-x-hidden">
@@ -264,12 +301,24 @@ export default function ViewCarPage() {
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Cars</span>
           </button>
-          <div>
-            <h1 className="text-2xl font-bold text-primary">View Car</h1>
-            {car && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Car: {carName || "Unknown Car"}
-              </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-primary">View Car</h1>
+              {car && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Car: {carName || "Unknown Car"}
+                </p>
+              )}
+            </div>
+            {isAdmin && (
+              <button
+                onClick={handleDownloadStatement}
+                disabled={downloadingStatement}
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50 disabled:pointer-events-none shrink-0"
+              >
+                <FileText className="w-4 h-4" />
+                {downloadingStatement ? "Generating..." : "Statement of Account"}
+              </button>
             )}
           </div>
         </div>
