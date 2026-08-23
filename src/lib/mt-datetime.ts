@@ -89,3 +89,55 @@ export function mtLocalInputToUtcDbString(local: string): string | null {
     `${pad(dt.getUTCHours())}:${pad(dt.getUTCMinutes())}:${pad(dt.getUTCSeconds())}`
   );
 }
+
+/**
+ * The Mountain-Time calendar day a UTC instant falls on, as `YYYY-MM-DD`.
+ *
+ * `new Date(iso)` followed by `setHours(0,0,0,0)` truncates in the *browser's*
+ * timezone, which is only the same as Mountain Time for viewers who happen to
+ * sit in it. A booking ending 2026-08-31 04:00 UTC is Aug 30, 10:00 PM in Salt
+ * Lake City, but bucketed east of Denver it lands on Aug 31 — which is how the
+ * trips calendar drew a bar one column past the end date its own detail panel
+ * displayed. Everything that decides "which day column is this?" must go
+ * through here so the grid and the panel can never disagree.
+ */
+export function mtDayKey(value: string | number | Date): string {
+  const d = value instanceof Date ? value : new Date(value);
+  if (isNaN(d.getTime())) return "";
+  // en-CA formats as YYYY-MM-DD, so no part juggling is needed.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Denver",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+/** Today's date in Mountain Time as `YYYY-MM-DD`. */
+export function mtTodayKey(): string {
+  return mtDayKey(new Date());
+}
+
+/**
+ * A `YYYY-MM-DD` day key as a *timezone-neutral* Date pinned to UTC midnight.
+ *
+ * Day-grid arithmetic (indexing columns, stepping a week) must not run on
+ * local-midnight Dates: across a DST boundary two local midnights are 23 or 25
+ * hours apart, so a fixed 86.4e6 division drifts by a whole column. UTC
+ * midnights are always exactly a day apart, making the index math exact.
+ */
+export function dayKeyToUtcDate(key: string): Date {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
+/** `YYYY-MM-DD` for a UTC-pinned day Date produced by dayKeyToUtcDate. */
+export function utcDateToDayKey(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
+/** Add whole days to a UTC-pinned day Date. */
+export function addUtcDays(d: Date, n: number): Date {
+  return new Date(d.getTime() + n * 86_400_000);
+}

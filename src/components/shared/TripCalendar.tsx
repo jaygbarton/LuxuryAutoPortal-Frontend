@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, AlertTriangle, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  addUtcDays,
+  dayKeyToUtcDate,
+  mtDayKey,
+  mtTodayKey,
+  utcDateToDayKey,
+} from "@/lib/mt-datetime";
 
 interface CalendarCar {
   carId: number;
@@ -69,26 +76,23 @@ const STEP_DAYS = 7; // arrows advance a week, like Turo's calendar
  * few days back and let the range selector cover the rest.
  */
 const LOOKBEHIND_DAYS = 3;
+/** One column per day per car, so an over-wide range has to be refused. */
+const MAX_RANGE_DAYS = 180;
 const MONTH_BAND_H = 26; // must match the day-number row's sticky offset
 // The admin shell's top bar is h-14 (56px). The detail panel starts below it so
 // it never overlaps the account controls.
 const HEADER_H = 56;
 
-/** Local YYYY-MM-DD (never toISOString, which shifts across the UTC boundary). */
-function ymd(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-function addDays(d: Date, n: number): Date {
-  const x = new Date(d);
-  x.setDate(x.getDate() + n);
-  return x;
-}
-/** Midnight local, so day math is not thrown off by the time component. */
-function startOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
+/**
+ * The calendar's day axis is Mountain Time, matching the detail panel and the
+ * rest of the app (time sheets, Daily Ops, the operations queries all pin to
+ * America/Denver). Column dates are therefore carried as `YYYY-MM-DD` day keys
+ * and, where arithmetic is needed, as Dates pinned to UTC midnight — never as
+ * browser-local midnights, whose spacing varies across DST and whose day
+ * boundary is wherever the viewer happens to be sitting.
+ */
+const ymd = utcDateToDayKey;
+const addDays = addUtcDays;
 
 const REASON_LABEL: Record<string, string> = {
   personal_use: "Personal use",
@@ -155,12 +159,30 @@ export function TripCalendar({ title }: { title?: string }) {
   // means — days from today onward — so picking "7 days" still gives a week of
   // upcoming bookings rather than 4 days plus the lookbehind.
   const [anchor, setAnchor] = useState(() =>
-    addDays(startOfDay(new Date()), -LOOKBEHIND_DAYS),
+    addDays(dayKeyToUtcDate(mtTodayKey()), -LOOKBEHIND_DAYS),
   );
   const [forwardDays, setForwardDays] = useState(21);
-  const days = forwardDays + LOOKBEHIND_DAYS;
+  // An explicit From/To overrides the "N days" preset. Both must be set before
+  // it takes effect, so typing a start date does not blank the calendar while
+  // the end date is still empty.
+  const [rangeFrom, setRangeFrom] = useState("");
+  const [rangeTo, setRangeTo] = useState("");
+  // Capped: the grid renders one column per day for every car, so an
+  // accidental multi-year range (a mistyped year) would try to lay out
+  // thousands of columns and lock the tab up.
+  const validRange = Boolean(rangeFrom && rangeTo && rangeFrom <= rangeTo);
+  const customRange =
+    validRange &&
+    (dayKeyToUtcDate(rangeTo).getTime() - dayKeyToUtcDate(rangeFrom).getTime()) /
+      DAY_MS <
+      MAX_RANGE_DAYS;
+  const rangeTooLong = validRange && !customRange;
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "booked" | "free">("all");
+  // Show only cars whose booking *starts* (or *ends*) inside the visible
+  // window — "which cars go out this week?" / "which come back?". Independent
+  // of each other so both can be applied at once.
+  const [edgeFilter, setEdgeFilter] = useState<"any" | "starts" | "ends">("any");
   // 227 of ~327 cars are off-fleet, so default to active or the timeline opens
   // as mostly blank rows.
   const [fleetFilter, setFleetFilter] = useState<"active" | "inactive" | "all">("active");
@@ -170,8 +192,24 @@ export function TripCalendar({ title }: { title?: string }) {
     | null
   >(null);
 
-  const from = ymd(anchor);
-  const to = ymd(addDays(anchor, days - 1));
+  // The window is either the explicit range or the anchor + preset span.
+  const from = customRange ? rangeFrom : ymd(anchor);
+  const to = customRange
+    ? rangeTo
+    : ymd(addDays(anchor, forwardDays + LOOKBEHIND_DAYS - 1));
+  // Everything downstream (column count, bar offsets) keys off these, so they
+  // are derived from the resolved window rather than the preset.
+  const winStartDate = useMemo(() => dayKeyToUtcDate(from), [from]);
+  const days = useMemo(
+    () =>
+      Math.max(
+        1,
+        Math.round(
+          (dayKeyToUtcDate(to).getTime() - dayKeyToUtcDate(from).getTime()) / DAY_MS,
+        ) + 1,
+      ),
+    [from, to],
+  );
 
   const { data, isLoading, isError } = useQuery<CalendarResponse>({
     queryKey: ["/api/turo-trips/calendar", from, to],
@@ -186,8 +224,8 @@ export function TripCalendar({ title }: { title?: string }) {
   });
 
   const dayList = useMemo(
-    () => Array.from({ length: days }, (_, i) => addDays(anchor, i)),
-    [anchor, days],
+    () => Array.from({ length: days }, (_, i) => addDays(winStartDate, i)),
+    [winStartDate, days],
   );
 
   // Bars are positioned by day offset from the window start. A trip that began
@@ -222,12 +260,16 @@ export function TripCalendar({ title }: { title?: string }) {
     return Math.max(MIN_COL_W, Math.floor(available / days));
   }, [viewportW, days]);
 
+  // Both ends are reduced to the Mountain-Time calendar day they fall on, the
+  // same day the detail panel prints. Bucketing in the browser's zone instead
+  // pushed any booking that ends late MT evening (past 00:00 UTC) a full column
+  // to the right of the "Ends" date shown when the bar is clicked.
   const barFor = (startIso: string, endIso: string | null) => {
-    const winStart = anchor.getTime();
-    const winEnd = addDays(anchor, days).getTime();
-    const s = startOfDay(new Date(startIso)).getTime();
+    const winStart = winStartDate.getTime();
+    const winEnd = addDays(winStartDate, days).getTime();
+    const s = dayKeyToUtcDate(mtDayKey(startIso)).getTime();
     // A null end means an open-ended block-off — draw it to the window edge.
-    const e = endIso ? startOfDay(new Date(endIso)).getTime() : winEnd - DAY_MS;
+    const e = endIso ? dayKeyToUtcDate(mtDayKey(endIso)).getTime() : winEnd - DAY_MS;
     if (e < winStart || s >= winEnd) return null;
     const startIdx = Math.max(0, Math.round((s - winStart) / DAY_MS));
     const endIdx = Math.min(days - 1, Math.round((e - winStart) / DAY_MS));
@@ -266,8 +308,22 @@ export function TripCalendar({ title }: { title?: string }) {
         statusFilter === "booked" ? booked.has(Number(c.carId)) : !booked.has(Number(c.carId)),
       );
     }
+    if (edgeFilter !== "any") {
+      // Keep only cars with a trip whose start (or end) day actually falls
+      // inside the window. A trip merely passing through the window has
+      // neither edge here, so it is excluded — that is the point of the
+      // filter: "going out this week" vs "already out".
+      // Compared as Mountain-Time day keys so the answer matches the column
+      // the bar is drawn in and the date the detail panel prints.
+      const keep = new Set<number>();
+      for (const t of data?.trips ?? []) {
+        const key = mtDayKey(edgeFilter === "starts" ? t.tripStart : t.tripEnd);
+        if (key >= from && key <= to) keep.add(Number(t.carId));
+      }
+      list = list.filter((c) => keep.has(Number(c.carId)));
+    }
     return list;
-  }, [data?.cars, data?.trips, search, statusFilter, fleetFilter]);
+  }, [data?.cars, data?.trips, search, statusFilter, fleetFilter, edgeFilter, from, to]);
 
   const tripsByCar = useMemo(() => {
     const m = new Map<number, CalendarTrip[]>();
@@ -293,26 +349,36 @@ export function TripCalendar({ title }: { title?: string }) {
   // Turo shows the window's month above the grid; span both when the range
   // crosses a month boundary so the header never lies about what's on screen.
   const rangeLabel = useMemo(() => {
-    const first = anchor;
-    const last = addDays(anchor, days - 1);
+    const first = winStartDate;
+    const last = addDays(winStartDate, days - 1);
+    // Day Dates are pinned to UTC midnight, so they must be read in UTC —
+    // a local-zone formatter west of Greenwich renders the previous day.
     const fmt = (d: Date, withYear: boolean) =>
       d.toLocaleDateString("en-US", {
+        timeZone: "UTC",
         month: "long",
         ...(withYear ? { year: "numeric" } : {}),
       });
-    if (first.getMonth() === last.getMonth() && first.getFullYear() === last.getFullYear()) {
+    if (
+      first.getUTCMonth() === last.getUTCMonth() &&
+      first.getUTCFullYear() === last.getUTCFullYear()
+    ) {
       return fmt(first, true);
     }
-    const sameYear = first.getFullYear() === last.getFullYear();
+    const sameYear = first.getUTCFullYear() === last.getUTCFullYear();
     return `${fmt(first, !sameYear)} – ${fmt(last, true)}`;
-  }, [anchor, days]);
+  }, [winStartDate, days]);
 
   // Runs of consecutive days sharing a month, so the header can draw one
   // labelled band per month above the day numbers.
   const monthBands = useMemo(() => {
     const bands: { label: string; span: number }[] = [];
     for (const d of dayList) {
-      const label = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      const label = d.toLocaleDateString("en-US", {
+        timeZone: "UTC",
+        month: "long",
+        year: "numeric",
+      });
       const last = bands[bands.length - 1];
       if (last && last.label === label) last.span += 1;
       else bands.push({ label, span: 1 });
@@ -320,7 +386,7 @@ export function TripCalendar({ title }: { title?: string }) {
     return bands;
   }, [dayList]);
 
-  const todayKey = ymd(startOfDay(new Date()));
+  const todayKey = mtTodayKey();
 
   return (
     <div className="space-y-4">
@@ -354,9 +420,60 @@ export function TripCalendar({ title }: { title?: string }) {
             <option value="free">Free in view</option>
           </select>
           <select
+            value={edgeFilter}
+            onChange={(e) => setEdgeFilter(e.target.value as typeof edgeFilter)}
+            className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+            title="Show only cars whose trip starts or ends in this window"
+          >
+            <option value="any">Any trip in range</option>
+            <option value="starts">Trip starts in range</option>
+            <option value="ends">Trip ends in range</option>
+          </select>
+          {/* Explicit date range. While both ends are set it drives the window
+              and the preset/paging controls stand down, so the two cannot
+              silently disagree about what is on screen. */}
+          <div className="flex items-center gap-1">
+            <Input
+              type="date"
+              aria-label="Range start"
+              value={rangeFrom}
+              max={rangeTo || undefined}
+              onChange={(e) => setRangeFrom(e.target.value)}
+              className="h-8 w-[9.5rem] text-sm"
+            />
+            <span className="text-xs text-muted-foreground">to</span>
+            <Input
+              type="date"
+              aria-label="Range end"
+              value={rangeTo}
+              min={rangeFrom || undefined}
+              onChange={(e) => setRangeTo(e.target.value)}
+              className="h-8 w-[9.5rem] text-sm"
+            />
+            {(rangeFrom || rangeTo) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                title="Clear date range"
+                onClick={() => {
+                  setRangeFrom("");
+                  setRangeTo("");
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <select
             value={forwardDays}
             onChange={(e) => setForwardDays(parseInt(e.target.value, 10))}
-            className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+            disabled={customRange}
+            title={
+              customRange
+                ? "Clear the date range to use a preset span"
+                : undefined
+            }
+            className="h-8 rounded-md border border-input bg-background px-2 text-sm disabled:opacity-50"
           >
             <option value={7}>7 days</option>
             <option value={14}>14 days</option>
@@ -367,6 +484,7 @@ export function TripCalendar({ title }: { title?: string }) {
             variant="outline"
             size="sm"
             title="Previous week"
+            disabled={customRange}
             onClick={() => setAnchor(addDays(anchor, -STEP_DAYS))}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -375,9 +493,11 @@ export function TripCalendar({ title }: { title?: string }) {
             variant="outline"
             size="sm"
             title="Back to today"
-            onClick={() =>
-              setAnchor(addDays(startOfDay(new Date()), -LOOKBEHIND_DAYS))
-            }
+            onClick={() => {
+              setRangeFrom("");
+              setRangeTo("");
+              setAnchor(addDays(dayKeyToUtcDate(mtTodayKey()), -LOOKBEHIND_DAYS));
+            }}
           >
             Today
           </Button>
@@ -385,12 +505,24 @@ export function TripCalendar({ title }: { title?: string }) {
             variant="outline"
             size="sm"
             title="Next week"
+            disabled={customRange}
             onClick={() => setAnchor(addDays(anchor, STEP_DAYS))}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
+
+      {rangeTooLong && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+          <div>
+            <span className="font-medium">That date range is too long.</span>{" "}
+            The timeline draws a column per day, so pick a span under{" "}
+            {MAX_RANGE_DAYS} days. Showing the preset range instead.
+          </div>
+        </div>
+      )}
 
       {data?.sync?.stale && (
         <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -461,7 +593,7 @@ export function TripCalendar({ title }: { title?: string }) {
               </div>
               {dayList.map((d) => {
                 const isToday = ymd(d) === todayKey;
-                const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                const isWeekend = d.getUTCDay() === 0 || d.getUTCDay() === 6;
                 return (
                   <div
                     key={ymd(d)}
@@ -473,7 +605,10 @@ export function TripCalendar({ title }: { title?: string }) {
                     style={{ width: COL_W }}
                   >
                     <div className="text-[10px] uppercase text-muted-foreground">
-                      {d.toLocaleDateString("en-US", { weekday: "short" })}
+                      {d.toLocaleDateString("en-US", {
+                        timeZone: "UTC",
+                        weekday: "short",
+                      })}
                     </div>
                     <div
                       className={cn(
@@ -481,7 +616,7 @@ export function TripCalendar({ title }: { title?: string }) {
                         isToday ? "text-primary" : "text-foreground",
                       )}
                     >
-                      {d.getDate()}
+                      {d.getUTCDate()}
                     </div>
                   </div>
                 );
@@ -518,7 +653,7 @@ export function TripCalendar({ title }: { title?: string }) {
                     <div className="absolute inset-0 flex">
                       {dayList.map((d) => {
                         const key = ymd(d);
-                        const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                        const isWeekend = d.getUTCDay() === 0 || d.getUTCDay() === 6;
                         const isToday = key === todayKey;
                         return (
                           <div
