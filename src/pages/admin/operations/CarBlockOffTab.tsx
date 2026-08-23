@@ -14,6 +14,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl } from "@/lib/queryClient";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
+import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -101,6 +102,7 @@ const PAGE_SIZE_KEY = "operations.carBlockOff.pageSize";
 // ── Tab component ─────────────────────────────────────────────────────────────
 
 export function CarBlockOffTab() {
+  const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -131,7 +133,14 @@ export function CarBlockOffTab() {
     staleTime: 30_000,
   });
 
-  const records = data?.data ?? [];
+  const records = (data?.data ?? []).filter((record) =>
+    operationLocationMatches(locationFilter, [
+      record.pickup_location,
+      record.dropoff_location,
+      record.car_name,
+      record.plate_number,
+    ]),
+  );
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 

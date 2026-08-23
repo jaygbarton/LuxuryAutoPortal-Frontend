@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, Arro
 import { PhotoUpload } from "./PhotoUpload";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarScheduleImage } from "./CarScheduleImage";
+import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ interface DayEvent {
   trip_end_mt: string | null;
   pickup_location: string | null;
   dropoff_location: string | null;
+  location_tag?: string | null;
   photos: string[] | null;
   car_photo: string | null;
   duration_minutes: number | null;
@@ -738,6 +740,7 @@ function UnassignedCard({ event }: { event: DayEvent }) {
 
 export function DayScheduleTab() {
   const [date, setDate] = useState(todayMTDate);
+  const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [unassignOver, setUnassignOver] = useState(false);
@@ -937,7 +940,16 @@ export function DayScheduleTab() {
     statusMutation.mutate({ type, id, status });
   }
 
-  const allEvents = data?.events ?? [];
+  const allEvents = (data?.events ?? []).filter((event) =>
+    operationLocationMatches(locationFilter, [
+      event.location_tag,
+      event.pickup_location,
+      event.dropoff_location,
+      event.location,
+      event.car_name,
+      event.plate,
+    ]),
+  );
   // Category counts for the summary badges/legend are always computed from
   // the FULL unfiltered list, so a user can see (and toggle back on) every
   // category's total even while other categories are filtered out.

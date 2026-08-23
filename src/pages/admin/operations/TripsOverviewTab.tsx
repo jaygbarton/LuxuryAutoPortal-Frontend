@@ -28,6 +28,7 @@ import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { Truck, Sparkles, Package, X, Wrench, Shield, CreditCard, PlaneTakeoff, Fuel } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { TuroTrip, OperationTask, TaskType } from "./types";
+import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
 
 const formatDateTime = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -216,6 +217,7 @@ function TaskChip({
 }
 
 export function TripsOverviewTab() {
+  const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -608,15 +610,24 @@ export function TripsOverviewTab() {
   // The Assigned-To filter still runs client-side because it joins against a
   // separate /api/operations/tasks query — applied to the current page only.
   const pagedTrips = useMemo(() => {
-    if (filterAssigned === "all") return pageTrips;
-    return pageTrips.filter((trip) => {
+    const locationTrips = pageTrips.filter((trip) =>
+      operationLocationMatches(locationFilter, [
+        trip.pickupLocation,
+        trip.deliveryLocation,
+        trip.returnLocation,
+        trip.carName,
+        trip.plateNumber,
+      ]),
+    );
+    if (filterAssigned === "all") return locationTrips;
+    return locationTrips.filter((trip) => {
       const tripTasks = getTasksForTrip(trip.id);
       if (filterAssigned === "__unassigned__") {
         return tripTasks.length === 0;
       }
       return tripTasks.some((t) => t.assigned_to === filterAssigned);
     });
-  }, [pageTrips, allTasks, filterAssigned]);
+  }, [pageTrips, allTasks, filterAssigned, locationFilter]);
 
   // Reset to page 1 whenever any server-side filter changes so we don't end
   // up on an out-of-range page after the matched set shrinks.

@@ -37,6 +37,7 @@ import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarIssueTypesCell } from "./CarIssueTypesCell";
 import { FuelReturnedCell } from "./FuelReturnedCell";
+import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -169,6 +170,7 @@ export function MaintenanceTab({
   defaultStatus = "all",
   lockedStatus = false,
 }: MaintenanceTabProps = {}) {
+  const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>(defaultStatus);
@@ -251,9 +253,20 @@ export function MaintenanceTab({
   const records = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rawRecords.filter((rec) => {
+      const insp = rec.inspection_id != null ? inspectionsById.get(rec.inspection_id) : undefined;
+      const trip = insp?.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+      if (!operationLocationMatches(locationFilter, [
+        rec.trip_pickup_location,
+        rec.trip_delivery_location,
+        rec.trip_return_location,
+        trip?.pickupLocation,
+        trip?.deliveryLocation,
+        trip?.returnLocation,
+        rec.car_name,
+        rec.car_plate,
+        rec.trip_plate_number,
+      ])) return false;
       if (q) {
-        const insp = rec.inspection_id != null ? inspectionsById.get(rec.inspection_id) : undefined;
-        const trip = insp?.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
         // Mirror every visible column so the search box matches anything the
         // user can see in the table.
         const hay = [
@@ -318,7 +331,7 @@ export function MaintenanceTab({
       }
       return true;
     });
-  }, [rawRecords, inspectionsById, tripsById, search, dateFrom, dateTo]);
+  }, [rawRecords, inspectionsById, tripsById, search, dateFrom, dateTo, locationFilter]);
 
   const hasActiveFilters =
     filterStatus !== (defaultStatus ?? "all") ||

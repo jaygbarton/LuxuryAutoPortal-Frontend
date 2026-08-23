@@ -3,6 +3,7 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TripsOverviewTab } from "./operations/TripsOverviewTab";
 import { TuroInspectionTab } from "./operations/TuroInspectionTab";
 import { CarInspectionsTab } from "./operations/CarInspectionsTab";
@@ -15,6 +16,11 @@ import { CarRepairedTab } from "./operations/CarRepairedTab";
 import { CarBlockOffTab } from "./operations/CarBlockOffTab";
 import { DayScheduleTab } from "./operations/DayScheduleTab";
 import { TvTimelineTab } from "./operations/TvTimelineTab";
+import {
+  OPERATION_LOCATION_OPTIONS,
+  OperationLocationFilter,
+  OperationLocationFilterProvider,
+} from "./operations/OperationLocationFilter";
 
 const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "day-schedule", "tv-timeline"] as const;
 type TabId = typeof TAB_IDS[number];
@@ -44,6 +50,7 @@ function initialTab(): TabId {
 export default function OperationsPage() {
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(new Set(["trips", initialTab()]));
+  const [locationFilter, setLocationFilter] = useState<OperationLocationFilter>("all");
 
   const showTab = (tab: TabId) => {
     setActiveTab(tab);
@@ -88,7 +95,24 @@ export default function OperationsPage() {
           </p>
         </div>
 
+        <OperationLocationFilterProvider value={locationFilter}>
         <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Location</div>
+            <Select value={locationFilter} onValueChange={(value) => setLocationFilter(value as OperationLocationFilter)}>
+              <SelectTrigger className="h-9 w-full sm:w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {OPERATION_LOCATION_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="-mx-2 sm:mx-0 mb-6 overflow-x-auto">
             <TabsList className="bg-muted border border-border h-auto gap-1 p-1 inline-flex w-max min-w-full sm:w-auto sm:min-w-0 sm:flex-wrap">
               <TabsTrigger value="trips" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
@@ -167,6 +191,7 @@ export default function OperationsPage() {
             <TvTimelineTab />
           </LazyTab>
         </Tabs>
+        </OperationLocationFilterProvider>
       </div>
       <ClientPageLinks />
       <AdminPageLinks />

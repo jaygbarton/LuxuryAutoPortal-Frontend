@@ -17,6 +17,7 @@ import {
   Fuel,
 } from "lucide-react";
 import { CarScheduleImage } from "./CarScheduleImage";
+import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
 
 // ─── Types (mirror /api/operations/day-schedule) ──────────────────────────────
 
@@ -49,6 +50,7 @@ interface DayEvent {
   trip_end_mt: string | null;
   pickup_location: string | null;
   dropoff_location: string | null;
+  location_tag?: string | null;
   car_photo: string | null;
 }
 
@@ -707,6 +709,7 @@ function setLocalDone(date: string, keys: Set<string>) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function TvTimelineTab() {
+  const locationFilter = useOperationLocationFilter();
   const [date, setDate] = useState(todayMTDate);
   const [showCompleted, setShowCompleted] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -754,7 +757,16 @@ export function TvTimelineTab() {
   }
 
   const rows = useMemo<TimelineRow[]>(() => {
-    const events = data?.events ?? [];
+    const events = (data?.events ?? []).filter((event) =>
+      operationLocationMatches(locationFilter, [
+        event.location_tag,
+        event.pickup_location,
+        event.dropoff_location,
+        event.location,
+        event.car_name,
+        event.plate,
+      ]),
+    );
 
     // Build a lookup: reservation_id → list of operation task events for that trip.
     // These are the "child" tasks (cleaning, pickup, delivery, refuel) that belong
@@ -820,7 +832,7 @@ export function TvTimelineTab() {
     });
 
     return built;
-  }, [data, date, nowMs, localDone]);
+  }, [data, date, nowMs, localDone, locationFilter]);
 
   const visibleRows = showCompleted ? rows : rows.filter((r) => !r.isDone);
 

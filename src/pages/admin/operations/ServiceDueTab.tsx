@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
 import type { CarServiceDue } from "./types";
 
 type ServiceKind = "oil_change" | "tires" | "brakes" | "windshield" | "mechanic" | "license_registration";
@@ -159,6 +160,7 @@ function RegistrationCell({
 }
 
 export function ServiceDueTab() {
+  const locationFilter = useOperationLocationFilter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "ACTIVE" | "INACTIVE">("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
@@ -190,6 +192,7 @@ export function ServiceDueTab() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
+      if (!operationLocationMatches(locationFilter, [r.locationTag, r.car_name, r.car_plate, r.car_vin])) return false;
       if (q && ![r.car_name, r.car_plate, r.car_vin].filter(Boolean).join(" ").toLowerCase().includes(q)) return false;
       if (statusFilter !== "all" && r.car_status !== statusFilter) return false;
       if (!matchesCategoryFilter(r, categoryFilter)) return false;
@@ -216,7 +219,7 @@ export function ServiceDueTab() {
       }
       return true;
     });
-  }, [rows, search, statusFilter, categoryFilter, dateFrom, dateTo]);
+  }, [rows, search, statusFilter, categoryFilter, dateFrom, dateTo, locationFilter]);
 
   const sorted = useMemo(() => {
     const copy = [...filtered];

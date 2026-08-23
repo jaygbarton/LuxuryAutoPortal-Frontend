@@ -42,6 +42,7 @@ import {
 import type { Inspection, TuroTrip } from "./types";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
+import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
 
 // Status dropdown values that filter the joined Turo *trip* status (client-side)
 // rather than the inspection status (server-side). Booked / Ended / Returned.
@@ -94,6 +95,7 @@ const calculateDaysRented = (
 };
 
 export function TuroInspectionTab() {
+  const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -443,6 +445,13 @@ export function TuroInspectionTab() {
       if (insp.status === "no_issues") return false;
 
       const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+      if (!operationLocationMatches(locationFilter, [
+        trip?.pickupLocation,
+        trip?.deliveryLocation,
+        trip?.returnLocation,
+        insp.car_name,
+        trip?.plateNumber,
+      ])) return false;
 
       // Default ("all") shows only ended trips. Explicit filter overrides.
       const tripStatus = (trip?.status ?? "").toLowerCase();
@@ -491,7 +500,7 @@ export function TuroInspectionTab() {
 
       return true;
     });
-  }, [inspections, maintenanceInspectionIds, tripsById, search, rangeFrom, rangeTo, filterStatus]);
+  }, [inspections, maintenanceInspectionIds, tripsById, search, rangeFrom, rangeTo, filterStatus, locationFilter]);
 
   useEffect(() => {
     setPage(1);

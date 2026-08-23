@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RotateCcw, ArrowRight, Plus } from "lucide-react";
 import type { Inspection, TuroTrip } from "./types";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
+import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -62,6 +63,7 @@ const calculateDaysRented = (
 };
 
 export function NoCarIssuesTab() {
+  const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [page, setPage] = useState(1);
@@ -109,8 +111,15 @@ export function NoCarIssuesTab() {
   const inspections = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rawInspections.filter((insp) => {
+      const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
+      if (!operationLocationMatches(locationFilter, [
+        trip?.pickupLocation,
+        trip?.deliveryLocation,
+        trip?.returnLocation,
+        insp.car_name,
+        trip?.plateNumber,
+      ])) return false;
       if (q) {
-        const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
         // Mirror every visible column so the search box matches anything the
         // user can see in the table.
         const hay = [
@@ -161,7 +170,7 @@ export function NoCarIssuesTab() {
       }
       return true;
     });
-  }, [rawInspections, tripsById, search, filterSource, rangeFrom, rangeTo]);
+  }, [rawInspections, tripsById, search, filterSource, rangeFrom, rangeTo, locationFilter]);
 
   const hasActiveFilters =
     search !== "" || filterSource !== "all" || rangeFrom !== "" || rangeTo !== "";

@@ -22,6 +22,7 @@ import { CarIssueTypesCell } from "./CarIssueTypesCell";
 import { FuelReturnedCell } from "./FuelReturnedCell";
 import { GasLevelCells } from "./GasLevelCells";
 import { OperationEditHistoryList } from "@/components/admin/OperationEditHistory";
+import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -70,6 +71,7 @@ const calculateDaysRented = (
 };
 
 export function CarInspectionsTab() {
+  const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -205,6 +207,13 @@ export function CarInspectionsTab() {
       // trip and are unaffected.)
       const linkedTrip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
       if (linkedTrip?.status?.toLowerCase() === "cancelled") return false;
+      if (!operationLocationMatches(locationFilter, [
+        linkedTrip?.pickupLocation,
+        linkedTrip?.deliveryLocation,
+        linkedTrip?.returnLocation,
+        insp.car_name,
+        linkedTrip?.plateNumber,
+      ])) return false;
       if (q) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
         // Mirror every visible column so the search box matches anything the
@@ -259,7 +268,7 @@ export function CarInspectionsTab() {
       }
       return true;
     });
-  }, [rawInspections, maintenanceRecords, tripsById, search, filterSource, rangeFrom, rangeTo]);
+  }, [rawInspections, maintenanceRecords, tripsById, search, filterSource, rangeFrom, rangeTo, locationFilter]);
 
   const hasActiveFilters =
     filterStatus !== "all" ||
