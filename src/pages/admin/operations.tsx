@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
@@ -45,8 +45,7 @@ export default function OperationsPage() {
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(new Set(["trips", initialTab()]));
 
-  const handleTabChange = (value: string) => {
-    const tab = value as TabId;
+  const showTab = (tab: TabId) => {
     setActiveTab(tab);
     setMountedTabs(prev => {
       if (prev.has(tab)) return prev;
@@ -55,6 +54,29 @@ export default function OperationsPage() {
       return next;
     });
   };
+
+  // Put the open tab in the URL so a tab can be linked and shared. The page
+  // already READ ?tab= on load, but never wrote it — so the address bar stayed
+  // on /admin/operations whichever tab you were looking at, and there was
+  // nothing to copy. pushState (not replace) keeps Back stepping through the
+  // tabs you visited, which is what the browser controls imply.
+  const handleTabChange = (value: string) => {
+    const tab = value as TabId;
+    showTab(tab);
+    const params = new URLSearchParams(window.location.search);
+    // "trips" is the default, so leave it out and keep the bare URL clean.
+    if (tab === "trips") params.delete("tab");
+    else params.set("tab", tab);
+    const qs = params.toString();
+    window.history.pushState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+  };
+
+  // Follow the browser's Back/Forward buttons between tabs.
+  useEffect(() => {
+    const onPopState = () => showTab(initialTab());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   return (
     <AdminLayout>
