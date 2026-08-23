@@ -796,8 +796,27 @@ export function TripsOverviewTab() {
                     const gasEndVal = gasEdit?.end !== undefined ? gasEdit.end : (trip.gasLevelTripEnd ?? "");
                     const needsRefuel = isFuelShortfall(gasStartVal, gasEndVal);
                     const daysRented = calculateDaysRented(trip.tripStart, trip.tripEnd);
-                    const totalMiles = trip.tripStartOdometer != null && trip.tripEndOdometer != null && trip.tripEndOdometer >= trip.tripStartOdometer
-                      ? trip.tripEndOdometer - trip.tripStartOdometer : null;
+                    // Odometer pair first — that is a reading off the dash and
+                    // beats an inferred figure. When nobody wrote the odometers
+                    // down, fall back to miles_driven, which the Bouncie tracker
+                    // fills automatically (summed GPS distance for the rental
+                    // window). Recovers a real figure for ~78 of the 1,206
+                    // Bouncie-era ended trips that showed "--" purely because
+                    // the odometers were never entered.
+                    const odoMiles =
+                      trip.tripStartOdometer != null &&
+                      trip.tripEndOdometer != null &&
+                      trip.tripEndOdometer >= trip.tripStartOdometer
+                        ? trip.tripEndOdometer - trip.tripStartOdometer
+                        : null;
+                    // milesDriven is DECIMAL, so it arrives as a string.
+                    const trackedMiles = (() => {
+                      if (trip.milesDriven == null) return null;
+                      const n = Number(trip.milesDriven);
+                      return Number.isFinite(n) && n > 0 ? n : null;
+                    })();
+                    const totalMiles = odoMiles ?? trackedMiles;
+                    const totalMilesFromTracker = odoMiles == null && trackedMiles != null;
 
                     const carNameEl = (() => {
                       const editing = carNameEdits[trip.id] !== undefined;
@@ -981,7 +1000,22 @@ export function TripsOverviewTab() {
                           { label: "Trip End Odo", value: endOdoEl },
                           { label: "Gas Level Start", value: gasStartEl },
                           { label: "Gas Level End", value: gasEndEl },
-                          { label: "Total Miles", value: totalMiles != null ? totalMiles.toLocaleString() : "--" },
+                          {
+                            label: "Total Miles",
+                            value:
+                              totalMiles == null ? (
+                                "--"
+                              ) : totalMilesFromTracker ? (
+                                // Mark the inferred figure so it is never
+                                // mistaken for a recorded odometer reading.
+                                <span title="From the Bouncie tracker — no odometer readings were entered for this trip">
+                                  {totalMiles.toLocaleString()}
+                                  <span className="ml-1 text-[10px] text-muted-foreground">GPS</span>
+                                </span>
+                              ) : (
+                                totalMiles.toLocaleString()
+                              ),
+                          },
                           { label: "Earnings", value: trip.status === "cancelled" ? <span className="text-destructive">({formatCurrency(trip.cancelledEarnings)})</span> : formatCurrency(trip.earnings) },
                           { label: "Trip Tasks", value: taskBadges },
                           { label: "Task Actions", value: taskChips },
