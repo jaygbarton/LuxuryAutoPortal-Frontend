@@ -10,6 +10,7 @@ import { PhotoUpload } from "./PhotoUpload";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarScheduleImage } from "./CarScheduleImage";
 import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
+import { mtLocalInputToUtcIso, mtTodayKey, addUtcDays, dayKeyToUtcDate, utcDateToDayKey } from "@/lib/mt-datetime";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -140,12 +141,7 @@ const STATUS_BADGE: Record<string, string> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function todayMTDate(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Denver",
-    year: "numeric", month: "2-digit", day: "2-digit",
-  }).format(new Date());
-}
+const todayMTDate = mtTodayKey;
 
 function formatDisplayDate(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
@@ -163,8 +159,7 @@ function formatDateCompact(iso: string): string {
 }
 
 function shiftDate(iso: string, delta: number): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d + delta)).toISOString().slice(0, 10);
+  return utcDateToDayKey(addUtcDays(dayKeyToUtcDate(iso), delta));
 }
 
 function colorFor(category: string) {
@@ -752,10 +747,17 @@ export function DayScheduleTab() {
   const [showAddEntry, setShowAddEntry] = useState(false);
   const [entryType, setEntryType] = useState<"refuel" | "custom">("refuel");
   const [entryCarName, setEntryCarName] = useState("");
-  const [entryTime, setEntryTime] = useState(() => {
-    const now = new Date();
-    return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  });
+  // Seed from the Mountain-Time wall clock, not the browser's. The value is
+  // submitted as a Mountain time, so seeding it from a Manila clock would
+  // prefill a time the user never intended.
+  const [entryTime, setEntryTime] = useState(() =>
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "America/Denver",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date()),
+  );
   const [entryNotes, setEntryNotes] = useState("");
   const [entryEmployee, setEntryEmployee] = useState<{ id: number | null; name: string }>({ id: null, name: "" });
 
@@ -883,7 +885,12 @@ export function DayScheduleTab() {
 
   const addEntryMutation = useMutation({
     mutationFn: async () => {
-      const scheduledAt = new Date(`${date}T${entryTime || "09:00"}:00`).toISOString();
+      // `date` is a Mountain-Time day key and `entryTime` a Mountain wall time,
+      // so the pair has to be interpreted as Mountain — letting `new Date()`
+      // parse it applied the *browser's* offset instead, which filed a Manila
+      // user's entry under the previous day.
+      const scheduledAt = mtLocalInputToUtcIso(`${date}T${entryTime || "09:00"}`);
+      if (!scheduledAt) throw new Error("Pick a valid date and time");
       const res = await fetch(buildApiUrl(`/api/operations/day-schedule/entry`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },

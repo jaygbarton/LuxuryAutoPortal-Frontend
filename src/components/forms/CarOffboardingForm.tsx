@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { mtLocalInputToUtcIso, mtDayStartToUtcIso } from "@/lib/mt-datetime";
 
 const carOffboardingSchema = z.object({
   date: z.string().min(1, "Date is required"),
@@ -127,10 +128,15 @@ export default function CarOffboardingForm() {
   const onSubmit = async (data: CarOffboardingFormData) => {
     setIsSubmitting(true);
     try {
-      // Convert date strings to ISO format
-      const dateTime = new Date(data.date).toISOString();
-      // Combine pick-up date and time
-      const pickUpDateTime = new Date(`${data.pickUpDate}T${data.pickUpTime}`).toISOString();
+      // These are Mountain-Time calendar dates and wall times. Letting
+      // `new Date()` parse them applied the *browser's* offset — a bare
+      // YYYY-MM-DD as UTC midnight, and the date+time pair as browser-local —
+      // so a user outside Mountain Time filed records under the wrong day.
+      const dateTime = mtDayStartToUtcIso(data.date);
+      const pickUpDateTime = mtLocalInputToUtcIso(`${data.pickUpDate}T${data.pickUpTime}`);
+      if (!dateTime || !pickUpDateTime) {
+        throw new Error("Pick a valid date and time");
+      }
 
       const payload = {
         date: dateTime,

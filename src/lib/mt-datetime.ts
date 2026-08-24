@@ -36,6 +36,47 @@ export function toMtLocalInput(iso: string | undefined | null): string {
  *  `YYYY-MM-DD HH:MM:SS` UTC string that mysql2 will store unchanged in a
  *  DATETIME column. Returns null for empty / malformed input. */
 export function mtLocalInputToUtcDbString(local: string): string | null {
+  const dt = mtLocalInputToUtcDate(local);
+  if (!dt) return null;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())} ` +
+    `${pad(dt.getUTCHours())}:${pad(dt.getUTCMinutes())}:${pad(dt.getUTCSeconds())}`
+  );
+}
+
+/**
+ * Same conversion as `mtLocalInputToUtcDbString`, but returns a full ISO-8601
+ * string with the `Z` suffix (`2026-08-24T15:00:00.000Z`).
+ *
+ * Use this for anything sent over the wire as JSON. The `Z` is load-bearing:
+ * the backend parses these with `new Date(value)`, and a string without an
+ * explicit offset — `"2026-08-24 15:00:00"` or a bare `...T15:00:00` — is
+ * interpreted in the *server's* timezone, so the same payload would mean
+ * different instants depending on where it was parsed. Only `Z` pins it.
+ */
+export function mtLocalInputToUtcIso(local: string): string | null {
+  return mtLocalInputToUtcDate(local)?.toISOString() ?? null;
+}
+
+/**
+ * Midnight Mountain Time on a `YYYY-MM-DD` day, as a UTC ISO string.
+ *
+ * For date-only form fields. `new Date("2026-08-24").toISOString()` treats the
+ * value as UTC midnight, which is 6-7 hours before the MT day actually starts —
+ * enough to file the record under the previous day.
+ */
+export function mtDayStartToUtcIso(dayKey: string): string | null {
+  if (!dayKey) return null;
+  return mtLocalInputToUtcIso(`${dayKey.slice(0, 10)}T00:00`);
+}
+
+/**
+ * Shared core: a `YYYY-MM-DDTHH:mm[:ss]` wall time read as Mountain Time,
+ * returned as the UTC instant it denotes. Kept in one place so the DST
+ * reverse-engineering below only ever has one implementation to get right.
+ */
+function mtLocalInputToUtcDate(local: string): Date | null {
   if (!local) return null;
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(local);
   if (!m) return null;
@@ -82,12 +123,7 @@ export function mtLocalInputToUtcDbString(local: string): string | null {
   };
   let utc = naiveUtc - offset(naiveUtc);
   utc = naiveUtc - offset(utc);
-  const dt = new Date(utc);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return (
-    `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())} ` +
-    `${pad(dt.getUTCHours())}:${pad(dt.getUTCMinutes())}:${pad(dt.getUTCSeconds())}`
-  );
+  return new Date(utc);
 }
 
 /**
