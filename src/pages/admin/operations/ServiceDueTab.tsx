@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { SummaryCard } from "@/components/admin/dashboard/SummaryCard";
 import {
@@ -82,7 +83,7 @@ function formatDate(iso: string | null): string {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return "Never";
     return d.toLocaleDateString("en-US", {
-      timeZone: "America/Denver",
+      timeZone: getActiveTimezone(),
       month: "2-digit",
       day: "2-digit",
       year: "numeric",

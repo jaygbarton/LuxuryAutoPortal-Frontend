@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
 import { toMtLocalInput, mtLocalInputToUtcDbString } from "@/lib/mt-datetime";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { PhotoUpload } from "./PhotoUpload";
@@ -31,8 +32,9 @@ interface CarAvailability {
 function formatMt(dateStr: string): string {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString("en-US", { timeZone: "America/Denver", month: "2-digit", day: "2-digit", year: "numeric" }) +
-    ", " + d.toLocaleTimeString("en-US", { timeZone: "America/Denver", hour: "numeric", minute: "2-digit" });
+  const tz = getActiveTimezone();
+  return d.toLocaleDateString("en-US", { timeZone: tz, month: "2-digit", day: "2-digit", year: "numeric" }) +
+    ", " + d.toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" });
 }
 
 function TuroAvailabilityNotice({ carId }: { carId: number | null }) {

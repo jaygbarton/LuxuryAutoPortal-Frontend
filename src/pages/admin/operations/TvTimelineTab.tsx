@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -113,6 +114,15 @@ function mtDateTimeToMs(mt: string | null): number | null {
   return asUtc - offsetMin * 60_000;
 }
 
+// mtOffsetMinutes/todayMTDate stay pinned to America/Denver deliberately.
+// The Day Schedule API response already collapsed times to bare
+// "YYYY-MM-DD HH:MM" Mountain-Time strings before this file ever sees them
+// (see dayScheduleService.ts's toMTTimeString/toMTDateTimeString) — the string
+// genuinely IS Mountain Time regardless of who's viewing, so reversing it back
+// to a UTC instant here must assume that same zone. Making this per-viewer
+// needs the backend to emit raw UTC fields first (Phase 5's "Day Schedule
+// payload" step); until then, changing the zone here would silently corrupt
+// the instant instead of just changing whose day the schedule shows.
 function mtOffsetMinutes(d: Date): number {
   const tz = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Denver",
@@ -848,7 +858,7 @@ export function TvTimelineTab() {
   }, [rows]);
 
   const nowLabel = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Denver",
+    timeZone: getActiveTimezone(),
     hour: "numeric", minute: "2-digit",
   }).format(new Date(nowMs));
 

@@ -39,6 +39,7 @@ import { PhotoUpload } from "./PhotoUpload";
 import { VIOLATION_TYPES } from "../forms/TicketViolationSubmission";
 import { useToast } from "@/hooks/use-toast";
 import { toMtLocalInput, mtLocalInputToUtcDbString } from "@/lib/mt-datetime";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { Plus, Edit, Trash2, ChevronsUpDown, Check } from "lucide-react";
 import { OperationEditHistory } from "@/components/admin/OperationEditHistory";
 
@@ -95,10 +96,11 @@ const formatDateTime = (dateStr: string | null): string => {
   try {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
+    const tz = getActiveTimezone();
     return (
-      d.toLocaleDateString("en-US", { timeZone: "America/Denver", month: "2-digit", day: "2-digit", year: "numeric" }) +
+      d.toLocaleDateString("en-US", { timeZone: tz, month: "2-digit", day: "2-digit", year: "numeric" }) +
       ", " +
-      d.toLocaleTimeString("en-US", { timeZone: "America/Denver", hour: "numeric", minute: "2-digit" })
+      d.toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" })
     );
   } catch {
     return dateStr;

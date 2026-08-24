@@ -747,9 +747,12 @@ export function DayScheduleTab() {
   const [showAddEntry, setShowAddEntry] = useState(false);
   const [entryType, setEntryType] = useState<"refuel" | "custom">("refuel");
   const [entryCarName, setEntryCarName] = useState("");
-  // Seed from the Mountain-Time wall clock, not the browser's. The value is
-  // submitted as a Mountain time, so seeding it from a Manila clock would
-  // prefill a time the user never intended.
+  // Seed from the Mountain-Time wall clock, not the browser's. `date` (the
+  // day being browsed) is still an America/Denver day key until the backend's
+  // /api/operations/day-schedule query understands per-viewer day windows
+  // (Phase 5) — so `entryTime` has to stay pinned to the same zone `date`
+  // uses, or combining them at submit would silently reintroduce the
+  // day-shift bug this form was fixed for.
   const [entryTime, setEntryTime] = useState(() =>
     new Intl.DateTimeFormat("en-GB", {
       timeZone: "America/Denver",

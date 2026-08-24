@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -38,7 +39,7 @@ const formatDateTime = (dateStr: string | null): string => {
     if (isNaN(d.getTime())) return dateStr;
     return (
       d.toLocaleDateString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: getActiveTimezone(),
         weekday: "short",
         month: "2-digit",
         day: "2-digit",
@@ -46,7 +47,7 @@ const formatDateTime = (dateStr: string | null): string => {
       }) +
       ", " +
       d.toLocaleTimeString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: getActiveTimezone(),
         hour: "numeric",
         minute: "2-digit",
       })

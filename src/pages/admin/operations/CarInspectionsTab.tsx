@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -31,7 +32,7 @@ const formatDate = (dateStr: string | null): string => {
     if (isNaN(d.getTime())) return dateStr;
     return (
       d.toLocaleDateString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: getActiveTimezone(),
         weekday: "short",
         month: "2-digit",
         day: "2-digit",
@@ -39,7 +40,7 @@ const formatDate = (dateStr: string | null): string => {
       }) +
       ", " +
       d.toLocaleTimeString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: getActiveTimezone(),
         hour: "numeric",
         minute: "2-digit",
       })
@@ -187,12 +188,12 @@ export function CarInspectionsTab() {
   // the date filter buckets a trip into the same day the Trip Start column
   // shows. Comparing raw getTime() against a date-input parsed as UTC midnight
   // mis-buckets trips near midnight MT (the displayed day and the filtered day
-  // disagree) — this matches the server-side America/Denver filter the
+  // disagree) — this matches the server-side filter the
   // /admin/turo-trips page uses and the client-side filter on Turo Messages.
   const toMtDate = (iso: string | null | undefined): string | null => {
     if (!iso) return null;
     try {
-      return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso));
+      return new Intl.DateTimeFormat("en-CA", { timeZone: getActiveTimezone() }).format(new Date(iso));
     } catch { return null; }
   };
 

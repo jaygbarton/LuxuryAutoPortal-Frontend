@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -55,7 +56,7 @@ const formatDate = (dateStr: string | null): string => {
     if (isNaN(d.getTime())) return dateStr;
     return (
       d.toLocaleDateString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: getActiveTimezone(),
         weekday: "short",
         month: "2-digit",
         day: "2-digit",
@@ -63,7 +64,7 @@ const formatDate = (dateStr: string | null): string => {
       }) +
       ", " +
       d.toLocaleTimeString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: getActiveTimezone(),
         hour: "numeric",
         minute: "2-digit",
       })
@@ -433,7 +434,7 @@ export function TuroInspectionTab() {
   const toMtDate = (iso: string | null | undefined): string | null => {
     if (!iso) return null;
     try {
-      return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso));
+      return new Intl.DateTimeFormat("en-CA", { timeZone: getActiveTimezone() }).format(new Date(iso));
     } catch { return null; }
   };
 
