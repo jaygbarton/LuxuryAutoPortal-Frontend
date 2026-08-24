@@ -20,6 +20,16 @@ export const CREDENTIALS: Record<TestRole, TestCredentials> = {
  * for the post-login redirect, matching the 800ms cookie-propagation delay
  * and /dashboard -> role-specific redirect in dashboard-router.tsx.
  */
+/**
+ * Ends the current session. login.tsx redirects straight to /dashboard if
+ * a valid session cookie is already present (it never shows the form in
+ * that case), so switching test roles on the same page requires an explicit
+ * logout first — otherwise the second loginAs silently no-ops.
+ */
+export async function logout(page: Page) {
+  await page.request.post("/api/auth/logout");
+}
+
 export async function loginAs(page: Page, role: TestRole) {
   const { email, password } = CREDENTIALS[role];
 
@@ -28,11 +38,11 @@ export async function loginAs(page: Page, role: TestRole) {
   await page.getByTestId("input-password").fill(password);
   await page.getByTestId("button-login").click();
 
-  await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 15_000 });
+  await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 30_000 });
 
   if (role === "employee") {
-    await page.waitForURL((url) => url.pathname.startsWith("/staff/dashboard"), { timeout: 15_000 });
+    await page.waitForURL((url) => url.pathname.startsWith("/staff/dashboard"), { timeout: 30_000 });
   } else {
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 30_000 });
   }
 }

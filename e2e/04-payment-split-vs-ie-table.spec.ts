@@ -31,20 +31,30 @@ test("payment modal owner split matches the Income & Expenses table for the same
 
   await page.locator("#yearMonth").fill(yearMonth);
 
+  // #payable is intentionally always readOnly/disabled (it's an auto-calculated
+  // field, never hand-edited) — wait for the async I&E fetch behind it to
+  // populate a real (non-"0") value instead of checking enabled-state.
   const payableInput = page.locator("#payable");
-  await expect(payableInput).toBeEnabled({ timeout: 10_000 });
+  await expect(async () => {
+    const val = await payableInput.inputValue();
+    expect(val).toMatch(/^\d+\.\d{2}$/);
+  }).toPass({ timeout: 20_000 });
   const modalSplit = await payableInput.inputValue();
-  expect(modalSplit).toMatch(/^\d+\.\d{2}$/);
 
   // Close without saving — this test only reads figures, it doesn't create a payment.
   await page.keyboard.press("Escape");
 
   // --- Step B: read the same car+month's Car Owner Split from the I&E table ---
   await page.goto(`/admin/cars/${CAR_ID}/income-expense`);
-  await page.getByRole("combobox", { name: /year/i }).click();
-  await page.getByRole("option", { name: String(year), exact: true }).click();
+  const yearTrigger = page.getByRole("combobox").filter({ hasText: /^\d{4}$/ });
+  const currentYear = await yearTrigger.textContent();
+  if (currentYear?.trim() !== String(year)) {
+    await yearTrigger.click();
+    await page.getByRole("option", { name: String(year), exact: true }).click();
+  }
 
   const splitRow = page.locator("tr", { hasText: "Car Owner Split" }).first();
+  await splitRow.scrollIntoViewIfNeeded();
   await expect(splitRow).toBeVisible({ timeout: 10_000 });
 
   // Column 0 is the sticky label cell; months are 1-indexed after it.

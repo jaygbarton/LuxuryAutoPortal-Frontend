@@ -21,10 +21,10 @@ test("client can submit a parking ticket and see it in My Submissions", async ({
 
   const amount = (Math.random() * 90 + 10).toFixed(2);
 
-  await page.getByLabel("Car", { exact: true }).click();
+  await page.locator("#pt_car_id").click();
   await page.getByRole("option").first().click();
 
-  await page.getByLabel("Amount", { exact: true }).fill(amount);
+  await page.locator("#pt_amount").fill(amount);
   // Date of Receipt left at its default (today), set by the component itself.
 
   const [response] = await Promise.all([
