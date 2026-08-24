@@ -15,6 +15,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Phone, MapPin, Clock, Send } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -25,10 +32,36 @@ const contactSchema = z.object({
   email: z.string().email("Valid email is required"),
   phone: z.string().optional(),
   subject: z.string().min(2, "Subject is required"),
+  customSubject: z.string().optional(),
   message: z.string().min(10, "Message must be at least 10 characters"),
+}).superRefine((data, ctx) => {
+  if (data.subject === "select") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Subject is required",
+      path: ["subject"],
+    });
+  }
+  if (data.subject === "custom" && !data.customSubject?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Custom subject is required",
+      path: ["customSubject"],
+    });
+  }
 });
 
 type ContactFormData = z.infer<typeof contactSchema>;
+
+const subjectOptions = [
+  { value: "select", label: "Select" },
+  { value: "chauffeur service", label: "Chauffeur Service" },
+  { value: "detail shop", label: "Detail Shop" },
+  { value: "careers", label: "Careers" },
+  { value: "listing your car", label: "Listing Your Car" },
+  { value: "rent a car", label: "Rent A Car" },
+  { value: "custom", label: "Custom" },
+];
 
 const contactInfo = [
   {
@@ -62,17 +95,27 @@ export default function Contact() {
       name: "",
       email: "",
       phone: "",
-      subject: "",
+      subject: "select",
+      customSubject: "",
       message: "",
     },
   });
+  const selectedSubject = form.watch("subject");
 
   const onSubmit = async (data: ContactFormData) => {
     try {
+      const payload = {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        subject: data.subject === "custom" ? data.customSubject?.trim() ?? "" : data.subject,
+        message: data.message,
+      };
+
       const response = await fetch(buildApiUrl("/api/contact"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
         credentials: "include",
       });
 
@@ -81,7 +124,14 @@ export default function Contact() {
           title: "Message Sent",
           description: "We'll get back to you as soon as possible.",
         });
-        form.reset();
+        form.reset({
+          name: "",
+          email: "",
+          phone: "",
+          subject: "select",
+          customSubject: "",
+          message: "",
+        });
       } else {
         throw new Error("Failed to send message");
       }
@@ -197,18 +247,50 @@ export default function Contact() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-[#171717]">Subject</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="How can we help?"
-                                {...field}
-                                className="border-[#D8D2C3] bg-white text-[#171717]"
-                                data-testid="input-contact-subject"
-                              />
-                            </FormControl>
+                            <Select
+                              value={field.value}
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                if (value !== "custom") form.setValue("customSubject", "");
+                              }}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="border-[#D8D2C3] bg-white text-[#171717]" data-testid="select-contact-subject">
+                                  <SelectValue placeholder="Select" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {subjectOptions.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
+                      {selectedSubject === "custom" && (
+                        <FormField
+                          control={form.control}
+                          name="customSubject"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[#171717]">Custom Subject</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Write your subject"
+                                  {...field}
+                                  className="border-[#D8D2C3] bg-white text-[#171717]"
+                                  data-testid="input-contact-custom-subject"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                     </div>
                     <FormField
                       control={form.control}

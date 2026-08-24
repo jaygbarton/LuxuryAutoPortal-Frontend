@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle, Navigation, ChevronDown } from "lucide-react";
+import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle, Navigation, ChevronDown, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPublicLocationFromPath, withLocationPath } from "@/lib/location-config";
 import { UserAccountMenu } from "@/components/layout/user-account-menu";
@@ -15,6 +15,7 @@ const navLinks = [
   { href: "/testimonials", label: "Testimonials", icon: Star },
   { href: "/jobs", label: "Jobs", icon: BriefcaseBusiness },
   { href: "/onboarding", label: "List Your Car", icon: FileText },
+  { href: "/chauffeur-services", label: "Chauffeur", icon: ShieldCheck },
   { href: "/suggested-cars", label: "Suggested Cars", icon: Car },
   { href: "/contact", label: "Contact", icon: Phone },
 ];
@@ -27,6 +28,7 @@ export function Navbar() {
   const links = navLinks.filter((link) => {
     if (!publicLocation) return link.href === "/" || link.href === "/contact";
     if (publicLocation.comingSoon) return link.href === "/";
+    if (link.href === "/chauffeur-services") return publicLocation.availablePages.chauffeur;
     if (link.href === "/detail-shop") return publicLocation.availablePages.detailShop;
     if (link.href === "/deals") return publicLocation.availablePages.deals;
     if (link.href === "/jobs") return publicLocation.availablePages.jobs;
@@ -38,6 +40,7 @@ export function Navbar() {
     link.href === "/fleet" ||
     link.href === "/detail-shop" ||
     link.href === "/onboarding" ||
+    link.href === "/chauffeur-services" ||
     link.href === "/contact"
   );
   const pageLinks = links.filter((link) => !primaryLinks.some((primary) => primary.href === link.href));

@@ -12,6 +12,7 @@ export type PublicLocation = {
   turoFleetUrl: string;
   comingSoon?: boolean;
   availablePages: {
+    chauffeur: boolean;
     detailShop: boolean;
     deals: boolean;
     jobs: boolean;
@@ -31,6 +32,7 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
     locationTag: "slc",
     turoFleetUrl: "https://turo.com/us/en/drivers/4325673/vehicles",
     availablePages: {
+      chauffeur: true,
       detailShop: true,
       deals: true,
       jobs: true,
@@ -48,6 +50,7 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
     locationTag: "wilmington",
     turoFleetUrl: "https://turo.com/us/en/drivers/4325673/vehicles",
     availablePages: {
+      chauffeur: false,
       detailShop: false,
       deals: false,
       jobs: false,
@@ -66,6 +69,7 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
     turoFleetUrl: "https://turo.com/us/en/drivers/4325673/vehicles",
     comingSoon: true,
     availablePages: {
+      chauffeur: false,
       detailShop: false,
       deals: false,
       jobs: false,
@@ -84,6 +88,7 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
     turoFleetUrl: "https://turo.com/us/en/drivers/4325673/vehicles",
     comingSoon: true,
     availablePages: {
+      chauffeur: false,
       detailShop: false,
       deals: false,
       jobs: false,
