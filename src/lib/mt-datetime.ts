@@ -6,13 +6,13 @@
 /** Convert a UTC ISO string (or any value `new Date()` accepts) to the
  *  `YYYY-MM-DDTHH:mm` string a `datetime-local` input expects, projected into
  *  Mountain Time. Returns "" for nullish input or an unparseable date. */
-export function toMtLocalInput(iso: string | undefined | null): string {
+export function toMtLocalInput(iso: string | undefined | null, tz: string = "America/Denver"): string {
   if (!iso) return "";
   try {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return "";
     const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Denver",
+      timeZone: tz,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -35,8 +35,8 @@ export function toMtLocalInput(iso: string | undefined | null): string {
 /** Interpret a `datetime-local` value as Mountain Time and return a
  *  `YYYY-MM-DD HH:MM:SS` UTC string that mysql2 will store unchanged in a
  *  DATETIME column. Returns null for empty / malformed input. */
-export function mtLocalInputToUtcDbString(local: string): string | null {
-  const dt = mtLocalInputToUtcDate(local);
+export function mtLocalInputToUtcDbString(local: string, tz: string = "America/Denver"): string | null {
+  const dt = mtLocalInputToUtcDate(local, tz);
   if (!dt) return null;
   const pad = (n: number) => String(n).padStart(2, "0");
   return (
@@ -55,8 +55,8 @@ export function mtLocalInputToUtcDbString(local: string): string | null {
  * interpreted in the *server's* timezone, so the same payload would mean
  * different instants depending on where it was parsed. Only `Z` pins it.
  */
-export function mtLocalInputToUtcIso(local: string): string | null {
-  return mtLocalInputToUtcDate(local)?.toISOString() ?? null;
+export function mtLocalInputToUtcIso(local: string, tz: string = "America/Denver"): string | null {
+  return mtLocalInputToUtcDate(local, tz)?.toISOString() ?? null;
 }
 
 /**
@@ -66,9 +66,9 @@ export function mtLocalInputToUtcIso(local: string): string | null {
  * value as UTC midnight, which is 6-7 hours before the MT day actually starts —
  * enough to file the record under the previous day.
  */
-export function mtDayStartToUtcIso(dayKey: string): string | null {
+export function mtDayStartToUtcIso(dayKey: string, tz: string = "America/Denver"): string | null {
   if (!dayKey) return null;
-  return mtLocalInputToUtcIso(`${dayKey.slice(0, 10)}T00:00`);
+  return mtLocalInputToUtcIso(`${dayKey.slice(0, 10)}T00:00`, tz);
 }
 
 /**
@@ -76,7 +76,7 @@ export function mtDayStartToUtcIso(dayKey: string): string | null {
  * returned as the UTC instant it denotes. Kept in one place so the DST
  * reverse-engineering below only ever has one implementation to get right.
  */
-function mtLocalInputToUtcDate(local: string): Date | null {
+function mtLocalInputToUtcDate(local: string, tz: string = "America/Denver"): Date | null {
   if (!local) return null;
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(local);
   if (!m) return null;
@@ -90,13 +90,13 @@ function mtLocalInputToUtcDate(local: string): Date | null {
     Number(s ?? "0"),
     0,
   );
-  // Reverse-engineer the MT offset at this wall time: pretend our components
-  // are UTC, see what they look like in MT, take the gap. One iteration is
-  // exact except across the spring/fall DST hour — a second iteration settles
-  // that edge case.
+  // Reverse-engineer the offset at this wall time in the given zone: pretend
+  // our components are UTC, see what they look like in that zone, take the
+  // gap. One iteration is exact except across a spring/fall DST hour — a
+  // second iteration settles that edge case.
   const offset = (t: number): number => {
     const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/Denver",
+      timeZone: tz,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -137,12 +137,12 @@ function mtLocalInputToUtcDate(local: string): Date | null {
  * displayed. Everything that decides "which day column is this?" must go
  * through here so the grid and the panel can never disagree.
  */
-export function mtDayKey(value: string | number | Date): string {
+export function mtDayKey(value: string | number | Date, tz: string = "America/Denver"): string {
   const d = value instanceof Date ? value : new Date(value);
   if (isNaN(d.getTime())) return "";
   // en-CA formats as YYYY-MM-DD, so no part juggling is needed.
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Denver",
+    timeZone: tz,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -150,8 +150,8 @@ export function mtDayKey(value: string | number | Date): string {
 }
 
 /** Today's date in Mountain Time as `YYYY-MM-DD`. */
-export function mtTodayKey(): string {
-  return mtDayKey(new Date());
+export function mtTodayKey(tz: string = "America/Denver"): string {
+  return mtDayKey(new Date(), tz);
 }
 
 /**

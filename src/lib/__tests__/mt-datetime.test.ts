@@ -3,6 +3,8 @@ import {
   mtLocalInputToUtcIso,
   mtDayStartToUtcIso,
   mtLocalInputToUtcDbString,
+  mtDayKey,
+  mtTodayKey,
 } from "../mt-datetime";
 
 // The Day Schedule "Add Entry" form combined a Mountain-Time day key with a
@@ -38,5 +40,29 @@ describe("mtDayStartToUtcIso", () => {
 describe("mtLocalInputToUtcDbString", () => {
   it("still returns the space-separated DB form after the refactor", () => {
     expect(mtLocalInputToUtcDbString("2026-08-24T09:00")).toBe("2026-08-24 15:00:00");
+  });
+});
+
+// Phase 4 of the timezone feature parameterizes these on an optional `tz`
+// argument so per-user display can route through the same functions instead
+// of duplicating them. Existing call sites omit it and keep getting Mountain
+// Time — these confirm passing a different zone actually changes the result.
+describe("optional tz parameter (backward compatible)", () => {
+  it("mtLocalInputToUtcIso: same wall time reads differently in a different zone", () => {
+    expect(mtLocalInputToUtcIso("2026-08-24T09:00")).toBe("2026-08-24T15:00:00.000Z"); // MT default
+    expect(mtLocalInputToUtcIso("2026-08-24T09:00", "Asia/Manila")).toBe("2026-08-24T01:00:00.000Z");
+    expect(mtLocalInputToUtcIso("2026-08-24T09:00", "UTC")).toBe("2026-08-24T09:00:00.000Z");
+  });
+
+  it("mtDayKey: the same instant can fall on different calendar days in different zones", () => {
+    // 2026-08-31 04:00 UTC is Aug 30 10pm in Denver but Aug 31 in Manila.
+    expect(mtDayKey("2026-08-31T04:00:00.000Z")).toBe("2026-08-30");
+    expect(mtDayKey("2026-08-31T04:00:00.000Z", "Asia/Manila")).toBe("2026-08-31");
+  });
+
+  it("mtTodayKey: honors the tz argument", () => {
+    // Not asserting a specific date (depends on when the test runs) — just
+    // that passing a tz doesn't throw and returns a well-formed day key.
+    expect(mtTodayKey("Asia/Manila")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
