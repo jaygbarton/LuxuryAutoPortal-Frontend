@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Search, X } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { SectionHeader, DashboardRecordCard, CarPhotoCell } from "@/components/admin/dashboard";
 import { FuelReturnedCell } from "@/pages/admin/operations/FuelReturnedCell";
 import { CarIssueTypesCell } from "@/pages/admin/operations/CarIssueTypesCell";
@@ -106,16 +107,17 @@ function fmtDateTime(v: unknown): string {
   try {
     const d = new Date(String(v));
     if (isNaN(d.getTime())) return String(v);
+    const tz = getActiveTimezone();
     return (
       d.toLocaleDateString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: tz,
         weekday: "short",
         month: "2-digit",
         day: "2-digit",
       }) +
       ", " +
       d.toLocaleTimeString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: tz,
         hour: "numeric",
         minute: "2-digit",
       })
@@ -222,10 +224,10 @@ export default function CarIssuesSection() {
     // Single date RANGE [From, To]: keep inspections whose trip START OR trip
     // END falls within the range (single day = From==To). Compare MT
     // YYYY-MM-DD strings (not raw UTC timestamps) so the filter agrees with the
-    // Trip Start / Trip Ends columns, which render in America/Denver.
+    // Trip Start / Trip Ends columns, which render in the active timezone.
     const toMtDate = (iso: string | null | undefined): string | null => {
       if (!iso) return null;
-      try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso)); }
+      try { return new Intl.DateTimeFormat("en-CA", { timeZone: getActiveTimezone() }).format(new Date(iso)); }
       catch { return null; }
     };
     if (rangeFrom || rangeTo) {

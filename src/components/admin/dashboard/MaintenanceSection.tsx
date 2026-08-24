@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { Search, X, Wrench } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { SectionHeader, DashboardRecordCard, CarPhotoCell } from "@/components/admin/dashboard";
 
 interface MaintenanceTask {
@@ -199,7 +200,7 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
   const toMtDate = (iso: string | null | undefined): string | null => {
     if (!iso) return null;
     try {
-      return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso));
+      return new Intl.DateTimeFormat("en-CA", { timeZone: getActiveTimezone() }).format(new Date(iso));
     } catch { return null; }
   };
 

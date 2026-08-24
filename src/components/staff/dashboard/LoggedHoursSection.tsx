@@ -1,17 +1,21 @@
 /**
  * Logged Hours History — clock-in/out sessions with computed amount.
- * Displays times in Utah/Mountain time. Amount = worked hours × rate.
+ * Displays times in the viewer's timezone (Mountain Time by default).
+ * Amount = worked hours × rate.
  */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { SectionHeader } from "@/components/admin/dashboard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
-const UTAH_TZ = "America/Denver";
+// Was a fixed "America/Denver" constant; now resolves per viewer so someone
+// outside Mountain Time sees clock-ins grouped onto their own calendar day.
+
 
 interface SessionRow {
   time_aid: number;
@@ -34,7 +38,7 @@ interface MeEmployeeResponse {
 
 function utahToday(): string {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: UTAH_TZ,
+    timeZone: getActiveTimezone(),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -58,7 +62,7 @@ function utahDate(d: string | null | undefined): string {
   const x = parseDb(d);
   if (!x) return "—";
   return x.toLocaleDateString("en-US", {
-    timeZone: UTAH_TZ,
+    timeZone: getActiveTimezone(),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -69,7 +73,7 @@ function utahTime(d: string | null | undefined): string {
   const x = parseDb(d);
   if (!x) return "—";
   return x.toLocaleTimeString("en-US", {
-    timeZone: UTAH_TZ,
+    timeZone: getActiveTimezone(),
     hour: "numeric",
     minute: "2-digit",
     second: "2-digit",
@@ -112,7 +116,7 @@ function buildDailyRows(sessions: SessionRow[]): DailyRow[] {
     const d = parseDb(s.time_date || s.time_in);
     if (!d) continue;
     const key = new Intl.DateTimeFormat("en-CA", {
-      timeZone: UTAH_TZ,
+      timeZone: getActiveTimezone(),
       year: "numeric",
       month: "2-digit",
       day: "2-digit",

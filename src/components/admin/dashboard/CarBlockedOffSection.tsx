@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, CalendarOff } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import {
   Select,
   SelectContent,
@@ -126,14 +127,15 @@ export default function CarBlockedOffSection() {
   // blocked period has ended. A block-off is finished when the owner has actually
   // returned the car (dropoff_date set) or the planned end date is in the past.
   //
-  // Dates are compared as Mountain Time YYYY-MM-DD strings, not raw timestamps:
-  // a block-off ending "today" must stay visible for all of today, which a
-  // UTC-instant comparison would drop early in the MT evening.
-  const todayMt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date());
+  // Dates are compared as calendar-day strings in the viewer's timezone, not
+  // raw timestamps: a block-off ending "today" must stay visible for all of
+  // today, which a UTC-instant comparison would drop early in the evening.
+  const activeTz = getActiveTimezone();
+  const todayMt = new Intl.DateTimeFormat("en-CA", { timeZone: activeTz }).format(new Date());
   const toMtDate = (iso: string | null | undefined): string | null => {
     if (!iso) return null;
     try {
-      return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(iso));
+      return new Intl.DateTimeFormat("en-CA", { timeZone: activeTz }).format(new Date(iso));
     } catch {
       return null;
     }

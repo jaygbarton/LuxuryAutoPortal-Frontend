@@ -6,6 +6,7 @@
 import { Fragment, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { SectionHeader } from "@/components/admin/dashboard";
 import {
   getArrayTotalDaysInMonthAndYear,
@@ -122,8 +123,11 @@ export default function MyWorkScheduleSection() {
     retry: false,
   });
 
-  // Group tasks by their Mountain-Time calendar date (YYYY-MM-DD) so they land
-  // in the same cell the calendar grid uses (which is keyed by local date).
+  // Group tasks by their calendar date in the viewer's active timezone, so
+  // they land in the same cell the calendar grid uses. work-schedule-calendar
+  // builds `originalDate` as plain calendar numbers (no timezone at all — a
+  // grid cell has none), so this is the side that has to convert to match it.
+  const tz = getActiveTimezone();
   const tasksByDate: Record<
     string,
     Array<{ task_type: string; car_name: string | null; time: string }>
@@ -132,10 +136,10 @@ export default function MyWorkScheduleSection() {
     if (!t.scheduled_date) continue;
     const d = new Date(t.scheduled_date);
     if (isNaN(d.getTime())) continue;
-    // en-CA gives YYYY-MM-DD; force Mountain Time to match the rest of the app.
-    const dateKey = d.toLocaleDateString("en-CA", { timeZone: "America/Denver" });
+    // en-CA gives YYYY-MM-DD.
+    const dateKey = d.toLocaleDateString("en-CA", { timeZone: tz });
     const time = d.toLocaleTimeString("en-US", {
-      timeZone: "America/Denver",
+      timeZone: tz,
       hour: "numeric",
       minute: "2-digit",
       hour12: true,

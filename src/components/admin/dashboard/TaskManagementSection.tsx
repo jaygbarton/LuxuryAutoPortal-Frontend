@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { format } from "date-fns";
 import { SectionHeader, DashboardRecordCard } from "@/components/admin/dashboard";
 
@@ -214,7 +215,7 @@ export default function TaskManagementSection() {
         if (!t.task_timer_date_start) return false;
         let d: string;
         try {
-          d = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(t.task_timer_date_start));
+          d = new Intl.DateTimeFormat("en-CA", { timeZone: getActiveTimezone() }).format(new Date(t.task_timer_date_start));
         } catch {
           d = (t.task_timer_date_start || "").slice(0, 10);
         }

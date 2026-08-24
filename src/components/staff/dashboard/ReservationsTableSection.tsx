@@ -13,6 +13,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Search, X } from "lucide-react";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { SectionHeader } from "@/components/admin/dashboard";
 import {
   Select,
@@ -149,13 +150,14 @@ export function fmtDateTime(v: unknown): string {
   try {
     const d = new Date(String(v));
     if (isNaN(d.getTime())) return String(v);
+    const tz = getActiveTimezone();
     return d.toLocaleDateString("en-US", {
-      timeZone: "America/Denver",
+      timeZone: tz,
       weekday: "short",
       month: "2-digit",
       day: "2-digit",
     }) + ", " + d.toLocaleTimeString("en-US", {
-      timeZone: "America/Denver",
+      timeZone: tz,
       hour: "numeric",
       minute: "2-digit",
     });
@@ -287,10 +289,10 @@ export default function ReservationsTableSection({
     // Match each date field against its own exact Mountain-Time calendar day,
     // AND-ed together: "Trip Start on 6/17 AND Trip Ends on 6/17". Compare
     // MT YYYY-MM-DD strings (not raw UTC timestamps) so the filter agrees with
-    // the Trip Start / Trip Ends columns, which render in America/Denver.
+    // the Trip Start / Trip Ends columns, which render in the active timezone.
     const toMtDate = (iso: unknown): string | null => {
       if (!iso) return null;
-      try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(String(iso))); }
+      try { return new Intl.DateTimeFormat("en-CA", { timeZone: getActiveTimezone() }).format(new Date(String(iso))); }
       catch { return null; }
     };
     if (tripStartFrom && hasTripStart) {
