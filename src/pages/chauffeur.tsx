@@ -38,6 +38,21 @@ const UNAVAILABLE_CHAUFFEUR_MAKES = new Set(["ford", "infiniti", "kia", "toyota"
 type ChauffeurSort = "newest" | "price-high" | "price-low" | "alphabetical";
 type SeatFilter = "all" | "7" | "8";
 
+const CHAUFFEUR_NAME_OVERRIDES: Record<number, string> = {
+  900: "GMC Yukon XL AT4",
+};
+
+const CHAUFFEUR_FEATURE_OVERRIDES: Record<number, string> = {
+  1156: "Tech Package",
+  900: "Yukon XL AT4 trim",
+};
+
+function cleanVehicleDetail(value?: string | null): string | null {
+  const detail = value?.trim();
+  if (!detail || /^(n\/a|no data|null)$/i.test(detail)) return null;
+  return detail;
+}
+
 function chauffeurHourlyRate(car: FleetCar): number | null {
   const name = `${car.make ?? ""} ${car.model ?? ""} ${car.makeModel ?? ""} ${car.turoLink ?? ""}`.toLowerCase();
 
@@ -59,7 +74,16 @@ function chauffeurEligible(car: FleetCar): boolean {
 }
 
 function displayName(car: FleetCar): string {
-  return [car.makeModel, car.year].filter(Boolean).join(" ");
+  const baseName = CHAUFFEUR_NAME_OVERRIDES[car.id] ?? car.makeModel;
+  const trim = cleanVehicleDetail(car.vehicleTrim);
+  const showTrim = trim && !baseName.toLowerCase().includes(trim.toLowerCase());
+  return [baseName, showTrim ? trim : null, car.year].filter(Boolean).join(" ");
+}
+
+function chauffeurFeatureSummary(car: FleetCar): string {
+  const feature = CHAUFFEUR_FEATURE_OVERRIDES[car.id] ?? cleanVehicleDetail(car.vehicleTrim);
+  const details = [feature, `${car.numberOfSeats ?? 7} passenger seating`].filter(Boolean);
+  return `Trim/features: ${details.join(", ")}.`;
 }
 
 function ChauffeurVehicleCard({ car }: { car: FleetCar }) {
@@ -104,6 +128,7 @@ function ChauffeurVehicleCard({ car }: { car: FleetCar }) {
 
         <div className="mb-6 space-y-3 text-sm leading-6 text-[#5D574A]">
           <p className="font-semibold text-[#171717]">minimum 4 hours</p>
+          <p>{chauffeurFeatureSummary(car)}</p>
           <p>Prices are all-inclusive; car, driver, tolls, parking, taxes, fuel and gratuity.</p>
           <p>Prices are valid for travel in the state of Utah.</p>
           <p>Service begins from the scheduled pickup time and finishes at the final dropoff time. No. of hours used will be calculated from pickup to drop off.</p>
