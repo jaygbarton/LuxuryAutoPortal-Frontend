@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, CarFront, Clock, Loader2, ShieldCheck, Users } from "lucide-react";
@@ -6,6 +6,13 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { PUBLIC_LOCATIONS, fleetCarBelongsToLocation } from "@/lib/location-config";
 
@@ -28,10 +35,13 @@ const PLACEHOLDER_IMG =
 
 const UNAVAILABLE_CHAUFFEUR_MAKES = new Set(["ford", "infiniti", "kia", "toyota", "rivian"]);
 
+type ChauffeurSort = "newest" | "price-high" | "price-low" | "alphabetical";
+type SeatFilter = "all" | "7" | "8";
+
 function chauffeurHourlyRate(car: FleetCar): number | null {
-  if ((car.make ?? "").toLowerCase() === "acura" && car.year === 2026 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 495;
-  if (car.year === 2026 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 595;
-  if (car.year === 2025 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 495;
+  if ((car.make ?? "").toLowerCase() === "acura" && car.year === 2026 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 445;
+  if (car.year === 2026 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 495;
+  if (car.year === 2025 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 445;
   if (car.year === 2024 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 395;
 
   const name = `${car.make ?? ""} ${car.model ?? ""} ${car.makeModel ?? ""}`.toLowerCase();
@@ -111,6 +121,8 @@ function ChauffeurVehicleCard({ car }: { car: FleetCar }) {
 
 export default function ChauffeurPage() {
   const location = PUBLIC_LOCATIONS.slc;
+  const [sort, setSort] = useState<ChauffeurSort>("newest");
+  const [seatFilter, setSeatFilter] = useState<SeatFilter>("all");
 
   const { data, isLoading } = useQuery<{ success: boolean; data: FleetCar[] }>({
     queryKey: ["/api/public/fleet"],
@@ -123,12 +135,23 @@ export default function ChauffeurPage() {
   });
 
   const chauffeurCars = useMemo(
-    () =>
-      (data?.data ?? [])
+    () => {
+      const cars = (data?.data ?? [])
         .filter((car) => fleetCarBelongsToLocation(car.turoLink, location, car.locationTag))
         .filter(chauffeurEligible)
-        .sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || displayName(a).localeCompare(displayName(b))),
-    [data, location],
+        .filter((car) => seatFilter === "all" || car.numberOfSeats === Number(seatFilter));
+
+      return cars.sort((a, b) => {
+        const aRate = chauffeurHourlyRate(a) ?? 0;
+        const bRate = chauffeurHourlyRate(b) ?? 0;
+
+        if (sort === "price-high") return bRate - aRate || displayName(a).localeCompare(displayName(b));
+        if (sort === "price-low") return aRate - bRate || displayName(a).localeCompare(displayName(b));
+        if (sort === "alphabetical") return displayName(a).localeCompare(displayName(b));
+        return (b.year ?? 0) - (a.year ?? 0) || displayName(a).localeCompare(displayName(b));
+      });
+    },
+    [data, location, seatFilter, sort],
   );
 
   return (
@@ -214,6 +237,46 @@ export default function ChauffeurPage() {
                   Showing <span className="font-semibold text-[#171717]">{chauffeurCars.length}</span> vehicles
                 </p>
               )}
+            </div>
+
+            <div className="mb-8 flex flex-col gap-4 rounded-md border border-[#E2D8BF] bg-white p-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="w-full sm:max-w-xs">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#7A6B44]">Sort</p>
+                <Select value={sort} onValueChange={(value) => setSort(value as ChauffeurSort)}>
+                  <SelectTrigger className="border-[#D8D2C3] bg-white text-[#171717]" data-testid="select-chauffeur-sort">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest Year</SelectItem>
+                    <SelectItem value="price-high">Price High To Low</SelectItem>
+                    <SelectItem value="price-low">Price Low To High</SelectItem>
+                    <SelectItem value="alphabetical">Alphabetical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#7A6B44]">Filter</p>
+                <div className="flex rounded-md border border-[#D8D2C3] bg-[#F7F4EC] p-1">
+                  {[
+                    { value: "all", label: "All" },
+                    { value: "7", label: "7 Seater" },
+                    { value: "8", label: "8 Seater" },
+                  ].map((option) => (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className={seatFilter === option.value ? "bg-white text-[#171717] shadow-sm hover:bg-white" : "text-[#5D574A] hover:bg-white/70"}
+                      onClick={() => setSeatFilter(option.value as SeatFilter)}
+                      data-testid={`button-seat-filter-${option.value}`}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {isLoading ? (
