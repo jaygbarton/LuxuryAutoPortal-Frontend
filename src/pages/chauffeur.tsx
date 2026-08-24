@@ -26,7 +26,10 @@ interface FleetCar {
 const PLACEHOLDER_IMG =
   "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
 
+const UNAVAILABLE_CHAUFFEUR_MAKES = new Set(["ford", "infiniti", "kia", "toyota", "rivian"]);
+
 function chauffeurHourlyRate(car: FleetCar): number | null {
+  if ((car.make ?? "").toLowerCase() === "acura" && car.year === 2026 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 495;
   if (car.year === 2026 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 595;
   if (car.year === 2025 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 495;
   if (car.year === 2024 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 395;
@@ -38,6 +41,7 @@ function chauffeurHourlyRate(car: FleetCar): number | null {
 }
 
 function chauffeurEligible(car: FleetCar): boolean {
+  if (UNAVAILABLE_CHAUFFEUR_MAKES.has((car.make ?? "").toLowerCase())) return false;
   return chauffeurHourlyRate(car) != null;
 }
 
@@ -77,7 +81,7 @@ function ChauffeurVehicleCard({ car }: { car: FleetCar }) {
         <div className="mb-5 grid grid-cols-2 gap-3 text-sm">
           <div className="flex items-center gap-2 rounded-md bg-[#F7F4EC] px-3 py-2 text-[#4A4438]">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            <span>Driver Included</span>
+            <span className="text-xs leading-tight">All inclusive final prices</span>
           </div>
           <div className="flex items-center gap-2 rounded-md bg-[#F7F4EC] px-3 py-2 text-[#4A4438]">
             <Users className="h-4 w-4 text-primary" />
@@ -180,7 +184,7 @@ export default function ChauffeurPage() {
             {[
               { icon: CarFront, title: "Business SUV", text: "7 and 8 passenger chauffeur vehicles." },
               { icon: Clock, title: "Minimum 4 Hours", text: "Service time runs pickup to final dropoff." },
-              { icon: ShieldCheck, title: "Driver Included", text: "Vehicle, driver, tolls, parking, taxes, fuel and gratuity included." },
+              { icon: ShieldCheck, title: "All inclusive final prices", text: "Vehicle, driver, tolls, parking, taxes, fuel and gratuity included." },
             ].map((item) => {
               const Icon = item.icon;
               return (
