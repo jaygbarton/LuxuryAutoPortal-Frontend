@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, AlertTriangle, Loader2, X } from "lucide-react";
@@ -103,7 +104,7 @@ const REASON_LABEL: Record<string, string> = {
 function fmtDateTime(iso: string): string {
   try {
     return new Date(iso).toLocaleString("en-US", {
-      timeZone: "America/Denver",
+      timeZone: getActiveTimezone(),
       month: "short", day: "numeric", year: "numeric",
       hour: "numeric", minute: "2-digit",
     });

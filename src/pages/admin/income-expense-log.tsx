@@ -5,6 +5,7 @@ import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { ArrowLeft, Calendar, User, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -67,16 +68,17 @@ export default function IncomeExpenseLogPage() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
+    const tz = getActiveTimezone();
     return (
       date.toLocaleDateString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: tz,
         weekday: "short",
         month: "2-digit",
         day: "2-digit",
       }) +
       ", " +
       date.toLocaleTimeString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: tz,
         hour: "numeric",
         minute: "2-digit",
       })

@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { authMeQueryFn, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
@@ -75,7 +76,7 @@ function formatCreatedAt(s: string | null | undefined): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString("en-US", {
-    timeZone: "America/Denver",
+    timeZone: getActiveTimezone(),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

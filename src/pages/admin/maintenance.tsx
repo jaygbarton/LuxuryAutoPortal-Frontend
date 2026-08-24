@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, ExternalLink, Search, Folder } from "lucide-react";
 import { authMeQueryFn, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { MAINTENANCE_SERVICE_TYPE_LABELS } from "@/pages/admin/operations/types";
 
@@ -16,7 +17,7 @@ function formatDate(d: string | null | undefined): string {
   if (!d) return "—";
   try {
     return new Date(d).toLocaleDateString("en-US", {
-      timeZone: "America/Denver", month: "2-digit", day: "2-digit", year: "numeric",
+      timeZone: getActiveTimezone(), month: "2-digit", day: "2-digit", year: "numeric",
     });
   } catch { return d; }
 }

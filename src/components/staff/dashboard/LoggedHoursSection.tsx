@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
-// Was a fixed "America/Denver" constant; now resolves per viewer so someone
+// Was a fixed Mountain-Time constant; now resolves per viewer so someone
 // outside Mountain Time sees clock-ins grouped onto their own calendar day.
 
 

@@ -29,6 +29,11 @@ interface ApprovalData {
   owner_wants_pickup: 0 | 1 | null;
 }
 
+// Deliberately pinned to America/Denver, not the viewer's preference: this is
+// a public, unauthenticated, token-based page (a car owner clicking an
+// approve/decline link from email) — there is no logged-in session here for
+// getActiveTimezone() to read, and the recipient has no account or timezone
+// preference to speak of.
 const fmt = (v: string | null): string => {
   if (!v) return "—";
   try {

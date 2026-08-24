@@ -130,6 +130,15 @@ function formatUsd(n: number): string {
 // company's reference timezone. The DB stores `time_in`/`time_out` as UTC
 // DATETIME (no offset) and `time_date` as a Utah calendar date. We normalize
 // both for display so admin and employee views always agree.
+//
+// Deliberately NOT routed through the viewer's active timezone (unlike the
+// read-only timesheet displays elsewhere in the dashboard): this file is
+// where an admin EDITS an employee's raw clock-in/out. toLocalInput() and
+// utahOffsetMin() below round-trip that edit through a Utah wall-clock value
+// and back, because the employee's actual shift is anchored to Utah time
+// regardless of which timezone the editing admin happens to be in — an admin
+// in Manila correcting a clock-out must still enter it as the Utah time the
+// employee experienced, not their own local equivalent.
 const UTAH_TZ = "America/Denver";
 
 /** Parse a DB value treating bare DATETIME as UTC (matches backend writers). */

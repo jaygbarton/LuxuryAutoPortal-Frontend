@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronDown, XCircle } from "lucide-react";
 
@@ -152,7 +153,7 @@ export default function GuestDatabasePage() {
   const totalPages = Math.ceil(total / itemsPerPage);
 
   const MT_DATETIME_FMT = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Denver",
+    timeZone: getActiveTimezone(),
     month: "2-digit",
     day: "2-digit",
     hour: "numeric",

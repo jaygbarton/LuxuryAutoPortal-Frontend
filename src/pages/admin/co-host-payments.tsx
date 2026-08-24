@@ -136,7 +136,12 @@ function EditableDateCell({
   queryKey: readonly unknown[];
 }) {
   const [editing, setEditing] = useState(false);
-  // Convert stored UTC date to YYYY-MM-DD for the date input
+  // Deliberately pinned to America/Denver, not the viewer's timezone: this
+  // round-trips through an <input type="date"> that SAVES the edited value
+  // back as paymentsInvoiceDate. An invoice date is a specific calendar day,
+  // and a Manila-based admin editing this must see and save the same day a
+  // Utah-based admin would, or the two would silently disagree on which day
+  // the invoice is dated. Convert stored UTC date to YYYY-MM-DD for the input.
   const toInputValue = (d: string | null): string => {
     if (!d) return "";
     try {

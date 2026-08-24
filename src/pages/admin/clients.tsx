@@ -43,6 +43,7 @@ import { z } from "zod";
 import { Search, Eye, ChevronLeft, ChevronRight, X, Plus, Upload, FileSpreadsheet, Loader2, UserCheck, UserX, Ban, Lock, Download, RefreshCw, Trash2 } from "lucide-react";
 import { TableRowSkeleton } from "@/components/ui/skeletons";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { TablePagination, ItemsPerPage } from "@/components/ui/table-pagination";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -700,7 +701,7 @@ export default function ClientsPage() {
     }
   };
 
-  // Last login date + time, shown in Mountain Time (the app's display zone).
+  // Last login date + time, shown in the viewer's timezone.
   // Returns "Never" when the client has never logged in.
   const formatLastLoginDateTime = (
     value: string | null | undefined,
@@ -710,7 +711,7 @@ export default function ClientsPage() {
       const d = new Date(value);
       if (isNaN(d.getTime())) return "Never";
       return d.toLocaleString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: getActiveTimezone(),
         year: "numeric",
         month: "2-digit",
         day: "2-digit",

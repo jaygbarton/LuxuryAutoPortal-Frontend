@@ -25,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { useQuery } from "@tanstack/react-query";
 import { Car, Eye, Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -34,16 +35,17 @@ function formatDate(d: string | undefined, fallback = "--") {
   try {
     const x = new Date(d);
     if (isNaN(x.getTime())) return fallback;
+    const tz = getActiveTimezone();
     return (
       x.toLocaleDateString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: tz,
         weekday: "short",
         month: "2-digit",
         day: "2-digit",
       }) +
       ", " +
       x.toLocaleTimeString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: tz,
         hour: "numeric",
         minute: "2-digit",
       })

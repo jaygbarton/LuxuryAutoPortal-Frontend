@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { Eye, Search, Loader2, UserCog, LogOut, Car } from "lucide-react";
 
 interface ClientPick {
@@ -155,7 +156,7 @@ export default function ViewAsClientPage() {
                     {" "}
                     • started{" "}
                     {new Date(status.startedAt).toLocaleString("en-US", {
-                      timeZone: "America/Denver",
+                      timeZone: getActiveTimezone(),
                       hour: "numeric",
                       minute: "2-digit",
                       hour12: true,

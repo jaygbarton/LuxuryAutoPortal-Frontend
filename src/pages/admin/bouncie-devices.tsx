@@ -33,6 +33,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { useCoHost } from "@/hooks/use-co-host";
 import React, { useEffect } from "react";
 import {
@@ -411,7 +412,7 @@ export default function BouncieDevicesPage() {
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString("en-US", {
-      timeZone: "America/Denver",
+      timeZone: getActiveTimezone(),
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -626,7 +627,7 @@ export default function BouncieDevicesPage() {
                               {device.liveData.lastSeen && (
                                 <span className="text-xs text-muted-foreground">
                                   {new Date(device.liveData.lastSeen).toLocaleString("en-US", {
-                                    timeZone: "America/Denver",
+                                    timeZone: getActiveTimezone(),
                                     month: "2-digit", day: "2-digit",
                                     hour: "numeric", minute: "2-digit",
                                   })}

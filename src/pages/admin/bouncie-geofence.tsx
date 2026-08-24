@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { useToast } from "@/hooks/use-toast";
 import {
   MapPin,
@@ -153,7 +154,7 @@ function vehicleName(event: GeofenceEvent): string {
 
 function formatTime(ts: string): string {
   return new Date(ts).toLocaleString("en-US", {
-    timeZone: "America/Denver",
+    timeZone: getActiveTimezone(),
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",

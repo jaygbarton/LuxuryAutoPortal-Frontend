@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { useToast } from "@/hooks/use-toast";
 
 interface TaskComment {
@@ -54,16 +55,17 @@ function formatWhen(d: string): string {
   try {
     const date = new Date(d);
     if (isNaN(date.getTime())) return d;
+    const tz = getActiveTimezone();
     return (
       date.toLocaleDateString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: tz,
         weekday: "short",
         month: "2-digit",
         day: "2-digit",
       }) +
       ", " +
       date.toLocaleTimeString("en-US", {
-        timeZone: "America/Denver",
+        timeZone: tz,
         hour: "numeric",
         minute: "2-digit",
       })

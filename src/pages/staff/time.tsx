@@ -9,7 +9,7 @@
  *      – "End of shift"         → server closes the session; they stay clocked out.
  *  • Multiple clock-in / clock-out sessions per day are supported.
  *  • Sessions list at the bottom is filterable by date / date range.
- *  • All clock times are displayed in **Utah / America/Denver** time.
+ *  • Clock times display in the viewer's timezone (Utah / Mountain by default).
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -45,7 +45,13 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 
+// utahToday() below stays pinned to Utah, unlike the display helpers above:
+// it seeds the fromDate/toDate filter state, which is sent to the backend as
+// from/to query params (see the fetch below) — changing the window the
+// server buckets by is Phase 5 (backend SQL day-bucketing) territory, not a
+// display fix.
 const UTAH_TZ = "America/Denver";
 
 // ── End-of-shift questionnaire ─────────────────────────────────────────
@@ -151,7 +157,7 @@ function utahDate(d: string | null | undefined, fallback = "—"): string {
   const x = parseDb(d);
   if (!x) return fallback;
   return x.toLocaleDateString("en-US", {
-    timeZone: UTAH_TZ,
+    timeZone: getActiveTimezone(),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -162,7 +168,7 @@ function utahTime(d: string | null | undefined, fallback = "—"): string {
   const x = parseDb(d);
   if (!x) return fallback;
   return x.toLocaleTimeString("en-US", {
-    timeZone: UTAH_TZ,
+    timeZone: getActiveTimezone(),
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
@@ -232,7 +238,7 @@ function utahDateKey(d: string | null | undefined): string {
   const x = parseDb(d);
   if (!x) return "";
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: UTAH_TZ,
+    timeZone: getActiveTimezone(),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

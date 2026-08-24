@@ -6,6 +6,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -505,8 +506,6 @@ interface AuditEntry {
   createdAt: string;
 }
 
-const UTAH_TZ = "America/Denver";
-
 // submissionDate (`expense_form_submission.submission_date`) is a MySQL DATE
 // column — a calendar date with no time-of-day. It round-trips as
 // "2026-07-21T00:00:00.000Z" (UTC midnight) most of the time, but some
@@ -540,7 +539,7 @@ function formatUtahDateTime(value: string | null | undefined): string {
   const d = new Date(String(value).replace(" ", "T"));
   if (isNaN(d.getTime())) return "—";
   return d.toLocaleString("en-US", {
-    timeZone: UTAH_TZ,
+    timeZone: getActiveTimezone(),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

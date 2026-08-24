@@ -1190,8 +1190,12 @@ export default function TuroTripsPage() {
 
   // Turo emails express all trip times in Mountain Time (Salt Lake City).
   // The backend stores the resulting UTC instant; render it back in MT so the
-  // table matches what the Turo email and the Turo app show, regardless of
-  // the admin's browser timezone.
+  // table matches what the Turo email and the Turo app show. Deliberately NOT
+  // routed through the viewer's active timezone (unlike most display code in
+  // this codebase): the whole point is to cross-reference against Turo's own
+  // fixed Mountain-Time display, so showing a Manila admin their own local
+  // projection instead would make this LESS useful for that comparison, not
+  // more correct.
   // The year is included: this table spans several years of trips (the oldest
   // rows are from 2023), so a bare MM/DD Booking Date is ambiguous next to a
   // Trip Start that does show its year.

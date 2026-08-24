@@ -13,6 +13,7 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import { cn } from "@/lib/utils";
 import { Bell, Check, Loader2 } from "lucide-react";
 
@@ -34,7 +35,7 @@ function formatTime(d: string) {
   if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
   return date.toLocaleString("en-US", {
-    timeZone: "America/Denver",
+    timeZone: getActiveTimezone(),
     month: "2-digit",
     day: "2-digit",
     year: "numeric",

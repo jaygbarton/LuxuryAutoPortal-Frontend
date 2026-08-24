@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
+import { getActiveTimezone } from "@/hooks/use-timezone";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +37,7 @@ interface AuditRow {
 function fmtWhen(iso: string): string {
   try {
     return new Date(iso).toLocaleString("en-US", {
-      timeZone: "America/Denver",
+      timeZone: getActiveTimezone(),
       month: "2-digit", day: "2-digit", year: "numeric",
       hour: "numeric", minute: "2-digit",
     });
