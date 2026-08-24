@@ -41,8 +41,9 @@ type SeatFilter = "all" | "7" | "8";
 function chauffeurHourlyRate(car: FleetCar): number | null {
   const name = `${car.make ?? ""} ${car.model ?? ""} ${car.makeModel ?? ""} ${car.turoLink ?? ""}`.toLowerCase();
 
-  if ((car.make ?? "").toLowerCase() === "acura" && car.year === 2026 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 445;
+  if ((car.make ?? "").toLowerCase() === "acura" && car.year === 2026 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 495;
   if (car.year === 2026 && (name.includes("suburban") || name.includes("yukon")) && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 595;
+  if (car.year === 2026 && name.includes("tahoe") && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 445;
   if (car.year === 2026 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 495;
   if (car.year === 2025 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 445;
   if (car.year === 2024 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 395;
