@@ -179,10 +179,13 @@ export function TripCalendar({ title }: { title?: string }) {
   const rangeTooLong = validRange && !customRange;
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "booked" | "free">("all");
-  // Show only cars whose booking *starts* (or *ends*) inside the visible
-  // window — "which cars go out this week?" / "which come back?". Independent
-  // of each other so both can be applied at once.
-  const [edgeFilter, setEdgeFilter] = useState<"any" | "starts" | "ends">("any");
+  // Show only cars whose booking starts and/or ends inside the visible window
+  // — "which cars go out this week?" / "which come back?". Two independent
+  // toggles rather than one exclusive dropdown: the two questions are often
+  // asked together ("everything that turns over this week"), and a single
+  // select could only ever answer one of them at a time.
+  const [edgeStarts, setEdgeStarts] = useState(false);
+  const [edgeEnds, setEdgeEnds] = useState(false);
   // 227 of ~327 cars are off-fleet, so default to active or the timeline opens
   // as mostly blank rows.
   const [fleetFilter, setFleetFilter] = useState<"active" | "inactive" | "all">("active");
@@ -210,6 +213,19 @@ export function TripCalendar({ title }: { title?: string }) {
       ),
     [from, to],
   );
+
+  // Paging works whether the window came from a preset or an explicit range:
+  // with a range set, both ends slide together, keeping its length. Previously
+  // the arrows were simply disabled once a range existed, which stranded the
+  // user with no way to step forward without clearing it first.
+  const shiftWindow = (deltaDays: number) => {
+    if (customRange) {
+      setRangeFrom(ymd(addDays(dayKeyToUtcDate(rangeFrom), deltaDays)));
+      setRangeTo(ymd(addDays(dayKeyToUtcDate(rangeTo), deltaDays)));
+      return;
+    }
+    setAnchor(addDays(anchor, deltaDays));
+  };
 
   const { data, isLoading, isError } = useQuery<CalendarResponse>({
     queryKey: ["/api/turo-trips/calendar", from, to],
@@ -308,22 +324,40 @@ export function TripCalendar({ title }: { title?: string }) {
         statusFilter === "booked" ? booked.has(Number(c.carId)) : !booked.has(Number(c.carId)),
       );
     }
-    if (edgeFilter !== "any") {
-      // Keep only cars with a trip whose start (or end) day actually falls
-      // inside the window. A trip merely passing through the window has
-      // neither edge here, so it is excluded — that is the point of the
-      // filter: "going out this week" vs "already out".
+    if (edgeStarts || edgeEnds) {
+      // Keep cars with a trip whose start and/or end day falls inside the
+      // window. A trip merely passing through has neither edge, so it is
+      // excluded — that is the point of the filter: "going out this week"
+      // vs "already out".
+      //
+      // With both toggles on this is a UNION, not an intersection: the useful
+      // question is "everything that turns over this week", which includes a
+      // trip that only starts and one that only ends. Requiring both edges on
+      // the same trip would instead mean "starts and ends inside the window",
+      // which the range itself already expresses.
+      //
       // Compared as Mountain-Time day keys so the answer matches the column
       // the bar is drawn in and the date the detail panel prints.
+      const inWindow = (iso: string) => {
+        const key = mtDayKey(iso);
+        return key >= from && key <= to;
+      };
       const keep = new Set<number>();
       for (const t of data?.trips ?? []) {
-        const key = mtDayKey(edgeFilter === "starts" ? t.tripStart : t.tripEnd);
-        if (key >= from && key <= to) keep.add(Number(t.carId));
+        if (
+          (edgeStarts && inWindow(t.tripStart)) ||
+          (edgeEnds && inWindow(t.tripEnd))
+        ) {
+          keep.add(Number(t.carId));
+        }
       }
       list = list.filter((c) => keep.has(Number(c.carId)));
     }
     return list;
-  }, [data?.cars, data?.trips, search, statusFilter, fleetFilter, edgeFilter, from, to]);
+  }, [
+    data?.cars, data?.trips, search, statusFilter, fleetFilter,
+    edgeStarts, edgeEnds, from, to,
+  ]);
 
   const tripsByCar = useMemo(() => {
     const m = new Map<number, CalendarTrip[]>();
@@ -419,19 +453,33 @@ export function TripCalendar({ title }: { title?: string }) {
             <option value="booked">Booked in view</option>
             <option value="free">Free in view</option>
           </select>
-          <select
-            value={edgeFilter}
-            onChange={(e) => setEdgeFilter(e.target.value as typeof edgeFilter)}
-            className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-            title="Show only cars whose trip starts or ends in this window"
+          {/* Two checkboxes, not a dropdown: ticking both asks "what turns over
+              in this range?", which a single-select could not express. */}
+          <div
+            className="flex h-8 items-center gap-3 rounded-md border border-input bg-background px-2.5 text-sm"
+            title="Show only cars whose trip starts and/or ends in this range. Tick both to see everything that turns over."
           >
-            <option value="any">Any trip in range</option>
-            <option value="starts">Trip starts in range</option>
-            <option value="ends">Trip ends in range</option>
-          </select>
-          {/* Explicit date range. While both ends are set it drives the window
-              and the preset/paging controls stand down, so the two cannot
-              silently disagree about what is on screen. */}
+            <label className="flex cursor-pointer items-center gap-1.5 whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={edgeStarts}
+                onChange={(e) => setEdgeStarts(e.target.checked)}
+                className="h-3.5 w-3.5 cursor-pointer accent-primary"
+              />
+              Starts in range
+            </label>
+            <label className="flex cursor-pointer items-center gap-1.5 whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={edgeEnds}
+                onChange={(e) => setEdgeEnds(e.target.checked)}
+                className="h-3.5 w-3.5 cursor-pointer accent-primary"
+              />
+              Ends in range
+            </label>
+          </div>
+          {/* The date range is the single source of truth for the window; the
+              preset buttons below just fill it in. */}
           <div className="flex items-center gap-1">
             <Input
               type="date"
@@ -464,28 +512,36 @@ export function TripCalendar({ title }: { title?: string }) {
               </Button>
             )}
           </div>
+          {/* Quick spans. Picking one writes today → today+N into the date
+              inputs rather than driving the window through a second, parallel
+              mechanism — Cathy asked for this to *be* the date range, so the
+              preset is a shortcut for filling it, not a competing control. */}
           <select
-            value={forwardDays}
-            onChange={(e) => setForwardDays(parseInt(e.target.value, 10))}
-            disabled={customRange}
-            title={
-              customRange
-                ? "Clear the date range to use a preset span"
-                : undefined
-            }
-            className="h-8 rounded-md border border-input bg-background px-2 text-sm disabled:opacity-50"
+            value={customRange ? "" : String(forwardDays)}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10);
+              if (!Number.isFinite(n)) return;
+              setForwardDays(n);
+              const today = dayKeyToUtcDate(mtTodayKey());
+              setRangeFrom(ymd(addDays(today, -LOOKBEHIND_DAYS)));
+              setRangeTo(ymd(addDays(today, n - 1)));
+            }}
+            className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+            title="Fill the date range with a quick span"
           >
-            <option value={7}>7 days</option>
-            <option value={14}>14 days</option>
-            <option value={21}>21 days</option>
-            <option value={30}>30 days</option>
+            <option value="">Quick span…</option>
+            <option value={7}>Next 7 days</option>
+            <option value={14}>Next 14 days</option>
+            <option value={21}>Next 21 days</option>
+            <option value={30}>Next 30 days</option>
+            <option value={60}>Next 60 days</option>
+            <option value={90}>Next 90 days</option>
           </select>
           <Button
             variant="outline"
             size="sm"
-            title="Previous week"
-            disabled={customRange}
-            onClick={() => setAnchor(addDays(anchor, -STEP_DAYS))}
+            title="Back one week"
+            onClick={() => shiftWindow(-STEP_DAYS)}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -504,9 +560,8 @@ export function TripCalendar({ title }: { title?: string }) {
           <Button
             variant="outline"
             size="sm"
-            title="Next week"
-            disabled={customRange}
-            onClick={() => setAnchor(addDays(anchor, STEP_DAYS))}
+            title="Forward one week"
+            onClick={() => shiftWindow(STEP_DAYS)}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
