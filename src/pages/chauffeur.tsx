@@ -39,6 +39,7 @@ type ChauffeurSort = "newest" | "price-high" | "price-low" | "alphabetical";
 type SeatFilter = "all" | "7" | "8";
 
 const CHAUFFEUR_NAME_OVERRIDES: Record<number, string> = {
+  1156: "Acura MDX Tech Package",
   900: "GMC Yukon XL AT4",
 };
 
@@ -74,9 +75,10 @@ function chauffeurEligible(car: FleetCar): boolean {
 }
 
 function displayName(car: FleetCar): string {
-  const baseName = CHAUFFEUR_NAME_OVERRIDES[car.id] ?? car.makeModel;
+  const overrideName = CHAUFFEUR_NAME_OVERRIDES[car.id];
+  const baseName = overrideName ?? car.makeModel;
   const trim = cleanVehicleDetail(car.vehicleTrim);
-  const showTrim = trim && !baseName.toLowerCase().includes(trim.toLowerCase());
+  const showTrim = !overrideName && trim && !baseName.toLowerCase().includes(trim.toLowerCase());
   return [baseName, showTrim ? trim : null, car.year].filter(Boolean).join(" ");
 }
 
