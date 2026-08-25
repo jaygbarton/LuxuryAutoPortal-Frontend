@@ -30,11 +30,16 @@ const ALLOWED_FILES = new Set([
   // than rendering to the screen — changing this is Phase 5 (backend SQL
   // day-bucketing) territory, not a display fix. Converting it now would
   // desync what's requested from what the backend actually returns.
+  //
+  // DayScheduleTab.tsx is NOT here: Phase 5 made /api/operations/day-schedule
+  // interpret `date` as the viewer's own calendar day (resolveUserTimezone on
+  // the backend), so the frontend now sends a day key computed from
+  // useTimezone() instead of a hardcoded Mountain-Time one — no exception
+  // needed for it any more.
   "src/components/admin/dashboard/OperationsSection.tsx",
   "src/components/shared/TripCalendar.tsx",
   "src/pages/admin/bouncie-trips.tsx",
   "src/pages/client/vehicle-trips.tsx",
-  "src/pages/admin/operations/DayScheduleTab.tsx",
   "src/pages/staff/time.tsx",
 
   // Round-trips a write: an admin edits a raw stored value (a clock-in/out,

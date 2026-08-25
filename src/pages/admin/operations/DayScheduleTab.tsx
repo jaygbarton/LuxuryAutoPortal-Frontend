@@ -11,6 +11,7 @@ import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarScheduleImage } from "./CarScheduleImage";
 import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
 import { mtLocalInputToUtcIso, mtTodayKey, addUtcDays, dayKeyToUtcDate, utcDateToDayKey } from "@/lib/mt-datetime";
+import { useTimezone } from "@/hooks/use-timezone";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -141,7 +142,8 @@ const STATUS_BADGE: Record<string, string> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const todayMTDate = mtTodayKey;
+// mtTodayKey/entryTime below are called with the active timezone from inside
+// the component (useTimezone() is a hook — it can't be called at module scope).
 
 function formatDisplayDate(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
@@ -734,7 +736,15 @@ function UnassignedCard({ event }: { event: DayEvent }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function DayScheduleTab() {
-  const [date, setDate] = useState(todayMTDate);
+  const activeTz = useTimezone();
+  // Lazy-initialized once at mount, using whatever timezone is resolved at
+  // that instant (falls back to Mountain Time if /api/auth/me hasn't loaded
+  // yet — see useTimezone()'s doc comment). Deliberately NOT re-derived if
+  // the timezone resolves differently a moment later: once the user has
+  // navigated (e.g. to yesterday), silently jumping "today" out from under
+  // them would be more surprising than a one-time stale seed. The "Today"
+  // button (below) always uses the current activeTz, so it self-corrects.
+  const [date, setDate] = useState(() => mtTodayKey(activeTz));
   const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -747,15 +757,13 @@ export function DayScheduleTab() {
   const [showAddEntry, setShowAddEntry] = useState(false);
   const [entryType, setEntryType] = useState<"refuel" | "custom">("refuel");
   const [entryCarName, setEntryCarName] = useState("");
-  // Seed from the Mountain-Time wall clock, not the browser's. `date` (the
-  // day being browsed) is still an America/Denver day key until the backend's
-  // /api/operations/day-schedule query understands per-viewer day windows
-  // (Phase 5) — so `entryTime` has to stay pinned to the same zone `date`
-  // uses, or combining them at submit would silently reintroduce the
-  // day-shift bug this form was fixed for.
+  // Seed from the active timezone's wall clock, not the browser's — `date`
+  // (the day being browsed) is now in that same zone, and the two must stay
+  // paired: combining a day key from one zone with a time from another at
+  // submit is exactly the day-shift bug this form was originally fixed for.
   const [entryTime, setEntryTime] = useState(() =>
     new Intl.DateTimeFormat("en-GB", {
-      timeZone: "America/Denver",
+      timeZone: activeTz,
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
@@ -888,11 +896,12 @@ export function DayScheduleTab() {
 
   const addEntryMutation = useMutation({
     mutationFn: async () => {
-      // `date` is a Mountain-Time day key and `entryTime` a Mountain wall time,
-      // so the pair has to be interpreted as Mountain — letting `new Date()`
-      // parse it applied the *browser's* offset instead, which filed a Manila
-      // user's entry under the previous day.
-      const scheduledAt = mtLocalInputToUtcIso(`${date}T${entryTime || "09:00"}`);
+      // `date` is a day key in the viewer's active timezone and `entryTime` a
+      // wall time in that same zone, so the pair has to be interpreted as
+      // that zone — letting `new Date()` parse it applied the *browser's*
+      // offset instead, which filed a Manila user's entry under the previous
+      // day (the original bug this form was fixed for).
+      const scheduledAt = mtLocalInputToUtcIso(`${date}T${entryTime || "09:00"}`, activeTz);
       if (!scheduledAt) throw new Error("Pick a valid date and time");
       const res = await fetch(buildApiUrl(`/api/operations/day-schedule/entry`), {
         method: "POST",
@@ -1040,7 +1049,7 @@ export function DayScheduleTab() {
           onChange={(e) => e.target.value && setDate(e.target.value)}
           className="col-span-3 h-10 min-w-0 rounded border border-border bg-background px-2 py-1 text-sm text-foreground sm:col-span-1 sm:h-9"
         />
-        <Button variant="outline" size="sm" className="h-10 sm:h-9" onClick={() => setDate(todayMTDate())}>
+        <Button variant="outline" size="sm" className="h-10 sm:h-9" onClick={() => setDate(mtTodayKey(activeTz))}>
           Today
         </Button>
         <Button variant="default" size="sm" className="col-span-2 h-10 sm:col-span-1 sm:h-9" onClick={() => setShowAddEntry((v) => !v)}>
