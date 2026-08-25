@@ -422,7 +422,7 @@ function Router() {
               <RequireRole roles={["isAdmin", "isEmployee"]}><IncomeExpensesPageWrapper /></RequireRole>
             </Route>
             <Route path="/admin/settings">
-              <RequireRole roles={["isAdmin", "isClient"]}><SettingsPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isClient", "isEmployee", "isCoHost"]}><SettingsPage /></RequireRole>
             </Route>
             <Route path="/admin/operations">
               <RequireRole roles={["isAdmin", "isEmployee"]}><OperationsPage /></RequireRole>

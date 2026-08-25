@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
+import { TimezonePreferenceCard } from "@/components/shared/TimezonePreferenceCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -377,6 +378,9 @@ export default function SettingsPage() {
           <h1 className="text-xl sm:text-3xl font-bold text-foreground mb-2 leading-tight">Settings</h1>
           <p className="text-muted-foreground">Manage your account settings and preferences</p>
         </div>
+
+        {/* Timezone preference */}
+        <TimezonePreferenceCard />
 
         {/* Account Security - Password Change */}
         <Card className="bg-card border-primary/20">
