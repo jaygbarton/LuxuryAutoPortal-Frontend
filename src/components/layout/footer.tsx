@@ -59,7 +59,7 @@ export function Footer() {
       }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.1fr_3.1fr_1.8fr_0.8fr] gap-8 lg:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
 
           {/* Brand column */}
           <div className="lg:col-span-1">
@@ -117,7 +117,7 @@ export function Footer() {
             >
               Quick Links
             </h3>
-            <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-[repeat(5,max-content)]">
+            <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
               {links.map((link) => (
                 <li key={link.href}>
                   <Link
