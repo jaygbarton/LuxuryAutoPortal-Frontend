@@ -30,7 +30,7 @@ export function SiteStatsStrip({ variant = "light" }: SiteStatsStripProps) {
               backdropFilter: isDark ? "blur(22px)" : undefined,
             }}
           >
-            <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-[#D4A017]/10" />
+            <div className="absolute right-0 top-0 h-16 w-16 rounded-full bg-[#D4A017]/10" />
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#D4A017]/12">
               <Icon className="h-5 w-5" style={{ color: "#C49000" }} />
             </div>

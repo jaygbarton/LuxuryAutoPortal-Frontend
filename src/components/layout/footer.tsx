@@ -117,7 +117,7 @@ export function Footer() {
             >
               Quick Links
             </h3>
-            <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+            <ul className="grid grid-cols-2 gap-x-6 gap-y-3">
               {links.map((link) => (
                 <li key={link.href}>
                   <Link

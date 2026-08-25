@@ -208,6 +208,21 @@
     min-height: 100vh;
   }
 
+  img,
+  video,
+  iframe,
+  canvas,
+  svg {
+    max-width: 100%;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    max-width: 100%;
+  }
+
   /* Override browser autofill dark backgrounds - ROOT FIX for inputs turning black */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
