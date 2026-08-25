@@ -103,7 +103,16 @@ export default function ServiceDateEditor({
           min={monthStart}
           max={monthEnd}
           disabled={!loaded || saving}
-          onChange={(e) => save(e.target.value)}
+          onChange={(e) => {
+            const next = e.target.value;
+            // A native date input fires onChange on every keystroke, including
+            // while the year is still partially typed (e.g. "0002-08-24"
+            // before the "2026" finishes) — only save once it's a complete,
+            // plausible date instead of round-tripping every partial value.
+            if (next && !/^\d{4}-\d{2}-\d{2}$/.test(next)) return;
+            if (next && Number(next.slice(0, 4)) < 1000) return;
+            save(next);
+          }}
         />
         {value && (
           <button
