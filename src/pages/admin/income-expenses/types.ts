@@ -43,6 +43,15 @@ export interface IncomeExpenseMonth {
   // populate these and should keep using the local formula helpers.
   mgmtIncome?: number;
   ownerIncome?: number;
+  // Backend-computed Car Owner/Management Split dollar amounts for the
+  // PER-CAR view (computeCarMonthSplits — the sole remaining implementation
+  // of the split formula). Absent if the server-side computation failed for
+  // this month (wrapped in a try/catch), so callers must distinguish
+  // `undefined` from a genuine 0 rather than defaulting silently.
+  computedCarOwnerSplit?: number;
+  computedCarManagementSplit?: number;
+  computedCarManagementTotalExpenses?: number;
+  computedCarOwnerTotalExpenses?: number;
 }
 
 export interface DirectDeliveryMonth {

@@ -42,6 +42,7 @@ import {
   dynamicFieldValue,
   type ExpenseFormCategory,
 } from "../utils/expenseFormLink";
+import { computeOwnerSplit } from "@/lib/ownerSplit";
 
 /** I&E category types that have a matching Expense Receipt form. parkingFeeLabor
  *  has no form submission target (the expense_form_submission table only accepts
@@ -137,6 +138,7 @@ export default function IncomeExpenseTable({
 
   const {
     data,
+    isLoading,
     monthModes,
     toggleMonthMode,
     isSavingMode,
@@ -1782,6 +1784,28 @@ export default function IncomeExpenseTable({
     return 0;
   };
 
+  // Car Owner Split (no percent override) is computed server-side
+  // (computeCarMonthSplits, the sole remaining implementation of the
+  // formula) and returned per month on the I&E row as `computedCarOwnerSplit`
+  // — read it directly instead of recomputing. Returns undefined if the
+  // field is absent (the backend's own try/catch around this computation
+  // failed), distinguished from a genuine 0 so a computation error doesn't
+  // silently render as $0.00.
+  //
+  // NOTE: calculateCarOwnerSplit (below) is NOT fully replaced by this — the
+  // GLA Split row (calculateGlaSplit, for GLA-owned cars) still needs the
+  // owner formula run with an arbitrary percentOverride (the independently-
+  // editable GLA %, not necessarily equal to the stored carOwnerSplit). The
+  // backend's computedCarOwnerSplit only covers the stored-percent case; there
+  // is no server-side equivalent for an arbitrary override, so
+  // calculateCarOwnerSplit + src/lib/ownerSplit.ts stay in place to serve
+  // that one remaining caller.
+  const getComputedOwnerSplitFromApi = (month: number): number | undefined => {
+    const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
+    const value = monthRow?.computedCarOwnerSplit;
+    return typeof value === "number" ? value : undefined;
+  };
+
   // Calculate Car Owner Split based on formula.
   // `percentOverride` (0–100) lets the GLA-owned GLA Split reuse this exact
   // formula with the GLA remainder % (100 − coHost%) in place of the owner %,
@@ -1861,221 +1885,28 @@ export default function IncomeExpenseTable({
 
     const currentYear = parseInt(year, 10);
     const mode = monthModes[month] || 50;
-    const isYear2026OrLater = currentYear >= 2026;
-    const isYear2019To2025 = currentYear >= 2019 && currentYear <= 2025;
 
-    // Year >= 2026
-    if (isYear2026OrLater) {
-      // 50:50 mode
-      if (mode === 50) {
-        // A) No ski racks income
-        if (skiRacksIncome === 0) {
-          const part1 =
-            milesIncome + (smokingFines * 0.1 + skiRacksIncome * ownerPercent);
-          const part2 =
-            (rentalIncome +
-              negativeBalanceCarryOver -
-              deliveryIncome -
-              electricPrepaidIncome -
-              gasPrepaidIncome -
-              smokingFines -
-              milesIncome -
-              skiRacksIncome -
-              childSeatIncome -
-              coolersIncome -
-              insuranceWreckIncome -
-              otherIncome -
-              totalDirectDelivery -
-              totalCogs) *
-            ownerPercent;
-          const calculation = part1 + part2;
-          return calculation >= 0 ? calculation : 0;
-        }
-        // B) If Car Management (GLA) is ski racks owner
-        else if ((skiRacksOwner[month] || "GLA") === "GLA") {
-          const part1 = milesIncome + smokingFines * 0.1;
-          const part2 =
-            (rentalIncome +
-              negativeBalanceCarryOver -
-              deliveryIncome -
-              electricPrepaidIncome -
-              gasPrepaidIncome -
-              smokingFines -
-              milesIncome -
-              skiRacksIncome -
-              childSeatIncome -
-              coolersIncome -
-              insuranceWreckIncome -
-              otherIncome -
-              totalDirectDelivery -
-              totalCogs) *
-            ownerPercent;
-          const calculation = part1 + part2;
-          return calculation >= 0 ? calculation : 0;
-        }
-        // C) If Car Owner is ski racks owner
-        else {
-          const part1 = milesIncome + skiRacksIncome + smokingFines * 0.1;
-          const part2 =
-            (rentalIncome +
-              negativeBalanceCarryOver -
-              deliveryIncome -
-              electricPrepaidIncome -
-              gasPrepaidIncome -
-              smokingFines -
-              milesIncome -
-              skiRacksIncome -
-              childSeatIncome -
-              coolersIncome -
-              insuranceWreckIncome -
-              otherIncome -
-              totalDirectDelivery -
-              totalCogs) *
-            ownerPercent;
-          const calculation = part1 + part2;
-          return calculation >= 0 ? calculation : 0;
-        }
-      }
-      // 70:30 mode
-      else {
-        // A) No ski racks income
-        if (skiRacksIncome === 0) {
-          const part1 =
-            skiRacksIncome * ownerPercent +
-            milesIncome -
-            totalDirectDelivery -
-            totalCogs -
-            totalParkingFeeLabor +
-            negativeBalanceCarryOver +
-            smokingFines * 0.1;
-          const part2 =
-            (rentalIncome -
-              deliveryIncome -
-              electricPrepaidIncome -
-              gasPrepaidIncome -
-              milesIncome -
-              skiRacksIncome -
-              childSeatIncome -
-              coolersIncome -
-              insuranceWreckIncome -
-              smokingFines -
-              otherIncome) *
-            ownerPercent;
-          const calculation = part1 + part2;
-          return calculation >= 0 ? calculation : 0;
-        }
-        // B) If Car Management (GLA) is ski racks owner
-        else if ((skiRacksOwner[month] || "GLA") === "GLA") {
-          const part1 =
-            milesIncome -
-            totalDirectDelivery -
-            totalCogs -
-            totalParkingFeeLabor +
-            negativeBalanceCarryOver +
-            smokingFines * 0.1;
-          const part2 =
-            (rentalIncome -
-              deliveryIncome -
-              electricPrepaidIncome -
-              gasPrepaidIncome -
-              milesIncome -
-              skiRacksIncome -
-              childSeatIncome -
-              coolersIncome -
-              insuranceWreckIncome -
-              smokingFines -
-              otherIncome) *
-            ownerPercent;
-          const calculation = part1 + part2;
-          return calculation >= 0 ? calculation : 0;
-        }
-        // C) If Car Owner is ski racks owner
-        else {
-          const part1 =
-            skiRacksIncome +
-            milesIncome -
-            totalDirectDelivery -
-            totalCogs -
-            totalParkingFeeLabor +
-            negativeBalanceCarryOver +
-            smokingFines * 0.1;
-          const part2 =
-            (rentalIncome -
-              deliveryIncome -
-              electricPrepaidIncome -
-              gasPrepaidIncome -
-              milesIncome -
-              skiRacksIncome -
-              childSeatIncome -
-              coolersIncome -
-              insuranceWreckIncome -
-              smokingFines -
-              otherIncome) *
-            ownerPercent;
-          const calculation = part1 + part2;
-          return calculation >= 0 ? calculation : 0;
-        }
-      }
-    }
-    // Year 2019-2025
-    else if (isYear2019To2025) {
-      // 50:50 mode
-      if (mode === 50) {
-        const part1 =
-          milesIncome +
-          (skiRacksIncome * ownerPercent +
-            childSeatIncome * ownerPercent +
-            coolersIncome * ownerPercent +
-            insuranceWreckIncome * ownerPercent +
-            otherIncome * ownerPercent);
-        const part2 =
-          (rentalIncome +
-            negativeBalanceCarryOver -
-            deliveryIncome -
-            electricPrepaidIncome -
-            gasPrepaidIncome -
-            smokingFines -
-            milesIncome -
-            skiRacksIncome -
-            childSeatIncome -
-            coolersIncome -
-            insuranceWreckIncome -
-            otherIncome -
-            totalDirectDelivery -
-            totalCogs) *
-          ownerPercent;
-        const calculation = part1 + part2;
-        return calculation >= 0 ? calculation : 0;
-      }
-      // 70:30 mode
-      else {
-        const part1 =
-          milesIncome -
-          totalDirectDelivery -
-          totalCogs -
-          totalParkingFeeLabor +
-          negativeBalanceCarryOver +
-          smokingFines * 0.1;
-        const part2 =
-          (rentalIncome -
-            deliveryIncome -
-            electricPrepaidIncome -
-            gasPrepaidIncome -
-            milesIncome -
-            skiRacksIncome -
-            childSeatIncome -
-            coolersIncome -
-            insuranceWreckIncome -
-            smokingFines -
-            otherIncome) *
-          ownerPercent;
-        const calculation = part1 + part2;
-        return calculation >= 0 ? calculation : 0;
-      }
-    }
-
-    // Default (should not reach here, but return 0 for safety)
-    return 0;
+    return computeOwnerSplit({
+      year: currentYear,
+      mode,
+      ownerPercent,
+      skiRacksOwner: (skiRacksOwner[month] || "GLA") === "GLA" ? "GLA" : "CAR_OWNER",
+      rentalIncome,
+      deliveryIncome,
+      electricPrepaidIncome,
+      smokingFines,
+      gasPrepaidIncome,
+      skiRacksIncome,
+      milesIncome,
+      childSeatIncome,
+      coolersIncome,
+      insuranceWreckIncome,
+      otherIncome,
+      negativeBalanceCarryOver,
+      totalDirectDelivery,
+      totalCogs,
+      totalParkingFeeLabor,
+    });
   };
 
   // ===== CO-HOSTING SPLIT (per PM rule) =====
@@ -2583,7 +2414,7 @@ export default function IncomeExpenseTable({
                         monthNum,
                         "ownerIncome",
                       )
-                    : roundToPhp2Dp(calculateCarOwnerSplit(monthNum));
+                    : getComputedOwnerSplitFromApi(monthNum) ?? 0;
                 })}
                 percentageValues={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
@@ -2600,6 +2431,7 @@ export default function IncomeExpenseTable({
                 formatType={isAllCarsView ? undefined : "ownerSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
+                isLoading={isLoading}
               />
             </CategorySection>
 
@@ -4099,7 +3931,7 @@ export default function IncomeExpenseTable({
                         monthNum,
                         "ownerIncome",
                       )
-                    : roundToPhp2Dp(calculateCarOwnerSplit(monthNum));
+                    : getComputedOwnerSplitFromApi(monthNum) ?? 0;
                 })}
                 isEditable={false}
               />
@@ -5262,6 +5094,10 @@ interface CategoryRowProps {
   hidden?: boolean;
   /** Called when a non-editable percentage cell is clicked. Receives the 1-based month number. */
   onPercentCellClick?: (month: number) => void;
+  /** When true, render "…" instead of computed values — the I&E fetch this
+   *  row's calculation depends on is still in flight. Without this, the row
+   *  briefly shows getEmptyData()'s zeroed placeholder as real $0.00. */
+  isLoading?: boolean;
 }
 
 function CategoryRow({
@@ -5287,6 +5123,7 @@ function CategoryRow({
   onHide,
   hidden = false,
   onPercentCellClick,
+  isLoading = false,
 }: CategoryRowProps) {
   const [location] = useLocation();
   const isEmployeeView = useIsEmployeeView();
@@ -5473,7 +5310,9 @@ function CategoryRow({
             key={month}
             className="border-l border-border px-1 py-1 text-right"
           >
-            {category && field && isMonthEditable ? (
+            {isLoading ? (
+              <span className="text-xs text-right block text-muted-foreground">…</span>
+            ) : category && field && isMonthEditable ? (
               showAmountAndPercentage && percentageValues ? (
                 // For split rows, edit the percentage value
                 <>
@@ -5563,7 +5402,7 @@ function CategoryRow({
             isTotal ? "bg-background" : "bg-card",
           )}
         >
-          {formatTotal()}
+          {isLoading ? "…" : formatTotal()}
         </td>
       )}
     </tr>
