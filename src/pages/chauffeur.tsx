@@ -48,6 +48,22 @@ const CHAUFFEUR_FEATURE_OVERRIDES: Record<number, string> = {
   900: "Yukon XL AT4 trim",
 };
 
+const MANUAL_CHAUFFEUR_CARS: FleetCar[] = [
+  {
+    id: -2026,
+    make: "Mercedes-Benz",
+    model: "Sprinter",
+    year: 2026,
+    makeModel: "Mercedes-Benz Sprinter Van",
+    color: null,
+    numberOfSeats: 14,
+    vehicleTrim: "Executive passenger van",
+    photo: null,
+    turoLink: null,
+    locationTag: "slc",
+  },
+];
+
 function cleanVehicleDetail(value?: string | null): string | null {
   const detail = value?.trim();
   if (!detail || /^(n\/a|no data|null)$/i.test(detail)) return null;
@@ -57,6 +73,7 @@ function cleanVehicleDetail(value?: string | null): string | null {
 function chauffeurHourlyRate(car: FleetCar): number | null {
   const name = `${car.make ?? ""} ${car.model ?? ""} ${car.makeModel ?? ""} ${car.turoLink ?? ""}`.toLowerCase();
 
+  if (car.year === 2026 && name.includes("sprinter")) return 695;
   if ((car.make ?? "").toLowerCase() === "acura" && car.year === 2026 && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 495;
   if (car.year === 2026 && (name.includes("suburban") || name.includes("yukon")) && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 595;
   if (car.year === 2026 && name.includes("tahoe") && (car.numberOfSeats === 7 || car.numberOfSeats === 8)) return 545;
@@ -88,6 +105,11 @@ function chauffeurFeatureSummary(car: FleetCar): string {
   return `Trim/features: ${details.join(", ")}.`;
 }
 
+function chauffeurVehicleType(car: FleetCar): string {
+  const name = `${car.make ?? ""} ${car.model ?? ""} ${car.makeModel ?? ""}`.toLowerCase();
+  return name.includes("sprinter") || name.includes("van") ? "Executive Van" : "Business SUV";
+}
+
 function ChauffeurVehicleCard({ car }: { car: FleetCar }) {
   const imgSrc = car.photo ? getProxiedImageUrl(car.photo) : PLACEHOLDER_IMG;
   const rate = chauffeurHourlyRate(car);
@@ -114,7 +136,7 @@ function ChauffeurVehicleCard({ car }: { car: FleetCar }) {
       <CardContent className="flex flex-1 flex-col p-5">
         <div className="mb-5">
           <h2 className="text-xl font-semibold text-[#171717]">{displayName(car)}</h2>
-          <p className="mt-1 text-sm font-medium text-[#7A6B44]">Business SUV</p>
+          <p className="mt-1 text-sm font-medium text-[#7A6B44]">{chauffeurVehicleType(car)}</p>
         </div>
 
         <div className="mb-5 grid grid-cols-2 gap-3 text-sm">
@@ -166,7 +188,7 @@ export default function ChauffeurPage() {
 
   const chauffeurCars = useMemo(
     () => {
-      const cars = (data?.data ?? [])
+      const cars = [...(data?.data ?? []), ...MANUAL_CHAUFFEUR_CARS]
         .filter((car) => fleetCarBelongsToLocation(car.turoLink, location, car.locationTag))
         .filter(chauffeurEligible)
         .filter((car) => seatFilter === "all" || car.numberOfSeats === Number(seatFilter));
