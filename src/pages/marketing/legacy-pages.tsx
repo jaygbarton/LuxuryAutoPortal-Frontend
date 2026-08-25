@@ -111,7 +111,7 @@ const pageMeta: Record<PageKey, {
     eyebrow: "Detail Shop",
     title: "Premium Car Cleaning & Detailing",
     description:
-      "Bring the vehicle to our shop or schedule service while you travel. Professional detailing packages are organized here with clean pricing and a polished GLA booking path.",
+      "Bring the vehicle to our shop or schedule service while you travel.",
     primaryCta: "Book An Appointment",
     primaryHref: "/detail-shop/book",
     secondaryCta: "View Packages",
@@ -1061,7 +1061,7 @@ function PageShell({
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="pt-20 lg:pt-24">
+      <main className="public-page pt-20 lg:pt-24">
         <section className="relative overflow-hidden border-b border-border bg-[#0A0A0A] text-white">
           <div className="absolute inset-0">
             <img src={heroImage} alt="" className="h-full w-full object-cover" style={{ objectPosition: heroImagePosition }} />
@@ -1074,7 +1074,7 @@ function PageShell({
             />
           </div>
           <div className="relative mx-auto grid min-h-[440px] max-w-7xl content-end px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
-            <div className="max-w-3xl">
+            <div className="max-w-3xl animate-fade-in-up">
               <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">{meta.eyebrow}</p>
               <h1 className="font-serif text-4xl font-light leading-tight text-white sm:text-5xl lg:text-6xl">
                 {meta.title}
@@ -1109,7 +1109,7 @@ function PageShell({
 
 function SectionHeader({ eyebrow, title, description }: { eyebrow: string; title: string; description?: string }) {
   return (
-    <div className="mb-10">
+    <div className="reveal-on-scroll mb-10">
       <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-primary">{eyebrow}</p>
       <h2 className="font-serif text-3xl font-light text-foreground lg:text-4xl">{title}</h2>
       {description ? <p className="mt-3 max-w-2xl text-muted-foreground">{description}</p> : null}
@@ -1182,7 +1182,7 @@ export function DetailShopPage() {
         <SectionHeader
           eyebrow="Packages + Pricing"
           title="Rental-ready detail work with clear options"
-          description="Cleanliness is still the standard. These packages make the service menu clear without changing the core offer."
+          description="Interior and exterior options for rentals, airport turns, and privately owned vehicles."
         />
         <div className="grid gap-6 lg:grid-cols-2">
           {detailPackages.map((item) => (
@@ -1318,7 +1318,7 @@ export function DealsPage() {
         <SectionHeader
           eyebrow="Current Offers"
           title="Guest deals in one clean place"
-          description="Rental specials and partner offers are listed here so guests can plan more of the trip in one place."
+          description="Rental specials and local partner offers for Golden Luxury Auto guests."
         />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {deals.map((deal, index) => (
@@ -1359,7 +1359,7 @@ export function JobsPage() {
         <SectionHeader
           eyebrow="Careers"
           title="Careers At Golden Luxury Auto"
-          description="Review the roles below and apply directly through the Golden Luxury Auto careers form."
+          description="Apply directly through the Golden Luxury Auto careers form."
         />
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {jobListings.map((job) => (
@@ -1412,7 +1412,7 @@ export function JobsPage() {
           <SectionHeader
             eyebrow="About Golden Luxury Auto"
             title="Car rental and vehicle management in Salt Lake City"
-            description="Golden Luxury Auto is a car rental and management company with rental operations, managed vehicles, thousands of 5-star reviews, and Turo Power Host experience."
+            description="Premium rentals, managed vehicles, thousands of 5-star reviews, and Turo Power Host experience."
           />
         </div>
       </section>
@@ -1877,7 +1877,7 @@ export function SuggestedCarsPage() {
         <SectionHeader
           eyebrow="Fleet Dealer Partners"
           title="Connect with our fleet dealer partners"
-          description="These suggested cars and partner contacts are here for owners who want to trade in or finance a qualifying vehicle for the program."
+          description="Suggested cars and partner contacts for owners who want to trade in or finance a qualifying vehicle for the program."
         />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {suggestedCarPartners.map((partner, index) => (
@@ -1974,7 +1974,7 @@ export function TestimonialsPage() {
         <SectionHeader
           eyebrow="Video Testimonials"
           title="Real client stories from the testimonial wall"
-          description="The testimonial videos from the public GLA library are embedded here so guests can hear directly from past clients."
+          description="Real client stories from Golden Luxury Auto guests and vehicle owners."
         />
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {testimonialVideos.map((video) => (
@@ -2213,7 +2213,7 @@ export function PickupDropoffPage() {
             <SectionHeader
               eyebrow="Airport Overview"
               title="Start with the airport pickup options video"
-              description="The original overview video is kept from the old page. It explains the main airport pickup choices before guests choose the detailed instruction path below."
+              description="A quick overview of the main airport pickup choices before you select your exact location."
             />
             <div className="grid gap-3 text-sm text-foreground">
               <a href="#pick-up" className="flex items-center gap-3 rounded-md border border-border bg-card p-4 transition-colors hover:border-primary">
@@ -2242,7 +2242,7 @@ export function PickupDropoffPage() {
         <SectionHeader
           eyebrow="Pick Up"
           title="Choose the right pickup path"
-          description="These instructions keep the original operating content from the old page, cleaned up into scannable guest steps."
+          description="Select the option that matches your reservation and follow the steps for that location."
         />
         <div className="grid gap-6">
           {pickupInstructions.map((item) => (
@@ -2256,7 +2256,7 @@ export function PickupDropoffPage() {
           <SectionHeader
             eyebrow="Drop Off"
             title="Return instructions by location"
-            description="Airport garage, Diamond lot, curbside, hotel, custom location, and lock box return steps are all available here."
+            description="Airport garage, Diamond lot, curbside, hotel, custom location, and lock box return steps."
           />
           <div className="grid gap-6">
             {dropoffInstructions.map((item) => (
@@ -2269,8 +2269,8 @@ export function PickupDropoffPage() {
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
           eyebrow="Video Library"
-          title="All original video embeds"
-          description="The old page videos are preserved here as a compact library for quick reference."
+          title="Video instructions"
+          description="Quick videos for pickup, drop-off, hotel delivery, custom delivery, and lock box trips."
         />
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {pickupDropoffVideos.map((video) => (

@@ -81,8 +81,6 @@ export function GlaContactCard() {
           <div className="flex items-start gap-3">
             <Mail className="w-5 h-5 text-foreground flex-shrink-0 mt-0.5" />
             <span className="text-sm text-foreground">
-              <a href="mailto:golden@goldenluxuryauto.com" className="hover:underline hover:text-[#d3bc8d]">golden@goldenluxuryauto.com</a>
-              {" / "}
               <a href="mailto:goldenluxuryauto@gmail.com" className="hover:underline hover:text-[#d3bc8d]">goldenluxuryauto@gmail.com</a>
             </span>
           </div>

@@ -375,4 +375,58 @@
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after {
     inset: -1px;
   }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .reveal-on-scroll {
+    animation: fade-in-up 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .public-page > section,
+  .public-page > div,
+  .public-page article,
+  .public-page .card-motion {
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+  }
+
+  .public-page article:hover,
+  .public-page .card-motion:hover {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .public-page > section:not(:first-child),
+  .public-page > div,
+  .public-page .reveal-on-scroll,
+  .public-page article {
+    animation: fade-in-up both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 26%;
+  }
+
+  .public-page img {
+    transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1), filter 700ms ease;
+  }
+
+  .public-page a:hover img,
+  .public-page article:hover img,
+  .public-page .group:hover img {
+    filter: saturate(1.08) contrast(1.04);
+    transform: scale(1.035);
+  }
 }

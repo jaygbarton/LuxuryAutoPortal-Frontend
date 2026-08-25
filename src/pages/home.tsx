@@ -143,7 +143,7 @@ function LocationHub() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main>
+      <main className="public-page">
         <Hero mode="hub" />
       </main>
       <Footer />
@@ -155,7 +155,7 @@ function ComingSoon({ location }: { location: PublicLocation }) {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="pt-20 lg:pt-24">
+      <main className="public-page pt-20 lg:pt-24">
         <section className="flex min-h-[calc(100svh-68px)] items-center bg-[#0A0A0A] text-white">
           <div className="mx-auto max-w-4xl px-4 py-10 text-center sm:px-6 sm:py-16 lg:px-8 lg:py-20">
             <p className="mb-3 text-xs font-bold uppercase tracking-[2px] sm:mb-4 sm:tracking-[3px]" style={{ color: "#E8B830" }}>
@@ -209,7 +209,7 @@ export default function Home({ location }: { location?: PublicLocation }) {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main>
+      <main className="public-page">
         <Hero location={location} />
         <ServiceSplitSection location={location} />
         <FeaturedCars location={location} />

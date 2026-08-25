@@ -147,7 +147,7 @@ export default function Contact() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="pt-20 lg:pt-24">
+      <main className="public-page pt-20 lg:pt-24">
         <section className="relative overflow-hidden bg-[#070707] text-white">
           <div className="absolute inset-0">
             <img
@@ -167,7 +167,7 @@ export default function Contact() {
           </div>
 
           <div className="relative mx-auto grid min-h-[520px] max-w-7xl items-end px-4 py-14 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14 lg:px-8 lg:py-20">
-            <div className="max-w-2xl pb-4 lg:pb-8">
+            <div className="max-w-2xl animate-fade-in-up pb-4 lg:pb-8">
               <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">Contact Golden Luxury Auto</p>
               <h1 className="font-serif text-4xl font-light leading-tight text-white sm:text-5xl lg:text-6xl">
                 Rental and vehicle management help, handled directly.

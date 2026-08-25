@@ -5,7 +5,7 @@
  */
 
 export const SITE_CONTACT = {
-  emails: ["goldenluxuryauto@gmail.com", "golden@goldenluxuryauto.com"],
+  emails: ["goldenluxuryauto@gmail.com"],
   phone: "1-800-346-1394",
   phoneHref: "tel:+18003461394",
   address: ["South 500 West", "Salt Lake City, Utah 84101"],

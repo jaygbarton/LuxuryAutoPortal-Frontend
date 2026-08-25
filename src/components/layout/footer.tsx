@@ -8,7 +8,7 @@ import { getPublicLocationFromPath, withLocationPath } from "@/lib/location-conf
 
 const quickLinks = [
   { href: "/fleet", label: "Our Fleet" },
-  { href: "/pick-up-and-drop-off", label: "Pick Up And Drop Off" },
+  { href: "/pick-up-and-drop-off", label: "Pick Up/Drop Off" },
   { href: "/detail-shop", label: "Detail Shop" },
   { href: "/extras", label: "Extras" },
   { href: "/deals", label: "Deals" },
@@ -59,7 +59,7 @@ export function Footer() {
       }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.1fr_3.1fr_1.8fr_0.8fr] gap-8 lg:gap-8">
 
           {/* Brand column */}
           <div className="lg:col-span-1">
@@ -117,12 +117,12 @@ export function Footer() {
             >
               Quick Links
             </h3>
-            <ul className="space-y-3">
+            <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-[repeat(5,max-content)]">
               {links.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={withLocationPath(link.href, publicLocation)}
-                    className="text-sm transition-colors"
+                    className="whitespace-nowrap text-xs transition-colors xl:text-sm"
                     style={{ color: "#4A4A4A", textDecoration: "none" }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#C49000"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#4A4A4A"; }}
@@ -168,7 +168,7 @@ export function Footer() {
                   <Mail className="w-4 h-4 shrink-0" style={{ stroke: "#C49000" }} />
                   <a
                     href={`mailto:${email}`}
-                    className="text-sm transition-colors break-all"
+                    className="whitespace-nowrap text-xs transition-colors xl:text-sm"
                     style={{ color: "#4A4A4A" }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#C49000"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#4A4A4A"; }}
