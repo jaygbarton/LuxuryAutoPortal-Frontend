@@ -53,7 +53,7 @@ interface CalendarBlockOff {
 }
 interface CalendarResponse {
   success: boolean;
-  role: "admin" | "cohost" | "client";
+  role: "admin" | "cohost" | "client" | "employee";
   cars: CalendarCar[];
   trips: CalendarTrip[];
   blockOffs: CalendarBlockOff[];
@@ -893,9 +893,10 @@ export function TripCalendar({ title }: { title?: string }) {
             )}
             </div>
 
-            {/* Turo Trips is an admin/co-host page — a client has no access to
-                it, so the link would only lead to a blocked route. */}
-            {selected.kind === "trip" && data?.role !== "client" && (
+            {/* Turo Trips is an admin/co-host page — clients and employees
+                have no access to it, so the link would only lead to a
+                blocked route. */}
+            {selected.kind === "trip" && data?.role !== "client" && data?.role !== "employee" && (
               <div className="border-t border-border px-5 py-3">
                 <a
                   href={`/admin/turo-trips?q=${encodeURIComponent(selected.trip.reservationId ?? "")}`}

@@ -13,3 +13,4 @@ export { default as MyWorkScheduleSection } from "./MyWorkScheduleSection";
 export { default as MyEmployeeStatsSection } from "./MyEmployeeStatsSection";
 export { default as MyMonthlyStatsSection } from "./MyMonthlyStatsSection";
 export { default as EmployeeNoticeBoardSection } from "./EmployeeNoticeBoardSection";
+export { default as MyTripsCalendarSection } from "./MyTripsCalendarSection";

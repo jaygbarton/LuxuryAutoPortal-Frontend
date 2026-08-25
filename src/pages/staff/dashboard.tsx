@@ -36,6 +36,7 @@ import {
   MyCarBlockOffSection,
   MyWorkScheduleSection,
   EmployeeNoticeBoardSection,
+  MyTripsCalendarSection,
 } from "@/components/staff/dashboard";
 import { SectionHeader } from "@/components/admin/dashboard";
 import { SlidersHorizontal, ChevronDown } from "lucide-react";
@@ -48,6 +49,7 @@ const ALL_SECTIONS = [
   { id: "schedule",      label: "Work Schedule" },
   { id: "hours",         label: "Logged Hours" },
   { id: "operations",    label: "Operations (Pick Up / Drop Off)" },
+  { id: "tripscalendar", label: "Trips Calendar" },
   { id: "turo",          label: "Turo Messages / Inspections" },
   { id: "carissues",     label: "Car Issues / Inspections" },
   { id: "maintenance",   label: "Maintenance" },
@@ -170,6 +172,7 @@ export default function StaffDashboard() {
                 <MyPickupDropoffSection />
               </div>
             )}
+            {show("tripscalendar") && <MyTripsCalendarSection />}
             {show("turo")        && <MyTuroInspectionsSection />}
             {show("carissues")   && <MyCarIssuesSection />}
             {show("maintenance") && <MyMaintenanceSection />}
