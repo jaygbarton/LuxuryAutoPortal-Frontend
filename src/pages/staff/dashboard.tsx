@@ -48,8 +48,7 @@ const ALL_SECTIONS = [
   { id: "commissions",   label: "Commissions" },
   { id: "schedule",      label: "Work Schedule" },
   { id: "hours",         label: "Logged Hours" },
-  { id: "operations",    label: "Operations (Pick Up / Drop Off)" },
-  { id: "tripscalendar", label: "Trips Calendar" },
+  { id: "operations",    label: "Operations (Pick Up / Drop Off / Trips Calendar)" },
   { id: "turo",          label: "Turo Messages / Inspections" },
   { id: "carissues",     label: "Car Issues / Inspections" },
   { id: "maintenance",   label: "Maintenance" },
@@ -181,9 +180,9 @@ export default function StaffDashboard() {
               <div>
                 <SectionHeader title="OPERATIONS" />
                 <MyPickupDropoffSection />
+                <MyTripsCalendarSection />
               </div>
             )}
-            {show("tripscalendar") && <MyTripsCalendarSection />}
             {show("turo")        && <MyTuroInspectionsSection />}
             {show("carissues")   && <MyCarIssuesSection />}
             {show("maintenance") && <MyMaintenanceSection />}
