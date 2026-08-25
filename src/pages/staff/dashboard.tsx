@@ -61,15 +61,26 @@ const ALL_SECTIONS = [
 type SectionId = typeof ALL_SECTIONS[number]["id"];
 
 function loadVisible(): Set<SectionId> {
+  const allIds = ALL_SECTIONS.map((s) => s.id);
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as SectionId[];
-      if (Array.isArray(parsed) && parsed.length > 0) return new Set(parsed);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // A saved list predates any section added to ALL_SECTIONS since it was
+        // written, so a plain `new Set(parsed)` would silently hide every new
+        // section forever for a returning user. Union in ids that aren't in
+        // the saved list yet (new sections default to visible), while still
+        // respecting ids the user has actually unchecked.
+        const known = new Set(allIds);
+        const saved = parsed.filter((id) => known.has(id));
+        const newIds = allIds.filter((id) => !parsed.includes(id));
+        return new Set([...saved, ...newIds]);
+      }
     }
   } catch {}
   // Default: all visible
-  return new Set(ALL_SECTIONS.map((s) => s.id));
+  return new Set(allIds);
 }
 
 export default function StaffDashboard() {
