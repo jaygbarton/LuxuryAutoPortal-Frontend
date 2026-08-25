@@ -21,7 +21,7 @@ type DayEventType =
   | "maintenance" | "task_driver" | "maintenance_driver"
   | "inspection" | "block_off"
   | "owner_pickup" | "owner_cleaning" | "owner_dropoff"
-  | "trip_start" | "trip_end";
+  | "trip_start" | "trip_end" | "task_timer";
 
 interface DayEvent {
   id: number;
@@ -126,6 +126,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string
   "Car Inspection":        { bg: "bg-yellow-500",  text: "text-white", border: "border-yellow-600" },
   "Windshield Run":        { bg: "bg-purple-500",  text: "text-white", border: "border-purple-600" },
   "License Plate Run":     { bg: "bg-cyan-600",    text: "text-white", border: "border-cyan-700" },
+  "HR Task":               { bg: "bg-indigo-600",  text: "text-white", border: "border-indigo-700" },
 };
 
 const STATUS_BADGE: Record<string, string> = {
