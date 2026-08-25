@@ -324,11 +324,6 @@ function ReceiptOcrPanel({
     setDraft(next);
   }, [ocr]);
 
-  // Form-submission receipts ("form-<id>-<idx>") live in a different table and
-  // have no OCR row, so the reader doesn't apply to them.
-  const isCellUpload = /^\d+$/.test(imageId);
-  if (!isCellUpload) return null;
-
   const readReceipt = async () => {
     setReading(true);
     setMsg(null);
