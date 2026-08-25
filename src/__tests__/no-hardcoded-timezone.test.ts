@@ -37,7 +37,6 @@ const ALLOWED_FILES = new Set([
   // useTimezone() instead of a hardcoded Mountain-Time one — no exception
   // needed for it any more.
   "src/components/admin/dashboard/OperationsSection.tsx",
-  "src/components/shared/TripCalendar.tsx",
   "src/pages/admin/bouncie-trips.tsx",
   "src/pages/client/vehicle-trips.tsx",
   "src/pages/staff/time.tsx",

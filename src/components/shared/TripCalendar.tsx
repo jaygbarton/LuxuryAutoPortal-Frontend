@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
-import { getActiveTimezone } from "@/hooks/use-timezone";
+import { getActiveTimezone, useTimezone } from "@/hooks/use-timezone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, AlertTriangle, Loader2, X } from "lucide-react";
@@ -85,12 +85,13 @@ const MONTH_BAND_H = 26; // must match the day-number row's sticky offset
 const HEADER_H = 56;
 
 /**
- * The calendar's day axis is Mountain Time, matching the detail panel and the
- * rest of the app (time sheets, Daily Ops, the operations queries all pin to
- * America/Denver). Column dates are therefore carried as `YYYY-MM-DD` day keys
- * and, where arithmetic is needed, as Dates pinned to UTC midnight — never as
+ * The calendar's day axis is the viewer's active timezone (mtTodayKey/anchor
+ * above take `activeTz`), matching the per-viewer /api/turo-trips/calendar
+ * backend query. Column dates are carried as `YYYY-MM-DD` day keys and, where
+ * arithmetic is needed, as Dates pinned to UTC midnight — never as
  * browser-local midnights, whose spacing varies across DST and whose day
- * boundary is wherever the viewer happens to be sitting.
+ * boundary would otherwise be wherever the browser happens to be sitting
+ * rather than the viewer's chosen zone.
  */
 const ymd = utcDateToDayKey;
 const addDays = addUtcDays;
@@ -156,11 +157,16 @@ function Row({
  * heading. That keeps the visibility rule in exactly one place.
  */
 export function TripCalendar({ title }: { title?: string }) {
+  const activeTz = useTimezone();
   // `anchor` is the first day drawn. `forwardDays` is what the range selector
   // means — days from today onward — so picking "7 days" still gives a week of
-  // upcoming bookings rather than 4 days plus the lookbehind.
+  // upcoming bookings rather than 4 days plus the lookbehind. Lazy-initialized
+  // once at mount using whatever timezone resolves at that instant — same
+  // one-time-seed rationale as DayScheduleTab.tsx's `date` state, so an
+  // already-navigated view doesn't jump if the timezone resolves a moment
+  // later.
   const [anchor, setAnchor] = useState(() =>
-    addDays(dayKeyToUtcDate(mtTodayKey()), -LOOKBEHIND_DAYS),
+    addDays(dayKeyToUtcDate(mtTodayKey(activeTz)), -LOOKBEHIND_DAYS),
   );
   const [forwardDays, setForwardDays] = useState(21);
   // An explicit From/To overrides the "N days" preset. Both must be set before
@@ -421,7 +427,7 @@ export function TripCalendar({ title }: { title?: string }) {
     return bands;
   }, [dayList]);
 
-  const todayKey = mtTodayKey();
+  const todayKey = mtTodayKey(activeTz);
 
   return (
     <div className="space-y-4">
@@ -523,7 +529,7 @@ export function TripCalendar({ title }: { title?: string }) {
               const n = parseInt(e.target.value, 10);
               if (!Number.isFinite(n)) return;
               setForwardDays(n);
-              const today = dayKeyToUtcDate(mtTodayKey());
+              const today = dayKeyToUtcDate(mtTodayKey(activeTz));
               setRangeFrom(ymd(addDays(today, -LOOKBEHIND_DAYS)));
               setRangeTo(ymd(addDays(today, n - 1)));
             }}
@@ -553,7 +559,7 @@ export function TripCalendar({ title }: { title?: string }) {
             onClick={() => {
               setRangeFrom("");
               setRangeTo("");
-              setAnchor(addDays(dayKeyToUtcDate(mtTodayKey()), -LOOKBEHIND_DAYS));
+              setAnchor(addDays(dayKeyToUtcDate(mtTodayKey(activeTz)), -LOOKBEHIND_DAYS));
             }}
           >
             Today
