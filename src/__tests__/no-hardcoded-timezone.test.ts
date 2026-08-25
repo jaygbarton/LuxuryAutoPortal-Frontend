@@ -36,7 +36,6 @@ const ALLOWED_FILES = new Set([
   // the backend), so the frontend now sends a day key computed from
   // useTimezone() instead of a hardcoded Mountain-Time one — no exception
   // needed for it any more.
-  "src/components/admin/dashboard/OperationsSection.tsx",
   "src/pages/admin/bouncie-trips.tsx",
   "src/pages/client/vehicle-trips.tsx",
   "src/pages/staff/time.tsx",

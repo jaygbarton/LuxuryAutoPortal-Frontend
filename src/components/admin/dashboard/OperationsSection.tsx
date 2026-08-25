@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Search, X, Sparkles, Truck, Package, Clock } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
-import { getActiveTimezone } from "@/hooks/use-timezone";
+import { getActiveTimezone, useTimezone } from "@/hooks/use-timezone";
 import { SectionHeader } from "@/components/admin/dashboard";
 import {
   Select,
@@ -195,15 +195,20 @@ function AssignmentChip({
 export default function OperationsSection() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const activeTz = useTimezone();
 
-  const todayMt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date());
+  // The backend now resolves this same viewer's timezone independently
+  // (resolveUserTimezone on /api/operations/tasks) to interpret
+  // tripRangeFrom/tripRangeTo, so computing the window here in activeTz keeps
+  // the request and the response describing the same calendar days.
+  const todayMt = new Intl.DateTimeFormat("en-CA", { timeZone: activeTz }).format(new Date());
   const fromDate = (() => {
     const d = new Date(); d.setDate(d.getDate() - 30);
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(d);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: activeTz }).format(d);
   })();
   const toDate = (() => {
     const d = new Date(); d.setDate(d.getDate() + 60);
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(d);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: activeTz }).format(d);
   })();
 
   const { data, isLoading } = useQuery<OperationTasksResponse>({
