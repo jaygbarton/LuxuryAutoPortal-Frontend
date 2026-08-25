@@ -19,6 +19,7 @@ import {
   ClipboardList,
   Map,
   Radio,
+  Settings,
   Star,
   User,
 } from "lucide-react";
@@ -52,6 +53,7 @@ export function EmployeePageLinks() {
     { href: "/staff/turo-guide",          icon: Map,      label: "Turo Guide" },
     { href: "/staff/training-manual",     icon: BookOpen, label: "System Tutorial" },
     { href: "/staff/client-testimonials", icon: Star,     label: "Client Testimonials" },
+    { href: "/admin/settings",            icon: Settings, label: "Settings" },
   ];
 
   return (

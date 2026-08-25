@@ -28,6 +28,7 @@ import {
   Map,
   PlusCircle,
   Route,
+  Settings,
   ShieldAlert,
   Star,
   TrendingDown,
@@ -121,7 +122,7 @@ export function ClientPageLinks() {
     { href: "https://rent.goldenluxuryauto.com/lyc-client-check-in", icon: Video, label: "Schedule a Zoom Call", external: true },
     { href: "/admin/forms", icon: FileText, label: "License Registration or Insurance Updates" },
     { href: "/admin/turo-guide",     icon: Map,           label: "Turo Guide" },
-    { href: "",                      icon: Map,           label: "",                placeholder: true },
+    { href: "/admin/settings",       icon: Settings,      label: "Settings" },
 
     { href: "/onboarding",           icon: PlusCircle,    label: "List Another Car" },
     { href: "/admin/forms",          icon: UserPlus,      label: "Refer Somebody" },

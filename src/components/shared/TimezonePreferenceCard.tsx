@@ -6,24 +6,32 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl } from "@/lib/queryClient";
 import { ORG_TIMEZONE_FALLBACK } from "@/hooks/use-timezone";
-import { Globe, Loader2, Save } from "lucide-react";
+import { Check, ChevronsUpDown, Globe, Loader2, Save } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface PreferencesResponse {
   success: boolean;
   timezone: string | null;
   effectiveTimezone: string;
 }
+
+/** Distinguishes "no pending change" from an explicit choice of the org
+ *  default, which is itself represented as `timezone: null`. */
+const UNTOUCHED = Symbol("untouched");
+const ORG_DEFAULT_VALUE = "__org_default__";
 
 function timezoneLabel(tz: string): string {
   try {
@@ -42,7 +50,8 @@ function timezoneLabel(tz: string): string {
 export function TimezonePreferenceCard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null | typeof UNTOUCHED>(UNTOUCHED);
+  const [open, setOpen] = useState(false);
 
   const zones = useMemo(() => {
     const list =
@@ -61,9 +70,10 @@ export function TimezonePreferenceCard() {
     },
   });
 
-  const current = selected ?? data?.timezone ?? null;
+  const current = selected === UNTOUCHED ? data?.timezone ?? null : selected;
   const effective = current ?? ORG_TIMEZONE_FALLBACK;
   const isOrgDefault = current === null;
+  const hasPendingChange = selected !== UNTOUCHED;
 
   const saveMutation = useMutation({
     mutationFn: async (timezone: string | null) => {
@@ -82,7 +92,7 @@ export function TimezonePreferenceCard() {
         queryClient.invalidateQueries({ queryKey: ["/api/me/preferences"] }),
         queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] }),
       ]);
-      setSelected(null);
+      setSelected(UNTOUCHED);
       toast({ title: "Timezone updated" });
     },
     onError: (error: Error) => {
@@ -113,28 +123,80 @@ export function TimezonePreferenceCard() {
         ) : (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Select
-                value={isOrgDefault ? "__org_default__" : effective}
-                onValueChange={(v) => setSelected(v === "__org_default__" ? null : v)}
-              >
-                <SelectTrigger className="bg-background border-border text-foreground">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  <SelectItem value="__org_default__">
-                    Organization default ({ORG_TIMEZONE_FALLBACK})
-                  </SelectItem>
-                  {zones.map((tz) => (
-                    <SelectItem key={tz} value={tz}>
-                      {timezoneLabel(tz)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-full justify-between bg-background border-border text-foreground hover:bg-background hover:text-foreground font-normal"
+                  >
+                    <span className="truncate">
+                      {isOrgDefault
+                        ? `Organization default (${ORG_TIMEZONE_FALLBACK})`
+                        : timezoneLabel(effective)}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-[--radix-popover-trigger-width] p-0 bg-card border-border"
+                  align="start"
+                >
+                  <Command className="bg-card">
+                    <CommandInput
+                      placeholder="Search timezones…"
+                      className="text-foreground placeholder:text-muted-foreground border-b border-border"
+                    />
+                    <CommandList className="max-h-[280px]">
+                      <CommandEmpty className="text-muted-foreground py-4 text-sm text-center px-2">
+                        No timezone found.
+                      </CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value={ORG_DEFAULT_VALUE}
+                          onSelect={() => {
+                            setSelected(null);
+                            setOpen(false);
+                          }}
+                          className="text-foreground data-[selected=true]:bg-primary/20 data-[selected=true]:text-foreground cursor-pointer"
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4 shrink-0",
+                              isOrgDefault ? "opacity-100 text-primary" : "opacity-0"
+                            )}
+                          />
+                          Organization default ({ORG_TIMEZONE_FALLBACK})
+                        </CommandItem>
+                        {zones.map((tz) => (
+                          <CommandItem
+                            key={tz}
+                            value={timezoneLabel(tz)}
+                            onSelect={() => {
+                              setSelected(tz);
+                              setOpen(false);
+                            }}
+                            className="text-foreground data-[selected=true]:bg-primary/20 data-[selected=true]:text-foreground cursor-pointer"
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4 shrink-0",
+                                !isOrgDefault && effective === tz ? "opacity-100 text-primary" : "opacity-0"
+                              )}
+                            />
+                            {timezoneLabel(tz)}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <Button
               onClick={() => saveMutation.mutate(current)}
-              disabled={saveMutation.isPending || selected === null}
+              disabled={saveMutation.isPending || !hasPendingChange}
               className="gap-2"
             >
               {saveMutation.isPending ? (

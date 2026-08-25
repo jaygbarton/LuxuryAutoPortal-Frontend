@@ -466,6 +466,12 @@ const employeeSidebarItems: SidebarItem[] = [
     ],
   },
   {
+    href: "/admin/settings",
+    label: "Settings",
+    icon: Settings,
+    roles: ["employee"],
+  },
+  {
     href: "/staff/turo-guide",
     label: "Turo Guide",
     icon: BookOpen,
