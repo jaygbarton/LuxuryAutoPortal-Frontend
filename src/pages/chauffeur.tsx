@@ -188,7 +188,11 @@ export default function ChauffeurPage() {
 
   const chauffeurCars = useMemo(
     () => {
-      const cars = [...(data?.data ?? []), ...MANUAL_CHAUFFEUR_CARS]
+      const fleetCars = data?.data ?? [];
+      const hasFleetSprinter = fleetCars.some((car) =>
+        `${car.make ?? ""} ${car.model ?? ""} ${car.makeModel ?? ""}`.toLowerCase().includes("sprinter"),
+      );
+      const cars = [...fleetCars, ...(hasFleetSprinter ? [] : MANUAL_CHAUFFEUR_CARS)]
         .filter((car) => fleetCarBelongsToLocation(car.turoLink, location, car.locationTag))
         .filter(chauffeurEligible)
         .filter((car) => seatFilter === "all" || car.numberOfSeats === Number(seatFilter));
