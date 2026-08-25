@@ -760,10 +760,10 @@ export function TripCalendar({ title }: { title?: string }) {
                           title={`${t.guestName ?? "Guest"} · ${t.reservationId ?? ""}\n${fmtDateTime(t.tripStart)} → ${fmtDateTime(t.tripEnd)}\nStatus: ${t.status}`}
                           onClick={() => setSelected({ kind: "trip", trip: t, car })}
                           className={cn(
-                            "absolute flex cursor-pointer items-center overflow-hidden rounded px-2 shadow-sm hover:brightness-125",
+                            "absolute flex cursor-pointer items-center overflow-hidden rounded px-2 shadow-sm hover:brightness-110",
                             t.status === "ended"
-                              ? "bg-gray-700 text-white"
-                              : "bg-[#1f2937] text-white",
+                              ? "bg-[#3a3226] text-white"
+                              : "bg-[#D3BC8D] text-black",
                             pos.clippedLeft && "rounded-l-none",
                             pos.clippedRight && "rounded-r-none",
                           )}
@@ -912,10 +912,10 @@ export function TripCalendar({ title }: { title?: string }) {
 
       <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-5 rounded bg-[#1f2937]" /> Booked trip
+          <span className="inline-block h-3 w-5 rounded bg-[#D3BC8D]" /> Booked trip
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-5 rounded bg-gray-700" /> Completed
+          <span className="inline-block h-3 w-5 rounded bg-[#3a3226]" /> Completed
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-5 rounded border border-amber-400 bg-amber-100" /> Owner block-off
