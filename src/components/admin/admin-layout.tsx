@@ -705,20 +705,37 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   //
   // Tab sub-items carry a query string ("/admin/operations?tab=maintenance").
   // Those must match the CURRENT query exactly — matching on pathname alone
-  // would light up all twelve Operations children at once. A child with no
-  // query keeps the old prefix behaviour, but must also not match when a tab
-  // query is present, or the default tab would stay lit on every other tab.
-  const isPathActive = (pathname: string, href: string, currentSearch = "") => {
+  // would light up all twelve Operations children at once.
+  //
+  // `tabKey` is the param this item's siblings are keyed by ("tab", "section").
+  // A query-less DEFAULT child (Trips Overview) must match only when that key
+  // is absent from the URL, otherwise it stays lit alongside whichever tab is
+  // really open. Checking that one key rather than "any query at all" keeps
+  // unrelated params (?category=…&field=… deep links) from breaking the match.
+  const isPathActive = (
+    pathname: string,
+    href: string,
+    currentSearch = "",
+    tabKey?: string,
+  ) => {
     const [hrefPath, hrefQuery] = href.split("?");
+    const params = new URLSearchParams(currentSearch);
     if (hrefQuery != null) {
-      // Compare just the key this item addresses, so unrelated params on the
-      // URL (?category=…&field=… deep links) don't stop a tab from matching.
       const [key, value] = hrefQuery.split("=");
-      return pathname === hrefPath && new URLSearchParams(currentSearch).get(key) === value;
+      return pathname === hrefPath && params.get(key) === value;
     }
-    if (pathname === hrefPath) return true;
+    if (pathname === hrefPath) return tabKey ? !params.get(tabKey) : true;
     if (hrefPath === "/dashboard") return false;
     return pathname.startsWith(hrefPath + "/");
+  };
+
+  /** The query param a group of sub-items switches on, e.g. "tab" or "section". */
+  const tabKeyOf = (children?: SidebarItem[]) => {
+    for (const c of children ?? []) {
+      const q = c.href.split("?")[1];
+      if (q) return q.split("=")[0];
+    }
+    return undefined;
   };
 
   useEffect(() => {
@@ -727,8 +744,9 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     const newState = { ...expandedParents };
     [...allSidebarItems, ...employeeSidebarItems, ...coHostSidebarItems].forEach((it) => {
       if (it.children && it.children.length > 0) {
+        const key = tabKeyOf(it.children);
         const childActive = it.children.some((c) =>
-          isPathActive(location, c.href, search),
+          isPathActive(location, c.href, search, key),
         );
         if (childActive && !newState[it.href]) {
           newState[it.href] = true;
@@ -995,7 +1013,10 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-2">
+        {/* select-none across the whole nav: every row here is a click target,
+            and double-clicking one (e.g. collapsing then re-opening a group)
+            otherwise starts a text selection that spans the sibling labels. */}
+        <nav className="flex-1 overflow-y-auto py-2 select-none">
           {sidebarItems.map((item) => {
             const Icon = item.icon;
             // Top-level / parent active: elegant gold text + left bar, no fill.
@@ -1011,8 +1032,9 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
             if (item.children && item.children.length > 0) {
               // Parent is considered active only when a child path is active.
+              const groupTabKey = tabKeyOf(item.children);
               const isParentActive = item.children.some((c) =>
-                isPathActive(location, c.href, search),
+                isPathActive(location, c.href, search, groupTabKey),
               );
               const expanded = expandedParents[item.href] ?? isParentActive;
 
@@ -1041,7 +1063,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                     <div className="mt-1 ml-4 border-l-2 border-[hsl(var(--sidebar-primary)/0.35)] pl-2">
                       {item.children.map((child) => {
                         const ChildIcon = child.icon;
-                        const childActive = isPathActive(location, child.href, search);
+                        const childActive = isPathActive(location, child.href, search, groupTabKey);
                         return (
                           <Link
                             key={child.href}
