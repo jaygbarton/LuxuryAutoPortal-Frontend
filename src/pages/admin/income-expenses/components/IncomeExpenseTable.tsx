@@ -2020,10 +2020,17 @@ export default function IncomeExpenseTable({
       return totalReimbursedBills;
     }
 
-    // In 50:50 mode, use the full formula
+    // In 50:50 mode, use the full formula. Fall back to the car's
+    // formulaSetting default (NOT 0) when the percent is unset — same rule the
+    // split rows above already use. A month synthesized by ensureAllMonths has
+    // no carManagementSplit field at all, and `|| 0` collapsed that into a
+    // real 0%, dropping the expense share entirely. A stored 0 is honoured.
+    const mgmtRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
+    const rawMgmtStored = mgmtRow?.carManagementSplit;
     const storedMgmtPercent =
-      Number(getMonthValue(data.incomeExpenses, month, "carManagementSplit")) ||
-      0;
+      rawMgmtStored != null
+        ? Number(rawMgmtStored)
+        : (data.formulaSetting?.carManagementSplitPercent ?? 50);
     const mgmtPercent = storedMgmtPercent / 100; // Convert percentage to decimal
     const totalDirectDelivery = getTotalDirectDeliveryForMonth(month);
     const totalCogs = getTotalCogsForMonth(month);
@@ -2053,8 +2060,14 @@ export default function IncomeExpenseTable({
       return totalDirectDelivery + totalCogs + totalParkingFeeLabor;
     } else {
       // 50:50 mode: (Direct Delivery + COGS) * Car Owner Split %
+      // Unset falls back to the car's default — see the matching comment in
+      // calculateCarManagementTotalExpenses above.
+      const ownerRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
+      const rawOwnerStored = ownerRow?.carOwnerSplit;
       const storedOwnerPercent =
-        Number(getMonthValue(data.incomeExpenses, month, "carOwnerSplit")) || 0;
+        rawOwnerStored != null
+          ? Number(rawOwnerStored)
+          : (data.formulaSetting?.carOwnerSplitPercent ?? 50);
       const ownerPercent = storedOwnerPercent / 100; // Convert percentage to decimal
       return (totalDirectDelivery + totalCogs) * ownerPercent;
     }
