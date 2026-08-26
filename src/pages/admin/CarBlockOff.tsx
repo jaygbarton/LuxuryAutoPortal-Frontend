@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import CopyTabLinkButton from "@/components/common/CopyTabLinkButton";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { CalendarOff, Car, Search, Trash2, ChevronLeft, ChevronRight, Pencil, LogOut } from "lucide-react";
 import CarOnboardingForm from "@/components/forms/CarOnboardingForm";
@@ -223,6 +224,11 @@ export default function CarBlockOffPage() {
   // tab plus an instruction to click across.
   const TAB_IDS = ["block-off", "car-on", "car-off"] as const;
   type TabId = (typeof TAB_IDS)[number];
+  const TAB_LABELS: Record<TabId, string> = {
+    "block-off": "Car Block Off",
+    "car-on": "Car On-boarding",
+    "car-off": "Car Off-boarding",
+  };
   const readTabFromUrl = (): TabId => {
     const t = new URLSearchParams(window.location.search).get("tab");
     return TAB_IDS.includes(t as TabId) ? (t as TabId) : "block-off";
@@ -515,6 +521,7 @@ export default function CarBlockOffPage() {
         </div>
 
         {/* Top-level tabs: Car Block Off / Car On-boarding / Car Off-boarding */}
+        <div className="flex flex-wrap items-center gap-3">
         <div className="flex rounded-lg border border-border overflow-hidden w-fit">
           <button
             type="button"
@@ -552,6 +559,11 @@ export default function CarBlockOffPage() {
             <LogOut className="w-4 h-4 inline mr-2" />
             Car Off-boarding
           </button>
+        </div>
+          <CopyTabLinkButton
+            search={`?tab=${activeTab}`}
+            label={TAB_LABELS[activeTab]}
+          />
         </div>
 
         {activeTab === "car-on" && <CarOnboardingForm />}

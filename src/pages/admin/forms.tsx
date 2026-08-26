@@ -86,6 +86,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import CopyTabLinkButton from "@/components/common/CopyTabLinkButton";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import {
   TablePagination,
@@ -1469,6 +1470,18 @@ export default function FormsPage() {
             </TabsList>
           </div>
         </Tabs>
+
+        {/* Link to exactly the tab being viewed, so it can be sent to a client
+            rather than "open Forms, then click across to X". Sits outside the
+            TabsList because that list scrolls horizontally on narrow screens. */}
+        {selectedSection && (
+          <div className="-mt-2 mb-4">
+            <CopyTabLinkButton
+              search={`?section=${selectedSection.id}`}
+              label={selectedSection.title}
+            />
+          </div>
+        )}
 
         <Card className="bg-card border-primary/20 max-w-full overflow-hidden">
           <CardContent className="p-0 max-w-full overflow-hidden">

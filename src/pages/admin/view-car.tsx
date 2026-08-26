@@ -2,7 +2,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
-import { ArrowLeft, ChevronRight, ChevronLeft, ExternalLink, Pencil, X, Check, ChevronDown, FileText } from "lucide-react";
+import { ArrowLeft, ChevronRight, ChevronLeft, ExternalLink, Pencil, X, Check, ChevronDown, FileText, Eye, Download } from "lucide-react";
 import { authMeQueryFn, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
@@ -72,6 +72,11 @@ export default function ViewCarPage() {
   const [statementDialogOpen, setStatementDialogOpen] = useState(false);
   const [statementFromYear, setStatementFromYear] = useState<string>("");
   const [statementToYear, setStatementToYear] = useState<string>("");
+  // Blob URL of the generated PDF while it's being previewed in-app. Kept in
+  // state (not a popup window) because browsers block window.open on an async
+  // fetch — the click gesture has expired by the time the PDF is ready.
+  const [statementPreviewUrl, setStatementPreviewUrl] = useState<string | null>(null);
+  const [statementAction, setStatementAction] = useState<"view" | "download" | null>(null);
 
   // Get user data to check role
   const { data: userData } = useQuery<{ user?: any }>({
@@ -281,15 +286,27 @@ export default function ViewCarPage() {
   // Statement of Account PDF (admin only) — the export lives here because this
   // is the car page the Cars list actually links to; /admin/cars/:id is not
   // reachable from normal navigation.
-  const handleDownloadStatement = async () => {
+  const buildStatementUrl = (disposition: "inline" | "attachment") => {
+    const qs = new URLSearchParams();
+    if (statementFromYear) qs.set("fromYear", statementFromYear);
+    if (statementToYear) qs.set("toYear", statementToYear);
+    qs.set("disposition", disposition);
+    return buildApiUrl(`/api/cars/${carId}/statement-of-account?${qs.toString()}`);
+  };
+
+  const statementFileName = () => {
+    const rangeLabel = statementFromYear || statementToYear
+      ? ` (${statementFromYear || "start"} - ${statementToYear || "latest"})`
+      : "";
+    return `Statement of Account - ${carName || carId}${rangeLabel}.pdf`;
+  };
+
+  const handleStatement = async (mode: "view" | "download") => {
     if (!carId) return;
+    setStatementAction(mode);
     setDownloadingStatement(true);
     try {
-      const qs = new URLSearchParams();
-      if (statementFromYear) qs.set("fromYear", statementFromYear);
-      if (statementToYear) qs.set("toYear", statementToYear);
-      const suffix = qs.toString() ? `?${qs.toString()}` : "";
-      const res = await fetch(buildApiUrl(`/api/cars/${carId}/statement-of-account${suffix}`), {
+      const res = await fetch(buildStatementUrl(mode === "view" ? "inline" : "attachment"), {
         credentials: "include",
       });
       if (!res.ok) {
@@ -298,12 +315,20 @@ export default function ViewCarPage() {
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
+
+      if (mode === "view") {
+        // Swap in the new preview, releasing whatever was showing before.
+        setStatementPreviewUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
+        setStatementDialogOpen(false);
+        return;
+      }
+
       const a = document.createElement("a");
       a.href = url;
-      const rangeLabel = statementFromYear || statementToYear
-        ? ` (${statementFromYear || "start"} - ${statementToYear || "latest"})`
-        : "";
-      a.download = `Statement of Account - ${carName || carId}${rangeLabel}.pdf`;
+      a.download = statementFileName();
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -311,14 +336,27 @@ export default function ViewCarPage() {
       setStatementDialogOpen(false);
     } catch (err: any) {
       toast({
-        title: "Download failed",
+        title: mode === "view" ? "Preview failed" : "Download failed",
         description: err?.message ?? "Could not generate the statement of account.",
         variant: "destructive",
       });
     } finally {
       setDownloadingStatement(false);
+      setStatementAction(null);
     }
   };
+
+  const closeStatementPreview = () => {
+    setStatementPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  };
+
+  // Don't leak the blob if the page unmounts with a preview still open.
+  useEffect(() => () => {
+    if (statementPreviewUrl) URL.revokeObjectURL(statementPreviewUrl);
+  }, [statementPreviewUrl]);
 
   return (
     <AdminLayout>
@@ -412,13 +450,71 @@ export default function ViewCarPage() {
               </button>
               <button
                 type="button"
-                onClick={handleDownloadStatement}
+                onClick={() => handleStatement("view")}
                 disabled={downloadingStatement}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none"
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50 disabled:pointer-events-none"
               >
-                {downloadingStatement ? "Generating..." : "Download PDF"}
+                <Eye className="w-4 h-4" />
+                {downloadingStatement && statementAction === "view" ? "Generating..." : "View"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleStatement("download")}
+                disabled={downloadingStatement}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <Download className="w-4 h-4" />
+                {downloadingStatement && statementAction === "download" ? "Generating..." : "Download"}
               </button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* In-app PDF preview — the statement rendered in an iframe so it can be
+            read without saving a file first. The blob is served inline, so the
+            browser's own PDF viewer (with its print/save controls) handles it. */}
+        <Dialog
+          open={!!statementPreviewUrl}
+          onOpenChange={(open) => { if (!open) closeStatementPreview(); }}
+        >
+          <DialogContent className="max-w-[95vw] w-[95vw] h-[92vh] flex flex-col p-0 gap-0">
+            <DialogHeader className="px-4 py-3 border-b border-border shrink-0">
+              <DialogTitle className="text-base">
+                Statement of Account{statementFromYear || statementToYear
+                  ? ` — ${statementFromYear || "start"} to ${statementToYear || "latest"}`
+                  : ""}
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                Preview of the generated Statement of Account PDF.
+              </DialogDescription>
+            </DialogHeader>
+
+            {statementPreviewUrl && (
+              <iframe
+                src={statementPreviewUrl}
+                title="Statement of Account"
+                className="flex-1 w-full border-0 bg-muted"
+              />
+            )}
+
+            <div className="flex justify-end gap-2 px-4 py-3 border-t border-border shrink-0">
+              <button
+                type="button"
+                onClick={() => { closeStatementPreview(); setStatementDialogOpen(true); }}
+                className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
+              >
+                Change period
+              </button>
+              <button
+                type="button"
+                onClick={() => handleStatement("download")}
+                disabled={downloadingStatement}
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <Download className="w-4 h-4" />
+                {downloadingStatement ? "Generating..." : "Download"}
+              </button>
+            </div>
           </DialogContent>
         </Dialog>
 
