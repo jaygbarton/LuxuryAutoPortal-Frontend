@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical, LayoutList, Rows3, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical, LayoutList, Rows3, Plus, Trash2 } from "lucide-react";
 import { PhotoUpload } from "./PhotoUpload";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarScheduleImage } from "./CarScheduleImage";
@@ -242,6 +242,8 @@ function EventCard({
   onUnassign,
   onDurationChange,
   onDriverChange,
+  onDelete,
+  isAdmin,
   showAssignee = false,
 }: {
   event: DayEvent;
@@ -263,6 +265,8 @@ function EventCard({
     employeeId?: number | null,
     fullname?: string | null,
   ) => void;
+  onDelete: (event: DayEvent) => void;
+  isAdmin: boolean;
 }) {
   const c = colorFor(event.category);
   const badgeClass = STATUS_BADGE[event.status ?? ""] ?? "bg-gray-100 text-gray-700 border-gray-300";
@@ -554,9 +558,25 @@ function EventCard({
         <CarScheduleImage
           carPhoto={event.car_photo}
           carName={event.car_name}
-          className="absolute bottom-2 right-2 top-2 w-36 lg:w-48"
+          className={`absolute right-2 top-2 w-36 lg:w-48 ${isAdmin ? "bottom-11" : "bottom-2"}`}
           fit="contain"
         />
+        {isAdmin && (
+          <Button
+            type="button"
+            size="icon"
+            variant="destructive"
+            className="absolute bottom-2 right-2 h-8 w-8 shadow-sm"
+            title="Delete task"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(event);
+            }}
+            onDragStart={(e) => e.stopPropagation()}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -581,6 +601,8 @@ function EmployeeSection({
   onUnassignEvent,
   onDurationChange,
   onDriverChange,
+  onDelete,
+  isAdmin,
 }: {
   empKey: string;
   emp: EmpInfo;
@@ -597,6 +619,8 @@ function EmployeeSection({
     employeeId?: number | null,
     fullname?: string | null,
   ) => void;
+  onDelete: (event: DayEvent) => void;
+  isAdmin: boolean;
 }) {
   const sorted = [...events].sort((a, b) => timeKey(a.start_time).localeCompare(timeKey(b.start_time)));
   const [dragOver, setDragOver] = useState(false);
@@ -667,6 +691,8 @@ function EmployeeSection({
               onUnassign={onUnassignEvent}
               onDurationChange={onDurationChange}
               onDriverChange={onDriverChange}
+              onDelete={onDelete}
+              isAdmin={isAdmin}
             />
           ))
         )}
@@ -677,16 +703,24 @@ function EmployeeSection({
 
 // ─── Unassigned card (sidebar) ────────────────────────────────────────────────
 
-function UnassignedCard({ event }: { event: DayEvent }) {
+function UnassignedCard({
+  event,
+  onDelete,
+  isAdmin,
+}: {
+  event: DayEvent;
+  onDelete: (event: DayEvent) => void;
+  isAdmin: boolean;
+}) {
   const c = colorFor(event.category);
   return (
     <div
       draggable
       onDragStart={(e) => setDragData(e, event)}
-      className={`flex items-stretch rounded overflow-hidden border ${c.border} text-xs cursor-grab active:cursor-grabbing`}
+      className={`relative flex items-stretch rounded overflow-hidden border ${c.border} text-xs cursor-grab active:cursor-grabbing`}
     >
       <div className={`w-1 flex-shrink-0 ${c.bg}`} />
-      <div className="flex-1 min-w-0 px-2 py-1.5 space-y-0.5">
+      <div className={`flex-1 min-w-0 px-2 py-1.5 space-y-0.5 ${isAdmin ? "pb-9" : ""}`}>
         <div className={`font-semibold`}>{event.category}</div>
         {event.start_time && (
           <div className="text-muted-foreground flex items-center gap-1">
@@ -730,6 +764,22 @@ function UnassignedCard({ event }: { event: DayEvent }) {
         )}
         {event.detail && <div className="text-muted-foreground italic break-words">{event.detail}</div>}
       </div>
+      {isAdmin && (
+        <Button
+          type="button"
+          size="icon"
+          variant="destructive"
+          className="absolute bottom-1.5 right-1.5 h-6 w-6"
+          title="Delete task"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(event);
+          }}
+          onDragStart={(e) => e.stopPropagation()}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      )}
     </div>
   );
 }
@@ -772,6 +822,10 @@ export function DayScheduleTab() {
   );
   const [entryNotes, setEntryNotes] = useState("");
   const [entryEmployee, setEntryEmployee] = useState<{ id: number | null; name: string }>({ id: null, name: "" });
+  const { data: authData } = useQuery<{ user?: { isAdmin?: boolean } }>({
+    queryKey: ["/api/auth/me"],
+  });
+  const isAdmin = authData?.user?.isAdmin === true;
 
   function toggleCategoryFilter(category: string) {
     setActiveCategories((prev) => {
@@ -958,6 +1012,32 @@ export function DayScheduleTab() {
 
   function handleStatusChange(type: DayEventType, id: number, status: string) {
     statusMutation.mutate({ type, id, status });
+  }
+
+  const deleteMutation = useMutation({
+    mutationFn: async (event: DayEvent) => {
+      const res = await fetch(buildApiUrl(`/api/operations/day-schedule/event`), {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ type: event.type, eventId: event.id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to delete task");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
+      toast({ title: "Task deleted" });
+    },
+    onError: (e: Error) => toast({ variant: "destructive", title: "Couldn't delete task", description: e.message }),
+  });
+
+  function handleDelete(event: DayEvent) {
+    if (!window.confirm(`Delete this ${event.category} task${event.car_name ? ` for ${event.car_name}` : ""}?`)) return;
+    deleteMutation.mutate(event);
   }
 
   const allEvents = (data?.events ?? []).filter((event) =>
@@ -1207,6 +1287,8 @@ export function DayScheduleTab() {
                     onUnassignEvent={unassignEvent}
                     onDurationChange={handleDurationChange}
                     onDriverChange={handleDriverChange}
+                    onDelete={handleDelete}
+                    isAdmin={isAdmin}
                   />
                 ))
               )
@@ -1227,6 +1309,8 @@ export function DayScheduleTab() {
                     onUnassign={unassignEvent}
                     onDurationChange={handleDurationChange}
                     onDriverChange={handleDriverChange}
+                    onDelete={handleDelete}
+                    isAdmin={isAdmin}
                   />
                 ))}
               </div>
@@ -1266,7 +1350,14 @@ export function DayScheduleTab() {
                     {unassignOver ? "Drop to unassign" : "All events assigned ✓ — drag a task here to unassign"}
                   </p>
                 ) : (
-                  unassigned.map((e) => <UnassignedCard key={`${e.type}-${e.id}`} event={e} />)
+                  unassigned.map((e) => (
+                    <UnassignedCard
+                      key={`${e.type}-${e.id}`}
+                      event={e}
+                      onDelete={handleDelete}
+                      isAdmin={isAdmin}
+                    />
+                  ))
                 )}
               </div>
             </div>
