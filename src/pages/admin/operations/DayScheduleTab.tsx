@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -561,13 +561,12 @@ function EventCard({
           </div>
         )}
         {isAdmin && (
-          <Button
+          <button
             type="button"
-            size="icon"
-            variant="destructive"
-            className={`absolute bottom-2 z-30 h-6 w-6 rounded-md shadow-md ring-1 ring-background/80 ${event.car_photo ? "right-2 md:right-[10.25rem] lg:right-[13.25rem]" : "right-2"}`}
+            className={`absolute bottom-2 z-30 flex h-7 w-7 items-center justify-center rounded-md border border-red-700 bg-red-600 p-0 text-white shadow-md ring-2 ring-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-800 ${event.car_photo ? "right-2 md:right-[10.25rem] lg:right-[13.25rem]" : "right-2"}`}
             title="Delete task"
             aria-label="Delete task"
+            data-day-schedule-delete
             onClick={(e) => {
               e.stopPropagation();
               onDelete(event);
@@ -575,7 +574,7 @@ function EventCard({
             onDragStart={(e) => e.stopPropagation()}
           >
             <Trash2 className="h-3 w-3" />
-          </Button>
+          </button>
         )}
         <CarScheduleImage
           carPhoto={event.car_photo}
@@ -771,13 +770,12 @@ function UnassignedCard({
         {event.detail && <div className="text-muted-foreground italic break-words">{event.detail}</div>}
       </div>
       {isAdmin && (
-        <Button
+        <button
           type="button"
-          size="icon"
-          variant="destructive"
-          className="absolute bottom-1.5 right-1.5 z-30 h-6 w-6 rounded-md shadow-md ring-1 ring-background/80"
+          className="absolute bottom-1.5 right-1.5 z-30 flex h-7 w-7 items-center justify-center rounded-md border border-red-700 bg-red-600 p-0 text-white shadow-md ring-2 ring-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-800"
           title="Delete task"
           aria-label="Delete task"
+          data-day-schedule-delete
           onClick={(e) => {
             e.stopPropagation();
             onDelete(event);
@@ -785,7 +783,7 @@ function UnassignedCard({
           onDragStart={(e) => e.stopPropagation()}
         >
           <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        </button>
       )}
     </div>
   );
@@ -829,10 +827,12 @@ export function DayScheduleTab() {
   );
   const [entryNotes, setEntryNotes] = useState("");
   const [entryEmployee, setEntryEmployee] = useState<{ id: number | null; name: string }>({ id: null, name: "" });
-  const { data: authData } = useQuery<{ user?: { isAdmin?: boolean } }>({
+  const { data: authData } = useQuery<{ user?: { isAdmin?: boolean; isEmployee?: boolean; impersonatorIsAdmin?: boolean } }>({
     queryKey: ["/api/auth/me"],
+    queryFn: authMeQueryFn,
+    refetchOnMount: "always",
   });
-  const isAdmin = authData?.user?.isAdmin === true;
+  const isAdmin = authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true || authData?.user?.isEmployee === true;
 
   function toggleCategoryFilter(category: string) {
     setActiveCategories((prev) => {
