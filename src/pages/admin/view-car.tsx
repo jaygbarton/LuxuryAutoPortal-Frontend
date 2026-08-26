@@ -482,7 +482,7 @@ export default function ViewCarPage() {
           open={!!statementPreviewUrl}
           onOpenChange={(open) => { if (!open) closeStatementPreview(); }}
         >
-          <DialogContent className="max-w-[95vw] w-[95vw] h-[92vh] flex flex-col p-0 gap-0">
+          <DialogContent className="max-w-[96vw] w-[96vw] h-[94vh] max-h-[94vh] flex flex-col p-0 gap-0 overflow-hidden">
             <DialogHeader className="px-4 py-3 border-b border-border shrink-0">
               <DialogTitle className="text-base">
                 Statement of Account{statementFromYear || statementToYear
