@@ -33,7 +33,6 @@ import {
   User,
   DollarSign,
   Eye,
-  EyeOff,
   Loader2,
   Link as LinkIcon,
   ExternalLink,
@@ -134,57 +133,6 @@ interface ClientDetail {
 
 type Section = "profile" | "cars";
 
-/**
- * Edit-modal input for a masked SSN/EIN/bank number. Shows the server-provided
- * masked placeholder (e.g. "•••6789") until the admin clicks reveal — an
- * audit-logged, super-admin-only request (see revealEditField) — after which
- * the full value populates the input and can be edited normally. Non-super-admins
- * never see the reveal control and can only overwrite the field with a new value.
- */
-function MaskedEditInput({
-  value,
-  onChange,
-  revealed,
-  revealing,
-  canReveal,
-  onReveal,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  revealed: boolean;
-  revealing: boolean;
-  canReveal: boolean;
-  onReveal: () => void;
-}) {
-  return (
-    <div className="relative">
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="bg-card border-border text-foreground font-mono pr-9"
-      />
-      {canReveal && (
-        <button
-          type="button"
-          onClick={onReveal}
-          disabled={revealing || revealed}
-          title={revealed ? "Full number shown" : "View full number (logged)"}
-          aria-label={revealed ? "Full number shown" : "View full number"}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50"
-        >
-          {revealing ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : revealed ? (
-            <EyeOff className="w-3.5 h-3.5" />
-          ) : (
-            <Eye className="w-3.5 h-3.5" />
-          )}
-        </button>
-      )}
-    </div>
-  );
-}
-
 export default function ClientDetailPage() {
   const [, params] = useRoute("/admin/clients/:id");
   const [, setLocation] = useLocation();
@@ -206,12 +154,7 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
   // Edit modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFormData, setEditFormData] = useState<any>({});
-  // Which masked PII fields have been revealed to full value in the edit
-  // modal (super-admin only). Revealing is audit-logged per field/click, so
-  // fields are tracked individually rather than all-or-nothing.
-  const [revealedEditFields, setRevealedEditFields] = useState<Record<string, boolean>>({});
-  const [revealingEditField, setRevealingEditField] = useState<string | null>(null);
-  
+
   // Upload contract modal state
   const [isUploadContractOpen, setIsUploadContractOpen] = useState(false);
   const [uploadContractFormErrors, setUploadContractFormErrors] = useState<{ selectedCarId?: string; contractFile?: string }>({});
@@ -948,7 +891,6 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
         carManufacturerUsername: "",
       });
     }
-    setRevealedEditFields({});
     setIsEditModalOpen(true);
   };
 
@@ -958,55 +900,6 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
     updateMutation.mutate(editFormData);
   };
 
-  // Reveal a masked SSN/EIN/bank number into the edit form so the admin can
-  // see and, if needed, correct the full value (super-admin only, audit-logged
-  // server-side — see /api/sensitive/reveal).
-  // Maps the editFormData key to the backend's REVEAL_SOURCES field name for
-  // each possible source table (see routes/sensitiveFields.ts). Which source
-  // applies depends on which handleEditClick branch populated editFormData:
-  // clients with an onboarding submission read from onboarding_submissions_lyc,
-  // manually-created clients read straight from the client table.
-  const REVEAL_FIELD_MAP = {
-    onboarding: { ssn: "ssn", ein: "ein", routingNumber: "routing_number", accountNumber: "account_number" },
-    client: { ssn: "ssn", ein: "ein", routingNumber: "bank_routing_number", accountNumber: "bank_account_number" },
-  } as const;
-  const revealEntityType = onboardingData?.data?.id != null ? "onboarding" : "client";
-  const revealEntityId = revealEntityType === "onboarding" ? onboardingData?.data?.id : clientId;
-  const canRevealEditFields = isSuperAdmin && revealEntityId != null;
-  const revealEditField = async (field: "ssn" | "ein" | "routingNumber" | "accountNumber") => {
-    if (revealEntityId === undefined || revealEntityId === null) return;
-    setRevealingEditField(field);
-    try {
-      const res = await fetch(buildApiUrl("/api/sensitive/reveal"), {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          entityType: revealEntityType,
-          field: REVEAL_FIELD_MAP[revealEntityType][field],
-          entityId: revealEntityId,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(
-          res.status === 403
-            ? "Only super-admins can view the full number."
-            : json.error || json.message || "Failed to reveal value",
-        );
-      }
-      setEditFormData((prev: any) => ({ ...prev, [field]: json.value ?? "" }));
-      setRevealedEditFields((prev) => ({ ...prev, [field]: true }));
-    } catch (e: any) {
-      toast({
-        title: "Cannot reveal",
-        description: e?.message || "Failed to reveal value",
-        variant: "destructive",
-      });
-    } finally {
-      setRevealingEditField(null);
-    }
-  };
 
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return "N/A";
@@ -2021,13 +1914,10 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                 </div>
                 <div>
                   <Label className="text-muted-foreground">SSN</Label>
-                  <MaskedEditInput
+                  <Input
                     value={editFormData.ssn || ""}
-                    onChange={(v) => setEditFormData({ ...editFormData, ssn: v })}
-                    revealed={!!revealedEditFields.ssn}
-                    revealing={revealingEditField === "ssn"}
-                    canReveal={canRevealEditFields}
-                    onReveal={() => revealEditField("ssn")}
+                    onChange={(e) => setEditFormData({ ...editFormData, ssn: e.target.value })}
+                    className="bg-card border-border text-foreground font-mono"
                   />
                 </div>
                 <div>
@@ -2160,46 +2050,34 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Routing Number</Label>
-                  <MaskedEditInput
+                  <Input
                     value={editFormData.routingNumber || ""}
-                    onChange={(v) => setEditFormData({ ...editFormData, routingNumber: v })}
-                    revealed={!!revealedEditFields.routingNumber}
-                    revealing={revealingEditField === "routingNumber"}
-                    canReveal={canRevealEditFields}
-                    onReveal={() => revealEditField("routingNumber")}
+                    onChange={(e) => setEditFormData({ ...editFormData, routingNumber: e.target.value })}
+                    className="bg-card border-border text-foreground font-mono"
                   />
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Account Number</Label>
-                  <MaskedEditInput
+                  <Input
                     value={editFormData.accountNumber || ""}
-                    onChange={(v) => setEditFormData({ ...editFormData, accountNumber: v })}
-                    revealed={!!revealedEditFields.accountNumber}
-                    revealing={revealingEditField === "accountNumber"}
-                    canReveal={canRevealEditFields}
-                    onReveal={() => revealEditField("accountNumber")}
+                    onChange={(e) => setEditFormData({ ...editFormData, accountNumber: e.target.value })}
+                    className="bg-card border-border text-foreground font-mono"
                   />
                 </div>
                 <div>
                   <Label className="text-muted-foreground">SSN</Label>
-                  <MaskedEditInput
+                  <Input
                     value={editFormData.ssn || ""}
-                    onChange={(v) => setEditFormData({ ...editFormData, ssn: v })}
-                    revealed={!!revealedEditFields.ssn}
-                    revealing={revealingEditField === "ssn"}
-                    canReveal={canRevealEditFields}
-                    onReveal={() => revealEditField("ssn")}
+                    onChange={(e) => setEditFormData({ ...editFormData, ssn: e.target.value })}
+                    className="bg-card border-border text-foreground font-mono"
                   />
                 </div>
                   <div>
                     <Label className="text-muted-foreground">EIN</Label>
-                    <MaskedEditInput
+                    <Input
                       value={editFormData.ein || ""}
-                      onChange={(v) => setEditFormData({ ...editFormData, ein: v })}
-                      revealed={!!revealedEditFields.ein}
-                      revealing={revealingEditField === "ein"}
-                      canReveal={canRevealEditFields}
-                      onReveal={() => revealEditField("ein")}
+                      onChange={(e) => setEditFormData({ ...editFormData, ein: e.target.value })}
+                      className="bg-card border-border text-foreground font-mono"
                     />
                   </div>
                 <div>
