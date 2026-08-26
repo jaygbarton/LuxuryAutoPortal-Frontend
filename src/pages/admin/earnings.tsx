@@ -769,8 +769,19 @@ export default function EarningsPage() {
 
   // Calculate Car Management Split (exact copy from IncomeExpenseTable)
   const calculateCarManagementSplit = (month: number): number => {
-    // Use stored percentage, default to 0 if not set (independent of car owner split)
-    const storedPercent = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "carManagementSplit") || 0;
+    // Fall back to the car's configured default (NOT 0) when the percent is
+    // unset — matches computeCarMonthSplits and IncomeExpenseTable. A month
+    // synthesized by ensureAllMonths has no carManagementSplit field at all,
+    // and `getMonthValue(...) || 0` collapsed that into a real 0%, zeroing
+    // the split on every month with no I&E row. A genuinely stored 0 is still
+    // honoured. (Same bug class as backend commits 8b7cf92 / b947f61.)
+    const mgmtRaw = incomeExpenseDataValue?.incomeExpenses?.find(
+      (x: any) => x && x.month === month,
+    )?.carManagementSplit;
+    const storedPercent =
+      mgmtRaw != null
+        ? Number(mgmtRaw)
+        : (incomeExpenseDataValue?.formulaSetting?.carManagementSplitPercent ?? 50);
     const mgmtPercent = storedPercent / 100; // Split percentage for management
     
     const rentalIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "rentalIncome");
@@ -909,8 +920,15 @@ export default function EarningsPage() {
 
   // Calculate Car Owner Split (exact copy from IncomeExpenseTable)
   const calculateCarOwnerSplit = (month: number): number => {
-    // Use stored percentage, default to 0 if not set (independent of car management split)
-    const storedPercent = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "carOwnerSplit") || 0;
+    // Fall back to the car's configured default (NOT 0) when the percent is
+    // unset — see the matching comment in calculateCarManagementSplit above.
+    const ownerRaw = incomeExpenseDataValue?.incomeExpenses?.find(
+      (x: any) => x && x.month === month,
+    )?.carOwnerSplit;
+    const storedPercent =
+      ownerRaw != null
+        ? Number(ownerRaw)
+        : (incomeExpenseDataValue?.formulaSetting?.carOwnerSplitPercent ?? 50);
     const ownerPercent = storedPercent / 100; // Split percentage for owner
     
     const rentalIncome = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], month, "rentalIncome");
