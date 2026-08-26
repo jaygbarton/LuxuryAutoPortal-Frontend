@@ -1409,6 +1409,36 @@ export default function FormsPage() {
   const selectedSection =
     formSections.find((s) => s.id === activeSection) ?? formSections[0];
 
+  // Give every tab its own shareable URL (?section=<id>). The page already
+  // READ this param on load for subcategory form links, but never wrote it —
+  // so a client who clicked through to a tab had no link to copy or bookmark,
+  // and browser back/forward skipped straight off the page. pushState (not
+  // replaceState) so Back returns to the previously viewed tab.
+  const handleSectionChange = (next: string) => {
+    setActiveSection(next);
+    const params = new URLSearchParams(window.location.search);
+    params.set("section", next);
+    // A subcategory deep link (?category=&field=) targets one specific tab;
+    // carrying those params onto a different tab would re-open the expense
+    // form against a sub-category the new tab doesn't show.
+    if (next !== deepLinkRef.current.section) {
+      params.delete("category");
+      params.delete("field");
+    }
+    window.history.pushState({}, "", `${window.location.pathname}?${params}`);
+  };
+
+  // Keep the tab in sync when the user navigates with the browser's back /
+  // forward buttons, which change the URL without re-mounting this page.
+  useEffect(() => {
+    const onPopState = () => {
+      const section = new URLSearchParams(window.location.search).get("section");
+      if (section) setActiveSection(section);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
   return (
     <AdminLayout>
       <div className="space-y-6 max-w-full">
@@ -1419,7 +1449,7 @@ export default function FormsPage() {
           </p>
         </div>
         {/* Section tabs (mirrors the Operations page layout) */}
-        <Tabs value={activeSection} onValueChange={setActiveSection}>
+        <Tabs value={activeSection} onValueChange={handleSectionChange}>
           <div className="-mx-2 sm:mx-0 mb-4 overflow-x-auto">
             <TabsList className="bg-muted border border-border h-auto gap-1 p-1 inline-flex w-max min-w-full sm:w-auto sm:min-w-0 sm:flex-wrap">
               {formSections.map((section) => {

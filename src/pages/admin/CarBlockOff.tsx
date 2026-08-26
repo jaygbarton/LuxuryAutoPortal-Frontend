@@ -217,8 +217,32 @@ export default function CarBlockOffPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Top-level tab: Car Block Off vs. Car On-boarding vs. Car Off-boarding
-  const [activeTab, setActiveTab] = useState<"block-off" | "car-on" | "car-off">("block-off");
+  // Top-level tab: Car Block Off vs. Car On-boarding vs. Car Off-boarding.
+  // Backed by ?tab=<id> so each tab is its own shareable/bookmarkable link —
+  // clients are sent straight to "Car On-boarding" rather than to the default
+  // tab plus an instruction to click across.
+  const TAB_IDS = ["block-off", "car-on", "car-off"] as const;
+  type TabId = (typeof TAB_IDS)[number];
+  const readTabFromUrl = (): TabId => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return TAB_IDS.includes(t as TabId) ? (t as TabId) : "block-off";
+  };
+  const [activeTab, setActiveTab] = useState<TabId>(readTabFromUrl);
+
+  const changeTab = (next: TabId) => {
+    setActiveTab(next);
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", next);
+    window.history.pushState({}, "", `${window.location.pathname}?${params}`);
+  };
+
+  // Keep the tab in sync with the browser's back / forward buttons, which
+  // change the URL without re-mounting this page.
+  useEffect(() => {
+    const onPopState = () => setActiveTab(readTabFromUrl());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   // Toggle between Start (pickup) and End (drop-off), within the Block Off tab
   const [mode, setMode] = useState<"start" | "end">("start");
@@ -494,7 +518,7 @@ export default function CarBlockOffPage() {
         <div className="flex rounded-lg border border-border overflow-hidden w-fit">
           <button
             type="button"
-            onClick={() => setActiveTab("block-off")}
+            onClick={() => changeTab("block-off")}
             className={`px-6 py-3 text-sm font-medium transition-colors ${
               activeTab === "block-off"
                 ? "bg-primary text-primary-foreground"
@@ -506,7 +530,7 @@ export default function CarBlockOffPage() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("car-on")}
+            onClick={() => changeTab("car-on")}
             className={`px-6 py-3 text-sm font-medium transition-colors border-l border-border ${
               activeTab === "car-on"
                 ? "bg-primary text-primary-foreground"
@@ -518,7 +542,7 @@ export default function CarBlockOffPage() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("car-off")}
+            onClick={() => changeTab("car-off")}
             className={`px-6 py-3 text-sm font-medium transition-colors border-l border-border ${
               activeTab === "car-off"
                 ? "bg-primary text-primary-foreground"
