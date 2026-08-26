@@ -74,6 +74,7 @@ interface DayScheduleResult {
 const TASK_STATUSES = ["new", "in_progress", "completed", "delivered"];
 const INSPECTION_STATUSES = ["new", "in_progress", "completed", "no_issues"];
 const MAINTENANCE_STATUSES = ["new", "in_progress", "completed"];
+const BLOCK_OFF_STATUSES = ["new", "car_blocked_off", "car_not_available"];
 
 const OPERATION_TASK_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup", "refuel", "custom", "mechanic", "windshield", "license_plate", "airport"];
 
@@ -91,13 +92,14 @@ const ASSIGNEE_EDITABLE_TYPES: DayEventType[] = [
   "inspection", "block_off", "owner_pickup", "owner_cleaning", "owner_dropoff", "trip_start", "trip_end",
 ];
 
-const DRIVER_EDITABLE_TYPES: DayEventType[] = ["pickup", "delivery", "maintenance"];
+const DRIVER_EDITABLE_TYPES: DayEventType[] = [...OPERATION_TASK_TYPES, "maintenance"];
 
 function statusOptionsFor(type: DayEventType): string[] | null {
   if (OPERATION_TASK_TYPES.includes(type)) return TASK_STATUSES;
   if (type === "inspection") return INSPECTION_STATUSES;
   if (type === "maintenance") return MAINTENANCE_STATUSES;
-  return null; // trip_start, trip_end, block_off — no editable status
+  if (type === "block_off" || type === "owner_pickup" || type === "owner_cleaning" || type === "owner_dropoff") return BLOCK_OFF_STATUSES;
+  return null; // trip_start / trip_end are read-only trip anchors.
 }
 
 function statusEndpointFor(type: DayEventType, id: number): { url: string; method: string } | null {
@@ -109,6 +111,9 @@ function statusEndpointFor(type: DayEventType, id: number): { url: string; metho
   }
   if (type === "maintenance") {
     return { url: `/api/operations/maintenance/${id}`, method: "PUT" };
+  }
+  if (type === "block_off" || type === "owner_pickup" || type === "owner_cleaning" || type === "owner_dropoff") {
+    return { url: `/api/operations/block-off/${id}/status`, method: "PATCH" };
   }
   return null;
 }
@@ -558,7 +563,7 @@ function EventCard({
         <CarScheduleImage
           carPhoto={event.car_photo}
           carName={event.car_name}
-          className={`absolute right-2 top-2 w-36 lg:w-48 ${isAdmin ? "bottom-11" : "bottom-2"}`}
+          className="absolute bottom-2 right-2 top-2 w-36 lg:w-48"
           fit="contain"
         />
         {isAdmin && (
@@ -566,7 +571,7 @@ function EventCard({
             type="button"
             size="icon"
             variant="destructive"
-            className="absolute bottom-2 right-2 h-8 w-8 shadow-sm"
+            className={`absolute bottom-2 z-10 h-6 w-6 shadow-sm ${event.car_photo ? "right-2 md:right-[9.75rem] lg:right-[12.75rem]" : "right-2"}`}
             title="Delete task"
             onClick={(e) => {
               e.stopPropagation();
@@ -574,7 +579,7 @@ function EventCard({
             }}
             onDragStart={(e) => e.stopPropagation()}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3 w-3" />
           </Button>
         )}
       </div>
