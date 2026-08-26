@@ -730,6 +730,23 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
   const displayOwnerIncome = displayMonthEntry?.ownerIncome ?? 0;
   const displayOwnerExpenses = displayMonthEntry?.ownerExpenses ?? 0;
 
+  // Completed months only: for the current year, everything through last
+  // month (the in-progress current month and any future months are
+  // excluded); for a past year, all 12 months are complete.
+  const currentYearNum = now.getFullYear();
+  const completedMonths = yearNum < currentYearNum
+    ? monthlyComputed
+    : yearNum === currentYearNum
+      ? monthlyComputed.filter((m) => m.month <= prevMonthNum)
+      : [];
+
+  const avg = (sum: number) => completedMonths.length > 0 ? sum / completedMonths.length : 0;
+  const avgMgmtIncome = avg(completedMonths.reduce((s, m) => s + m.gross, 0));
+  const worstMgmtCashFlow = completedMonths.length > 0 ? Math.min(...completedMonths.map((m) => m.netMgmt)) : 0;
+  const bestMgmtCashFlow = completedMonths.length > 0 ? Math.max(...completedMonths.map((m) => m.netMgmt)) : 0;
+  const worstOwnerCashFlow = completedMonths.length > 0 ? Math.min(...completedMonths.map((m) => m.netOwner)) : 0;
+  const bestOwnerCashFlow = completedMonths.length > 0 ? Math.max(...completedMonths.map((m) => m.netOwner)) : 0;
+
   // ── Render ─────────────────────────────────────────────────────────
 
   return (
@@ -781,6 +798,11 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                   <SummaryCard label={`${prevMonthLabel} Mgmt Expenses`} value={formatCurrency(prevMonth?.mgmtExpenses ?? 0)} variant="white" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Mgmt Profit`} value={formatCurrency((prevMonth?.mgmtIncome ?? 0) - (prevMonth?.mgmtExpenses ?? 0))} variant="gold" className="h-20" />
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
+                  <SummaryCard label="Average Rental Income" value={formatCurrency(avgMgmtIncome)} variant="dark" className="h-20" />
+                  <SummaryCard label="Worst Month Cash Flow" value={formatCurrency(worstMgmtCashFlow)} variant="white" className="h-20" />
+                  <SummaryCard label="Best Month Cash Flow" value={formatCurrency(bestMgmtCashFlow)} variant="gold" className="h-20" />
+                </div>
               </div>
 
               {/* Car Owner Income and Expenses */}
@@ -797,6 +819,11 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                   <SummaryCard label={`${prevMonthLabel} Total Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Owner Expenses`} value={formatCurrency(prevMonth?.ownerExpenses ?? 0)} variant="white" className="h-20" />
                   <SummaryCard label={`${prevMonthLabel} Owner Profit`} value={formatCurrency((prevMonth?.ownerIncome ?? 0) - (prevMonth?.ownerExpenses ?? 0))} variant="gold" className="h-20" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
+                  <SummaryCard label="Average Rental Income" value={formatCurrency(avgMgmtIncome)} variant="dark" className="h-20" />
+                  <SummaryCard label="Worst Month Cash Flow" value={formatCurrency(worstOwnerCashFlow)} variant="white" className="h-20" />
+                  <SummaryCard label="Best Month Cash Flow" value={formatCurrency(bestOwnerCashFlow)} variant="gold" className="h-20" />
                 </div>
               </div>
             </div>

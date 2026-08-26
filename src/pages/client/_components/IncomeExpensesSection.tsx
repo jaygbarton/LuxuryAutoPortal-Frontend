@@ -19,6 +19,9 @@ interface IncomeExpensesSectionProps {
   currentMonthData: MonthlyTripRow | undefined;
   currentMonthDaysTripsData: MonthlyDaysTripsRow | undefined;
   currentMonth: number;
+  monthlyAverages: YearTotals;
+  worstMonthCashFlow: number;
+  bestMonthCashFlow: number;
   isLoadingIncome: boolean;
   isLoadingTrips: boolean;
 }
@@ -36,6 +39,9 @@ export function IncomeExpensesSection({
   currentMonthData,
   currentMonthDaysTripsData,
   currentMonth,
+  monthlyAverages,
+  worstMonthCashFlow,
+  bestMonthCashFlow,
   isLoadingIncome,
   isLoadingTrips,
 }: IncomeExpensesSectionProps) {
@@ -78,6 +84,11 @@ export function IncomeExpensesSection({
             <SummaryCard variant="light" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Expenses`}           value={fmt(currentMonthData?.expenses ?? 0)} />
             <SummaryCard variant="gold"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Profit`}             value={fmt(currentMonthData?.profit ?? 0)} valueColor={(currentMonthData?.profit ?? 0) < 0 ? "#ef4444" : "#1a1a1a"} />
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+            <SummaryCard variant="black" label="Average Rental Income"  value={fmt(monthlyAverages.income)} />
+            <SummaryCard variant="light" label="Worst Month Cash Flow"  value={fmt(worstMonthCashFlow)} valueColor={worstMonthCashFlow < 0 ? "#ef4444" : "#1a1a1a"} />
+            <SummaryCard variant="gold"  label="Best Month Cash Flow"   value={fmt(bestMonthCashFlow)} />
+          </div>
         </div>
 
         {/* Days/Trips summary */}
@@ -91,6 +102,11 @@ export function IncomeExpensesSection({
             <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYearTrips} Days Rented`}    value={String(currentMonthDaysTripsData?.days ?? 0)} />
             <SummaryCard variant="light" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYearTrips} Trips Taken`}    value={String(currentMonthDaysTripsData?.trips ?? 0)} />
             <SummaryCard variant="gold"  label="Ave / Trips Taken"                                                       value={(currentMonthDaysTripsData?.trips ?? 0) > 0 ? fmt((currentMonthDaysTripsData?.income ?? 0) / (currentMonthDaysTripsData?.trips ?? 1)) : "$0.00"} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+            <SummaryCard variant="black" label="Average Days Rented"   value={monthlyAverages.days.toFixed(1)} />
+            <SummaryCard variant="light" label="Average Trips Taken"   value={monthlyAverages.trips.toFixed(1)} />
+            <SummaryCard variant="gold"  label="Average Monthly Profit" value={fmt(monthlyAverages.profit)} />
           </div>
         </div>
       </div>

@@ -435,6 +435,49 @@ export default function ClientDashboard() {
     return Math.max(1, currentMonth - 1);       // current year: previous month
   }, [selectedYear, currentYear, currentMonth]);
 
+  // Averages/best/worst must only reflect completed months — exclude the
+  // in-progress current month and any future months with no data yet.
+  const completedMonthCount = useMemo(() => {
+    const yr = Number(selectedYear);
+    if (yr < currentYear) return 12;
+    if (yr > currentYear) return 0;
+    return Math.max(0, currentMonth - 1);
+  }, [selectedYear, currentYear, currentMonth]);
+
+  const completedMonthsTripData = useMemo(
+    () => monthlyTripData.slice(0, completedMonthCount),
+    [monthlyTripData, completedMonthCount],
+  );
+
+  const monthlyAverages = useMemo<YearTotals>(() => {
+    const n = completedMonthsTripData.length;
+    if (n === 0) return { income: 0, expenses: 0, profit: 0, days: 0, trips: 0 };
+    const sums = completedMonthsTripData.reduce(
+      (acc, row) => ({
+        income: acc.income + row.income,
+        expenses: acc.expenses + row.expenses,
+        profit: acc.profit + row.profit,
+        days: acc.days + row.days,
+        trips: acc.trips + row.trips,
+      }),
+      { income: 0, expenses: 0, profit: 0, days: 0, trips: 0 },
+    );
+    return {
+      income: sums.income / n,
+      expenses: sums.expenses / n,
+      profit: sums.profit / n,
+      days: sums.days / n,
+      trips: sums.trips / n,
+    };
+  }, [completedMonthsTripData]);
+
+  const worstMonthCashFlow = completedMonthsTripData.length > 0
+    ? Math.min(...completedMonthsTripData.map((r) => r.profit))
+    : 0;
+  const bestMonthCashFlow = completedMonthsTripData.length > 0
+    ? Math.max(...completedMonthsTripData.map((r) => r.profit))
+    : 0;
+
   const ownerName = profile?.onboarding?.firstNameOwner
     ? `${profile.onboarding.firstNameOwner} ${profile.onboarding.lastNameOwner ?? ""}`.trim()
     : [profile?.firstName, profile?.lastName].filter(Boolean).join(" ") ||
@@ -590,6 +633,9 @@ export default function ClientDashboard() {
           currentMonthData={monthlyTripData[displayMonth - 1]}
           currentMonthDaysTripsData={monthlyDaysTripsData[displayMonth - 1]}
           currentMonth={displayMonth}
+          monthlyAverages={monthlyAverages}
+          worstMonthCashFlow={worstMonthCashFlow}
+          bestMonthCashFlow={bestMonthCashFlow}
           isLoadingIncome={paymentsLoading}
           isLoadingTrips={tripsLoading}
         />
