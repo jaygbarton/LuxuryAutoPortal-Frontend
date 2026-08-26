@@ -77,6 +77,7 @@ const MAINTENANCE_STATUSES = ["new", "in_progress", "completed"];
 const BLOCK_OFF_STATUSES = ["new", "car_blocked_off", "car_not_available"];
 
 const OPERATION_TASK_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup", "refuel", "custom", "mechanic", "windshield", "license_plate", "airport"];
+const DAY_SCHEDULE_REFRESH_MS = 10 * 60 * 1000;
 
 // Event types that carry an editable estimated_duration_minutes column on the
 // backend (see setEventDuration in dayScheduleService.ts). Trip Start/End,
@@ -852,6 +853,9 @@ export function DayScheduleTab() {
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
+    refetchInterval: DAY_SCHEDULE_REFRESH_MS,
+    refetchIntervalInBackground: true,
+    staleTime: 0,
   });
 
   // Drag-and-drop assign / unassign. employeeId === null means unassign.
