@@ -77,6 +77,16 @@ export default function ViewCarPage() {
   // fetch — the click gesture has expired by the time the PDF is ready.
   const [statementPreviewUrl, setStatementPreviewUrl] = useState<string | null>(null);
   const [statementAction, setStatementAction] = useState<"view" | "download" | null>(null);
+  // Mirrors statementPreviewUrl so the unmount cleanup below can revoke the
+  // live blob without taking a dependency on state — this hook has to sit
+  // above the isLoading/error early returns to run on every render.
+  const statementPreviewUrlRef = useRef<string | null>(null);
+  statementPreviewUrlRef.current = statementPreviewUrl;
+
+  // Don't leak the blob if the page unmounts with a preview still open.
+  useEffect(() => () => {
+    if (statementPreviewUrlRef.current) URL.revokeObjectURL(statementPreviewUrlRef.current);
+  }, []);
 
   // Get user data to check role
   const { data: userData } = useQuery<{ user?: any }>({
@@ -352,11 +362,6 @@ export default function ViewCarPage() {
       return null;
     });
   };
-
-  // Don't leak the blob if the page unmounts with a preview still open.
-  useEffect(() => () => {
-    if (statementPreviewUrl) URL.revokeObjectURL(statementPreviewUrl);
-  }, [statementPreviewUrl]);
 
   return (
     <AdminLayout>
