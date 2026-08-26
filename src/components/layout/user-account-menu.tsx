@@ -35,7 +35,7 @@ export function UserAccountMenu({ context = "public", className }: UserAccountMe
     ? "/staff/my-info"
     : user?.isClient
       ? "/profile"
-      : "/admin/settings";
+      : "/admin/profile";
 
   const handleSignOut = async () => {
     try {

@@ -57,6 +57,7 @@ import IncomeExpensesPage from "@/pages/admin/income-expenses/index";
 import CarIncomeExpensePage from "@/pages/admin/car-income-expense";
 import IncomeExpenseLogPage from "@/pages/admin/income-expense-log";
 import SettingsPage from "@/pages/admin/settings";
+import AdminProfilePage from "@/pages/admin/admin-profile";
 import OperationsPage from "@/pages/admin/operations";
 import HumanResourcesPage from "@/pages/admin/hr";
 import HrApplicationsPage from "@/pages/admin/hr/applications";
@@ -423,6 +424,9 @@ function Router() {
             </Route>
             <Route path="/admin/settings">
               <RequireRole roles={["isAdmin", "isClient", "isEmployee", "isCoHost"]}><SettingsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/profile">
+              <RequireRole roles={["isAdmin"]}><AdminProfilePage /></RequireRole>
             </Route>
             <Route path="/admin/operations">
               <RequireRole roles={["isAdmin", "isEmployee"]}><OperationsPage /></RequireRole>
