@@ -8,6 +8,9 @@ import { cn } from "@/lib/utils";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 
 interface CarDetail {
   id: number;
@@ -66,6 +69,9 @@ export default function ViewCarPage() {
   }, []);
 
   const [downloadingStatement, setDownloadingStatement] = useState(false);
+  const [statementDialogOpen, setStatementDialogOpen] = useState(false);
+  const [statementFromYear, setStatementFromYear] = useState<string>("");
+  const [statementToYear, setStatementToYear] = useState<string>("");
 
   // Get user data to check role
   const { data: userData } = useQuery<{ user?: any }>({
@@ -97,6 +103,23 @@ export default function ViewCarPage() {
   });
 
   const car = data?.data;
+
+  // Years this car actually has statement activity in — populates the
+  // Statement of Account year / date-range picker. Fetched only when the
+  // dialog is open so the ordinary page load isn't slowed by it.
+  const { data: statementYearsData } = useQuery<{ success: boolean; years: number[] }>({
+    queryKey: ["/api/cars", carId, "statement-of-account/years"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl(`/api/cars/${carId}/statement-of-account/years`), {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to load statement years");
+      return res.json();
+    },
+    enabled: !!carId && isAdmin && statementDialogOpen,
+    retry: false,
+  });
+  const statementYears = statementYearsData?.years ?? [];
 
   // Fetch onboarding data for additional car info
   const { data: onboardingData } = useQuery<{
@@ -262,7 +285,11 @@ export default function ViewCarPage() {
     if (!carId) return;
     setDownloadingStatement(true);
     try {
-      const res = await fetch(buildApiUrl(`/api/cars/${carId}/statement-of-account`), {
+      const qs = new URLSearchParams();
+      if (statementFromYear) qs.set("fromYear", statementFromYear);
+      if (statementToYear) qs.set("toYear", statementToYear);
+      const suffix = qs.toString() ? `?${qs.toString()}` : "";
+      const res = await fetch(buildApiUrl(`/api/cars/${carId}/statement-of-account${suffix}`), {
         credentials: "include",
       });
       if (!res.ok) {
@@ -273,11 +300,15 @@ export default function ViewCarPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Statement of Account - ${carName || carId}.pdf`;
+      const rangeLabel = statementFromYear || statementToYear
+        ? ` (${statementFromYear || "start"} - ${statementToYear || "latest"})`
+        : "";
+      a.download = `Statement of Account - ${carName || carId}${rangeLabel}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      setStatementDialogOpen(false);
     } catch (err: any) {
       toast({
         title: "Download failed",
@@ -312,7 +343,7 @@ export default function ViewCarPage() {
             </div>
             {isAdmin && (
               <button
-                onClick={handleDownloadStatement}
+                onClick={() => setStatementDialogOpen(true)}
                 disabled={downloadingStatement}
                 className="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50 disabled:pointer-events-none shrink-0"
               >
@@ -322,6 +353,74 @@ export default function ViewCarPage() {
             )}
           </div>
         </div>
+
+        {/* Statement of Account — year / date-range picker. Defaults to every
+            year the car has activity in; the admin can narrow it to one year
+            or a span (e.g. 2024-2026) before downloading. */}
+        <Dialog open={statementDialogOpen} onOpenChange={setStatementDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Statement of Account</DialogTitle>
+              <DialogDescription>
+                Choose the period to include. Leave both blank to download all years.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">From year</label>
+                <select
+                  value={statementFromYear}
+                  onChange={(e) => setStatementFromYear(e.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Earliest</option>
+                  {statementYears.map((y) => (
+                    <option key={y} value={String(y)}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">To year</label>
+                <select
+                  value={statementToYear}
+                  onChange={(e) => setStatementToYear(e.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Latest</option>
+                  {statementYears.map((y) => (
+                    <option key={y} value={String(y)}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {statementYears.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Recorded activity: {statementYears[0]}
+                {statementYears.length > 1 ? ` - ${statementYears[statementYears.length - 1]}` : ""}
+              </p>
+            )}
+
+            <DialogFooter className="gap-2 sm:gap-2">
+              <button
+                type="button"
+                onClick={() => { setStatementFromYear(""); setStatementToYear(""); }}
+                className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
+              >
+                All years
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadStatement}
+                disabled={downloadingStatement}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {downloadingStatement ? "Generating..." : "Download PDF"}
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Car and Owner Information Header */}
         <div className="bg-card border border-border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
