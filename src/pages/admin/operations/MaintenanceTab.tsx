@@ -38,6 +38,7 @@ import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarIssueTypesCell } from "./CarIssueTypesCell";
 import { FuelReturnedCell } from "./FuelReturnedCell";
+import { CarPhotoCell } from "@/components/admin/dashboard/CarPhotoCell";
 import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
 
 const formatDate = (dateStr: string | null): string => {
@@ -723,9 +724,15 @@ export function MaintenanceTab({
                   </div>
                 ) : <span className="text-muted-foreground text-xs">--</span>;
 
+                // Prefer an uploaded maintenance photo; fall back to the car's own
+                // photo (same convention as Car Issues / Turo Messages) so a
+                // maintenance record isn't left with no thumbnail at all just
+                // because nobody has uploaded a maintenance-specific photo yet.
                 const photosEl = rec.photos && rec.photos.length > 0 ? (
                   <PhotoUpload photos={rec.photos} onPhotosChange={() => {}} entityType="maintenance" entityId={rec.id} disabled compact />
-                ) : null;
+                ) : (
+                  <CarPhotoCell carPhoto={rec.car_photo} carName={carDisplayName} />
+                );
 
                 return (
                   <DashboardRecordCard

@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { getActiveTimezone } from "@/hooks/use-timezone";
+import { useToast } from "@/hooks/use-toast";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { SummaryCard } from "@/components/admin/dashboard/SummaryCard";
 import {
@@ -23,11 +24,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Pencil, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
+import { OperationEditHistoryList } from "@/components/admin/OperationEditHistory";
 import type { CarServiceDue } from "./types";
 
 type ServiceKind = "oil_change" | "tires" | "brakes" | "windshield" | "mechanic" | "license_registration";
+
+// camelCase `field` value expenseFormSubmission/income_expense_service_dates
+// use for each category — matches SERVICE_DUE_COGS_COLUMNS in
+// operationsService.ts. Needed to write to the same cell the report reads.
+const SERVICE_KIND_FIELD: Record<ServiceKind, string> = {
+  oil_change: "oilLube",
+  tires: "tires",
+  brakes: "brakes",
+  windshield: "windshield",
+  mechanic: "mechanic",
+  license_registration: "licenseRegistration",
+};
 
 // Staleness thresholds (days) per service type. Anything past DUE reads amber;
 // past OVERDUE reads red; never-serviced always reads red. Brakes/windshield/
@@ -116,32 +132,251 @@ const STALE_CLASSES: Record<"red" | "amber" | "green", string> = {
   green: "bg-green-500/15 text-green-500 border-green-500/30",
 };
 
+/**
+ * Pencil + history popover for one Service Due COGS cell. Edits go through the
+ * same income_expense_service_dates row the Income & Expenses page's
+ * ServiceDateEditor writes (source: "manual", the highest-precedence date),
+ * so a correction made here is identical to correcting it from the receipt.
+ *
+ * Only rendered when the cell already resolves to a date — "Never serviced"
+ * means no car_cogs_expenses row exists for this category yet (the report
+ * derives entirely from COGS entries), so there's no (year, month) cell to
+ * attach a service date to. Fix that by entering the I&E expense first.
+ */
+function ServiceCellEditPopover({
+  carId,
+  date,
+  category,
+  entityId,
+  onSaved,
+}: {
+  carId: number;
+  /** The resolved ISO date this cell currently shows — its own year/month IS
+   *  the underlying car_cogs_expenses cell's (year, month), since
+   *  getLastCogsServiceDates never lets a receipt/service-date sharpen a date
+   *  across a month boundary. */
+  date: string;
+  category: ServiceKind;
+  /** income_expense_service_dates.id for this cell, if an explicit override
+   *  already exists — needed to look up its edit history. Null when the
+   *  report is still falling back to the recorded COGS month (no override
+   *  row yet), in which case there's no history to show. */
+  entityId: number | null;
+  onSaved: () => void;
+}) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const d = new Date(date);
+  const year = d.getUTCFullYear();
+  const month = d.getUTCMonth() + 1;
+  const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
+  const monthEnd = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+  const [value, setValue] = useState(date.slice(0, 10));
+
+  const save = async (next: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(next)) return;
+    setSaving(true);
+    try {
+      const res = await fetch(buildApiUrl("/api/income-expense/service-date"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          carId,
+          year,
+          month,
+          category: "cogs",
+          field: SERVICE_KIND_FIELD[category],
+          serviceDate: next,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "Failed to save service date");
+      toast({ title: "Service date updated" });
+      setOpen(false);
+      onSaved();
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "Failed to save service date", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="text-muted-foreground hover:text-primary"
+          title="Edit service date"
+        >
+          <Pencil className="h-3 w-3" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 space-y-3" align="start">
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">Service date</label>
+          <Input
+            type="date"
+            value={value}
+            min={monthStart}
+            max={monthEnd}
+            disabled={saving}
+            onChange={(e) => setValue(e.target.value)}
+            className="h-8"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Must fall within {monthStart.slice(0, 7)} — this cell's recorded month.
+          </p>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <Button size="sm" disabled={saving || value === date.slice(0, 10)} onClick={() => save(value)}>
+            {saving ? "Saving…" : "Save"}
+          </Button>
+          {entityId != null && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button type="button" className="text-muted-foreground hover:text-foreground" title="Edit history">
+                  <History className="h-3.5 w-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 max-h-80 overflow-y-auto">
+                <OperationEditHistoryList entityType="service_date" entityId={entityId} />
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function ServiceCell({
+  carId,
   date,
   days,
   kind,
+  serviceDateId,
+  onSaved,
 }: {
+  carId: number;
   date: string | null;
   days: number | null;
   kind: ServiceKind;
+  /** income_expense_service_dates.id, when an explicit override exists for
+   *  this cell (see CarServiceDue's per-category *_service_date_id fields). */
+  serviceDateId: number | null;
+  onSaved: () => void;
 }) {
   const level = staleness(days, kind);
   return (
     <div className="flex flex-col gap-0.5">
-      <span className={`inline-flex w-fit items-center rounded border px-1.5 py-0.5 text-xs font-medium ${STALE_CLASSES[level]}`}>
-        {days == null ? "Never serviced" : `${days} day${days === 1 ? "" : "s"} ago`}
-      </span>
+      <div className="flex items-center gap-1.5">
+        <span className={`inline-flex w-fit items-center rounded border px-1.5 py-0.5 text-xs font-medium ${STALE_CLASSES[level]}`}>
+          {days == null ? "Never serviced" : `${days} day${days === 1 ? "" : "s"} ago`}
+        </span>
+        {date && (
+          <ServiceCellEditPopover
+            carId={carId}
+            date={date}
+            category={kind}
+            entityId={serviceDateId}
+            onSaved={onSaved}
+          />
+        )}
+      </div>
       <span className="text-xs text-muted-foreground">{formatDate(date)}</span>
     </div>
   );
 }
 
+/** Pencil + history popover for the Registration Expiration cell — a plain
+ *  car-table field (car.car_registration_expiration), not an I&E date, so it
+ *  writes through its own small PATCH endpoint rather than service-date. */
+function RegistrationEditPopover({
+  carId,
+  date,
+  onSaved,
+}: {
+  carId: number;
+  date: string | null;
+  onSaved: () => void;
+}) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [value, setValue] = useState(date ? date.slice(0, 10) : "");
+
+  const save = async (next: string) => {
+    setSaving(true);
+    try {
+      const res = await fetch(buildApiUrl(`/api/cars/${carId}/registration-expiration`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ registrationExpiration: next || null }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "Failed to save registration expiration");
+      toast({ title: next ? "Registration expiration updated" : "Registration expiration cleared" });
+      setOpen(false);
+      onSaved();
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message || "Failed to save registration expiration", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" className="text-muted-foreground hover:text-primary" title="Edit registration expiration">
+          <Pencil className="h-3 w-3" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 space-y-3" align="start">
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">Registration expiration</label>
+          <Input
+            type="date"
+            value={value}
+            disabled={saving}
+            onChange={(e) => setValue(e.target.value)}
+            className="h-8"
+          />
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <Button size="sm" disabled={saving || value === (date ? date.slice(0, 10) : "")} onClick={() => save(value)}>
+            {saving ? "Saving…" : "Save"}
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button type="button" className="text-muted-foreground hover:text-foreground" title="Edit history">
+                <History className="h-3.5 w-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 max-h-80 overflow-y-auto">
+              <OperationEditHistoryList entityType="car_registration" entityId={carId} />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function RegistrationCell({
+  carId,
   date,
   daysUntil,
+  onSaved,
 }: {
+  carId: number;
   date: string | null;
   daysUntil: number | null;
+  onSaved: () => void;
 }) {
   const level = registrationStatus(daysUntil);
   const label =
@@ -152,9 +387,12 @@ function RegistrationCell({
         : `Due in ${daysUntil} day${daysUntil === 1 ? "" : "s"}`;
   return (
     <div className="flex flex-col gap-0.5">
-      <span className={`inline-flex w-fit items-center rounded border px-1.5 py-0.5 text-xs font-medium ${STALE_CLASSES[level]}`}>
-        {label}
-      </span>
+      <div className="flex items-center gap-1.5">
+        <span className={`inline-flex w-fit items-center rounded border px-1.5 py-0.5 text-xs font-medium ${STALE_CLASSES[level]}`}>
+          {label}
+        </span>
+        <RegistrationEditPopover carId={carId} date={date} onSaved={onSaved} />
+      </div>
       <span className="text-xs text-muted-foreground">{formatDate(date)}</span>
     </div>
   );
@@ -162,6 +400,8 @@ function RegistrationCell({
 
 export function ServiceDueTab() {
   const locationFilter = useOperationLocationFilter();
+  const queryClient = useQueryClient();
+  const onSaved = () => queryClient.invalidateQueries({ queryKey: ["/api/operations/maintenance/service-due"] });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "ACTIVE" | "INACTIVE">("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
@@ -377,25 +617,25 @@ export function ServiceDueTab() {
                     <TableCell className="text-muted-foreground">{r.car_plate || "--"}</TableCell>
                     <TableCell className="text-muted-foreground font-mono text-xs">{r.car_vin || "--"}</TableCell>
                     <TableCell>
-                      <ServiceCell date={r.last_oil_change} days={r.days_since_oil_change} kind="oil_change" />
+                      <ServiceCell carId={r.car_id} date={r.last_oil_change} days={r.days_since_oil_change} kind="oil_change" serviceDateId={r.oil_change_service_date_id} onSaved={onSaved} />
                     </TableCell>
                     <TableCell>
-                      <ServiceCell date={r.last_tires} days={r.days_since_tires} kind="tires" />
+                      <ServiceCell carId={r.car_id} date={r.last_tires} days={r.days_since_tires} kind="tires" serviceDateId={r.tires_service_date_id} onSaved={onSaved} />
                     </TableCell>
                     <TableCell>
-                      <ServiceCell date={r.last_brakes} days={r.days_since_brakes} kind="brakes" />
+                      <ServiceCell carId={r.car_id} date={r.last_brakes} days={r.days_since_brakes} kind="brakes" serviceDateId={r.brakes_service_date_id} onSaved={onSaved} />
                     </TableCell>
                     <TableCell>
-                      <ServiceCell date={r.last_windshield} days={r.days_since_windshield} kind="windshield" />
+                      <ServiceCell carId={r.car_id} date={r.last_windshield} days={r.days_since_windshield} kind="windshield" serviceDateId={r.windshield_service_date_id} onSaved={onSaved} />
                     </TableCell>
                     <TableCell>
-                      <ServiceCell date={r.last_mechanic} days={r.days_since_mechanic} kind="mechanic" />
+                      <ServiceCell carId={r.car_id} date={r.last_mechanic} days={r.days_since_mechanic} kind="mechanic" serviceDateId={r.mechanic_service_date_id} onSaved={onSaved} />
                     </TableCell>
                     <TableCell>
-                      <ServiceCell date={r.last_license_registration} days={r.days_since_license_registration} kind="license_registration" />
+                      <ServiceCell carId={r.car_id} date={r.last_license_registration} days={r.days_since_license_registration} kind="license_registration" serviceDateId={r.license_registration_service_date_id} onSaved={onSaved} />
                     </TableCell>
                     <TableCell>
-                      <RegistrationCell date={r.registration_expiration} daysUntil={r.days_until_registration_expiration} />
+                      <RegistrationCell carId={r.car_id} date={r.registration_expiration} daysUntil={r.days_until_registration_expiration} onSaved={onSaved} />
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDate(r.last_any_service)}

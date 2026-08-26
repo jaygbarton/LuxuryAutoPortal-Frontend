@@ -192,6 +192,16 @@ export interface CarServiceDue {
   registration_expiration: string | null;
   /** Days until registration_expiration; negative = already expired. */
   days_until_registration_expiration: number | null;
+  /** income_expense_service_dates.id backing this category's date, when an
+   *  admin has entered an explicit override. Null = still falling back to the
+   *  recorded COGS month (no override row yet) — used by the Service Due
+   *  edit-history popover to know which row's audit trail to show. */
+  oil_change_service_date_id: number | null;
+  tires_service_date_id: number | null;
+  brakes_service_date_id: number | null;
+  windshield_service_date_id: number | null;
+  mechanic_service_date_id: number | null;
+  license_registration_service_date_id: number | null;
 }
 
 export interface MaintenanceRecord {
@@ -221,6 +231,7 @@ export interface MaintenanceRecord {
   car_year: number | null;
   car_plate: string | null;
   car_vin: string | null;
+  car_photo?: string | null;
   // Trip context joined on the backend via inspection_id → inspections →
   // turo_trips. Null when there's no linked inspection/trip (manual rows).
   trip_id?: number | null;

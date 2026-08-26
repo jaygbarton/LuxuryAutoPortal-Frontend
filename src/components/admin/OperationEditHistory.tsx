@@ -19,7 +19,9 @@ export type OperationsEntityType =
   | "claim"
   | "car_repaired"
   | "ticket_violation"
-  | "car_pending_issue";
+  | "car_pending_issue"
+  | "service_date"
+  | "car_registration";
 
 interface AuditRow {
   id: number;
