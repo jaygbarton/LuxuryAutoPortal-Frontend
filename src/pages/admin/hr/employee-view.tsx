@@ -8,7 +8,7 @@ import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { EmployeeDocumentImage } from "@/components/admin/EmployeeDocumentImage";
 import { SensitiveValue } from "@/components/admin/SensitiveValue";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ChevronRight, Image, List, Loader2, Pencil, Plus, RotateCcw, Trash2, User, UserCheck, UserX } from "lucide-react";
+import { ArrowLeft, ChevronRight, History, Image, List, Loader2, Pencil, Plus, RotateCcw, Trash2, User, UserCheck, UserX } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -257,6 +257,7 @@ export default function EmployeeViewPage() {
   const [editOtherOpen, setEditOtherOpen] = useState(false);
   const [editJobOpen, setEditJobOpen] = useState(false);
   const [editPayOpen, setEditPayOpen] = useState(false);
+  const [editHistoryOpen, setEditHistoryOpen] = useState(false);
   const employeeId = useMemo(() => {
     const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
     const id = params.get("employeeId");
@@ -284,6 +285,19 @@ export default function EmployeeViewPage() {
   });
 
   const employee = data?.data;
+
+  const { data: editHistoryData, isLoading: editHistoryLoading } = useQuery<{
+    success: boolean;
+    data: { id: number; field: string; oldValue: string | null; newValue: string | null; actorRole: string | null; actorEmail: string | null; createdAt: string }[];
+  }>({
+    queryKey: ["/api/employees", employeeId, "profile-edit-history"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl(`/api/employees/${employeeId}/profile-edit-history`), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch edit history");
+      return res.json();
+    },
+    enabled: !!employeeId && editHistoryOpen,
+  });
 
   const { data: rateHistoryData, isLoading: rateHistoryLoading, refetch: refetchRateHistory } = useQuery<{ success: boolean; data: { rate_history_aid: number; rate_history_amount: string; rate_history_date: string; rate_history_created?: string; rate_history_pay_type?: string; rate_history_effective_start?: string; rate_history_effective_end?: string | null }[] }>({
     queryKey: ["/api/employees", employeeId, "rate-history"],
@@ -448,8 +462,17 @@ export default function EmployeeViewPage() {
               </span>
             )}
           </div>
-          {isActive && (
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-primary/30 text-primary"
+              onClick={() => setEditHistoryOpen(true)}
+            >
+              <History className="w-4 h-4 mr-2" />
+              Edit History
+            </Button>
+            {isActive && (
               <Button
                 size="sm"
                 variant="destructive"
@@ -459,8 +482,8 @@ export default function EmployeeViewPage() {
                 {offboarding ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UserX className="w-4 h-4 mr-2" />}
                 End Contract
               </Button>
-            </div>
-          )}
+            )}
+          </div>
           {isPending && (
             <div className="flex items-center gap-2">
               <Button
@@ -862,6 +885,44 @@ export default function EmployeeViewPage() {
       <EditOtherInfoModal open={editOtherOpen} onOpenChange={setEditOtherOpen} employee={employee} />
       <EditJobInfoModal open={editJobOpen} onOpenChange={setEditJobOpen} employee={employee} />
       <EditPayInfoModal open={editPayOpen} onOpenChange={setEditPayOpen} employee={employee} />
+
+      <Dialog open={editHistoryOpen} onOpenChange={setEditHistoryOpen}>
+        <DialogContent className="bg-card border-border text-muted-foreground max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-primary">Profile Edit History</DialogTitle>
+          </DialogHeader>
+          {editHistoryLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : (editHistoryData?.data?.length ?? 0) === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No edits recorded yet.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {editHistoryData!.data.map((entry) => (
+                <div key={entry.id} className="border border-border rounded-lg p-3 text-sm">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold text-foreground">{entry.field}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(entry.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="text-muted-foreground">
+                    <span className="line-through">{entry.oldValue || "—"}</span>
+                    {" → "}
+                    <span className="text-foreground">{entry.newValue || "—"}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    by {entry.actorEmail || "unknown"} ({entry.actorRole || "unknown"})
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

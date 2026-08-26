@@ -587,6 +587,7 @@ const employeeSidebarItems: SidebarItem[] = [
 // Co-host sidebar: same as admin but scoped — no Co-Hosts mgmt, no GLA-only admin items
 const coHostSidebarItems: SidebarItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/co-host-profile", label: "My Profile", icon: User },
   { href: "/admin/admins", label: "Admins", icon: Users },
   { href: "/admin/my-co-host-cars", label: "My Co-Host Cars", icon: Car },
   { href: "/cars", label: "Cars", icon: Car },

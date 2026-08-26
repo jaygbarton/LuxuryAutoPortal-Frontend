@@ -120,6 +120,7 @@ import StaffTimeOff from "@/pages/staff/time-off";
 import StaffTuroGuide from "@/pages/staff/turo-guide";
 import StaffTrainingManual from "@/pages/staff/training-manual";
 import CoHostTrainingManual from "@/pages/cohost/training-manual";
+import CoHostProfilePage from "@/pages/cohost/profile";
 import StaffClientTestimonials from "@/pages/staff/client-testimonials";
 import StaffCarRentalTrips from "@/pages/staff/car-rental-trips";
 import StaffCarRentalForms from "@/pages/staff/car-rental-forms";
@@ -511,6 +512,9 @@ function Router() {
             </Route>
             <Route path="/cohost/training-manual">
               <RequireRole roles={["isCoHost", "isAdmin"]}><CoHostTrainingManual /></RequireRole>
+            </Route>
+            <Route path="/admin/co-host-profile">
+              <RequireRole roles={["isCoHost", "isAdmin"]}><CoHostProfilePage /></RequireRole>
             </Route>
             <Route path="/admin/turo-trips">
               <RequireRole roles={["isAdmin"]}><TuroTripsPage /></RequireRole>

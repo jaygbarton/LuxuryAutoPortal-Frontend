@@ -5,12 +5,14 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { buildApiUrl, buildUploadApiUrl } from "@/lib/queryClient";
 import { formatMonthDayYear, formatMonthDayYearTime } from "@/lib/date-format";
 import { EmployeeDocumentImage } from "@/components/admin/EmployeeDocumentImage";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, Image, List, Loader2, RefreshCw, Upload } from "lucide-react";
+import { AlertCircle, Image, List, Loader2, Pencil, RefreshCw, Upload, X } from "lucide-react";
 import StaffCommissionsSection from "@/components/staff/dashboard/CommissionsSection";
 
 type ProfileSection =
@@ -87,6 +89,59 @@ function formatDateTime(dateString: string | null | undefined): string {
   return formatMonthDayYearTime(dateString);
 }
 
+/** Employee-editable personal info fields — deliberately excludes employee_email. */
+type PersonalInfoForm = {
+  employee_first_name: string;
+  employee_middle_name: string;
+  employee_last_name: string;
+  employee_birthday: string;
+  employee_marital_status: string;
+  employee_street: string;
+  employee_city: string;
+  employee_state: string;
+  employee_zip_code: string;
+  employee_country: string;
+  employee_mobile_number: string;
+  employee_telephone: string;
+  employee_shirt_size: string;
+  employee_hear_about_gla: string;
+  employee_mother_name: string;
+  employee_father_name: string;
+  employee_home_contact: string;
+  employee_home_address: string;
+  employee_emergency_contact_person: string;
+  employee_emergency_relationship: string;
+  employee_emergency_number: string;
+  employee_emergency_address: string;
+};
+
+function toPersonalInfoForm(employee: Employee): PersonalInfoForm {
+  return {
+    employee_first_name: employee.employee_first_name ?? "",
+    employee_middle_name: employee.employee_middle_name ?? "",
+    employee_last_name: employee.employee_last_name ?? "",
+    employee_birthday: employee.employee_birthday ?? "",
+    employee_marital_status: employee.employee_marital_status ?? "",
+    employee_street: employee.employee_street ?? "",
+    employee_city: employee.employee_city ?? "",
+    employee_state: employee.employee_state ?? "",
+    employee_zip_code: employee.employee_zip_code ?? "",
+    employee_country: employee.employee_country ?? "",
+    employee_mobile_number: employee.employee_mobile_number ?? "",
+    employee_telephone: employee.employee_telephone ?? "",
+    employee_shirt_size: employee.employee_shirt_size ?? "",
+    employee_hear_about_gla: employee.employee_hear_about_gla ?? "",
+    employee_mother_name: employee.employee_mother_name ?? "",
+    employee_father_name: employee.employee_father_name ?? "",
+    employee_home_contact: employee.employee_home_contact ?? "",
+    employee_home_address: employee.employee_home_address ?? "",
+    employee_emergency_contact_person: employee.employee_emergency_contact_person ?? "",
+    employee_emergency_relationship: employee.employee_emergency_relationship ?? "",
+    employee_emergency_number: employee.employee_emergency_number ?? "",
+    employee_emergency_address: employee.employee_emergency_address ?? "",
+  };
+}
+
 export default function StaffMyInfoSection() {
   const [, params] = useRoute("/staff/my-info/:section");
   const [, setLocation] = useLocation();
@@ -129,6 +184,61 @@ export default function StaffMyInfoSection() {
     setPhotoPreview(URL.createObjectURL(file));
     uploadPhotoMutation.mutate(file);
   };
+
+  const [isEditingPersonalInfo, setIsEditingPersonalInfo] = useState(false);
+  const [personalInfoForm, setPersonalInfoForm] = useState<PersonalInfoForm | null>(null);
+
+  const updatePersonalInfoMutation = useMutation({
+    mutationFn: async (form: PersonalInfoForm) => {
+      const res = await fetch(buildApiUrl("/api/me/employee"), {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || err.message || "Failed to update profile");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Profile updated." });
+      queryClient.invalidateQueries({ queryKey: ["/api/me/employee"] });
+      setIsEditingPersonalInfo(false);
+      setPersonalInfoForm(null);
+    },
+    onError: (e: Error) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    },
+  });
+
+  const [isEditingComment, setIsEditingComment] = useState(false);
+  const [commentDraft, setCommentDraft] = useState("");
+
+  const updateJobPayCommentMutation = useMutation({
+    mutationFn: async (comment: string) => {
+      const res = await fetch(buildApiUrl("/api/me/employee/job-pay"), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employee_job_pay_comment: comment }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || err.message || "Failed to update comment");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Comment updated." });
+      queryClient.invalidateQueries({ queryKey: ["/api/me/employee"] });
+      setIsEditingComment(false);
+    },
+    onError: (e: Error) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    },
+  });
 
   const { data: empRes, isLoading: empLoading, error: empError } = useQuery<{ success: boolean; data: Employee }>({
     queryKey: ["/api/me/employee"],
@@ -237,6 +347,31 @@ export default function StaffMyInfoSection() {
 
   const renderSectionContent = () => {
     if (section === "personal-information") {
+      const form = personalInfoForm;
+      const startEditing = () => {
+        setPersonalInfoForm(toPersonalInfoForm(employee));
+        setIsEditingPersonalInfo(true);
+      };
+      const cancelEditing = () => {
+        setIsEditingPersonalInfo(false);
+        setPersonalInfoForm(null);
+      };
+      const setField = (field: keyof PersonalInfoForm, value: string) => {
+        setPersonalInfoForm((prev) => (prev ? { ...prev, [field]: value } : prev));
+      };
+      const field = (key: keyof PersonalInfoForm, type: string = "text", displayValue?: string) =>
+        isEditingPersonalInfo && form ? (
+          <li>
+            <Input
+              type={type}
+              value={form[key]}
+              onChange={(e) => setField(key, e.target.value)}
+              className="h-8 text-sm"
+            />
+          </li>
+        ) : (
+          <li>{displayValue ?? unspecified(employee[key as keyof Employee] as string)}</li>
+        );
       return (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 text-sm xl:items-stretch">
           <Card className="bg-card border-border xl:h-full flex flex-col">
@@ -246,6 +381,37 @@ export default function StaffMyInfoSection() {
                   <List className="h-4 w-4 text-primary" />
                   <span className="font-bold uppercase text-[13px] text-primary">Basic Information</span>
                 </div>
+                {!isEditingPersonalInfo ? (
+                  <Button type="button" variant="outline" size="sm" className="border-border" onClick={startEditing}>
+                    <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                    Edit
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-border"
+                      onClick={cancelEditing}
+                      disabled={updatePersonalInfoMutation.isPending}
+                    >
+                      <X className="h-3.5 w-3.5 mr-1.5" />
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => form && updatePersonalInfoMutation.mutate(form)}
+                      disabled={updatePersonalInfoMutation.isPending}
+                    >
+                      {updatePersonalInfoMutation.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      ) : null}
+                      Save
+                    </Button>
+                  </div>
+                )}
               </div>
               <div className="mt-3">
                 <div className="mb-3">
@@ -292,23 +458,24 @@ export default function StaffMyInfoSection() {
                     </div>
                   </div>
                 </div>
-                <ul className="grid grid-cols-[150px,1fr] md:grid-cols-[200px,1fr] gap-x-4 gap-y-1 text-muted-foreground capitalize">
-                  <li className="font-bold text-foreground">First Name:</li><li>{unspecified(employee.employee_first_name)}</li>
-                  <li className="font-bold text-foreground">Middle Name:</li><li>{unspecified(employee.employee_middle_name)}</li>
-                  <li className="font-bold text-foreground">Last Name:</li><li>{unspecified(employee.employee_last_name)}</li>
-                  <li className="font-bold text-foreground">Birth Date:</li><li>{employee.employee_birthday ? formatDate(employee.employee_birthday) : "Unspecified"}</li>
-                  <li className="font-bold text-foreground">Marital Status:</li><li>{unspecified(employee.employee_marital_status)}</li>
-                  {/* Server returns this already masked (last 4 only); staff have no reveal. */}
+                <ul className="grid grid-cols-[150px,1fr] md:grid-cols-[200px,1fr] gap-x-4 gap-y-1 text-muted-foreground capitalize items-center">
+                  <li className="font-bold text-foreground">First Name:</li>{field("employee_first_name")}
+                  <li className="font-bold text-foreground">Middle Name:</li>{field("employee_middle_name")}
+                  <li className="font-bold text-foreground">Last Name:</li>{field("employee_last_name")}
+                  <li className="font-bold text-foreground">Birth Date:</li>{field("employee_birthday", "date", employee.employee_birthday ? formatDate(employee.employee_birthday) : "Unspecified")}
+                  <li className="font-bold text-foreground">Marital Status:</li>{field("employee_marital_status")}
+                  {/* Server returns this already masked (last 4 only); staff have no reveal — not editable. */}
                   <li className="font-bold text-foreground">Social Security Number or EIN:</li><li className="font-mono">{unspecified(employee.employee_ssn_ein)}</li>
-                  <li className="font-bold text-foreground">Street:</li><li>{unspecified(employee.employee_street)}</li>
-                  <li className="font-bold text-foreground">City:</li><li>{unspecified(employee.employee_city)}</li>
-                  <li className="font-bold text-foreground">State:</li><li>{unspecified(employee.employee_state)}</li>
-                  <li className="font-bold text-foreground">Zip Code:</li><li>{unspecified(employee.employee_zip_code)}</li>
-                  <li className="font-bold text-foreground">Country:</li><li>{unspecified(employee.employee_country)}</li>
-                  <li className="font-bold text-foreground">Mobile Number:</li><li>{unspecified(employee.employee_mobile_number)}</li>
-                  <li className="font-bold text-foreground">Telephone Number:</li><li>{unspecified(employee.employee_telephone)}</li>
+                  <li className="font-bold text-foreground">Street:</li>{field("employee_street")}
+                  <li className="font-bold text-foreground">City:</li>{field("employee_city")}
+                  <li className="font-bold text-foreground">State:</li>{field("employee_state")}
+                  <li className="font-bold text-foreground">Zip Code:</li>{field("employee_zip_code")}
+                  <li className="font-bold text-foreground">Country:</li>{field("employee_country")}
+                  <li className="font-bold text-foreground">Mobile Number:</li>{field("employee_mobile_number")}
+                  <li className="font-bold text-foreground">Telephone Number:</li>{field("employee_telephone")}
+                  {/* Email is intentionally NOT editable by the employee. */}
                   <li className="font-bold text-foreground">Personal Email:</li><li className="break-words">{unspecified(employee.employee_email)}</li>
-                  <li className="font-bold text-foreground">Shirt Size:</li><li>{unspecified(employee.employee_shirt_size)}</li>
+                  <li className="font-bold text-foreground">Shirt Size:</li>{field("employee_shirt_size")}
                 </ul>
               </div>
             </CardContent>
@@ -348,9 +515,17 @@ export default function StaffMyInfoSection() {
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-[18rem,1fr] gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-[18rem,1fr] gap-2 items-center">
                   <p className="font-bold text-foreground">How did you hear about Golden Luxury Auto?</p>
-                  <p className="text-muted-foreground">{unspecified(employee.employee_hear_about_gla)}</p>
+                  {isEditingPersonalInfo && form ? (
+                    <Input
+                      value={form.employee_hear_about_gla}
+                      onChange={(e) => setField("employee_hear_about_gla", e.target.value)}
+                      className="h-8 text-sm max-w-sm"
+                    />
+                  ) : (
+                    <p className="text-muted-foreground">{unspecified(employee.employee_hear_about_gla)}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -364,11 +539,11 @@ export default function StaffMyInfoSection() {
                 </div>
               </div>
               <div className="mt-3">
-                <ul className="grid grid-cols-[150px,1fr] md:grid-cols-[200px,1fr] gap-x-4 gap-y-1 text-muted-foreground capitalize">
-                  <li className="font-bold text-foreground">Mother&apos;s First Name:</li><li>{unspecified(employee.employee_mother_name)}</li>
-                  <li className="font-bold text-foreground">Father&apos;s First Name:</li><li>{unspecified(employee.employee_father_name)}</li>
-                  <li className="font-bold text-foreground">Home Contact:</li><li>{unspecified(employee.employee_home_contact)}</li>
-                  <li className="font-bold text-foreground">Family Home Address:</li><li className="break-words">{unspecified(employee.employee_home_address)}</li>
+                <ul className="grid grid-cols-[150px,1fr] md:grid-cols-[200px,1fr] gap-x-4 gap-y-1 text-muted-foreground capitalize items-center">
+                  <li className="font-bold text-foreground">Mother&apos;s First Name:</li>{field("employee_mother_name")}
+                  <li className="font-bold text-foreground">Father&apos;s First Name:</li>{field("employee_father_name")}
+                  <li className="font-bold text-foreground">Home Contact:</li>{field("employee_home_contact")}
+                  <li className="font-bold text-foreground">Family Home Address:</li>{field("employee_home_address")}
                 </ul>
               </div>
             </CardContent>
@@ -382,11 +557,11 @@ export default function StaffMyInfoSection() {
                 </div>
               </div>
               <div className="mt-3">
-                <ul className="grid grid-cols-[150px,1fr] md:grid-cols-[200px,1fr] gap-x-4 gap-y-1 text-muted-foreground capitalize">
-                  <li className="font-bold text-foreground">Name:</li><li>{unspecified(employee.employee_emergency_contact_person)}</li>
-                  <li className="font-bold text-foreground">Relationship:</li><li>{unspecified(employee.employee_emergency_relationship)}</li>
-                  <li className="font-bold text-foreground">Number:</li><li>{unspecified(employee.employee_emergency_number)}</li>
-                  <li className="font-bold text-foreground">Address:</li><li className="break-words">{unspecified(employee.employee_emergency_address)}</li>
+                <ul className="grid grid-cols-[150px,1fr] md:grid-cols-[200px,1fr] gap-x-4 gap-y-1 text-muted-foreground capitalize items-center">
+                  <li className="font-bold text-foreground">Name:</li>{field("employee_emergency_contact_person")}
+                  <li className="font-bold text-foreground">Relationship:</li>{field("employee_emergency_relationship")}
+                  <li className="font-bold text-foreground">Number:</li>{field("employee_emergency_number")}
+                  <li className="font-bold text-foreground">Address:</li>{field("employee_emergency_address")}
                 </ul>
               </div>
             </CardContent>
@@ -406,15 +581,67 @@ export default function StaffMyInfoSection() {
                   <span className="font-bold uppercase text-[13px] text-primary">Job Information</span>
                 </div>
               </div>
-              <ul className="grid grid-cols-[150px,1fr] md:grid-cols-[200px,1fr] gap-x-4 gap-y-1 text-sm text-muted-foreground">
+              <ul className="grid grid-cols-[150px,1fr] md:grid-cols-[200px,1fr] gap-x-4 gap-y-1 text-sm text-muted-foreground items-center">
                 <li className="font-bold text-foreground">Employee Number:</li><li>{unspecified(employee.employee_number)}</li>
                 <li className="font-bold text-foreground">Department:</li><li>{unspecified(employee.employee_job_pay_department_name)}</li>
                 <li className="font-bold text-foreground">Job Title:</li><li>{unspecified(employee.employee_job_pay_job_title_name)}</li>
+                {/* Work Email is intentionally NOT editable by the employee. */}
                 <li className="font-bold text-foreground">Work Email:</li><li className="break-words">{unspecified(employee.employee_job_pay_work_email ?? employee.employee_email)}</li>
                 <li className="font-bold text-foreground">Date Hired:</li><li>{employee.employee_job_pay_hired ? formatDate(employee.employee_job_pay_hired) : "Unspecified"}</li>
                 <li className="font-bold text-foreground">Regularized On:</li><li>{employee.employee_job_pay_regular_on ? formatDate(employee.employee_job_pay_regular_on) : "Unspecified"}</li>
                 <li className="font-bold text-foreground">Date Separated:</li><li>{employee.employee_job_pay_separated ? formatDate(employee.employee_job_pay_separated) : "Unspecified"}</li>
-                <li className="font-bold text-foreground">Comment:</li><li>{unspecified(employee.employee_job_pay_comment)}</li>
+                <li className="font-bold text-foreground">Comment:</li>
+                <li>
+                  {isEditingComment ? (
+                    <div className="flex items-start gap-2">
+                      <Textarea
+                        value={commentDraft}
+                        onChange={(e) => setCommentDraft(e.target.value)}
+                        className="text-sm min-h-[60px]"
+                        autoFocus
+                      />
+                      <div className="flex flex-col gap-1 shrink-0">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => updateJobPayCommentMutation.mutate(commentDraft)}
+                          disabled={updateJobPayCommentMutation.isPending}
+                        >
+                          {updateJobPayCommentMutation.isPending ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            "Save"
+                          )}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="border-border"
+                          onClick={() => setIsEditingComment(false)}
+                          disabled={updateJobPayCommentMutation.isPending}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span>{unspecified(employee.employee_job_pay_comment)}</span>
+                      <button
+                        type="button"
+                        className="text-primary hover:opacity-80"
+                        onClick={() => {
+                          setCommentDraft(employee.employee_job_pay_comment ?? "");
+                          setIsEditingComment(true);
+                        }}
+                        title="Edit comment"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </li>
               </ul>
             </CardContent>
           </Card>
@@ -426,6 +653,7 @@ export default function StaffMyInfoSection() {
                   <span className="font-bold uppercase text-[13px] text-primary">Pay Information</span>
                 </div>
               </div>
+              {/* Pay Information is intentionally NOT editable by the employee. */}
               <ul className="grid grid-cols-[150px,1fr] md:grid-cols-[200px,1fr] gap-x-4 gap-y-1 text-sm text-muted-foreground">
                 <li className="font-bold text-foreground">Payroll Eligibility:</li><li>{Number(employee.employee_job_pay_eligible) === 1 ? "Eligible" : "Not Eligible"}</li>
                 <li className="font-bold text-foreground">Employee rate per hour:</li><li>{formatCurrency(employee.employee_job_pay_salary_rate)}</li>

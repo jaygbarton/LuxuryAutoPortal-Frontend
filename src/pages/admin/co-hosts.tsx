@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { SensitiveValue } from "@/components/admin/SensitiveValue";
 import { cn } from "@/lib/utils";
-import { Search, Eye, CheckCircle, XCircle, Trash2, Loader2, ExternalLink, QrCode, Car, Save, Copy } from "lucide-react";
+import { Search, Eye, CheckCircle, XCircle, Trash2, Loader2, ExternalLink, QrCode, Car, Save, Copy, History } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
@@ -115,8 +115,22 @@ export default function CoHostsPage() {
   const [rejectNotes, setRejectNotes] = useState("");
   const [showQr, setShowQr] = useState(false);
   const [selectedCarAids, setSelectedCarAids] = useState<Set<number>>(new Set());
+  const [editHistoryCoHostId, setEditHistoryCoHostId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const { data: editHistoryRes, isLoading: editHistoryLoading } = useQuery<{
+    success: boolean;
+    data: { id: number; field: string; oldValue: string | null; newValue: string | null; actorRole: string | null; actorEmail: string | null; createdAt: string }[];
+  }>({
+    queryKey: ["/api/admin/co-hosts", editHistoryCoHostId, "profile-edit-history"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl(`/api/admin/co-hosts/${editHistoryCoHostId}/profile-edit-history`), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch edit history");
+      return res.json();
+    },
+    enabled: editHistoryCoHostId != null,
+  });
 
   // Only super admins may reveal a full SSN/EIN (Cathy's policy, Jul 2026).
   const { data: currentSession } = useQuery<{ user?: { isSuperAdmin?: boolean } }>({
@@ -419,12 +433,26 @@ export default function CoHostsPage() {
         <Dialog open onOpenChange={() => setViewCoHost(null)}>
           <DialogContent className="bg-card border-border text-foreground max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-lg font-semibold">
-                Co-Host Application — {viewCoHost.first_name} {viewCoHost.last_name}
-              </DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                {viewCoHost.co_host_number} · Submitted {format(new Date(viewCoHost.created_at), "MM/dd/yyyy")}
-              </DialogDescription>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <DialogTitle className="text-lg font-semibold">
+                    Co-Host Application — {viewCoHost.first_name} {viewCoHost.last_name}
+                  </DialogTitle>
+                  <DialogDescription className="text-muted-foreground">
+                    {viewCoHost.co_host_number} · Submitted {format(new Date(viewCoHost.created_at), "MM/dd/yyyy")}
+                  </DialogDescription>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-primary/30 text-primary shrink-0"
+                  onClick={() => setEditHistoryCoHostId(viewCoHost.id)}
+                >
+                  <History className="w-4 h-4 mr-2" />
+                  Edit History
+                </Button>
+              </div>
             </DialogHeader>
 
             <div className="space-y-5 mt-2 text-sm">
@@ -700,6 +728,47 @@ export default function CoHostsPage() {
               />
             </div>
             <p className="text-xs text-muted-foreground break-all">{window.location.origin}/co-host-form</p>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit History Modal */}
+      {editHistoryCoHostId != null && (
+        <Dialog open onOpenChange={() => setEditHistoryCoHostId(null)}>
+          <DialogContent className="bg-card border-border text-foreground max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Profile Edit History</DialogTitle>
+            </DialogHeader>
+            {editHistoryLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : (editHistoryRes?.data?.length ?? 0) === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No edits recorded yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {editHistoryRes!.data.map((entry) => (
+                  <div key={entry.id} className="border border-border rounded-lg p-3 text-sm">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-foreground">{entry.field}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(entry.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="text-muted-foreground">
+                      <span className="line-through">{entry.oldValue || "—"}</span>
+                      {" → "}
+                      <span className="text-foreground">{entry.newValue || "—"}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      by {entry.actorEmail || "unknown"} ({entry.actorRole || "unknown"})
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       )}

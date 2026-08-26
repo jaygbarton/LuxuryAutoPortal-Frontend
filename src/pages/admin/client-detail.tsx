@@ -43,6 +43,7 @@ import {
   Edit,
   Upload,
   Trash2,
+  History,
 } from "lucide-react";
 import { buildApiUrl, buildUploadApiUrl, authMeQueryFn } from "@/lib/queryClient";
 import { SensitiveValue } from "@/components/admin/SensitiveValue";
@@ -227,6 +228,23 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
   const [isBankingModalOpen, setIsBankingModalOpen] = useState(false);
   const [editingBankingInfo, setEditingBankingInfo] = useState<any>(null);
   const [deletingBankingId, setDeletingBankingId] = useState<number | null>(null);
+
+  // Edit history modal state
+  const [isEditHistoryOpen, setIsEditHistoryOpen] = useState(false);
+  const { data: editHistoryData, isLoading: isLoadingEditHistory } = useQuery<{
+    success: boolean;
+    data: { id: number; field: string; oldValue: string | null; newValue: string | null; actorRole: string | null; actorEmail: string | null; createdAt: string }[];
+  }>({
+    queryKey: [`/api/admin/clients/${clientId}/profile-edit-history`],
+    queryFn: async () => {
+      const url = buildApiUrl(`/api/admin/clients/${clientId}/profile-edit-history`);
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch edit history");
+      return response.json();
+    },
+    enabled: !!clientId && isEditHistoryOpen,
+    retry: false,
+  });
   
   const [addCarForm, setAddCarForm] = useState({
     vin: "",
@@ -1125,6 +1143,15 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-primary text-xl">Client Details</CardTitle>
                     <div className="flex items-center gap-2">
+                      <Button
+                        onClick={() => setIsEditHistoryOpen(true)}
+                        variant="outline"
+                        size="sm"
+                        className="text-primary border-primary/30 hover:bg-primary/10"
+                      >
+                        <History className="w-4 h-4 mr-2" />
+                        Edit History
+                      </Button>
                       <Button
                         onClick={handleResendPasswordEmail}
                         variant="outline"
@@ -3010,6 +3037,44 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
               {deleteBankingInfoMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditHistoryOpen} onOpenChange={setIsEditHistoryOpen}>
+        <DialogContent className="max-w-2xl bg-card border-primary/30 border-2 text-foreground max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground text-xl">Profile Edit History</DialogTitle>
+          </DialogHeader>
+          {isLoadingEditHistory ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : (editHistoryData?.data?.length ?? 0) === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No edits recorded yet.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {editHistoryData!.data.map((entry) => (
+                <div key={entry.id} className="border border-border rounded-lg p-3 text-sm">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold text-foreground">{entry.field}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(entry.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="text-muted-foreground">
+                    <span className="line-through">{entry.oldValue || "—"}</span>
+                    {" → "}
+                    <span className="text-foreground">{entry.newValue || "—"}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    by {entry.actorEmail || "unknown"} ({entry.actorRole || "unknown"})
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
       <AdminPageLinks />

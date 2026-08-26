@@ -1,16 +1,62 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Folder, Download, ExternalLink } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Folder, Download, ExternalLink, Pencil, X, Loader2, History } from "lucide-react";
 import { ProfileSkeleton } from "@/components/ui/skeletons";
 import { buildApiUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+/** Client-editable fields — deliberately excludes email, which stays admin-only. */
+type ProfileEditForm = {
+  phoneOwner: string;
+  birthday: string;
+  tshirtSize: string;
+  heardAboutUs: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  streetAddress: string;
+  city: string;
+  state: string;
+  zipCode: string;
+};
+
+function toProfileEditForm(onboarding: any): ProfileEditForm {
+  return {
+    phoneOwner: onboarding?.phoneOwner ?? "",
+    birthday: onboarding?.birthday ?? "",
+    tshirtSize: onboarding?.tshirtSize ?? "",
+    heardAboutUs: onboarding?.heardAboutUs ?? "",
+    emergencyContactName: onboarding?.emergencyContactName ?? "",
+    emergencyContactPhone: onboarding?.emergencyContactPhone ?? "",
+    streetAddress: onboarding?.streetAddress ?? "",
+    city: onboarding?.city ?? "",
+    state: onboarding?.state ?? "",
+    zipCode: onboarding?.zipCode ?? "",
+  };
+}
+
+interface ProfileEditHistoryEntry {
+  id: number;
+  field: string;
+  oldValue: string | null;
+  newValue: string | null;
+  actorRole: string | null;
+  actorEmail: string | null;
+  createdAt: string;
+}
 
 interface ClientProfileResponse {
   success: boolean;
@@ -19,6 +65,10 @@ interface ClientProfileResponse {
 
 export default function ClientProfilePage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<ProfileEditForm | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const {
     data,
@@ -41,6 +91,41 @@ export default function ClientProfilePage() {
       return response.json();
     },
     retry: false,
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (form: ProfileEditForm) => {
+      const res = await fetch(buildApiUrl("/api/client/profile"), {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || err.message || "Failed to update profile");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Profile updated." });
+      queryClient.invalidateQueries({ queryKey: ["/api/client/profile"] });
+      setIsEditing(false);
+      setEditForm(null);
+    },
+    onError: (e: Error) => {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    },
+  });
+
+  const { data: historyRes, isLoading: historyLoading } = useQuery<{ success: boolean; data: ProfileEditHistoryEntry[] }>({
+    queryKey: ["/api/client/profile/edit-history"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/client/profile/edit-history"), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch edit history");
+      return res.json();
+    },
+    enabled: showHistory,
   });
 
   useEffect(() => {
@@ -153,18 +238,84 @@ export default function ClientProfilePage() {
     );
   }
 
+                      const startEditing = () => {
+                        setEditForm(toProfileEditForm(onboarding));
+                        setIsEditing(true);
+                      };
+                      const cancelEditing = () => {
+                        setIsEditing(false);
+                        setEditForm(null);
+                      };
+                      const setEditField = (field: keyof ProfileEditForm, value: string) => {
+                        setEditForm((prev) => (prev ? { ...prev, [field]: value } : prev));
+                      };
+                      const editableField = (key: keyof ProfileEditForm, displayValue: string, type: string = "text") =>
+                        isEditing && editForm ? (
+                          <Input
+                            type={type}
+                            value={editForm[key]}
+                            onChange={(e) => setEditField(key, e.target.value)}
+                            className="h-8 text-sm mt-1"
+                          />
+                        ) : (
+                          <span className="text-foreground">{displayValue}</span>
+                        );
+
                       return (
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <h1 className="text-4xl font-serif text-primary italic">My Profile</h1>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <h1 className="text-4xl font-serif text-primary italic">My Profile</h1>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="border-primary/30 text-primary"
+            onClick={() => setShowHistory(true)}
+          >
+            <History className="w-4 h-4 mr-2" />
+            Edit History
+          </Button>
+        </div>
 
         {/* Profile Details */}
         <Card className="bg-background border-border">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-primary text-xl">
               Profile Information
             </CardTitle>
+            {onboarding && (
+              !isEditing ? (
+                <Button type="button" variant="outline" size="sm" className="border-primary/30 text-primary" onClick={startEditing}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-border"
+                    onClick={cancelEditing}
+                    disabled={updateProfileMutation.isPending}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => editForm && updateProfileMutation.mutate(editForm)}
+                    disabled={updateProfileMutation.isPending}
+                  >
+                    {updateProfileMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Save
+                  </Button>
+                </div>
+              )
+            )}
           </CardHeader>
           <CardContent className="space-y-6">
             {!onboarding ? (
@@ -194,25 +345,19 @@ export default function ClientProfilePage() {
                               </div>
                               <div>
                                 <span className="text-muted-foreground block mb-1">Phone:</span>
-                      <span className="text-foreground">
-                        {formatValue(onboarding.phoneOwner)}
-                      </span>
+                                {editableField("phoneOwner", formatValue(onboarding.phoneOwner))}
                     </div>
                     <div>
                       <span className="text-muted-foreground block mb-1">
                         Date of Birth:
                       </span>
-                      <span className="text-foreground">
-                        {formatValue(onboarding.birthday)}
-                      </span>
+                      {editableField("birthday", formatValue(onboarding.birthday), "date")}
                     </div>
                     <div>
                       <span className="text-muted-foreground block mb-1">
                         T-Shirt Size:
                       </span>
-                      <span className="text-foreground">
-                        {formatValue(onboarding.tshirtSize)}
-                      </span>
+                      {editableField("tshirtSize", formatValue(onboarding.tshirtSize))}
                     </div>
                               <div>
                       <span className="text-muted-foreground block mb-1">
@@ -226,25 +371,19 @@ export default function ClientProfilePage() {
                       <span className="text-muted-foreground block mb-1">
                         How Did You Hear About Us:
                       </span>
-                      <span className="text-foreground">
-                        {formatValue(onboarding.heardAboutUs)}
-                      </span>
+                      {editableField("heardAboutUs", formatValue(onboarding.heardAboutUs))}
                               </div>
                               <div>
                       <span className="text-muted-foreground block mb-1">
                         Emergency Contact Name:
                       </span>
-                      <span className="text-foreground">
-                        {formatValue(onboarding.emergencyContactName)}
-                      </span>
+                      {editableField("emergencyContactName", formatValue(onboarding.emergencyContactName))}
                               </div>
                               <div>
                       <span className="text-muted-foreground block mb-1">
                         Emergency Contact Phone:
                       </span>
-                      <span className="text-foreground">
-                        {formatValue(onboarding.emergencyContactPhone)}
-                      </span>
+                      {editableField("emergencyContactPhone", formatValue(onboarding.emergencyContactPhone))}
                               </div>
                             </div>
                           </div>
@@ -259,27 +398,19 @@ export default function ClientProfilePage() {
                       <span className="text-muted-foreground block mb-1">
                         Street Address:
                       </span>
-                      <span className="text-foreground">
-                        {formatValue(onboarding.streetAddress)}
-                      </span>
+                      {editableField("streetAddress", formatValue(onboarding.streetAddress))}
                               </div>
                               <div>
                                 <span className="text-muted-foreground block mb-1">City:</span>
-                      <span className="text-foreground">
-                        {formatValue(onboarding.city)}
-                      </span>
+                      {editableField("city", formatValue(onboarding.city))}
                               </div>
                               <div>
                                 <span className="text-muted-foreground block mb-1">State:</span>
-                      <span className="text-foreground">
-                        {formatValue(onboarding.state)}
-                      </span>
+                      {editableField("state", formatValue(onboarding.state))}
                               </div>
                               <div>
                                 <span className="text-muted-foreground block mb-1">Zip Code:</span>
-                      <span className="text-foreground">
-                        {formatValue(onboarding.zipCode)}
-                      </span>
+                      {editableField("zipCode", formatValue(onboarding.zipCode))}
                               </div>
                               <div className="md:col-span-2">
                       <span className="text-muted-foreground block mb-1">
@@ -440,6 +571,44 @@ export default function ClientProfilePage() {
         </Card>
 
       </div>
+
+      <Dialog open={showHistory} onOpenChange={setShowHistory}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Profile Edit History</DialogTitle>
+          </DialogHeader>
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : (historyRes?.data?.length ?? 0) === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No edits recorded yet.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {historyRes!.data.map((entry) => (
+                <div key={entry.id} className="border border-border rounded-lg p-3 text-sm">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold text-foreground">{entry.field}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(entry.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="text-muted-foreground">
+                    <span className="line-through">{entry.oldValue || "—"}</span>
+                    {" → "}
+                    <span className="text-foreground">{entry.newValue || "—"}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    by {entry.actorEmail || "unknown"} ({entry.actorRole || "unknown"})
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <ClientPageLinks />
       <AdminPageLinks />
