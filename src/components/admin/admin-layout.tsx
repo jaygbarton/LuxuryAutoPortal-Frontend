@@ -446,6 +446,12 @@ const employeeSidebarItems: SidebarItem[] = [
     roles: ["employee"],
   },
   {
+    href: "/admin/trip-calendar",
+    label: "Trips Calendar",
+    icon: CalendarDays,
+    roles: ["employee"],
+  },
+  {
     href: "/admin/bouncie",
     label: "BOUNCIE",
     icon: Navigation,

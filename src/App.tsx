@@ -512,7 +512,7 @@ function Router() {
               <RequireRole roles={["isAdmin"]}><TuroTripsPage /></RequireRole>
             </Route>
             <Route path="/admin/trip-calendar">
-              <RequireRole roles={["isAdmin", "isCoHost"]}><TripCalendarPage /></RequireRole>
+              <RequireRole roles={["isAdmin", "isCoHost", "isEmployee"]}><TripCalendarPage /></RequireRole>
             </Route>
             <Route path="/admin/testimonials">
               <RequireRole roles={["isAdmin", "isClient"]}><AdminTestimonialsPage /></RequireRole>
