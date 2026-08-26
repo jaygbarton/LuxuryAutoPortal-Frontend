@@ -680,11 +680,14 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   >(() => {
     const obj: Record<string, boolean> = {};
     const currentSearch = typeof window === "undefined" ? "" : window.location.search.replace(/^\?/, "");
-    const matches = (pathname: string, href: string) => {
+    // Mirrors isPathActive below; kept inline because that lives in the body.
+    const matches = (pathname: string, href: string, isDefaultChild: boolean) => {
       const [hrefPath, hrefQuery] = href.split("?");
       if (hrefQuery != null) {
         const [key, value] = hrefQuery.split("=");
-        return pathname === hrefPath && new URLSearchParams(currentSearch).get(key) === value;
+        if (pathname !== hrefPath) return false;
+        const current = new URLSearchParams(currentSearch).get(key);
+        return current === null ? isDefaultChild : current === value;
       }
       if (pathname === hrefPath) return true;
       if (hrefPath === "/dashboard") return false;
@@ -692,7 +695,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     };
     [...allSidebarItems, ...employeeSidebarItems, ...coHostSidebarItems].forEach((it) => {
       if (it.children && it.children.length > 0) {
-        obj[it.href] = it.children.some((c) => matches(location, c.href));
+        obj[it.href] = it.children.some((c, i) => matches(location, c.href, i === 0));
       }
     });
     return obj;
@@ -712,17 +715,25 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   // is absent from the URL, otherwise it stays lit alongside whichever tab is
   // really open. Checking that one key rather than "any query at all" keeps
   // unrelated params (?category=…&field=… deep links) from breaking the match.
+  // `isDefaultChild` marks the sub-item a page falls back to when the group's
+  // param is missing. Operations expresses that with a query-less child
+  // (Trips Overview), but every admin Forms child carries a ?section=, so on a
+  // bare /admin/forms nothing matched and the group looked inactive. Flagging
+  // the first child covers both shapes.
   const isPathActive = (
     pathname: string,
     href: string,
     currentSearch = "",
     tabKey?: string,
+    isDefaultChild = false,
   ) => {
     const [hrefPath, hrefQuery] = href.split("?");
     const params = new URLSearchParams(currentSearch);
     if (hrefQuery != null) {
       const [key, value] = hrefQuery.split("=");
-      return pathname === hrefPath && params.get(key) === value;
+      if (pathname !== hrefPath) return false;
+      const current = params.get(key);
+      return current === null ? isDefaultChild : current === value;
     }
     if (pathname === hrefPath) return tabKey ? !params.get(tabKey) : true;
     if (hrefPath === "/dashboard") return false;
@@ -745,8 +756,8 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     [...allSidebarItems, ...employeeSidebarItems, ...coHostSidebarItems].forEach((it) => {
       if (it.children && it.children.length > 0) {
         const key = tabKeyOf(it.children);
-        const childActive = it.children.some((c) =>
-          isPathActive(location, c.href, search, key),
+        const childActive = it.children.some((c, i) =>
+          isPathActive(location, c.href, search, key, i === 0),
         );
         if (childActive && !newState[it.href]) {
           newState[it.href] = true;
@@ -1033,8 +1044,8 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
             if (item.children && item.children.length > 0) {
               // Parent is considered active only when a child path is active.
               const groupTabKey = tabKeyOf(item.children);
-              const isParentActive = item.children.some((c) =>
-                isPathActive(location, c.href, search, groupTabKey),
+              const isParentActive = item.children.some((c, i) =>
+                isPathActive(location, c.href, search, groupTabKey, i === 0),
               );
               const expanded = expandedParents[item.href] ?? isParentActive;
 
@@ -1061,9 +1072,9 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
                   {expanded && sidebarOpen && (
                     <div className="mt-1 ml-4 border-l-2 border-[hsl(var(--sidebar-primary)/0.35)] pl-2">
-                      {item.children.map((child) => {
+                      {item.children.map((child, childIndex) => {
                         const ChildIcon = child.icon;
-                        const childActive = isPathActive(location, child.href, search, groupTabKey);
+                        const childActive = isPathActive(location, child.href, search, groupTabKey, childIndex === 0);
                         return (
                           <Link
                             key={child.href}

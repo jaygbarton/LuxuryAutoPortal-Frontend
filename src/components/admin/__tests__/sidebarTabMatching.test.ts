@@ -11,17 +11,27 @@ const isPathActive = (
   href: string,
   currentSearch = "",
   tabKey?: string,
+  isDefaultChild = false,
 ) => {
   const [hrefPath, hrefQuery] = href.split("?");
   const params = new URLSearchParams(currentSearch);
   if (hrefQuery != null) {
     const [key, value] = hrefQuery.split("=");
-    return pathname === hrefPath && params.get(key) === value;
+    if (pathname !== hrefPath) return false;
+    const current = params.get(key);
+    return current === null ? isDefaultChild : current === value;
   }
   if (pathname === hrefPath) return tabKey ? !params.get(tabKey) : true;
   if (hrefPath === "/dashboard") return false;
   return pathname.startsWith(hrefPath + "/");
 };
+
+/** Admin Forms group — note EVERY child carries a ?section=, no bare default. */
+const FORMS = [
+  { href: "/admin/forms?section=client-onboarding", label: "Client Onboarding Form" },
+  { href: "/admin/forms?section=employee-forms", label: "Income & Expenses Form" },
+  { href: "/admin/forms?section=commissions-forms", label: "Commissions Form" },
+];
 
 const tabKeyOf = (children: { href: string }[]) => {
   for (const c of children) {
@@ -63,7 +73,28 @@ describe("sidebar tab matching", () => {
     const key = tabKeyOf(OPS);
     for (const current of OPS) {
       const search = current.href.split("?")[1] ?? "";
-      const lit = OPS.filter((c) => isPathActive("/admin/operations", c.href, search, key));
+      const lit = OPS.filter((c, i) =>
+        isPathActive("/admin/operations", c.href, search, key, i === 0),
+      );
+      expect(lit.map((l) => l.label)).toEqual([current.label]);
+    }
+  });
+
+  // Admin Forms has no query-less child, so a bare /admin/forms used to light
+  // nothing at all and the group read as inactive.
+  it("lights the first Forms sub-item on a bare /admin/forms", () => {
+    const key = tabKeyOf(FORMS);
+    const lit = FORMS.filter((c, i) => isPathActive("/admin/forms", c.href, "", key, i === 0));
+    expect(lit.map((l) => l.label)).toEqual(["Client Onboarding Form"]);
+  });
+
+  it("lights exactly one Forms sub-item for any section", () => {
+    const key = tabKeyOf(FORMS);
+    for (const current of FORMS) {
+      const search = current.href.split("?")[1];
+      const lit = FORMS.filter((c, i) =>
+        isPathActive("/admin/forms", c.href, search, key, i === 0),
+      );
       expect(lit.map((l) => l.label)).toEqual([current.label]);
     }
   });
