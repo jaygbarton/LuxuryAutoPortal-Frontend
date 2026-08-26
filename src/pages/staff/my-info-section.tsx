@@ -96,6 +96,7 @@ type PersonalInfoForm = {
   employee_last_name: string;
   employee_birthday: string;
   employee_marital_status: string;
+  employee_ssn_ein: string;
   employee_street: string;
   employee_city: string;
   employee_state: string;
@@ -122,6 +123,7 @@ function toPersonalInfoForm(employee: Employee): PersonalInfoForm {
     employee_last_name: employee.employee_last_name ?? "",
     employee_birthday: employee.employee_birthday ?? "",
     employee_marital_status: employee.employee_marital_status ?? "",
+    employee_ssn_ein: employee.employee_ssn_ein ?? "",
     employee_street: employee.employee_street ?? "",
     employee_city: employee.employee_city ?? "",
     employee_state: employee.employee_state ?? "",
@@ -139,6 +141,28 @@ function toPersonalInfoForm(employee: Employee): PersonalInfoForm {
     employee_emergency_relationship: employee.employee_emergency_relationship ?? "",
     employee_emergency_number: employee.employee_emergency_number ?? "",
     employee_emergency_address: employee.employee_emergency_address ?? "",
+  };
+}
+
+/** Employee-editable Job Information fields — deliberately excludes Employee Number
+ *  (system-generated identifier, not personal data), Work Email, and all Pay Information. */
+type JobInfoForm = {
+  employee_job_pay_department_name: string;
+  employee_job_pay_job_title_name: string;
+  employee_job_pay_hired: string;
+  employee_job_pay_regular_on: string;
+  employee_job_pay_separated: string;
+  employee_job_pay_comment: string;
+};
+
+function toJobInfoForm(employee: Employee): JobInfoForm {
+  return {
+    employee_job_pay_department_name: employee.employee_job_pay_department_name ?? "",
+    employee_job_pay_job_title_name: employee.employee_job_pay_job_title_name ?? "",
+    employee_job_pay_hired: employee.employee_job_pay_hired ?? "",
+    employee_job_pay_regular_on: employee.employee_job_pay_regular_on ?? "",
+    employee_job_pay_separated: employee.employee_job_pay_separated ?? "",
+    employee_job_pay_comment: employee.employee_job_pay_comment ?? "",
   };
 }
 
@@ -213,27 +237,28 @@ export default function StaffMyInfoSection() {
     },
   });
 
-  const [isEditingComment, setIsEditingComment] = useState(false);
-  const [commentDraft, setCommentDraft] = useState("");
+  const [isEditingJobInfo, setIsEditingJobInfo] = useState(false);
+  const [jobInfoForm, setJobInfoForm] = useState<JobInfoForm | null>(null);
 
-  const updateJobPayCommentMutation = useMutation({
-    mutationFn: async (comment: string) => {
+  const updateJobInfoMutation = useMutation({
+    mutationFn: async (form: JobInfoForm) => {
       const res = await fetch(buildApiUrl("/api/me/employee/job-pay"), {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employee_job_pay_comment: comment }),
+        body: JSON.stringify(form),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || err.message || "Failed to update comment");
+        throw new Error(err.error || err.message || "Failed to update job information");
       }
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Success", description: "Comment updated." });
+      toast({ title: "Success", description: "Job information updated." });
       queryClient.invalidateQueries({ queryKey: ["/api/me/employee"] });
-      setIsEditingComment(false);
+      setIsEditingJobInfo(false);
+      setJobInfoForm(null);
     },
     onError: (e: Error) => {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -464,8 +489,22 @@ export default function StaffMyInfoSection() {
                   <li className="font-bold text-foreground">Last Name:</li>{field("employee_last_name")}
                   <li className="font-bold text-foreground">Birth Date:</li>{field("employee_birthday", "date", employee.employee_birthday ? formatDate(employee.employee_birthday) : "Unspecified")}
                   <li className="font-bold text-foreground">Marital Status:</li>{field("employee_marital_status")}
-                  {/* Server returns this already masked (last 4 only); staff have no reveal — not editable. */}
-                  <li className="font-bold text-foreground">Social Security Number or EIN:</li><li className="font-mono">{unspecified(employee.employee_ssn_ein)}</li>
+                  {/* Server returns this already masked (last 4 only); staff have no reveal.
+                      Typing a new value replaces it; leaving the masked placeholder keeps the stored value (server drops masked input). */}
+                  <li className="font-bold text-foreground">Social Security Number or EIN:</li>
+                  {isEditingPersonalInfo && form ? (
+                    <li>
+                      <Input
+                        type="text"
+                        value={form.employee_ssn_ein}
+                        onChange={(e) => setField("employee_ssn_ein", e.target.value)}
+                        className="h-8 text-sm font-mono"
+                        placeholder="Enter new SSN/EIN to change"
+                      />
+                    </li>
+                  ) : (
+                    <li className="font-mono">{unspecified(employee.employee_ssn_ein)}</li>
+                  )}
                   <li className="font-bold text-foreground">Street:</li>{field("employee_street")}
                   <li className="font-bold text-foreground">City:</li>{field("employee_city")}
                   <li className="font-bold text-foreground">State:</li>{field("employee_state")}
@@ -571,77 +610,94 @@ export default function StaffMyInfoSection() {
     }
 
     if (section === "job-and-pay") {
+      const jForm = jobInfoForm;
+      const startEditingJobInfo = () => {
+        setJobInfoForm(toJobInfoForm(employee));
+        setIsEditingJobInfo(true);
+      };
+      const cancelEditingJobInfo = () => {
+        setIsEditingJobInfo(false);
+        setJobInfoForm(null);
+      };
+      const setJobField = (key: keyof JobInfoForm, value: string) => {
+        setJobInfoForm((prev) => (prev ? { ...prev, [key]: value } : prev));
+      };
+      const jobField = (key: keyof JobInfoForm, type: string = "text", displayValue?: string) =>
+        isEditingJobInfo && jForm ? (
+          <li>
+            <Input
+              type={type}
+              value={jForm[key]}
+              onChange={(e) => setJobField(key, e.target.value)}
+              className="h-8 text-sm"
+            />
+          </li>
+        ) : (
+          <li>{displayValue ?? unspecified(employee[key as keyof Employee] as string)}</li>
+        );
       return (
         <div className="space-y-4 max-w-[50rem]">
           <Card className="bg-card border-border">
             <CardContent className="p-4">
-              <div className="border-b border-border pb-2 mb-3">
+              <div className="flex items-center justify-between border-b border-border pb-2 mb-3">
                 <div className="flex items-center gap-2">
                   <List className="h-4 w-4 text-primary" />
                   <span className="font-bold uppercase text-[13px] text-primary">Job Information</span>
                 </div>
+                {!isEditingJobInfo ? (
+                  <Button type="button" variant="outline" size="sm" className="border-border" onClick={startEditingJobInfo}>
+                    <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                    Edit
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-border"
+                      onClick={cancelEditingJobInfo}
+                      disabled={updateJobInfoMutation.isPending}
+                    >
+                      <X className="h-3.5 w-3.5 mr-1.5" />
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => jForm && updateJobInfoMutation.mutate(jForm)}
+                      disabled={updateJobInfoMutation.isPending}
+                    >
+                      {updateJobInfoMutation.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      ) : null}
+                      Save
+                    </Button>
+                  </div>
+                )}
               </div>
               <ul className="grid grid-cols-[150px,1fr] md:grid-cols-[200px,1fr] gap-x-4 gap-y-1 text-sm text-muted-foreground items-center">
+                {/* Employee Number is a system-generated identifier — not editable. */}
                 <li className="font-bold text-foreground">Employee Number:</li><li>{unspecified(employee.employee_number)}</li>
-                <li className="font-bold text-foreground">Department:</li><li>{unspecified(employee.employee_job_pay_department_name)}</li>
-                <li className="font-bold text-foreground">Job Title:</li><li>{unspecified(employee.employee_job_pay_job_title_name)}</li>
+                <li className="font-bold text-foreground">Department:</li>{jobField("employee_job_pay_department_name")}
+                <li className="font-bold text-foreground">Job Title:</li>{jobField("employee_job_pay_job_title_name")}
                 {/* Work Email is intentionally NOT editable by the employee. */}
                 <li className="font-bold text-foreground">Work Email:</li><li className="break-words">{unspecified(employee.employee_job_pay_work_email ?? employee.employee_email)}</li>
-                <li className="font-bold text-foreground">Date Hired:</li><li>{employee.employee_job_pay_hired ? formatDate(employee.employee_job_pay_hired) : "Unspecified"}</li>
-                <li className="font-bold text-foreground">Regularized On:</li><li>{employee.employee_job_pay_regular_on ? formatDate(employee.employee_job_pay_regular_on) : "Unspecified"}</li>
-                <li className="font-bold text-foreground">Date Separated:</li><li>{employee.employee_job_pay_separated ? formatDate(employee.employee_job_pay_separated) : "Unspecified"}</li>
+                <li className="font-bold text-foreground">Date Hired:</li>{jobField("employee_job_pay_hired", "date", employee.employee_job_pay_hired ? formatDate(employee.employee_job_pay_hired) : "Unspecified")}
+                <li className="font-bold text-foreground">Regularized On:</li>{jobField("employee_job_pay_regular_on", "date", employee.employee_job_pay_regular_on ? formatDate(employee.employee_job_pay_regular_on) : "Unspecified")}
+                <li className="font-bold text-foreground">Date Separated:</li>{jobField("employee_job_pay_separated", "date", employee.employee_job_pay_separated ? formatDate(employee.employee_job_pay_separated) : "Unspecified")}
                 <li className="font-bold text-foreground">Comment:</li>
-                <li>
-                  {isEditingComment ? (
-                    <div className="flex items-start gap-2">
-                      <Textarea
-                        value={commentDraft}
-                        onChange={(e) => setCommentDraft(e.target.value)}
-                        className="text-sm min-h-[60px]"
-                        autoFocus
-                      />
-                      <div className="flex flex-col gap-1 shrink-0">
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => updateJobPayCommentMutation.mutate(commentDraft)}
-                          disabled={updateJobPayCommentMutation.isPending}
-                        >
-                          {updateJobPayCommentMutation.isPending ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            "Save"
-                          )}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="border-border"
-                          onClick={() => setIsEditingComment(false)}
-                          disabled={updateJobPayCommentMutation.isPending}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <span>{unspecified(employee.employee_job_pay_comment)}</span>
-                      <button
-                        type="button"
-                        className="text-primary hover:opacity-80"
-                        onClick={() => {
-                          setCommentDraft(employee.employee_job_pay_comment ?? "");
-                          setIsEditingComment(true);
-                        }}
-                        title="Edit comment"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  )}
-                </li>
+                {isEditingJobInfo && jForm ? (
+                  <li>
+                    <Textarea
+                      value={jForm.employee_job_pay_comment}
+                      onChange={(e) => setJobField("employee_job_pay_comment", e.target.value)}
+                      className="text-sm min-h-[60px]"
+                    />
+                  </li>
+                ) : (
+                  <li>{unspecified(employee.employee_job_pay_comment)}</li>
+                )}
               </ul>
             </CardContent>
           </Card>
