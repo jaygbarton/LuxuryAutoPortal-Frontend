@@ -219,7 +219,12 @@ export default function GuestDatabasePage() {
         const error = await response
           .json()
           .catch(() => ({ message: "Failed to update contact status" }));
-        throw new Error(error.message || "Failed to update contact status");
+        // Read both keys: this endpoint currently returns { success, message },
+        // but the backend error shape is being standardized on `error`. Reading
+        // both keeps the real server reason in the toast either way.
+        throw new Error(
+          error.error || error.message || "Failed to update contact status",
+        );
       }
       return response.json();
     },
