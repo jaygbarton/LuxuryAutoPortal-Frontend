@@ -560,19 +560,14 @@ function EventCard({
             />
           </div>
         )}
-        <CarScheduleImage
-          carPhoto={event.car_photo}
-          carName={event.car_name}
-          className="absolute bottom-2 right-2 top-2 w-36 lg:w-48"
-          fit="contain"
-        />
         {isAdmin && (
           <Button
             type="button"
             size="icon"
             variant="destructive"
-            className={`absolute bottom-2 z-10 h-6 w-6 shadow-sm ${event.car_photo ? "right-2 md:right-[9.75rem] lg:right-[12.75rem]" : "right-2"}`}
+            className={`absolute bottom-2 z-30 h-6 w-6 rounded-md shadow-md ring-1 ring-background/80 ${event.car_photo ? "right-2 md:right-[10.25rem] lg:right-[13.25rem]" : "right-2"}`}
             title="Delete task"
+            aria-label="Delete task"
             onClick={(e) => {
               e.stopPropagation();
               onDelete(event);
@@ -582,6 +577,12 @@ function EventCard({
             <Trash2 className="h-3 w-3" />
           </Button>
         )}
+        <CarScheduleImage
+          carPhoto={event.car_photo}
+          carName={event.car_name}
+          className="absolute bottom-2 right-2 top-2 z-0 w-36 lg:w-48"
+          fit="contain"
+        />
       </div>
     </div>
   );
@@ -774,8 +775,9 @@ function UnassignedCard({
           type="button"
           size="icon"
           variant="destructive"
-          className="absolute bottom-1.5 right-1.5 h-6 w-6"
+          className="absolute bottom-1.5 right-1.5 z-30 h-6 w-6 rounded-md shadow-md ring-1 ring-background/80"
           title="Delete task"
+          aria-label="Delete task"
           onClick={(e) => {
             e.stopPropagation();
             onDelete(event);

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useSearch } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TripsOverviewTab } from "./operations/TripsOverviewTab";
 import { TuroInspectionTab } from "./operations/TuroInspectionTab";
@@ -25,6 +25,21 @@ import {
 
 const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "day-schedule", "tv-timeline"] as const;
 type TabId = typeof TAB_IDS[number];
+
+const TAB_LABELS: Record<TabId, string> = {
+  trips: "Trips Overview",
+  "turo-inspection": "Turo Messages",
+  inspections: "Car Issues",
+  claims: "Claims",
+  "ticket-violation": "Ticket Violation",
+  maintenance: "Maintenance",
+  "service-due": "Service Due",
+  completed: "No Car Issues",
+  "car-repaired": "Car Repaired",
+  "car-block-off": "Car Block Off",
+  "day-schedule": "Day Schedule",
+  "tv-timeline": "TV Timeline",
+};
 
 // Renders a tab's content only after it has been activated for the first time,
 // then keeps it mounted (hidden) so state and cache are preserved on re-visit.
@@ -54,9 +69,19 @@ export default function OperationsPage() {
   // useState+popstate pairing silently ignored every sidebar click. Reading
   // wouter's own search hook makes those navigations drive the page.
   const search = useSearch();
+  const [, setLocation] = useLocation();
   const activeTab = tabFromSearch(search);
   const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set(["trips", tabFromSearch(search)]));
   const [locationFilter, setLocationFilter] = useState<OperationLocationFilter>("all");
+
+  const handleTabChange = (value: string) => {
+    const tab = value as TabId;
+    const params = new URLSearchParams(search);
+    if (tab === "trips") params.delete("tab");
+    else params.set("tab", tab);
+    const qs = params.toString();
+    setLocation(`/admin/operations${qs ? `?${qs}` : ""}`);
+  };
 
   // Keep a tab mounted (hidden) once visited, preserving its state and cache.
   useEffect(() => {
@@ -79,9 +104,7 @@ export default function OperationsPage() {
         </div>
 
         <OperationLocationFilterProvider value={locationFilter}>
-        {/* Tab switching now lives in the sidebar (OPERATIONS_TABS in
-            admin-layout); <Tabs> is kept purely to render the active panel. */}
-        <Tabs value={activeTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Location</div>
             <Select value={locationFilter} onValueChange={(value) => setLocationFilter(value as OperationLocationFilter)}>
@@ -96,6 +119,20 @@ export default function OperationsPage() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="-mx-2 mb-6 overflow-x-auto sm:mx-0">
+            <TabsList className="inline-flex h-auto w-max min-w-full gap-1 border border-border bg-muted p-1 sm:min-w-0 sm:flex-wrap">
+              {TAB_IDS.map((tab) => (
+                <TabsTrigger
+                  key={tab}
+                  value={tab}
+                  className="whitespace-nowrap text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  {TAB_LABELS[tab]}
+                </TabsTrigger>
+              ))}
+            </TabsList>
           </div>
 
           <LazyTab value="trips" activeTab={activeTab} mountedTabs={mountedTabs}>
