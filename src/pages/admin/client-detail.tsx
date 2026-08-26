@@ -961,27 +961,31 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
   // Reveal a masked SSN/EIN/bank number into the edit form so the admin can
   // see and, if needed, correct the full value (super-admin only, audit-logged
   // server-side — see /api/sensitive/reveal).
-  // Maps the editFormData key to the backend's REVEAL_SOURCES field name
-  // (routing/account number are snake_case there; see routes/sensitiveFields.ts).
+  // Maps the editFormData key to the backend's REVEAL_SOURCES field name for
+  // each possible source table (see routes/sensitiveFields.ts). Which source
+  // applies depends on which handleEditClick branch populated editFormData:
+  // clients with an onboarding submission read from onboarding_submissions_lyc,
+  // manually-created clients read straight from the client table.
   const REVEAL_FIELD_MAP = {
-    ssn: "ssn",
-    ein: "ein",
-    routingNumber: "routing_number",
-    accountNumber: "account_number",
+    onboarding: { ssn: "ssn", ein: "ein", routingNumber: "routing_number", accountNumber: "account_number" },
+    client: { ssn: "ssn", ein: "ein", routingNumber: "bank_routing_number", accountNumber: "bank_account_number" },
   } as const;
-  // The reveal endpoint reads from the onboarding submission row, so it only
-  // works when the client has one (see handleEditClick's two branches above).
-  const canRevealEditFields = isSuperAdmin && onboardingData?.data?.id != null;
+  const revealEntityType = onboardingData?.data?.id != null ? "onboarding" : "client";
+  const revealEntityId = revealEntityType === "onboarding" ? onboardingData?.data?.id : clientId;
+  const canRevealEditFields = isSuperAdmin && revealEntityId != null;
   const revealEditField = async (field: "ssn" | "ein" | "routingNumber" | "accountNumber") => {
-    const entityId = onboardingData?.data?.id;
-    if (entityId === undefined || entityId === null) return;
+    if (revealEntityId === undefined || revealEntityId === null) return;
     setRevealingEditField(field);
     try {
       const res = await fetch(buildApiUrl("/api/sensitive/reveal"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ entityType: "onboarding", field: REVEAL_FIELD_MAP[field], entityId }),
+        body: JSON.stringify({
+          entityType: revealEntityType,
+          field: REVEAL_FIELD_MAP[revealEntityType][field],
+          entityId: revealEntityId,
+        }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
