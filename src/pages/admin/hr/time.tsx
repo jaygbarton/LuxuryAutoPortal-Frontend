@@ -10,7 +10,7 @@
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -54,8 +54,8 @@ import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl, authMeQueryFn } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Check, ChevronsUpDown, History, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
-import { Fragment, useMemo, useState } from "react";
+import { AlertTriangle, Check, ChevronsUpDown, Clock, Coffee, History, Loader2, LogIn, LogOut, Pencil, Plus, Trash2 } from "lucide-react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -113,6 +113,26 @@ interface TimeFormState {
   timeOut: string;
   timeNotes: string;
   notes: string;
+}
+
+interface ClockSessionRow {
+  time_aid: number;
+  time_date: string;
+  time_in: string | null;
+  time_out: string | null;
+  time_total_hours: string | null;
+  time_lunch_hours?: string | number | null;
+  time_end_reason: "break" | "shift_end" | null;
+  time_form_details?: string | null;
+}
+
+interface LastClockResponse {
+  success: boolean;
+  data: {
+    openSession: ClockSessionRow | null;
+    lastRecord: ClockSessionRow | null;
+    isClockedIn: boolean;
+  };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -175,6 +195,18 @@ function formatTime(d: string | null | undefined): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatDuration(start: string | null | undefined, end: string | null | undefined): string {
+  const s = parseDb(start);
+  if (!s) return "—";
+  const stop = parseDb(end) ?? new Date();
+  let secs = Math.max(0, Math.floor((stop.getTime() - s.getTime()) / 1000));
+  const h = Math.floor(secs / 3600);
+  secs -= h * 3600;
+  const m = Math.floor(secs / 60);
+  const sec = secs - m * 60;
+  return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
 function formatDateTime(d: string | null | undefined): string {
@@ -342,6 +374,7 @@ export default function AdminHrTime() {
     queryFn: authMeQueryFn,
   });
   const isSuperAdmin = Boolean(currentUserData?.user?.isSuperAdmin);
+  const canUseOwnClock = Boolean(currentUserData?.user?.isAdmin || currentUserData?.user?.isEmployee);
   const notifyNoTimesheetAccess = () =>
     toast({
       title: "No access",
@@ -349,6 +382,120 @@ export default function AdminHrTime() {
         "You don't have access to edit your timesheet. Please contact the super admin to update your hours.",
       variant: "destructive",
     });
+
+  const [clockActionLoading, setClockActionLoading] = useState(false);
+  const [clockOutOpen, setClockOutOpen] = useState(false);
+  const [clockOutMode, setClockOutMode] = useState<"choose" | "shift_end">("choose");
+  const [clockOutNotes, setClockOutNotes] = useState("");
+  const [clockOutLunchMinutes, setClockOutLunchMinutes] = useState("");
+
+  // Keep the open-session elapsed timer moving while the admin page is open.
+  const [, setClockTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setClockTick((n) => n + 1), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const lastClockQuery = useQuery<LastClockResponse>({
+    queryKey: ["/api/me/time-sheet/last"],
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl("/api/me/time-sheet/last"), {
+        credentials: "include",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to load your clock status");
+      return json;
+    },
+    enabled: canUseOwnClock,
+    retry: false,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
+  });
+  const openClockSession = lastClockQuery.data?.data.openSession ?? null;
+  const isClockedIn = Boolean(lastClockQuery.data?.data.isClockedIn);
+
+  const invalidateOwnClock = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/me/time-sheet/last"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/me/time-sheet/sessions"] });
+    invalidate();
+  };
+
+  const clockIn = async () => {
+    setClockActionLoading(true);
+    try {
+      const res = await fetch(buildApiUrl("/api/me/time-sheet/clock-in"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) throw new Error(json.error || "Could not clock in");
+      toast({ title: "Clocked in", description: json.message ?? "Timer started." });
+      invalidateOwnClock();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Could not clock in",
+        variant: "destructive",
+      });
+    } finally {
+      setClockActionLoading(false);
+    }
+  };
+
+  const submitClockOut = async (endReason: "break" | "shift_end") => {
+    setClockActionLoading(true);
+    try {
+      const notes = clockOutNotes.trim();
+      const details: Array<{ key: string; name: string; value: string | number; description: string }> = [];
+      if (notes) details.push({ key: "notes", name: "Notes", value: notes, description: notes });
+      const lunchMinutes = Math.max(0, Math.round(Number(clockOutLunchMinutes) || 0));
+      if (endReason === "shift_end" && lunchMinutes > 0) {
+        details.push({
+          key: "lunch_minutes",
+          name: "Lunch Break (minutes)",
+          value: lunchMinutes,
+          description: `${lunchMinutes} min`,
+        });
+      }
+      const res = await fetch(buildApiUrl("/api/me/time-sheet/clock-out"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endReason,
+          time_form_details: JSON.stringify(details),
+          ...(endReason === "shift_end" && lunchMinutes > 0 ? { lunchMinutes } : {}),
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) throw new Error(json.error || "Could not clock out");
+      toast({
+        title: endReason === "break" ? "On break" : "Clocked out",
+        description: json.message ?? "",
+      });
+      setClockOutOpen(false);
+      setClockOutMode("choose");
+      setClockOutNotes("");
+      setClockOutLunchMinutes("");
+      invalidateOwnClock();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Could not clock out",
+        variant: "destructive",
+      });
+    } finally {
+      setClockActionLoading(false);
+    }
+  };
+
+  const onClockButton = () => {
+    if (clockActionLoading || lastClockQuery.isLoading) return;
+    if (isClockedIn) setClockOutOpen(true);
+    else void clockIn();
+  };
 
   const [addForm, setAddForm] = useState<TimeFormState>(emptyForm());
   const [editForm, setEditForm] = useState<TimeFormState>(emptyForm());
@@ -541,6 +688,65 @@ export default function AdminHrTime() {
           </Button>
         </div>
 
+        <Card className="overflow-hidden border-primary/20">
+          <CardHeader className="pb-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Clock className="h-5 w-5" />
+                My clock in / out
+              </CardTitle>
+              <Button
+                onClick={onClockButton}
+                disabled={clockActionLoading || lastClockQuery.isLoading}
+                className="gap-2 w-full sm:w-auto sm:min-w-[140px]"
+                variant={isClockedIn ? "destructive" : "default"}
+              >
+                {clockActionLoading || lastClockQuery.isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isClockedIn ? (
+                  <LogOut className="h-4 w-4" />
+                ) : (
+                  <LogIn className="h-4 w-4" />
+                )}
+                {isClockedIn ? "Clock out" : "Clock in"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {lastClockQuery.isLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading your current status
+              </div>
+            ) : lastClockQuery.error ? (
+              <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-amber-800">
+                {lastClockQuery.error instanceof Error
+                  ? lastClockQuery.error.message
+                  : "Your clock status could not be loaded."}
+              </div>
+            ) : isClockedIn && openClockSession ? (
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div>
+                  <div className="text-xs text-muted-foreground">Status</div>
+                  <div className="font-medium text-emerald-600">Clocked in</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Started</div>
+                  <div>{formatDate(openClockSession.time_in)} {formatTime(openClockSession.time_in)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Elapsed</div>
+                  <div className="font-mono tabular-nums">{formatDuration(openClockSession.time_in, null)}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-muted-foreground">
+                You're currently clocked out. Use this area to clock in without leaving the admin Time tab.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card className="overflow-hidden">
           <CardHeader className="pb-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end gap-3">
@@ -725,6 +931,101 @@ export default function AdminHrTime() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Admin's own clock-out dialog */}
+      <Dialog
+        open={clockOutOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setClockOutOpen(false);
+            setClockOutMode("choose");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Clock out</DialogTitle>
+            <DialogDescription>
+              Choose break to pause your timer, or end shift to close the day.
+            </DialogDescription>
+          </DialogHeader>
+
+          {clockOutMode === "choose" ? (
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="admin-clock-out-notes">Notes (optional)</Label>
+                <Textarea
+                  id="admin-clock-out-notes"
+                  value={clockOutNotes}
+                  onChange={(e) => setClockOutNotes(e.target.value)}
+                  rows={3}
+                  placeholder="What did you work on?"
+                />
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={clockActionLoading}
+                  onClick={() => void submitClockOut("break")}
+                  className="gap-2"
+                >
+                  {clockActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Coffee className="h-4 w-4" />}
+                  Clock out for break
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={clockActionLoading}
+                  onClick={() => setClockOutMode("shift_end")}
+                  className="gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  End of shift
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="admin-clock-out-lunch">Lunch break (minutes)</Label>
+                <Input
+                  id="admin-clock-out-lunch"
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  value={clockOutLunchMinutes}
+                  onChange={(e) => setClockOutLunchMinutes(e.target.value)}
+                  placeholder="Leave blank if none"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Lunch minutes are subtracted from worked time when you stayed clocked in through lunch.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={clockActionLoading}
+                  onClick={() => setClockOutMode("choose")}
+                >
+                  Back
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={clockActionLoading}
+                  onClick={() => void submitClockOut("shift_end")}
+                  className="gap-2"
+                >
+                  {clockActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                  Submit & clock out
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Add dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
