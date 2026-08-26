@@ -99,7 +99,8 @@ export default function ServiceDateEditor({
           id="ie-service-date"
           type="date"
           className="h-8 rounded-md border border-input bg-card px-2 text-sm"
-          value={value}
+          defaultValue={value}
+          key={value}
           min={monthStart}
           max={monthEnd}
           disabled={!loaded || saving}
@@ -107,8 +108,11 @@ export default function ServiceDateEditor({
             const next = e.target.value;
             // A native date input fires onChange on every keystroke, including
             // while the year is still partially typed (e.g. "0002-08-24"
-            // before the "2026" finishes) — only save once it's a complete,
-            // plausible date instead of round-tripping every partial value.
+            // before the "2026" finishes). It's uncontrolled (defaultValue, not
+            // value) so a keystroke we're not ready to save yet still stays on
+            // screen instead of the browser's partial year snapping back to
+            // whatever we last rendered — only round-trip once the date is a
+            // complete, plausible value.
             if (next && !/^\d{4}-\d{2}-\d{2}$/.test(next)) return;
             if (next && Number(next.slice(0, 4)) < 1000) return;
             save(next);
