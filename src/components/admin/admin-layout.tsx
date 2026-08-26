@@ -5,7 +5,7 @@ import React, {
   createContext,
   useContext,
 } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
@@ -78,6 +78,64 @@ interface SidebarItem {
    *  for external links since they never match the current URL. */
   external?: boolean;
 }
+
+/**
+ * The Operations page's twelve tabs, as sidebar sub-items.
+ *
+ * Requested 2026-08-26: the horizontal tab strips on Operations and Forms were
+ * replaced by sidebar sub-categories, for every role that can reach the page.
+ * Each child addresses a tab through the ?tab= param the page already reads,
+ * so these are ordinary links — no new routes. "Trips Overview" is the default
+ * tab and therefore carries no query, matching what the page writes for it.
+ *
+ * `roles` is filled in per array below, since the same list is shared by the
+ * admin and employee sidebars.
+ */
+const OPERATIONS_TABS: { href: string; label: string; icon: any }[] = [
+  { href: "/admin/operations", label: "Trips Overview", icon: Route },
+  { href: "/admin/operations?tab=turo-inspection", label: "Turo Messages", icon: MessageCircle },
+  { href: "/admin/operations?tab=inspections", label: "Car Issues", icon: ShieldAlert },
+  { href: "/admin/operations?tab=claims", label: "Claims", icon: FileText },
+  { href: "/admin/operations?tab=ticket-violation", label: "Ticket Violation", icon: ShieldAlert },
+  { href: "/admin/operations?tab=maintenance", label: "Maintenance", icon: Cog },
+  { href: "/admin/operations?tab=service-due", label: "Service Due", icon: Clock },
+  { href: "/admin/operations?tab=completed", label: "No Car Issues", icon: ClipboardList },
+  { href: "/admin/operations?tab=car-repaired", label: "Car Repaired", icon: Key },
+  { href: "/admin/operations?tab=car-block-off", label: "Car Block Off", icon: CalendarOff },
+  { href: "/admin/operations?tab=day-schedule", label: "Day Schedule", icon: CalendarDays },
+  { href: "/admin/operations?tab=tv-timeline", label: "TV Timeline", icon: BarChart3 },
+];
+
+/** Same idea for the admin Forms page's tabs, via its ?section= param. */
+const ADMIN_FORM_TABS: { href: string; label: string; icon: any }[] = [
+  { href: "/admin/forms?section=client-onboarding", label: "Client Onboarding Form", icon: ClipboardList },
+  { href: "/admin/forms?section=employee-onboarding-process", label: "Employee Onboarding Process", icon: Users },
+  { href: "/admin/forms?section=employee-forms", label: "Income & Expenses Form", icon: DollarSign },
+  { href: "/admin/forms?section=commissions-forms", label: "Commissions Form", icon: DollarSign },
+  { href: "/admin/forms?section=referral-forms", label: "Referral Form", icon: Megaphone },
+  { href: "/admin/forms?section=document-updates", label: "License & Registration or Insurance Updates", icon: FileText },
+  { href: "/admin/forms?section=car-issue-forms", label: "Car Issue Form", icon: ShieldAlert },
+  { href: "/admin/forms?section=car-block-off-forms", label: "Car Block Off Form", icon: CalendarOff },
+  { href: "/admin/forms?section=car-repaired-forms", label: "Car Repaired Form", icon: Key },
+  { href: "/admin/forms?section=parking-ticket-forms", label: "Client Parking Ticket", icon: FileText },
+  { href: "/admin/forms?section=ticket-violation-forms", label: "Ticket Violation Form", icon: ShieldAlert },
+];
+
+/** The employee Forms page's six tabs, via a ?tab= param added to that page. */
+const STAFF_FORM_TABS: { href: string; label: string; icon: any }[] = [
+  { href: "/staff/forms", label: "I&E Submission", icon: DollarSign },
+  { href: "/staff/forms?tab=expense-my", label: "My I&E Submissions", icon: ClipboardList },
+  { href: "/staff/forms?tab=commission", label: "Commission Form", icon: DollarSign },
+  { href: "/staff/forms?tab=commission-my", label: "My Commissions", icon: ClipboardList },
+  { href: "/staff/forms?tab=car-issue", label: "Car Issue Report", icon: ShieldAlert },
+  { href: "/staff/forms?tab=car-repaired", label: "Car Repaired", icon: Key },
+];
+
+/** Stamps a role onto a shared tab list so one definition serves every sidebar. */
+const withRoles = (
+  tabs: { href: string; label: string; icon: any }[],
+  roles: SidebarItem["roles"],
+): SidebarItem[] => tabs.map((t) => ({ ...t, roles }));
 
 const allSidebarItems: SidebarItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -206,26 +264,28 @@ const allSidebarItems: SidebarItem[] = [
     label: "Operations",
     icon: Cog,
     roles: ["admin"],
-    children: [
-      {
-        href: "/admin/operations",
-        label: "Operations",
-        icon: Cog,
-        roles: ["admin"],
-      },
-      {
-        href: "/admin/car-block-off",
-        label: "Car Block Off",
-        icon: CalendarOff,
-        roles: ["admin"],
-      },
-    ],
+    children: withRoles(OPERATIONS_TABS, ["admin"]),
+  },
+  // The standalone Car Block Off page (CarBlockOff.tsx) is a different screen
+  // from the Operations "Car Block Off" tab (CarBlockOffTab.tsx) — it's the
+  // submission form. It used to be a child of Operations; kept as its own
+  // entry now that Operations' children are the tab strip.
+  {
+    href: "/admin/car-block-off",
+    label: "Car Block Off",
+    icon: CalendarOff,
+    roles: ["admin"],
   },
   {
     href: "/admin/forms",
     label: "Forms",
     icon: ClipboardList,
     roles: ["admin", "client"],
+    // Admin only: the Forms page picks its tab set from a server-side
+    // visibility call, and the client/co-host branches return a different
+    // (smaller) list than these fixed sub-items describe. Clients keep the
+    // plain link and the page's own tab strip.
+    children: withRoles(ADMIN_FORM_TABS, ["admin"]),
   },
   {
     // External link to the GLA Turo host page. Turo blocks iframe embedding
@@ -423,7 +483,13 @@ const employeeSidebarItems: SidebarItem[] = [
     roles: ["employee"],
   },
   { href: "/staff/my-info", label: "My Info", icon: User, roles: ["employee"] },
-  { href: "/staff/forms", label: "Forms", icon: FileText, roles: ["employee"] },
+  {
+    href: "/staff/forms",
+    label: "Forms",
+    icon: FileText,
+    roles: ["employee"],
+    children: withRoles(STAFF_FORM_TABS, ["employee"]),
+  },
   {
     // Employees see a restricted, read-only Income & Expenses table (only the
     // whitelisted expense rows); admins see the full version. Filtering lives
@@ -444,6 +510,7 @@ const employeeSidebarItems: SidebarItem[] = [
     label: "Operations",
     icon: Briefcase,
     roles: ["employee"],
+    children: withRoles(OPERATIONS_TABS, ["employee"]),
   },
   {
     href: "/admin/trip-calendar",
@@ -600,6 +667,11 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
+  // wouter's useLocation() drops the query string, but tab sub-items are
+  // addressed by one (e.g. /admin/operations?tab=maintenance). Keep the full
+  // path+query around so those children can match and highlight.
+  const search = useSearch();
+  const fullLocation = search ? `${location}?${search}` : location;
   const [switching, setSwitching] = useState(false);
   const { toast } = useToast();
 
@@ -607,10 +679,16 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     Record<string, boolean>
   >(() => {
     const obj: Record<string, boolean> = {};
+    const currentSearch = typeof window === "undefined" ? "" : window.location.search.replace(/^\?/, "");
     const matches = (pathname: string, href: string) => {
-      if (pathname === href) return true;
-      if (href === "/dashboard") return false;
-      return pathname.startsWith(href + "/");
+      const [hrefPath, hrefQuery] = href.split("?");
+      if (hrefQuery != null) {
+        const [key, value] = hrefQuery.split("=");
+        return pathname === hrefPath && new URLSearchParams(currentSearch).get(key) === value;
+      }
+      if (pathname === hrefPath) return true;
+      if (hrefPath === "/dashboard") return false;
+      return pathname.startsWith(hrefPath + "/");
     };
     [...allSidebarItems, ...employeeSidebarItems, ...coHostSidebarItems].forEach((it) => {
       if (it.children && it.children.length > 0) {
@@ -624,10 +702,23 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     setExpandedParents((prev) => ({ ...prev, [href]: !prev[href] }));
 
   // Proper path-boundary match so e.g. "/admin/bouncie" does NOT match "/admin/bouncie-devices".
-  const isPathActive = (pathname: string, href: string) => {
-    if (pathname === href) return true;
-    if (href === "/dashboard") return false;
-    return pathname.startsWith(href + "/");
+  //
+  // Tab sub-items carry a query string ("/admin/operations?tab=maintenance").
+  // Those must match the CURRENT query exactly — matching on pathname alone
+  // would light up all twelve Operations children at once. A child with no
+  // query keeps the old prefix behaviour, but must also not match when a tab
+  // query is present, or the default tab would stay lit on every other tab.
+  const isPathActive = (pathname: string, href: string, currentSearch = "") => {
+    const [hrefPath, hrefQuery] = href.split("?");
+    if (hrefQuery != null) {
+      // Compare just the key this item addresses, so unrelated params on the
+      // URL (?category=…&field=… deep links) don't stop a tab from matching.
+      const [key, value] = hrefQuery.split("=");
+      return pathname === hrefPath && new URLSearchParams(currentSearch).get(key) === value;
+    }
+    if (pathname === hrefPath) return true;
+    if (hrefPath === "/dashboard") return false;
+    return pathname.startsWith(hrefPath + "/");
   };
 
   useEffect(() => {
@@ -637,7 +728,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     [...allSidebarItems, ...employeeSidebarItems, ...coHostSidebarItems].forEach((it) => {
       if (it.children && it.children.length > 0) {
         const childActive = it.children.some((c) =>
-          isPathActive(location, c.href),
+          isPathActive(location, c.href, search),
         );
         if (childActive && !newState[it.href]) {
           newState[it.href] = true;
@@ -646,7 +737,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       }
     });
     if (changed) setExpandedParents(newState);
-  }, [location]);
+  }, [location, search]);
 
   const { data } = useQuery<{ user?: any }>({
     queryKey: ["/api/auth/me"],
@@ -921,7 +1012,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
             if (item.children && item.children.length > 0) {
               // Parent is considered active only when a child path is active.
               const isParentActive = item.children.some((c) =>
-                isPathActive(location, c.href),
+                isPathActive(location, c.href, search),
               );
               const expanded = expandedParents[item.href] ?? isParentActive;
 
@@ -950,7 +1041,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                     <div className="mt-1 ml-4 border-l-2 border-[hsl(var(--sidebar-primary)/0.35)] pl-2">
                       {item.children.map((child) => {
                         const ChildIcon = child.icon;
-                        const childActive = location === child.href;
+                        const childActive = isPathActive(location, child.href, search);
                         return (
                           <Link
                             key={child.href}

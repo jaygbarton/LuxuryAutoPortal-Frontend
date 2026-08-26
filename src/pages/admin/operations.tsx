@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { useSearch } from "wouter";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TripsOverviewTab } from "./operations/TripsOverviewTab";
 import { TuroInspectionTab } from "./operations/TuroInspectionTab";
@@ -41,49 +42,31 @@ function LazyTab({ value, activeTab, mountedTabs, children }: {
   );
 }
 
-function initialTab(): TabId {
-  if (typeof window === "undefined") return "trips";
-  const t = new URLSearchParams(window.location.search).get("tab");
+function tabFromSearch(search: string): TabId {
+  const t = new URLSearchParams(search).get("tab");
   return t && (TAB_IDS as readonly string[]).includes(t) ? (t as TabId) : "trips";
 }
 
 export default function OperationsPage() {
-  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
-  const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(new Set(["trips", initialTab()]));
+  // The URL is the single source of truth for which tab is open. The tabs are
+  // now sidebar sub-items (see OPERATIONS_TABS in admin-layout), and wouter's
+  // <Link> pushes history WITHOUT firing popstate — so the old
+  // useState+popstate pairing silently ignored every sidebar click. Reading
+  // wouter's own search hook makes those navigations drive the page.
+  const search = useSearch();
+  const activeTab = tabFromSearch(search);
+  const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set(["trips", tabFromSearch(search)]));
   const [locationFilter, setLocationFilter] = useState<OperationLocationFilter>("all");
 
-  const showTab = (tab: TabId) => {
-    setActiveTab(tab);
-    setMountedTabs(prev => {
-      if (prev.has(tab)) return prev;
+  // Keep a tab mounted (hidden) once visited, preserving its state and cache.
+  useEffect(() => {
+    setMountedTabs((prev) => {
+      if (prev.has(activeTab)) return prev;
       const next = new Set(prev);
-      next.add(tab);
+      next.add(activeTab);
       return next;
     });
-  };
-
-  // Put the open tab in the URL so a tab can be linked and shared. The page
-  // already READ ?tab= on load, but never wrote it — so the address bar stayed
-  // on /admin/operations whichever tab you were looking at, and there was
-  // nothing to copy. pushState (not replace) keeps Back stepping through the
-  // tabs you visited, which is what the browser controls imply.
-  const handleTabChange = (value: string) => {
-    const tab = value as TabId;
-    showTab(tab);
-    const params = new URLSearchParams(window.location.search);
-    // "trips" is the default, so leave it out and keep the bare URL clean.
-    if (tab === "trips") params.delete("tab");
-    else params.set("tab", tab);
-    const qs = params.toString();
-    window.history.pushState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
-  };
-
-  // Follow the browser's Back/Forward buttons between tabs.
-  useEffect(() => {
-    const onPopState = () => showTab(initialTab());
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  }, [activeTab]);
 
   return (
     <AdminLayout>
@@ -96,7 +79,9 @@ export default function OperationsPage() {
         </div>
 
         <OperationLocationFilterProvider value={locationFilter}>
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
+        {/* Tab switching now lives in the sidebar (OPERATIONS_TABS in
+            admin-layout); <Tabs> is kept purely to render the active panel. */}
+        <Tabs value={activeTab}>
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Location</div>
             <Select value={locationFilter} onValueChange={(value) => setLocationFilter(value as OperationLocationFilter)}>
@@ -111,47 +96,6 @@ export default function OperationsPage() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="-mx-2 sm:mx-0 mb-6 overflow-x-auto">
-            <TabsList className="bg-muted border border-border h-auto gap-1 p-1 inline-flex w-max min-w-full sm:w-auto sm:min-w-0 sm:flex-wrap">
-              <TabsTrigger value="trips" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                Trips Overview
-              </TabsTrigger>
-              <TabsTrigger value="turo-inspection" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                Turo Messages
-              </TabsTrigger>
-              <TabsTrigger value="inspections" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                Car Issues
-              </TabsTrigger>
-              <TabsTrigger value="claims" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                Claims
-              </TabsTrigger>
-              <TabsTrigger value="ticket-violation" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                Ticket Violation
-              </TabsTrigger>
-              <TabsTrigger value="maintenance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                Maintenance
-              </TabsTrigger>
-              <TabsTrigger value="service-due" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                Service Due
-              </TabsTrigger>
-              <TabsTrigger value="completed" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                No Car Issues
-              </TabsTrigger>
-              <TabsTrigger value="car-repaired" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                Car Repaired
-              </TabsTrigger>
-              <TabsTrigger value="car-block-off" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                Car Block Off
-              </TabsTrigger>
-              <TabsTrigger value="day-schedule" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                Day Schedule
-              </TabsTrigger>
-              <TabsTrigger value="tv-timeline" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap">
-                TV Timeline
-              </TabsTrigger>
-            </TabsList>
           </div>
 
           <LazyTab value="trips" activeTab={activeTab} mountedTabs={mountedTabs}>

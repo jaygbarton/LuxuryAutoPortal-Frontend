@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearch } from "wouter";
 import {
   useQuery,
   useMutation,
@@ -1440,6 +1441,16 @@ export default function FormsPage() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
+  // The tabs are also sidebar sub-items now (ADMIN_FORM_TABS in admin-layout).
+  // wouter's <Link> pushes history WITHOUT firing popstate and, because this
+  // page doesn't remount on a query-only change, the handler above never runs
+  // for a sidebar click. Watching wouter's own search string covers that.
+  const routerSearch = useSearch();
+  useEffect(() => {
+    const section = new URLSearchParams(routerSearch).get("section");
+    if (section && section !== activeSection) setActiveSection(section);
+  }, [routerSearch]);
+
   return (
     <AdminLayout>
       <div className="space-y-6 max-w-full">
@@ -1449,27 +1460,32 @@ export default function FormsPage() {
             Access and submit important forms for client onboarding, referrals, and document updates. This section allows you to add new vehicle, request vehicle block-offs, submit referrals, upload updated licenses, registrations, or insurance documents, and track the status of your submissions.
           </p>
         </div>
-        {/* Section tabs (mirrors the Operations page layout) */}
-        <Tabs value={activeSection} onValueChange={handleSectionChange}>
-          <div className="-mx-2 sm:mx-0 mb-4 overflow-x-auto">
-            <TabsList className="bg-muted border border-border h-auto gap-1 p-1 inline-flex w-max min-w-full sm:w-auto sm:min-w-0 sm:flex-wrap">
-              {formSections.map((section) => {
-                const SectionIcon = section.icon;
-                return (
-                  <TabsTrigger
-                    key={section.id}
-                    value={section.id}
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap gap-2"
-                    data-testid={`button-section-${section.id}`}
-                  >
-                    <SectionIcon className="w-4 h-4" />
-                    {section.title}
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
-          </div>
-        </Tabs>
+        {/* Section tabs. Admins navigate these from the sidebar instead
+            (ADMIN_FORM_TABS in admin-layout), so the strip is hidden for them.
+            Clients and co-hosts get a different, server-driven section list
+            that the fixed sidebar sub-items don't describe, so they keep it. */}
+        {!formVisibilityData?.isAdmin && (
+          <Tabs value={activeSection} onValueChange={handleSectionChange}>
+            <div className="-mx-2 sm:mx-0 mb-4 overflow-x-auto">
+              <TabsList className="bg-muted border border-border h-auto gap-1 p-1 inline-flex w-max min-w-full sm:w-auto sm:min-w-0 sm:flex-wrap">
+                {formSections.map((section) => {
+                  const SectionIcon = section.icon;
+                  return (
+                    <TabsTrigger
+                      key={section.id}
+                      value={section.id}
+                      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm whitespace-nowrap gap-2"
+                      data-testid={`button-section-${section.id}`}
+                    >
+                      <SectionIcon className="w-4 h-4" />
+                      {section.title}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </div>
+          </Tabs>
+        )}
 
         {/* Link to exactly the tab being viewed, so it can be sent to a client
             rather than "open Forms, then click across to X". Sits outside the
@@ -1800,7 +1816,7 @@ export default function FormsPage() {
                                   <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                                     <span>Submissions appear in</span>
                                     <a
-                                      href="/admin/operations?tab=car-issues"
+                                      href="/admin/operations?tab=inspections"
                                       className="font-semibold underline hover:text-amber-900"
                                     >
                                       Operations → Car Issues
