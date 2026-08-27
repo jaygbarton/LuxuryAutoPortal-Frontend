@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { buildApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, refreshAuthForSessionTransition } from "@/lib/queryClient";
 import { getActiveTimezone } from "@/hooks/use-timezone";
 import { Eye, Search, Loader2, UserCog, LogOut } from "lucide-react";
 
@@ -89,8 +89,8 @@ export default function ViewAsCoHostPage() {
         title: "Now viewing as co-host",
         description: `${d.coHostName} (${d.coHostEmail})`,
       });
-      qc.clear();
-      window.location.assign("/admin/my-co-host-cars");
+      await refreshAuthForSessionTransition(qc);
+      setLocation("/admin/my-co-host-cars");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -109,8 +109,8 @@ export default function ViewAsCoHostPage() {
     },
     onSuccess: async () => {
       toast({ title: "Stopped", description: "Returned to admin view." });
-      qc.clear();
-      await qc.invalidateQueries({ queryKey: ["/api/admin/view-as-co-host/status"] });
+      await refreshAuthForSessionTransition(qc);
+      setLocation("/dashboard");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });

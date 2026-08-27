@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Eye, LogOut, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl, refreshAuthForSessionTransition } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface AuthMe {
@@ -54,6 +55,7 @@ interface AuthMe {
  * exactly what the impersonated client/employee would see when logged in.
  */
 export function ViewAsClientBanner() {
+  const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const { toast } = useToast();
 
@@ -78,10 +80,8 @@ export function ViewAsClientBanner() {
     },
     onSuccess: async () => {
       toast({ title: "Back to admin", description: "Returned to admin view." });
-      qc.clear();
-      // Hard reload so every component re-mounts with the un-impersonated
-      // session (admin flags restored). Same rationale as switch-role.
-      window.location.assign("/dashboard");
+      await refreshAuthForSessionTransition(qc);
+      setLocation("/dashboard");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -102,8 +102,8 @@ export function ViewAsClientBanner() {
     },
     onSuccess: async () => {
       toast({ title: "Back to admin", description: "Returned to admin view." });
-      qc.clear();
-      window.location.assign("/dashboard");
+      await refreshAuthForSessionTransition(qc);
+      setLocation("/dashboard");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -124,8 +124,8 @@ export function ViewAsClientBanner() {
     },
     onSuccess: async () => {
       toast({ title: "Back to admin", description: "Returned to admin view." });
-      qc.clear();
-      window.location.assign("/dashboard");
+      await refreshAuthForSessionTransition(qc);
+      setLocation("/dashboard");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });

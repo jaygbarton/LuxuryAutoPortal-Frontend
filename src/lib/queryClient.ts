@@ -367,6 +367,30 @@ export async function authMeQueryFn(): Promise<{ user?: any }> {
 }
 
 /**
+ * Fast path after role/view-as session changes.
+ *
+ * The old flow cleared the entire React Query cache and forced
+ * window.location.assign(), which made the browser reload the full app bundle
+ * and then refetch auth plus page data from zero. For role changes, we only
+ * need one authoritative /api/auth/me refresh and stale role-scoped queries
+ * removed before routing.
+ */
+export async function refreshAuthForSessionTransition(
+  client: QueryClient,
+): Promise<{ user?: any }> {
+  await client.cancelQueries();
+  client.removeQueries({
+    predicate: (query) => {
+      const [first] = query.queryKey;
+      return first !== "/api/auth/me";
+    },
+  });
+  const auth = await authMeQueryFn();
+  client.setQueryData(["/api/auth/me"], auth);
+  return auth;
+}
+
+/**
  * Retry failed queries only for transient network errors (e.g. ERR_NETWORK_CHANGED).
  * Do not retry on 4xx/5xx or other application errors.
  */

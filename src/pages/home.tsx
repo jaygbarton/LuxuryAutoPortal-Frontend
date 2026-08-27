@@ -53,7 +53,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
               eyebrow: "Rent a Vehicle",
               title: "Premium rental or detail",
               copy:
-                "Guests can browse the fleet, compare the right fit, or book a clean detail appointment through the GLA site.",
+                "Choose from GLA's premium fleet, compare the right fit, or book a clean detail appointment.",
               image: "/rent-a-car-interior.jpg",
               icon: Car,
               primary: "Our Fleet",

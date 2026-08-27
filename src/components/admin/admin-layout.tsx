@@ -49,7 +49,7 @@ import {
 import { NotificationBell } from "./NotificationBell";
 import { ViewAsClientBanner } from "./ViewAsClientBanner";
 import { cn } from "@/lib/utils";
-import { apiRequest, queryClient, buildApiUrl } from "@/lib/queryClient";
+import { apiRequest, queryClient, buildApiUrl, refreshAuthForSessionTransition } from "@/lib/queryClient";
 import { AuthGuard } from "./auth-guard";
 import { UserAccountMenu } from "@/components/layout/user-account-menu";
 import {
@@ -944,24 +944,13 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         throw new Error(data?.error || "Failed to switch account");
       }
 
-      // Wipe React Query cache so prior role's data doesn't render briefly.
-      queryClient.clear();
-
-      // Force a full page reload (window.location.assign) instead of an SPA
-      // route change. Without a hard reload, mounted components keep their
-      // local state — including AuthGuard's `hasAuthenticated`, the layout's
-      // memoized `user` reference, and any in-flight queries — which causes
-      // admin menus / data to keep rendering for a moment after the session
-      // has actually flipped to client/employee. A reload guarantees that
-      // every component re-mounts, /api/auth/me is re-fetched fresh, and the
-      // sidebar + page contents reflect the new role from the very first
-      // paint.
+      await refreshAuthForSessionTransition(queryClient);
       const target = role.isAdmin
         ? "/dashboard"
         : role.isEmployee
           ? "/staff/dashboard"
           : "/dashboard";
-      window.location.assign(target);
+      setLocation(target);
     } catch (e: any) {
       console.error("Switch role failed:", e);
       // Surface the error so the user understands why nothing happened

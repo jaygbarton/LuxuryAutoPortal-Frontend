@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { buildApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, refreshAuthForSessionTransition } from "@/lib/queryClient";
 import { getActiveTimezone } from "@/hooks/use-timezone";
 import { Eye, Search, Loader2, UserCog, LogOut, Car } from "lucide-react";
 
@@ -89,11 +89,8 @@ export default function ViewAsClientPage() {
         title: "Now viewing as client",
         description: `${d.clientName} (${d.clientEmail})`,
       });
-      qc.clear();
-      // Hard reload so AuthGuard, AdminLayout, and every page-level useQuery
-      // re-mount with the un-cached, impersonated /api/auth/me payload from
-      // the first paint — same rationale as switch-role / view-as-employee.
-      window.location.assign("/dashboard");
+      await refreshAuthForSessionTransition(qc);
+      setLocation("/dashboard");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -112,11 +109,8 @@ export default function ViewAsClientPage() {
     },
     onSuccess: async () => {
       toast({ title: "Stopped", description: "Returned to admin view." });
-      await qc.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      await qc.invalidateQueries({
-        queryKey: ["/api/admin/view-as-client/status"],
-      });
-      qc.clear();
+      await refreshAuthForSessionTransition(qc);
+      setLocation("/dashboard");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });

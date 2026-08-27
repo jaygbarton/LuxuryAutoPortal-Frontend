@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { buildApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, refreshAuthForSessionTransition } from "@/lib/queryClient";
 import { getActiveTimezone } from "@/hooks/use-timezone";
 import { Eye, Search, Loader2, UserCog, LogOut, Briefcase } from "lucide-react";
 
@@ -130,12 +130,8 @@ export default function ViewAsEmployeePage() {
         title: "Now viewing as employee",
         description: `${d.employeeName} (${d.employeeEmail})`,
       });
-      // Hard-clear the cache so prior admin-scoped data doesn't render briefly
-      // before the new auth/me payload (with flipped isAdmin) takes effect.
-      qc.clear();
-      // Force a full reload so AuthGuard, AdminLayout, and every page-level
-      // useQuery re-mount with fresh state — same pattern as switch-role.
-      window.location.assign("/staff/dashboard");
+      await refreshAuthForSessionTransition(qc);
+      setLocation("/staff/dashboard");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -154,11 +150,8 @@ export default function ViewAsEmployeePage() {
     },
     onSuccess: async () => {
       toast({ title: "Stopped", description: "Returned to admin view." });
-      await qc.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      await qc.invalidateQueries({
-        queryKey: ["/api/admin/view-as-employee/status"],
-      });
-      qc.clear();
+      await refreshAuthForSessionTransition(qc);
+      setLocation("/dashboard");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
