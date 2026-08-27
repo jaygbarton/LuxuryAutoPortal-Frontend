@@ -1177,7 +1177,7 @@ function TimeEntryForm(props: {
               </Button>
             </PopoverTrigger>
             <PopoverContent
-              className="w-[--radix-popover-trigger-width] p-0 bg-card border-border"
+              className="z-[4100] w-[--radix-popover-trigger-width] p-0 bg-card border-border"
               align="start"
             >
               <Command className="bg-card">
