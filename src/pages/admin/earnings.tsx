@@ -90,30 +90,9 @@ export default function EarningsPage() {
     queryKey: ["/api/auth/me"],
     retry: false,
   });
-  // isAdmin gates EDIT capability (handleEditCell) and must stay strict: during
-  // "View as Client" impersonation /api/auth/me deliberately reports isAdmin
-  // false so the page behaves exactly as the client would experience it —
-  // including staying read-only. Broadening isAdmin itself here would make
-  // cells editable while impersonating, defeating the point of the preview.
   const isAdmin = userData?.user?.isAdmin === true;
-  // Gates visibility of the two GLA-internal sections below (Reimbursed and
-  // Non-Reimbursed Bills, Parking Airport Average Per Trip - GLA) — hidden
-  // from real clients per Hoang (2026-07-22), but an admin auditing via
-  // "View as Client" must still see them, hence impersonatorIsAdmin (set
-  // server-side whenever an admin session has viewAsClient active) rather
-  // than bare isAdmin, which /api/auth/me deliberately reports false during
-  // that impersonation. This is narrower than the isUnderlyingAdmin gate used
-  // 2026-07-08 through 2026-07-20 (which also hid Owner Split/Direct
-  // Delivery/COGS) — those three stay visible to clients now; only these two
-  // sections are being re-hidden this time.
   const isUnderlyingAdmin =
     userData?.user?.isAdmin === true || userData?.user?.impersonatorIsAdmin === true;
-  // Hides the internal cost/split breakdown table (Car Management Split,
-  // COGS, Direct Delivery, Parking Fee & Labor, Reimbursed Bills, etc.) from
-  // real clients — this page is shared between admins and the client-facing
-  // "Earnings" nav link, and the breakdown table has no place being shown to
-  // an owner. Deliberately independent of isAdmin/impersonation: a co-host or
-  // employee viewing as themselves should still see it.
   const isClient = userData?.user?.isClient === true;
 
   // Fetch car data
@@ -1872,10 +1851,11 @@ export default function EarningsPage() {
                     />
                   </CategorySection>
 
-                {/* REIMBURSED AND NON-REIMBURSED BILLS — GLA-internal, hidden
-                    from clients again per Hoang (2026-07-22). (Was briefly
-                    client-visible 2026-07-20 through 2026-07-22.) */}
-                {isUnderlyingAdmin && (
+                {/* REIMBURSED AND NON-REIMBURSED BILLS — GLA-internal. Hidden
+                    from clients (and from View as Client, which reports
+                    isAdmin false) so the client-facing Earnings table never
+                    shows internal reimbursed/non-reimbursed bill lines. */}
+                {isAdmin && (
                 <CategorySection
                     title="REIMBURSED AND NON-REIMBURSED BILLS"
                     isExpanded={expandedSections.reimbursedBills}
