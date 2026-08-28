@@ -403,8 +403,16 @@ export function AddEditPaymentModal({
   const balanceNum = parseFloat(balance) || 0;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border text-foreground max-w-3xl max-h-[92vh] overflow-y-auto p-0">
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent
+        className="bg-card border-border text-foreground max-w-3xl max-h-[92vh] overflow-y-auto p-0"
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest("[data-radix-select-content]")) {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
           <DialogTitle className="text-foreground text-xl font-semibold">
             {isEdit ? "Edit Payment" : "Add Payment"}
@@ -441,11 +449,11 @@ export function AddEditPaymentModal({
                 <Label htmlFor="status" className="text-muted-foreground text-xs">
                   Payment Status <span className="text-red-700">*</span>
                 </Label>
-                <Select value={statusId} onValueChange={setStatusId} disabled={isPending}>
-                  <SelectTrigger className="bg-muted border-border text-foreground mt-1 h-10">
+                <Select value={statusId} onValueChange={setStatusId} disabled={isPending} modal={false}>
+                  <SelectTrigger className="bg-card border-border text-foreground mt-1 h-10">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
-                  <SelectContent className="bg-muted border-border text-foreground">
+                  <SelectContent className="bg-card border-border text-foreground z-[4100]">
                     {statuses.map((status) => (
                       <SelectItem
                         key={status.payment_status_aid}
