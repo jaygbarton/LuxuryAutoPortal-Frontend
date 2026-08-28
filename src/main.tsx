@@ -15,6 +15,14 @@ import("@/lib/pdf-config").catch((error) => {
 // Enhanced error handling for initialization
 const rootElement = document.getElementById("root");
 
+if (
+  typeof window !== "undefined" &&
+  window.location.hostname === "app.goldenluxuryauto.com" &&
+  window.location.pathname === "/"
+) {
+  window.location.replace("/login");
+}
+
 if (!rootElement) {
   // Show error in the page if root element is missing
   document.body.innerHTML = `
