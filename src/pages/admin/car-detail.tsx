@@ -171,6 +171,7 @@ interface CarDetail {
   year?: number;
   color?: string;
   mileage: number;
+  currentMileage?: number | null;
   status: "ACTIVE" | "INACTIVE";
   rawStatus?: "pending" | "available" | "in_use" | "maintenance" | "off_fleet"; // Raw database status
   offboardReason?: "sold" | "damaged" | "end_lease" | "other" | null;
@@ -562,6 +563,14 @@ export default function CarDetailPage() {
       return "Not provided";
     }
     return String(value);
+  };
+
+  const formatDateOnly = (value: string | null | undefined): string => {
+    if (!value) return "N/A";
+    const day = String(value).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return formatValue(value);
+    const [y, m, d] = day.split("-");
+    return `${m}/${d}/${y}`;
   };
 
   const formatCurrency = (value: string | null | undefined): string => {
@@ -1666,7 +1675,11 @@ export default function CarDetailPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-muted-foreground mb-1">Mileage</p>
-                    <p className="text-foreground text-base break-words min-w-0">{car.mileage ? `${car.mileage.toLocaleString()} miles` : "N/A"}</p>
+                    <p className="text-foreground text-base break-words min-w-0">
+                      {car.currentMileage || car.mileage
+                        ? `${(car.currentMileage || car.mileage).toLocaleString()} miles`
+                        : "N/A"}
+                    </p>
                   </div>
                 </div>
 
@@ -1706,7 +1719,7 @@ export default function CarDetailPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-muted-foreground mb-1">Last Oil Change</p>
-                    <p className="text-foreground text-base break-words min-w-0">{car.lastOilChange ? formatValue(car.lastOilChange) : "N/A"}</p>
+                    <p className="text-foreground text-base break-words min-w-0">{formatDateOnly(car.lastOilChange)}</p>
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-muted-foreground mb-1">Does Your Vehicle Have Free Dealership Oil Changes?</p>
@@ -1734,7 +1747,7 @@ export default function CarDetailPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-muted-foreground mb-1">Registration Expiration</p>
-                    <p className="text-foreground text-base break-words min-w-0">{car.registrationExpiration ? formatValue(car.registrationExpiration) : "N/A"}</p>
+                    <p className="text-foreground text-base break-words min-w-0">{formatDateOnly(car.registrationExpiration)}</p>
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-muted-foreground mb-1">Vehicle Recall</p>
