@@ -206,6 +206,14 @@
     overflow-x: hidden;
     min-height: 100dvh;
     min-height: 100vh;
+    overscroll-behavior-y: none;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  #root {
+    min-height: 100dvh;
+    width: 100%;
   }
 
   img,
@@ -221,6 +229,15 @@
   select,
   button {
     max-width: 100%;
+  }
+
+  .native-app-shell body {
+    background: hsl(var(--background));
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .native-app-shell main {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
   }
 
   /* Override browser autofill dark backgrounds - ROOT FIX for inputs turning black */

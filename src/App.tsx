@@ -142,6 +142,20 @@ import { RequireRole } from "@/components/admin/require-role";
 import { PUBLIC_LOCATIONS } from "@/lib/location-config";
 
 function Router() {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const isNativeShell =
+      Boolean((window as any).Capacitor?.isNativePlatform?.()) ||
+      /GLA-Portal-App|Capacitor/i.test(window.navigator.userAgent);
+
+    document.documentElement.classList.toggle("native-app-shell", isNativeShell);
+
+    return () => {
+      document.documentElement.classList.remove("native-app-shell");
+    };
+  }, []);
+
   return (
     <Switch>
       {/*
