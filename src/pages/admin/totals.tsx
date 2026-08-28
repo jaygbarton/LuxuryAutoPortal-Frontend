@@ -292,20 +292,14 @@ export default function TotalsPage() {
   const urlCarId = individualParams?.id ? parseInt(individualParams.id, 10) : null;
 
   const { data: authData } = useQuery<{
-    user?: { isAdmin?: boolean; isClient?: boolean; impersonatorIsAdmin?: boolean };
+    user?: { isAdmin?: boolean; isClient?: boolean };
   }>({
     queryKey: ["/api/auth/me"],
     queryFn: authMeQueryFn,
     retry: false,
   });
   const isClient = authData?.user?.isClient === true;
-  // Gates visibility of the Reimbursed & Non-Reimbursed Bills section — hidden
-  // from real clients per Hoang (2026-07-22), same rule as admin/earnings.tsx.
-  // Uses impersonatorIsAdmin (not bare isAdmin) so an admin auditing via "View
-  // as Client" still sees it, since /api/auth/me reports isAdmin false during
-  // that impersonation.
-  const isUnderlyingAdmin =
-    authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true;
+  const isAdmin = authData?.user?.isAdmin === true;
 
   const now = new Date();
   const nowYear = now.getFullYear();
@@ -846,8 +840,10 @@ export default function TotalsPage() {
               </Section>
             )}
 
-            {/* 7. Reimbursed Bills — GLA-internal, hidden from real clients */}
-            {isUnderlyingAdmin && (
+            {/* 7. Reimbursed Bills — GLA-internal, hidden from clients
+                (and from View as Client) so the client-facing Totals page
+                matches Earnings. */}
+            {isAdmin && (
             <Section
               title="REIMBURSED & NON-REIMBURSED BILLS"
               totalValue={
