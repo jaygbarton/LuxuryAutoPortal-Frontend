@@ -1672,6 +1672,7 @@ export default function EarningsPage() {
                   <TableRow
                     label="Negative Balance Carry Over"
                     values={MONTHS.map((_, i) => calculateNegativeBalanceCarryOver(i + 1))}
+                    hideTotal
                   />
                 </CategorySection>
 
@@ -2351,6 +2352,8 @@ interface TableRowProps {
   // IncomeExpenseTable.tsx's read-only cell so Earnings shows manual + form,
   // same as I&E, instead of only the manual value.
   getFormAmount?: (category: string, field: string, month: number) => number;
+  // Carry-over is a monthly rolling figure, not a yearly sum (same as I&E).
+  hideTotal?: boolean;
 }
 
 function TableRow({
@@ -2365,6 +2368,7 @@ function TableRow({
   onViewReceipts,
   onEditCell,
   getFormAmount,
+  hideTotal = false,
 }: TableRowProps) {
   // For Negative Balance Carry Over, display absolute value (remove minus sign)
   const isNegativeBalance = label === "Negative Balance Carry Over";
@@ -2456,13 +2460,15 @@ function TableRow({
       })}
       <td className={cn(
         "text-right px-2 py-2 text-sm font-semibold border-l border-border bg-card md:sticky md:right-0 z-[3]",
-        isTotal ? "text-primary" : total !== 0 ? "text-[#B8860B]" : "text-muted-foreground"
+        hideTotal ? "text-muted-foreground" : isTotal ? "text-primary" : total !== 0 ? "text-[#B8860B]" : "text-muted-foreground"
       )}>
-        {isNegativeBalance && total < 0 
-          ? `(${Math.abs(total).toFixed(2)})`
-          : isInteger 
-            ? total.toString() 
-            : formatCurrency(total)}
+        {hideTotal
+          ? null
+          : isNegativeBalance && total < 0
+            ? `(${Math.abs(total).toFixed(2)})`
+            : isInteger
+              ? total.toString()
+              : formatCurrency(total)}
       </td>
     </tr>
   );
