@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -32,6 +32,28 @@ import { OperationEditHistoryList } from "@/components/admin/OperationEditHistor
 import type { CarServiceDue } from "./types";
 
 type ServiceKind = "oil_change" | "tires" | "brakes" | "windshield" | "mechanic" | "license_registration";
+type SortDirection = "asc" | "desc";
+type SortKey =
+  | "car"
+  | "last_oil_change"
+  | "last_tires"
+  | "last_brakes"
+  | "last_windshield"
+  | "last_mechanic"
+  | "last_license_registration"
+  | "registration_expiration"
+  | "last_any_service";
+
+const DATE_SORT_KEYS = new Set<SortKey>([
+  "last_oil_change",
+  "last_tires",
+  "last_brakes",
+  "last_windshield",
+  "last_mechanic",
+  "last_license_registration",
+  "registration_expiration",
+  "last_any_service",
+]);
 
 // camelCase `field` value expenseFormSubmission/income_expense_service_dates
 // use for each category — matches SERVICE_DUE_COGS_COLUMNS in
@@ -94,10 +116,10 @@ function matchesCategoryFilter(r: CarServiceDue, category: CategoryFilter): bool
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "Never";
+  if (!iso) return "No Data";
   try {
     const d = new Date(iso);
-    if (isNaN(d.getTime())) return "Never";
+    if (isNaN(d.getTime())) return "No Data";
     return d.toLocaleDateString("en-US", {
       timeZone: getActiveTimezone(),
       month: "2-digit",
@@ -105,8 +127,57 @@ function formatDate(iso: string | null): string {
       year: "numeric",
     });
   } catch {
-    return "Never";
+    return "No Data";
   }
+}
+
+function dateSortValue(iso: string | null): number | null {
+  if (!iso) return null;
+  const value = new Date(iso).getTime();
+  return Number.isNaN(value) ? null : value;
+}
+
+function compareNullableDates(a: string | null, b: string | null, direction: SortDirection): number {
+  const aValue = dateSortValue(a);
+  const bValue = dateSortValue(b);
+  if (aValue == null && bValue == null) return 0;
+  if (aValue == null) return 1;
+  if (bValue == null) return -1;
+  return direction === "asc" ? aValue - bValue : bValue - aValue;
+}
+
+function sortArrow(key: SortKey, activeKey: SortKey, direction: SortDirection): string {
+  if (key !== activeKey) return "";
+  return direction === "asc" ? " ▲" : " ▼";
+}
+
+function nextSortDirection(key: SortKey, activeKey: SortKey, direction: SortDirection): SortDirection {
+  if (key === activeKey) return direction === "asc" ? "desc" : "asc";
+  return DATE_SORT_KEYS.has(key) ? "desc" : "asc";
+}
+
+function SortableTableHead({
+  sortKey,
+  activeKey,
+  direction,
+  onSort,
+  children,
+}: {
+  sortKey: SortKey;
+  activeKey: SortKey;
+  direction: SortDirection;
+  onSort: (key: SortKey) => void;
+  children: ReactNode;
+}) {
+  return (
+    <TableHead
+      className="sticky top-0 z-20 bg-muted whitespace-nowrap cursor-pointer select-none hover:bg-muted/70"
+      onClick={() => onSort(sortKey)}
+    >
+      {children}
+      {sortArrow(sortKey, activeKey, direction)}
+    </TableHead>
+  );
 }
 
 function staleness(days: number | null, kind: ServiceKind): "red" | "amber" | "green" {
@@ -274,7 +345,7 @@ function ServiceCell({
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center gap-1.5">
         <span className={`inline-flex w-fit items-center rounded border px-1.5 py-0.5 text-xs font-medium ${STALE_CLASSES[level]}`}>
-          {days == null ? "Never serviced" : `${days} day${days === 1 ? "" : "s"} ago`}
+          {days == null ? "No Data" : `${days} day${days === 1 ? "" : "s"} ago`}
         </span>
         {date && (
           <ServiceCellEditPopover
@@ -381,7 +452,7 @@ function RegistrationCell({
   const level = registrationStatus(daysUntil);
   const label =
     daysUntil == null
-      ? "No expiration on file"
+      ? "No Data"
       : daysUntil < 0
         ? `Expired ${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? "" : "s"} ago`
         : `Due in ${daysUntil} day${daysUntil === 1 ? "" : "s"}`;
@@ -407,7 +478,7 @@ export function ServiceDueTab() {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [carSort, setCarSort] = useState<"asc" | "desc">("asc");
+  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: "car", direction: "asc" });
 
   const { data, isLoading, error } = useQuery<{ success: boolean; data: CarServiceDue[] }>({
     queryKey: ["/api/operations/maintenance/service-due"],
@@ -465,11 +536,48 @@ export function ServiceDueTab() {
   const sorted = useMemo(() => {
     const copy = [...filtered];
     copy.sort((a, b) => {
-      const cmp = (a.car_name || "").localeCompare(b.car_name || "");
-      return carSort === "asc" ? cmp : -cmp;
+      let cmp = 0;
+      switch (sort.key) {
+        case "car":
+          cmp = (a.car_name || "").localeCompare(b.car_name || "");
+          break;
+        case "last_oil_change":
+          cmp = compareNullableDates(a.last_oil_change, b.last_oil_change, sort.direction);
+          break;
+        case "last_tires":
+          cmp = compareNullableDates(a.last_tires, b.last_tires, sort.direction);
+          break;
+        case "last_brakes":
+          cmp = compareNullableDates(a.last_brakes, b.last_brakes, sort.direction);
+          break;
+        case "last_windshield":
+          cmp = compareNullableDates(a.last_windshield, b.last_windshield, sort.direction);
+          break;
+        case "last_mechanic":
+          cmp = compareNullableDates(a.last_mechanic, b.last_mechanic, sort.direction);
+          break;
+        case "last_license_registration":
+          cmp = compareNullableDates(a.last_license_registration, b.last_license_registration, sort.direction);
+          break;
+        case "registration_expiration":
+          cmp = compareNullableDates(a.registration_expiration, b.registration_expiration, sort.direction);
+          break;
+        case "last_any_service":
+          cmp = compareNullableDates(a.last_any_service, b.last_any_service, sort.direction);
+          break;
+      }
+      if (cmp !== 0) return sort.key === "car" && sort.direction === "desc" ? -cmp : cmp;
+      return (a.car_name || "").localeCompare(b.car_name || "");
     });
     return copy;
-  }, [filtered, carSort]);
+  }, [filtered, sort]);
+
+  const handleSort = (key: SortKey) => {
+    setSort((current) => ({
+      key,
+      direction: nextSortDirection(key, current.key, current.direction),
+    }));
+  };
 
   const overdueOilCount = rows.filter((r) => staleness(r.days_since_oil_change, "oil_change") === "red").length;
   const overdueTireCount = rows.filter((r) => staleness(r.days_since_tires, "tires") === "red").length;
@@ -484,7 +592,7 @@ export function ServiceDueTab() {
       <div className="flex items-center justify-between">
         <SectionHeader
           title="Service Due"
-          subtitle="Last serviced per car, from Income & Expenses records — sorted with the most overdue first."
+          subtitle="Last serviced per car, from Income & Expenses records."
           variant="plain"
           className="mb-0"
         />
@@ -575,22 +683,17 @@ export function ServiceDueTab() {
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Status</TableHead>
-                  <TableHead
-                    className="sticky top-0 z-20 bg-muted whitespace-nowrap cursor-pointer select-none hover:bg-muted/70"
-                    onClick={() => setCarSort((s) => (s === "asc" ? "desc" : "asc"))}
-                  >
-                    Car {carSort === "asc" ? "▲" : "▼"}
-                  </TableHead>
+                  <SortableTableHead sortKey="car" activeKey={sort.key} direction={sort.direction} onSort={handleSort}>Car</SortableTableHead>
                   <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Plate</TableHead>
                   <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">VIN #</TableHead>
-                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Last Oil Change</TableHead>
-                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Last Tires</TableHead>
-                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Last Brakes</TableHead>
-                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Last Windshield</TableHead>
-                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Last Mechanic</TableHead>
-                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Last License &amp; Reg.</TableHead>
-                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Registration Expiration</TableHead>
-                  <TableHead className="sticky top-0 z-20 bg-muted whitespace-nowrap">Last Any Service</TableHead>
+                  <SortableTableHead sortKey="last_oil_change" activeKey={sort.key} direction={sort.direction} onSort={handleSort}>Last Oil Change</SortableTableHead>
+                  <SortableTableHead sortKey="last_tires" activeKey={sort.key} direction={sort.direction} onSort={handleSort}>Last Tires</SortableTableHead>
+                  <SortableTableHead sortKey="last_brakes" activeKey={sort.key} direction={sort.direction} onSort={handleSort}>Last Brakes</SortableTableHead>
+                  <SortableTableHead sortKey="last_windshield" activeKey={sort.key} direction={sort.direction} onSort={handleSort}>Last Windshield</SortableTableHead>
+                  <SortableTableHead sortKey="last_mechanic" activeKey={sort.key} direction={sort.direction} onSort={handleSort}>Last Mechanic</SortableTableHead>
+                  <SortableTableHead sortKey="last_license_registration" activeKey={sort.key} direction={sort.direction} onSort={handleSort}>Last License &amp; Reg.</SortableTableHead>
+                  <SortableTableHead sortKey="registration_expiration" activeKey={sort.key} direction={sort.direction} onSort={handleSort}>Registration Expiration</SortableTableHead>
+                  <SortableTableHead sortKey="last_any_service" activeKey={sort.key} direction={sort.direction} onSort={handleSort}>Last Any Service</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
