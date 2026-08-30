@@ -162,7 +162,9 @@ function Router() {
         Public routes — rendered without the admin shell.
         Declared first so they match before the catch-all protected group below.
       */}
-      <Route path="/" component={Home} />
+      <Route path="/">
+        <Redirect to="/salt-lake-city" />
+      </Route>
       <Route path="/salt-lake-city">
         <Home location={PUBLIC_LOCATIONS.slc} />
       </Route>

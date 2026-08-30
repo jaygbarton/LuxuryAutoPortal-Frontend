@@ -4,6 +4,17 @@
   "framework": "vite",
   "redirects": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://goldenluxuryauto.com/salt-lake-city",
+      "permanent": false
+    },
+    {
       "source": "/:path*",
       "has": [
         {
