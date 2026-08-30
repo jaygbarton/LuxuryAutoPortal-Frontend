@@ -28,17 +28,16 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
     target: sectionRef,
     offset: ["start start", "end end"],
   });
-  const splitY = useTransform(scrollYProgress, [0, 0.54, 0.78], shouldReduceMotion ? [0, 0, 0] : ["18vh", "-17vh", "-33vh"]);
-  const reviewY = useTransform(scrollYProgress, [0.2, 0.44, 0.82], shouldReduceMotion ? [0, 0, 0] : ["24vh", "0vh", "-8vh"]);
-  const splitOpacity = useTransform(scrollYProgress, [0, 0.34, 0.5], [1, 1, 0]);
-  const reviewOpacity = useTransform(scrollYProgress, [0.34, 0.48, 0.84, 0.94], [0, 1, 1, 0]);
-  const contentOpacity = useTransform(scrollYProgress, [0, 0.12, 0.86, 1], [0.88, 1, 1, 0.94]);
-  const imageScale = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? [1, 1] : [1.04, 1.11]);
-  const shadeOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [0.52, 0.36, 0.5]);
-  const sceneOpacity = useTransform(scrollYProgress, [0, 0.03, 0.94, 1], [0, 1, 1, 0]);
+  const splitY = useTransform(scrollYProgress, [0, 0.48, 0.7], shouldReduceMotion ? [0, 0, 0] : ["16vh", "-14vh", "-42vh"]);
+  const reviewY = useTransform(scrollYProgress, [0.18, 0.48, 0.78], shouldReduceMotion ? [0, 0, 0] : ["28vh", "0vh", "-16vh"]);
+  const splitOpacity = useTransform(scrollYProgress, [0, 0.32, 0.48], [1, 1, 0]);
+  const reviewOpacity = useTransform(scrollYProgress, [0.34, 0.5, 0.82, 0.94], [0, 1, 1, 0]);
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.08, 0.86, 1], [0.96, 1, 1, 0.96]);
+  const imageScale = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? [1, 1] : [1.02, 1.08]);
+  const shadeOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [0.5, 0.32, 0.48]);
 
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    setIsSceneActive(latest > 0.01 && latest < 0.98);
+    setIsSceneActive(latest > 0.001 && latest < 0.985);
   });
   const businessOptions = [
     {
@@ -73,7 +72,12 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
   ];
 
   return (
-    <section id="business-split" ref={sectionRef} className="cinematic-scroll-section relative bg-[#050505] text-white lg:min-h-[285svh]">
+    <section
+      id="business-split"
+      ref={sectionRef}
+      className="cinematic-scroll-section relative bg-cover bg-[center_58%] bg-no-repeat text-white lg:min-h-[285svh] lg:bg-fixed"
+      style={{ backgroundImage: "url('/homepage-hero-escalade.jpg')" }}
+    >
       <div className="relative overflow-hidden lg:hidden">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -173,7 +177,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
         className={`hidden lg:block lg:h-svh lg:overflow-hidden ${
           isSceneActive ? "lg:fixed lg:inset-0" : "lg:absolute lg:inset-x-0 lg:top-0"
         }`}
-        style={{ opacity: sceneOpacity, pointerEvents: isSceneActive ? "auto" : "none" }}
+        style={{ pointerEvents: isSceneActive ? "auto" : "none" }}
       >
         <motion.div
           className="absolute inset-0 bg-cover bg-[center_58%] bg-no-repeat will-change-transform"
