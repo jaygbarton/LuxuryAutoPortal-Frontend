@@ -114,7 +114,7 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
           </div>
         ) : location ? (
           <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
-            <Link href="/">
+            <Link href="/choose-location">
             <Button
               size="lg"
               className="min-w-[180px] group font-bold"

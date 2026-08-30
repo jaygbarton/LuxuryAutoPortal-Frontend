@@ -139,9 +139,11 @@ import NoticeBoardManagementPage from "@/pages/admin/notice-board";
 import NotificationsPage from "@/pages/admin/notifications";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { RequireRole } from "@/components/admin/require-role";
-import { PUBLIC_LOCATIONS } from "@/lib/location-config";
+import { PUBLIC_LOCATIONS, rememberPublicLocationFromPath } from "@/lib/location-config";
 
 function Router() {
+  const [currentPath] = useLocation();
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -156,6 +158,10 @@ function Router() {
     };
   }, []);
 
+  useEffect(() => {
+    rememberPublicLocationFromPath(currentPath);
+  }, [currentPath]);
+
   return (
     <Switch>
       {/*
@@ -165,6 +171,7 @@ function Router() {
       <Route path="/">
         <Redirect to="/salt-lake-city" />
       </Route>
+      <Route path="/choose-location" component={Home} />
       <Route path="/salt-lake-city">
         <Home location={PUBLIC_LOCATIONS.slc} />
       </Route>
@@ -210,12 +217,18 @@ function Router() {
       <Route path="/salt-lake-city/reviews-options" component={ReviewsOptionsPage} />
       <Route path="/salt-lake-city/reviews" component={ReviewsPage} />
       <Route path="/salt-lake-city/extras" component={ExtrasPage} />
+      <Route path="/salt-lake-city/privacy-policy" component={PrivacyPolicyPage} />
+      <Route path="/salt-lake-city/terms-and-conditions" component={TermsPage} />
+      <Route path="/salt-lake-city/terms" component={TermsPage} />
       <Route path="/salt-lake-city/onboarding" component={Onboarding} />
       <Route path="/salt-lake-city/contact" component={Contact} />
       <Route path="/wilmington-nc/testimonials" component={TestimonialsPage} />
       <Route path="/wilmington-nc/reviews-options" component={ReviewsOptionsPage} />
       <Route path="/wilmington-nc/reviews" component={ReviewsPage} />
       <Route path="/wilmington-nc/extras" component={ExtrasPage} />
+      <Route path="/wilmington-nc/privacy-policy" component={PrivacyPolicyPage} />
+      <Route path="/wilmington-nc/terms-and-conditions" component={TermsPage} />
+      <Route path="/wilmington-nc/terms" component={TermsPage} />
       <Route path="/wilmington-nc/onboarding" component={Onboarding} />
       <Route path="/wilmington-nc/contact" component={Contact} />
       <Route path="/detail-shop/book" component={DetailShopAppointmentPage} />

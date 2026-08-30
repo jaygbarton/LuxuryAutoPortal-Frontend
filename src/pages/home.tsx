@@ -184,7 +184,7 @@ function ComingSoon({ location }: { location: PublicLocation }) {
               </Link>
             </div>
             <div className="mt-6 sm:mt-8">
-              <Link href="/">
+              <Link href="/choose-location">
                 <button
                   className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-5 text-sm font-bold transition-all sm:min-h-[48px] sm:px-6"
                   style={{ border: "1px solid rgba(232,184,48,0.45)", color: "#E8B830", background: "transparent" }}

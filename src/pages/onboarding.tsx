@@ -35,7 +35,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { buildApiUrl, buildUploadApiUrl } from "@/lib/queryClient";
-import { getPublicLocationFromPath, withLocationPath } from "@/lib/location-config";
+import { getPreferredPublicLocation, withLocationPath } from "@/lib/location-config";
 
 const onboardingSchema = z
   .object({
@@ -144,7 +144,7 @@ export default function Onboarding() {
   const { toast } = useToast();
   const { salesReps } = useSalesReps();
   const [currentPath] = useLocation();
-  const publicLocation = getPublicLocationFromPath(currentPath);
+  const publicLocation = getPreferredPublicLocation(currentPath);
   const suggestedCarsHref = withLocationPath("/suggested-cars", publicLocation);
 
   const form = useForm<OnboardingFormData, any, OnboardingFormData>({

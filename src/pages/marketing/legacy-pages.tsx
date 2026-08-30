@@ -28,7 +28,7 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SITE_CONTACT } from "@/lib/site-config";
-import { getPublicLocationFromPath } from "@/lib/location-config";
+import { getPreferredPublicLocation, withPreferredLocationPath } from "@/lib/location-config";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { RotatingGoogleReviews } from "@/components/reviews/rotating-google-reviews";
@@ -1144,6 +1144,8 @@ function SectionHeader({ eyebrow, title, description }: { eyebrow: string; title
 }
 
 function CtaLink({ href, children, className }: { href: string; children: ReactNode; className?: string }) {
+  const [location] = useLocation();
+
   if (href.startsWith("http")) {
     return (
       <a href={href} target="_blank" rel="noreferrer" className={className}>
@@ -1152,8 +1154,10 @@ function CtaLink({ href, children, className }: { href: string; children: ReactN
     );
   }
 
+  const routedHref = withPreferredLocationPath(href, location);
+
   return (
-    <Link href={href} className={className}>
+    <Link href={routedHref} className={className}>
       {children}
     </Link>
   );
@@ -2322,7 +2326,7 @@ export function PickupDropoffPage() {
 
 export function ExtrasPage() {
   const [pathname] = useLocation();
-  const location = getPublicLocationFromPath(pathname);
+  const location = getPreferredPublicLocation(pathname);
   const visibleExtras = location?.id === "wilmington"
     ? extras.filter((item) => item.name !== "Ski Racks")
     : extras;
