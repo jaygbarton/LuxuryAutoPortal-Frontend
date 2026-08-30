@@ -5,7 +5,7 @@ import { PUBLIC_LOCATIONS, type PublicLocation } from "@/lib/location-config";
 
 export function Hero({ location, mode = "location" }: { location?: PublicLocation; mode?: "hub" | "location" }) {
   const scrollToFleet = () => {
-    document.getElementById("featured-fleet")?.scrollIntoView({ behavior: "smooth" });
+    document.getElementById("business-split")?.scrollIntoView({ behavior: "smooth" });
   };
   const locations = [
     PUBLIC_LOCATIONS.slc,

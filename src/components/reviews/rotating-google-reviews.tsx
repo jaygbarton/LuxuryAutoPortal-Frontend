@@ -29,9 +29,10 @@ const recentGoogleReviews = [
 type RotatingGoogleReviewsProps = {
   className?: string;
   surface?: "dark" | "light";
+  compact?: boolean;
 };
 
-export function RotatingGoogleReviews({ className = "", surface = "dark" }: RotatingGoogleReviewsProps) {
+export function RotatingGoogleReviews({ className = "", surface = "dark", compact = false }: RotatingGoogleReviewsProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeReview = recentGoogleReviews[activeIndex];
   const isDark = surface === "dark";
@@ -52,13 +53,15 @@ export function RotatingGoogleReviews({ className = "", surface = "dark" }: Rota
 
   return (
     <section className={`overflow-hidden ${isDark ? "bg-[#050505] text-white" : "bg-background text-foreground"} ${className}`}>
-      <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
-        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${compact ? "py-5 sm:py-6 lg:py-7" : "py-14 lg:py-16"}`}>
+        <div className={`${compact ? "mb-4" : "mb-8"} flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between`}>
           <div>
             <p className="mb-3 text-xs font-bold uppercase tracking-[3px]" style={{ color: "#E8B830" }}>
               Recent Google Reviews
             </p>
-            <h2 className="font-serif text-3xl font-bold sm:text-4xl">What guests say after the trip</h2>
+            <h2 className={`font-serif font-bold ${compact ? "text-2xl sm:text-3xl" : "text-3xl sm:text-4xl"}`}>
+              What guests say after the trip
+            </h2>
           </div>
           <div className="flex gap-2">
             {recentGoogleReviews.map((item, index) => (
@@ -76,7 +79,7 @@ export function RotatingGoogleReviews({ className = "", surface = "dark" }: Rota
         </div>
 
         <article
-          className="rounded-[6px] border p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-2xl transition-all duration-500 sm:p-8 lg:p-10"
+          className={`rounded-[6px] border shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-2xl transition-all duration-500 ${compact ? "p-5 sm:p-6 lg:p-7" : "p-6 sm:p-8 lg:p-10"}`}
           style={{
             borderColor: isDark ? "rgba(255,255,255,0.28)" : "rgba(212,160,23,0.28)",
             background: isDark
@@ -84,7 +87,7 @@ export function RotatingGoogleReviews({ className = "", surface = "dark" }: Rota
               : "linear-gradient(135deg, rgba(255,255,255,0.82), rgba(255,255,255,0.58))",
           }}
         >
-          <div className="mb-5 flex items-center gap-1">
+          <div className={`${compact ? "mb-3" : "mb-5"} flex items-center gap-1`}>
             {Array.from({ length: 5 }).map((_, starIndex) => (
               <Star key={starIndex} className="h-5 w-5 fill-[#D4A017] text-[#D4A017]" />
             ))}
@@ -92,7 +95,7 @@ export function RotatingGoogleReviews({ className = "", surface = "dark" }: Rota
           <p className={`max-w-5xl ${quoteSize} ${isDark ? "text-white/88" : "text-foreground/82"}`}>
             "{activeReview.quote}"
           </p>
-          <div className={`mt-5 flex flex-wrap items-center gap-3 text-sm ${isDark ? "text-white/62" : "text-muted-foreground"}`}>
+          <div className={`${compact ? "mt-4" : "mt-5"} flex flex-wrap items-center gap-3 text-sm ${isDark ? "text-white/62" : "text-muted-foreground"}`}>
             <span className={isDark ? "font-bold text-white" : "font-bold text-foreground"}>{activeReview.name}</span>
             <span className="h-1 w-1 rounded-full bg-[#D4A017]" />
             <span>{activeReview.date}</span>

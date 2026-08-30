@@ -445,7 +445,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .public-page > section:not(:first-child),
+  .public-page > section:not(:first-child):not(.cinematic-scroll-section),
   .public-page > div,
   .public-page .reveal-on-scroll,
   .public-page article {
@@ -463,5 +463,11 @@
   .public-page .group:hover img {
     filter: saturate(1.08) contrast(1.04);
     transform: scale(1.035);
+  }
+
+  .public-page .cinematic-scroll-section,
+  .public-page .cinematic-scroll-section section,
+  .public-page .cinematic-scroll-section article {
+    animation: none;
   }
 }
