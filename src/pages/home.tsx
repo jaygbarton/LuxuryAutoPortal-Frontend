@@ -306,7 +306,7 @@ function AnimatedHomeSection({ children, className = "" }: { children: ReactNode
 function HeroServiceCinematic({ location }: { location: PublicLocation }) {
   return (
     <div className="cinematic-shell relative isolate text-white">
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/homepage-hero-escalade.jpg')" }}
