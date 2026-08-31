@@ -251,6 +251,7 @@ function Router() {
       <Route path="/sign-contract/:token" component={SignContract} />
       <Route path="/maintenance-approval/:token" component={MaintenanceApproval} />
       <Route path="/signup" component={Signup} />
+      <Route path="/login" component={AdminLogin} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/employee-form" component={EmployeeFormPage} />
