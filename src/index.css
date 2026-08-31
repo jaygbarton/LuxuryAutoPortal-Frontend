@@ -420,7 +420,7 @@
   }
 
   .public-page > section,
-  .public-page > div,
+  .public-page > div:not(.cinematic-shell),
   .public-page article,
   .public-page .card-motion {
     transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
@@ -446,7 +446,7 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .public-page > section:not(:first-child):not(.cinematic-scroll-section),
-  .public-page > div,
+  .public-page > div:not(.cinematic-shell),
   .public-page .reveal-on-scroll,
   .public-page article {
     animation: fade-in-up both;

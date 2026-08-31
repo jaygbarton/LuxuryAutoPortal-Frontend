@@ -33,7 +33,6 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
   const splitOpacity = useTransform(scrollYProgress, [0, 0.32, 0.48], [1, 1, 0]);
   const reviewOpacity = useTransform(scrollYProgress, [0.34, 0.5, 0.82, 0.94], [0, 1, 1, 0]);
   const contentOpacity = useTransform(scrollYProgress, [0, 0.08, 0.86, 1], [0.96, 1, 1, 0.96]);
-  const imageScale = useTransform(scrollYProgress, [0, 1], shouldReduceMotion ? [1, 1] : [1.02, 1.08]);
   const shadeOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [0.5, 0.32, 0.48]);
 
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
@@ -75,14 +74,9 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
     <section
       id="business-split"
       ref={sectionRef}
-      className="cinematic-scroll-section relative bg-cover bg-[center_58%] bg-no-repeat text-white lg:min-h-[285svh] lg:bg-fixed"
-      style={{ backgroundImage: "url('/homepage-hero-escalade.jpg')" }}
+      className="cinematic-scroll-section relative bg-transparent text-white lg:min-h-[285svh]"
     >
       <div className="relative overflow-hidden lg:hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/homepage-hero-escalade.jpg')" }}
-        />
         <div className="absolute inset-0 bg-[#050505]/72" />
         <div className="relative z-10 px-4 py-14">
           <div className="mb-8">
@@ -179,13 +173,6 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
         }`}
         style={{ pointerEvents: isSceneActive ? "auto" : "none" }}
       >
-        <motion.div
-          className="absolute inset-0 bg-cover bg-[center_58%] bg-no-repeat will-change-transform"
-          style={{
-            backgroundImage: "url('/homepage-hero-escalade.jpg')",
-            scale: imageScale,
-          }}
-        />
         <motion.div className="absolute inset-0 bg-[#050505]" style={{ opacity: shadeOpacity }} />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_74%_18%,rgba(232,184,48,0.2),transparent_28%),linear-gradient(180deg,rgba(5,5,5,0.06),rgba(5,5,5,0.78))]" />
 
@@ -314,6 +301,43 @@ function AnimatedHomeSection({ children, className = "" }: { children: ReactNode
   );
 }
 
+function HeroServiceCinematic({ location }: { location: PublicLocation }) {
+  const sceneRef = useRef<HTMLDivElement | null>(null);
+  const [showSceneImage, setShowSceneImage] = useState(true);
+  const { scrollYProgress } = useScroll({
+    target: sceneRef,
+    offset: ["start start", "end start"],
+  });
+
+  useMotionValueEvent(scrollYProgress, "change", (latest) => {
+    setShowSceneImage(latest < 0.82);
+  });
+
+  return (
+    <div ref={sceneRef} className="cinematic-shell relative isolate text-white">
+      {showSceneImage ? (
+        <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: "url('/homepage-hero-escalade.jpg')" }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(90deg, rgba(7,6,4,0.76) 0%, rgba(7,6,4,0.46) 42%, rgba(7,6,4,0.16) 100%), linear-gradient(180deg, rgba(7,6,4,0.24), rgba(7,6,4,0.58))",
+            }}
+          />
+        </div>
+      ) : null}
+      <div className="relative z-10">
+        <Hero location={location} showBackground={false} />
+        <ServiceSplitSection location={location} />
+      </div>
+    </div>
+  );
+}
+
 function LocationHub() {
   return (
     <div className="min-h-screen bg-background">
@@ -385,8 +409,7 @@ export default function Home({ location }: { location?: PublicLocation }) {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="public-page">
-        <Hero location={location} />
-        <ServiceSplitSection location={location} />
+        <HeroServiceCinematic location={location} />
         <AnimatedHomeSection>
           <FeaturedCars location={location} />
         </AnimatedHomeSection>
