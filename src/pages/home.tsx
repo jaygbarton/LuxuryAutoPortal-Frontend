@@ -270,13 +270,15 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
 
           <motion.div
             style={{ y: reviewY, opacity: reviewOpacity }}
-            className="absolute inset-x-4 bottom-8 will-change-transform sm:inset-x-6 lg:inset-x-8"
+            className="absolute inset-x-4 top-1/2 will-change-transform sm:inset-x-6 lg:inset-x-8"
           >
-            <div className="rounded-md border border-white/16 bg-[#070707]/76 shadow-[0_28px_100px_rgba(0,0,0,0.42)] backdrop-blur-xl">
-              <RotatingGoogleReviews surface="dark" className="bg-transparent" compact />
-            </div>
-            <div className="mt-5">
-              <SiteStatsStrip variant="dark" />
+            <div className="-translate-y-1/2">
+              <div className="rounded-md border border-white/16 bg-[#070707]/76 shadow-[0_28px_100px_rgba(0,0,0,0.42)] backdrop-blur-xl">
+                <RotatingGoogleReviews surface="dark" className="bg-transparent" compact />
+              </div>
+              <div className="mt-5">
+                <SiteStatsStrip variant="dark" />
+              </div>
             </div>
           </motion.div>
         </motion.div>
@@ -302,34 +304,21 @@ function AnimatedHomeSection({ children, className = "" }: { children: ReactNode
 }
 
 function HeroServiceCinematic({ location }: { location: PublicLocation }) {
-  const sceneRef = useRef<HTMLDivElement | null>(null);
-  const [showSceneImage, setShowSceneImage] = useState(true);
-  const { scrollYProgress } = useScroll({
-    target: sceneRef,
-    offset: ["start start", "end start"],
-  });
-
-  useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    setShowSceneImage(latest < 0.82);
-  });
-
   return (
-    <div ref={sceneRef} className="cinematic-shell relative isolate text-white">
-      {showSceneImage ? (
-        <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: "url('/homepage-hero-escalade.jpg')" }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(90deg, rgba(7,6,4,0.76) 0%, rgba(7,6,4,0.46) 42%, rgba(7,6,4,0.16) 100%), linear-gradient(180deg, rgba(7,6,4,0.24), rgba(7,6,4,0.58))",
-            }}
-          />
-        </div>
-      ) : null}
+    <div className="cinematic-shell relative isolate text-white">
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/homepage-hero-escalade.jpg')" }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(90deg, rgba(7,6,4,0.76) 0%, rgba(7,6,4,0.46) 42%, rgba(7,6,4,0.16) 100%), linear-gradient(180deg, rgba(7,6,4,0.24), rgba(7,6,4,0.58))",
+          }}
+        />
+      </div>
       <div className="relative z-10">
         <Hero location={location} showBackground={false} />
         <ServiceSplitSection location={location} />
