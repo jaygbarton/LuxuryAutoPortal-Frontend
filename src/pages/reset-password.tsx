@@ -10,6 +10,28 @@ import { buildApiUrl } from "@/lib/queryClient";
 import { Loader2, Lock, Eye, EyeOff, Mail, CheckCircle } from "lucide-react";
 import { checkPasswordStrength, getPasswordStrengthColor, getPasswordStrengthLabel } from "@/lib/password-strength";
 
+function buildPasswordResetApiUrl(path: string): string {
+  const url = buildApiUrl(path);
+  if (/^https?:\/\//i.test(url) || typeof window === "undefined") {
+    return url;
+  }
+
+  // Some mobile in-app browsers are picky about relative fetch URLs after
+  // opening a link from email. Use an explicit same-origin URL for this public
+  // password page so reset links work reliably from Gmail/Safari on iPhone.
+  return new URL(url, window.location.origin).toString();
+}
+
+async function parsePasswordResetResponse(response: Response) {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: text };
+  }
+}
+
 export default function ResetPasswordPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -18,7 +40,7 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     // Get token from URL query string
     const params = new URLSearchParams(window.location.search);
-    const tokenParam = params.get("token");
+    const tokenParam = params.get("token")?.trim() || null;
     setToken(tokenParam);
   }, []);
   
@@ -32,19 +54,19 @@ export default function ResetPasswordPage() {
   // Request password reset mutation
   const resetRequestMutation = useMutation({
     mutationFn: async (email: string) => {
-      const response = await fetch(buildApiUrl("/api/auth/reset-password-request"), {
+      const response = await fetch(buildPasswordResetApiUrl("/api/auth/reset-password-request"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include",
+        credentials: "omit",
         body: JSON.stringify({ email }),
       });
+      const data = await parsePasswordResetResponse(response);
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to send reset email");
+        throw new Error(data.error || "Failed to send reset email");
       }
-      return response.json();
+      return data;
     },
     onSuccess: () => {
       setResetRequestSent(true);
@@ -65,19 +87,19 @@ export default function ResetPasswordPage() {
   // Reset password with token mutation
   const resetPasswordMutation = useMutation({
     mutationFn: async (data: { token: string; newPassword: string }) => {
-      const response = await fetch(buildApiUrl("/api/auth/reset-password"), {
+      const response = await fetch(buildPasswordResetApiUrl("/api/auth/reset-password"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include",
-        body: JSON.stringify(data),
+        credentials: "omit",
+        body: JSON.stringify({ ...data, token: data.token.trim() }),
       });
+      const result = await parsePasswordResetResponse(response);
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to reset password");
+        throw new Error(result.error || "Failed to reset password");
       }
-      return response.json();
+      return result;
     },
     onSuccess: () => {
       toast({
@@ -369,4 +391,3 @@ export default function ResetPasswordPage() {
     </div>
   );
 }
-
