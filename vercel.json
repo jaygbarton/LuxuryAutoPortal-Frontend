@@ -28,6 +28,26 @@
   ],
   "rewrites": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://gla-v1.vercel.app/"
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://gla-v1.vercel.app/:path*"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://luxuryautoportal-replit-1.onrender.com/api/:path*"
     },
