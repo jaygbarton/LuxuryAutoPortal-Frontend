@@ -1766,90 +1766,254 @@ type LegalSection = {
 
 const privacySections: LegalSection[] = [
   {
-    title: "1. Information We Collect",
+    title: "",
     body: [
-      "Golden Luxury Auto may collect information you provide through this website, including your name, email address, phone number, rental questions, vehicle owner details, job application information, uploaded documents, and any message or form content you choose to submit.",
-      "When you use the website, basic technical information may also be collected automatically, including device type, browser type, pages visited, referral source, approximate location derived from technical data, and similar website analytics information.",
+      "At Golden Luxury Auto, Corp., through our subsidiaries, including Golden Luxury Rentals, Golden Luxury Car Rentals, (collectively referred to as \"Golden Luxury Auto,\" \"we,\" \"our,\" or \"us\"), we value your privacy. This privacy policy (\"Privacy Policy\") explains how we collect, use, and protect personal information that we gather from and about our customers through our websites, mobile apps, online booking tools, rental and sales locations, and third-party sources. By using our websites or mobile apps, you agree to the collection, use, and disclosure of your information as described in this policy.",
+      "To determine who the data controller is for your personal data, please refer to the Data Controllers and Contact Details by Country section.",
+      "Due to the nature of our operations, we may share your reservation and booking information with independent franchisees or licensees (\"Licensees\"). These Licensees operate independently from Golden Luxury Auto and may have their own privacy policies governing the rental data you provide to them. We encourage you to review the privacy policy of the Licensee involved in your transaction.",
     ],
   },
   {
-    title: "2. How We Use Information",
+    title: "Information We Collect",
+    body: ["Information You Provide"],
+  },
+  {
+    title: "",
     body: [
-      "We use submitted information to respond to inquiries, review rental requests, evaluate vehicle management opportunities, process job applications, schedule appointments, provide customer service, operate the business, improve the website, and protect Golden Luxury Auto, guests, vehicle owners, applicants, and staff.",
-      "We may contact you by phone, text message, email, or other reasonable communication methods based on the information you provide and the nature of your request.",
+      "When engaging in transactions with us, using our websites, or visiting our locations, you may be asked to provide certain personal information. While you may choose not to provide certain information, this could limit your ability to access some services or products. The personal information we collect includes, but is not limited to:",
+      "Your name, contact information, driver's license number and expiration date, emergency contact details, and date of birth.",
+      "Vehicle rental information, such as rental locations, rental dates, and preferences.",
+      "Credit card details, rewards program details, online account information, membership or corporate ID numbers, passport information, and frequent flyer or travel partner affiliations.",
+      "Marketing preferences, survey responses, or participation in promotional offers.",
+      "Photos submitted of yourself, your driver's license, or receipts through our websites or mobile apps.",
+      "Financial information required for vehicle purchases or leases from a Car Sales or Fleet Management location in the United States. (Additional notices will be provided at the time of transaction.)",
+      "Additional contact information obtained from third-party partners (e.g., travel agents or lead providers).",
+      "With your consent, we may access location data from your mobile device or IP address to provide services or notifications. If you no longer wish to share this data, you can adjust your device settings to disable location services. Similarly, if you have permitted access to your device's camera for uploading photos, you can revoke that access through your device settings.",
+      "In certain areas of our sites, you may enter your friend's name and contact information for purposes such as sending an email invitation. Before providing such information, ensure you have your friend's consent. Information you provide will not be used for further marketing unless your friend requests services.",
     ],
   },
   {
-    title: "3. Documents And Uploads",
+    title: "Information Collected Automatically",
     body: [
-      "Documents uploaded through employment, owner, or operations forms may include resumes, driver's licenses, insurance documents, vehicle information, photos, or other supporting materials.",
-      "Uploaded files are used for review, verification, hiring, rental, vehicle management, operational, insurance, or compliance purposes. Access is limited to team members, service providers, or advisors who need the information for legitimate business purposes.",
+      "When visiting our websites, certain data may be automatically provided by your computer. This includes:",
+      "Your domain name or IP address.",
+      "Browser type, operating system, internet service provider (ISP), referring and exit pages, and date and time stamps.",
+      "For mobile devices: device brand, model, operating system, and carrier.",
+      "We may combine non-personal information collected automatically with personal information you provide, helping us to tailor the website experience to your preferences and interests.",
     ],
   },
   {
-    title: "4. Sharing And Disclosure",
+    title: "Cookies & Pixel Tracking",
     body: [
-      "We do not sell personal information. We may share information with service providers, booking platforms, payment processors, software vendors, insurance providers, legal or professional advisors, operations partners, or government authorities when necessary to provide service, operate the business, protect rights and property, or comply with applicable law.",
-      "Third-party platforms may maintain their own privacy policies and terms. Golden Luxury Auto is not responsible for the independent practices of third-party websites or platforms.",
+      "Golden Luxury Auto and its partners use cookies, pixel tags, HTML 5 storage, and similar technologies across our websites and promotional emails. These tools allow us to monitor site usage, enhance your user experience, optimize advertisements, and measure the effectiveness of marketing efforts. While our websites do not currently respond to \"Do Not Track\" browser requests, there are other methods for managing cookies and tracking. Learn more about managing privacy settings for Flash cookies and other online tracking technologies on our Online Tracking and Advertising page.",
     ],
   },
   {
-    title: "5. Security And Retention",
+    title: "Vehicle Operation & Location Data",
     body: [
-      "We use reasonable administrative, technical, and operational safeguards designed to protect submitted information. No website, file upload, email, or electronic storage method can be guaranteed completely secure.",
-      "We retain information for as long as reasonably needed for business, legal, tax, insurance, hiring, operational, dispute-resolution, and compliance purposes, unless a longer retention period is required or permitted by law.",
+      "Golden Luxury Auto vehicles may be equipped with telematics systems such as OnStar, which can provide location data, crash notifications, vehicle diagnostics, and more. The terms of use and privacy policies for these telematics systems are set by the provider or manufacturer (e.g., OnStar's terms at onstar.com). Use of the telematics system during rentals is subject to these terms.",
     ],
   },
   {
-    title: "6. Your Choices And Contact",
+    title: "Children's Privacy",
     body: [
-      "You may contact us to request review, correction, or deletion of information you submitted, subject to legal, operational, insurance, fraud-prevention, and recordkeeping requirements.",
-      `Questions about this Privacy Policy can be sent to ${SITE_CONTACT.emails[0]} or ${SITE_CONTACT.phone}.`,
+      "Our websites and online marketing are not intended for individuals under 18 years old. Golden Luxury Auto does not knowingly collect personal data from minors. If you believe we have unintentionally collected personal data from a minor, please notify us at privacy@goldenluxuryauto.com.",
+    ],
+  },
+  {
+    title: "How We Use the Information",
+    body: [
+      "We use the information we collect to:",
+      "Facilitate transactions, such as vehicle reservations and rentals.",
+      "Verify your ID for certain services (e.g., Instant CarShare).",
+      "Service your account, respond to inquiries, and contact you when necessary.",
+      "Offer promotions, discounts, and information that may interest you (via third-party sites and social media).",
+      "Enhance our products and services, including through surveys, evaluations, and website improvements.",
+      "Compile usage statistics to improve customer service and site functionality.",
+      "Protect our rights and property.",
+      "We may combine information you provide with data related to your transactions or data from third parties to provide better services and optimize your experience.",
+      "We retain the data collected for a commercially reasonable period, after which it may be used for statistical, marketing, or analytical purposes.",
+    ],
+  },
+  {
+    title: "How Your Information May Be Shared",
+    body: [
+      "We may share your personal data with subsidiaries or affiliates to complete your transactions and for marketing purposes. Golden Luxury Auto may also share vehicle telematics data with emergency service providers, telematics operators, or other parties as required by law or contractual obligations.",
+      "Other instances in which we may disclose your information include:",
+      "To comply with legal requirements or law enforcement requests.",
+      "To protect the rights and safety of the public or Golden Luxury Auto.",
+      "For business purposes such as data analysis or transaction processing.",
+      "With third-party service providers (e.g., payment processors, email providers).",
+      "In the event of a business transfer, merger, or reorganization.",
+      "If personal data is transferred during a business transaction, the parties involved must agree to limit the data's use to purposes related to the transaction. We will notify you of any ownership changes via email or a website notice.",
+    ],
+  },
+  {
+    title: "Your Choices Regarding Your Information",
+    body: [
+      "Our websites provide options for managing the collection and use of your personal data. You may choose to opt-in or opt-out of receiving marketing communications, and you may adjust your privacy settings as needed.",
+      "If you would like to opt-out of third-party advertising or email marketing, follow the instructions provided in each communication or adjust your privacy settings accordingly.",
+    ],
+  },
+  {
+    title: "Testimonials and Linked Sites",
+    body: [
+      "We may display customer testimonials or reviews on our websites. With your consent, we may include personally identifiable information. If you wish to have a testimonial removed, please contact us using the information provided below.",
+      "Our websites may link to external sites that have different privacy practices. Golden Luxury Auto is not responsible for the content or privacy policies of these third-party sites.",
+    ],
+  },
+  {
+    title: "Data Security and Integrity",
+    body: [
+      "We prioritize the security of your personal data and utilize encryption technology, such as Secure Sockets Layer (SSL), for sensitive transactions. However, no data transmission over the internet is completely secure. We take reasonable steps to protect the data we collect, but we cannot guarantee complete security.",
+      "If you have a username and password for any of our site features, you are responsible for maintaining the confidentiality of your password. Be cautious when using public or shared computers.",
+    ],
+  },
+  {
+    title: "Global Data Transfers and Processing",
+    body: [
+      "Your data may be transferred to or processed in countries outside of your residence, including the United States. By using our websites or apps, you consent to the international transfer of your data. Privacy laws in other countries may offer different levels of protection than in your home country.",
+    ],
+  },
+  {
+    title: "Changes to This Privacy Policy",
+    body: [
+      "We may update this Privacy Policy to reflect changes in our data practices. If significant changes are made, we will notify you via email or through a website notice before the changes take effect. We encourage you to review this page periodically for the latest information.",
+    ],
+  },
+  {
+    title: "Contact Us",
+    body: [
+      "If you have any questions or concerns about this Privacy Policy, please contact us at:",
+      "Golden Luxury Auto, Inc.",
+      "5 South 500 West, Salt Lake City, Utah 84101",
+      "Email: privacy@goldenluxuryauto.com",
     ],
   },
 ];
 
 const termsSections: LegalSection[] = [
   {
-    title: "1. Acceptance Of Terms",
+    title: "Introduction",
     body: [
-      "By accessing or using this website, submitting a form, uploading documents, or contacting Golden Luxury Auto through the website, you agree to these Terms and Conditions.",
-      "If you do not agree, do not use the website or submit information through it.",
+      "Golden Luxury Auto, Inc. (\"Golden Luxury Auto,\" \"We,\" or \"Us\") offers this website (\"Site\") and mobile application (\"App\") for your personal use, subject to the following Terms of Use and applicable laws. Please review these Terms carefully. By accessing or utilizing the Site or App, you acknowledge and accept these Terms, including the binding arbitration clause. If you do not agree with these Terms, do not use the Site or App.",
+      "Golden Luxury Auto reserves the right to update or modify these Terms at any time. Please revisit this page regularly to stay informed of any changes. Continued usage of the Site or App after modifications are posted means you accept those changes. The \"Last Updated\" date at the top of this page indicates the most recent update. Any modifications are effective immediately upon posting and apply to all future access or use of the Site or App.",
     ],
   },
   {
-    title: "2. Website Information",
+    title: "Permitted Use of the Site or App",
     body: [
-      "This website provides general information about Golden Luxury Auto rentals, vehicle management, detailing, extras, careers, contact options, and related services.",
-      "Availability, pricing, vehicle listings, offers, job openings, policies, and operational details may change without notice. Website content is not a binding offer unless confirmed in writing by Golden Luxury Auto or through an applicable booking platform.",
+      "Golden Luxury Auto provides the Site and App strictly for personal, non-commercial purposes. Any other use requires prior written consent from us. You are prohibited from:",
+      "Using the Site or App for commercial purposes, such as reproducing or distributing content.",
+      "Interfering with the use of the Site or App by others.",
+      "Disrupting or disabling the Site or App or interfering with the servers or networks connected to it.",
+      "Violating the intellectual property rights of Golden Luxury Auto.",
+      "Framing, co-branding, or deep-linking any part of the Site or App without prior permission.",
+      "Using the Site or App for illegal activities.",
+      "We reserve the right to limit, suspend, or terminate your access to the Site or App at our sole discretion, with or without notice, and without liability. We may also report your activities to your Internet service provider or pursue legal remedies if necessary.",
     ],
   },
   {
-    title: "3. Bookings And Third-Party Platforms",
+    title: "Modifications to the Site or App",
     body: [
-      "Some vehicle bookings, guest eligibility requirements, trip modifications, fees, protection plans, cancellations, payments, disputes, and platform rules may be controlled by third-party platforms such as Turo or other service providers.",
-      "When a third-party platform is used, that platform's terms, policies, fees, rules, and decisions may apply in addition to any Golden Luxury Auto policies.",
+      "We retain the right to change, suspend, or discontinue any part of the Site or App at any time, without notice and without liability to you or any third party. We may also impose limitations on certain features or services at our discretion.",
     ],
   },
   {
-    title: "4. Forms, Applications, And Uploads",
+    title: "Privacy",
     body: [
-      "By submitting a form or application, you confirm that the information is accurate, current, and submitted by you or with proper authorization. Golden Luxury Auto may contact you about the request, application, vehicle, rental, service inquiry, or related business purpose.",
-      "Only submit documents you are authorized to provide. Uploaded files must not contain malicious code, false information, misleading content, or documents belonging to another person without permission.",
+      "Your use of the Site or App is governed by our Privacy Policy. Any information collected on the Site or App is subject to the terms outlined in that policy.",
     ],
   },
   {
-    title: "5. No Guarantee",
+    title: "Third-Party Links",
     body: [
-      "Submitting an inquiry, job application, owner request, vehicle management request, or service request does not guarantee approval, employment, rental availability, pricing, financing, acceptance into a program, or any specific business outcome.",
-      "Golden Luxury Auto may decline requests or applications at its discretion, subject to applicable law.",
+      "The Site or App may include links to third-party websites or apps. Golden Luxury Auto does not control and is not responsible for the content, privacy practices, or terms of these third-party websites or apps. The inclusion of any third-party link does not signify our endorsement of the site or app.",
     ],
   },
   {
-    title: "6. Limitation Of Liability And Contact",
+    title: "Reservations and Transactions",
     body: [
-      "To the fullest extent permitted by law, Golden Luxury Auto is not liable for indirect, incidental, consequential, special, exemplary, or punitive damages arising from website use, third-party platforms, unavailable vehicles, interrupted service, errors, or user-submitted information.",
-      `Questions about these Terms and Conditions can be sent to ${SITE_CONTACT.emails[0]} or ${SITE_CONTACT.phone}.`,
+      "All reservations and transactions made via the Site or App are subject to Golden Luxury Auto's approval. We reserve the right, at our discretion, to refuse or cancel any reservation or transaction for any reason, with or without notice and without liability to you or any third party. All rental contracts are finalized at branch locations and are not formed via the Site or App.",
+    ],
+  },
+  {
+    title: "Electronic Communications",
+    body: [
+      "By accessing the Site or App, you consent to receive electronic communications from Golden Luxury Auto, including notices and agreements. These communications satisfy any legal requirement that communications be in writing.",
+    ],
+  },
+  {
+    title: "Intellectual Property",
+    body: [
+      "All content on the Site or App, including text, images, and software, is owned by Golden Luxury Auto and is protected by copyright laws. You may download or print a copy for personal, non-commercial use only, provided all copyright and proprietary notices are retained. Any other use requires our prior written consent.",
+      "Golden Luxury Auto owns various trademarks and service marks. Unauthorized use of these marks is prohibited. Any other trademarks appearing on the Site or App are the property of their respective owners.",
+      "Golden Luxury Auto has pending patent applications covering features of the Site and App. Copying or using any features of the Site or App without permission may result in patent infringement.",
+    ],
+  },
+  {
+    title: "Copyright Infringement Claims",
+    body: [
+      "If you believe your copyrighted material has been used on the Site or App without your authorization, please contact our Intellectual Property Manager at:",
+      "Golden Luxury Auto",
+      "5 South 500 West,SLC, Utah 84101",
+      "info@goldenluxuryauto.com",
+      "Include the following details in your notice:",
+      "Your physical or electronic signature.",
+      "A description of the copyrighted material.",
+      "A description of the material on the Site or App you believe infringes your copyright.",
+      "Your contact information (address, phone number, and email).",
+      "A statement that you have a good faith belief that the use of the material is unauthorized.",
+      "A statement under penalty of perjury that the information provided is accurate and you are the copyright holder or authorized to act on behalf of the copyright holder.",
+    ],
+  },
+  {
+    title: "Use of Submitted Information",
+    body: [
+      "Any comments, ideas, or information you submit through the Site or App may be used by Golden Luxury Auto without compensation or acknowledgment, for any purpose, including development and marketing of products or services.",
+    ],
+  },
+  {
+    title: "No Warranties",
+    body: [
+      "While we strive to ensure accuracy, the Site and App are provided \"as is\" and \"as available,\" without warranties of any kind. Golden Luxury Auto does not guarantee that the Site or App will be free from errors or uninterrupted. Your use of the Site or App is at your own risk.",
+    ],
+  },
+  {
+    title: "Limitation of Liability",
+    body: [
+      "Golden Luxury Auto, along with its affiliates, officers, and employees, is not liable for any damages resulting from your use of, or inability to use, the Site or App. This includes, but is not limited to, indirect or consequential damages. This limitation does not apply to residents of New Jersey, where we are liable only for negligent actions.",
+    ],
+  },
+  {
+    title: "Indemnification",
+    body: [
+      "You agree to indemnify and hold harmless Golden Luxury Auto, its affiliates, and their employees from any claims, damages, or liabilities arising from your use of the Site or App or violation of these Terms.",
+    ],
+  },
+  {
+    title: "Binding Arbitration",
+    body: [
+      "Any disputes relating to your use of the Site or App, except intellectual property claims, must be resolved through binding arbitration under the rules of JAMS. Arbitration will take place in a convenient location for you. Class actions are not permitted.",
+      "By agreeing to arbitration, you waive your right to a jury trial and limit your ability to appeal.",
+    ],
+  },
+  {
+    title: "Governing Law and Disputes",
+    body: [
+      "These Terms are governed by the laws of Utah. Any legal actions related to these Terms or your use of the Site or App must be filed in courts located in Utah unless subject to arbitration. Claims must be made within one year of the event giving rise to the claim, except for residents of New Jersey.",
+    ],
+  },
+  {
+    title: "General Provisions",
+    body: [
+      "If any provision of these Terms is found to be unenforceable, the remainder of the Terms will remain in effect. These Terms, along with our Privacy Policy, constitute the entire agreement between you and Golden Luxury Auto concerning your use of the Site or App.",
+    ],
+  },
+  {
+    title: "Contact Information",
+    body: [
+      "If you have questions or concerns about these Terms, please contact us at Golden Luxury Auto.",
     ],
   },
 ];
@@ -1864,18 +2028,14 @@ function LegalPage({ page, sections }: { page: "privacy-policy" | "terms-and-con
           <div className="border-b border-border pb-6">
             <p className="text-sm font-semibold uppercase tracking-widest text-primary">Golden Luxury Auto</p>
             <h2 className="mt-3 font-serif text-3xl font-light text-foreground sm:text-4xl">{title}</h2>
-            <p className="mt-3 text-sm text-muted-foreground">Last updated: August 10, 2026</p>
-            <p className="mt-5 text-sm leading-7 text-muted-foreground">
-              This document is intended to state the website policy and terms for Golden Luxury Auto in a formal, readable format. It should be reviewed by legal counsel for final jurisdiction-specific compliance.
-            </p>
           </div>
           <div className="mt-8 grid gap-8">
           {sections.map((section) => (
-            <section key={section.title}>
+            <section key={`${section.title}-${section.body[0]}`}>
               <div className="flex items-start gap-3">
-                <ShieldCheck className="h-5 w-5 text-primary" />
+                {section.title ? <ShieldCheck className="h-5 w-5 text-primary" /> : <span className="h-5 w-5 shrink-0" />}
                 <div>
-                  <h3 className="text-xl font-semibold text-foreground">{section.title}</h3>
+                  {section.title ? <h3 className="text-xl font-semibold text-foreground">{section.title}</h3> : null}
                   <div className="mt-3 space-y-3 text-sm leading-7 text-muted-foreground">
                     {section.body.map((paragraph) => (
                       <p key={paragraph}>{paragraph}</p>
