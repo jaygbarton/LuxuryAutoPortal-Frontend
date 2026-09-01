@@ -202,6 +202,21 @@ export interface CarServiceDue {
   windshield_service_date_id: number | null;
   mechanic_service_date_id: number | null;
   license_registration_service_date_id: number | null;
+  /** I&E cell (year, month) backing each last-serviced date — the receipt
+   *  date may fall in a different month, so the Service Due editor must
+   *  write back to this cell rather than the displayed date's month. */
+  oil_change_year: number | null;
+  oil_change_month: number | null;
+  tires_year: number | null;
+  tires_month: number | null;
+  brakes_year: number | null;
+  brakes_month: number | null;
+  windshield_year: number | null;
+  windshield_month: number | null;
+  mechanic_year: number | null;
+  mechanic_month: number | null;
+  license_registration_year: number | null;
+  license_registration_month: number | null;
 }
 
 export interface MaintenanceRecord {

@@ -176,10 +176,9 @@ export default function ModalEditCOGS() {
             </div>
           </div>
 
-          {/* Day-level service date, captured at the point the amount is
-              entered. The cell itself is keyed by month only, so without this
-              Operations > Service Due can only ever date this expense to the
-              1st — which is why its dates read as inaccurate. */}
+          {/* Day-level service date from the receipt. This is what
+              Operations > Service Due uses as Last [Type] and to calculate
+              the next due date — it may fall outside this cell's month. */}
           <ServiceDateEditor
             carId={carId}
             year={parseInt(year)}

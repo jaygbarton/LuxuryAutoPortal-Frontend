@@ -4,19 +4,27 @@ import { buildApiUrl } from "@/lib/queryClient";
 
 /**
  * Records the real day a COGS expense was incurred — the date printed on the
- * receipt.
+ * receipt. That day is what Operations > Service Due shows as Last Windshield /
+ * Last Oil Change / etc., and what it uses to calculate the next due date.
  *
- * Why this exists: car_cogs_expenses is keyed by (car, year, month) with no
- * day, so Operations > Service Due could only ever date a service to the 1st
- * of its month — a mechanic visit whose receipt reads 04/08/2026 showed as
- * 04/01/2026. Saving the date here makes that report exact. Clearing it falls
- * back to the month.
+ * The I&E cell is keyed by (car, year, month) only, so the receipt date is
+ * stored separately and may fall in a different month than the cell (expense
+ * booked in March, work done in August). Clearing the date falls back to the
+ * cell's month.
  *
  * Shared by the receipt viewer and the COGS cell editor: entering the amount
- * and entering the date it happened are the same moment of work, and when the
- * date lived only behind the receipt viewer nobody filled it in (the table had
- * zero rows fleet-wide, so every Service Due date still read as the 1st).
+ * and entering the date it happened are the same moment of work.
  */
+
+const SERVICE_DUE_COLUMN: Record<string, string> = {
+  oilLube: "Last Oil Change",
+  tires: "Last Tires",
+  brakes: "Last Brakes",
+  windshield: "Last Windshield",
+  mechanic: "Last Mechanic",
+  licenseRegistration: "Last License & Reg.",
+};
+
 export default function ServiceDateEditor({
   carId,
   year,
@@ -34,11 +42,7 @@ export default function ServiceDateEditor({
   const [loaded, setLoaded] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [msg, setMsg] = React.useState<{ ok: boolean; text: string } | null>(null);
-
-  // The <input type="date"> must be constrained to this cell's month — the
-  // backend rejects anything outside it, so don't let the user pick it at all.
-  const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
-  const monthEnd = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+  const dueLabel = SERVICE_DUE_COLUMN[field];
 
   React.useEffect(() => {
     let cancelled = false;
@@ -101,8 +105,6 @@ export default function ServiceDateEditor({
           className="h-8 rounded-md border border-input bg-card px-2 text-sm"
           defaultValue={value}
           key={value}
-          min={monthStart}
-          max={monthEnd}
           disabled={!loaded || saving}
           onChange={(e) => {
             const next = e.target.value;
@@ -131,8 +133,9 @@ export default function ServiceDateEditor({
         {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
       </div>
       <p className="mt-1 text-[11px] text-muted-foreground">
-        The date printed on the receipt. Used by Operations &gt; Service Due —
-        without it that report can only date this expense to the 1st of the month.
+        {dueLabel
+          ? `The date printed on the receipt — the actual service date. Operations > Service Due uses this as ${dueLabel} and to calculate the next due date. It does not have to match this month.`
+          : "The date printed on the receipt — the actual service date. Used by Operations > Service Due. It does not have to match this month."}
       </p>
       {msg && (
         <p className={`mt-1 text-[11px] ${msg.ok ? "text-green-600" : "text-red-600"}`}>

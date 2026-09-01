@@ -45,6 +45,15 @@ const SERVICE_KIND_FIELD: Record<ServiceKind, string> = {
   license_registration: "licenseRegistration",
 };
 
+const SERVICE_KIND_LAST_LABEL: Record<ServiceKind, string> = {
+  oil_change: "Last Oil Change",
+  tires: "Last Tires",
+  brakes: "Last Brakes",
+  windshield: "Last Windshield",
+  mechanic: "Last Mechanic",
+  license_registration: "Last License & Reg.",
+};
+
 // Staleness thresholds (days) per service type. Anything past DUE reads amber;
 // past OVERDUE reads red; never-serviced always reads red. Brakes/windshield/
 // mechanic/license wear much slower than oil/tires, so they get longer
@@ -109,6 +118,16 @@ function formatDate(iso: string | null): string {
   }
 }
 
+/** Last-serviced + interval → the next Service Due date. Anchored at noon UTC
+ *  so the calendar day does not slip when rendered in US timezones. */
+function dueDateIso(iso: string, days: number): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + days, 12),
+  ).toISOString();
+}
+
 function staleness(days: number | null, kind: ServiceKind): "red" | "amber" | "green" {
   if (days == null) return "red";
   const t = THRESHOLDS[kind];
@@ -148,13 +167,14 @@ function ServiceCellEditPopover({
   date,
   category,
   entityId,
+  cellYear,
+  cellMonth,
   onSaved,
 }: {
   carId: number;
-  /** The resolved ISO date this cell currently shows — its own year/month IS
-   *  the underlying car_cogs_expenses cell's (year, month), since
-   *  getLastCogsServiceDates never lets a receipt/service-date sharpen a date
-   *  across a month boundary. */
+  /** The resolved ISO date this cell currently shows (the receipt / service
+   *  date). May fall outside the I&E cell's month — write back using
+   *  cellYear/cellMonth, not this date's own month. */
   date: string;
   category: ServiceKind;
   /** income_expense_service_dates.id for this cell, if an explicit override
@@ -162,16 +182,17 @@ function ServiceCellEditPopover({
    *  report is still falling back to the recorded COGS month (no override
    *  row yet), in which case there's no history to show. */
   entityId: number | null;
+  /** I&E cell this date is stored on. */
+  cellYear: number | null;
+  cellMonth: number | null;
   onSaved: () => void;
 }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const d = new Date(date);
-  const year = d.getUTCFullYear();
-  const month = d.getUTCMonth() + 1;
-  const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
-  const monthEnd = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+  const year = cellYear ?? d.getUTCFullYear();
+  const month = cellMonth ?? d.getUTCMonth() + 1;
   const [value, setValue] = useState(date.slice(0, 10));
 
   const save = async (next: string) => {
@@ -220,14 +241,12 @@ function ServiceCellEditPopover({
           <Input
             type="date"
             value={value}
-            min={monthStart}
-            max={monthEnd}
             disabled={saving}
             onChange={(e) => setValue(e.target.value)}
             className="h-8"
           />
           <p className="text-[11px] text-muted-foreground">
-            Must fall within {monthStart.slice(0, 7)} — this cell's recorded month.
+            Date printed on the receipt. This is {SERVICE_KIND_LAST_LABEL[category]} and the date used to calculate Service Due.
           </p>
         </div>
         <div className="flex items-center justify-between gap-2">
@@ -258,6 +277,8 @@ function ServiceCell({
   days,
   kind,
   serviceDateId,
+  cellYear,
+  cellMonth,
   onSaved,
 }: {
   carId: number;
@@ -267,14 +288,23 @@ function ServiceCell({
   /** income_expense_service_dates.id, when an explicit override exists for
    *  this cell (see CarServiceDue's per-category *_service_date_id fields). */
   serviceDateId: number | null;
+  cellYear: number | null;
+  cellMonth: number | null;
   onSaved: () => void;
 }) {
   const level = staleness(days, kind);
+  const due = date ? dueDateIso(date, THRESHOLDS[kind].due) : null;
+  const badge =
+    days == null
+      ? "Never serviced"
+      : days < 0
+        ? `In ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"}`
+        : `${days} day${days === 1 ? "" : "s"} ago`;
   return (
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center gap-1.5">
         <span className={`inline-flex w-fit items-center rounded border px-1.5 py-0.5 text-xs font-medium ${STALE_CLASSES[level]}`}>
-          {days == null ? "Never serviced" : `${days} day${days === 1 ? "" : "s"} ago`}
+          {badge}
         </span>
         {date && (
           <ServiceCellEditPopover
@@ -282,11 +312,20 @@ function ServiceCell({
             date={date}
             category={kind}
             entityId={serviceDateId}
+            cellYear={cellYear}
+            cellMonth={cellMonth}
             onSaved={onSaved}
           />
         )}
       </div>
-      <span className="text-xs text-muted-foreground">{formatDate(date)}</span>
+      {date && (
+        <>
+          <span className="text-xs text-muted-foreground">Last {formatDate(date)}</span>
+          {due && (
+            <span className="text-xs text-muted-foreground">Due {formatDate(due)}</span>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -484,7 +523,7 @@ export function ServiceDueTab() {
       <div className="flex items-center justify-between">
         <SectionHeader
           title="Service Due"
-          subtitle="Last serviced per car, from Income & Expenses records — sorted with the most overdue first."
+          subtitle="Last serviced per car from Income & Expenses receipt dates, with the next Service Due date calculated from each interval — sorted with the most overdue first."
           variant="plain"
           className="mb-0"
         />
@@ -617,22 +656,22 @@ export function ServiceDueTab() {
                     <TableCell className="text-muted-foreground">{r.car_plate || "--"}</TableCell>
                     <TableCell className="text-muted-foreground font-mono text-xs">{r.car_vin || "--"}</TableCell>
                     <TableCell>
-                      <ServiceCell carId={r.car_id} date={r.last_oil_change} days={r.days_since_oil_change} kind="oil_change" serviceDateId={r.oil_change_service_date_id} onSaved={onSaved} />
+                      <ServiceCell carId={r.car_id} date={r.last_oil_change} days={r.days_since_oil_change} kind="oil_change" serviceDateId={r.oil_change_service_date_id} cellYear={r.oil_change_year} cellMonth={r.oil_change_month} onSaved={onSaved} />
                     </TableCell>
                     <TableCell>
-                      <ServiceCell carId={r.car_id} date={r.last_tires} days={r.days_since_tires} kind="tires" serviceDateId={r.tires_service_date_id} onSaved={onSaved} />
+                      <ServiceCell carId={r.car_id} date={r.last_tires} days={r.days_since_tires} kind="tires" serviceDateId={r.tires_service_date_id} cellYear={r.tires_year} cellMonth={r.tires_month} onSaved={onSaved} />
                     </TableCell>
                     <TableCell>
-                      <ServiceCell carId={r.car_id} date={r.last_brakes} days={r.days_since_brakes} kind="brakes" serviceDateId={r.brakes_service_date_id} onSaved={onSaved} />
+                      <ServiceCell carId={r.car_id} date={r.last_brakes} days={r.days_since_brakes} kind="brakes" serviceDateId={r.brakes_service_date_id} cellYear={r.brakes_year} cellMonth={r.brakes_month} onSaved={onSaved} />
                     </TableCell>
                     <TableCell>
-                      <ServiceCell carId={r.car_id} date={r.last_windshield} days={r.days_since_windshield} kind="windshield" serviceDateId={r.windshield_service_date_id} onSaved={onSaved} />
+                      <ServiceCell carId={r.car_id} date={r.last_windshield} days={r.days_since_windshield} kind="windshield" serviceDateId={r.windshield_service_date_id} cellYear={r.windshield_year} cellMonth={r.windshield_month} onSaved={onSaved} />
                     </TableCell>
                     <TableCell>
-                      <ServiceCell carId={r.car_id} date={r.last_mechanic} days={r.days_since_mechanic} kind="mechanic" serviceDateId={r.mechanic_service_date_id} onSaved={onSaved} />
+                      <ServiceCell carId={r.car_id} date={r.last_mechanic} days={r.days_since_mechanic} kind="mechanic" serviceDateId={r.mechanic_service_date_id} cellYear={r.mechanic_year} cellMonth={r.mechanic_month} onSaved={onSaved} />
                     </TableCell>
                     <TableCell>
-                      <ServiceCell carId={r.car_id} date={r.last_license_registration} days={r.days_since_license_registration} kind="license_registration" serviceDateId={r.license_registration_service_date_id} onSaved={onSaved} />
+                      <ServiceCell carId={r.car_id} date={r.last_license_registration} days={r.days_since_license_registration} kind="license_registration" serviceDateId={r.license_registration_service_date_id} cellYear={r.license_registration_year} cellMonth={r.license_registration_month} onSaved={onSaved} />
                     </TableCell>
                     <TableCell>
                       <RegistrationCell carId={r.car_id} date={r.registration_expiration} daysUntil={r.days_until_registration_expiration} onSaved={onSaved} />
