@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical, LayoutList, Rows3, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical, LayoutList, Rows3, Plus, Trash2, CheckCircle } from "lucide-react";
 import { PhotoUpload } from "./PhotoUpload";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarScheduleImage } from "./CarScheduleImage";
@@ -50,6 +50,9 @@ interface DayEvent {
   photos: string[] | null;
   car_photo: string | null;
   duration_minutes: number | null;
+  scheduled_day?: string | null;
+  completed_day?: string | null;
+  is_carryover?: boolean;
   driver_assignment_type?: "employee" | "uber" | "na" | null;
   driver_assigned_to?: string | null;
   driver_assigned_to_id?: number | null;
@@ -162,6 +165,7 @@ function formatDisplayDate(iso: string): string {
 
 /** "YYYY-MM-DD" -> "Aug/10/2026", for the compact date+time shown on each task card. */
 function formatDateCompact(iso: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "—";
   const [y, m, d] = iso.split("-").map(Number);
   const month = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, d)));
   return `${month}/${String(d).padStart(2, "0")}/${y}`;
@@ -257,7 +261,7 @@ function EventCard({
    *  alongside its time so the date is clear without depending on the page's
    *  date-nav header staying in view (e.g. after scrolling). */
   date: string;
-  onStatusChange: (type: DayEventType, id: number, status: string) => void;
+  onStatusChange: (type: DayEventType, id: number, status: string, completedDate?: string) => void;
   /** Show the assigned employee's name on the card itself. Used by the flat
    *  Timeline view, which (unlike the Employee view) has no per-employee
    *  header to convey who a task belongs to. */
@@ -282,7 +286,10 @@ function EventCard({
   const canEditDriver = DRIVER_EDITABLE_TYPES.includes(event.type);
   const [driverModeDraft, setDriverModeDraft] = useState<"employee" | "uber" | "na" | "">("");
   const [showAlreadyCleanBy, setShowAlreadyCleanBy] = useState(false);
+  const [completionDate, setCompletionDate] = useState(event.completed_day || date);
   const driverMode = driverModeDraft || event.driver_assignment_type || "";
+  const showCompletionDatePicker = !!event.is_carryover && statusOptions && event.status !== "completed";
+  const showActualCompletedDate = !!event.completed_day && event.completed_day !== (event.scheduled_day ?? date);
 
   return (
     <div
@@ -319,7 +326,7 @@ function EventCard({
                 <span onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
                   <Select
                     value={event.status ?? "new"}
-                    onValueChange={(val) => onStatusChange(event.type, event.id, val)}
+                    onValueChange={(val) => onStatusChange(event.type, event.id, val, val === "completed" ? completionDate : undefined)}
                   >
                     <SelectTrigger className={`h-8 min-w-[7rem] cursor-pointer gap-1 rounded border px-2 py-0 text-[11px] sm:h-5 sm:min-w-0 sm:w-auto sm:px-1.5 sm:text-[10px] ${badgeClass}`}>
                       <SelectValue />
@@ -482,6 +489,41 @@ function EventCard({
             )}
           </div>
         )}
+        {(event.is_carryover || showActualCompletedDate) && (
+          <div
+            className="flex flex-wrap items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-950"
+            onClick={(e) => e.stopPropagation()}
+            onDragStart={(e) => e.stopPropagation()}
+          >
+            <span className="font-medium">Supposed:</span>
+            <span>{formatDateCompact(event.scheduled_day ?? date)}</span>
+            {showCompletionDatePicker ? (
+              <>
+                <span className="font-medium">Actually done:</span>
+                <input
+                  type="date"
+                  value={completionDate}
+                  onChange={(e) => e.target.value && setCompletionDate(e.target.value)}
+                  className="h-7 rounded border border-amber-300 bg-white px-1.5 text-[11px] text-foreground"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-7 gap-1 bg-green-700 px-2 text-[11px] text-white hover:bg-green-800"
+                  onClick={() => onStatusChange(event.type, event.id, "completed", completionDate)}
+                >
+                  <CheckCircle className="h-3 w-3" />
+                  Complete
+                </Button>
+              </>
+            ) : showActualCompletedDate ? (
+              <>
+                <span className="font-medium">Done:</span>
+                <span>{formatDateCompact(event.completed_day!)}</span>
+              </>
+            ) : null}
+          </div>
+        )}
         {showAssignee && (
           <div className="flex items-center gap-1 text-xs text-foreground">
             <User className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
@@ -615,7 +657,7 @@ function EmployeeSection({
   events: DayEvent[];
   date: string;
   onAssign: (payload: DragPayload, employeeId: number, fullname: string) => void;
-  onStatusChange: (type: DayEventType, id: number, status: string) => void;
+  onStatusChange: (type: DayEventType, id: number, status: string, completedDate?: string) => void;
   onAssignEvent: (event: DayEvent, employeeId: number, fullname: string) => void;
   onUnassignEvent: (event: DayEvent) => void;
   onDurationChange: (event: DayEvent, minutes: number | null) => void;
@@ -747,6 +789,17 @@ function UnassignedCard({
         {event.extras && (
           <div className="animate-pulse inline-flex items-center gap-1 font-medium text-amber-900 bg-amber-300 rounded px-1.5 py-0.5 w-fit">
             <span className="font-semibold">Extras:</span> {event.extras}
+          </div>
+        )}
+        {(event.is_carryover || (event.completed_day && event.completed_day !== (event.scheduled_day ?? ""))) && (
+          <div className="rounded border border-amber-200 bg-amber-50 px-1.5 py-1 text-[11px] text-amber-950">
+            <span className="font-medium">Supposed:</span> {formatDateCompact(event.scheduled_day ?? "")}
+            {event.completed_day && (
+              <>
+                <span className="mx-1">·</span>
+                <span className="font-medium">Done:</span> {formatDateCompact(event.completed_day)}
+              </>
+            )}
           </div>
         )}
         {(event.trip_start_mt || event.trip_end_mt) && (
@@ -1000,14 +1053,14 @@ export function DayScheduleTab() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: async ({ type, id, status }: { type: DayEventType; id: number; status: string }) => {
+    mutationFn: async ({ type, id, status, completedDate }: { type: DayEventType; id: number; status: string; completedDate?: string }) => {
       const endpoint = statusEndpointFor(type, id);
       if (!endpoint) throw new Error("Cannot update status for this event type");
       const res = await fetch(buildApiUrl(endpoint.url), {
         method: endpoint.method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, ...(completedDate ? { completedDate } : {}) }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -1021,8 +1074,8 @@ export function DayScheduleTab() {
     onError: (e: Error) => toast({ variant: "destructive", title: "Couldn't update status", description: e.message }),
   });
 
-  function handleStatusChange(type: DayEventType, id: number, status: string) {
-    statusMutation.mutate({ type, id, status });
+  function handleStatusChange(type: DayEventType, id: number, status: string, completedDate?: string) {
+    statusMutation.mutate({ type, id, status, completedDate });
   }
 
   const deleteMutation = useMutation({

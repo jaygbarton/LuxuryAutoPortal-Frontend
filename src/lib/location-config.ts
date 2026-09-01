@@ -97,6 +97,8 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
   },
 };
 
+const SELECTED_PUBLIC_LOCATION_KEY = "gla:selected-public-location";
+
 export function getPublicLocationFromPath(pathname: string): PublicLocation | null {
   if (pathname.startsWith(PUBLIC_LOCATIONS.charleston.path)) return PUBLIC_LOCATIONS.charleston;
   if (pathname.startsWith(PUBLIC_LOCATIONS.myrtle.path)) return PUBLIC_LOCATIONS.myrtle;
@@ -105,11 +107,32 @@ export function getPublicLocationFromPath(pathname: string): PublicLocation | nu
   return null;
 }
 
+export function getSavedPublicLocation(): PublicLocation | null {
+  if (typeof window === "undefined") return null;
+  const id = window.localStorage.getItem(SELECTED_PUBLIC_LOCATION_KEY) as Exclude<PublicLocationId, "hub"> | null;
+  return id && id in PUBLIC_LOCATIONS ? PUBLIC_LOCATIONS[id] : null;
+}
+
+export function rememberPublicLocationFromPath(pathname: string): void {
+  if (typeof window === "undefined") return;
+  const location = getPublicLocationFromPath(pathname);
+  if (location) window.localStorage.setItem(SELECTED_PUBLIC_LOCATION_KEY, location.id);
+}
+
+export function getPreferredPublicLocation(pathname: string): PublicLocation | null {
+  if (pathname === "/choose-location") return null;
+  return getPublicLocationFromPath(pathname) ?? getSavedPublicLocation() ?? PUBLIC_LOCATIONS.slc;
+}
+
 export function withLocationPath(href: string, location: PublicLocation | null): string {
   if (!location || href.startsWith("http") || href.startsWith("#")) return href;
   if (href === "/") return location.path;
   if (href.startsWith(location.path)) return href;
   return `${location.path}${href}`;
+}
+
+export function withPreferredLocationPath(href: string, pathname: string): string {
+  return withLocationPath(href, getPreferredPublicLocation(pathname));
 }
 
 export function fleetCarBelongsToLocation(

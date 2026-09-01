@@ -2,7 +2,51 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "redirects": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://goldenluxuryauto.com/salt-lake-city",
+      "permanent": false
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://goldenluxuryauto.com/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://gla-v1.vercel.app/"
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://gla-v1.vercel.app/:path*"
+    },
     {
       "source": "/api/:path*",
       "destination": "https://luxuryautoportal-replit-1.onrender.com/api/:path*"

@@ -197,6 +197,7 @@
 
   html {
     overflow-x: hidden;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -204,8 +205,18 @@
     /* stylelint-disable-next-line at-rule-no-unknown */
     @apply font-sans antialiased bg-background text-foreground;
     overflow-x: hidden;
+    overflow-y: auto;
     min-height: 100dvh;
     min-height: 100vh;
+    overscroll-behavior-y: auto;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+    touch-action: pan-x pan-y;
+  }
+
+  #root {
+    min-height: 100dvh;
+    width: 100%;
   }
 
   img,
@@ -221,6 +232,15 @@
   select,
   button {
     max-width: 100%;
+  }
+
+  .native-app-shell body {
+    background: hsl(var(--background));
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .native-app-shell main {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
   }
 
   /* Override browser autofill dark backgrounds - ROOT FIX for inputs turning black */
@@ -400,7 +420,7 @@
   }
 
   .public-page > section,
-  .public-page > div,
+  .public-page > div:not(.cinematic-shell),
   .public-page article,
   .public-page .card-motion {
     transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
@@ -425,8 +445,8 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .public-page > section:not(:first-child),
-  .public-page > div,
+  .public-page > section:not(:first-child):not(.cinematic-scroll-section),
+  .public-page > div:not(.cinematic-shell),
   .public-page .reveal-on-scroll,
   .public-page article {
     animation: fade-in-up both;
@@ -443,5 +463,11 @@
   .public-page .group:hover img {
     filter: saturate(1.08) contrast(1.04);
     transform: scale(1.035);
+  }
+
+  .public-page .cinematic-scroll-section,
+  .public-page .cinematic-scroll-section section,
+  .public-page .cinematic-scroll-section article {
+    animation: none;
   }
 }

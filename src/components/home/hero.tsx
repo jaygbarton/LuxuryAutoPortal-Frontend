@@ -3,9 +3,17 @@ import { ArrowRight, ChevronDown, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PUBLIC_LOCATIONS, type PublicLocation } from "@/lib/location-config";
 
-export function Hero({ location, mode = "location" }: { location?: PublicLocation; mode?: "hub" | "location" }) {
+export function Hero({
+  location,
+  mode = "location",
+  showBackground = true,
+}: {
+  location?: PublicLocation;
+  mode?: "hub" | "location";
+  showBackground?: boolean;
+}) {
   const scrollToFleet = () => {
-    document.getElementById("featured-fleet")?.scrollIntoView({ behavior: "smooth" });
+    document.getElementById("business-split")?.scrollIntoView({ behavior: "smooth" });
   };
   const locations = [
     PUBLIC_LOCATIONS.slc,
@@ -16,20 +24,22 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
 
   return (
     <section className="relative flex min-h-[100svh] items-center justify-center overflow-hidden">
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `url('/homepage-hero-escalade.jpg')`,
-        }}
-      >
+      {showBackground ? (
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            background:
-              "linear-gradient(90deg, rgba(7,6,4,0.76) 0%, rgba(7,6,4,0.46) 42%, rgba(7,6,4,0.16) 100%), linear-gradient(180deg, rgba(7,6,4,0.24), rgba(7,6,4,0.58))",
+            backgroundImage: `url('/homepage-hero-escalade.jpg')`,
           }}
-        />
-      </div>
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(90deg, rgba(7,6,4,0.76) 0%, rgba(7,6,4,0.46) 42%, rgba(7,6,4,0.16) 100%), linear-gradient(180deg, rgba(7,6,4,0.24), rgba(7,6,4,0.58))",
+            }}
+          />
+        </div>
+      ) : null}
 
       <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-12 pt-24 text-left sm:px-6 sm:pb-16 sm:pt-28 lg:px-8 lg:pt-24">
         <div
@@ -114,7 +124,7 @@ export function Hero({ location, mode = "location" }: { location?: PublicLocatio
           </div>
         ) : location ? (
           <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
-            <Link href="/">
+            <Link href="/choose-location">
             <Button
               size="lg"
               className="min-w-[180px] group font-bold"

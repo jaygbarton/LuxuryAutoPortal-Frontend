@@ -93,7 +93,7 @@ export function VehicleOwnerInfo({
               {/* Clear, labeled action buttons (replacing the previous bare
                   icons that didn't read as clickable). Same destinations. */}
               <div className="flex flex-wrap gap-2 pt-2">
-                <a href="https://app.goldenluxuryauto.com/admin/car-block-off" target="_blank" rel="noopener noreferrer">
+                <a href="https://goldenluxuryauto.com/admin/car-block-off" target="_blank" rel="noopener noreferrer">
                   <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80 transition-colors">
                     <CalendarPlus className="w-3.5 h-3.5" />
                     Book Your Car

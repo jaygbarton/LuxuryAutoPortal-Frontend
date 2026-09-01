@@ -71,7 +71,7 @@ export function GlaContactCard() {
             <Globe className="w-5 h-5 text-foreground flex-shrink-0 mt-0.5" />
             <a href="/"
               className="text-sm text-foreground hover:underline hover:text-[#d3bc8d]">
-              app.goldenluxuryauto.com
+              goldenluxuryauto.com
             </a>
           </div>
           <div className="flex items-start gap-3">

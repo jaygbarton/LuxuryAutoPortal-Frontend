@@ -16,7 +16,7 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
  *   VITE_API_URL if set so devs and preview deploys can point at a
  *   different backend.
  *
- * Background: when this project moved to the custom app.goldenluxuryauto.com
+ * Background: when this project moved to the custom goldenluxuryauto.com
  * domain, an old VITE_API_URL=https://luxuryautoportal-replit-1.onrender.com
  * setting on Vercel started routing every API call cross-origin. The session
  * cookie scope became luxuryautoportal-replit-1.onrender.com and the browser

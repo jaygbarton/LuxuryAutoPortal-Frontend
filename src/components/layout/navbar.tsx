@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle, Navigation, ChevronDown, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getPublicLocationFromPath, withLocationPath } from "@/lib/location-config";
+import { getPreferredPublicLocation, withLocationPath } from "@/lib/location-config";
 import { UserAccountMenu } from "@/components/layout/user-account-menu";
 
 const navLinks = [
@@ -24,7 +24,7 @@ export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isPagesOpen, setIsPagesOpen] = useState(false);
   const [location] = useLocation();
-  const publicLocation = getPublicLocationFromPath(location);
+  const publicLocation = getPreferredPublicLocation(location);
   const links = navLinks.filter((link) => {
     if (!publicLocation) return link.href === "/" || link.href === "/contact";
     if (publicLocation.comingSoon) return link.href === "/";

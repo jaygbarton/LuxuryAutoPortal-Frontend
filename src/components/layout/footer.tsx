@@ -4,7 +4,7 @@ import { Mail, Phone, MapPin, Clock, Facebook, Instagram, Linkedin } from "lucid
 import { FaGoogle, FaPinterestP, FaYoutube } from "react-icons/fa";
 import { SITE_CONTACT, SITE_TAGLINE, LEGAL_LINKS, SOCIAL_LINKS } from "@/lib/site-config";
 import { SiteStatsStrip } from "@/components/layout/site-stats-strip";
-import { getPublicLocationFromPath, withLocationPath } from "@/lib/location-config";
+import { getPreferredPublicLocation, withLocationPath } from "@/lib/location-config";
 
 const quickLinks = [
   { href: "/fleet", label: "Our Fleet" },
@@ -40,7 +40,7 @@ const socialIconFor = (social: { name: string; href: string }) => {
 
 export function Footer() {
   const [location] = useLocation();
-  const publicLocation = getPublicLocationFromPath(location);
+  const publicLocation = getPreferredPublicLocation(location);
   const links = quickLinks.filter((link) => {
     if (!publicLocation) return link.href === "/contact";
     if (publicLocation.comingSoon) return false;
@@ -219,7 +219,7 @@ export function Footer() {
             {legalLinks.map((link) => (
               <Link
                 key={link.href}
-                href={link.href}
+                href={withLocationPath(link.href, publicLocation)}
                 className="text-xs transition-colors"
                 style={{ color: "#808080" }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = "#C49000"; }}

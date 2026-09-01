@@ -28,7 +28,7 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SITE_CONTACT } from "@/lib/site-config";
-import { getPublicLocationFromPath } from "@/lib/location-config";
+import { getPreferredPublicLocation, withPreferredLocationPath } from "@/lib/location-config";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { RotatingGoogleReviews } from "@/components/reviews/rotating-google-reviews";
@@ -72,6 +72,8 @@ type Extra = {
 
 type SuggestedCarPartner = {
   name: string;
+  contactName: string;
+  contactRole: string;
   imageUrl: string;
   websiteHref: string;
 };
@@ -486,62 +488,86 @@ const deals: Deal[] = [
 const suggestedCarPartners: SuggestedCarPartner[] = [
   {
     name: "Performance Ford Bountiful",
-    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/3-1-768x439.png",
+    contactName: "Dustin Warner",
+    contactRole: "Sales",
+    imageUrl: "/partner-images/performance-ford-bountiful.png",
     websiteHref: "https://www.performancefordbountiful.com",
   },
   {
     name: "Audi Salt Lake City",
-    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Barry-Robertson-768x439.png",
+    contactName: "Barry Robertson",
+    contactRole: "Sales",
+    imageUrl: "/partner-images/barry-robertson.png",
     websiteHref: "https://www.audisaltlakecity.com",
   },
   {
     name: "BMW of Murray",
-    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Jeffery-Simena-768x439.png",
+    contactName: "Jeffery Simena",
+    contactRole: "Sales",
+    imageUrl: "/partner-images/jeffery-simena.png",
     websiteHref: "https://www.bmwofmurray.com/",
   },
   {
-    name: "Jerry Seiner Nissan Salt Lake",
-    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Ashley-768x439.png",
+    name: "Jerry Seiner Buick GMC",
+    contactName: "Ashley",
+    contactRole: "Leo Sales Manager",
+    imageUrl: "/partner-images/ashley.png",
     websiteHref: "https://www.seinernsl.com/",
   },
   {
     name: "Jerry Seiner Cadillac",
-    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Chris--768x439.png",
+    contactName: "Chris",
+    contactRole: "Sales",
+    imageUrl: "/partner-images/chris.png",
     websiteHref: "https://www.jerryseinercadillac.com/",
   },
   {
     name: "Toyota Bountiful",
-    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Thomas-Honton-1-768x439.png",
+    contactName: "Thomas Honton",
+    contactRole: "Sales",
+    imageUrl: "/partner-images/thomas-honton.png",
     websiteHref: "https://www.toyotabountiful.com",
   },
   {
     name: "Lexus of Murray",
-    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Johnny-Dee-768x439.png",
+    contactName: "Johnny Dee",
+    contactRole: "Sales",
+    imageUrl: "/partner-images/johnny-dee.png",
     websiteHref: "https://www.lexusofmurray.com/",
   },
   {
     name: "Larry H. Miller Chevrolet",
-    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Donovan-Marrit-768x439.png",
+    contactName: "Donovan Marrit",
+    contactRole: "Sales",
+    imageUrl: "/partner-images/donovan-marrit.png",
     websiteHref: "https://www.larryhmillerchevrolet.com/",
   },
   {
     name: "Tim Dahle INFINITI",
-    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Suzie-768x439.png",
+    contactName: "Suzie",
+    contactRole: "Sales",
+    imageUrl: "/partner-images/suzie.png",
     websiteHref: "https://www.timdahleinfiniti.com/",
   },
   {
     name: "Land Rover Lehi",
-    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/Bradley-768x439.png",
+    contactName: "Bradley",
+    contactRole: "Sales",
+    imageUrl: "/partner-images/bradley.png",
     websiteHref: "https://www.landroverlehi.com/",
   },
   {
-    name: "Land Rover Lehi",
-    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2025/12/11-768x439.png",
-    websiteHref: "https://www.landroverlehi.com/",
+    name: "Mark Miller Subaru Midtown",
+    contactName: "Cassidy Follis",
+    contactRole: "Product Specialist",
+    imageUrl: "/partner-images/land-rover-lehi-2.png",
+    websiteHref: "https://www.markmillersubarumidtowne.com/",
   },
   {
     name: "Salt Lake Valley Chrysler Dodge Jeep Ram",
-    imageUrl: "https://goldenluxuryauto.com/wp-content/uploads/2026/01/Charles-Ziska-768x439.png",
+    contactName: "Charles Ziska",
+    contactRole: "Sales",
+    imageUrl: "/partner-images/charles-ziska.png",
     websiteHref: "https://www.saltlakevalleychryslerdodgeramjeep.com/",
   },
 ];
@@ -1118,6 +1144,8 @@ function SectionHeader({ eyebrow, title, description }: { eyebrow: string; title
 }
 
 function CtaLink({ href, children, className }: { href: string; children: ReactNode; className?: string }) {
+  const [location] = useLocation();
+
   if (href.startsWith("http")) {
     return (
       <a href={href} target="_blank" rel="noreferrer" className={className}>
@@ -1126,8 +1154,10 @@ function CtaLink({ href, children, className }: { href: string; children: ReactN
     );
   }
 
+  const routedHref = withPreferredLocationPath(href, location);
+
   return (
-    <Link href={href} className={className}>
+    <Link href={routedHref} className={className}>
       {children}
     </Link>
   );
@@ -1892,9 +1922,11 @@ export function SuggestedCarsPage() {
                   />
                 </div>
                 <div className="flex flex-1 flex-col p-5">
-                  <h3 className="text-lg font-semibold text-foreground">{partner.name}</h3>
+                  <h3 className="text-lg font-semibold text-foreground">{partner.contactName}</h3>
+                  <p className="mt-1 text-sm font-medium text-[#8c1d18]">{partner.contactRole}</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{partner.name}</p>
                   <p className="mt-3 flex-1 text-sm leading-6 text-muted-foreground">
-                    Ask about vehicles that may qualify for the Golden Luxury Auto program.
+                    Ask {partner.contactName} about vehicles that may qualify for the Golden Luxury Auto program.
                   </p>
                   <a href={partner.websiteHref} target="_blank" rel="noreferrer" className="mt-5">
                     <Button className="w-full">
@@ -2294,7 +2326,7 @@ export function PickupDropoffPage() {
 
 export function ExtrasPage() {
   const [pathname] = useLocation();
-  const location = getPublicLocationFromPath(pathname);
+  const location = getPreferredPublicLocation(pathname);
   const visibleExtras = location?.id === "wilmington"
     ? extras.filter((item) => item.name !== "Ski Racks")
     : extras;
