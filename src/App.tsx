@@ -339,7 +339,8 @@ function Router() {
               <RequireRole roles={["isClient"]}><ClientTripCalendarPage /></RequireRole>
             </Route>
             <Route path="/client/maintenance-history">
-              <RequireRole roles={["isClient"]}><ClientMaintenanceHistoryPage /></RequireRole>
+              {/* Hidden from clients for now — keep the page for admins who have a bookmark. */}
+              <RequireRole roles={["isAdmin"]}><ClientMaintenanceHistoryPage /></RequireRole>
             </Route>
             <Route path="/client/offboarding-form">
               <RequireRole roles={["isClient"]}><ClientOffboardingFormPage /></RequireRole>
@@ -412,7 +413,7 @@ function Router() {
               <RequireRole roles={["isAdmin", "isClient"]}><PaymentCalculatorPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/maintenance">
-              <RequireRole roles={["isAdmin", "isClient"]}><MaintenancePage /></RequireRole>
+              <RequireRole roles={["isAdmin"]}><MaintenancePage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/totals">
               <RequireRole roles={["isAdmin", "isClient"]}><TotalsPage /></RequireRole>

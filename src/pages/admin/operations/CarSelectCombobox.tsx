@@ -70,9 +70,10 @@ export function CarSelectCombobox({ value, onChange, onSelectCar, disabled }: Ca
     : "";
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          type="button"
           variant="outline"
           role="combobox"
           aria-expanded={open}

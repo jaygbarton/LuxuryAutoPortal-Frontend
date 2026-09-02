@@ -198,9 +198,11 @@ export default function ViewCarPage() {
     { label: "Payment history", path: `/admin/cars/${carId}/payments` },
   ];
 
-  // Hide "Income and Expense" for clients
+  // Hide "Income and Expense" and Maintenance for clients.
   const menuItems = isClient
-    ? allMenuItems.filter(item => item.label !== "Income and Expense")
+    ? allMenuItems.filter(
+        (item) => item.label !== "Income and Expense" && item.label !== "Maintenance",
+      )
     : allMenuItems;
 
   const handleMenuItemClick = (item: MenuItem) => {

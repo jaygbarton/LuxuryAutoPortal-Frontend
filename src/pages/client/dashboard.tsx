@@ -16,7 +16,6 @@ import {
   FileText,
   History,
   Loader2,
-  Wrench,
   BarChart3,
   CreditCard,
   Globe,
@@ -42,7 +41,6 @@ import type {
   QuickLink,
   TotalsData,
   NadaDepreciation,
-  MaintenanceRecord,
   MonthlyTripRow,
   MonthlyDaysTripsRow,
   YearTotals,
@@ -58,7 +56,6 @@ import { IncomeExpensesCharts } from "./_components/IncomeExpensesCharts";
 import { DonutCharts } from "./_components/DonutCharts";
 import { NadaChart } from "./_components/NadaChart";
 import { PaymentHistoryCard } from "./_components/PaymentHistoryCard";
-import { MaintenanceCard } from "./_components/MaintenanceCard";
 import { ReportCenter } from "./_components/ReportCenter";
 import { SupportCenter } from "./_components/SupportCenter";
 
@@ -254,31 +251,6 @@ export default function ClientDashboard() {
     refetchOnWindowFocus: false,
   });
 
-  const { data: maintenanceTasksData } = useQuery<{
-    success: boolean;
-    data: Array<{
-      id: number;
-      car_id: number | null;
-      task_description: string | null;
-      scheduled_date: string | null;
-      due_date: string | null;
-      status: string | null;
-    }>;
-  }>({
-    queryKey: ["/api/operations/maintenance", carId],
-    queryFn: async () => {
-      if (!carId) return { success: false, data: [] };
-      const res = await fetch(
-        buildApiUrl(`/api/operations/maintenance?carId=${carId}&limit=100`),
-        { credentials: "include" },
-      );
-      if (!res.ok) return { success: false, data: [] };
-      return res.json();
-    },
-    enabled: !!carId,
-    retry: false,
-  });
-
   // ── Derived Data ──────────────────────────────────────────────────────────────
 
   const payments = useMemo<Payment[]>(() => {
@@ -306,28 +278,6 @@ export default function ClientDashboard() {
   const histMonthsTrips = ieCarDataTrips?.data?.history ?? [];
 
   const nadaRecords: NadaDepreciation[] = nadaData?.data ?? [];
-
-  const maintenanceRecords = useMemo<MaintenanceRecord[]>(() => {
-    if (!activeCar) return [];
-    // Only show REAL maintenance — actual records from the operations
-    // Maintenance tab (maintenance_tasks) for this car. We intentionally do NOT
-    // synthesize rows from car onboarding fields (last oil change / registration
-    // expiration): the registration date is an EXPIRATION, not a completed
-    // maintenance, so showing it under "Date Completed" was misleading.
-    const records: MaintenanceRecord[] = [];
-    const tasks = maintenanceTasksData?.data ?? [];
-    for (const t of tasks) {
-      if (carId != null && t.car_id !== carId) continue;
-      records.push({
-        maintenanceType: t.task_description ?? "Maintenance Task",
-        dateCompleted: t.scheduled_date ?? t.due_date ?? undefined,
-        scheduledDate: t.scheduled_date ?? undefined,
-        dueDate: t.due_date ?? undefined,
-        status: t.status ?? undefined,
-      });
-    }
-    return records;
-  }, [activeCar, maintenanceTasksData, carId]);
 
   const yearNum = parseInt(selectedYear, 10);
   const yearNumTrips = parseInt(selectedYearTrips, 10);
@@ -497,7 +447,6 @@ export default function ClientDashboard() {
     { href: carHref("totals"),         icon: BarChart3,    label: "Totals" },
 
     { href: carHref("graphs"),         icon: TrendingUp,   label: "Graphs and Charts Report" },
-    { href: carHref("maintenance"),    icon: Wrench,       label: "Maintenance" },
     { href: carHref("depreciation"),   icon: TrendingDown, label: "NADA Depreciation Schedule" },
 
     { href: carHref("payments"),       icon: CreditCard,   label: "Payment History" },
@@ -668,16 +617,12 @@ export default function ClientDashboard() {
           />
         </div>
 
-        {/* Row B: NADA chart (left) | Maintenance (right) — same top edge */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+        {/* Row B: NADA chart. Maintenance is hidden from clients for now. */}
+        <div className="grid grid-cols-1 gap-6 items-start">
           <NadaChart
             nadaRecords={nadaRecords}
             yearNum={yearNum}
             isLoading={nadaLoading}
-          />
-          <MaintenanceCard
-            maintenanceRecords={maintenanceRecords}
-            activeCar={activeCar}
           />
         </div>
 

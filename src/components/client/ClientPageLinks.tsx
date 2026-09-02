@@ -35,7 +35,6 @@ import {
   TrendingUp,
   UserPlus,
   Video,
-  Wrench,
 } from "lucide-react";
 import { ReportCenter } from "@/pages/client/_components/ReportCenter";
 import { SupportCenter } from "@/pages/client/_components/SupportCenter";
@@ -90,17 +89,16 @@ export function ClientPageLinks() {
   // Kept in sync with src/pages/client/dashboard.tsx — same order, same URLs.
   //
   //   Row 1: Earnings | History | Totals
-  //   Row 2: Graphs and Charts Report | Maintenance | NADA Depreciation Schedule
+  //   Row 2: Graphs and Charts Report | NADA Depreciation Schedule
   //   Row 3: Payment History
   //   Row 4: Vehicle Trip History | Driving Behavior
+  // Maintenance links are hidden from clients for now.
   const reportLinks = [
     { href: carPath("earnings"),       icon: DollarSign,   label: "Earnings" },
     { href: "/client/trip-history",    icon: History,      label: "History" },
     { href: carPath("totals"),         icon: BarChart3,    label: "Totals" },
 
     { href: carPath("graphs"),         icon: TrendingUp,   label: "Graphs and Charts Report" },
-    { href: carPath("maintenance"),    icon: Wrench,       label: "Maintenance" },
-    { href: "/client/maintenance-history", icon: Wrench,   label: "Maintenance History" },
     { href: carPath("depreciation"),   icon: TrendingDown, label: "NADA Depreciation Schedule" },
 
     { href: carPath("payments"),       icon: CreditCard,   label: "Payment History" },
