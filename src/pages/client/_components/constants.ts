@@ -3,6 +3,8 @@ export const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "A
 export const CHART_GOLD  = "#D3BC8D";
 export const CHART_GOLD2 = "#D9D9D9";
 export const CHART_RED   = "#D9D9D9";
+/** Dark line for Car Owner Profit so it stays distinct from gold income and grey expenses. */
+export const CHART_PROFIT = "#111111";
 export const PIE_DONUT_COLORS = ["#D3BC8D", "#D9D9D9"];
 
 export const CARD_BG_BLACK   = "#000000";

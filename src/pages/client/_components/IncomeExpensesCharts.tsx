@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  CHART_GOLD, CHART_GOLD2, CHART_RED,
+  CHART_GOLD, CHART_GOLD2, CHART_RED, CHART_PROFIT,
   CHART_TOOLTIP_STYLE, CHART_LEGEND_STYLE, CHART_AXIS_TICK, CHART_GRID_COLOR,
 } from "./constants";
 import { fmt } from "./utils";
@@ -53,7 +53,7 @@ export function IncomeExpensesCharts({
                 <Tooltip contentStyle={CHART_TOOLTIP_STYLE} labelStyle={{ color: "#eee", fontWeight: 600 }} formatter={(val: number, name: string) => [fmt(val), name]} />
                 <Legend wrapperStyle={CHART_LEGEND_STYLE} iconType="line" />
                 <Line type="linear" dataKey="income"   name="Car Owner Rental Income" stroke={CHART_GOLD}  strokeWidth={2} dot={{ r: 3, fill: CHART_GOLD }}  activeDot={{ r: 5 }} />
-                <Line type="linear" dataKey="profit"   name="Car Owner Profit"        stroke={CHART_GOLD2} strokeWidth={2} dot={{ r: 3, fill: CHART_GOLD2 }} activeDot={{ r: 5 }} />
+                <Line type="linear" dataKey="profit"   name="Car Owner Profit"        stroke={CHART_PROFIT} strokeWidth={2} dot={{ r: 3, fill: CHART_PROFIT }} activeDot={{ r: 5 }} />
                 <Line type="linear" dataKey="expenses" name="Car Owner Expenses"      stroke={CHART_RED}   strokeWidth={2} dot={{ r: 3, fill: CHART_RED }}   activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
