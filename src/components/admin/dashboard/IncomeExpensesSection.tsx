@@ -30,7 +30,6 @@ import { cn } from "@/lib/utils";
 import type {
   IncomeExpenseData,
   IncomeExpenseMonth,
-  FormulaSetting,
 } from "@/pages/admin/income-expenses/types";
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -65,14 +64,6 @@ function grossRentalIncome(m: IncomeExpenseMonth): number {
     m.insuranceWreckIncome +
     m.otherIncome
   );
-}
-
-function managementIncome(gross: number, fs: FormulaSetting): number {
-  return gross * (fs.carManagementSplitPercent / 100);
-}
-
-function carOwnerIncome(gross: number, fs: FormulaSetting): number {
-  return gross * (fs.carOwnerSplitPercent / 100);
 }
 
 // Pre-computed fields from aggregated API (per-car splits summed on backend)
@@ -113,18 +104,12 @@ interface DonutChartProps {
   formatValue?: (v: number) => string;
 }
 
-// Light = larger share, Dark = smaller share. Per-slice color is decided
-// from the value's rank, not the array order, to match the design.
 const DONUT_COLOR_LIGHT = "#D3BC8D";
 const DONUT_COLOR_DARK = "#D9D9D9";
 
 function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
   const total = data.reduce((s, d) => s + d.value, 0);
   const maxValue = Math.max(...data.map((d) => d.value), 0);
-
-  // When every value is 0 the real data sums to 0 and Recharts draws nothing.
-  // Feed the Pie a single placeholder slice so it renders an empty grey ring
-  // (no value label) instead of disappearing. Legend still shows the 0.0%s.
   const isEmpty = total <= 0;
   const pieData = isEmpty ? [{ name: "__empty__", value: 1 }] : data;
 
@@ -328,7 +313,6 @@ function HorizontalBarChart({ items }: HorizontalBarChartProps) {
 
   return (
     <div className="flex h-full w-full flex-col">
-      {/* Bars area fills available height — each bar splits the area evenly */}
       <div className="flex flex-1 flex-col justify-around gap-1 pt-2">
         {items.map((item) => (
           <div key={item.label} className="flex items-center gap-3">
@@ -389,12 +373,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
   });
 
   const ieData = data?.data;
-  const fs = ieData?.formulaSetting;
 
-  // ── Available Cars manual override (fleet-wide, per month) ─────────
-  // Cathy: the computed number was wrong and she wants to type it herself.
-  // Saved on car_history with the car_id=0 sentinel (same convention as the
-  // global car_office_support_expenses rows) so it applies fleet-wide.
   const [editingMonth, setEditingMonth] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
 
@@ -416,10 +395,6 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      // Available Cars is fleet-wide, and every per-car Income & Expenses page
-      // renders the same number in its HISTORY > Cars Available row. Drop the
-      // whole /api/income-expense prefix (key: [path, carId, year]) so an I&E
-      // tab that's already open doesn't keep showing the old value.
       queryClient.invalidateQueries({ queryKey: ["/api/income-expense"] });
       setEditingMonth(null);
     },
@@ -443,14 +418,11 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
 
     const gross = ie ? grossRentalIncome(ie) : 0;
     const rentalIncome = ie ? Number(ie.rentalIncome ?? 0) : 0;
-    // Use pre-computed splits from backend (aggregated per-car) when available,
-    // otherwise fall back to local calculation (single-car view)
-    const mgmtInc = (ie?.mgmtIncome != null && ie.mgmtIncome > 0)
-      ? ie.mgmtIncome
-      : (fs ? managementIncome(gross, fs) : 0);
-    const ownerInc = (ie?.ownerIncome != null && ie.ownerIncome > 0)
-      ? ie.ownerIncome
-      : (fs ? carOwnerIncome(gross, fs) : 0);
+    // All-Cars splits are pre-summed per car on the backend. Do not fall
+    // back to formulaSetting × fleet gross — aggregated percents are 0 and
+    // a single % cannot be applied to combined income.
+    const mgmtInc = Number(ie?.mgmtIncome) || 0;
+    const ownerInc = Number(ie?.ownerIncome) || 0;
     const mgmtExp = ie?.carManagementTotalExpenses ?? 0;
     const ownerExp = ie?.carOwnerTotalExpenses ?? 0;
 
@@ -469,9 +441,6 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
       tripsTaken: hist?.tripsTaken ?? 0,
       carsAvailable: hist?.carsAvailableForRent ?? 0,
       parkingAirport: dd?.parkingAirport ?? 0,
-      // Turo-derived metrics (back-end fills these in via enrichWithTuro-
-      // MonthlyMetrics on /api/income-expense/all-cars). Default to 0 so the
-      // page degrades gracefully when the enrich step fails.
       totalMiles: hist?.totalMiles ?? 0,
       avgLeadTimeDays: hist?.avgLeadTimeDays ?? 0,
       totalLeadTimeDays: hist?.totalLeadTimeDays ?? 0,
@@ -487,11 +456,6 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
   const totalCarsAvailable = monthlyComputed.reduce((s, m) => s + m.carsAvailable, 0);
   const totalGross = monthlyComputed.reduce((s, m) => s + m.gross, 0);
   const totalTripsTakenAll = monthlyComputed.reduce((s, m) => s + m.tripsTaken, 0);
-
-  // ── Days-in-month helper for the "Available Days" column ─────────────
-  // Available Days = cars_available_for_rent * days_in_that_month. This is
-  // the fleet's theoretical capacity in car-days; Fleet Utilization (%) is
-  // then daysRented / availableDays.
   const yearNum = parseInt(year, 10) || new Date().getFullYear();
   const daysInMonth = (m: number) => new Date(yearNum, m, 0).getDate();
 
@@ -513,10 +477,6 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     { key: "avgLeadTime", label: "Avg lead time", align: "right" as const },
     { key: "avgEarningsPerMile", label: "Avg Earnings/Mile", align: "right" as const },
   ];
-
-  // All six new columns now have real data via enrichWithTuroMonthlyMetrics
-  // on the backend (totalMiles + avgLeadTimeDays come back on history[]).
-  // Months with no Turo activity render 0 (empty ≠ unknown here).
 
   const tableRows = monthlyComputed.map((mc) => {
     const availableDays = mc.carsAvailable * daysInMonth(mc.month);
@@ -591,8 +551,6 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
           <AvailableCarsEditHistory year={year} month={mc.month} />
         </span>
       ),
-      // Empty/future months are genuinely 0, not "unknown" — show 0 (not a "—"
-      // dash) across every metric so the table reads consistently.
       totalMiles: mc.totalMiles.toLocaleString(),
       fleetUtilization: `${utilizationPct.toFixed(2)}%`,
       avgEarningsPerTrip: formatCurrency(mc.tripsTaken > 0 ? avgPerTrip : 0),
@@ -601,10 +559,6 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     };
   });
 
-  // Year-end totals row. For the three computed metrics we average over the
-  // year (rather than re-deriving from per-month rounded values) so totals
-  // reflect what the user would compute by hand. Use accurate per-month days
-  // rather than the older `* 30` approximation that lives further down.
   const totalAvailableDaysAccurate = monthlyComputed.reduce(
     (s, m) => s + m.carsAvailable * daysInMonth(m.month),
     0,
@@ -613,17 +567,11 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     totalAvailableDaysAccurate > 0
       ? (totalDaysRented / totalAvailableDaysAccurate) * 100
       : 0;
-  // "Available Cars" totals row shows the year's average fleet size, not a
-  // sum of a per-month snapshot count (summing car counts across months is
-  // not a meaningful "total").
   const avgCarsAvailable = totalCarsAvailable / 12;
   const yearAvgPerTrip =
     totalTripsTakenAll > 0 ? totalGross / totalTripsTakenAll : 0;
 
   const totalMilesAll = monthlyComputed.reduce((s, m) => s + m.totalMiles, 0);
-  // Weighted year total: sum all individual lead-time days / sum all trips that
-  // had a lead-time value. This is "total lead time / trips taken" as requested,
-  // and avoids the bias of averaging monthly averages.
   const yearTotalLeadTime = monthlyComputed.reduce((s, m) => s + (m.totalLeadTimeDays ?? 0), 0);
   const yearTripsWithLeadTime = monthlyComputed.reduce((s, m) => s + (m.tripsWithLeadTime ?? 0), 0);
   const yearAvgLeadTime = yearTripsWithLeadTime > 0 ? yearTotalLeadTime / yearTripsWithLeadTime : 0;
@@ -706,46 +654,44 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
 
   // ── Render helpers ───────────────────────────────────────────────────
 
-  // Show previous calendar month (e.g. if now is March 2026, show February 2026)
+  // Featured month: last completed month of the selected year.
+  // Current year → previous calendar month (Sept 2026 → Aug). Past year → Dec.
   const now = new Date();
-  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const prevMonthNum = prevMonthDate.getMonth() + 1; // 1-indexed
-  const prevMonthYear = prevMonthDate.getFullYear();
-  // If viewing the same year as the previous month, use it; otherwise fall back to last month with data
-  const prevMonth = String(prevMonthYear) === year
-    ? monthlyComputed.find((m) => m.month === prevMonthNum) ?? null
+  const currentYearNum = now.getFullYear();
+  const currentMonthNum = now.getMonth() + 1; // 1-indexed
+  const featuredMonthNum =
+    yearNum < currentYearNum ? 12
+    : yearNum === currentYearNum ? currentMonthNum - 1
+    : 0;
+  const featuredMonth = featuredMonthNum >= 1
+    ? monthlyComputed.find((m) => m.month === featuredMonthNum) ?? null
     : null;
-  const prevMonthLabel = prevMonth
-    ? `${formatFullMonth(prevMonth.month)} ${year}`
-    : prevMonthDate && String(prevMonthYear) === year
-      ? `${formatFullMonth(prevMonthNum)} ${year}`
-      : "";
+  const featuredMonthLabel = featuredMonth
+    ? `${formatFullMonth(featuredMonth.month)} ${year}`
+    : "";
 
-  // Right-side donut charts: show the most recent month for the selected year
-  const displayMonthNum = String(prevMonthYear) === year ? prevMonthNum : 12;
-  const displayMonthEntry = monthlyComputed.find((m) => m.month === displayMonthNum) ?? null;
-  const displayMonthLabel = `${formatShortMonth(displayMonthNum)} ${year}`;
+  const displayMonthNum = featuredMonthNum >= 1 ? featuredMonthNum : 12;
+  const displayMonthEntry = featuredMonth
+    ?? monthlyComputed.find((m) => m.month === displayMonthNum)
+    ?? null;
   const displayMgmtIncome = displayMonthEntry?.mgmtIncome ?? 0;
   const displayMgmtExpenses = displayMonthEntry?.mgmtExpenses ?? 0;
   const displayOwnerIncome = displayMonthEntry?.ownerIncome ?? 0;
   const displayOwnerExpenses = displayMonthEntry?.ownerExpenses ?? 0;
 
-  // Completed months only: for the current year, everything through last
-  // month (the in-progress current month and any future months are
-  // excluded); for a past year, all 12 months are complete.
-  const currentYearNum = now.getFullYear();
-  const completedMonths = yearNum < currentYearNum
-    ? monthlyComputed
-    : yearNum === currentYearNum
-      ? monthlyComputed.filter((m) => m.month <= prevMonthNum)
-      : [];
+  const completedMonths =
+    yearNum < currentYearNum
+      ? monthlyComputed
+      : yearNum === currentYearNum
+        ? monthlyComputed.filter((m) => m.month < currentMonthNum)
+        : [];
 
   const avg = (sum: number) => completedMonths.length > 0 ? sum / completedMonths.length : 0;
   const avgMgmtIncome = avg(completedMonths.reduce((s, m) => s + m.gross, 0));
-  const worstMgmtCashFlow = completedMonths.length > 0 ? Math.min(...completedMonths.map((m) => m.netMgmt)) : 0;
-  const bestMgmtCashFlow = completedMonths.length > 0 ? Math.max(...completedMonths.map((m) => m.netMgmt)) : 0;
-  const worstOwnerCashFlow = completedMonths.length > 0 ? Math.min(...completedMonths.map((m) => m.netOwner)) : 0;
-  const bestOwnerCashFlow = completedMonths.length > 0 ? Math.max(...completedMonths.map((m) => m.netOwner)) : 0;
+  const worstMgmtCashFlow = completedMonths.length > 0 ? Math.min(...completedMonths.map((m) => m.mgmtIncome)) : 0;
+  const bestMgmtCashFlow = completedMonths.length > 0 ? Math.max(...completedMonths.map((m) => m.mgmtIncome)) : 0;
+  const worstOwnerCashFlow = completedMonths.length > 0 ? Math.min(...completedMonths.map((m) => m.ownerIncome)) : 0;
+  const bestOwnerCashFlow = completedMonths.length > 0 ? Math.max(...completedMonths.map((m) => m.ownerIncome)) : 0;
 
   // ── Render ─────────────────────────────────────────────────────────
 
@@ -766,12 +712,8 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
 
       {!isLoading && !isError && ieData && (
         <div className="mt-4 space-y-6">
-
-          {/* ── Row 1: Summary Cards (left) + Monthly Table (right) ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
-            {/* Left: Summary Cards — distribute evenly to match table height */}
-            <div className="xl:col-span-1 flex flex-col justify-between h-full">
-              {/* Total Management Income and Expenses */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 xl:items-stretch">
+            <div className="xl:col-span-1 flex h-full flex-col justify-between gap-3">
               <div className="flex flex-col">
                 <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Total Management Income and Expenses
@@ -783,7 +725,6 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                 </div>
               </div>
 
-              {/* Management Income and Expenses */}
               <div className="flex flex-col">
                 <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Management Income and Expenses
@@ -794,9 +735,9 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                   <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome - totalMgmtExpenses)} variant="gold" className="h-20" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
-                  <SummaryCard label={`${prevMonthLabel} Total Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" className="h-20" />
-                  <SummaryCard label={`${prevMonthLabel} Mgmt Expenses`} value={formatCurrency(prevMonth?.mgmtExpenses ?? 0)} variant="white" className="h-20" />
-                  <SummaryCard label={`${prevMonthLabel} Mgmt Profit`} value={formatCurrency((prevMonth?.mgmtIncome ?? 0) - (prevMonth?.mgmtExpenses ?? 0))} variant="gold" className="h-20" />
+                  <SummaryCard label={`${featuredMonthLabel} Total Income`} value={formatCurrency(featuredMonth?.gross ?? 0)} variant="dark" className="h-20" />
+                  <SummaryCard label={`${featuredMonthLabel} Mgmt Expenses`} value={formatCurrency(featuredMonth?.mgmtExpenses ?? 0)} variant="white" className="h-20" />
+                  <SummaryCard label={`${featuredMonthLabel} Mgmt Profit`} value={formatCurrency(featuredMonth?.netMgmt ?? 0)} variant="gold" className="h-20" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
                   <SummaryCard label="Average Rental Income" value={formatCurrency(avgMgmtIncome)} variant="dark" className="h-20" />
@@ -805,7 +746,6 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                 </div>
               </div>
 
-              {/* Car Owner Income and Expenses */}
               <div className="flex flex-col">
                 <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
                   Car Owner Income and Expenses
@@ -816,9 +756,9 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                   <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" className="h-20" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
-                  <SummaryCard label={`${prevMonthLabel} Total Income`} value={formatCurrency(prevMonth?.gross ?? 0)} variant="dark" className="h-20" />
-                  <SummaryCard label={`${prevMonthLabel} Owner Expenses`} value={formatCurrency(prevMonth?.ownerExpenses ?? 0)} variant="white" className="h-20" />
-                  <SummaryCard label={`${prevMonthLabel} Owner Profit`} value={formatCurrency((prevMonth?.ownerIncome ?? 0) - (prevMonth?.ownerExpenses ?? 0))} variant="gold" className="h-20" />
+                  <SummaryCard label={`${featuredMonthLabel} Total Income`} value={formatCurrency(featuredMonth?.gross ?? 0)} variant="dark" className="h-20" />
+                  <SummaryCard label={`${featuredMonthLabel} Owner Expenses`} value={formatCurrency(featuredMonth?.ownerExpenses ?? 0)} variant="white" className="h-20" />
+                  <SummaryCard label={`${featuredMonthLabel} Owner Profit`} value={formatCurrency(featuredMonth?.netOwner ?? 0)} variant="gold" className="h-20" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
                   <SummaryCard label="Average Rental Income" value={formatCurrency(avgMgmtIncome)} variant="dark" className="h-20" />
@@ -828,19 +768,19 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
               </div>
             </div>
 
-            {/* Right: Monthly Income & Expenses Table */}
-            <div className="xl:col-span-2 bg-white">
-              <h3 className="text-sm font-bold uppercase tracking-wide text-black mb-2">
+            <div className="xl:col-span-2 flex h-full min-h-0 flex-col bg-white">
+              <h3 className="mb-2 shrink-0 text-sm font-bold uppercase tracking-wide text-black">
                 Monthly Income and Expenses
               </h3>
-              <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
-                <table className="w-full min-w-[880px] border-y border-[#D3BC8D] border-collapse">
+              <div className="relative min-h-0 flex-1">
+                <div className="-mx-3 h-full overflow-x-auto px-3 sm:mx-0 sm:px-0 xl:absolute xl:inset-0">
+                  <table className="h-full w-full min-w-[880px] border-collapse border-y border-[#D3BC8D]">
                   <thead>
                     <tr className="bg-black border-y border-[#D3BC8D]">
                       {tableColumns.map((col) => (
                         <th
                           key={col.key}
-                          className="px-3 py-2 text-center text-xs font-bold uppercase text-white whitespace-nowrap"
+                          className="px-3 py-2 text-center align-middle text-xs font-bold uppercase text-white whitespace-nowrap"
                           title={(col as any).tooltip}
                         >
                           {col.label}{(col as any).tooltip && (
@@ -856,7 +796,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                         {tableColumns.map((col) => (
                           <td
                             key={col.key}
-                            className="px-3 py-2 text-center text-sm text-gray-900"
+                            className="px-3 py-2 text-center align-middle text-sm text-gray-900"
                           >
                             {row[col.key as keyof typeof row]}
                           </td>
@@ -867,7 +807,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                       {tableColumns.map((col) => (
                         <td
                           key={col.key}
-                          className="px-3 py-2 text-center text-sm text-black"
+                          className="px-3 py-2 text-center align-middle text-sm text-black"
                         >
                           {tableTotals[col.key as keyof typeof tableTotals]}
                         </td>
@@ -875,14 +815,13 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                     </tr>
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* ── Row 2: Donuts (1/3) + Line/Bar charts (2/3) — 3 locked rows ── */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-x-4 sm:gap-x-8 gap-y-6 sm:gap-y-8 xl:[grid-template-rows:repeat(3,200px)] [grid-auto-rows:200px]">
 
-            {/* Row 1 left — Mgmt donuts */}
             <div className="xl:col-span-1 grid grid-cols-2 gap-2">
               <DonutChart
                 data={[
@@ -898,7 +837,6 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
               />
             </div>
 
-            {/* Row 1 right — Management line chart */}
             <div className="xl:col-span-2 flex flex-col">
               <LineChartCard
                 title="Management Income and Expenses"
@@ -910,7 +848,6 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
               />
             </div>
 
-            {/* Row 2 left — Car Owner donuts */}
             <div className="xl:col-span-1 grid grid-cols-2 gap-2">
               <DonutChart
                 data={[
@@ -926,7 +863,6 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
               />
             </div>
 
-            {/* Row 2 right — Car Owner line chart */}
             <div className="xl:col-span-2 flex flex-col">
               <LineChartCard
                 title="Car Owner Income and Expenses"
@@ -938,7 +874,6 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
               />
             </div>
 
-            {/* Row 3 left — Horizontal bar chart */}
             <div className="xl:col-span-1">
               <HorizontalBarChart
                 items={[
@@ -948,7 +883,6 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
               />
             </div>
 
-            {/* Row 3 right — Days Rented bar chart */}
             <div className="xl:col-span-2 flex flex-col">
               <BarChartCard
                 title="Days Rented and Trips Taken"
