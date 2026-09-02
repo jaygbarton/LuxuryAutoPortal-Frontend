@@ -1563,7 +1563,7 @@ export default function EarningsPage() {
                     (2026-07-20), reversing the 2026-07-08 "hide from clients"
                     change. */}
                 <CategorySection
-                  title="Car Management - Owner Split"
+                  title="CAR MANAGEMENT - OWNER SPLIT"
                   isExpanded={expandedSections.managementOwner}
                   onToggle={() => toggleSection("managementOwner")}
                 >
