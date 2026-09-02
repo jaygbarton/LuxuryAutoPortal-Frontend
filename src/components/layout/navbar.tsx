@@ -38,9 +38,7 @@ export function Navbar() {
   const primaryLinks = links.filter((link) =>
     link.href === "/" ||
     link.href === "/fleet" ||
-    link.href === "/detail-shop" ||
     link.href === "/onboarding" ||
-    link.href === "/chauffeur-services" ||
     link.href === "/contact"
   );
   const pageLinks = links.filter((link) => !primaryLinks.some((primary) => primary.href === link.href));
