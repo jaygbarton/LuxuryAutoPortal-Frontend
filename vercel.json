@@ -11,7 +11,18 @@
           "value": "app.goldenluxuryauto.com"
         }
       ],
-      "destination": "https://app.goldenluxuryauto.com/salt-lake-city",
+      "destination": "https://app.goldenluxuryauto.com/login",
+      "permanent": false
+    },
+    {
+      "source": "/salt-lake-city",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://app.goldenluxuryauto.com/login",
       "permanent": false
     },
     {
