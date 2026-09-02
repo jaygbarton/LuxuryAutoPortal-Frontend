@@ -37,7 +37,7 @@ export function QuickLinksSection({
   cols = 4,
 }: QuickLinksSectionProps) {
   return (
-    <div className={`h-full rounded-xl border-2 ${accentClass} bg-card px-6 py-5`}>
+    <div className={`h-full rounded-xl border-2 ${accentClass} bg-[#D3BC8D]/10 px-6 py-5 shadow-sm shadow-[#D3BC8D]/10`}>
       <h2 className="text-base font-bold text-foreground mb-3">{title}</h2>
       <div className={`grid ${colClass[cols]} gap-x-6 gap-y-1 pl-2`}>
         {links.map((link, idx) =>

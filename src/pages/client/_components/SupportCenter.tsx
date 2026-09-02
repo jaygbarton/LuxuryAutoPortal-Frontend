@@ -20,7 +20,7 @@ interface SupportCenterProps {
 
 export function SupportCenter({ supportLinks }: SupportCenterProps) {
   return (
-    <div className="rounded-xl border-2 border-[#d3bc8d] bg-card px-6 py-5">
+    <div className="rounded-xl border-2 border-[#d3bc8d] bg-[#D3BC8D]/10 px-6 py-5 shadow-sm shadow-[#D3BC8D]/10">
       <h2 className="text-base font-bold text-foreground mb-3">Support Center</h2>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-1 pl-2">
         {supportLinks.map((link, idx) =>

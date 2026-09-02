@@ -46,7 +46,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { PUBLIC_LOCATIONS } from "@/lib/location-config";
 import { cn } from "@/lib/utils";
-import { Plus, Edit, Search, X, ExternalLink, Car as CarIcon, Check, ChevronsUpDown, Download } from "lucide-react";
+import { Plus, Edit, Search, X, ExternalLink, Car as CarIcon, Check, ChevronsUpDown, Download, BarChart3 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { TableRowSkeleton } from "@/components/ui/skeletons";
@@ -154,6 +154,7 @@ export default function CarsPage() {
   const [clientComboOpen, setClientComboOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedStatsCarId, setSelectedStatsCarId] = useState<string>("");
 
   // "Show All" bypasses pagination entirely (single fetch, capped at the
   // backend's max of 1000 — well above the current ~315 car fleet size).
@@ -397,6 +398,68 @@ export default function CarsPage() {
     enabled: !!userData?.user,
     retry: false,
   });
+
+  const { data: statsCarsData, isLoading: isStatsCarsLoading } = useQuery<{
+    success: boolean;
+    data: Car[];
+  }>({
+    queryKey: isClient ? ["/api/client/cars", "stats-selector"] : ["/api/cars", "stats-selector"],
+    queryFn: async () => {
+      if (isClient) {
+        const response = await fetch(buildApiUrl("/api/client/cars?includeReturned=true"), {
+          credentials: "include",
+        });
+        if (!response.ok) return { success: false, data: [] };
+        const result = await response.json();
+        const clientCars = Array.isArray(result?.data) ? result.data : [];
+        return {
+          success: true,
+          data: clientCars.map((car: any) => ({
+            id: car.id,
+            vin: car.vin || "",
+            makeModel: car.makeModel || [car.make, car.model, car.year].filter(Boolean).join(" ") || "N/A",
+            make: car.make || null,
+            model: car.model || null,
+            licensePlate: car.plateNumber || null,
+            year: car.year || null,
+            color: null,
+            mileage: typeof car.mileage === "number" ? car.mileage : 0,
+            status: car.carStatus === "off_fleet" ? "INACTIVE" : "ACTIVE",
+            offboardReason: null,
+            offboardNote: null,
+            offboardAt: car.returnedAt || null,
+            clientId: car.clientId || null,
+            owner: null,
+          })),
+        };
+      }
+
+      const response = await fetch(buildApiUrl("/api/cars?page=1&limit=1000"), {
+        credentials: "include",
+      });
+      if (!response.ok) return { success: false, data: [] };
+      return response.json();
+    },
+    enabled: !!userData?.user,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  const statsCars = (statsCarsData?.data ?? []).slice().sort((a, b) => {
+    const aLabel = `${a.year || ""} ${a.make || ""} ${a.model || a.makeModel || ""} ${a.licensePlate || ""}`;
+    const bLabel = `${b.year || ""} ${b.make || ""} ${b.model || b.makeModel || ""} ${b.licensePlate || ""}`;
+    return aLabel.localeCompare(bLabel, undefined, { sensitivity: "base" });
+  });
+
+  const getStatsCarLabel = (car: Car) =>
+    [
+      car.year,
+      car.make || car.makeModel,
+      car.model && car.model !== car.makeModel ? car.model : null,
+      car.licensePlate ? `(${car.licensePlate})` : null,
+    ]
+      .filter(Boolean)
+      .join(" ");
 
   // Export the full (filtered) fleet to CSV so admins can scan for duplicate VINs
   // in a spreadsheet. Pulls all matching rows in one shot (limit 1000, the API cap)
@@ -1191,6 +1254,49 @@ export default function CarsPage() {
                 )}
               </>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-[#D3BC8D] bg-[#D3BC8D]/10 shadow-sm shadow-[#D3BC8D]/10">
+          <CardContent className="p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#D3BC8D]/70 bg-[#D3BC8D]/20 text-[#8B6914]">
+                  <BarChart3 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-foreground">View Stats</h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Choose any car to open its full stats.
+                  </p>
+                </div>
+              </div>
+
+              <Select
+                value={selectedStatsCarId}
+                onValueChange={(value) => {
+                  setSelectedStatsCarId(value);
+                  setLocation(`/admin/view-car/${value}`);
+                }}
+              >
+                <SelectTrigger className="w-full lg:w-[460px] border-[#D3BC8D]/70 bg-background/70 text-foreground">
+                  <SelectValue placeholder={isStatsCarsLoading ? "Loading cars..." : "Select a car"} />
+                </SelectTrigger>
+                <SelectContent className="max-h-80 border-[#D3BC8D]/70 bg-card text-foreground">
+                  {statsCars.length > 0 ? (
+                    statsCars.map((car) => (
+                      <SelectItem key={`stats-car-${car.id}`} value={String(car.id)}>
+                        {getStatsCarLabel(car)}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-cars" disabled>
+                      No cars available
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
