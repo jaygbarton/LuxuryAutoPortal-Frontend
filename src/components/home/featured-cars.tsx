@@ -25,7 +25,7 @@ interface FeaturedCar {
   locationTag?: string | null;
 }
 
-type FeaturedMode = "previous-month" | "top-performing";
+type FeaturedMode = "top-performing" | "previous-month";
 
 const PLACEHOLDER_IMG =
   "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
@@ -115,7 +115,7 @@ function CarCard({ car, location }: { car: FeaturedCar; location: PublicLocation
 }
 
 export function FeaturedCars({ location }: { location: PublicLocation }) {
-  const [mode, setMode] = useState<FeaturedMode>("previous-month");
+  const [mode, setMode] = useState<FeaturedMode>("top-performing");
 
   const { data, isLoading } = useQuery<{ success: boolean; data: FeaturedCar[] }>({
     queryKey: ["/api/public/fleet/featured", mode, location.id],
@@ -142,13 +142,13 @@ export function FeaturedCars({ location }: { location: PublicLocation }) {
           </h2>
           <p className="max-w-2xl mx-auto" style={{ color: "#4A4A4A", fontSize: "16px", lineHeight: "1.65" }}>
             {mode === "previous-month"
-              ? "Our top-performing vehicles from the previous month — updated automatically."
-              : "Our top-performing vehicles by broader backend performance — updated automatically."}
+              ? "Our top-performing vehicles from the previous completed month — updated automatically."
+              : "Our top-performing vehicles for 2026 — updated automatically."}
           </p>
           {location.id === "slc" ? <div className="mt-6 inline-flex rounded-lg border p-1" style={{ borderColor: "#E8D4A0", background: "#FFF8E8" }}>
             {([
-              ["previous-month", "Top Monthly Performing"],
-              ["top-performing", "Top Performing"],
+              ["top-performing", "Top 2026"],
+              ["previous-month", "Top Last Month"],
             ] as const).map(([value, label]) => {
               const active = mode === value;
               return (
