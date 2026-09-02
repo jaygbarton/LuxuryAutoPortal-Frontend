@@ -29,6 +29,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import InAppReceipt from "@/components/receipts/InAppReceipt";
 import {
   Dialog,
   DialogContent,
@@ -1788,89 +1789,24 @@ export default function ExpenseFormApprovalDashboard({
               </div>
             ) : receiptUrlsFromDb?.length ? (
               receiptUrlsFromDb.map((urlOrId, i) => {
-                const isPdf = urlOrId?.match(/\.pdf$/i);
                 const receiptLabel = `Receipt ${i + 1}`;
-                const embeddedDataUrl = receiptDataUrls?.[urlOrId];
-                const isDriveUrl = isGoogleDriveUrl(urlOrId);
-                // Always proxy through backend — covers plain file IDs, Drive URLs,
-                // and full GCS URLs (which 403 from CORS when fetched directly).
                 const displayUrl = buildApiUrl(
-                  `/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}`,
+                  `/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}${
+                    submissionIdForReceipt ? `&submissionId=${submissionIdForReceipt}` : ""
+                  }`,
                 );
-                if (!displayUrl && !embeddedDataUrl) return null;
-                if (isPdf) {
-                  return (
-                    <div key={i} className="space-y-1">
-                      <p className="text-sm text-gray-400">
-                        {receiptLabel} (PDF)
-                      </p>
-                      {embeddedDataUrl ? (
-                        <object
-                          data={embeddedDataUrl}
-                          type="application/pdf"
-                          className="w-full min-h-[300px] max-h-[64vh] rounded border border-[#2a2a2a] bg-[#0d0d0d]"
-                          title={receiptLabel}
-                        >
-                          <a
-                            href={embeddedDataUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-[#D3BC8D] hover:underline"
-                          >
-                            <ExternalLink className="w-4 h-4" /> Open PDF in new
-                            tab
-                          </a>
-                        </object>
-                      ) : (
-                        <a
-                          href={displayUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-[#D3BC8D] hover:underline"
-                        >
-                          <ExternalLink className="w-4 h-4" /> {receiptLabel}{" "}
-                          (PDF) — Open in new tab
-                        </a>
-                      )}
-                      <a
-                        href={
-                          embeddedDataUrl ?? (isDriveUrl ? urlOrId : displayUrl)
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-[#D3BC8D] hover:underline"
-                      >
-                        <ExternalLink className="w-3 h-3" /> Open in new tab
-                      </a>
-                    </div>
-                  );
-                }
                 return (
-                  <div key={i} className="space-y-1">
+                  <div key={i} className="space-y-1 w-full">
                     <p className="text-sm text-gray-400">{receiptLabel}</p>
-                    {embeddedDataUrl ? (
-                      <img
-                        src={embeddedDataUrl}
+                    <div className="rounded border border-[#2a2a2a] overflow-hidden bg-[#0d0d0d]">
+                      <InAppReceipt
+                        src={displayUrl}
+                        filename={urlOrId}
                         alt={receiptLabel}
-                        className="max-h-64 w-auto rounded border border-[#2a2a2a] object-contain bg-[#0d0d0d]"
+                        className="max-h-[64vh] w-full object-contain"
+                        expandable
                       />
-                    ) : (
-                      <ReceiptImage
-                        url={displayUrl!}
-                        alt={receiptLabel}
-                        className="max-h-64 w-auto rounded border border-[#2a2a2a] object-contain bg-[#0d0d0d]"
-                      />
-                    )}
-                    <a
-                      href={
-                        embeddedDataUrl ?? (isDriveUrl ? urlOrId : displayUrl)
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-[#D3BC8D] hover:underline"
-                    >
-                      <ExternalLink className="w-3 h-3" /> Open in new tab
-                    </a>
+                    </div>
                   </div>
                 );
               })

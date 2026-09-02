@@ -30,7 +30,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, FileText, Eye, ExternalLink } from "lucide-react";
+import { Loader2, FileText, Eye } from "lucide-react";
+import InAppReceipt from "@/components/receipts/InAppReceipt";
 
 const CATEGORY_LABELS: Record<string, string> = {
   directDelivery: "Direct Delivery",
@@ -254,31 +255,25 @@ export default function ExpenseFormMySubmissions() {
               {selectedSubmission?.remarks && ` • ${selectedSubmission.remarks}`}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-col gap-4">
             {selectedSubmission?.receiptUrls?.map((urlOrId, i) => {
-              // Always proxy through backend: covers plain file IDs AND full GCS URLs (which 403 from CORS directly)
-              const displayUrl = buildApiUrl(`/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}`);
-              const isPdf = urlOrId?.match(/\.pdf$/i);
+              const receiptLabel = `Receipt ${i + 1}`;
+              const displayUrl = buildApiUrl(
+                `/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}&submissionId=${selectedSubmission.id}`,
+              );
               return (
-                <a
-                  key={i}
-                  href={displayUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block"
-                >
-                  {isPdf ? (
-                    <span className="flex items-center gap-2 text-blue-700 hover:underline">
-                      <ExternalLink className="w-4 h-4" /> Receipt {i + 1} (PDF)
-                    </span>
-                  ) : (
-                    <img
+                <div key={i} className="space-y-1 w-full">
+                  <p className="text-sm text-muted-foreground">{receiptLabel}</p>
+                  <div className="rounded border border-border overflow-hidden bg-background">
+                    <InAppReceipt
                       src={displayUrl}
-                      alt={`Receipt ${i + 1}`}
-                      className="max-h-48 rounded border border-border object-contain"
+                      filename={urlOrId}
+                      alt={receiptLabel}
+                      className="max-h-[64vh] w-full object-contain"
+                      expandable
                     />
-                  )}
-                </a>
+                  </div>
+                </div>
               );
             })}
           </div>

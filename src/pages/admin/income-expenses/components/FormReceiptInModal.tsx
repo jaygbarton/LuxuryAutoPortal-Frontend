@@ -6,8 +6,9 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
-import { Receipt, ExternalLink, Loader2 } from "lucide-react";
+import { Receipt, Loader2 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
+import InAppReceipt from "@/components/receipts/InAppReceipt";
 
 function parseReceiptUrls(sub: Record<string, unknown>): string[] | null {
   const urls = sub.receiptUrls ?? sub.receipt_urls;
@@ -38,7 +39,7 @@ interface FormReceiptInModalProps {
 }
 
 export default function FormReceiptInModal({ carId, year, editingCell, isOpen }: FormReceiptInModalProps) {
-  const { data: approvedData } = useQuery({
+  const { data: approvedData, isLoading: formReceiptLoading } = useQuery({
     queryKey: ["/api/expense-form-submissions", "approved-by-car", carId, year],
     queryFn: async () => {
       const res = await fetch(
@@ -61,24 +62,7 @@ export default function FormReceiptInModal({ carId, year, editingCell, isOpen }:
       )
     : null;
   const matchingSubmissionId = matchingSubmission?.id;
-
-  const { data: formSubmissionWithReceipts, isLoading: formReceiptLoading } = useQuery({
-    queryKey: ["/api/expense-form-submissions", matchingSubmissionId, "embedReceipts"],
-    queryFn: async () => {
-      if (!matchingSubmissionId) return null;
-      const res = await fetch(
-        buildApiUrl(`/api/expense-form-submissions/${matchingSubmissionId}?embedReceipts=1`),
-        { credentials: "include" }
-      );
-      if (!res.ok) return null;
-      return res.json();
-    },
-    enabled: isOpen && !!matchingSubmissionId,
-  });
-
-  const formReceiptSub = formSubmissionWithReceipts?.data as Record<string, unknown> | undefined;
-  const formReceiptUrls = formReceiptSub ? parseReceiptUrls(formReceiptSub) : null;
-  const formReceiptDataUrls = (formReceiptSub?.receiptDataUrls as Record<string, string> | undefined) ?? null;
+  const formReceiptUrls = matchingSubmission ? parseReceiptUrls(matchingSubmission) : null;
 
   if (!matchingSubmissionId && !formReceiptLoading) return null;
 
@@ -94,78 +78,30 @@ export default function FormReceiptInModal({ carId, year, editingCell, isOpen }:
           Loading…
         </div>
       ) : formReceiptUrls?.length ? (
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col gap-3">
           {formReceiptUrls.map((urlOrId: string, i: number) => {
             const label = `Receipt ${i + 1}`;
-            const embedded = formReceiptDataUrls?.[urlOrId];
-            // Drive-stored receipts have no extension (e.g. "drive:<id>"), so a
-            // ".pdf" filename check misses them and a PDF would be shoved into an
-            // <img> → broken image. Trust the embedded data-url's MIME type when
-            // present, and still honor an explicit .pdf suffix as a fallback.
-            const isPdf =
-              (embedded?.startsWith("data:application/pdf") ?? false) ||
-              /\.pdf$/i.test(urlOrId ?? "");
-            const linkUrl =
-              urlOrId && !urlOrId.startsWith("http") && matchingSubmissionId
+            // Always proxy through the authenticated file endpoint so Drive IDs,
+            // GCS URLs, and local filenames all render inside the modal.
+            const displayUrl =
+              urlOrId && matchingSubmissionId
                 ? buildApiUrl(
                     `/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}&submissionId=${matchingSubmissionId}`
                   )
                 : urlOrId;
-            const displayUrl = urlOrId && !urlOrId.startsWith("http") ? linkUrl : urlOrId;
-            if (isPdf) {
-              // Chrome blocks navigating a new top-level tab to a data: URL
-              // ("Not allowed to navigate top frame to data URL"), so a
-              // base64-embedded PDF opens blank. Prefer the server file URL,
-              // which streams the PDF and opens correctly; only fall back to the
-              // inline data URL when there's no server URL to hit.
-              return (
-                <a
-                  key={i}
-                  href={displayUrl || embedded}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                >
-                  <ExternalLink className="h-3 w-3" /> {label} (PDF)
-                </a>
-              );
-            }
             return (
               <div key={i} className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">{label}</span>
-                {embedded ? (
-                  <>
-                    <a
-                      href={displayUrl || embedded}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={`View ${label} full size`}
-                    >
-                      <img
-                        src={embedded}
-                        alt={label}
-                        className="max-h-32 w-auto rounded border border-border object-contain bg-background cursor-pointer transition-opacity hover:opacity-80"
-                      />
-                    </a>
-                    <a
-                      href={displayUrl || embedded}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                    >
-                      <ExternalLink className="h-3 w-3" /> View full size
-                    </a>
-                  </>
-                ) : (
-                  <a
-                    href={displayUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                  >
-                    <ExternalLink className="h-3 w-3" /> View {label}
-                  </a>
-                )}
+                <div className="rounded border border-border overflow-hidden bg-background max-h-64">
+                  <InAppReceipt
+                    src={displayUrl}
+                    filename={urlOrId}
+                    alt={label}
+                    className="max-h-64 w-full object-contain"
+                    compact
+                    expandable
+                  />
+                </div>
               </div>
             );
           })}

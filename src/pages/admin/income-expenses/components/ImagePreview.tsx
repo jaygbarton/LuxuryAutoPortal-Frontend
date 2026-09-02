@@ -1,123 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { X, ZoomIn, Upload, FileText } from "lucide-react";
+import { X, ZoomIn, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { buildApiUrl } from "@/lib/queryClient";
+import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
+import InAppReceipt from "@/components/receipts/InAppReceipt";
 import type { ExistingImage } from "../utils/useImageUpload";
-
-/**
- * Renders a receipt image.
- *
- * Absolute URLs (e.g. GCS signed URLs on storage.googleapis.com) load directly
- * via a plain <img> — they need no auth. Relative URLs point at our own backend
- * proxy (`/api/income-expense/receipt-image`, used for v3-migrated receipts
- * stored as Drive references). That endpoint is behind requireAuth, and a bare
- * <img> request does NOT reliably carry the session cookie cross-origin in
- * production (sameSite=none third-party cookie blocking) — so we fetch it with
- * credentials and render the result as a blob, the same pattern the working
- * form-submission receipts use.
- */
-function CredentialedImg({
-  src,
-  alt,
-  className,
-  onClick,
-  onError,
-}: {
-  src: string;
-  alt: string;
-  className?: string;
-  onClick?: () => void;
-  onError?: (e: React.SyntheticEvent<HTMLImageElement, Event>) => void;
-}) {
-  const isAbsolute = src.startsWith("http://") || src.startsWith("https://");
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-  // Drive-stored receipts have no extension and are often PDFs, not images.
-  // A PDF blob in an <img> tag never decodes → "Failed to load image". When we
-  // detect a PDF from the fetched blob's type, show a clickable PDF tile instead.
-  const [isPdf, setIsPdf] = useState(false);
-
-  useEffect(() => {
-    // Absolute (public) URLs are rendered directly; nothing to fetch.
-    if (isAbsolute) return;
-
-    let revoked = false;
-    let objectUrl: string | null = null;
-    setBlobUrl(null);
-    setFailed(false);
-    setIsPdf(false);
-    fetch(src, { credentials: "include" })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Failed to load (${res.status})`);
-        return res.blob();
-      })
-      .then((blob) => {
-        if (revoked) return;
-        objectUrl = URL.createObjectURL(blob);
-        if ((blob.type || "").toLowerCase().includes("pdf")) setIsPdf(true);
-        setBlobUrl(objectUrl);
-      })
-      .catch(() => {
-        if (!revoked) setFailed(true);
-      });
-    return () => {
-      revoked = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [src, isAbsolute]);
-
-  if (failed) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-red-500/20 text-red-700 text-xs p-2 text-center">
-        Failed to load image
-      </div>
-    );
-  }
-
-  // PDF receipt → document tile that opens the file in a new tab on click.
-  if (isPdf && blobUrl) {
-    return (
-      <a
-        href={blobUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        title={`Open ${alt || "PDF receipt"}`}
-        onClick={(e) => e.stopPropagation()}
-        className={`flex flex-col items-center justify-center gap-1 bg-background text-muted-foreground hover:text-primary p-2 text-center ${className ?? ""}`}
-      >
-        <FileText className="w-6 h-6" />
-        <span className="text-[10px] leading-tight break-all line-clamp-2">{alt || "PDF receipt"}</span>
-        {/* PDFs can't render as an inline image, so this is a clickable tile that
-            opens the file. The explicit label makes that obvious (otherwise a
-            zoomed PDF reads as a "blank" preview). */}
-        <span className="text-[10px] font-medium text-primary underline">Open PDF</span>
-      </a>
-    );
-  }
-
-  const resolvedSrc = isAbsolute ? src : blobUrl;
-  if (!resolvedSrc) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground text-xs">
-        Loading…
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={resolvedSrc}
-      alt={alt}
-      className={className}
-      onClick={onClick}
-      onError={(e) => {
-        if (onError) onError(e);
-        else setFailed(true);
-      }}
-    />
-  );
-}
 
 interface ImagePreviewProps {
   newImages?: File[];
@@ -157,14 +44,19 @@ export default function ImagePreview({
   };
 
   const getImageUrl = (image: ExistingImage) => {
-    // If URL is already absolute, return as is
-    if (image.url.startsWith('http://') || image.url.startsWith('https://')) {
+    // GCS objects (including signed URLs) go through our proxy so the browser
+    // can fetch with cookies and we control Content-Type — a raw
+    // storage.googleapis.com URL 403s under Public Access Prevention, and a
+    // PDF served that way can never render in an <img>.
+    if (
+      image.url.startsWith("https://storage.googleapis.com/") ||
+      image.url.startsWith("http://storage.googleapis.com/")
+    ) {
+      return getProxiedImageUrl(image.url);
+    }
+    if (image.url.startsWith("http://") || image.url.startsWith("https://")) {
       return image.url;
     }
-    
-    // For static files (starting with /), use buildApiUrl which handles both dev and prod
-    // In dev: returns relative path (uses Vite proxy)
-    // In prod: returns full URL with backend domain
     return buildApiUrl(image.url);
   };
 
@@ -182,11 +74,14 @@ export default function ImagePreview({
               key={image.id}
               className="relative group bg-card rounded-lg overflow-hidden border border-border aspect-square shadow-lg hover:border-primary/50 transition-all"
             >
-              <CredentialedImg
+              <InAppReceipt
                 src={imageUrl}
+                filename={image.filename}
                 alt={image.filename}
-                className="w-full h-full object-cover cursor-pointer"
-                onClick={() => onImageClick ? onImageClick(imageUrl) : handleZoom(imageUrl)}
+                className="w-full h-full object-cover"
+                compact
+                expandable={!onImageClick}
+                onClick={onImageClick ? () => onImageClick(imageUrl) : undefined}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="absolute bottom-0 left-0 right-0 p-2 flex items-center justify-between">
@@ -299,10 +194,11 @@ export default function ImagePreview({
           </DialogHeader>
           {zoomedImage && (
             <div className="relative">
-              <CredentialedImg
+              <InAppReceipt
                 src={zoomedImage}
                 alt="Zoomed preview"
                 className="w-full h-auto max-h-[85vh] object-contain"
+                expandable={false}
               />
               <Button
                 type="button"
