@@ -1,6 +1,7 @@
 import React from "react";
-import { X, Loader2, Image as ImageIcon, ExternalLink, Trash2 } from "lucide-react";
+import { X, Loader2, Trash2 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
+import InAppReceipt from "@/components/receipts/InAppReceipt";
 import ServiceDateEditor from "./ServiceDateEditor";
 
 /**
@@ -22,82 +23,21 @@ function ReceiptThumb({
   onDelete?: () => void;
   deleting?: boolean;
 }) {
-  const fullUrl = url.startsWith("/") ? buildApiUrl(url) : url;
-  // Form-submission receipts carry no real filename ("Form receipt #123"), so
-  // we can't rely on a ".pdf" suffix to know it's a PDF. We fetch the bytes and
-  // detect PDF vs image from the response's content-type instead. Start by
-  // treating only an explicit .pdf name as a known PDF.
-  const nameIsPdf = (filename || "").toLowerCase().endsWith(".pdf");
-  const [isPdf, setIsPdf] = React.useState(nameIsPdf);
-  const [objectUrl, setObjectUrl] = React.useState<string | null>(null);
-  const [failed, setFailed] = React.useState(false);
-
-  React.useEffect(() => {
-    let revoked = false;
-    let created: string | null = null;
-    setFailed(false);
-    setObjectUrl(null);
-    setIsPdf(nameIsPdf);
-    (async () => {
-      try {
-        const res = await fetch(fullUrl, { credentials: "include" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const blob = await res.blob();
-        if (revoked) return;
-        // Trust the served content-type: a PDF gets the open-in-tab tile, an
-        // image gets an inline preview. This fixes extension-less receipts.
-        if ((blob.type || "").toLowerCase().includes("pdf")) {
-          setIsPdf(true);
-          return;
-        }
-        setIsPdf(false);
-        created = URL.createObjectURL(blob);
-        setObjectUrl(created);
-      } catch {
-        if (!revoked) setFailed(true);
-      }
-    })();
-    return () => {
-      revoked = true;
-      if (created) URL.revokeObjectURL(created);
-    };
-  }, [fullUrl, nameIsPdf]);
-
   return (
     <div className="relative block border border-border rounded-lg overflow-hidden hover:border-primary transition-colors">
-      <a
-        href={fullUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block"
-        title={`Open ${filename}`}
-      >
-        {isPdf ? (
-          <div className="flex items-center justify-center h-40 bg-background text-sm text-muted-foreground">
-            <ImageIcon className="w-5 h-5 mr-2" /> {filename || "PDF receipt"}
-          </div>
-        ) : failed ? (
-          <div className="flex flex-col items-center justify-center h-40 bg-background text-xs text-muted-foreground gap-1 px-2 text-center">
-            <ExternalLink className="w-5 h-5" />
-            <span>Couldn't load preview.</span>
-            <span className="text-primary underline">Open in new tab</span>
-          </div>
-        ) : objectUrl ? (
-          <img
-            src={objectUrl}
-            alt={filename || "Receipt"}
-            className="w-full h-40 object-cover bg-background"
-            onError={() => setFailed(true)}
-          />
-        ) : (
-          <div className="flex items-center justify-center h-40 bg-background text-muted-foreground">
-            <Loader2 className="w-5 h-5 animate-spin" />
-          </div>
-        )}
-        <div className="px-2 py-1 text-xs text-muted-foreground truncate">
-          {filename || "Receipt"}
-        </div>
-      </a>
+      <div className="h-40 bg-background">
+        <InAppReceipt
+          src={url}
+          filename={filename}
+          alt={filename || "Receipt"}
+          className="w-full h-40 object-cover bg-background"
+          compact
+          expandable
+        />
+      </div>
+      <div className="px-2 py-1 text-xs text-muted-foreground truncate">
+        {filename || "Receipt"}
+      </div>
       {onDelete && (
         <button
           type="button"

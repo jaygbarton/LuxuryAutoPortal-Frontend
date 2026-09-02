@@ -4,10 +4,11 @@
  * Receipts uploaded through forms are visible here so users can view them alongside I&E data.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
-import { ChevronDown, ChevronRight, FileText, Receipt, Eye, ExternalLink, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, Receipt, Eye } from "lucide-react";
+import InAppReceipt from "@/components/receipts/InAppReceipt";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -44,56 +45,6 @@ function parseReceiptUrls(sub: Record<string, unknown>): string[] | null {
   return null;
 }
 
-/** Loads receipt from API with credentials (only for our receipt API) and displays as image. */
-function ReceiptImage({
-  url,
-  alt,
-  className,
-}: {
-  url: string;
-  alt: string;
-  className?: string;
-}) {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let revoked = false;
-    let objectUrl: string | null = null;
-    setLoading(true);
-    setError(null);
-    setBlobUrl(null);
-    const isOurReceiptApi = url.includes("/api/expense-form-submissions/receipt/file");
-    fetch(url, { credentials: isOurReceiptApi ? "include" : "omit" })
-      .then((res) => {
-        if (!res.ok) throw new Error(res.status === 404 ? "File not found" : `Failed to load (${res.status})`);
-        return res.blob();
-      })
-      .then((blob) => {
-        if (revoked) return;
-        objectUrl = URL.createObjectURL(blob);
-        setBlobUrl(objectUrl);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (!revoked) {
-          setError(err?.message || "Failed to load");
-          setLoading(false);
-        }
-      });
-    return () => {
-      revoked = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [url]);
-
-  if (loading) return <div className={cn("flex items-center justify-center min-h-[120px] bg-muted rounded border", className)}><span className="text-xs text-muted-foreground">Loading...</span></div>;
-  if (error) return <div className={cn("flex items-center justify-center min-h-[120px] bg-muted rounded border text-xs text-destructive", className)}>{error}</div>;
-  if (!blobUrl) return null;
-  return <img src={blobUrl} alt={alt} className={className} />;
-}
-
 interface FormSubmissionsAndReceiptsProps {
   carId: number | null;
   year: string;
@@ -125,28 +76,7 @@ export default function FormSubmissionsAndReceipts({ carId, year, className }: F
   }));
 
   const submissionIdForReceipt = viewReceiptsOpen && selectedSubmission?.id ? selectedSubmission.id : null;
-  const { data: submissionForReceiptData, isLoading: submissionForReceiptLoading } = useQuery({
-    queryKey: ["/api/expense-form-submissions", submissionIdForReceipt, "embedReceipts"],
-    queryFn: async () => {
-      if (!submissionIdForReceipt) return null;
-      const res = await fetch(
-        buildApiUrl(`/api/expense-form-submissions/${submissionIdForReceipt}?embedReceipts=1`),
-        { credentials: "include" }
-      );
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j?.error || "Failed to load submission");
-      }
-      return res.json();
-    },
-    enabled: !!submissionIdForReceipt,
-  });
-
-  const submissionForReceipt = submissionForReceiptData?.data as Record<string, unknown> | undefined;
-  const receiptUrlsFromDb = submissionForReceipt
-    ? parseReceiptUrls(submissionForReceipt)
-    : selectedSubmission?.receiptUrls ?? null;
-  const receiptDataUrls = (submissionForReceipt?.receiptDataUrls as Record<string, string> | undefined) ?? null;
+  const receiptUrlsFromDb = selectedSubmission?.receiptUrls ?? null;
 
   return (
     <div className={cn("border border-border rounded-lg bg-card/50 mb-4", className)}>
@@ -213,20 +143,19 @@ export default function FormSubmissionsAndReceipts({ carId, year, className }: F
                     <div className="flex flex-wrap gap-2 mt-2">
                       {sub.receiptUrls.map((fileId: string, i: number) => {
                         const isPdf = typeof fileId === "string" && fileId.toLowerCase().endsWith(".pdf");
-                        const url = buildApiUrl(
-                          `/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(fileId)}`
-                        );
                         return (
-                          <a
+                          <button
                             key={i}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            type="button"
+                            onClick={() => {
+                              setSelectedSubmission(sub);
+                              setViewReceiptsOpen(true);
+                            }}
                             className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                           >
                             <FileText className="w-3 h-3" />
                             {isPdf ? `Receipt ${i + 1} (PDF)` : `Receipt ${i + 1}`}
-                          </a>
+                          </button>
                         );
                       })}
                     </div>
@@ -249,81 +178,27 @@ export default function FormSubmissionsAndReceipts({ carId, year, className }: F
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
-            {submissionIdForReceipt && submissionForReceiptLoading ? (
-              <div className="flex items-center justify-center rounded border border-border bg-muted/30 min-h-[120px] w-full">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : receiptUrlsFromDb?.length ? (
+            {receiptUrlsFromDb?.length ? (
               receiptUrlsFromDb.map((urlOrId: string, i: number) => {
                 const receiptLabel = `Receipt ${i + 1}`;
-                const embeddedDataUrl = receiptDataUrls?.[urlOrId];
-                // Drive-stored receipts have no extension, so a ".pdf" filename
-                // check misses them. Trust the embedded data-url MIME when present.
-                const isPdf =
-                  embeddedDataUrl?.startsWith("data:application/pdf") ||
-                  /\.pdf$/i.test(urlOrId ?? "");
-                // Route EVERY stored value through our authenticated proxy when
-                // we have a submissionId — including raw GCS URLs. The bucket
-                // enforces Public Access Prevention (org policy blocks allUsers
-                // grants), so a "public" storage.googleapis.com URL 403s if
-                // fetched directly; the backend proxy already knows how to
-                // strip a GCS URL down to its filename and stream it with
-                // proper server-side auth (see receipt/file route).
-                const canProxy = !!urlOrId && !!submissionIdForReceipt;
-                const receiptUrl = canProxy
-                  ? buildApiUrl(
-                      `/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}&submissionId=${submissionIdForReceipt}`
-                    )
-                  : urlOrId;
-                const displayUrl = canProxy ? receiptUrl : urlOrId;
-
-                if (isPdf) {
-                  return (
-                    <div key={i} className="space-y-1">
-                      <p className="text-sm text-muted-foreground">{receiptLabel} (PDF)</p>
-                      {embeddedDataUrl ? (
-                        <object
-                          data={embeddedDataUrl}
-                          type="application/pdf"
-                          className="w-full min-h-[300px] max-h-[64vh] rounded border border-border bg-muted/30 object-contain"
-                          title={receiptLabel}
-                        >
-                          <a href={displayUrl || embeddedDataUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
-                            <ExternalLink className="h-4 w-4" /> Open PDF in new tab
-                          </a>
-                        </object>
-                      ) : (
-                        <a href={displayUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
-                          <ExternalLink className="h-4 w-4" /> {receiptLabel} (PDF) — Open in new tab
-                        </a>
-                      )}
-                      {/* Chrome blocks navigating a new tab to a data: URL, so
-                          prefer the server file URL for "Open in new tab". */}
-                      <a href={displayUrl || embeddedDataUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-                        <ExternalLink className="h-3 w-3" /> Open in new tab
-                      </a>
-                    </div>
-                  );
-                }
+                const displayUrl =
+                  urlOrId && submissionIdForReceipt
+                    ? buildApiUrl(
+                        `/api/expense-form-submissions/receipt/file?fileId=${encodeURIComponent(urlOrId)}&submissionId=${submissionIdForReceipt}`
+                      )
+                    : urlOrId;
                 return (
                   <div key={i} className="space-y-1">
                     <p className="text-sm text-muted-foreground">{receiptLabel}</p>
-                    {embeddedDataUrl ? (
-                      <img
-                        src={embeddedDataUrl}
+                    <div className="rounded border border-border overflow-hidden bg-muted/30">
+                      <InAppReceipt
+                        src={displayUrl}
+                        filename={urlOrId}
                         alt={receiptLabel}
-                        className="max-h-64 w-auto rounded border border-border object-contain bg-muted/30"
+                        className="max-h-[64vh] w-full object-contain"
+                        expandable
                       />
-                    ) : (
-                      <ReceiptImage
-                        url={displayUrl}
-                        alt={receiptLabel}
-                        className="max-h-64 w-auto rounded border border-border object-contain bg-muted/30"
-                      />
-                    )}
-                    <a href={displayUrl || embeddedDataUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-                      <ExternalLink className="h-3 w-3" /> Open in new tab
-                    </a>
+                    </div>
                   </div>
                 );
               })
