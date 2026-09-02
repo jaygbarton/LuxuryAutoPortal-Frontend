@@ -83,9 +83,10 @@ export function EmployeeSelectCombobox({
   const matchedByName = sorted.find((e) => displayName(e) === value);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          type="button"
           variant="outline"
           role="combobox"
           aria-expanded={open}
