@@ -599,16 +599,6 @@ function ScrollToTopOnRouteChange() {
 }
 
 function App() {
-  if (
-    typeof window !== "undefined" &&
-    window.location.hostname === "app.goldenluxuryauto.com"
-  ) {
-    window.location.replace(
-      `https://gla-v1.vercel.app${window.location.pathname}${window.location.search}${window.location.hash}`,
-    );
-    return null;
-  }
-
   // Dev-only: log initialization (never log secrets like API keys or reCAPTCHA key)
   if (import.meta.env.DEV && typeof window !== "undefined") {
     const apiBaseUrl = getApiBaseUrl();
