@@ -1582,6 +1582,7 @@ export default function EarningsPage() {
                   title="INCOME AND EXPENSES"
                   isExpanded={expandedSections.incomeExpenses}
                   onToggle={() => toggleSection("incomeExpenses")}
+                  hideZeroSubcategories={isClient}
                 >
                   <TableRow
                     label="Rental Income"
@@ -1662,6 +1663,7 @@ export default function EarningsPage() {
                   title="OPERATING EXPENSE (DIRECT DELIVERY)"
                   isExpanded={expandedSections.directDelivery}
                   onToggle={() => toggleSection("directDelivery")}
+                  hideZeroSubcategories={isClient}
                 >
                   <TableRow
                     label="Labor - Cleaning"
@@ -1702,6 +1704,7 @@ export default function EarningsPage() {
                   title="OPERATING EXPENSE (COGS - PER VEHICLE)"
                   isExpanded={expandedSections.cogs}
                   onToggle={() => toggleSection("cogs")}
+                  hideZeroSubcategories={isClient}
                 >
                   <TableRow
                     label="Auto Body Shop / Wreck"
@@ -2293,9 +2296,18 @@ interface CategorySectionProps {
   isExpanded: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  /** Client Earnings: drop subcategory rows that are $0 every month. */
+  hideZeroSubcategories?: boolean;
 }
 
-function CategorySection({ title, isExpanded, onToggle, children }: CategorySectionProps) {
+function CategorySection({ title, isExpanded, onToggle, children, hideZeroSubcategories }: CategorySectionProps) {
+  const content = hideZeroSubcategories
+    ? React.Children.map(children, (child) => {
+        if (!React.isValidElement<TableRowProps>(child)) return child;
+        if (child.props.isTotal) return child;
+        return React.cloneElement(child, { hideIfZero: true });
+      })
+    : children;
   return (
     <>
       <tr className="bg-primary">
@@ -2306,7 +2318,7 @@ function CategorySection({ title, isExpanded, onToggle, children }: CategorySect
           </div>
         </td>
       </tr>
-      {isExpanded && children}
+      {isExpanded && content}
     </>
   );
 }
@@ -2334,6 +2346,8 @@ interface TableRowProps {
   getFormAmount?: (category: string, field: string, month: number) => number;
   // Carry-over is a monthly rolling figure, not a yearly sum (same as I&E).
   hideTotal?: boolean;
+  /** When true, skip rendering if every month (including form amounts) is $0. */
+  hideIfZero?: boolean;
 }
 
 function TableRow({
@@ -2349,6 +2363,7 @@ function TableRow({
   onEditCell,
   getFormAmount,
   hideTotal = false,
+  hideIfZero = false,
 }: TableRowProps) {
   // For Negative Balance Carry Over, display absolute value (remove minus sign)
   const isNegativeBalance = label === "Negative Balance Carry Over";
@@ -2356,6 +2371,10 @@ function TableRow({
     ? values.map((v, i) => (typeof v === "number" && !isNaN(v) ? v : 0) + getFormAmount(category, field, i + 1))
     : values;
   const total = calculateTotal(displayValues);
+
+  if (hideIfZero && !isTotal && displayValues.every((v) => Math.abs(Number(v) || 0) < 0.005)) {
+    return null;
+  }
 
   return (
     <tr className={cn(
