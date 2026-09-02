@@ -28,6 +28,16 @@
   ],
   "rewrites": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://gla-v1.vercel.app/"
+    },
+    {
       "source": "/:path*",
       "has": [
         {
