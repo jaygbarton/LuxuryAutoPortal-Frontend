@@ -471,3 +471,38 @@
     animation: none;
   }
 }
+
+.cinematic-shell {
+  background-color: #050505;
+}
+
+.cinematic-mobile-image {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 48svh;
+  min-height: 320px;
+  background-image: url("/homepage-hero-escalade.jpg");
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: 100% auto;
+}
+
+@media (min-width: 640px) {
+  .cinematic-mobile-image {
+    top: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .cinematic-shell {
+    background-image: url("/homepage-hero-escalade.jpg");
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+
+  .cinematic-mobile-image {
+    display: none;
+  }
+}
