@@ -8,6 +8,17 @@
       "has": [
         {
           "type": "host",
+          "value": "app.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://app.goldenluxuryauto.com/salt-lake-city",
+      "permanent": false
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
           "value": "goldenluxuryauto.com"
         }
       ],
@@ -27,16 +38,6 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "app.goldenluxuryauto.com"
-        }
-      ],
-      "destination": "https://gla-v1.vercel.app/"
-    },
     {
       "source": "/:path*",
       "has": [
