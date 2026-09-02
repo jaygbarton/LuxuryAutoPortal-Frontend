@@ -25,23 +25,31 @@ export function Hero({
   return (
     <section className="relative flex min-h-[100svh] items-center justify-center overflow-hidden">
       {showBackground ? (
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: `url('/homepage-hero-escalade.jpg')`,
-          }}
-        >
+        <div className="absolute inset-0 bg-[#050505]">
+          <div
+            className="absolute inset-0 hidden bg-cover bg-center bg-no-repeat sm:block"
+            style={{
+              backgroundImage: `url('/homepage-hero-escalade.jpg')`,
+            }}
+          />
+          <img
+            src="/homepage-hero-escalade.jpg"
+            alt=""
+            aria-hidden="true"
+            className="absolute left-1/2 top-0 block h-auto max-w-none -translate-x-1/2 sm:hidden"
+            style={{ width: "172vw" }}
+          />
           <div
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(90deg, rgba(7,6,4,0.76) 0%, rgba(7,6,4,0.46) 42%, rgba(7,6,4,0.16) 100%), linear-gradient(180deg, rgba(7,6,4,0.24), rgba(7,6,4,0.58))",
+                "linear-gradient(90deg, rgba(7,6,4,0.76) 0%, rgba(7,6,4,0.46) 42%, rgba(7,6,4,0.16) 100%), linear-gradient(180deg, rgba(7,6,4,0.18), rgba(7,6,4,0.48) 30%, rgba(7,6,4,0.86) 55%, rgba(7,6,4,0.94) 100%)",
             }}
           />
         </div>
       ) : null}
 
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-12 pt-24 text-left sm:px-6 sm:pb-16 sm:pt-28 lg:px-8 lg:pt-24">
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-12 pt-[35svh] text-left sm:px-6 sm:pb-16 sm:pt-28 lg:px-8 lg:pt-24">
         <div
           className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full px-3 py-2 sm:mb-8 sm:px-4"
           style={{
