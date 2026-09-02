@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { VehicleStatsQuickLinks } from "@/components/admin/VehicleStatsQuickLinks";
 import {
   Select,
   SelectContent,
@@ -628,6 +629,7 @@ export default function ClientDashboard() {
 
         {/* Sections 10 & 11: Report Center + Support Center */}
         <div className="space-y-6 mt-8 mb-12">
+          <VehicleStatsQuickLinks />
           <ReportCenter reportLinks={reportLinks} />
           <SupportCenter supportLinks={supportLinks} />
         </div>

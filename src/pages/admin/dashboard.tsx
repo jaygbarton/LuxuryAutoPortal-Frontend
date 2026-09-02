@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
+import { VehicleStatsQuickLinks } from "@/components/admin/VehicleStatsQuickLinks";
 import { NewsMediaSlot } from "@/pages/client/_components/NewsMediaSlot";
 import { OnboardingTutorial, useTutorial } from "@/components/onboarding/OnboardingTutorial";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
@@ -396,6 +397,8 @@ export default function AdminDashboard() {
           {show["car-performance"] && (
             <CarPerformanceSection year={selectedYear} />
           )}
+
+          <VehicleStatsQuickLinks />
 
           {noneSelected && (
             <div className="py-20 text-center text-gray-400">
