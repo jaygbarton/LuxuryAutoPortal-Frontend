@@ -1460,11 +1460,11 @@ export default function FormsPage() {
             Access and submit important forms for client onboarding, referrals, and document updates. This section allows you to add new vehicle, request vehicle block-offs, submit referrals, upload updated licenses, registrations, or insurance documents, and track the status of your submissions.
           </p>
         </div>
-        {/* Section tabs. Admins navigate these from the sidebar instead
-            (ADMIN_FORM_TABS in admin-layout), so the strip is hidden for them.
-            Clients and co-hosts get a different, server-driven section list
-            that the fixed sidebar sub-items don't describe, so they keep it. */}
-        {!formVisibilityData?.isAdmin && (
+        {/* Section tabs. Admins and clients navigate these from the sidebar
+            (ADMIN_FORM_TABS / CLIENT_FORM_TABS in admin-layout), so the strip
+            is hidden for them. Co-hosts keep it — their sidebar Forms link
+            has no sub-items. */}
+        {!formVisibilityData?.isAdmin && !formVisibilityData?.isClient && (
           <Tabs value={activeSection} onValueChange={handleSectionChange}>
             <div className="-mx-2 sm:mx-0 mb-4 overflow-x-auto">
               <TabsList className="bg-muted border border-border h-auto gap-1 p-1 inline-flex w-max min-w-full sm:w-auto sm:min-w-0 sm:flex-wrap">
