@@ -153,6 +153,7 @@ export type MaintenanceServiceType =
   | "brakes"
   | "battery"
   | "mechanic"
+  | "autobody"
   | "windshield"
   | "electric"
   | "other";
@@ -163,6 +164,7 @@ export const MAINTENANCE_SERVICE_TYPE_LABELS: Record<MaintenanceServiceType, str
   brakes: "Brakes",
   battery: "Battery",
   mechanic: "Mechanic",
+  autobody: "Autobody",
   windshield: "Windshield",
   electric: "Electric",
   other: "Other",

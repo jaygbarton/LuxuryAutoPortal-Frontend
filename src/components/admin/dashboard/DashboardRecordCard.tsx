@@ -124,7 +124,10 @@ export function DashboardRecordCard({
               <div className="flex items-center gap-1.5 text-sm text-foreground">
                 <Car className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
                 <span className="font-semibold">{carName}</span>
-                {!isEmpty(plate) && <span className="text-muted-foreground text-xs">· {plate}</span>}
+                {!isEmpty(plate) &&
+                  !String(carName).toUpperCase().includes(String(plate).toUpperCase()) && (
+                    <span className="text-muted-foreground text-xs">· {plate}</span>
+                  )}
               </div>
             )}
 

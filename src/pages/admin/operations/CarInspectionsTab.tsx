@@ -24,6 +24,7 @@ import { FuelReturnedCell } from "./FuelReturnedCell";
 import { GasLevelCells } from "./GasLevelCells";
 import { OperationEditHistoryList } from "@/components/admin/OperationEditHistory";
 import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
+import { formatUniformCarLabel } from "./formatCarName";
 
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return "--";
@@ -584,9 +585,12 @@ export function CarInspectionsTab() {
                       </div>
                     );
 
+                    const plateNumber = insp.plate || trip?.plateNumber || null;
+                    const carLabel = formatUniformCarLabel(insp.car_name, plateNumber);
+
                     const carNameDisplay = (
                       <div className="flex items-center gap-2">
-                        <span>{insp.car_name || "--"}</span>
+                        <span>{carLabel}</span>
                         {movedToMaint && <Badge className="bg-blue-500/20 text-blue-400 border-0 text-[10px] px-1.5 py-0 gap-1"><Wrench className="w-2.5 h-2.5" />In Maintenance</Badge>}
                       </div>
                     );
@@ -598,17 +602,13 @@ export function CarInspectionsTab() {
                         accentBorder="border-orange-300"
                         typeLabel="Car Issue"
                         reservationId={insp.reservation_id || trip?.reservationId}
-                        carName={insp.car_name}
-                        // Prefer the inspection's own plate: the API resolves it by
-                        // matching the car (VIN / plate / name), so manual Car Issues
-                        // — which have no linked trip — still show a plate.
-                        plate={insp.plate || trip?.plateNumber}
+                        carName={carLabel}
                         assignedTo={insp.assigned_to}
                         tripStart={trip ? formatDate(trip.tripStart) : formatDate(insp.inspection_date)}
                         tripEnd={trip ? formatDate(trip.tripEnd) : null}
                         pickupLocation={pickupLocation}
                         dropoffLocation={dropOffLocation}
-                        media={<CarPhotoCell carPhoto={insp.car_photo} carName={insp.car_name} />}
+                        media={<CarPhotoCell carPhoto={insp.car_photo} carName={carLabel} />}
                         details={[
                           { label: "Car Name", value: carNameDisplay },
                           { label: "Days Rented", value: daysRented ?? "--" },

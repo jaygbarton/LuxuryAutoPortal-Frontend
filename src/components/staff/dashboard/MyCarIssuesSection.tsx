@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatUniformCarLabel } from "@/pages/admin/operations/formatCarName";
 import { useToast } from "@/hooks/use-toast";
 import { INSPECTION_STATUS_OPTIONS } from "./MyTuroInspectionsSection";
 
@@ -220,8 +221,7 @@ export default function MyCarIssuesSection() {
                 accentBorder="border-red-300"
                 typeLabel="Car Issue"
                 reservationId={insp.reservation_id || insp.reservation_no}
-                carName={insp.car_name || insp.car}
-                plate={insp.plate}
+                carName={formatUniformCarLabel(insp.car_name || insp.car, insp.plate)}
                 assignedTo={insp.assigned_to}
                 tripStart={fmtDateTime(tripStart)}
                 tripEnd={fmtDateTime(tripEnd)}
