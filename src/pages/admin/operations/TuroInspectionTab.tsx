@@ -44,6 +44,7 @@ import type { Inspection, TuroTrip } from "./types";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
+import { formatUniformCarLabel } from "./formatCarName";
 
 // Status dropdown values that filter the joined Turo *trip* status (client-side)
 // rather than the inspection status (server-side). Booked / Ended / Returned.
@@ -907,6 +908,10 @@ export function TuroInspectionTab() {
                           ? trip.cancelledEarnings
                           : trip.earnings)
                       : null;
+                    const carLabel = formatUniformCarLabel(
+                      insp.car_name,
+                      insp.plate || trip?.plateNumber,
+                    );
 
                     const carNameEl = (() => {
                       const editing = carNameEdits[insp.id] !== undefined;
@@ -1025,15 +1030,12 @@ export function TuroInspectionTab() {
                         accentBorder="border-yellow-300"
                         typeLabel="Turo / Inspection"
                         reservationId={insp.reservation_id || trip?.reservationId}
-                        carName={insp.car_name}
-                        // Inspection's own resolved plate first, so rows whose trip
-                        // link is missing still show one (see CarInspectionsTab).
-                        plate={insp.plate || trip?.plateNumber}
+                        carName={carLabel}
                         tripStart={trip ? formatDate(trip.tripStart) : null}
                         tripEnd={trip ? formatDate(trip.tripEnd) : null}
                         pickupLocation={pickupLocation}
                         dropoffLocation={dropOffLocation}
-                        media={<CarPhotoCell carPhoto={insp.car_photo} carName={insp.car_name} />}
+                        media={<CarPhotoCell carPhoto={insp.car_photo} carName={carLabel} />}
                         details={[
                           { label: "Car Name Edit", value: carNameEl },
                           { label: "VIN #", value: vinEl },

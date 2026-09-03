@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { formatUniformCarLabel } from "@/pages/admin/operations/formatCarName";
 
 interface Inspection {
   id: number;
@@ -297,14 +298,13 @@ export default function CarIssuesSection() {
                 accentBorder="border-red-300"
                 typeLabel="Car Issue"
                 reservationId={insp.reservation_id}
-                carName={insp.car_name}
-                plate={insp.plate}
+                carName={formatUniformCarLabel(insp.car_name, insp.plate)}
                 assignedTo={insp.assigned_to}
                 tripStart={fmtDateTime(insp.tt_trip_start)}
                 tripEnd={fmtDateTime(insp.tt_trip_end)}
                 pickupLocation={asStr(insp.pickup_location)}
                 dropoffLocation={asStr(insp.dropoff_location)}
-                media={<CarPhotoCell carPhoto={insp.car_photo} carName={insp.car_name} />}
+                media={<CarPhotoCell carPhoto={insp.car_photo} carName={formatUniformCarLabel(insp.car_name, insp.plate)} />}
                 details={[
                   { label: "Days Rented", value: fmtDays(insp.days_rented) },
                   { label: "Extras", value: asStr(insp.extras) },
