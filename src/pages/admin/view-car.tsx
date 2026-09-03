@@ -188,7 +188,7 @@ export default function ViewCarPage() {
 
   // Filter menu items based on user role
   const allMenuItems: MenuItem[] = [
-    { label: "Car Detail", path: `/admin/cars/${carId}` },
+    { label: "Car Details", path: `/admin/cars/${carId}` },
     { label: "Earnings", path: `/admin/cars/${carId}/earnings` },
     { label: "Income and Expense", path: `/admin/cars/${carId}/income-expense` },
     { label: "NADA Depreciation Schedule", path: `/admin/cars/${carId}/depreciation` },
