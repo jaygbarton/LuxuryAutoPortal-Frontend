@@ -33,6 +33,16 @@ const FORMS = [
   { href: "/admin/forms?section=commissions-forms", label: "Commissions Form" },
 ];
 
+/** Client Forms group — six page sections, every child carries ?section=. */
+const CLIENT_FORMS = [
+  { href: "/admin/forms?section=client-onboarding", label: "Client Onboarding Form" },
+  { href: "/admin/forms?section=car-block-off-forms", label: "Car Block Off Form" },
+  { href: "/admin/forms?section=parking-ticket-forms", label: "Parking Ticket" },
+  { href: "/admin/forms?section=ticket-violation-forms", label: "Ticket Violation Form" },
+  { href: "/admin/forms?section=referral-forms", label: "Referral Form" },
+  { href: "/admin/forms?section=document-updates", label: "License & Registration or Insurance Updates" },
+];
+
 const tabKeyOf = (children: { href: string }[]) => {
   for (const c of children) {
     const q = c.href.split("?")[1];
@@ -93,6 +103,17 @@ describe("sidebar tab matching", () => {
     for (const current of FORMS) {
       const search = current.href.split("?")[1];
       const lit = FORMS.filter((c, i) =>
+        isPathActive("/admin/forms", c.href, search, key, i === 0),
+      );
+      expect(lit.map((l) => l.label)).toEqual([current.label]);
+    }
+  });
+
+  it("lights exactly one client Forms sub-item for any section", () => {
+    const key = tabKeyOf(CLIENT_FORMS);
+    for (const current of CLIENT_FORMS) {
+      const search = current.href.split("?")[1];
+      const lit = CLIENT_FORMS.filter((c, i) =>
         isPathActive("/admin/forms", c.href, search, key, i === 0),
       );
       expect(lit.map((l) => l.label)).toEqual([current.label]);

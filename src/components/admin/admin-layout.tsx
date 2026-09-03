@@ -121,6 +121,18 @@ const ADMIN_FORM_TABS: { href: string; label: string; icon: any }[] = [
   { href: "/admin/forms?section=ticket-violation-forms", label: "Ticket Violation Form", icon: ShieldAlert },
 ];
 
+/** Client Forms page tabs — the same six sections the page used to show as a
+ *  horizontal strip. Each child uses ?section= so a sidebar click lands on
+ *  that form without a new route. */
+const CLIENT_FORM_TABS: { href: string; label: string; icon: any }[] = [
+  { href: "/admin/forms?section=client-onboarding", label: "Client Onboarding Form", icon: ClipboardList },
+  { href: "/admin/forms?section=car-block-off-forms", label: "Car Block Off Form", icon: CalendarOff },
+  { href: "/admin/forms?section=parking-ticket-forms", label: "Parking Ticket", icon: FileText },
+  { href: "/admin/forms?section=ticket-violation-forms", label: "Ticket Violation Form", icon: ShieldAlert },
+  { href: "/admin/forms?section=referral-forms", label: "Referral Form", icon: Megaphone },
+  { href: "/admin/forms?section=document-updates", label: "License & Registration or Insurance Updates", icon: FileText },
+];
+
 /** The employee Forms page's six tabs, via a ?tab= param added to that page. */
 const STAFF_FORM_TABS: { href: string; label: string; icon: any }[] = [
   { href: "/staff/forms", label: "I&E Submission", icon: DollarSign },
@@ -281,11 +293,12 @@ const allSidebarItems: SidebarItem[] = [
     label: "Forms",
     icon: ClipboardList,
     roles: ["admin", "client"],
-    // Admin only: the Forms page picks its tab set from a server-side
-    // visibility call, and the client/co-host branches return a different
-    // (smaller) list than these fixed sub-items describe. Clients keep the
-    // plain link and the page's own tab strip.
-    children: withRoles(ADMIN_FORM_TABS, ["admin"]),
+    // Role-filtered: admins get the full Forms tab list, clients get the six
+    // client-facing sections that used to live in the page's horizontal strip.
+    children: [
+      ...withRoles(ADMIN_FORM_TABS, ["admin"]),
+      ...withRoles(CLIENT_FORM_TABS, ["client"]),
+    ],
   },
   {
     // External link to the GLA Turo host page. Turo blocks iframe embedding
