@@ -714,7 +714,7 @@ export default function TotalsPage() {
           <div className="space-y-2 pb-4">
             {/* 1. Car Management and Car Owner Split */}
             <Section
-              title="EXPENSES — Car Management & Owner Split"
+              title="EXPENSES — CAR MANAGEMENT & OWNER SPLIT"
               totalValue={(Number(totals?.carManagementSplit || 0) + Number(totals?.carOwnerSplit || 0))}
             >
               <TotalRow label="Car Management Split" value={totals?.carManagementSplit} />

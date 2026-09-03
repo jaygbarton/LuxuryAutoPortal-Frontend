@@ -25,16 +25,6 @@ interface PaymentReceiptModalProps {
   payment: Payment | null;
 }
 
-const formatYearMonth = (yearMonth: string): string => {
-  try {
-    const [year, month] = yearMonth.split("-");
-    const date = new Date(parseInt(year), parseInt(month) - 1);
-    return date.toLocaleDateString("en-US", { year: "numeric", month: "2-digit" });
-  } catch {
-    return yearMonth;
-  }
-};
-
 interface FileUrlData {
   fileId: string;
   name?: string;
@@ -49,6 +39,52 @@ interface FileUrlData {
   contextLabel?: string;
   /** For form-submission files we may have a direct URL already. */
   url?: string;
+}
+
+const formatYearMonth = (yearMonth: string): string => {
+  try {
+    const [year, month] = yearMonth.split("-");
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleDateString("en-US", { year: "numeric", month: "2-digit" });
+  } catch {
+    return yearMonth;
+  }
+};
+
+function normalizePaymentAttachment(entry: unknown): FileUrlData | null {
+  if (typeof entry === "string") {
+    const path = entry.trim();
+    if (!path) return null;
+    const isHttp = path.startsWith("http://") || path.startsWith("https://");
+    const isLocal = path.startsWith("/uploads/");
+    if (isHttp || isLocal) {
+      const url = isHttp ? path : buildApiUrl(path);
+      return {
+        fileId: path,
+        url,
+        webViewLink: url,
+        webContentLink: url,
+        source: "payment-attachment",
+      };
+    }
+    return { fileId: path, source: "payment-attachment" };
+  }
+  if (!entry || typeof entry !== "object") return null;
+  const o = entry as Record<string, unknown>;
+  const fileId = String(o.fileId || o.id_str || o.id || "").trim();
+  const url = String(o.url || o.webViewLink || o.webContentLink || "").trim();
+  const name = String(o.name || o.fileName || "").trim() || undefined;
+  const mimeType = String(o.mimeType || o.type || "").trim() || undefined;
+  if (!fileId && !url) return null;
+  return {
+    fileId: fileId || url,
+    name,
+    mimeType,
+    url: url || undefined,
+    webViewLink: (typeof o.webViewLink === "string" && o.webViewLink) || url || undefined,
+    webContentLink: (typeof o.webContentLink === "string" && o.webContentLink) || url || undefined,
+    source: "payment-attachment",
+  };
 }
 
 export function PaymentReceiptModal({
@@ -128,6 +164,15 @@ export function PaymentReceiptModal({
       try {
         const parsed = JSON.parse(payment.payments_attachment);
         const ids = Array.isArray(parsed) ? parsed : [parsed];
+
+        // Legacy rows store Drive metadata objects ({ id_str, name, type, url })
+        // instead of a bare file-id string. Treat those as already-resolved files
+        // so we don't stringify the JSON blob as a "Drive file ID".
+        if (ids.some((id) => id && typeof id === "object")) {
+          return ids
+            .map(normalizePaymentAttachment)
+            .filter((f): f is FileUrlData => !!f);
+        }
 
         // Check if attachments are Google Drive IDs (not starting with /uploads/)
         const isGDrive = ids.every((id: string) =>
@@ -259,14 +304,18 @@ export function PaymentReceiptModal({
   //     Drive permissions).
   const resolveCurrentUrl = (): string | null => {
     if (!currentFile) return null;
-    if (currentFile.url) return currentFile.url;
-    const id = currentFile.fileId;
-    if (!id) return currentFile.webViewLink || currentFile.webContentLink || currentFile.previewUrl || null;
+    const id = currentFile.fileId || "";
     const isHttp = id.startsWith("http://") || id.startsWith("https://");
     const isLocal = id.startsWith("/uploads/");
     if (isHttp) return id;
     if (isLocal) return buildApiUrl(id);
-    return buildApiUrl(`/api/payments/receipt/file-content?fileId=${encodeURIComponent(id)}`);
+    // Bare Drive file ID (legacy { id_str } rows) — proxy so img/iframe
+    // don't depend on a public Drive share URL.
+    if (id && !id.startsWith("{") && !id.startsWith("[")) {
+      return buildApiUrl(`/api/payments/receipt/file-content?fileId=${encodeURIComponent(id)}`);
+    }
+    if (currentFile.url) return currentFile.url;
+    return currentFile.webViewLink || currentFile.webContentLink || currentFile.previewUrl || null;
   };
   const currentAttachment = resolveCurrentUrl();
 
@@ -293,15 +342,16 @@ export function PaymentReceiptModal({
   const getFileType = (file: FileUrlData | null): string => {
     if (!file) return 'unknown';
     
-    // Check MIME type first (from Google Drive)
+    // Check MIME type first (from Google Drive or legacy { type: "image/jpeg" })
     if (file.mimeType) {
       if (file.mimeType.startsWith('image/')) return 'image';
       if (file.mimeType === 'application/pdf') return 'pdf';
     }
     
-    // Fallback to filename extension
-    const filename = file.name || file.fileId || '';
-    const ext = filename.split('.').pop()?.toLowerCase() || '';
+    // Fallback to filename / URL extension
+    const filename = file.name || file.url || file.fileId || '';
+    const extMatch = filename.toLowerCase().match(/\.([a-z0-9]+)(?:\?|$)/);
+    const ext = extMatch?.[1] || filename.split('.').pop()?.toLowerCase() || '';
     if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) {
       return 'image';
     } else if (ext === 'pdf') {
