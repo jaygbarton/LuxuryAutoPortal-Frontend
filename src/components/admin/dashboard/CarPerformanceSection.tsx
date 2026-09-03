@@ -67,6 +67,8 @@ export default function CarPerformanceSection({ year }: Props) {
     tripsTaken: rows.reduce((s, r) => s + r.tripsTaken, 0),
     // Now a real sum: the column is per-vehicle, so car-days across the fleet.
     availableDays: rows.reduce((s, r) => s + r.availableDays, 0),
+    // Fleet-wide snapshot for the period — identical on every row, so do not sum.
+    carsAvailable: rows[0]?.carsAvailable ?? 0,
     aveEarnings: rows.length > 0
       ? rows.reduce((s, r) => s + r.aveEarnings, 0) / rows.length
       : 0,
@@ -125,17 +127,8 @@ export default function CarPerformanceSection({ year }: Props) {
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Car Owner Split</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Days Rented</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Trips Taken</th>
-                {/* Per-vehicle: the days THIS car was on the fleet over the
-                    period — for the whole-year view, its yearly total. It is
-                    also the denominator of Fleet Utilization, so the two
-                    columns always reconcile.
-                    Deliberately NOT the fleet-wide `carsAvailable` (~80,
-                    identical on every row): Cathy asked for this column to be
-                    "the total available cars for the whole year for each
-                    vehicle", and a repeated fleet count read as broken. The
-                    fleet number is still on the Income & Expenses page, which
-                    is where a whole-fleet figure belongs. */}
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Cars Available</th>
+                <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Available Days</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Fleet Utilization (%)</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Ave Earnings</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Avg Days Rented</th>
@@ -160,6 +153,7 @@ export default function CarPerformanceSection({ year }: Props) {
                   <td className="px-3 py-1.5 text-right">{fmt(r.ownerSplit)}</td>
                   <td className="px-3 py-1.5 text-right">{r.daysRented}</td>
                   <td className="px-3 py-1.5 text-right">{r.tripsTaken}</td>
+                  <td className="px-3 py-1.5 text-right">{r.carsAvailable.toLocaleString()}</td>
                   <td className="px-3 py-1.5 text-right">{r.availableDays.toLocaleString()}</td>
                   <td className="px-3 py-1.5 text-right">{r.fleetUtilization.toFixed(2)}%</td>
                   <td className="px-3 py-1.5 text-right">{fmt(r.aveEarnings)}</td>
@@ -177,6 +171,7 @@ export default function CarPerformanceSection({ year }: Props) {
                 <td className="px-3 py-2 text-right text-black">{fmt(totals.ownerSplit)}</td>
                 <td className="px-3 py-2 text-right text-black">{totals.daysRented}</td>
                 <td className="px-3 py-2 text-right text-black">{totals.tripsTaken}</td>
+                <td className="px-3 py-2 text-right text-black">{totals.carsAvailable.toLocaleString()}</td>
                 <td className="px-3 py-2 text-right text-black">{totals.availableDays.toLocaleString()}</td>
                 <td className="px-3 py-2 text-right text-black">
                   {totals.availableDays > 0
