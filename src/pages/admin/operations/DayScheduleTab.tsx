@@ -179,6 +179,30 @@ function colorFor(category: string) {
   return CATEGORY_COLORS[category] ?? { bg: "bg-slate-500", text: "text-white", border: "border-slate-600" };
 }
 
+function taskTypeLabel(type: DayEventType): string {
+  switch (type) {
+    case "pickup":
+    case "airport":
+      return "Pick Up";
+    case "delivery":
+      return "Drop Off";
+    case "cleaning":
+      return "Cleaning";
+    case "refuel":
+      return "Refuel Run";
+    case "custom":
+      return "Custom Entry";
+    case "mechanic":
+      return "Mechanical Run";
+    case "windshield":
+      return "Windshield Run";
+    case "license_plate":
+      return "License Plate Run";
+    default:
+      return "Task";
+  }
+}
+
 /** Format "HH:MM" → "9:30 AM" */
 function fmt12(t: string | null): string {
   if (!t) return "";
@@ -215,6 +239,40 @@ function assigneeKey(e: DayEvent): string | null {
   if (e.assigned_to_id) return `id:${e.assigned_to_id}`;
   if (e.assigned_to?.trim()) return `name:${e.assigned_to.trim()}`;
   return null;
+}
+
+function updateDayScheduleEvent(
+  current: DayScheduleResult | undefined,
+  type: DayEventType,
+  id: number,
+  updater: (event: DayEvent) => DayEvent,
+): DayScheduleResult | undefined {
+  if (!current) return current;
+  return {
+    ...current,
+    events: current.events.map((event) => (
+      event.type === type && event.id === id ? updater(event) : event
+    )),
+  };
+}
+
+function removeDayScheduleEvent(
+  current: DayScheduleResult | undefined,
+  eventToRemove: DayEvent,
+): DayScheduleResult | undefined {
+  if (!current) return current;
+  return {
+    ...current,
+    events: current.events.filter((event) => {
+      if (event.id !== eventToRemove.id) return true;
+      if (event.type === eventToRemove.type) return false;
+      if (eventToRemove.type === "maintenance" && event.type === "maintenance_driver") return false;
+      if (eventToRemove.type === "maintenance_driver" && event.type === "maintenance") return false;
+      if (OPERATION_TASK_TYPES.includes(eventToRemove.type) && event.type === "task_driver") return false;
+      if (eventToRemove.type === "task_driver" && OPERATION_TASK_TYPES.includes(event.type)) return false;
+      return true;
+    }),
+  };
 }
 
 // ─── Drag-and-drop ──────────────────────────────────────────────────────────
@@ -908,8 +966,9 @@ export function DayScheduleTab() {
     },
     refetchInterval: DAY_SCHEDULE_REFRESH_MS,
     refetchIntervalInBackground: true,
-    staleTime: 0,
+    staleTime: 30 * 1000,
   });
+  const dayScheduleQueryKey = ["/api/operations/day-schedule", date] as const;
 
   // Drag-and-drop assign / unassign. employeeId === null means unassign.
   const assignMutation = useMutation({
@@ -931,11 +990,26 @@ export function DayScheduleTab() {
       }
       return res.json();
     },
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: dayScheduleQueryKey });
+      const previous = queryClient.getQueryData<DayScheduleResult>(dayScheduleQueryKey);
+      queryClient.setQueryData<DayScheduleResult>(dayScheduleQueryKey, (current) =>
+        updateDayScheduleEvent(current, vars.type, vars.eventId, (event) => ({
+          ...event,
+          assigned_to: vars.fullname,
+          assigned_to_id: vars.employeeId,
+        })),
+      );
+      return { previous };
+    },
     onSuccess: (_d, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
+      queryClient.invalidateQueries({ queryKey: dayScheduleQueryKey, exact: true, refetchType: "active" });
       toast({ title: vars.employeeId == null ? "Moved to Needs Assignment" : `Assigned to ${vars.fullname}` });
     },
-    onError: (e: Error) => toast({ variant: "destructive", title: "Couldn't reassign", description: e.message }),
+    onError: (e: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(dayScheduleQueryKey, context.previous);
+      toast({ variant: "destructive", title: "Couldn't reassign", description: e.message });
+    },
   });
 
   function assignTo(payload: DragPayload, employeeId: number, fullname: string) {
@@ -968,10 +1042,24 @@ export function DayScheduleTab() {
       }
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: dayScheduleQueryKey });
+      const previous = queryClient.getQueryData<DayScheduleResult>(dayScheduleQueryKey);
+      queryClient.setQueryData<DayScheduleResult>(dayScheduleQueryKey, (current) =>
+        updateDayScheduleEvent(current, vars.type, vars.eventId, (event) => ({
+          ...event,
+          duration_minutes: vars.minutes,
+        })),
+      );
+      return { previous };
     },
-    onError: (e: Error) => toast({ variant: "destructive", title: "Couldn't update duration", description: e.message }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dayScheduleQueryKey, exact: true, refetchType: "active" });
+    },
+    onError: (e: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(dayScheduleQueryKey, context.previous);
+      toast({ variant: "destructive", title: "Couldn't update duration", description: e.message });
+    },
   });
 
   function handleDurationChange(event: DayEvent, minutes: number | null) {
@@ -998,10 +1086,26 @@ export function DayScheduleTab() {
       }
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: dayScheduleQueryKey });
+      const previous = queryClient.getQueryData<DayScheduleResult>(dayScheduleQueryKey);
+      queryClient.setQueryData<DayScheduleResult>(dayScheduleQueryKey, (current) =>
+        updateDayScheduleEvent(current, vars.type, vars.eventId, (event) => ({
+          ...event,
+          driver_assignment_type: vars.assignmentType,
+          driver_assigned_to: vars.assignmentType === "employee" ? vars.fullname ?? null : null,
+          driver_assigned_to_id: vars.assignmentType === "employee" ? vars.employeeId ?? null : null,
+        })),
+      );
+      return { previous };
     },
-    onError: (e: Error) => toast({ variant: "destructive", title: "Couldn't update driver", description: e.message }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dayScheduleQueryKey, exact: true, refetchType: "active" });
+    },
+    onError: (e: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(dayScheduleQueryKey, context.previous);
+      toast({ variant: "destructive", title: "Couldn't update driver", description: e.message });
+    },
   });
 
   function handleDriverChange(
@@ -1041,8 +1145,46 @@ export function DayScheduleTab() {
       }
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
+    onSuccess: (result) => {
+      queryClient.setQueryData<DayScheduleResult>(dayScheduleQueryKey, (current) => {
+        if (!current) return current;
+        const event: DayEvent = {
+          id: Number(result?.id ?? Date.now()),
+          type: entryType,
+          category: taskTypeLabel(entryType),
+          car_name: entryCarName.trim(),
+          plate: null,
+          guest_name: null,
+          assigned_to: entryEmployee.name || null,
+          assigned_to_id: entryEmployee.id,
+          start_time: entryTime || "09:00",
+          end_time: null,
+          location: null,
+          status: "new",
+          notes: entryNotes.trim() ? `Manual Day Schedule entry: ${entryNotes.trim()}` : "Manual Day Schedule entry",
+          detail: null,
+          reservation_id: null,
+          extras: null,
+          trip_start: null,
+          trip_end: null,
+          trip_start_mt: null,
+          trip_end_mt: null,
+          pickup_location: null,
+          dropoff_location: null,
+          photos: null,
+          car_photo: null,
+          location_tag: null,
+          duration_minutes: null,
+          scheduled_day: date,
+          completed_day: null,
+          is_carryover: false,
+          driver_assignment_type: null,
+          driver_assigned_to: null,
+          driver_assigned_to_id: null,
+        };
+        return { ...current, events: [...current.events, event] };
+      });
+      queryClient.invalidateQueries({ queryKey: dayScheduleQueryKey, exact: true, refetchType: "active" });
       setShowAddEntry(false);
       setEntryCarName("");
       setEntryNotes("");
@@ -1068,10 +1210,25 @@ export function DayScheduleTab() {
       }
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: dayScheduleQueryKey });
+      const previous = queryClient.getQueryData<DayScheduleResult>(dayScheduleQueryKey);
+      queryClient.setQueryData<DayScheduleResult>(dayScheduleQueryKey, (current) =>
+        updateDayScheduleEvent(current, vars.type, vars.id, (event) => ({
+          ...event,
+          status: vars.status,
+          completed_day: vars.completedDate ?? event.completed_day,
+        })),
+      );
+      return { previous };
     },
-    onError: (e: Error) => toast({ variant: "destructive", title: "Couldn't update status", description: e.message }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: dayScheduleQueryKey, exact: true, refetchType: "active" });
+    },
+    onError: (e: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(dayScheduleQueryKey, context.previous);
+      toast({ variant: "destructive", title: "Couldn't update status", description: e.message });
+    },
   });
 
   function handleStatusChange(type: DayEventType, id: number, status: string, completedDate?: string) {
@@ -1092,11 +1249,22 @@ export function DayScheduleTab() {
       }
       return res.json();
     },
+    onMutate: async (event) => {
+      await queryClient.cancelQueries({ queryKey: dayScheduleQueryKey });
+      const previous = queryClient.getQueryData<DayScheduleResult>(dayScheduleQueryKey);
+      queryClient.setQueryData<DayScheduleResult>(dayScheduleQueryKey, (current) =>
+        removeDayScheduleEvent(current, event),
+      );
+      return { previous };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
+      queryClient.invalidateQueries({ queryKey: dayScheduleQueryKey, exact: true, refetchType: "active" });
       toast({ title: "Task deleted" });
     },
-    onError: (e: Error) => toast({ variant: "destructive", title: "Couldn't delete task", description: e.message }),
+    onError: (e: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(dayScheduleQueryKey, context.previous);
+      toast({ variant: "destructive", title: "Couldn't delete task", description: e.message });
+    },
   });
 
   function handleDelete(event: DayEvent) {

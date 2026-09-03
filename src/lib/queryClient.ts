@@ -214,7 +214,9 @@ export async function apiRequest(
 ): Promise<Response> {
   // Use buildApiUrl to ensure proper URL construction (respects Vite proxy in dev)
   const fullUrl = buildApiUrl(path);
-  console.log('API call to:', fullUrl);  // Debug log (remove later if not needed)
+  if (import.meta.env.DEV) {
+    console.log("API call to:", fullUrl);
+  }
 
   const res = await fetch(fullUrl, {
     method,
@@ -245,21 +247,8 @@ export const getQueryFn = <T,>({ on401: unauthorizedBehavior }: {
 
       const fullUrl = buildApiUrl(path);
 
-      // Enhanced logging for mobile and production debugging
-      if (typeof window !== 'undefined') {
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        const isProduction = import.meta.env.PROD;
-
-        // Always log in production or on mobile for debugging
-        if (isProduction || isMobile) {
-          console.log(`[API] Fetching: ${fullUrl}`);
-          console.log(`[API] Current origin: ${window.location.origin}`);
-          console.log(`[API] API base URL: ${API_BASE_URL || 'relative'}`);
-          console.log(`[API] VITE_API_URL env: ${import.meta.env.VITE_API_URL || 'Not set'}`);
-          if (isMobile) {
-            console.log(`[API] Mobile device detected`);
-          }
-        }
+      if (typeof window !== "undefined" && import.meta.env.DEV) {
+        console.log(`[API] Fetching: ${fullUrl}`);
       }
 
     // In browsers, `setTimeout` returns a number; in Node it returns a Timeout object.

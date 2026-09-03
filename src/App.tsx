@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient, getApiBaseUrl } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -6,140 +6,144 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TutorialProvider } from "@/components/onboarding/OnboardingTutorial";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import Home from "@/pages/home";
-import Fleet from "@/pages/fleet";
-import Onboarding from "@/pages/onboarding";
-import Contact from "@/pages/contact";
-import ChauffeurPage from "@/pages/chauffeur";
-import LocationInterest from "@/pages/location-interest";
-import {
-  DealsPage,
-  DetailShopAppointmentPage,
-  DetailShopPage,
-  ExtrasPage,
-  JobApplicationPage,
-  JobsPage,
-  PickupDropoffPage,
-  PrivacyPolicyPage,
-  ReviewsOptionsPage,
-  ReviewsPage,
-  SuggestedCarsPage,
-  TestimonialsPage,
-  TermsPage,
-} from "@/pages/marketing/legacy-pages";
-import NotFound from "@/pages/not-found";
-import AdminLogin from "@/pages/admin/login";
-import AdminDashboard from "@/pages/admin/dashboard";
-import AdminsPage from "@/pages/admin/admins";
-import ClientsPage from "@/pages/admin/clients";
-import ClientDetailPage from "@/pages/admin/client-detail";
-import ViewAsClientPage from "@/pages/admin/view-as-client";
-import ViewAsEmployeePage from "@/pages/admin/view-as-employee";
-import ViewAsCoHostPage from "@/pages/admin/view-as-co-host";
-import FormsPage from "@/pages/admin/forms";
-import CarsPage from "@/pages/admin/cars";
-import CarDetailPage from "@/pages/admin/car-detail";
-import ViewCarPage from "@/pages/admin/view-car";
-import EarningsPage from "@/pages/admin/earnings";
-import TotalExpensesPage from "@/pages/admin/total-expenses";
-import NADADepreciationPage from "@/pages/admin/nada-depreciation";
-import PurchaseDetailsPage from "@/pages/admin/purchase-details";
-import GraphsChartsPage from "@/pages/admin/graphs-charts";
-import PaymentCalculatorPage from "@/pages/admin/payment-calculator";
-import MaintenancePage from "@/pages/admin/maintenance";
-import RecordsPage from "@/pages/admin/records";
-import ViewRecordFilesPage from "@/pages/admin/view-record-files";
-import PaymentsPage from "@/pages/admin/payments";
-import PaymentsMainPage from "@/pages/admin/payments-main";
-import PaymentStatusPage from "@/pages/admin/payment-status";
-import TotalsPage from "@/pages/admin/totals";
-import IncomeExpensesPage from "@/pages/admin/income-expenses/index";
-import CarIncomeExpensePage from "@/pages/admin/car-income-expense";
-import IncomeExpenseLogPage from "@/pages/admin/income-expense-log";
-import SettingsPage from "@/pages/admin/settings";
-import AdminProfilePage from "@/pages/admin/admin-profile";
-import OperationsPage from "@/pages/admin/operations";
-import HumanResourcesPage from "@/pages/admin/hr";
-import HrApplicationsPage from "@/pages/admin/hr/applications";
-import EmployeesPage from "@/pages/admin/hr/employees";
-import EmployeeViewPage from "@/pages/admin/hr/employee-view";
-import WorkSchedulePage from "@/pages/admin/hr/work-schedule";
-import ScheduleTimelinePage from "@/pages/admin/hr/schedule-timeline";
-import AdminHrTaskManagement from "@/pages/admin/hr/task-management";
-import AdminHrTime from "@/pages/admin/hr/time";
-import AdminHrTimeOff from "@/pages/admin/hr/time-off";
-import AdminHrOvertime from "@/pages/admin/hr/overtime";
-import AdminHrReport from "@/pages/admin/hr/report";
-import PayrollPage from "@/pages/admin/payroll";
-import PayrollByRunPage from "@/pages/admin/payroll/payroll-by-run";
-import PayslipPage from "@/pages/admin/payroll/payslip";
-import PayrollCommissionsPage from "@/pages/admin/payroll/commissions";
-import CommissionPayrunsPage from "@/pages/admin/payroll/commission-payruns";
-import CommissionPayrunByRunPage from "@/pages/admin/payroll/commission-payrun-by-run";
-import EmployeeFormPage from "@/pages/employee-form";
-import CoHostFormPage from "@/pages/co-host-form";
-import CoHostsPage from "@/pages/admin/co-hosts";
-import MyCoHostCarsPage from "@/pages/admin/my-co-host-cars";
-import CoHostPaymentsPage from "@/pages/admin/co-host-payments";
-import BouncieDevicesPage from "@/pages/admin/bouncie-devices";
-import BouncieFleetPage from "@/pages/admin/bouncie";
-import BouncieTripsPage from "@/pages/admin/bouncie-trips";
-import BouncieBehaviorPage from "@/pages/admin/bouncie-behavior";
-import BouncieGeofencePage from "@/pages/admin/bouncie-geofence";
-import BouncieAnalyticsPage from "@/pages/admin/bouncie-analytics";
-import ClientCarTrackingPage from "@/pages/client/my-car-tracking";
-import ClientGeofenceZonesPage from "@/pages/client/geofence-zones";
-import ClientVehicleTripsPage from "@/pages/client/vehicle-trips";
-import ClientVehicleBehaviorPage from "@/pages/client/vehicle-behavior";
+import { AdminLayout } from "@/components/admin/admin-layout";
+import { RequireRole } from "@/components/admin/require-role";
+import { PUBLIC_LOCATIONS, rememberPublicLocationFromPath } from "@/lib/location-config";
+
+const Home = lazy(() => import("@/pages/home"));
+const Fleet = lazy(() => import("@/pages/fleet"));
+const Onboarding = lazy(() => import("@/pages/onboarding"));
+const Contact = lazy(() => import("@/pages/contact"));
+const ChauffeurPage = lazy(() => import("@/pages/chauffeur"));
+const LocationInterest = lazy(() => import("@/pages/location-interest"));
+const legacyPage = <K extends keyof typeof import("@/pages/marketing/legacy-pages")>(key: K) =>
+  lazy(() => import("@/pages/marketing/legacy-pages").then((module) => ({ default: module[key] as any })));
+const DealsPage = legacyPage("DealsPage");
+const DetailShopAppointmentPage = legacyPage("DetailShopAppointmentPage");
+const DetailShopPage = legacyPage("DetailShopPage");
+const ExtrasPage = legacyPage("ExtrasPage");
+const JobApplicationPage = legacyPage("JobApplicationPage");
+const JobsPage = legacyPage("JobsPage");
+const PickupDropoffPage = legacyPage("PickupDropoffPage");
+const PrivacyPolicyPage = legacyPage("PrivacyPolicyPage");
+const ReviewsOptionsPage = legacyPage("ReviewsOptionsPage");
+const ReviewsPage = legacyPage("ReviewsPage");
+const SuggestedCarsPage = legacyPage("SuggestedCarsPage");
+const TestimonialsPage = legacyPage("TestimonialsPage");
+const TermsPage = legacyPage("TermsPage");
+const NotFound = lazy(() => import("@/pages/not-found"));
+const AdminLogin = lazy(() => import("@/pages/admin/login"));
+const AdminsPage = lazy(() => import("@/pages/admin/admins"));
+const ClientsPage = lazy(() => import("@/pages/admin/clients"));
+const ClientDetailPage = lazy(() => import("@/pages/admin/client-detail"));
+const ViewAsClientPage = lazy(() => import("@/pages/admin/view-as-client"));
+const ViewAsEmployeePage = lazy(() => import("@/pages/admin/view-as-employee"));
+const ViewAsCoHostPage = lazy(() => import("@/pages/admin/view-as-co-host"));
+const FormsPage = lazy(() => import("@/pages/admin/forms"));
+const CarsPage = lazy(() => import("@/pages/admin/cars"));
+const CarDetailPage = lazy(() => import("@/pages/admin/car-detail"));
+const ViewCarPage = lazy(() => import("@/pages/admin/view-car"));
+const EarningsPage = lazy(() => import("@/pages/admin/earnings"));
+const TotalExpensesPage = lazy(() => import("@/pages/admin/total-expenses"));
+const NADADepreciationPage = lazy(() => import("@/pages/admin/nada-depreciation"));
+const PurchaseDetailsPage = lazy(() => import("@/pages/admin/purchase-details"));
+const GraphsChartsPage = lazy(() => import("@/pages/admin/graphs-charts"));
+const PaymentCalculatorPage = lazy(() => import("@/pages/admin/payment-calculator"));
+const MaintenancePage = lazy(() => import("@/pages/admin/maintenance"));
+const RecordsPage = lazy(() => import("@/pages/admin/records"));
+const ViewRecordFilesPage = lazy(() => import("@/pages/admin/view-record-files"));
+const PaymentsPage = lazy(() => import("@/pages/admin/payments"));
+const PaymentsMainPage = lazy(() => import("@/pages/admin/payments-main"));
+const PaymentStatusPage = lazy(() => import("@/pages/admin/payment-status"));
+const TotalsPage = lazy(() => import("@/pages/admin/totals"));
+const IncomeExpensesPage = lazy(() => import("@/pages/admin/income-expenses/index"));
+const CarIncomeExpensePage = lazy(() => import("@/pages/admin/car-income-expense"));
+const IncomeExpenseLogPage = lazy(() => import("@/pages/admin/income-expense-log"));
+const SettingsPage = lazy(() => import("@/pages/admin/settings"));
+const AdminProfilePage = lazy(() => import("@/pages/admin/admin-profile"));
+const OperationsPage = lazy(() => import("@/pages/admin/operations"));
+const HumanResourcesPage = lazy(() => import("@/pages/admin/hr"));
+const HrApplicationsPage = lazy(() => import("@/pages/admin/hr/applications"));
+const EmployeesPage = lazy(() => import("@/pages/admin/hr/employees"));
+const EmployeeViewPage = lazy(() => import("@/pages/admin/hr/employee-view"));
+const WorkSchedulePage = lazy(() => import("@/pages/admin/hr/work-schedule"));
+const ScheduleTimelinePage = lazy(() => import("@/pages/admin/hr/schedule-timeline"));
+const AdminHrTaskManagement = lazy(() => import("@/pages/admin/hr/task-management"));
+const AdminHrTime = lazy(() => import("@/pages/admin/hr/time"));
+const AdminHrTimeOff = lazy(() => import("@/pages/admin/hr/time-off"));
+const AdminHrOvertime = lazy(() => import("@/pages/admin/hr/overtime"));
+const AdminHrReport = lazy(() => import("@/pages/admin/hr/report"));
+const PayrollPage = lazy(() => import("@/pages/admin/payroll"));
+const PayrollByRunPage = lazy(() => import("@/pages/admin/payroll/payroll-by-run"));
+const PayslipPage = lazy(() => import("@/pages/admin/payroll/payslip"));
+const PayrollCommissionsPage = lazy(() => import("@/pages/admin/payroll/commissions"));
+const CommissionPayrunsPage = lazy(() => import("@/pages/admin/payroll/commission-payruns"));
+const CommissionPayrunByRunPage = lazy(() => import("@/pages/admin/payroll/commission-payrun-by-run"));
+const EmployeeFormPage = lazy(() => import("@/pages/employee-form"));
+const CoHostFormPage = lazy(() => import("@/pages/co-host-form"));
+const CoHostsPage = lazy(() => import("@/pages/admin/co-hosts"));
+const MyCoHostCarsPage = lazy(() => import("@/pages/admin/my-co-host-cars"));
+const CoHostPaymentsPage = lazy(() => import("@/pages/admin/co-host-payments"));
+const BouncieDevicesPage = lazy(() => import("@/pages/admin/bouncie-devices"));
+const BouncieFleetPage = lazy(() => import("@/pages/admin/bouncie"));
+const BouncieTripsPage = lazy(() => import("@/pages/admin/bouncie-trips"));
+const BouncieBehaviorPage = lazy(() => import("@/pages/admin/bouncie-behavior"));
+const BouncieGeofencePage = lazy(() => import("@/pages/admin/bouncie-geofence"));
+const BouncieAnalyticsPage = lazy(() => import("@/pages/admin/bouncie-analytics"));
+const ClientCarTrackingPage = lazy(() => import("@/pages/client/my-car-tracking"));
+const ClientGeofenceZonesPage = lazy(() => import("@/pages/client/geofence-zones"));
+const ClientVehicleTripsPage = lazy(() => import("@/pages/client/vehicle-trips"));
+const ClientVehicleBehaviorPage = lazy(() => import("@/pages/client/vehicle-behavior"));
+const ClientProfilePage = lazy(() => import("@/pages/admin/profile"));
+const TrainingManualPage = lazy(() => import("@/pages/admin/training-manual"));
+const ClientTrainingManualPage = lazy(() => import("@/pages/client/training-manual"));
+const ClientDashboardPage = lazy(() => import("@/pages/client/dashboard"));
+const ClientTripHistoryPage = lazy(() => import("@/pages/client/trip-history"));
+const ClientTripCalendarPage = lazy(() => import("@/pages/client/trip-calendar"));
+const ClientMaintenanceHistoryPage = lazy(() => import("@/pages/client/maintenance-history"));
+const ClientOffboardingFormPage = lazy(() => import("@/pages/client/offboarding-form"));
+const DashboardRouter = lazy(() => import("@/pages/dashboard-router"));
+const SignContract = lazy(() => import("@/pages/sign-contract"));
+const MaintenanceApproval = lazy(() => import("@/pages/maintenance-approval"));
+const Signup = lazy(() => import("@/pages/signup"));
+const ResetPasswordPage = lazy(() => import("@/pages/reset-password"));
+const StaffDashboard = lazy(() => import("@/pages/staff/dashboard"));
+const StaffMyInfoSection = lazy(() => import("@/pages/staff/my-info-section"));
+const StaffForms = lazy(() => import("@/pages/staff/forms"));
+const StaffFormsSubmit = lazy(() => import("@/pages/staff/forms-submit"));
+const StaffFormsMySubmissions = lazy(() => import("@/pages/staff/forms-my-submissions"));
+const StaffTaskManagement = lazy(() => import("@/pages/staff/task-management"));
+const StaffTime = lazy(() => import("@/pages/staff/time"));
+const StaffTimeOff = lazy(() => import("@/pages/staff/time-off"));
+const StaffTuroGuide = lazy(() => import("@/pages/staff/turo-guide"));
+const StaffTrainingManual = lazy(() => import("@/pages/staff/training-manual"));
+const CoHostTrainingManual = lazy(() => import("@/pages/cohost/training-manual"));
+const CoHostProfilePage = lazy(() => import("@/pages/cohost/profile"));
+const StaffClientTestimonials = lazy(() => import("@/pages/staff/client-testimonials"));
+const StaffCarRentalTrips = lazy(() => import("@/pages/staff/car-rental-trips"));
+const StaffCarRentalForms = lazy(() => import("@/pages/staff/car-rental-forms"));
+const StaffCarRentalFormSubmit = lazy(() => import("@/pages/staff/car-rental-form-submit"));
+const StaffCommissionForm = lazy(() => import("@/pages/staff/commission-form"));
+const StaffCommissionFormMySubmissions = lazy(() => import("@/pages/staff/commission-form-my-submissions"));
+const TuroTripsPage = lazy(() => import("@/pages/admin/turo-trips"));
+const TripCalendarPage = lazy(() => import("@/pages/admin/trip-calendar"));
+const CarBlockOffPage = lazy(() => import("@/pages/admin/CarBlockOff"));
+const AdminTestimonialsPage = lazy(() => import("@/pages/admin/testimonials"));
+const AdminTuroGuidePage = lazy(() => import("@/pages/admin/turo-guide"));
+const RentalListingsPage = lazy(() => import("@/pages/admin/rental-listings"));
+const GuestDatabasePage = lazy(() => import("@/pages/admin/marketing/guest-database"));
+const NewsMediaPage = lazy(() => import("@/pages/admin/news-media"));
+const NoticeBoardManagementPage = lazy(() => import("@/pages/admin/notice-board"));
+const NotificationsPage = lazy(() => import("@/pages/admin/notifications"));
+
+function PageFallback() {
+  return <div className="p-6 text-sm text-muted-foreground">Loading...</div>;
+}
 
 // Wrapper component for IncomeExpensesPage to handle Wouter route props
 function IncomeExpensesPageWrapper() {
   return <IncomeExpensesPage />;
 }
-import ClientProfilePage from "@/pages/admin/profile";
-import TrainingManualPage from "@/pages/admin/training-manual";
-import ClientTrainingManualPage from "@/pages/client/training-manual";
-import ClientDashboardPage from "@/pages/client/dashboard";
-import ClientTripHistoryPage from "@/pages/client/trip-history";
-import ClientTripCalendarPage from "@/pages/client/trip-calendar";
-import ClientMaintenanceHistoryPage from "@/pages/client/maintenance-history";
-import ClientOffboardingFormPage from "@/pages/client/offboarding-form";
-import DashboardRouter from "@/pages/dashboard-router";
-import SignContract from "@/pages/sign-contract";
-import MaintenanceApproval from "@/pages/maintenance-approval";
-import Signup from "@/pages/signup";
-import ResetPasswordPage from "@/pages/reset-password";
-import StaffDashboard from "@/pages/staff/dashboard";
-import StaffMyInfoSection from "@/pages/staff/my-info-section";
-import StaffForms from "@/pages/staff/forms";
-import StaffFormsSubmit from "@/pages/staff/forms-submit";
-import StaffFormsMySubmissions from "@/pages/staff/forms-my-submissions";
-import StaffTaskManagement from "@/pages/staff/task-management";
-import StaffTime from "@/pages/staff/time";
-import StaffTimeOff from "@/pages/staff/time-off";
-import StaffTuroGuide from "@/pages/staff/turo-guide";
-import StaffTrainingManual from "@/pages/staff/training-manual";
-import CoHostTrainingManual from "@/pages/cohost/training-manual";
-import CoHostProfilePage from "@/pages/cohost/profile";
-import StaffClientTestimonials from "@/pages/staff/client-testimonials";
-import StaffCarRentalTrips from "@/pages/staff/car-rental-trips";
-import StaffCarRentalForms from "@/pages/staff/car-rental-forms";
-import StaffCarRentalFormSubmit from "@/pages/staff/car-rental-form-submit";
-import StaffCommissionForm from "@/pages/staff/commission-form";
-import StaffCommissionFormMySubmissions from "@/pages/staff/commission-form-my-submissions";
-import TuroTripsPage from "@/pages/admin/turo-trips";
-import TripCalendarPage from "@/pages/admin/trip-calendar";
-import CarBlockOffPage from "@/pages/admin/CarBlockOff";
-import AdminTestimonialsPage from "@/pages/admin/testimonials";
-import AdminTuroGuidePage from "@/pages/admin/turo-guide";
-import RentalListingsPage from "@/pages/admin/rental-listings";
-import GuestDatabasePage from "@/pages/admin/marketing/guest-database";
-import NewsMediaPage from "@/pages/admin/news-media";
-import NoticeBoardManagementPage from "@/pages/admin/notice-board";
-import NotificationsPage from "@/pages/admin/notifications";
-import { AdminLayout } from "@/components/admin/admin-layout";
-import { RequireRole } from "@/components/admin/require-role";
-import { PUBLIC_LOCATIONS, rememberPublicLocationFromPath } from "@/lib/location-config";
 
 function Router() {
   const [currentPath] = useLocation();
@@ -163,6 +167,7 @@ function Router() {
   }, [currentPath]);
 
   return (
+    <Suspense fallback={<PageFallback />}>
     <Switch>
       {/*
         Public routes — rendered without the admin shell.
@@ -579,6 +584,7 @@ function Router() {
         </AdminLayout>
       </Route>
     </Switch>
+    </Suspense>
   );
 }
 
@@ -605,16 +611,6 @@ function App() {
     console.log("[APP] Environment: development");
     console.log("[APP] API base:", apiBaseUrl || "relative (Vite proxy)");
   }
-  if (
-    import.meta.env.PROD &&
-    typeof window !== "undefined" &&
-    !import.meta.env.VITE_API_URL
-  ) {
-    console.warn(
-      "⚠️ [APP] VITE_API_URL is not set in production; API calls may fail.",
-    );
-  }
-
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
