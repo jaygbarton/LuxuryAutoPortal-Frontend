@@ -2,8 +2,8 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
-import { ArrowLeft, ChevronRight, ExternalLink, Pencil, X, Check, ChevronDown, FileText, Eye, Download } from "lucide-react";
-import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
+import { ArrowLeft, ChevronRight, ChevronLeft, ExternalLink, Pencil, X, Check, ChevronDown, FileText, Eye, Download } from "lucide-react";
+import { authMeQueryFn, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { useState, useRef, useEffect } from "react";
@@ -36,6 +36,7 @@ interface CarDetail {
   fuelType?: string | null;
   tireSize?: string | null;
   oilType?: string | null;
+  photos?: string[];
 }
 
 interface MenuItem {
@@ -51,6 +52,7 @@ export default function ViewCarPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const [photoIndex, setPhotoIndex] = useState(0);
   const [editingOwner, setEditingOwner] = useState(false);
   const [ownerForm, setOwnerForm] = useState<{ name: string; contact: string; email: string; clientId: number | null }>({ name: "", contact: "", email: "", clientId: null });
   const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
@@ -523,9 +525,14 @@ export default function ViewCarPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Car and Owner Information Header */}
+        {/* Car and Owner Information Header + photos on the right */}
         <div className="bg-card border border-border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 items-stretch">
+          <div
+            className={cn(
+              "grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 items-stretch",
+              car.photos && car.photos.length > 0 ? "lg:grid-cols-5" : "lg:grid-cols-4",
+            )}
+          >
             {/* Car Information */}
             <div>
               <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3">Car Information</h3>
@@ -744,6 +751,66 @@ export default function ViewCarPage() {
                 )}
               </div>
             </div>
+
+            {car.photos && car.photos.length > 0 && (
+              <div className="flex h-full min-h-[220px] flex-col sm:col-span-2 lg:col-span-1">
+                <div className="relative min-h-0 flex-1 overflow-hidden rounded-md bg-background">
+                  {car.photos.map((photo, idx) => (
+                    <div
+                      key={idx}
+                      className={cn(
+                        "absolute inset-0 transition-opacity duration-500",
+                        idx === photoIndex ? "opacity-100 z-10" : "opacity-0 z-0",
+                      )}
+                    >
+                      <img
+                        src={getProxiedImageUrl(photo)}
+                        alt={`Car photo ${idx + 1}`}
+                        className="h-full w-full object-contain"
+                        onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.2"; }}
+                      />
+                    </div>
+                  ))}
+                  {car.photos.length > 1 && (
+                    <div className="absolute bottom-2 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPhotoIndex((i) => (i - 1 + car.photos!.length) % car.photos!.length)}
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background/80 text-foreground hover:bg-background"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <span className="rounded-full border border-border bg-background/80 px-2 py-0.5 text-xs font-medium text-foreground">
+                        {photoIndex + 1} / {car.photos.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setPhotoIndex((i) => (i + 1) % car.photos!.length)}
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background/80 text-foreground hover:bg-background"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {car.photos.length > 1 && (
+                  <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+                    {car.photos.map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setPhotoIndex(i)}
+                        style={{
+                          width: 8, height: 8, borderRadius: "50%", border: "none", padding: 0, cursor: "pointer",
+                          backgroundColor: i === photoIndex ? "#d3bc8d" : "#444",
+                        }}
+                        aria-label={`Photo ${i + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
