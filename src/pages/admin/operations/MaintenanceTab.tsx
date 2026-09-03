@@ -88,6 +88,21 @@ const formatCurrency = (n: number | null | undefined): string => {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 };
 
+function oneMaintenancePerInspection(recs: MaintenanceRecord[]): MaintenanceRecord[] {
+  const seen = new Set<number>();
+  const out: MaintenanceRecord[] = [];
+  for (const rec of recs) {
+    if (rec.inspection_id == null) {
+      out.push(rec);
+      continue;
+    }
+    if (seen.has(rec.inspection_id)) continue;
+    seen.add(rec.inspection_id);
+    out.push(rec);
+  }
+  return out;
+}
+
 const calculateDaysRented = (
   tripStart: string | null,
   tripEnd: string | null,
@@ -104,17 +119,9 @@ const calculateDaysRented = (
   }
 };
 
-/** Car Owner Approval Status chip for the Maintenance table. Shows
- *  Email Sent / Approved / Declined, plus the requested/responded timestamps
- *  and (when declined) the reason directly in the cell — not just on hover,
- *  since a hidden decline reason was hard to find at a glance. */
 function OwnerApprovalBadge({ rec }: { rec: MaintenanceRecord }) {
   const s = rec.owner_approval_status || "not_sent";
   if (s === "not_sent") {
-    // The SOP only emails owners who have an app account. If this task is
-    // already "Maintenance Reported" but no email went out because the owner
-    // can't log in, say so instead of a bare "--" that reads as "nothing
-    // happened" (the case Cathy flagged on cars owned by non-app clients).
     const isReported = rec.status === "damage_reported";
     const hasAppAccess =
       rec.owner_has_app_access === 1 || rec.owner_has_app_access === true;
@@ -239,12 +246,8 @@ export function MaintenanceTab({
   const inspectionsById = new Map((inspectionsData?.data || []).map((i) => [i.id, i]));
   const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
 
-  const rawRecords = data?.data || [];
+  const rawRecords = oneMaintenancePerInspection(data?.data || []);
 
-  // UTC ISO → YYYY-MM-DD calendar day in Mountain Time, so the Scheduled
-  // From/To filter buckets a record into the same day the Scheduled Date
-  // column shows (a naive getTime() compare against a UTC-midnight date input
-  // mis-buckets records scheduled near midnight MT).
   const toMtDate = (iso: string | null | undefined): string | null => {
     if (!iso) return null;
     try {
@@ -269,8 +272,6 @@ export function MaintenanceTab({
         rec.trip_plate_number,
       ])) return false;
       if (q) {
-        // Mirror every visible column so the search box matches anything the
-        // user can see in the table.
         const hay = [
           // Maintenance record fields
           rec.car_name,
@@ -288,10 +289,6 @@ export function MaintenanceTab({
           rec.inspection_car_issue_types?.join(" "),
           rec.scheduled_date,
           rec.due_date,
-          // Backend-joined trip fields (rec.trip_*) — these are what the row
-          // actually renders (e.g. Reservation #), attached to every row
-          // regardless of the client's limited trips fetch window. Must be in
-          // the haystack or searching a visible reservation id matches nothing.
           rec.trip_reservation_id,
           rec.trip_plate_number,
           rec.trip_pickup_location,
@@ -302,7 +299,6 @@ export function MaintenanceTab({
           rec.trip_status,
           rec.trip_start,
           rec.trip_end,
-          // Joined inspection / client-side trip fields (fallback context)
           insp?.reservation_id,
           insp?.notes,
           trip?.plateNumber,
@@ -379,9 +375,6 @@ export function MaintenanceTab({
     },
   });
 
-  // Inline assignee edit for the Maintenance stage. Each stage owns its own
-  // assignment so a different employee can handle Maintenance vs. the earlier
-  // Car Issues / Turo Messages stages.
   const assigneeUpdateMutation = useMutation({
     mutationFn: async ({
       id,
@@ -610,17 +603,10 @@ export function MaintenanceTab({
                   const match = enriched.match(/\b(19|20)\d{2}\b/);
                   if (match) year = match[0];
                 }
-                // rec.car_name comes from maintenance_tasks.car_name, set at task
-                // creation time — some rows stored it without the year (e.g. "Hyundai
-                // Santa Fe") even though the car's year is known via the c.car_year
-                // join, so append it here rather than trusting car_name as-is.
                 const carNameHasYear = !!rec.car_name && /\b(19|20)\d{2}\b/.test(rec.car_name);
                 const carDisplayName = rec.car_name
                   ? (carNameHasYear || !year ? rec.car_name : `${rec.car_name} ${year}`)
                   : (make !== "--" ? `${make} ${model}${year ? " " + year : ""}`.trim() : "--");
-                // "CAR Name" details cell shows the full "Make Model Year - Plate #"
-                // label (same convention as Claims / Ticket Violation) — carDisplayName
-                // alone omits the plate, which is why it read as e.g. just "BMW X2 2.0L".
                 const carNameWithPlateLabel = plateNumber
                   ? `${carDisplayName} - ${plateNumber}`
                   : carDisplayName;
@@ -724,10 +710,6 @@ export function MaintenanceTab({
                   </div>
                 ) : <span className="text-muted-foreground text-xs">--</span>;
 
-                // Prefer an uploaded maintenance photo; fall back to the car's own
-                // photo (same convention as Car Issues / Turo Messages) so a
-                // maintenance record isn't left with no thumbnail at all just
-                // because nobody has uploaded a maintenance-specific photo yet.
                 const photosEl = rec.photos && rec.photos.length > 0 ? (
                   <PhotoUpload photos={rec.photos} onPhotosChange={() => {}} entityType="maintenance" entityId={rec.id} disabled compact />
                 ) : (
