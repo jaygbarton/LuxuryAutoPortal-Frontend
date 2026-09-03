@@ -1967,10 +1967,11 @@ export default function EarningsPage() {
                   />
                 </CategorySection>
 
-                {/* PARKING AIRPORT AVERAGE PER TRIP - GLA — GLA-internal,
-                    hidden from clients again per Hoang (2026-07-22). (Was
-                    briefly client-visible 2026-07-20 through 2026-07-22.) */}
-                {isUnderlyingAdmin && (
+                {/* PARKING AIRPORT AVERAGE PER TRIP - GLA — GLA-internal.
+                    Hidden from clients and from View as Client (isAdmin is
+                    false while impersonating), matching reimbursed bills.
+                    Admins still see it on this page when not impersonating. */}
+                {isAdmin && (
                 <CategorySection
                     title="PARKING AIRPORT AVERAGE PER TRIP - GLA"
                     isExpanded={expandedSections.parkingAverageQB}
