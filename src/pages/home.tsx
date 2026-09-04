@@ -402,9 +402,7 @@ export default function Home({ location }: { location?: PublicLocation }) {
         <AnimatedHomeSection>
           <Services location={location} />
         </AnimatedHomeSection>
-        <AnimatedHomeSection>
-          <CTASection location={location} />
-        </AnimatedHomeSection>
+        <CTASection location={location} />
       </main>
       <Footer />
     </div>

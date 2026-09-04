@@ -445,10 +445,10 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .public-page > section:not(:first-child):not(.cinematic-scroll-section),
-  .public-page > div:not(.cinematic-shell),
+  .public-page > section:not(:first-child):not(.cinematic-scroll-section):not(.no-view-reveal),
+  .public-page > div:not(.cinematic-shell):not(.no-view-reveal),
   .public-page .reveal-on-scroll,
-  .public-page article {
+  .public-page article:not(.no-view-reveal) {
     animation: fade-in-up both;
     animation-timeline: view();
     animation-range: entry 0% cover 26%;

@@ -4,9 +4,9 @@ import type { PublicLocation } from "@/lib/location-config";
 
 export function CTASection({ location }: { location: PublicLocation }) {
   return (
-    <section className="relative overflow-hidden py-14 lg:py-20">
+    <section className="no-view-reveal relative isolate overflow-hidden bg-[#050505] py-14 lg:py-20">
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
         style={{
           backgroundImage: "url('/bmw-x6-cta.jpg')",
         }}
