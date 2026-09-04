@@ -8,14 +8,14 @@ export function CTASection({ location }: { location: PublicLocation }) {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: "url('/bmw-x6-cta-enhanced.png')",
+          backgroundImage: "url('/bmw-x6-cta.jpg')",
         }}
       >
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(90deg, rgba(12,9,4,0.74) 0%, rgba(12,9,4,0.46) 48%, rgba(12,9,4,0.16) 100%), linear-gradient(180deg, rgba(12,9,4,0.14), rgba(12,9,4,0.58))",
+              "linear-gradient(90deg, rgba(10,7,3,0.84) 0%, rgba(10,7,3,0.62) 48%, rgba(10,7,3,0.32) 100%), linear-gradient(180deg, rgba(10,7,3,0.3), rgba(10,7,3,0.72))",
           }}
         />
       </div>

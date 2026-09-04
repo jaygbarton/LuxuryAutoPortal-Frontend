@@ -28,10 +28,10 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
     target: sectionRef,
     offset: ["start start", "end end"],
   });
-  const splitY = useTransform(scrollYProgress, [0, 0.48, 0.7], shouldReduceMotion ? [0, 0, 0] : ["16vh", "-14vh", "-42vh"]);
-  const reviewY = useTransform(scrollYProgress, [0.18, 0.48, 0.78], shouldReduceMotion ? [0, 0, 0] : ["28vh", "0vh", "-16vh"]);
-  const splitOpacity = useTransform(scrollYProgress, [0, 0.32, 0.48], [1, 1, 0]);
-  const reviewOpacity = useTransform(scrollYProgress, [0.34, 0.5, 0.82, 0.94], [0, 1, 1, 0]);
+  const splitY = useTransform(scrollYProgress, [0, 0.58, 0.76], shouldReduceMotion ? [0, 0, 0] : ["16vh", "-8vh", "-38vh"]);
+  const reviewY = useTransform(scrollYProgress, [0.44, 0.64, 0.9], shouldReduceMotion ? [0, 0, 0] : ["28vh", "0vh", "-16vh"]);
+  const splitOpacity = useTransform(scrollYProgress, [0, 0.5, 0.64], [1, 1, 0]);
+  const reviewOpacity = useTransform(scrollYProgress, [0.56, 0.68, 0.88, 0.97], [0, 1, 1, 0]);
   const contentOpacity = useTransform(scrollYProgress, [0, 0.08, 0.86, 1], [0.96, 1, 1, 0.96]);
   const shadeOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [0.5, 0.32, 0.48]);
 
@@ -74,7 +74,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
     <section
       id="business-split"
       ref={sectionRef}
-      className="cinematic-scroll-section relative bg-transparent text-white lg:min-h-[285svh]"
+      className="cinematic-scroll-section relative bg-transparent text-white lg:min-h-[360svh]"
     >
       <div className="relative overflow-hidden lg:hidden">
         <div className="absolute inset-0 bg-[#050505]/72" />
