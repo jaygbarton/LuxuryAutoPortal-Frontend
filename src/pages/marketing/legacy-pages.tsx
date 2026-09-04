@@ -2233,6 +2233,7 @@ export function TestimonialsPage() {
 export function ReviewsPage() {
   return (
     <PageShell page="reviews">
+      <RotatingGoogleReviews surface="light" />
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <SectionHeader
           eyebrow="Share Feedback"

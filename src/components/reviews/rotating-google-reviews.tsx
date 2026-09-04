@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
+import { SITE_STATS } from "@/lib/site-config";
+
+const googleReviewCount = SITE_STATS.find((stat) => stat.label === "5-Star Google Reviews")?.value ?? "2,815";
 
 const recentGoogleReviews = [
   {
@@ -57,10 +60,10 @@ export function RotatingGoogleReviews({ className = "", surface = "dark", compac
         <div className={`${compact ? "mb-4" : "mb-8"} flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between`}>
           <div>
             <p className="mb-3 text-xs font-bold uppercase tracking-[3px]" style={{ color: "#E8B830" }}>
-              Recent Google Reviews
+              {googleReviewCount} 5-Star Google Reviews
             </p>
             <h2 className={`font-serif font-bold ${compact ? "text-2xl sm:text-3xl" : "text-3xl sm:text-4xl"}`}>
-              What guests say after the trip
+              Exact guest reviews from Google
             </h2>
           </div>
           <div className="flex gap-2">

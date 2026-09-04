@@ -17,7 +17,7 @@ export const SITE_TAGLINE =
 
 export const SITE_STATS = [
   { label: "Trips Taken", value: "22,924" },
-  { label: "5-Star Google Reviews", value: "2,800+" },
+  { label: "5-Star Google Reviews", value: "2,815" },
   { label: "Turo Rating", value: "4.9" },
   { label: "Turo Host", value: "All-Star" },
 ] as const;
