@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearch } from "wouter";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -907,6 +908,7 @@ function UnassignedCard({
 
 export function DayScheduleTab() {
   const activeTz = useTimezone();
+  const search = useSearch();
   // Lazy-initialized once at mount, using whatever timezone is resolved at
   // that instant (falls back to Mountain Time if /api/auth/me hasn't loaded
   // yet — see useTimezone()'s doc comment). Deliberately NOT re-derived if
@@ -914,7 +916,12 @@ export function DayScheduleTab() {
   // navigated (e.g. to yesterday), silently jumping "today" out from under
   // them would be more surprising than a one-time stale seed. The "Today"
   // button (below) always uses the current activeTz, so it self-corrects.
-  const [date, setDate] = useState(() => mtTodayKey(activeTz));
+  const [date, setDate] = useState(() => {
+    const dateParam = new URLSearchParams(search).get("date");
+    return dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
+      ? dateParam
+      : mtTodayKey(activeTz);
+  });
   const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
