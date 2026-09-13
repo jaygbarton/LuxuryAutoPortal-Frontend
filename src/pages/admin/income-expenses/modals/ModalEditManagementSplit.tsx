@@ -235,6 +235,8 @@ export default function ModalEditManagementSplit() {
                 })
               }
               className="bg-card border-border text-foreground text-sm mt-1"
+              min="0"
+              max="100"
               step="0.01"
               autoFocus
             />
