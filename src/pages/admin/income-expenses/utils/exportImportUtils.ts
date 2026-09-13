@@ -1136,9 +1136,13 @@ export function buildIncomeExpenseCSV(
   let totalParkingTotal = 0;
   MONTHS.forEach((_, idx) => {
     const monthNum = idx + 1;
+    // `a || 0 + b || 0` parses as `a || (0 + b) || 0`, because + binds tighter
+    // than ||. Any non-zero glaParkingFee short-circuited and laborCleaning
+    // was dropped from the exported total entirely; it only appeared when
+    // glaParkingFee happened to be 0. Parenthesise each term.
     const fixedTotal = (
-      Number(getMonthValue(data.parkingFeeLabor, monthNum, "glaParkingFee")) || 0 +
-      Number(getMonthValue(data.parkingFeeLabor, monthNum, "laborCleaning")) || 0
+      (Number(getMonthValue(data.parkingFeeLabor, monthNum, "glaParkingFee")) || 0) +
+      (Number(getMonthValue(data.parkingFeeLabor, monthNum, "laborCleaning")) || 0)
     );
     const dynamicTotal = (dynamicSubcategories?.parkingFeeLabor || []).reduce((sum: number, subcat: any) => {
       const monthValue = subcat.values?.find((v: any) => v.month === monthNum);
