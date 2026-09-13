@@ -2,8 +2,19 @@ import { differenceInDays } from "date-fns";
 import { formatMonthDayYear } from "@/lib/date-format";
 import type { TuroTrip } from "./types";
 
+/** Em dash shown wherever a figure could not be computed. */
+export const UNAVAILABLE = "\u2014";
+
+/**
+ * Format a currency figure.
+ *
+ * `null` means "the backend could not compute this" and renders as an em dash,
+ * NOT $0.00 — a computation failure must not be indistinguishable from a real
+ * zero. `undefined` is treated the same way. Genuine 0 still renders $0.00.
+ */
 export function fmt(val: number | string | null | undefined): string {
-  const n = parseFloat(String(val ?? 0)) || 0;
+  if (val === null || val === undefined) return UNAVAILABLE;
+  const n = parseFloat(String(val)) || 0;
   return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 

@@ -123,6 +123,9 @@ export default function ClientDashboard() {
         month: number;
         rentalIncome: number;
         carOwnerTotalExpenses: number;
+        // Set when the backend's per-month split computation threw; the
+        // computed* fields are then absent and must render as an em dash.
+        splitsUnavailable?: boolean;
         // Authoritative DOLLAR values computed by the backend split formula.
         computedCarOwnerSplit?: number;
         computedCarOwnerTotalExpenses?: number;
@@ -294,8 +297,19 @@ export default function ClientDashboard() {
       // Car owner's share of expenses + the Car Owner Split, both computed by
       // the authoritative backend formula (same value the admin I&E page shows).
       // Previously this column wrongly used rentalIncome - sum(clientPayments).
-      const expenses = Number(ieRow?.computedCarOwnerTotalExpenses ?? 0);
-      const profit = Number(ieRow?.computedCarOwnerSplit ?? 0);
+      // The backend marks a month whose split computation failed. `?? 0` here
+      // rendered that as $0.00 — indistinguishable from a real zero month, and
+      // it then poisoned the totals, averages and Worst/Best tiles below.
+      // null means "could not compute" and renders as an em dash.
+      const splitsUnavailable =
+        ieRow?.splitsUnavailable === true ||
+        (ieRow != null && ieRow.computedCarOwnerSplit === undefined);
+      const expenses = splitsUnavailable
+        ? null
+        : Number(ieRow?.computedCarOwnerTotalExpenses ?? 0);
+      const profit = splitsUnavailable
+        ? null
+        : Number(ieRow?.computedCarOwnerSplit ?? 0);
       return {
         month: `${m} ${yearNum}`,
         shortMonth: m,
@@ -310,18 +324,28 @@ export default function ClientDashboard() {
     });
   }, [ieMonths, histMonths, yearNum]);
 
+  // A total that quietly skips an unavailable month re-hides the very failure
+  // we are surfacing, so a null contributor makes the whole total null.
+  const sumOrNull = (vals: (number | null)[]): number | null =>
+    vals.some((v) => v === null)
+      ? null
+      : vals.reduce<number>((a, b) => a + (b as number), 0);
+
   const yearTotals = useMemo<YearTotals>(() => {
-    return monthlyTripData.reduce(
-      (acc, row) => ({
-        income: acc.income + row.income,
-        expenses: acc.expenses + row.expenses,
-        profit: acc.profit + row.profit,
-        days: acc.days + row.days,
-        trips: acc.trips + row.trips,
-      }),
-      { income: 0, expenses: 0, profit: 0, days: 0, trips: 0 },
-    );
+    return {
+      income: monthlyTripData.reduce((a, r) => a + r.income, 0),
+      expenses: sumOrNull(monthlyTripData.map((r) => r.expenses)),
+      profit: sumOrNull(monthlyTripData.map((r) => r.profit)),
+      days: monthlyTripData.reduce((a, r) => a + r.days, 0),
+      trips: monthlyTripData.reduce((a, r) => a + r.trips, 0),
+    };
   }, [monthlyTripData]);
+
+  /** Months whose split could not be computed, for the dashed-total tooltip. */
+  const unavailableMonths = useMemo(
+    () => monthlyTripData.filter((r) => r.profit === null).map((r) => r.shortMonth),
+    [monthlyTripData],
+  );
 
   const monthlyDaysTripsData = useMemo<MonthlyDaysTripsRow[]>(() => {
     return MONTHS_SHORT.map((m, i) => {
@@ -401,7 +425,14 @@ export default function ClientDashboard() {
   // are all-zero placeholder rows, not real zero-earning months.
   const firstActiveMonthIndex = useMemo(() => {
     const idx = monthlyTripData.findIndex(
-      (r) => r.income !== 0 || r.expenses !== 0 || r.profit !== 0 || r.days !== 0 || r.trips !== 0,
+      (r) =>
+        r.income !== 0 ||
+        (r.expenses ?? 0) !== 0 ||
+        (r.profit ?? 0) !== 0 ||
+        r.days !== 0 ||
+        r.trips !== 0 ||
+        // An unavailable month is not a placeholder month — tenure has begun.
+        r.profit === null,
     );
     return idx === -1 ? 0 : idx;
   }, [monthlyTripData]);
@@ -414,31 +445,34 @@ export default function ClientDashboard() {
   const monthlyAverages = useMemo<YearTotals>(() => {
     const n = completedMonthsTripData.length;
     if (n === 0) return { income: 0, expenses: 0, profit: 0, days: 0, trips: 0 };
-    const sums = completedMonthsTripData.reduce(
-      (acc, row) => ({
-        income: acc.income + row.income,
-        expenses: acc.expenses + row.expenses,
-        profit: acc.profit + row.profit,
-        days: acc.days + row.days,
-        trips: acc.trips + row.trips,
-      }),
-      { income: 0, expenses: 0, profit: 0, days: 0, trips: 0 },
-    );
+    const expensesSum = sumOrNull(completedMonthsTripData.map((r) => r.expenses));
+    const profitSum = sumOrNull(completedMonthsTripData.map((r) => r.profit));
     return {
-      income: sums.income / n,
-      expenses: sums.expenses / n,
-      profit: sums.profit / n,
-      days: sums.days / n,
-      trips: sums.trips / n,
+      income: completedMonthsTripData.reduce((a, r) => a + r.income, 0) / n,
+      expenses: expensesSum === null ? null : expensesSum / n,
+      profit: profitSum === null ? null : profitSum / n,
+      days: completedMonthsTripData.reduce((a, r) => a + r.days, 0) / n,
+      trips: completedMonthsTripData.reduce((a, r) => a + r.trips, 0) / n,
     };
   }, [completedMonthsTripData]);
 
-  const worstMonthCashFlow = completedMonthsTripData.length > 0
-    ? Math.min(...completedMonthsTripData.map((r) => r.profit))
-    : 0;
-  const bestMonthCashFlow = completedMonthsTripData.length > 0
-    ? Math.max(...completedMonthsTripData.map((r) => r.profit))
-    : 0;
+  // Worst/Best fed on `?? 0` zeros used to read $0.00 whenever any month
+  // failed. An incomplete set cannot produce an honest min/max, so it is null.
+  const completedProfits = completedMonthsTripData.map((r) => r.profit);
+  const profitsIncomplete = completedProfits.some((p) => p === null);
+  const worstMonthCashFlow =
+    completedMonthsTripData.length === 0 ? 0
+      : profitsIncomplete ? null
+        : Math.min(...(completedProfits as number[]));
+  const bestMonthCashFlow =
+    completedMonthsTripData.length === 0 ? 0
+      : profitsIncomplete ? null
+        : Math.max(...(completedProfits as number[]));
+
+  /** Months excluded from the completed-month tiles, for their tooltip. */
+  const unavailableCompletedMonths = completedMonthsTripData
+    .filter((r) => r.profit === null)
+    .map((r) => r.shortMonth);
 
   const ownerName = profile?.onboarding?.firstNameOwner
     ? `${profile.onboarding.firstNameOwner} ${profile.onboarding.lastNameOwner ?? ""}`.trim()
@@ -596,6 +630,8 @@ export default function ClientDashboard() {
           monthlyAverages={monthlyAverages}
           worstMonthCashFlow={worstMonthCashFlow}
           bestMonthCashFlow={bestMonthCashFlow}
+          unavailableMonths={unavailableMonths}
+          unavailableCompletedMonths={unavailableCompletedMonths}
           isLoadingIncome={paymentsLoading}
           isLoadingTrips={tripsLoading}
         />

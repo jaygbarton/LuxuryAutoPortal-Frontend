@@ -57,6 +57,9 @@ interface IncomeExpenseTableProps {
   isAllCarsView?: boolean; // True when "All Cars" is selected
 }
 
+/** Rendered wherever a figure could not be computed. Never a number. */
+const UNAVAILABLE_DASH = "\u2014";
+
 const MONTHS = [
   "Jan",
   "Feb",
@@ -1805,6 +1808,9 @@ lastSavedNote.current = coHostNote;
   // that one remaining caller.
   const getComputedOwnerSplitFromApi = (month: number): number | undefined => {
     const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
+    // The backend flags a month whose split computation threw. Treat that as
+    // explicitly unavailable rather than inferring it from a missing field.
+    if ((monthRow as any)?.splitsUnavailable === true) return undefined;
     const value = monthRow?.computedCarOwnerSplit;
     return typeof value === "number" ? value : undefined;
   };
@@ -2430,7 +2436,7 @@ lastSavedNote.current = coHostNote;
                         monthNum,
                         "ownerIncome",
                       )
-                    : getComputedOwnerSplitFromApi(monthNum) ?? 0;
+                    : getComputedOwnerSplitFromApi(monthNum) ?? null;
                 })}
                 percentageValues={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
@@ -3947,7 +3953,7 @@ lastSavedNote.current = coHostNote;
                         monthNum,
                         "ownerIncome",
                       )
-                    : getComputedOwnerSplitFromApi(monthNum) ?? 0;
+                    : getComputedOwnerSplitFromApi(monthNum) ?? null;
                 })}
                 isEditable={false}
               />
@@ -5078,7 +5084,13 @@ interface CategoryRowProps {
   label: string;
   /** Optional gold italic note rendered next to the label (e.g. "100% Host Share"). */
   splitLabel?: string;
-  values: number[];
+  /**
+   * A month's figure, or null when the backend could not compute it
+   * (row.splitsUnavailable). null renders as an em dash and makes the row
+   * Total an em dash too — summing the months that did compute would hide
+   * the failure, which is the bug this guards against.
+   */
+  values: (number | null)[];
   percentageValues?: number[]; // For split rows, this stores the percentage
   category?: string;
   field?: string;
@@ -5182,7 +5194,13 @@ function CategoryRow({
   // totals separately via getCategoryMonthFormTotal, so this stays row-local.
   const isFormAwareRow =
     !!category && !!field && !isPercentage && !isInteger && FORM_AWARE_CATEGORIES.has(category);
-  const summedTotal = values.reduce((sum, val, i) => {
+  // 1-based month numbers whose value is unavailable, for the total's tooltip.
+  const unavailableMonths = values
+    .map((v, i) => (v === null ? i + 1 : 0))
+    .filter((m) => m > 0);
+  const hasUnavailable = unavailableMonths.length > 0;
+
+  const summedTotal = values.reduce<number>((sum, val, i) => {
     const numVal = typeof val === "number" && !isNaN(val) ? val : 0;
     const cellForm = isFormAwareRow ? getFormAmount(category!, field!, i + 1) : 0;
     const combined = numVal + cellForm;
@@ -5195,7 +5213,9 @@ function CategoryRow({
       : summedTotal;
 
   // Helper to format value based on formatType
-  const formatValue = (value: number, month: number) => {
+  const formatValue = (value: number | null, month: number) => {
+    // Could not be computed — never render it as a number.
+    if (value === null) return UNAVAILABLE_DASH;
     // For Negative Balance Carry Over, display in parentheses format for negative values
     // e.g., -3 => (3), -100 => (100), 0 => $0.00
     if (field === "negativeBalanceCarryOver") {
@@ -5304,6 +5324,7 @@ function CategoryRow({
       {values.map((value, i) => {
         const month = i + 1;
         // Ensure value is a number and handle null/undefined
+        const isUnavailable = value === null;
         const cellValue =
           typeof value === "number" && !isNaN(value) ? value : 0;
         // Form-amount contribution (approved expense-form submissions) for this
@@ -5363,7 +5384,7 @@ function CategoryRow({
                 // Add the approved-form contribution for display. hasForm drives
                 // the highlight + tooltip so a read-only cell that only has form
                 // money (manual $0) still renders visibly, not as gray $0.
-                const displayedCellValue = cellValue + cellFormAmount;
+                const displayedCellValue = isUnavailable ? null : cellValue + cellFormAmount;
                 const hasForm = cellFormAmount > 0;
                 // View-only receipt access (e.g. clients, who never get
                 // EditableCell): clicking the amount opens any uploaded
@@ -5382,6 +5403,7 @@ function CategoryRow({
                     className={cn(
                       "text-xs text-right block",
                       displayedCellValue === 0 && "text-gray-600",
+                      isUnavailable && "text-muted-foreground",
                       hasForm && "text-primary font-medium",
                       onPercentCellClick && !isReadOnly && "cursor-pointer hover:bg-muted px-2 py-1 rounded transition-colors",
                       canViewReceipt && "cursor-pointer underline decoration-dotted underline-offset-2 hover:text-primary",
@@ -5394,8 +5416,10 @@ function CategoryRow({
                           : undefined
                     }
                     title={
-                      hasForm
-                        ? `Manual $${cellValue.toFixed(2)} + Form $${cellFormAmount.toFixed(2)} = Total $${displayedCellValue.toFixed(2)}`
+                      isUnavailable
+                        ? "This month's split could not be computed — the figure is unavailable, not zero."
+                        : hasForm
+                        ? `Manual $${cellValue.toFixed(2)} + Form $${cellFormAmount.toFixed(2)} = Total $${(displayedCellValue as number).toFixed(2)}`
                         : onPercentCellClick && !isReadOnly
                           ? "Click to edit Co-Host %"
                           : canViewReceipt
@@ -5418,7 +5442,20 @@ function CategoryRow({
             isTotal ? "bg-background" : "bg-card",
           )}
         >
-          {isLoading ? "…" : formatTotal()}
+          {isLoading ? (
+            "…"
+          ) : hasUnavailable ? (
+            <span
+              className="text-muted-foreground"
+              title={`Total unavailable — ${unavailableMonths
+                .map((m) => MONTHS[m - 1])
+                .join(", ")} could not be computed. Summing the remaining months would hide the failure.`}
+            >
+              {UNAVAILABLE_DASH}
+            </span>
+          ) : (
+            formatTotal()
+          )}
         </td>
       )}
     </tr>

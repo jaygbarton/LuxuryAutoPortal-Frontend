@@ -114,8 +114,13 @@ export interface MonthlyTripRow {
   shortMonth: string;
   monthKey: string;
   income: number;
-  expenses: number;
-  profit: number;
+  /**
+   * null when the backend could not compute this month's split
+   * (row.splitsUnavailable). Must render as an em dash, never as 0 — and any
+   * total or average that includes such a month is itself null.
+   */
+  expenses: number | null;
+  profit: number | null;
   days: number;
   trips: number;
   avgPerTrip: number;
@@ -132,8 +137,9 @@ export interface MonthlyDaysTripsRow {
 
 export interface YearTotals {
   income: number;
-  expenses: number;
-  profit: number;
+  /** null when any contributing month was unavailable — see MonthlyTripRow. */
+  expenses: number | null;
+  profit: number | null;
   days: number;
   trips: number;
 }

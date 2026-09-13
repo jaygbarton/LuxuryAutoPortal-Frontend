@@ -48,6 +48,12 @@ export interface IncomeExpenseMonth {
   // of the split formula). Absent if the server-side computation failed for
   // this month (wrapped in a try/catch), so callers must distinguish
   // `undefined` from a genuine 0 rather than defaulting silently.
+  /**
+   * Set by the backend when this month's split computation threw. The
+   * computed* fields below are then absent, and the UI must show an em dash
+   * rather than $0.00 — a failure is not a zero.
+   */
+  splitsUnavailable?: boolean;
   computedCarOwnerSplit?: number;
   computedCarManagementSplit?: number;
   computedCarManagementTotalExpenses?: number;

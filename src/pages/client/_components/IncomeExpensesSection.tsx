@@ -20,8 +20,12 @@ interface IncomeExpensesSectionProps {
   currentMonthDaysTripsData: MonthlyDaysTripsRow | undefined;
   currentMonth: number;
   monthlyAverages: YearTotals;
-  worstMonthCashFlow: number;
-  bestMonthCashFlow: number;
+  /** null when any completed month's split could not be computed. */
+  worstMonthCashFlow: number | null;
+  bestMonthCashFlow: number | null;
+  /** Short month names whose figures are unavailable, for the dashed tooltips. */
+  unavailableMonths?: string[];
+  unavailableCompletedMonths?: string[];
   isLoadingIncome: boolean;
   isLoadingTrips: boolean;
 }
@@ -42,9 +46,19 @@ export function IncomeExpensesSection({
   monthlyAverages,
   worstMonthCashFlow,
   bestMonthCashFlow,
+  unavailableMonths = [],
+  unavailableCompletedMonths = [],
   isLoadingIncome,
   isLoadingTrips,
 }: IncomeExpensesSectionProps) {
+  // A dashed figure explains itself rather than just looking broken.
+  const unavailableNote = (months: string[]) =>
+    months.length > 0
+      ? `Unavailable — ${months.join(", ")} could not be computed. Summing the remaining months would hide the failure.`
+      : undefined;
+  const yearNote = unavailableNote(unavailableMonths);
+  const completedNote = unavailableNote(unavailableCompletedMonths);
+
   return (
     <>
       {/* Section titles + year selectors */}
@@ -81,13 +95,13 @@ export function IncomeExpensesSection({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <SummaryCard variant="black" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Car Owner Rental Income`} value={fmt(currentMonthData?.income ?? 0)} />
-            <SummaryCard variant="light" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Expenses`}           value={fmt(currentMonthData?.expenses ?? 0)} />
-            <SummaryCard variant="gold"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Profit`}             value={fmt(currentMonthData?.profit ?? 0)} valueColor={(currentMonthData?.profit ?? 0) < 0 ? "#ef4444" : "#1a1a1a"} />
+            <SummaryCard variant="light" label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Expenses`}           value={fmt(currentMonthData?.expenses ?? null)} />
+            <SummaryCard variant="gold"  label={`${MONTHS_SHORT[currentMonth - 1]} ${selectedYear} Owner Profit`}             value={fmt(currentMonthData?.profit ?? null)} valueColor={(currentMonthData?.profit ?? 0) < 0 ? "#ef4444" : "#1a1a1a"} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
             <SummaryCard variant="black" label="Average Rental Income"  value={fmt(monthlyAverages.income)} />
-            <SummaryCard variant="light" label="Worst Month Cash Flow"  value={fmt(worstMonthCashFlow)} valueColor={worstMonthCashFlow < 0 ? "#ef4444" : "#1a1a1a"} />
-            <SummaryCard variant="gold"  label="Best Month Cash Flow"   value={fmt(bestMonthCashFlow)} />
+            <SummaryCard variant="light" label="Worst Month Cash Flow"  value={fmt(worstMonthCashFlow)} valueColor={(worstMonthCashFlow ?? 0) < 0 ? "#ef4444" : "#1a1a1a"} title={completedNote} />
+            <SummaryCard variant="gold"  label="Best Month Cash Flow"   value={fmt(bestMonthCashFlow)} title={completedNote} />
           </div>
         </div>
 
@@ -106,7 +120,7 @@ export function IncomeExpensesSection({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
             <SummaryCard variant="black" label="Average Days Rented"   value={monthlyAverages.days.toFixed(1)} />
             <SummaryCard variant="light" label="Average Trips Taken"   value={monthlyAverages.trips.toFixed(1)} />
-            <SummaryCard variant="gold"  label="Average Monthly Profit" value={fmt(monthlyAverages.profit)} />
+            <SummaryCard variant="gold"  label="Average Monthly Profit" value={fmt(monthlyAverages.profit)} title={completedNote} />
           </div>
         </div>
       </div>
@@ -149,8 +163,8 @@ export function IncomeExpensesSection({
                   <tr style={{ backgroundColor: "#D3BC8D" }} className="border-y border-[#D3BC8D]">
                     <td className="text-sm font-extrabold text-black py-2.5 px-3 text-center">Total</td>
                     <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{fmt(yearTotals.income)}</td>
-                    <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{fmt(yearTotals.expenses)}</td>
-                    <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{fmt(yearTotals.profit)}</td>
+                    <td className="text-sm font-bold text-black py-2.5 px-3 text-center" title={yearNote}>{fmt(yearTotals.expenses)}</td>
+                    <td className="text-sm font-bold text-black py-2.5 px-3 text-center" title={yearNote}>{fmt(yearTotals.profit)}</td>
                     <td className="text-sm font-bold text-black py-2.5 px-3 text-center">{yearTotals.days > 0 ? fmt(yearTotals.income / yearTotals.days) : "—"}</td>
                   </tr>
                 </>

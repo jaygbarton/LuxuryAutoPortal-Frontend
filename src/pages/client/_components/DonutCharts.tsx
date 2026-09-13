@@ -14,7 +14,10 @@ interface DonutChartsProps {
 }
 
 export function DonutCharts({ yearTotals, currentMonthData, selectedYear, currentMonth, isLoading }: DonutChartsProps) {
+  // null means the figure could not be computed. Plotting it as 0 would draw a
+  // confident-looking ring from a failed calculation, so drop the ring instead.
   const donutYearData = useMemo(() => {
+    if (yearTotals.profit === null || yearTotals.expenses === null) return [];
     const profit   = Math.max(0, yearTotals.profit);
     const expenses = Math.max(0, yearTotals.expenses);
     return profit + expenses > 0
@@ -23,6 +26,7 @@ export function DonutCharts({ yearTotals, currentMonthData, selectedYear, curren
   }, [yearTotals]);
 
   const donutMonthData = useMemo(() => {
+    if (currentMonthData?.profit === null || currentMonthData?.expenses === null) return [];
     const profit   = Math.max(0, currentMonthData?.profit ?? 0);
     const expenses = Math.max(0, currentMonthData?.expenses ?? 0);
     return profit + expenses > 0
@@ -105,7 +109,7 @@ export function DonutCharts({ yearTotals, currentMonthData, selectedYear, curren
         <h3 className="text-sm font-bold text-foreground mb-1">
           {MONTHS_SHORT[currentMonth - 1]} {selectedYear} Car Owner Profit and Expenses
         </h3>
-        <DonutRing data={donutMonthData} centerLabel={fmt(currentMonthData?.profit ?? 0)} />
+        <DonutRing data={donutMonthData} centerLabel={fmt(currentMonthData?.profit ?? null)} />
       </div>
     </div>
   );
