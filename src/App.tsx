@@ -10,6 +10,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { RequireRole } from "@/components/admin/require-role";
 import { PUBLIC_LOCATIONS, rememberPublicLocationFromPath } from "@/lib/location-config";
+import DashboardRouter from "@/pages/dashboard-router";
 
 const Home = lazy(() => import("@/pages/home"));
 const Fleet = lazy(() => import("@/pages/fleet"));
@@ -103,7 +104,6 @@ const ClientTripHistoryPage = lazy(() => import("@/pages/client/trip-history"));
 const ClientTripCalendarPage = lazy(() => import("@/pages/client/trip-calendar"));
 const ClientMaintenanceHistoryPage = lazy(() => import("@/pages/client/maintenance-history"));
 const ClientOffboardingFormPage = lazy(() => import("@/pages/client/offboarding-form"));
-const DashboardRouter = lazy(() => import("@/pages/dashboard-router"));
 const SignContract = lazy(() => import("@/pages/sign-contract"));
 const MaintenanceApproval = lazy(() => import("@/pages/maintenance-approval"));
 const Signup = lazy(() => import("@/pages/signup"));

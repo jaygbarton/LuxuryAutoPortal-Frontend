@@ -2,6 +2,9 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { attachStaleChunkRecoveryHandler } from "@/lib/chunkRecovery";
+
+attachStaleChunkRecoveryHandler();
 
 // PDF worker is configured in pdf-config.ts - import it to ensure it runs
 // Use dynamic import to prevent blocking app initialization if PDF config fails
