@@ -128,10 +128,24 @@ export default function GraphsChartsPage() {
   };
 
   const calculateCarManagementSplit = (month: number): number => {
-    // Fall back to 50, the same default the backend serves when a car has no
-    // formula row — `|| 0` would report a $0 management split and hand 100% of
-    // rental income to the owner if the field ever arrived missing.
-    const percent = incomeExpenseData?.formulaSetting?.carManagementSplitPercent ?? 50;
+    // Read the stored PER-MONTH percent first and only fall back to the car's
+    // configured default — the same reader IncomeExpenseTable.tsx uses
+    // (~:1818). This used to consult formulaSetting alone, so any month with
+    // its own split (a 30/70 month on a 50/50 car, or a 100/0 GLA-owned car)
+    // was charted at the car's default instead of its actual contract.
+    //
+    // Falls back to 50, not 0: `|| 0` would report a $0 management split and
+    // hand 100% of rental income to the owner if the field arrived missing.
+    // A stored 0 is honoured — `car_management_split = 0` is a real
+    // arrangement, not a synonym for unset.
+    const monthRow = incomeExpenseData?.incomeExpenses?.find(
+      (x: any) => x && Number(x.month) === Number(month),
+    );
+    const rawStored = monthRow?.carManagementSplit;
+    const percent =
+      rawStored != null
+        ? Number(rawStored)
+        : (incomeExpenseData?.formulaSetting?.carManagementSplitPercent ?? 50);
     const mgmtPct = percent / 100;
     const rentalIncome = getMonthValue(incomeExpenseData?.incomeExpenses || [], month, "rentalIncome");
     return rentalIncome * mgmtPct;
