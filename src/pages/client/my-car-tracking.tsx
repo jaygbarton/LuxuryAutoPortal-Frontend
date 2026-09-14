@@ -640,7 +640,7 @@ export default function ClientCarTrackingPage() {
               <button className="w-full flex items-center gap-2 bg-[#282828] hover:bg-[#313131] border border-[#3a3a3a] rounded-lg px-3 py-2.5 text-left transition-colors">
                 <RouteIcon className="w-4 h-4 text-blue-400 flex-shrink-0" />
                 <div>
-                  <p className="text-xs font-medium text-gray-100">Trip History</p>
+                  <p className="text-xs font-medium text-gray-100">Vehicle Trip History</p>
                   <p className="text-[10px] text-gray-400">GPS-recorded trips &amp; routes</p>
                 </div>
               </button>
