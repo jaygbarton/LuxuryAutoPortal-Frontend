@@ -600,7 +600,41 @@ const employeeSidebarItems: SidebarItem[] = [
 ];
 
 // Co-host sidebar: same as admin but scoped — no Co-Hosts mgmt, no GLA-only admin items
-const coHostSidebarItems: SidebarItem[] = [
+/**
+ * The co-host's Operations sub-categories: the same twelve tabs every other
+ * role navigates by. No `roles` field — the co-host branch returns
+ * `coHostSidebarItems` verbatim without role filtering, so a `roles` value
+ * here would be ignored rather than honoured.
+ */
+const COHOST_OPERATIONS_TABS: SidebarItem[] = OPERATIONS_TABS.map((t) => ({ ...t }));
+
+/**
+ * The co-host's Forms sub-categories.
+ *
+ * A co-host logs in with isAdmin=true, so the Forms page itself renders the
+ * full admin section list. These sidebar entries deliberately cover only the
+ * vehicle- and client-facing sections: Employee Onboarding, Commissions and
+ * Income & Expenses are GLA payroll/HR forms that a co-host has no business
+ * navigating to. Narrowing what the page renders for a co-host is a separate
+ * change in forms.tsx — this list governs the sidebar only.
+ */
+const COHOST_FORM_TABS: SidebarItem[] = [
+  { href: "/admin/forms?section=client-onboarding&item=lyc", label: "Client Onboarding Form", icon: ClipboardList },
+  { href: "/admin/forms?section=client-onboarding&item=car-on", label: "Car On-boarding", icon: Car },
+  { href: "/admin/forms?section=client-onboarding&item=car-off", label: "Car Off-boarding", icon: LogOut },
+  { href: "/admin/forms?section=car-issue-forms", label: "Car Issue Form", icon: ShieldAlert },
+  { href: "/admin/forms?section=car-block-off-forms", label: "Car Block Off Form", icon: CalendarOff },
+  { href: "/admin/forms?section=car-repaired-forms", label: "Car Repaired Form", icon: Key },
+  { href: "/admin/forms?section=parking-ticket-forms", label: "Client Parking Ticket", icon: FileText },
+  { href: "/admin/forms?section=ticket-violation-forms", label: "Ticket Violation Form", icon: ShieldAlert },
+  { href: "/admin/forms?section=referral-forms", label: "Referral Form", icon: Megaphone },
+  { href: "/admin/forms?section=document-updates", label: "License & Registration or Insurance Updates", icon: FileText },
+];
+
+// Exported for the sidebar regression test: it asserts against THIS array, so
+// flattening Operations/Forms back to childless links fails CI instead of
+// silently stranding co-hosts on the default tab again.
+export const coHostSidebarItems: SidebarItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/co-host-profile", label: "My Profile", icon: User },
   { href: "/admin/admins", label: "Admins", icon: Users },
@@ -631,9 +665,26 @@ const coHostSidebarItems: SidebarItem[] = [
       { href: "/admin/bouncie-geofence", label: "Geofence", icon: MapPin },
     ],
   },
-  { href: "/admin/operations", label: "Operations", icon: Cog },
+  {
+    href: "/admin/operations",
+    label: "Operations",
+    icon: Cog,
+    // Same sub-categories every other role gets. The page's horizontal tab
+    // strip was removed for ALL roles, but the co-host sidebar kept a flat
+    // link — leaving co-hosts stranded on the default tab with no way to
+    // reach the other eleven. Every tab is scoped to the co-host's own cars
+    // server-side (operations, carRepaired, carPendingIssues,
+    // ticketViolations all resolve getCoHostCarIds), so exposing the
+    // navigation does not widen what they can see.
+    children: COHOST_OPERATIONS_TABS,
+  },
   { href: "/admin/car-block-off", label: "Car Block Off", icon: CalendarOff },
-  { href: "/admin/forms", label: "Forms", icon: ClipboardList },
+  {
+    href: "/admin/forms",
+    label: "Forms",
+    icon: ClipboardList,
+    children: COHOST_FORM_TABS,
+  },
   {
     href: "https://turo.com/us/en/host/4325673",
     label: "Car Rental",

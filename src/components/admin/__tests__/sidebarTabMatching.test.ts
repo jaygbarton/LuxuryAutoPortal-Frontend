@@ -4,6 +4,7 @@
  * lights up every Operations child at once, or none of them.
  */
 import { describe, it, expect } from "vitest";
+import { coHostSidebarItems } from "../admin-layout";
 
 // Mirror of isPathActive / tabKeyOf in admin-layout.tsx.
 const isPathActive = (
@@ -68,6 +69,52 @@ const OPS = [
   { href: "/admin/operations?tab=inspections", label: "Car Issues" },
   { href: "/admin/operations?tab=maintenance", label: "Maintenance" },
 ];
+
+describe("co-host sidebar sub-categories", () => {
+  // The REAL array, not a copy: the tab strips were removed for every role,
+  // so a childless Operations/Forms entry leaves a co-host stranded on the
+  // default tab with no way to reach the others.
+  const find = (label: string) =>
+    coHostSidebarItems.find((i) => i.label === label);
+
+  it("gives Operations and Forms sub-categories, like every other role", () => {
+    for (const label of ["Operations", "Forms"]) {
+      const item = find(label);
+      expect(item, `${label} missing from the co-host sidebar`).toBeTruthy();
+      expect(item!.children?.length ?? 0, `${label} has no sub-categories`).toBeGreaterThan(1);
+    }
+  });
+
+  it("reaches Day Schedule and TV Timeline", () => {
+    const hrefs = (find("Operations")!.children ?? []).map((c) => c.href);
+    expect(hrefs).toContain("/admin/operations?tab=day-schedule");
+    expect(hrefs).toContain("/admin/operations?tab=tv-timeline");
+  });
+
+  it("lights exactly one sub-category per URL", () => {
+    for (const parent of ["Operations", "Forms"]) {
+      const children = find(parent)!.children ?? [];
+      // Mirror the real render call: admin-layout passes tabKeyOf(children)
+      // and isDefaultChild (index 0), which is what lets the query-less
+      // default child claim the bare path WITHOUT matching every other URL.
+      const key = tabKeyOf(children);
+      for (const child of children) {
+        const [path, query = ""] = child.href.split("?");
+        const active = children.filter((c, i) =>
+          isPathActive(path, c.href, query, key, i === 0),
+        );
+        expect(active.map((c) => c.label), `${parent} → ${child.label}`).toEqual([child.label]);
+      }
+    }
+  });
+
+  it("keeps GLA payroll and HR forms out of the co-host Forms list", () => {
+    const labels = (find("Forms")!.children ?? []).map((c) => c.label);
+    expect(labels).not.toContain("Employee Onboarding Process");
+    expect(labels).not.toContain("Commissions Form");
+    expect(labels).not.toContain("Income & Expenses Form");
+  });
+});
 
 describe("sidebar tab matching", () => {
   it("distinguishes sub-forms that share a section but pin different items", () => {
