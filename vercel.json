@@ -55,8 +55,41 @@
           "value": "app.goldenluxuryauto.com"
         }
       ],
-      "destination": "https://app.goldenluxuryauto.com/login",
-      "permanent": false
+      "destination": "https://goldenluxuryauto.com/salt-lake-city",
+      "permanent": true
+    },
+    {
+      "source": "/:path(fleet|pick-up-and-drop-off|detail-shop|chauffeur-services|deals|jobs|privacy-policy|terms-and-conditions|terms|testimonials|reviews-options|reviews|extras|suggested-cars|onboarding|contact)",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://goldenluxuryauto.com/:path",
+      "permanent": true
+    },
+    {
+      "source": "/:path(fleet|pick-up-and-drop-off|detail-shop|chauffeur-services|deals|jobs|privacy-policy|terms-and-conditions|terms|testimonials|reviews-options|reviews|extras|suggested-cars|onboarding|contact)/:rest*",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://goldenluxuryauto.com/:path/:rest*",
+      "permanent": true
+    },
+    {
+      "source": "/:location(salt-lake-city|wilmington-nc|myrtle-beach-sc|charleston-sc)/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://goldenluxuryauto.com/:location/:path*",
+      "permanent": true
     },
     {
       "source": "/",
@@ -93,86 +126,6 @@
       "destination": "/legacy-img/:path*"
     },
     {
-      "source": "/admin/login",
-      "has": [
-        {
-          "type": "host",
-          "value": "app.goldenluxuryauto.com"
-        }
-      ],
-      "destination": "/index.html"
-    },
-    {
-      "source": "/admin/dashboard",
-      "has": [
-        {
-          "type": "host",
-          "value": "app.goldenluxuryauto.com"
-        }
-      ],
-      "destination": "/index.html"
-    },
-    {
-      "source": "/admin/forms",
-      "has": [
-        {
-          "type": "host",
-          "value": "app.goldenluxuryauto.com"
-        }
-      ],
-      "destination": "/index.html"
-    },
-    {
-      "source": "/admin/forms/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "app.goldenluxuryauto.com"
-        }
-      ],
-      "destination": "/index.html"
-    },
-    {
-      "source": "/admin/car-block-off",
-      "has": [
-        {
-          "type": "host",
-          "value": "app.goldenluxuryauto.com"
-        }
-      ],
-      "destination": "/index.html"
-    },
-    {
-      "source": "/admin/car-block-off/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "app.goldenluxuryauto.com"
-        }
-      ],
-      "destination": "/index.html"
-    },
-    {
-      "source": "/admin/operations",
-      "has": [
-        {
-          "type": "host",
-          "value": "app.goldenluxuryauto.com"
-        }
-      ],
-      "destination": "/index.html"
-    },
-    {
-      "source": "/admin/operations/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "app.goldenluxuryauto.com"
-        }
-      ],
-      "destination": "/index.html"
-    },
-    {
       "source": "/api/:path*",
       "destination": "https://luxuryautoportal-replit-1.onrender.com/api/:path*"
     },
@@ -204,7 +157,7 @@
           "value": "app.goldenluxuryauto.com"
         }
       ],
-      "destination": "/legacy-index.html"
+      "destination": "/index.html"
     },
     {
       "source": "/((?!api/|rest/|contracts/|signed-contracts/|car-photos/|income-expense-images/).*)",

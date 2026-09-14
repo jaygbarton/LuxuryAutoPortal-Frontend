@@ -150,6 +150,27 @@ function IncomeExpensesPageWrapper() {
   return <IncomeExpensesPage />;
 }
 
+function LegacyRouteRedirect({ to }: { to: string | ((query: URLSearchParams) => string) }) {
+  const search = typeof window !== "undefined" ? window.location.search : "";
+  const query = new URLSearchParams(search);
+  const target = typeof to === "function" ? to(query) : to;
+  return <Redirect to={target} />;
+}
+
+const legacyCarRoute = (section: "detail" | "income" | "expenses" | "depreciation" | "totals" | "earnings" | "calculator") =>
+  (query: URLSearchParams) => {
+    const carId = query.get("carId") || query.get("car_id") || query.get("id");
+    if (!carId) return "/cars";
+    const encodedId = encodeURIComponent(carId);
+    if (section === "detail") return `/admin/cars/${encodedId}`;
+    if (section === "income") return `/admin/cars/${encodedId}/income-expense`;
+    if (section === "expenses") return `/admin/cars/${encodedId}/expenses`;
+    if (section === "depreciation") return `/admin/cars/${encodedId}/depreciation`;
+    if (section === "totals") return `/admin/cars/${encodedId}/totals`;
+    if (section === "calculator") return `/admin/cars/${encodedId}/calculator`;
+    return `/admin/cars/${encodedId}/earnings`;
+  };
+
 function Router() {
   const [currentPath] = useLocation();
 
@@ -331,6 +352,74 @@ function Router() {
             <Route path="/staff/car-rental/forms">
               <RequireRole roles={["isEmployee"]}><StaffCarRentalForms /></RequireRole>
             </Route>
+
+            {/* Legacy software links from the prior portal build. */}
+            <Route path="/developer/login"><LegacyRouteRedirect to="/admin/login" /></Route>
+            <Route path="/developer/forgot-password"><LegacyRouteRedirect to="/reset-password" /></Route>
+            <Route path="/other/create-password"><LegacyRouteRedirect to="/reset-password" /></Route>
+            <Route path="/developer/account"><LegacyRouteRedirect to="/admin/profile" /></Route>
+            <Route path="/admin/account"><LegacyRouteRedirect to="/admin/profile" /></Route>
+            <Route path="/client/account"><LegacyRouteRedirect to="/profile" /></Route>
+            <Route path="/client/profile"><LegacyRouteRedirect to="/profile" /></Route>
+            <Route path="/client/cars"><LegacyRouteRedirect to="/cars" /></Route>
+            <Route path="/client/record-and-files"><LegacyRouteRedirect to="/cars" /></Route>
+            <Route path="/developer/client"><LegacyRouteRedirect to="/admin/clients" /></Route>
+            <Route path="/admin/client"><LegacyRouteRedirect to="/admin/clients" /></Route>
+            <Route path="/developer/client/view-info"><LegacyRouteRedirect to="/admin/clients" /></Route>
+            <Route path="/admin/client/view-info"><LegacyRouteRedirect to="/admin/clients" /></Route>
+            <Route path="/developer/client/view-info/profile"><LegacyRouteRedirect to="/admin/clients" /></Route>
+            <Route path="/admin/client/view-info/profile"><LegacyRouteRedirect to="/admin/clients" /></Route>
+            <Route path="/developer/client/view-info/car"><LegacyRouteRedirect to="/admin/clients" /></Route>
+            <Route path="/admin/client/view-info/car"><LegacyRouteRedirect to="/admin/clients" /></Route>
+            <Route path="/developer/client/view-info/earnings"><LegacyRouteRedirect to="/admin/clients" /></Route>
+            <Route path="/admin/client/view-info/earnings"><LegacyRouteRedirect to="/admin/clients" /></Route>
+            <Route path="/developer/client/view-info/records-files"><LegacyRouteRedirect to="/admin/clients" /></Route>
+            <Route path="/admin/client/view-info/records-files"><LegacyRouteRedirect to="/admin/clients" /></Route>
+            <Route path="/developer/car"><LegacyRouteRedirect to="/cars" /></Route>
+            <Route path="/admin/car"><LegacyRouteRedirect to="/cars" /></Route>
+            <Route path="/developer/car/view-car"><LegacyRouteRedirect to={legacyCarRoute("detail")} /></Route>
+            <Route path="/admin/car/view-car"><LegacyRouteRedirect to={legacyCarRoute("detail")} /></Route>
+            <Route path="/developer/car/view-car/income"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/admin/car/view-car/income"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/developer/car/view-car/expenses"><LegacyRouteRedirect to={legacyCarRoute("expenses")} /></Route>
+            <Route path="/admin/car/view-car/expenses"><LegacyRouteRedirect to={legacyCarRoute("expenses")} /></Route>
+            <Route path="/developer/car/view-car/total-expenses"><LegacyRouteRedirect to={legacyCarRoute("expenses")} /></Route>
+            <Route path="/admin/car/view-car/total-expenses"><LegacyRouteRedirect to={legacyCarRoute("expenses")} /></Route>
+            <Route path="/developer/car/view-car/nada-depreciation-schedule"><LegacyRouteRedirect to={legacyCarRoute("depreciation")} /></Route>
+            <Route path="/admin/car/view-car/nada-depreciation-schedule"><LegacyRouteRedirect to={legacyCarRoute("depreciation")} /></Route>
+            <Route path="/developer/car/view-car/totals"><LegacyRouteRedirect to={legacyCarRoute("totals")} /></Route>
+            <Route path="/admin/car/view-car/totals"><LegacyRouteRedirect to={legacyCarRoute("totals")} /></Route>
+            <Route path="/developer/car/view-car/history"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/admin/car/view-car/history"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/developer/car/view-car/cogs"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/admin/car/view-car/cogs"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/developer/car/view-car/direct-delivery"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/admin/car/view-car/direct-delivery"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/developer/car/view-car/office-support"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/admin/car/view-car/office-support"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/developer/car/view-car/car-management-and-car-owner-split"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/admin/car/view-car/car-management-and-car-owner-split"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/developer/car/view-car/p-&-l"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/admin/car/view-car/p-&-l"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/developer/car/view-car/rental-value-per-month"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/admin/car/view-car/rental-value-per-month"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/developer/car/view-car/supplemental-information"><LegacyRouteRedirect to={legacyCarRoute("detail")} /></Route>
+            <Route path="/admin/car/view-car/supplemental-information"><LegacyRouteRedirect to={legacyCarRoute("detail")} /></Route>
+            <Route path="/developer/earnings/details"><LegacyRouteRedirect to={legacyCarRoute("earnings")} /></Route>
+            <Route path="/admin/earnings/details"><LegacyRouteRedirect to={legacyCarRoute("earnings")} /></Route>
+            <Route path="/client/earnings/details"><LegacyRouteRedirect to={legacyCarRoute("earnings")} /></Route>
+            <Route path="/developer/earnings-calculator"><LegacyRouteRedirect to={legacyCarRoute("calculator")} /></Route>
+            <Route path="/admin/earnings-calculator"><LegacyRouteRedirect to={legacyCarRoute("calculator")} /></Route>
+            <Route path="/client/earnings-calculator"><LegacyRouteRedirect to={legacyCarRoute("calculator")} /></Route>
+            <Route path="/developer/maintenance"><LegacyRouteRedirect to="/admin/operations" /></Route>
+            <Route path="/admin/maintenance"><LegacyRouteRedirect to="/admin/operations" /></Route>
+            <Route path="/developer/settings"><LegacyRouteRedirect to="/admin/settings" /></Route>
+            <Route path="/developer/settings/:section"><LegacyRouteRedirect to="/admin/settings" /></Route>
+            <Route path="/admin/settings/:section"><LegacyRouteRedirect to="/admin/settings" /></Route>
+            <Route path="/developer/settings/:section/:subsection"><LegacyRouteRedirect to="/admin/settings" /></Route>
+            <Route path="/admin/settings/:section/:subsection"><LegacyRouteRedirect to="/admin/settings" /></Route>
+            <Route path="/developer/settings/:section/:subsection/:page"><LegacyRouteRedirect to="/admin/settings" /></Route>
+            <Route path="/admin/settings/:section/:subsection/:page"><LegacyRouteRedirect to="/admin/settings" /></Route>
 
             {/* Shared: any authenticated user */}
             <Route path="/dashboard" component={DashboardRouter} />
