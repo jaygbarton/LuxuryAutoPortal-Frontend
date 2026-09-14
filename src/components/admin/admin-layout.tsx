@@ -125,7 +125,9 @@ const ADMIN_FORM_TABS: { href: string; label: string; icon: any }[] = [
  *  horizontal strip. Each child uses ?section= so a sidebar click lands on
  *  that form without a new route. */
 const CLIENT_FORM_TABS: { href: string; label: string; icon: any }[] = [
-  { href: "/admin/forms?section=client-onboarding", label: "Client Onboarding Form", icon: ClipboardList },
+  { href: "/admin/forms?section=client-onboarding&item=lyc", label: "Client Onboarding Form", icon: ClipboardList },
+  { href: "/admin/forms?section=client-onboarding&item=car-on", label: "Car On-boarding", icon: Car },
+  { href: "/admin/forms?section=client-onboarding&item=car-off", label: "Car Off-boarding", icon: LogOut },
   { href: "/admin/forms?section=car-block-off-forms", label: "Car Block Off Form", icon: CalendarOff },
   { href: "/admin/forms?section=parking-ticket-forms", label: "Parking Ticket", icon: FileText },
   { href: "/admin/forms?section=ticket-violation-forms", label: "Ticket Violation Form", icon: ShieldAlert },
@@ -744,10 +746,22 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     const [hrefPath, hrefQuery] = href.split("?");
     const params = new URLSearchParams(currentSearch);
     if (hrefQuery != null) {
-      const [key, value] = hrefQuery.split("=");
       if (pathname !== hrefPath) return false;
-      const current = params.get(key);
-      return current === null ? isDefaultChild : current === value;
+      // An href may pin more than one param (?section=…&item=…, so the three
+      // Client Onboarding sub-forms are separately addressable). EVERY pinned
+      // param must match, or sibling links that share a section all light up.
+      const wanted = [...new URLSearchParams(hrefQuery).entries()];
+      if (wanted.length === 0) return isDefaultChild;
+      let sawParam = false;
+      for (const [key, value] of wanted) {
+        const current = params.get(key);
+        if (current === null) continue;
+        sawParam = true;
+        if (current !== value) return false;
+      }
+      // None of the pinned params are in the URL at all: only the group's
+      // default child claims the bare path.
+      return sawParam ? true : isDefaultChild;
     }
     if (pathname === hrefPath) return tabKey ? !params.get(tabKey) : true;
     if (hrefPath === "/dashboard") return false;

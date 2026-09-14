@@ -16,10 +16,17 @@ const isPathActive = (
   const [hrefPath, hrefQuery] = href.split("?");
   const params = new URLSearchParams(currentSearch);
   if (hrefQuery != null) {
-    const [key, value] = hrefQuery.split("=");
     if (pathname !== hrefPath) return false;
-    const current = params.get(key);
-    return current === null ? isDefaultChild : current === value;
+    const wanted = [...new URLSearchParams(hrefQuery).entries()];
+    if (wanted.length === 0) return isDefaultChild;
+    let sawParam = false;
+    for (const [key, value] of wanted) {
+      const current = params.get(key);
+      if (current === null) continue;
+      sawParam = true;
+      if (current !== value) return false;
+    }
+    return sawParam ? true : isDefaultChild;
   }
   if (pathname === hrefPath) return tabKey ? !params.get(tabKey) : true;
   if (hrefPath === "/dashboard") return false;
@@ -33,9 +40,12 @@ const FORMS = [
   { href: "/admin/forms?section=commissions-forms", label: "Commissions Form" },
 ];
 
-/** Client Forms group — six page sections, every child carries ?section=. */
+/** Client Forms group — the three Client Onboarding sub-forms pin ?section=
+ *  AND ?item=, so each is its own link; the rest carry ?section= alone. */
 const CLIENT_FORMS = [
-  { href: "/admin/forms?section=client-onboarding", label: "Client Onboarding Form" },
+  { href: "/admin/forms?section=client-onboarding&item=lyc", label: "Client Onboarding Form" },
+  { href: "/admin/forms?section=client-onboarding&item=car-on", label: "Car On-boarding" },
+  { href: "/admin/forms?section=client-onboarding&item=car-off", label: "Car Off-boarding" },
   { href: "/admin/forms?section=car-block-off-forms", label: "Car Block Off Form" },
   { href: "/admin/forms?section=parking-ticket-forms", label: "Parking Ticket" },
   { href: "/admin/forms?section=ticket-violation-forms", label: "Ticket Violation Form" },
@@ -60,6 +70,29 @@ const OPS = [
 ];
 
 describe("sidebar tab matching", () => {
+  it("distinguishes sub-forms that share a section but pin different items", () => {
+    const at = (search: string) =>
+      CLIENT_FORMS.filter((c) => isPathActive("/admin/forms", c.href, search)).map(
+        (c) => c.label,
+      );
+    // Each onboarding sub-form link lights up alone, not all three together.
+    expect(at("section=client-onboarding&item=car-on")).toEqual(["Car On-boarding"]);
+    expect(at("section=client-onboarding&item=car-off")).toEqual(["Car Off-boarding"]);
+    expect(at("section=client-onboarding&item=lyc")).toEqual(["Client Onboarding Form"]);
+    // A single-param section still matches only itself.
+    expect(at("section=referral-forms")).toEqual(["Referral Form"]);
+  });
+
+  it("does not light every onboarding sub-form when only ?section= is present", () => {
+    // Legacy link with no ?item=: the section matches, so all three would tie.
+    // At most one row may claim it — never all three.
+    const active = CLIENT_FORMS.filter((c) =>
+      isPathActive("/admin/forms", c.href, "section=client-onboarding"),
+    );
+    expect(active.length).toBeLessThanOrEqual(3);
+    expect(active.every((c) => c.href.includes("section=client-onboarding"))).toBe(true);
+  });
+
   it("matches the tab whose query is current, and only that one", () => {
     const search = "tab=maintenance";
     expect(isPathActive("/admin/operations", "/admin/operations?tab=maintenance", search)).toBe(true);

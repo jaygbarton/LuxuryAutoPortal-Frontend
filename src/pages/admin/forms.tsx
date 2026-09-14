@@ -425,10 +425,18 @@ export default function FormsPage() {
   // Read the deep-link target ONCE from the URL (e.g. a subcategory form link:
   // ?section=employee-forms&category=reimbursedBills&field=db_2316). Kept in a
   // ref so the "default to first tab" effect below knows not to clobber it.
-  const deepLinkRef = useRef<{ section: string | null; category: string | null }>(
+  const deepLinkRef = useRef<{
+    section: string | null;
+    category: string | null;
+    item: string | null;
+  }>(
     (() => {
       const params = new URLSearchParams(window.location.search);
-      return { section: params.get("section"), category: params.get("category") };
+      return {
+        section: params.get("section"),
+        category: params.get("category"),
+        item: params.get("item"),
+      };
     })(),
   );
   // Apply the deep link AFTER form visibility (and therefore the tab list) has
@@ -447,6 +455,15 @@ export default function FormsPage() {
     if (deepLinkRef.current.category) {
       setExpandedItems((prev) =>
         prev.includes("expense-receipt") ? prev : [...prev, "expense-receipt"],
+      );
+    }
+    // ?item= addresses one form WITHIN a section, so the three sub-forms under
+    // Client Onboarding (LYC, Car On-boarding, Car Off-boarding) each have
+    // their own link instead of all resolving to the same collapsed section.
+    const targetItem = deepLinkRef.current.item;
+    if (targetItem) {
+      setExpandedItems((prev) =>
+        prev.includes(targetItem) ? prev : [...prev, targetItem],
       );
     }
   }, [formVisibilityData]);
@@ -1434,8 +1451,15 @@ export default function FormsPage() {
   // for a sidebar click. Watching wouter's own search string covers that.
   const routerSearch = useSearch();
   useEffect(() => {
-    const section = new URLSearchParams(routerSearch).get("section");
+    const params = new URLSearchParams(routerSearch);
+    const section = params.get("section");
     if (section && section !== activeSection) setActiveSection(section);
+    // Expand the linked sub-form too, so a sidebar click on "Car On-boarding"
+    // opens that form rather than just its parent section.
+    const item = params.get("item");
+    if (item) {
+      setExpandedItems((prev) => (prev.includes(item) ? prev : [...prev, item]));
+    }
   }, [routerSearch]);
 
   return (
