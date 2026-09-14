@@ -44,6 +44,11 @@ import {
   type ExpenseFormCategory,
 } from "../utils/expenseFormLink";
 import { computeOwnerSplit } from "@/lib/ownerSplit";
+import {
+  computeAnnualSplitPercent,
+  annualSplitPercentTooltip,
+  type AnnualSplitPercentResult,
+} from "@/lib/annualSplitPercent";
 
 /** I&E category types that have a matching Expense Receipt form. parkingFeeLabor
  *  has no form submission target (the expense_form_submission table only accepts
@@ -2361,6 +2366,23 @@ lastSavedNote.current = coHostNote;
                 formatType={isAllCarsView ? undefined : "managementSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
+                // Rental income is the denominator for all four split rows, so
+                // the percentages are comparable side by side and Co-Host does
+                // not inherit a dash whenever management is unavailable.
+                annualPercentOverride={
+                  isAllCarsView
+                    ? undefined
+                    : computeAnnualSplitPercent(
+                        MONTHS.map((_, i) =>
+                          isCoHostActive(i + 1)
+                            ? roundToPhp2Dp(calculateCoHostSplit(i + 1))
+                            : 0,
+                        ),
+                        MONTHS.map((_, i) =>
+                          getMonthValue(data.incomeExpenses, i + 1, "rentalIncome"),
+                        ),
+                      )
+                }
               />
               {/* GLA Split — same FORMULA as the CAR OWNER Split (GLA-owned) /
                   remainder of Car Mgmt Split (else). Editable in BOTH ownership
@@ -2386,6 +2408,20 @@ lastSavedNote.current = coHostNote;
                 formatType={isAllCarsView ? undefined : "ownerSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
+                annualPercentOverride={
+                  isAllCarsView
+                    ? undefined
+                    : computeAnnualSplitPercent(
+                        MONTHS.map((_, i) =>
+                          isCoHostActive(i + 1)
+                            ? roundToPhp2Dp(calculateGlaSplit(i + 1))
+                            : 0,
+                        ),
+                        MONTHS.map((_, i) =>
+                          getMonthValue(data.incomeExpenses, i + 1, "rentalIncome"),
+                        ),
+                      )
+                }
               />
             </CategorySection>
 
@@ -2433,6 +2469,23 @@ lastSavedNote.current = coHostNote;
                 formatType={isAllCarsView ? undefined : "managementSplit"}
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
+                // undefined from getComputedMgmtSplitFromApi means the backend
+                // could not compute that month — passed through as-is so the
+                // annual figure dashes rather than summing what did compute.
+                annualPercentOverride={
+                  isAllCarsView
+                    ? undefined
+                    : computeAnnualSplitPercent(
+                        MONTHS.map((_, i) =>
+                          isMgmtOwnerActive(i + 1)
+                            ? getComputedMgmtSplitFromApi(i + 1)
+                            : 0,
+                        ),
+                        MONTHS.map((_, i) =>
+                          getMonthValue(data.incomeExpenses, i + 1, "rentalIncome"),
+                        ),
+                      )
+                }
               />
               {/* Car Owner Split - Same treatment as Car Management Split. */}
               <CategoryRow
@@ -2465,6 +2518,20 @@ lastSavedNote.current = coHostNote;
                 monthModes={monthModes}
                 showAmountAndPercentage={!isAllCarsView}
                 isLoading={isLoading}
+                annualPercentOverride={
+                  isAllCarsView
+                    ? undefined
+                    : computeAnnualSplitPercent(
+                        MONTHS.map((_, i) =>
+                          isMgmtOwnerActive(i + 1)
+                            ? getComputedOwnerSplitFromApi(i + 1)
+                            : 0,
+                        ),
+                        MONTHS.map((_, i) =>
+                          getMonthValue(data.incomeExpenses, i + 1, "rentalIncome"),
+                        ),
+                      )
+                }
               />
             </CategorySection>
 
@@ -5130,6 +5197,23 @@ interface CategoryRowProps {
   percentageDecimals?: number;
   showAmountAndPercentage?: boolean; // Show both amount and percentage
   totalOverride?: number; // Override the auto-summed total (e.g. for averages)
+  /**
+   * Dollar-weighted annual percentage for the Total cell of a
+   * `showAmountAndPercentage` split row, replacing the old
+   * `sum(percentages) / 12` mean (which divided by 12 regardless of how many
+   * months had data — a 3-month car at a flat 50/50 rendered 13%).
+   *
+   * Supplied already-resolved by the caller (see computeAnnualSplitPercent in
+   * @/lib/annualSplitPercent) because the two unavailability conditions have
+   * their signals at the CALL SITE, not here: the split dollars in `values`
+   * have already been coerced to 0/null by then, so this component cannot
+   * tell an unknown month from a legitimate $0 one.
+   *
+   * `percent: null` renders the percentage half as an em dash with a tooltip
+   * naming which condition applied. Omit the prop entirely to keep the
+   * original /12 mean (every non-split row).
+   */
+  annualPercentOverride?: AnnualSplitPercentResult;
   // Bypass the /admin/income-expenses (All Cars page) read-only guard so this
   // specific row can still be typed in by the admin. Used for true All-Cars
   // manual entries (EBITDA Interest/Taxes/Depreciation/Amortization and the
@@ -5169,6 +5253,7 @@ function CategoryRow({
   percentageDecimals = 0,
   showAmountAndPercentage = false,
   totalOverride,
+  annualPercentOverride,
   alwaysEditable = false,
   onEdit,
   onHide,
@@ -5269,7 +5354,21 @@ function CategoryRow({
   // For all currency values, format as: $ {total.toFixed(2)}
   const formatTotal = () => {
     if (showAmountAndPercentage && percentageValues) {
-      // Show both total amount and average percentage
+      // Annual percentage is dollar-weighted (total split $ / total rental
+      // income), supplied by the caller — NOT a mean of the twelve monthly
+      // percentages. The old `sum(percentages) / 12` counted every inactive
+      // month as a 0 in the numerator while still dividing by 12, so a
+      // 3-month car at a flat 50/50 rendered 13%.
+      if (annualPercentOverride) {
+        const { percent, reason } = annualPercentOverride;
+        // Unavailable for either of two distinct reasons (see
+        // @/lib/annualSplitPercent) — render a dash, never 0%, never NaN%.
+        // The amount half is still known and still shown.
+        if (percent === null) {
+          return `$${total.toFixed(2)} (${UNAVAILABLE_DASH})`;
+        }
+        return `$${total.toFixed(2)} (${percent.toFixed(0)}%)`;
+      }
       const avgPercentage =
         percentageValues.reduce((sum, val) => sum + (val || 0), 0) / 12;
       return `$${total.toFixed(2)} (${avgPercentage.toFixed(0)}%)`;
@@ -5475,6 +5574,19 @@ function CategoryRow({
                 .join(", ")} could not be computed. Summing the remaining months would hide the failure.`}
             >
               {UNAVAILABLE_DASH}
+            </span>
+          ) : annualPercentOverride && annualPercentOverride.percent === null ? (
+            // The AMOUNT is known; only the annual percentage is unavailable,
+            // so this renders "$X (—)" rather than dashing the whole cell.
+            // (A null MONTH is the other case and is handled above: that dashes
+            // the amount too, because summing the months that did compute
+            // would hide the failure.) The tooltip names which of the two
+            // percentage conditions applied — they look identical but mean
+            // different things.
+            <span
+              title={annualSplitPercentTooltip(annualPercentOverride.reason!)}
+            >
+              {formatTotal()}
             </span>
           ) : (
             formatTotal()
