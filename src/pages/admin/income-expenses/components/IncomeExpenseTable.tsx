@@ -1449,6 +1449,20 @@ lastSavedNote.current = coHostNote;
   // formula with the co-host % in place of the management %, so the GLA-owned
   // split mirrors the Car Management / Car Owner Split structure (including the
   // %-independent part1 income components) rather than a naive base × pct.
+  // KEPT DELIBERATELY, unlike its Total-Expenses sibling which was deleted in
+  // favour of the server's computedCarManagementTotalExpenses.
+  //
+  // Three callers below derive the Co-Host and GLA Splits FROM this function
+  // (getCoHostPercent × mgmt split, and the mgmt-split remainder), and the
+  // server exposes no per-row coHostSplit/glaSplit — computeCarMonthSplits
+  // returns them but admin-routes.ts assigns only the mgmt/owner pair. So this
+  // formula has no server-side equivalent for those two rows.
+  //
+  // Migrating them too ("option (b)") is deferred pending the hidden-rows
+  // decision: the client excludes admin-hidden rows from its totals via
+  // isStandardRowHidden / car_hidden_ie_rows and the server has no equivalent,
+  // so server-sourced figures would silently diverge the moment an admin hides
+  // a row holding a nonzero value. See the memory note on that gate.
   const calculateCarManagementSplit = (month: number, percentOverride?: number): number => {
     // Use stored per-month %, fall back to the car's formulaSetting default
     const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
@@ -1815,6 +1829,32 @@ lastSavedNote.current = coHostNote;
     return typeof value === "number" ? value : undefined;
   };
 
+  /**
+   * Server-computed Car Management Split for a month, or undefined when the
+   * backend could not compute it. Mirrors getComputedOwnerSplitFromApi.
+   */
+  const getComputedMgmtSplitFromApi = (month: number): number | undefined => {
+    const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
+    if ((monthRow as any)?.splitsUnavailable === true) return undefined;
+    const value = (monthRow as any)?.computedCarManagementSplit;
+    return typeof value === "number" ? value : undefined;
+  };
+
+  /**
+   * Server-computed Car Management Total Expenses for a month, or undefined
+   * when the backend could not compute it. This REPLACES the former local
+   * calculateCarManagementTotalExpenses: the server now honours
+   * mgmtTotalOverride (commit 59d7706) so the two agreed on all 240 rows of a
+   * live parity check, and keeping a second copy of the formula only invited
+   * the drift that produced that override bug in the first place.
+   */
+  const getComputedMgmtTotalExpensesFromApi = (month: number): number | undefined => {
+    const monthRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
+    if ((monthRow as any)?.splitsUnavailable === true) return undefined;
+    const value = (monthRow as any)?.computedCarManagementTotalExpenses;
+    return typeof value === "number" ? value : undefined;
+  };
+
   // Calculate Car Owner Split based on formula.
   // `percentOverride` (0–100) lets the GLA-owned GLA Split reuse this exact
   // formula with the GLA remainder % (100 − coHost%) in place of the owner %,
@@ -2011,43 +2051,12 @@ lastSavedNote.current = coHostNote;
     return calculateCarManagementSplit(month) * (1 - coHostPct / 100);
   };
 
-  // Calculate Car Management Total Expenses:
-  // In 30:70 mode: "TOTAL REIMBURSE AND NON-REIMBURSE BILLS" only
-  // In 50:50 mode: "TOTAL REIMBURSE AND NON-REIMBURSE BILLS" + ("TOTAL OPERATING EXPENSE (Direct Delivery)" + "TOTAL OPERATING EXPENSE (COGS - Per Vehicle)") * "Car Management Split %"
-  const calculateCarManagementTotalExpenses = (month: number): number => {
-    // Use manually-entered override when present (matches v3 behaviour)
-    const override = Number(getMonthValue(data.incomeExpenses, month, "mgmtTotalOverride"));
-    if (override > 0) return override;
-
-    const totalReimbursedBills = getTotalReimbursedBillsForMonth(month);
-
-    // Get the mode for this month
-    const mode = monthModes[month] || 50;
-
-    // In 30:70 mode, return only TOTAL REIMBURSE AND NON-REIMBURSE BILLS
-    if (mode === 70) {
-      return totalReimbursedBills;
-    }
-
-    // In 50:50 mode, use the full formula. Fall back to the car's
-    // formulaSetting default (NOT 0) when the percent is unset — same rule the
-    // split rows above already use. A month synthesized by ensureAllMonths has
-    // no carManagementSplit field at all, and `|| 0` collapsed that into a
-    // real 0%, dropping the expense share entirely. A stored 0 is honoured.
-    const mgmtRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
-    const rawMgmtStored = mgmtRow?.carManagementSplit;
-    const storedMgmtPercent =
-      rawMgmtStored != null
-        ? Number(rawMgmtStored)
-        : (data.formulaSetting?.carManagementSplitPercent ?? 50);
-    const mgmtPercent = storedMgmtPercent / 100; // Convert percentage to decimal
-    const totalDirectDelivery = getTotalDirectDeliveryForMonth(month);
-    const totalCogs = getTotalCogsForMonth(month);
-
-    return (
-      totalReimbursedBills + (totalDirectDelivery + totalCogs) * mgmtPercent
-    );
-  };
+  // Car Management Total Expenses is no longer computed here — the five call
+  // sites read the server's computedCarManagementTotalExpenses via
+  // getComputedMgmtTotalExpensesFromApi above. The local copy was deleted once
+  // the server started honouring mgmtTotalOverride (commit 59d7706), which was
+  // the one divergence a 240-row live parity check had found; keeping a second
+  // implementation of the same money formula is what allowed that drift.
 
   // Calculate Car Owner Total Expenses:
   // In 30:70 mode: "TOTAL OPERATING EXPENSE (Direct Delivery)" + "TOTAL OPERATING EXPENSE (COGS - Per Vehicle)" + "Total Parking Fee & Labor Cleaning"
@@ -2069,8 +2078,10 @@ lastSavedNote.current = coHostNote;
       return totalDirectDelivery + totalCogs + totalParkingFeeLabor;
     } else {
       // 50:50 mode: (Direct Delivery + COGS) * Car Owner Split %
-      // Unset falls back to the car's default — see the matching comment in
-      // calculateCarManagementTotalExpenses above.
+      // Unset falls back to the car's default — the same rule the server's
+      // mgmt-expenses computation applies (admin-routes.ts, the computed*
+      // block); the local mgmt copy that used to carry this comment was
+      // deleted in favour of computedCarManagementTotalExpenses.
       const ownerRow = data.incomeExpenses?.find((x: any) => x && x.month === month);
       const rawOwnerStored = ownerRow?.carOwnerSplit;
       const storedOwnerPercent =
@@ -2405,7 +2416,7 @@ lastSavedNote.current = coHostNote;
                   if (!isMgmtOwnerActive(monthNum)) return 0;
                   return isAllCarsView
                     ? getMonthValue(data.incomeExpenses, monthNum, "mgmtIncome")
-                    : roundToPhp2Dp(calculateCarManagementSplit(monthNum));
+                    : getComputedMgmtSplitFromApi(monthNum) ?? null;
                 })}
                 percentageValues={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
@@ -2599,7 +2610,7 @@ lastSavedNote.current = coHostNote;
                         monthNum,
                         "carManagementTotalExpenses",
                       )
-                    : calculateCarManagementTotalExpenses(monthNum);
+                    : getComputedMgmtTotalExpensesFromApi(monthNum) ?? null;
                 })}
                 category="income"
                 field="carManagementTotalExpenses"
@@ -2632,7 +2643,7 @@ lastSavedNote.current = coHostNote;
                         monthNum,
                         "carManagementTotalExpenses",
                       )
-                    : calculateCarManagementTotalExpenses(monthNum);
+                    : getComputedMgmtTotalExpensesFromApi(monthNum) ?? null;
                   const owner = isAllCarsView
                     ? getMonthValue(
                         data.incomeExpenses,
@@ -2640,7 +2651,11 @@ lastSavedNote.current = coHostNote;
                         "carOwnerTotalExpenses",
                       )
                     : calculateCarOwnerTotalExpenses(monthNum);
-                  return mgmt + owner;
+                  // `null` means the server could not compute the mgmt figure.
+                  // `null + owner` would coerce to just `owner`, silently
+                  // treating an unavailable value as 0 — the collapse fixed in
+                  // 6c08a49. Propagate the unavailability instead.
+                  return mgmt === null ? null : mgmt + owner;
                 })}
                 isEditable={false}
               />
@@ -2659,7 +2674,7 @@ lastSavedNote.current = coHostNote;
                         monthNum,
                         "carManagementTotalExpenses",
                       )
-                    : calculateCarManagementTotalExpenses(monthNum);
+                    : getComputedMgmtTotalExpensesFromApi(monthNum) ?? null;
                   const owner = isAllCarsView
                     ? getMonthValue(
                         data.incomeExpenses,
@@ -2667,6 +2682,9 @@ lastSavedNote.current = coHostNote;
                         "carOwnerTotalExpenses",
                       )
                     : calculateCarOwnerTotalExpenses(monthNum);
+                  // Unavailable mgmt figure => the profit is unknowable, not
+                  // "income minus owner-only expenses". See 6c08a49.
+                  if (mgmt === null) return null;
                   const totalExpenses = mgmt + owner;
                   return rentalIncome - totalExpenses;
                 })}
@@ -3938,7 +3956,7 @@ lastSavedNote.current = coHostNote;
                   // per-car view runs the same formula that drives that row.
                   return isAllCarsView
                     ? getMonthValue(data.incomeExpenses, monthNum, "mgmtIncome")
-                    : roundToPhp2Dp(calculateCarManagementSplit(monthNum));
+                    : getComputedMgmtSplitFromApi(monthNum) ?? null;
                 })}
                 isEditable={false}
               />
@@ -3969,7 +3987,7 @@ lastSavedNote.current = coHostNote;
                         monthNum,
                         "carManagementTotalExpenses",
                       )
-                    : calculateCarManagementTotalExpenses(monthNum);
+                    : getComputedMgmtTotalExpensesFromApi(monthNum) ?? null;
                 })}
                 isEditable={false}
               />
@@ -4012,7 +4030,7 @@ lastSavedNote.current = coHostNote;
                         monthNum,
                         "carManagementTotalExpenses",
                       )
-                    : calculateCarManagementTotalExpenses(monthNum);
+                    : getComputedMgmtTotalExpensesFromApi(monthNum) ?? null;
                   const ownerExpenses = isAllCarsView
                     ? getMonthValue(
                         data.incomeExpenses,
@@ -4023,7 +4041,9 @@ lastSavedNote.current = coHostNote;
                   const officeSupportTotal = isAllCarsView
                     ? getTotalOfficeSupportForMonth(monthNum)
                     : 0;
-                  return mgmtExpenses + ownerExpenses + officeSupportTotal;
+                  return mgmtExpenses === null
+                    ? null
+                    : mgmtExpenses + ownerExpenses + officeSupportTotal;
                 })}
                 isEditable={false}
                 isTotal
@@ -4065,6 +4085,9 @@ lastSavedNote.current = coHostNote;
                     );
                     const officeSupportTotal =
                       getTotalOfficeSupportForMonth(monthNum);
+                    // No null guard here: this row is All-Cars-only and both
+                    // terms come from getMonthValue, which collapses a missing
+                    // value to 0 and never returns null.
                     return mgmtExpenses + ownerExpenses + officeSupportTotal;
                   })}
                   isEditable={false}
