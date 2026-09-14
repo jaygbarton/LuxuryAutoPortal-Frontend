@@ -953,6 +953,7 @@ export function DayScheduleTab() {
     queryFn: authMeQueryFn,
     refetchOnMount: "always",
   });
+  const canBulkCompleteOldTasks = authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true;
   const isAdmin = authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true || authData?.user?.isEmployee === true;
 
   function toggleCategoryFilter(category: string) {
@@ -1344,6 +1345,42 @@ export function DayScheduleTab() {
   // Flat, time-sorted list for the Timeline view — every task across every
   // employee in one list, instead of grouped by employee section.
   const timelineEvents = [...events].sort((a, b) => timeKey(a.start_time).localeCompare(timeKey(b.start_time)));
+  const oldNormalUnassignedCount = unassigned.filter((event) =>
+    (event.type === "pickup" || event.type === "delivery" || event.type === "cleaning") &&
+    event.scheduled_day != null &&
+    event.scheduled_day < date &&
+    event.status !== "completed" &&
+    event.status !== "delivered"
+  ).length;
+
+  const completeOldNormalTasksMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(buildApiUrl(`/api/operations/day-schedule/complete-old-normal-tasks`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ date }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to complete old tasks");
+      }
+      return res.json() as Promise<{ success: boolean; completed: number }>;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: dayScheduleQueryKey, exact: true, refetchType: "active" });
+      toast({ title: "Old tasks archived", description: `${result.completed ?? 0} task${result.completed === 1 ? "" : "s"} marked completed.` });
+    },
+    onError: (e: Error) => {
+      toast({ variant: "destructive", title: "Couldn't archive old tasks", description: e.message });
+    },
+  });
+
+  function handleCompleteOldNormalTasks() {
+    if (oldNormalUnassignedCount <= 0) return;
+    if (!window.confirm(`Mark ${oldNormalUnassignedCount} old unassigned pick up, drop off, and cleaning task${oldNormalUnassignedCount === 1 ? "" : "s"} completed without assigning an employee?`)) return;
+    completeOldNormalTasksMutation.mutate();
+  }
 
   // Category totals for summary bar — always from the full unfiltered list.
   const categoryCounts = allEvents.reduce<Record<string, number>>((acc, e) => {
@@ -1580,10 +1617,31 @@ export function DayScheduleTab() {
               }`}
             >
               <div className="px-3 py-2 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center justify-between">
-                <span>Needs Assignment</span>
-                {unassigned.length > 0 && (
-                  <Badge variant="destructive" className="text-[10px] px-1.5 py-0">{unassigned.length}</Badge>
-                )}
+                <div className="flex items-center gap-2">
+                  <span>Needs Assignment</span>
+                  {canBulkCompleteOldTasks && (
+                    <button
+                      type="button"
+                      onClick={handleCompleteOldNormalTasks}
+                      disabled={oldNormalUnassignedCount === 0 || completeOldNormalTasksMutation.isPending}
+                      className="inline-flex items-center gap-1 rounded border border-emerald-700/30 bg-emerald-50 px-2 py-1 text-[10px] font-semibold normal-case tracking-normal text-emerald-800 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-45"
+                      title="Mark old unassigned pick up, drop off, and cleaning tasks completed without assigning an employee"
+                    >
+                      <CheckCircle className="h-3 w-3" />
+                      Complete Old
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {canBulkCompleteOldTasks && oldNormalUnassignedCount > 0 && (
+                    <Badge variant="outline" className="border-emerald-300 bg-emerald-50 px-1.5 py-0 text-[10px] text-emerald-800">
+                      {oldNormalUnassignedCount} old
+                    </Badge>
+                  )}
+                  {unassigned.length > 0 && (
+                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0">{unassigned.length}</Badge>
+                  )}
+                </div>
               </div>
               <div className="p-2 space-y-1.5 max-h-[55vh] overflow-y-auto lg:max-h-80">
                 {unassigned.length === 0 ? (
