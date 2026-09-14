@@ -22,6 +22,7 @@ import {
   OperationLocationFilter,
   OperationLocationFilterProvider,
 } from "./operations/OperationLocationFilter";
+import { useCoHostLocationTags } from "@/hooks/use-co-host";
 
 const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "day-schedule", "tv-timeline"] as const;
 type TabId = typeof TAB_IDS[number];
@@ -58,6 +59,25 @@ export default function OperationsPage() {
   const activeTab = tabFromSearch(search);
   const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set(["trips", tabFromSearch(search)]));
   const [locationFilter, setLocationFilter] = useState<OperationLocationFilter>("all");
+
+  // A co-host may only filter by the locations their OWN cars sit in. Offering
+  // the full list tells them which other cities GLA operates in, and lets them
+  // select a location where they have no vehicles at all.
+  const coHostLocationTags = useCoHostLocationTags();
+  const locationOptions =
+    coHostLocationTags === null || coHostLocationTags.length === 0
+      ? OPERATION_LOCATION_OPTIONS
+      : OPERATION_LOCATION_OPTIONS.filter(
+          (o) => o.value !== "all" && coHostLocationTags.includes(o.value),
+        );
+
+  // If the co-host's fleet doesn't cover the selected location (e.g. the
+  // default "all"), snap to the first one they can actually see.
+  useEffect(() => {
+    if (locationOptions.some((o) => o.value === locationFilter)) return;
+    const first = locationOptions[0];
+    if (first) setLocationFilter(first.value);
+  }, [locationOptions, locationFilter]);
 
   const handleTabChange = (value: string) => {
     const tab = value as TabId;
@@ -97,7 +117,7 @@ export default function OperationsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {OPERATION_LOCATION_OPTIONS.map((option) => (
+                {locationOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
