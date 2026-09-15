@@ -94,6 +94,12 @@ const STATUS_META: Record<string, { label: string; className: string }> = {
   blocked_off_ended: { label: "Car Blocked Off", className: "bg-amber-100 text-amber-700 border-amber-200" },
 };
 
+// Statuses an admin can actually set (matches the backend's validStatuses in
+// routes/carBlockOff.ts). Excludes the legacy pre-merge keys above, which
+// exist only so old rows still render a label — offering them in the
+// dropdown showed "Car Blocked Off" three times.
+const SELECTABLE_STATUSES = ["new", "car_blocked_off", "car_not_available", "update_requested"] as const;
+
 const REASON_LABELS: Record<string, string> = {
   personal_use: "Personal Use",
   maintenance: "Maintenance",
@@ -790,7 +796,7 @@ export function CarBlockOffContent({ includePageLinks = false }: { includePageLi
                             <SelectValue>{statusBadge(s.status)}</SelectValue>
                           </SelectTrigger>
                           <SelectContent className="bg-card border-border text-foreground">
-                            {Object.keys(STATUS_META).map((k) => (
+                            {SELECTABLE_STATUSES.map((k) => (
                               <SelectItem key={k} value={k} className="text-xs">
                                 {STATUS_META[k].label}
                               </SelectItem>
