@@ -45,6 +45,7 @@ import {
   ExternalLink,
   Megaphone,
   CalendarDays,
+  Truck,
 } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { ViewAsClientBanner } from "./ViewAsClientBanner";
@@ -97,6 +98,7 @@ const OPERATIONS_TABS: { href: string; label: string; icon: any }[] = [
   { href: "/admin/operations?tab=inspections", label: "Car Issues", icon: ShieldAlert },
   { href: "/admin/operations?tab=claims", label: "Claims", icon: FileText },
   { href: "/admin/operations?tab=ticket-violation", label: "Ticket Violation", icon: ShieldAlert },
+  { href: "/admin/operations?tab=towing-impound", label: "Towing & Impound", icon: Truck },
   { href: "/admin/operations?tab=maintenance", label: "Maintenance", icon: Cog },
   { href: "/admin/operations?tab=service-due", label: "Service Due", icon: Clock },
   { href: "/admin/operations?tab=completed", label: "No Car Issues", icon: ClipboardList },
@@ -119,6 +121,7 @@ const ADMIN_FORM_TABS: { href: string; label: string; icon: any }[] = [
   { href: "/admin/forms?section=car-repaired-forms", label: "Car Repaired Form", icon: Key },
   { href: "/admin/forms?section=parking-ticket-forms", label: "Client Parking Ticket", icon: FileText },
   { href: "/admin/forms?section=ticket-violation-forms", label: "Ticket Violation Form", icon: ShieldAlert },
+  { href: "/admin/forms?section=towing-impound-forms", label: "Towing & Impound Form", icon: Truck },
 ];
 
 /** Client Forms page tabs — the same six sections the page used to show as a
@@ -131,6 +134,7 @@ const CLIENT_FORM_TABS: { href: string; label: string; icon: any }[] = [
   { href: "/admin/forms?section=car-block-off-forms", label: "Car Block Off Form", icon: CalendarOff },
   { href: "/admin/forms?section=parking-ticket-forms", label: "Parking Ticket", icon: FileText },
   { href: "/admin/forms?section=ticket-violation-forms", label: "Ticket Violation Form", icon: ShieldAlert },
+  { href: "/admin/forms?section=towing-impound-forms", label: "Towing & Impound Form", icon: Truck },
   { href: "/admin/forms?section=referral-forms", label: "Referral Form", icon: Megaphone },
   { href: "/admin/forms?section=document-updates", label: "License & Registration or Insurance Updates", icon: FileText },
 ];
@@ -627,6 +631,7 @@ const COHOST_FORM_TABS: SidebarItem[] = [
   { href: "/admin/forms?section=car-repaired-forms", label: "Car Repaired Form", icon: Key },
   { href: "/admin/forms?section=parking-ticket-forms", label: "Client Parking Ticket", icon: FileText },
   { href: "/admin/forms?section=ticket-violation-forms", label: "Ticket Violation Form", icon: ShieldAlert },
+  { href: "/admin/forms?section=towing-impound-forms", label: "Towing & Impound Form", icon: Truck },
   { href: "/admin/forms?section=referral-forms", label: "Referral Form", icon: Megaphone },
   { href: "/admin/forms?section=document-updates", label: "License & Registration or Insurance Updates", icon: FileText },
 ];

@@ -19,6 +19,7 @@ export type OperationsEntityType =
   | "claim"
   | "car_repaired"
   | "ticket_violation"
+  | "towing_impound"
   | "car_pending_issue"
   | "service_date"
   | "car_registration";
@@ -57,7 +58,7 @@ function fmtValue(v: unknown): string {
 /** Fields we never want to show in a diff — noisy or not meaningful to a human. */
 const IGNORED_FIELDS = new Set([
   "id", "created_at", "updated_at", "createdAt", "updatedAt",
-  "google_event_id", "photos", "cr_photos", "tv_photos",
+  "google_event_id", "photos", "cr_photos", "tv_photos", "ti_photos",
 ]);
 
 /** Compute the changed-field list between two row snapshots. */

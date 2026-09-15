@@ -37,6 +37,8 @@ import ParkingTicketMySubmissions from "./forms/ParkingTicketMySubmissions";
 import ParkingTicketApprovalDashboard from "./forms/ParkingTicketApprovalDashboard";
 import TicketViolationSubmission from "./forms/TicketViolationSubmission";
 import TicketViolationMySubmissions from "./forms/TicketViolationMySubmissions";
+import TowingImpoundSubmission from "./forms/TowingImpoundSubmission";
+import TowingImpoundMySubmissions from "./forms/TowingImpoundMySubmissions";
 import CarRepairedSubmission from "./forms/CarRepairedSubmission";
 import CarRepairedMySubmissions from "./forms/CarRepairedMySubmissions";
 import {
@@ -79,6 +81,7 @@ import {
   Wrench,
   Edit,
   PauseCircle,
+  Truck,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { cn } from "@/lib/utils";
@@ -513,6 +516,7 @@ export default function FormsPage() {
       itemId === "parking-ticket-submit" ||
       itemId === "parking-ticket-approval" ||
       itemId === "ticket-violation-submit" ||
+      itemId === "towing-impound-submit" ||
       itemId === "car-repaired-submit"
     ) {
       setExpandedItems((prev) =>
@@ -1186,6 +1190,12 @@ export default function FormsPage() {
       icon: FileWarning,
     };
 
+    const towingImpoundSubmitItem: FormItem = {
+      id: "towing-impound-submit",
+      title: "Towing & Impound Form",
+      icon: Truck,
+    };
+
     const carRepairedSubmitItem: FormItem = {
       id: "car-repaired-submit",
       title: "Car Repaired Form",
@@ -1271,6 +1281,12 @@ export default function FormsPage() {
           title: "Ticket Violation Form",
           icon: FileWarning,
           items: [ticketViolationSubmitItem],
+        },
+        {
+          id: "towing-impound-forms",
+          title: "Towing & Impound Form",
+          icon: Truck,
+          items: [towingImpoundSubmitItem],
         },
       ];
     }
@@ -1365,6 +1381,12 @@ export default function FormsPage() {
           title: "Ticket Violation Form",
           icon: FileWarning,
           items: [ticketViolationSubmitItem],
+        },
+        {
+          id: "towing-impound-forms",
+          title: "Towing & Impound Form",
+          icon: Truck,
+          items: [towingImpoundSubmitItem],
         },
         {
           id: "referral-forms",
@@ -1541,6 +1563,7 @@ export default function FormsPage() {
                             item.id === "parking-ticket-submit" ||
                             item.id === "parking-ticket-approval" ||
                             item.id === "ticket-violation-submit" ||
+                            item.id === "towing-impound-submit" ||
                             item.id === "car-repaired-submit") &&
                           !item.comingSoon;
 
@@ -1838,6 +1861,26 @@ export default function FormsPage() {
                                   )}
                                   <TicketViolationSubmission />
                                   <TicketViolationMySubmissions />
+                                </div>
+                              )}
+
+                            {/* Expanded content for Towing & Impound submission (client submits + sees own status) */}
+                            {isItemExpanded &&
+                              item.id === "towing-impound-submit" && (
+                                <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
+                                  {formVisibilityData?.isAdmin && (
+                                    <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                      <span>Submissions appear in</span>
+                                      <a
+                                        href="/admin/operations?tab=towing-impound"
+                                        className="font-semibold underline hover:text-amber-900"
+                                      >
+                                        Operations → Towing & Impound
+                                      </a>
+                                    </div>
+                                  )}
+                                  <TowingImpoundSubmission />
+                                  <TowingImpoundMySubmissions />
                                 </div>
                               )}
 

@@ -10,6 +10,7 @@ import { TuroInspectionTab } from "./operations/TuroInspectionTab";
 import { CarInspectionsTab } from "./operations/CarInspectionsTab";
 import { ClaimsTab } from "./operations/ClaimsTab";
 import { TicketViolationTab } from "./operations/TicketViolationTab";
+import { TowingImpoundTab } from "./operations/TowingImpoundTab";
 import { MaintenanceTab } from "./operations/MaintenanceTab";
 import { ServiceDueTab } from "./operations/ServiceDueTab";
 import { NoCarIssuesTab } from "./operations/NoCarIssuesTab";
@@ -24,7 +25,7 @@ import {
 } from "./operations/OperationLocationFilter";
 import { useCoHostLocationTags } from "@/hooks/use-co-host";
 
-const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "day-schedule", "tv-timeline"] as const;
+const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "towing-impound", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "day-schedule", "tv-timeline"] as const;
 type TabId = typeof TAB_IDS[number];
 
 // Renders a tab's content only after it has been activated for the first time,
@@ -145,6 +146,9 @@ export default function OperationsPage() {
           </LazyTab>
           <LazyTab value="ticket-violation" activeTab={activeTab} mountedTabs={mountedTabs}>
             <TicketViolationTab />
+          </LazyTab>
+          <LazyTab value="towing-impound" activeTab={activeTab} mountedTabs={mountedTabs}>
+            <TowingImpoundTab />
           </LazyTab>
           <LazyTab value="maintenance" activeTab={activeTab} mountedTabs={mountedTabs}>
             <MaintenanceTab />
