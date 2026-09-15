@@ -118,12 +118,12 @@ export function ClientPageLinks({ hideVehicleStatsLinks }: { hideVehicleStatsLin
     { href: "/admin/news-media",     icon: Globe,         label: "News & Media" },
 
     { href: "https://rent.goldenluxuryauto.com/lyc-client-check-in", icon: Video, label: "Schedule a Zoom Call", external: true },
-    { href: "/admin/forms", icon: FileText, label: "License Registration or Insurance Updates" },
+    { href: "/admin/forms?section=document-updates", icon: FileText, label: "License Registration or Insurance Updates" },
     { href: "/admin/turo-guide",     icon: Map,           label: "Turo Guide" },
     { href: "/admin/settings",       icon: Settings,      label: "Settings" },
 
     { href: "/onboarding",           icon: PlusCircle,    label: "List Another Car" },
-    { href: "/admin/forms",          icon: UserPlus,      label: "Refer Somebody" },
+    { href: "/admin/forms?section=referral-forms", icon: UserPlus,      label: "Refer Somebody" },
     { href: "/admin/testimonials",   icon: Star,          label: "Client Testimonials" },
   ];
 
