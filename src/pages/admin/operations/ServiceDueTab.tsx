@@ -79,15 +79,17 @@ const SERVICE_KIND_LAST_LABEL: Record<ServiceKind, string> = {
 };
 
 // Staleness thresholds (days) per service type. Anything past DUE reads amber;
-// past OVERDUE reads red; never-serviced always reads red. Brakes/windshield/
-// mechanic/license wear much slower than oil/tires, so they get longer
-// windows — flag for Cathy to adjust if these defaults don't match real
-// service intervals.
-const THRESHOLDS: Record<ServiceKind, { due: number; overdue: number }> = {
+// past OVERDUE reads red; never-serviced always reads red. Brakes/mechanic/
+// license wear much slower than oil/tires, so they get longer windows — flag
+// for Cathy to adjust if these defaults don't match real service intervals.
+// Windshield has no threshold: per Cathy (Slack, 2026-09-14), a windshield
+// isn't replaced on a fixed schedule, only when damage is reported, so it's
+// never flagged due/overdue (see staleness() below) — the record is kept
+// only as a reference date.
+const THRESHOLDS: Record<Exclude<ServiceKind, "windshield">, { due: number; overdue: number }> = {
   oil_change: { due: 90, overdue: 180 },          // ~3mo / ~6mo
   tires: { due: 180, overdue: 365 },              // ~6mo / ~1yr
   brakes: { due: 180, overdue: 365 },             // ~6mo / ~1yr
-  windshield: { due: 365, overdue: 730 },         // ~1yr / ~2yr
   mechanic: { due: 180, overdue: 365 },           // ~6mo / ~1yr
   license_registration: { due: 365, overdue: 400 }, // ~1yr, matches annual renewal
 };
@@ -105,7 +107,6 @@ const CATEGORY_FILTER_OPTIONS: { value: CategoryFilter; label: string }[] = [
   { value: "oil_change", label: "Oil Change" },
   { value: "tires", label: "Tires" },
   { value: "brakes", label: "Brakes" },
-  { value: "windshield", label: "Windshield" },
   { value: "mechanic", label: "Mechanic" },
   { value: "license_registration", label: "License & Registration" },
   { value: "registration", label: "Registration Expiration" },
@@ -202,6 +203,7 @@ function SortableTableHead({
 }
 
 function staleness(days: number | null, kind: ServiceKind): "red" | "amber" | "green" {
+  if (kind === "windshield") return "green"; // no fixed interval — see THRESHOLDS comment
   if (days == null) return "red";
   const t = THRESHOLDS[kind];
   if (days >= t.overdue) return "red";
@@ -366,7 +368,7 @@ function ServiceCell({
   onSaved: () => void;
 }) {
   const level = staleness(days, kind);
-  const due = date ? dueDateIso(date, THRESHOLDS[kind].due) : null;
+  const due = date && kind !== "windshield" ? dueDateIso(date, THRESHOLDS[kind].due) : null;
   const badge =
     days == null
       ? "No Data"
@@ -621,7 +623,6 @@ export function ServiceDueTab() {
   const overdueOilCount = rows.filter((r) => staleness(r.days_since_oil_change, "oil_change") === "red").length;
   const overdueTireCount = rows.filter((r) => staleness(r.days_since_tires, "tires") === "red").length;
   const overdueBrakesCount = rows.filter((r) => staleness(r.days_since_brakes, "brakes") === "red").length;
-  const overdueWindshieldCount = rows.filter((r) => staleness(r.days_since_windshield, "windshield") === "red").length;
   const overdueMechanicCount = rows.filter((r) => staleness(r.days_since_mechanic, "mechanic") === "red").length;
   const overdueLicenseRegCount = rows.filter((r) => staleness(r.days_since_license_registration, "license_registration") === "red").length;
   const expiringRegistrationCount = rows.filter((r) => registrationStatus(r.days_until_registration_expiration) !== "green").length;
@@ -637,13 +638,12 @@ export function ServiceDueTab() {
         />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
         <SummaryCard label="Cars Tracked" value={String(rows.length)} variant="dark" />
         <SummaryCard label="Oil Change Overdue" value={String(overdueOilCount)} variant="gold" />
         <SummaryCard label="Tires Overdue" value={String(overdueTireCount)} variant="white" />
         <SummaryCard label="Brakes Overdue" value={String(overdueBrakesCount)} variant="gold" />
-        <SummaryCard label="Windshield Overdue" value={String(overdueWindshieldCount)} variant="white" />
-        <SummaryCard label="Mechanic Overdue" value={String(overdueMechanicCount)} variant="gold" />
+        <SummaryCard label="Mechanic Overdue" value={String(overdueMechanicCount)} variant="white" />
         <SummaryCard label="License & Reg. Overdue" value={String(overdueLicenseRegCount)} variant="white" />
         <SummaryCard label="Registration Expiring" value={String(expiringRegistrationCount)} variant="gold" />
       </div>
