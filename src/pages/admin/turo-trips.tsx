@@ -188,7 +188,7 @@ export default function TuroTripsPage() {
   >({});
   const [savingDates, setSavingDates] = useState<number | null>(null);
   // Bulk paste-import modal state
-  const itemsPerPage = 20;
+  const itemsPerPage = 50;
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
