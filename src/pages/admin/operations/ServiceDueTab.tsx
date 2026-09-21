@@ -116,6 +116,7 @@ const CATEGORY_FILTER_OPTIONS: { value: CategoryFilter; label: string }[] = [
 function matchesCategoryFilter(r: CarServiceDue, category: CategoryFilter): boolean {
   if (category === "all") return true;
   if (category === "registration") return registrationStatus(r.days_until_registration_expiration) !== "green";
+  if (category === "oil_change" && r.car_fuel_type === "Electric") return false; // EVs don't get oil changes
   const daysByKind: Record<ServiceKind, number | null> = {
     oil_change: r.days_since_oil_change,
     tires: r.days_since_tires,
@@ -225,6 +226,8 @@ const STALE_CLASSES: Record<"red" | "amber" | "green", string> = {
   amber: "bg-amber-500/15 text-amber-500 border-amber-500/30",
   green: "bg-green-500/15 text-green-500 border-green-500/30",
 };
+
+const EV_BADGE_CLASSES = "bg-blue-500/15 text-blue-500 border-blue-500/30";
 
 /**
  * Pencil + history popover for one Service Due COGS cell. Edits go through the
@@ -355,6 +358,7 @@ function ServiceCell({
   cellYear,
   cellMonth,
   onSaved,
+  isEv,
 }: {
   carId: number;
   date: string | null;
@@ -366,7 +370,16 @@ function ServiceCell({
   cellYear: number | null;
   cellMonth: number | null;
   onSaved: () => void;
+  /** EVs don't get oil changes — show "EV" instead of a due/overdue status. */
+  isEv?: boolean;
 }) {
+  if (isEv) {
+    return (
+      <span className={`inline-flex w-fit items-center rounded border px-1.5 py-0.5 text-xs font-medium ${EV_BADGE_CLASSES}`}>
+        EV
+      </span>
+    );
+  }
   const level = staleness(days, kind);
   const due = date && kind !== "windshield" ? dueDateIso(date, THRESHOLDS[kind].due) : null;
   const badge =
@@ -620,7 +633,7 @@ export function ServiceDueTab() {
     }));
   };
 
-  const overdueOilCount = rows.filter((r) => staleness(r.days_since_oil_change, "oil_change") === "red").length;
+  const overdueOilCount = rows.filter((r) => r.car_fuel_type !== "Electric" && staleness(r.days_since_oil_change, "oil_change") === "red").length;
   const overdueTireCount = rows.filter((r) => staleness(r.days_since_tires, "tires") === "red").length;
   const overdueBrakesCount = rows.filter((r) => staleness(r.days_since_brakes, "brakes") === "red").length;
   const overdueMechanicCount = rows.filter((r) => staleness(r.days_since_mechanic, "mechanic") === "red").length;
@@ -763,7 +776,7 @@ export function ServiceDueTab() {
                     <TableCell className="text-muted-foreground">{r.car_plate || "--"}</TableCell>
                     <TableCell className="text-muted-foreground font-mono text-xs">{r.car_vin || "--"}</TableCell>
                     <TableCell>
-                      <ServiceCell carId={r.car_id} date={r.last_oil_change} days={r.days_since_oil_change} kind="oil_change" serviceDateId={r.oil_change_service_date_id} cellYear={r.oil_change_year} cellMonth={r.oil_change_month} onSaved={onSaved} />
+                      <ServiceCell carId={r.car_id} date={r.last_oil_change} days={r.days_since_oil_change} kind="oil_change" serviceDateId={r.oil_change_service_date_id} cellYear={r.oil_change_year} cellMonth={r.oil_change_month} onSaved={onSaved} isEv={r.car_fuel_type === "Electric"} />
                     </TableCell>
                     <TableCell>
                       <ServiceCell carId={r.car_id} date={r.last_tires} days={r.days_since_tires} kind="tires" serviceDateId={r.tires_service_date_id} cellYear={r.tires_year} cellMonth={r.tires_month} onSaved={onSaved} />

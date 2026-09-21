@@ -181,6 +181,8 @@ export interface CarServiceDue {
   car_photo?: string | null;
   locationTag?: string | null;
   car_status: "ACTIVE" | "INACTIVE";
+  /** Free-text car.car_fuel_type; "Electric" means the oil-change column is N/A. */
+  car_fuel_type: string | null;
   last_oil_change: string | null;
   last_tires: string | null;
   last_brakes: string | null;
