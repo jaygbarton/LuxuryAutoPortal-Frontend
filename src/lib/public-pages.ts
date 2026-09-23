@@ -21,6 +21,7 @@ export const PUBLIC_PAGES: PublicPageDefinition[] = [
   { path: "/salt-lake-city/detail-shop/book", label: "SLC Detail Shop Booking", group: "SLC" },
   { path: "/salt-lake-city/detail-shop", label: "SLC Detail Shop", group: "SLC" },
   { path: "/salt-lake-city/chauffeur-services", label: "SLC Chauffeur Services", group: "SLC" },
+  { path: "/salt-lake-city/cybercab", label: "SLC Cybercab", group: "SLC" },
   { path: "/salt-lake-city/deals", label: "SLC Deals", group: "SLC" },
   { path: "/salt-lake-city/jobs/apply", label: "SLC Job Application", group: "SLC" },
   { path: "/salt-lake-city/jobs", label: "SLC Jobs", group: "SLC" },
