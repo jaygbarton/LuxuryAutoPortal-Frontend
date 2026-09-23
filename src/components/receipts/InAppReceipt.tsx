@@ -91,6 +91,7 @@ export default function InAppReceipt({
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [isPdf, setIsPdf] = useState(filenameLooksPdf(filename, src));
   const [failed, setFailed] = useState(false);
+  const [failReason, setFailReason] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
 
@@ -99,6 +100,7 @@ export default function InAppReceipt({
     let objectUrl: string | null = null;
     setBlobUrl(null);
     setFailed(false);
+    setFailReason(null);
     setLoading(true);
     setIsPdf(filenameLooksPdf(filename, src));
 
@@ -118,8 +120,18 @@ export default function InAppReceipt({
     }
 
     fetch(resolved, { credentials: needsCredentials(resolved) ? "include" : "omit" })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Failed to load (${res.status})`);
+      .then(async (res) => {
+        if (!res.ok) {
+          // Our receipt endpoints answer with JSON explaining WHY (missing
+          // file, empty upload, no access). Surfacing that beats a generic
+          // "couldn't load" the user can only re-try forever.
+          const detail = await res
+            .clone()
+            .json()
+            .then((b: any) => (typeof b?.error === "string" ? b.error : null))
+            .catch(() => null);
+          throw new Error(detail || `Failed to load (${res.status})`);
+        }
         return res.blob();
       })
       .then(async (blob) => {
@@ -131,8 +143,9 @@ export default function InAppReceipt({
         setBlobUrl(objectUrl);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (!revoked) {
+          setFailReason(err instanceof Error ? err.message : null);
           setFailed(true);
           setLoading(false);
         }
@@ -162,8 +175,9 @@ export default function InAppReceipt({
     }
     if (failed) {
       return (
-        <div className="w-full h-full min-h-[80px] flex items-center justify-center bg-red-500/20 text-red-700 text-xs p-2 text-center">
-          Couldn’t load receipt
+        <div className="w-full h-full min-h-[80px] flex flex-col items-center justify-center gap-1 bg-red-500/20 text-red-700 text-xs p-2 text-center">
+          <span>Couldn’t load receipt</span>
+          {failReason && <span className="text-[10px] opacity-80 leading-tight">{failReason}</span>}
         </div>
       );
     }
