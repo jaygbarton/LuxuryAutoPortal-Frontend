@@ -30,6 +30,7 @@ import {
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import { RecordFileModal } from "@/components/modals/RecordFileModal";
 import { EditRecordFileModal } from "@/components/modals/EditRecordFileModal";
 import { RecordFilesLogModal } from "@/components/modals/RecordFilesLogModal";
@@ -96,6 +97,7 @@ export default function RecordsPage() {
     doc: Document | null;
   }>({ open: false, type: null, doc: null });
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Get user data to check role
   const { data: userData } = useQuery<{ user?: any }>({
@@ -331,6 +333,13 @@ export default function RecordsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/record-files"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -728,6 +737,17 @@ export default function RecordsPage() {
                                     title="Archive"
                                   >
                                     <Archive className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(doc);
+                                    }}
+                                    className="text-muted-foreground hover:text-red-700 transition-colors p-1"
+                                    aria-label="Delete document"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
                                   </button>
                                 </>
                               ) : (
