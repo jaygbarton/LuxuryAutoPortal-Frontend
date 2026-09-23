@@ -8,13 +8,14 @@ interface AuthMe {
     isClient?: boolean;
     isEmployee?: boolean;
     isCoHost?: boolean;
+    isSuperAdmin?: boolean;
   };
 }
 
 interface RequireRoleProps {
   children: React.ReactNode;
   /** At least one of these flags must be true on the authenticated user. */
-  roles: ("isAdmin" | "isClient" | "isEmployee" | "isCoHost")[];
+  roles: ("isAdmin" | "isClient" | "isEmployee" | "isCoHost" | "isSuperAdmin")[];
   /** Where to send unauthorized users. Defaults to /dashboard. */
   redirectTo?: string;
 }
@@ -62,7 +63,8 @@ export function RequireRole({
     ("isAdmin" in user ||
       "isClient" in user ||
       "isEmployee" in user ||
-      "isCoHost" in user);
+      "isCoHost" in user ||
+      "isSuperAdmin" in user);
 
   // First load only: no usable role data yet AND a fetch is resolving it.
   // Returning null here is the unavoidable initial blank. Crucially we do NOT

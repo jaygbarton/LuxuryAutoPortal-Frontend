@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient, getApiBaseUrl } from "./lib/queryClient";
@@ -9,6 +9,7 @@ import { TutorialProvider } from "@/components/onboarding/OnboardingTutorial";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { RequireRole } from "@/components/admin/require-role";
+import { PublicPageGate } from "@/components/public-page-gate";
 import { PUBLIC_LOCATIONS, rememberPublicLocationFromPath } from "@/lib/location-config";
 import DashboardRouter from "@/pages/dashboard-router";
 
@@ -136,6 +137,7 @@ const GuestDatabasePage = lazy(() => import("@/pages/admin/marketing/guest-datab
 const NewsMediaPage = lazy(() => import("@/pages/admin/news-media"));
 const NoticeBoardManagementPage = lazy(() => import("@/pages/admin/notice-board"));
 const NotificationsPage = lazy(() => import("@/pages/admin/notifications"));
+const DeveloperPage = lazy(() => import("@/pages/admin/developer"));
 
 function PageFallback() {
   return (
@@ -155,6 +157,14 @@ function LegacyRouteRedirect({ to }: { to: string | ((query: URLSearchParams) =>
   const query = new URLSearchParams(search);
   const target = typeof to === "function" ? to(query) : to;
   return <Redirect to={target} />;
+}
+
+function PublicRoute({ path, children }: { path: string; children: ReactNode }) {
+  return (
+    <Route path={path}>
+      <PublicPageGate path={path}>{children}</PublicPageGate>
+    </Route>
+  );
 }
 
 const legacyCarRoute = (section: "detail" | "income" | "expenses" | "depreciation" | "totals" | "earnings" | "calculator") =>
@@ -202,93 +212,93 @@ function Router() {
       <Route path="/">
         <Redirect to="/salt-lake-city" />
       </Route>
-      <Route path="/choose-location">
+      <PublicRoute path="/choose-location">
         <Home />
-      </Route>
-      <Route path="/salt-lake-city">
+      </PublicRoute>
+      <PublicRoute path="/salt-lake-city">
         <Home location={PUBLIC_LOCATIONS.slc} />
-      </Route>
-      <Route path="/wilmington-nc">
+      </PublicRoute>
+      <PublicRoute path="/wilmington-nc">
         <Home location={PUBLIC_LOCATIONS.wilmington} />
-      </Route>
-      <Route path="/myrtle-beach-sc/list-your-vehicle">
+      </PublicRoute>
+      <PublicRoute path="/myrtle-beach-sc/list-your-vehicle">
         <LocationInterest location={PUBLIC_LOCATIONS.myrtle} />
-      </Route>
-      <Route path="/charleston-sc/list-your-vehicle">
+      </PublicRoute>
+      <PublicRoute path="/charleston-sc/list-your-vehicle">
         <LocationInterest location={PUBLIC_LOCATIONS.charleston} />
-      </Route>
-      <Route path="/myrtle-beach-sc">
+      </PublicRoute>
+      <PublicRoute path="/myrtle-beach-sc">
         <Home location={PUBLIC_LOCATIONS.myrtle} />
-      </Route>
-      <Route path="/charleston-sc">
+      </PublicRoute>
+      <PublicRoute path="/charleston-sc">
         <Home location={PUBLIC_LOCATIONS.charleston} />
-      </Route>
-      <Route path="/fleet">
+      </PublicRoute>
+      <PublicRoute path="/fleet">
         <Fleet location={PUBLIC_LOCATIONS.slc} />
-      </Route>
-      <Route path="/salt-lake-city/fleet">
+      </PublicRoute>
+      <PublicRoute path="/salt-lake-city/fleet">
         <Fleet location={PUBLIC_LOCATIONS.slc} />
-      </Route>
-      <Route path="/wilmington-nc/fleet">
+      </PublicRoute>
+      <PublicRoute path="/wilmington-nc/fleet">
         <Fleet location={PUBLIC_LOCATIONS.wilmington} />
-      </Route>
-      <Route path="/myrtle-beach-sc/fleet">
+      </PublicRoute>
+      <PublicRoute path="/myrtle-beach-sc/fleet">
         <Home location={PUBLIC_LOCATIONS.myrtle} />
-      </Route>
-      <Route path="/charleston-sc/fleet">
+      </PublicRoute>
+      <PublicRoute path="/charleston-sc/fleet">
         <Home location={PUBLIC_LOCATIONS.charleston} />
-      </Route>
-      <Route path="/salt-lake-city/pick-up-and-drop-off" component={PickupDropoffPage} />
-      <Route path="/salt-lake-city/detail-shop/book" component={DetailShopAppointmentPage} />
-      <Route path="/salt-lake-city/detail-shop" component={DetailShopPage} />
-      <Route path="/salt-lake-city/chauffeur-services" component={ChauffeurPage} />
-      <Route path="/salt-lake-city/deals" component={DealsPage} />
-      <Route path="/salt-lake-city/jobs/apply" component={JobApplicationPage} />
-      <Route path="/salt-lake-city/jobs" component={JobsPage} />
-      <Route path="/salt-lake-city/suggested-cars" component={SuggestedCarsPage} />
-      <Route path="/salt-lake-city/testimonials" component={TestimonialsPage} />
-      <Route path="/salt-lake-city/reviews-options" component={ReviewsOptionsPage} />
-      <Route path="/salt-lake-city/reviews" component={ReviewsPage} />
-      <Route path="/salt-lake-city/extras" component={ExtrasPage} />
-      <Route path="/salt-lake-city/privacy-policy" component={PrivacyPolicyPage} />
-      <Route path="/salt-lake-city/terms-and-conditions" component={TermsPage} />
-      <Route path="/salt-lake-city/terms" component={TermsPage} />
-      <Route path="/salt-lake-city/onboarding" component={Onboarding} />
-      <Route path="/salt-lake-city/contact" component={Contact} />
-      <Route path="/wilmington-nc/testimonials" component={TestimonialsPage} />
-      <Route path="/wilmington-nc/reviews-options" component={ReviewsOptionsPage} />
-      <Route path="/wilmington-nc/reviews" component={ReviewsPage} />
-      <Route path="/wilmington-nc/extras" component={ExtrasPage} />
-      <Route path="/wilmington-nc/privacy-policy" component={PrivacyPolicyPage} />
-      <Route path="/wilmington-nc/terms-and-conditions" component={TermsPage} />
-      <Route path="/wilmington-nc/terms" component={TermsPage} />
-      <Route path="/wilmington-nc/onboarding" component={Onboarding} />
-      <Route path="/wilmington-nc/contact" component={Contact} />
-      <Route path="/detail-shop/book" component={DetailShopAppointmentPage} />
-      <Route path="/detail-shop" component={DetailShopPage} />
-      <Route path="/chauffeur-services" component={ChauffeurPage} />
-      <Route path="/pick-up-and-drop-off" component={PickupDropoffPage} />
-      <Route path="/deals" component={DealsPage} />
-      <Route path="/jobs/apply" component={JobApplicationPage} />
-      <Route path="/jobs" component={JobsPage} />
-      <Route path="/privacy-policy" component={PrivacyPolicyPage} />
-      <Route path="/terms-and-conditions" component={TermsPage} />
-      <Route path="/terms" component={TermsPage} />
-      <Route path="/testimonials" component={TestimonialsPage} />
-      <Route path="/reviews-options" component={ReviewsOptionsPage} />
-      <Route path="/reviews" component={ReviewsPage} />
-      <Route path="/extras" component={ExtrasPage} />
-      <Route path="/suggested-cars" component={SuggestedCarsPage} />
-      <Route path="/onboarding" component={Onboarding} />
-      <Route path="/contact" component={Contact} />
+      </PublicRoute>
+      <PublicRoute path="/salt-lake-city/pick-up-and-drop-off"><PickupDropoffPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/detail-shop/book"><DetailShopAppointmentPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/detail-shop"><DetailShopPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/chauffeur-services"><ChauffeurPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/deals"><DealsPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/jobs/apply"><JobApplicationPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/jobs"><JobsPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/suggested-cars"><SuggestedCarsPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/testimonials"><TestimonialsPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/reviews-options"><ReviewsOptionsPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/reviews"><ReviewsPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/extras"><ExtrasPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/privacy-policy"><PrivacyPolicyPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/terms-and-conditions"><TermsPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/terms"><TermsPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/onboarding"><Onboarding /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/contact"><Contact /></PublicRoute>
+      <PublicRoute path="/wilmington-nc/testimonials"><TestimonialsPage /></PublicRoute>
+      <PublicRoute path="/wilmington-nc/reviews-options"><ReviewsOptionsPage /></PublicRoute>
+      <PublicRoute path="/wilmington-nc/reviews"><ReviewsPage /></PublicRoute>
+      <PublicRoute path="/wilmington-nc/extras"><ExtrasPage /></PublicRoute>
+      <PublicRoute path="/wilmington-nc/privacy-policy"><PrivacyPolicyPage /></PublicRoute>
+      <PublicRoute path="/wilmington-nc/terms-and-conditions"><TermsPage /></PublicRoute>
+      <PublicRoute path="/wilmington-nc/terms"><TermsPage /></PublicRoute>
+      <PublicRoute path="/wilmington-nc/onboarding"><Onboarding /></PublicRoute>
+      <PublicRoute path="/wilmington-nc/contact"><Contact /></PublicRoute>
+      <PublicRoute path="/detail-shop/book"><DetailShopAppointmentPage /></PublicRoute>
+      <PublicRoute path="/detail-shop"><DetailShopPage /></PublicRoute>
+      <PublicRoute path="/chauffeur-services"><ChauffeurPage /></PublicRoute>
+      <PublicRoute path="/pick-up-and-drop-off"><PickupDropoffPage /></PublicRoute>
+      <PublicRoute path="/deals"><DealsPage /></PublicRoute>
+      <PublicRoute path="/jobs/apply"><JobApplicationPage /></PublicRoute>
+      <PublicRoute path="/jobs"><JobsPage /></PublicRoute>
+      <PublicRoute path="/privacy-policy"><PrivacyPolicyPage /></PublicRoute>
+      <PublicRoute path="/terms-and-conditions"><TermsPage /></PublicRoute>
+      <PublicRoute path="/terms"><TermsPage /></PublicRoute>
+      <PublicRoute path="/testimonials"><TestimonialsPage /></PublicRoute>
+      <PublicRoute path="/reviews-options"><ReviewsOptionsPage /></PublicRoute>
+      <PublicRoute path="/reviews"><ReviewsPage /></PublicRoute>
+      <PublicRoute path="/extras"><ExtrasPage /></PublicRoute>
+      <PublicRoute path="/suggested-cars"><SuggestedCarsPage /></PublicRoute>
+      <PublicRoute path="/onboarding"><Onboarding /></PublicRoute>
+      <PublicRoute path="/contact"><Contact /></PublicRoute>
       <Route path="/sign-contract/:token" component={SignContract} />
       <Route path="/maintenance-approval/:token" component={MaintenanceApproval} />
       <Route path="/signup" component={Signup} />
       <Route path="/login" component={AdminLogin} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/reset-password" component={ResetPasswordPage} />
-      <Route path="/employee-form" component={EmployeeFormPage} />
-      <Route path="/co-host-form" component={CoHostFormPage} />
+      <PublicRoute path="/employee-form"><EmployeeFormPage /></PublicRoute>
+      <PublicRoute path="/co-host-form"><CoHostFormPage /></PublicRoute>
 
       {/*
         Protected / in-app routes share a single persistent <AdminLayout> shell.
@@ -674,6 +684,9 @@ function Router() {
             </Route>
             <Route path="/admin/notifications">
               <RequireRole roles={["isAdmin", "isEmployee", "isClient"]}><NotificationsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/developer">
+              <RequireRole roles={["isSuperAdmin"]}><DeveloperPage /></RequireRole>
             </Route>
             <Route component={NotFound} />
           </Switch>

@@ -46,6 +46,7 @@ import {
   Megaphone,
   CalendarDays,
   Truck,
+  Code2,
 } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { ViewAsClientBanner } from "./ViewAsClientBanner";
@@ -78,6 +79,7 @@ interface SidebarItem {
    *  services (Turo host page, etc.). The active-route highlight is skipped
    *  for external links since they never match the current URL. */
   external?: boolean;
+  superAdminOnly?: boolean;
 }
 
 /**
@@ -478,6 +480,13 @@ const allSidebarItems: SidebarItem[] = [
         roles: ["admin"],
       },
     ],
+  },
+  {
+    href: "/admin/developer",
+    label: "Developer",
+    icon: Code2,
+    roles: ["admin"],
+    superAdminOnly: true,
   },
 ];
 
@@ -944,6 +953,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
             !item.roles ||
             item.roles.length === 0 ||
             (roleForStaffNav && item.roles.includes(roleForStaffNav));
+          if (item.superAdminOnly && !user.isSuperAdmin) return false;
           if (!visible) return false;
           if (item.children && item.children.length > 0) {
             const filteredChildren = item.children.filter(
@@ -976,6 +986,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
           !item.roles ||
           item.roles.length === 0 ||
           (userRole && item.roles.includes(userRole));
+        if (item.superAdminOnly && !user.isSuperAdmin) return null;
         if (!visible) return null;
 
         if (item.children && item.children.length > 0) {
