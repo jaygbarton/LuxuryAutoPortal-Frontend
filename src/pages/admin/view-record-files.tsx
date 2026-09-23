@@ -482,7 +482,7 @@ export default function ViewRecordFilesPage() {
   });
 
   const handleDelete = (file: RecordFileView) => {
-    if (confirm(`Are you sure you want to delete "${file.recordsFileViewName}"? This action cannot be undone.`)) {
+    if (confirm(`Are you sure you want to delete "${file.recordsFileViewName}"? It will also be removed from Google Drive. This action cannot be undone.`)) {
       deleteMutation.mutate(file);
     }
   };
@@ -888,6 +888,13 @@ export default function ViewRecordFilesPage() {
                               >
                                 <Archive className="w-4 h-4" />
                               </button>
+                              <button
+                                onClick={() => handleDelete(file)}
+                                className="bg-card/90 hover:bg-red-500/90 p-1.5 rounded text-foreground"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             </div>
                           )}
                           {!file.recordsFileViewIsActive && (
@@ -1014,6 +1021,14 @@ export default function ViewRecordFilesPage() {
                                     title="Archive"
                                   >
                                     <Archive className="w-5 h-5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(file)}
+                                    className="text-muted-foreground hover:text-red-700 transition-colors"
+                                    aria-label="Delete file"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="w-5 h-5" />
                                   </button>
                                 </>
                               )}
