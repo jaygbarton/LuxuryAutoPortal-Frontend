@@ -91,8 +91,6 @@ export default function EarningsPage() {
     retry: false,
   });
   const isAdmin = userData?.user?.isAdmin === true;
-  const isUnderlyingAdmin =
-    userData?.user?.isAdmin === true || userData?.user?.impersonatorIsAdmin === true;
   const isClient = userData?.user?.isClient === true;
 
   // Fetch car data
@@ -1958,8 +1956,10 @@ export default function EarningsPage() {
                   />
                   {/* Cars Available - was made client-visible per Cathy (2026-07-02),
                       but re-hidden from clients per Hoang (2026-07-23): fleet-wide
-                      availability count has no place on a single owner's Earnings page. */}
-                  {isUnderlyingAdmin && (
+                      availability count has no place on a single owner's Earnings page.
+                      Gated on isClient (not isUnderlyingAdmin) so it is also hidden
+                      when an admin uses "View as Client" — matches totals.tsx. */}
+                  {!isClient && (
                   <TableRow
                     label="Cars Available"
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "carsAvailableForRent"))}
