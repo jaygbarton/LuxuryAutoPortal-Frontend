@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle, Navigation, ChevronDown, ShieldCheck, CarFront } from "lucide-react";
+import { Menu, X, Car, Phone, FileText, Home, Sparkles, BadgePercent, BriefcaseBusiness, Star, PlusCircle, Navigation, ChevronDown, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPreferredPublicLocation, withLocationPath } from "@/lib/location-config";
 import { UserAccountMenu } from "@/components/layout/user-account-menu";
@@ -16,7 +16,6 @@ const navLinks = [
   { href: "/jobs", label: "Jobs", icon: BriefcaseBusiness },
   { href: "/onboarding", label: "List Your Car", icon: FileText },
   { href: "/chauffeur-services", label: "Chauffeur", icon: ShieldCheck },
-  { href: "/cybercab", label: "Cybercab", icon: CarFront },
   { href: "/suggested-cars", label: "Suggested Cars", icon: Car },
   { href: "/contact", label: "Contact", icon: Phone },
 ];
@@ -34,7 +33,6 @@ export function Navbar() {
     if (link.href === "/deals") return publicLocation.availablePages.deals;
     if (link.href === "/jobs") return publicLocation.availablePages.jobs;
     if (link.href === "/suggested-cars") return publicLocation.availablePages.suggestedCars;
-    if (link.href === "/cybercab") return publicLocation.id === "slc";
     return true;
   });
   const primaryLinks = links.filter((link) =>
