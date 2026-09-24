@@ -22,12 +22,22 @@ export function useImageUpload(carId: number, year: string, category: string, fi
   // user if any dropped/selected files were rejected.
   const acceptFiles = useCallback((incoming: File[]) => {
     const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
-    const accepted = incoming.filter((file) => validTypes.includes(file.type));
+    const typed = incoming.filter((file) => validTypes.includes(file.type));
+    // A 0-byte file (interrupted download, cloud placeholder not synced yet)
+    // uploads "successfully" and then can never be displayed.
+    const accepted = typed.filter((file) => file.size > 0);
 
-    if (accepted.length !== incoming.length) {
+    if (typed.length !== incoming.length) {
       toast({
         title: "Invalid file type",
         description: "Only image files (JPEG, PNG, GIF, WebP) are allowed",
+        variant: "destructive",
+      });
+    }
+    if (accepted.length !== typed.length) {
+      toast({
+        title: "Empty file",
+        description: "The selected image is empty (0 bytes). Re-save or re-download it, then try again.",
         variant: "destructive",
       });
     }
