@@ -5267,7 +5267,10 @@ function CategoryRow({
   // to the manual value for DISPLAY. This is needed in the read-only cell branch
   // below too — otherwise approved submissions never appear on the (read-only)
   // /admin/income-expenses grid, only in the editable modal path.
-  const { getFormAmount, receiptCells, openReceipts } = useIncomeExpense();
+  const { getFormAmount, receiptCells, openReceipts, year } = useIncomeExpense();
+  // Income share notes ("100% Host Share", …) describe the 2026+ split rules;
+  // they don't apply to 2025 and earlier, so don't show them there.
+  const shownSplitLabel = parseInt(year, 10) >= 2026 ? splitLabel : undefined;
   // Hidden standard rows are removed entirely from this car's table. They are
   // also excluded from section totals by the caller (see isRowHidden).
   // (Placed after hooks to respect the rules of hooks.)
@@ -5408,9 +5411,9 @@ function CategoryRow({
         {onEdit || onHide ? (
           <div className="flex items-center gap-1.5">
             <span className="truncate">{label}</span>
-            {splitLabel && (
+            {shownSplitLabel && (
               <span className="truncate italic text-[#B8860B] font-medium">
-                {splitLabel}
+                {shownSplitLabel}
               </span>
             )}
             {onEdit && !isReadOnly && (
@@ -5435,9 +5438,9 @@ function CategoryRow({
         ) : (
           <div className="flex items-center gap-1.5">
             <span className="truncate">{label}</span>
-            {splitLabel && (
+            {shownSplitLabel && (
               <span className="truncate italic text-[#B8860B] font-medium">
-                {splitLabel}
+                {shownSplitLabel}
               </span>
             )}
           </div>
