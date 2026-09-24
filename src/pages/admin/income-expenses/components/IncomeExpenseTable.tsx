@@ -172,6 +172,7 @@ export default function IncomeExpenseTable({
     carId,
     isAllCars,
     getCategoryMonthFormTotal,
+    getFormAmount,
     formAmounts,
     receiptViewer,
     closeReceipts,
@@ -667,6 +668,13 @@ lastSavedNote.current = coHostNote;
     const numValue = Number(value);
     return isNaN(numValue) ? 0 : numValue;
   };
+
+  // Reimbursed Parking Airport as the row above shows it (manual + approved
+  // form amount). The GLA average section must read the same number, or it
+  // drops to $0 for every month entered through the receipt form.
+  const getParkingAirportForMonth = (month: number): number =>
+    getMonthValue(data.reimbursedBills, month, "parkingAirport") +
+    getFormAmount("reimbursedBills", "parkingAirport", month);
 
   // Helper function to calculate total income for a month (sum all income items)
   // This is reactive to data.incomeExpenses changes - recalculates on every render
@@ -4472,7 +4480,7 @@ lastSavedNote.current = coHostNote;
               <CategoryRow
                 label="Total Parking Airport"
                 values={MONTHS.map((_, i) =>
-                  getMonthValue(data.reimbursedBills, i + 1, "parkingAirport"),
+                  getParkingAirportForMonth(i + 1),
                 )}
                 isEditable={false}
               />
@@ -4480,11 +4488,7 @@ lastSavedNote.current = coHostNote;
                 label="Average per trip"
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
-                  const parking = getMonthValue(
-                    data.reimbursedBills,
-                    monthNum,
-                    "parkingAirport",
-                  );
+                  const parking = getParkingAirportForMonth(monthNum);
                   const trips = getMonthValue(
                     data.history,
                     monthNum,
@@ -4496,11 +4500,7 @@ lastSavedNote.current = coHostNote;
                   const totalParking = MONTHS.reduce(
                     (sum, _, i) =>
                       sum +
-                      getMonthValue(
-                        data.reimbursedBills,
-                        i + 1,
-                        "parkingAirport",
-                      ),
+                      getParkingAirportForMonth(i + 1),
                     0,
                   );
                   const totalTrips = MONTHS.reduce(
