@@ -586,7 +586,9 @@ export default function FormsPage() {
       // });
       return data;
     },
-    enabled: expandedItems.includes("lyc"), // Only fetch when LYC item is expanded
+    // Only fetch when LYC item is expanded; clients get LYC as an external
+    // link, and this admin-only endpoint would 403 for them.
+    enabled: expandedItems.includes("lyc") && !formVisibilityData?.isClient,
     retry: 1,
     refetchInterval: 8000, // Poll every 8 seconds for real-time updates
     refetchOnWindowFocus: true,
@@ -1472,6 +1474,9 @@ export default function FormsPage() {
   // page doesn't remount on a query-only change, the handler above never runs
   // for a sidebar click. Watching wouter's own search string covers that.
   const routerSearch = useSearch();
+  // ?item= names ONE form within a section (the sidebar's Client Onboarding
+  // Form / Car On-boarding / Car Off-boarding links); show only that form.
+  const focusedItem = new URLSearchParams(routerSearch).get("item");
   useEffect(() => {
     const params = new URLSearchParams(routerSearch);
     const section = params.get("section");
@@ -1536,9 +1541,16 @@ export default function FormsPage() {
 
                   {(
                     <div className="bg-card max-w-full">
-                      {section.items.map((item) => {
+                      {(focusedItem &&
+                      section.items.some((i) => i.id === focusedItem)
+                        ? section.items.filter((i) => i.id === focusedItem)
+                        : section.items
+                      ).map((item) => {
                         const ItemIcon = item.icon;
-                        const isItemExpanded = expandedItems.includes(item.id);
+                        // An external-link item (the client's LYC row) has no
+                        // inline panel — its admin submissions table 403s.
+                        const isItemExpanded =
+                          !item.externalUrl && expandedItems.includes(item.id);
                         const canExpand =
                           (item.id === "lyc" ||
                             item.id === "contract" ||
