@@ -89,6 +89,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useCoHost } from "@/hooks/use-co-host";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { api } from "@/lib/api";
 import {
@@ -390,6 +391,7 @@ export default function FormsPage() {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isCoHost } = useCoHost();
 
   // Fetch form visibility for current user's role
   const { data: formVisibilityData } = useQuery<{
@@ -1203,6 +1205,71 @@ export default function FormsPage() {
       title: "Car Repaired Form",
       icon: Wrench,
     };
+
+    // Co-host (real login or admin "View as Co-Host"): logs in with
+    // isAdmin=true, so without this branch the page fell through to the full
+    // admin list and a co-host landed on the old four-row onboarding section.
+    // Mirrors COHOST_FORM_TABS in admin-layout.tsx — the vehicle- and
+    // client-facing forms only; no GLA payroll/HR forms, and no approval
+    // dashboards (referral/document approvals are not co-host scoped).
+    if (isCoHost) {
+      return [
+        {
+          id: "client-onboarding",
+          title: "Client Onboarding Form",
+          icon: ClipboardList,
+          items: allItems.filter((item) => item.id !== "contract"),
+        },
+        {
+          id: "car-issue-forms",
+          title: "Car Issue Form",
+          icon: Car,
+          items: [carIssueSubmitItem],
+        },
+        {
+          id: "car-block-off-forms",
+          title: "Car Block Off Form",
+          icon: Car,
+          items: [carBlockOffStartItem],
+        },
+        {
+          id: "car-repaired-forms",
+          title: "Car Repaired Form",
+          icon: Wrench,
+          items: [carRepairedSubmitItem],
+        },
+        {
+          id: "parking-ticket-forms",
+          title: "Client Parking Ticket",
+          icon: ParkingCircle,
+          items: [parkingTicketSubmitItem],
+        },
+        {
+          id: "ticket-violation-forms",
+          title: "Ticket Violation Form",
+          icon: FileWarning,
+          items: [ticketViolationSubmitItem],
+        },
+        {
+          id: "towing-impound-forms",
+          title: "Towing & Impound Form",
+          icon: Truck,
+          items: [towingImpoundSubmitItem],
+        },
+        {
+          id: "referral-forms",
+          title: "Referral Form",
+          icon: Users,
+          items: [referralSubmitItem, referralMySubmissionsItem],
+        },
+        {
+          id: "document-updates",
+          title: "License & Registration or Insurance Updates",
+          icon: FileText,
+          items: [documentUpdateSubmitItem, documentUpdateMySubmissionsItem],
+        },
+      ];
+    }
 
     if (formVisibilityData?.isAdmin) {
       return [

@@ -67,7 +67,10 @@ export default function ReferralFormSubmission() {
   // Clients shouldn't be able to pick someone else as the referrer — that's an
   // info leak (it exposes the full client roster) and a fraud vector. Only
   // admins get the searchable dropdown; clients see their own name, read-only.
-  const isAdminUser = Boolean(currentUserData?.user?.isAdmin);
+  // A co-host also logs in with isAdmin=true, but the client search 404s for
+  // co-hosts (blockCoHosts), so they get the read-only referrer too.
+  const isAdminUser =
+    Boolean(currentUserData?.user?.isAdmin) && !currentUserData?.user?.isCoHost;
 
   const { data: searchData, isFetching: isSearching } = useQuery({
     queryKey: ["/api/referral-forms/client-search", debouncedSearch],
