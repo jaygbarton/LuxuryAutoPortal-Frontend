@@ -427,8 +427,15 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
       ownerIncome: ownerInc,
       mgmtExpenses: mgmtExp,
       ownerExpenses: ownerExp,
-      netMgmt: mgmtInc - mgmtExp,
-      netOwner: ownerInc - ownerExp,
+      // The split IS the profit. Both split formulas already deduct that
+      // side's expenses before returning (mode 50: mgmt subtracts
+      // totalReimbursed + its % of DD+COGS, owner its % of DD+COGS; mode 70:
+      // mgmt subtracts totalReimbursed, owner DD+COGS+parkingFeeLabor) — the
+      // exact components carManagementTotalExpenses / carOwnerTotalExpenses
+      // are built from. Subtracting them again double-counted every expense.
+      // Same convention as GraphsChartsReportSection and the client dashboard.
+      netMgmt: mgmtInc,
+      netOwner: ownerInc,
       negativeBalance: ie?.negativeBalanceCarryOver ?? 0,
       daysRented: hist?.daysRented ?? 0,
       tripsTaken: hist?.tripsTaken ?? 0,
@@ -648,8 +655,8 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
   ];
   const totalGrossIncome = monthlyComputed.reduce((s, m) => s + m.gross, 0);
   const totalTripsTaken = monthlyComputed.reduce((s, m) => s + m.tripsTaken, 0);
-  const managementProfit = totalMgmtIncome - totalMgmtExpenses;
-  const ownerProfit = totalOwnerIncome - totalOwnerExpenses;
+  const managementProfit = totalMgmtIncome;
+  const ownerProfit = totalOwnerIncome;
   const utilizationRate = totalAvailableDays > 0 ? (totalDaysRented / totalAvailableDays) * 100 : 0;
   const chartTrendData = monthlyComputed.map((mc) => ({
     month: formatShortMonth(mc.month),
@@ -729,7 +736,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                   <SummaryCard label="Total Mgmt Split" value={formatCurrency(totalMgmtIncome)} variant="dark" className="h-20" />
                   <SummaryCard label="Total Management Expenses" value={formatCurrency(totalMgmtExpenses)} variant="white" className="h-20" />
-                  <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome - totalMgmtExpenses)} variant="gold" className="h-20" />
+                  <SummaryCard label="Total Management Profit" value={formatCurrency(totalMgmtIncome)} variant="gold" className="h-20" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
                   <SummaryCard label={`${featuredMonthLabel} Mgmt Split`} value={formatCurrency(featuredMonth?.mgmtIncome ?? 0)} variant="dark" className="h-20" />
@@ -750,7 +757,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                   <SummaryCard label="Total Owner Split" value={formatCurrency(totalOwnerIncome)} variant="dark" className="h-20" />
                   <SummaryCard label="Total Car Owner Expenses" value={formatCurrency(totalOwnerExpenses)} variant="white" className="h-20" />
-                  <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome - totalOwnerExpenses)} variant="gold" className="h-20" />
+                  <SummaryCard label="Total Car Owner Profit" value={formatCurrency(totalOwnerIncome)} variant="gold" className="h-20" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
                   <SummaryCard label={`${featuredMonthLabel} Owner Split`} value={formatCurrency(featuredMonth?.ownerIncome ?? 0)} variant="dark" className="h-20" />
@@ -823,13 +830,13 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
               <DonutChart
                 data={[
                   { name: "Total Car Mngmt Expenses", value: totalMgmtExpenses },
-                  { name: "Total Car Mngmt Profit", value: Math.max(0, totalMgmtIncome - totalMgmtExpenses) },
+                  { name: "Total Car Mngmt Profit", value: Math.max(0, totalMgmtIncome) },
                 ]}
               />
               <DonutChart
                 data={[
                   { name: "Total Car Mngmt Expenses", value: displayMgmtExpenses },
-                  { name: "Total Car Mngmt Profit", value: Math.max(0, displayMgmtIncome - displayMgmtExpenses) },
+                  { name: "Total Car Mngmt Profit", value: Math.max(0, displayMgmtIncome) },
                 ]}
               />
             </div>
@@ -849,13 +856,13 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
               <DonutChart
                 data={[
                   { name: "Total Car Owner Expenses", value: totalOwnerExpenses },
-                  { name: "Total Car Owner Profit", value: Math.max(0, totalOwnerIncome - totalOwnerExpenses) },
+                  { name: "Total Car Owner Profit", value: Math.max(0, totalOwnerIncome) },
                 ]}
               />
               <DonutChart
                 data={[
                   { name: "Total Car Owner Expenses", value: displayOwnerExpenses },
-                  { name: "Total Car Owner Profit", value: Math.max(0, displayOwnerIncome - displayOwnerExpenses) },
+                  { name: "Total Car Owner Profit", value: Math.max(0, displayOwnerIncome) },
                 ]}
               />
             </div>
