@@ -1,3 +1,4 @@
+import { formatMonthDayYear } from "@/lib/date-format";
 import React, { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -89,15 +90,10 @@ const formatCurrency = (value: number): string => {
   return `$ ${formatted}`;
 };
 
-const formatDate = (dateStr: string | null): string => {
-  if (!dateStr) return "--";
-  try {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
-  } catch {
-    return dateStr;
-  }
-};
+// payments_invoice_date is a calendar day (DATE) sent as midnight UTC;
+// formatMonthDayYear reads the YYYY-MM-DD prefix instead of converting it to
+// the browser's zone, which showed the previous day for US viewers.
+const formatDate = (dateStr: string | null): string => formatMonthDayYear(dateStr, "--");
 
 const formatYearMonth = (yearMonth: string): string => {
   try {
