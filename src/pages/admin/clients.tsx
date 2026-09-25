@@ -48,6 +48,7 @@ import { TablePagination, ItemsPerPage } from "@/components/ui/table-pagination"
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useSalesReps } from "@/hooks/use-sales-reps";
+import { useCoHost } from "@/hooks/use-co-host";
 import { getOnlineStatusBadge } from "@/lib/onlineStatus";
 
 interface Client {
@@ -138,7 +139,10 @@ export default function ClientsPage() {
   const [blockClientEmail, setBlockClientEmail] = useState<string | null>(null);
   const [deleteClientEmail, setDeleteClientEmail] = useState<string | null>(null);
   const { toast } = useToast();
-  const { salesReps } = useSalesReps();
+  const { salesReps: glaSalesReps } = useSalesReps();
+  // GLA's sales reps are internal; a co-host session only gets "Other" (plus any saved value).
+  const { isCoHost } = useCoHost();
+  const salesReps = isCoHost ? [] : glaSalesReps;
   const queryClient = useQueryClient();
 
   // State to force re-render for real-time online status calculation

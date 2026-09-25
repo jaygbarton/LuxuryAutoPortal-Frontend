@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useCoHost } from "@/hooks/use-co-host";
 import { buildApiUrl } from "@/lib/queryClient";
 import { api } from "@/lib/api";
 import { Loader2, Save, Slack, Lock, Eye, EyeOff, AlertCircle, Users, Plus, X } from "lucide-react";
@@ -65,6 +66,10 @@ export default function SettingsPage() {
     retry: false,
   });
   const isAdmin = userData?.user?.isAdmin === true;
+  // A co-host session (real login or "View as Co-Host") carries isAdmin, but
+  // GLA's sales reps and Slack configuration are not theirs to see.
+  const { isCoHost } = useCoHost();
+  const isGlaAdmin = isAdmin && !isCoHost;
 
   // Fetch Slack channel configurations and bot token status (only for admins)
   const { data: channelsData, isLoading } = useQuery<{
@@ -80,7 +85,7 @@ export default function SettingsPage() {
         fallbackMessage: "Failed to fetch Slack channel configurations",
       });
     },
-    enabled: isAdmin, // Only fetch if user is admin
+    enabled: isGlaAdmin, // Only fetch for GLA admins (not co-hosts)
   });
 
   // Sales representatives (client onboarding form dropdown)
@@ -91,7 +96,7 @@ export default function SettingsPage() {
         fallbackMessage: "Failed to fetch sales representatives",
       });
     },
-    enabled: isAdmin,
+    enabled: isGlaAdmin,
   });
   const serverSalesReps = salesRepsData?.data || [];
   // null = no unsaved edits (mirror the server list)
@@ -353,7 +358,7 @@ export default function SettingsPage() {
     });
   };
 
-  if (isLoading && isAdmin) {
+  if (isLoading && isGlaAdmin) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center min-h-[400px]">
@@ -532,8 +537,8 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Sales Representatives - Admin Only */}
-        {isAdmin && (
+        {/* Sales Representatives - GLA Admin Only */}
+        {isGlaAdmin && (
           <Card className="bg-card border-primary/20">
             <CardHeader>
               <CardTitle className="text-primary flex items-center gap-2">
@@ -628,8 +633,8 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {/* Slack Channel Configuration - Admin Only */}
-        {isAdmin && (
+        {/* Slack Channel Configuration - GLA Admin Only */}
+        {isGlaAdmin && (
           <>
             <Card className="bg-card border-primary/20">
             <CardHeader>
