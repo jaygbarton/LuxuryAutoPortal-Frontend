@@ -16,6 +16,7 @@ interface PaymentAuditRow {
   id: number;
   field: string;
   fieldLabel: string;
+  valueKind: "status" | "money" | "date" | "file" | "text";
   oldValue: string | null;
   newValue: string | null;
   actorEmail: string | null;
@@ -23,35 +24,44 @@ interface PaymentAuditRow {
   createdAt: string;
 }
 
-function fmtValue(field: string, v: string | null): string {
+function fmtValue(kind: PaymentAuditRow["valueKind"], v: string | null): string {
   if (v === null || v === "") return "—";
-  if (field === "payments_amount" || field === "payments_amount_payout") {
-    return `$${Number(v).toFixed(2)}`;
-  }
-  if (field === "payments_invoice_date") {
+  if (kind === "money") return `$${Number(v).toFixed(2)}`;
+  if (kind === "date") {
     // Stored as the calendar day (YYYY-MM-DD); show it as MM/DD/YYYY.
     const [y, m, d] = v.split("-");
     return y && m && d ? `${m}/${d}/${y}` : v;
   }
-  if (field === "payments_attachment") return "file(s) attached";
+  if (kind === "file") return "file(s) attached";
   return v;
 }
 
 /**
- * Edit-history viewer for one client_payments row: who changed which field,
- * from what to what, and when. Admin-only — the backend rejects real co-host
- * sessions — so render the trigger only for admins.
+ * Edit-history viewer for one payment: who changed which field, from what to
+ * what, and when. `basePath` picks the ledger — "/api/payments" for a
+ * client_payments row, "/api/co-host-payments" for a co-host payout.
+ * Admin-only — the backend rejects real co-host sessions — so render the
+ * trigger only for admins. With no `paymentId` (a co-host payout never
+ * edited) there is nothing to show yet.
  */
-export function PaymentEditHistory({ paymentId, label }: { paymentId: number; label: string }) {
+export function PaymentEditHistory({
+  paymentId,
+  label,
+  basePath = "/api/payments",
+}: {
+  paymentId: number | null;
+  label: string;
+  basePath?: "/api/payments" | "/api/co-host-payments";
+}) {
   const [open, setOpen] = useState(false);
 
   const { data, isLoading } = useQuery<{ success: boolean; data: PaymentAuditRow[] }>({
-    queryKey: ["/api/payments", paymentId, "edit-history"],
+    queryKey: [basePath, paymentId, "edit-history"],
     queryFn: async () =>
-      api.get(`/api/payments/${paymentId}/edit-history`, {
+      api.get(`${basePath}/${paymentId}/edit-history`, {
         fallbackMessage: "Failed to load edit history",
       }),
-    enabled: open,
+    enabled: open && paymentId != null,
   });
 
   const rows = data?.data ?? [];
@@ -78,7 +88,7 @@ export function PaymentEditHistory({ paymentId, label }: { paymentId: number; la
           </DialogHeader>
 
           <div className="max-h-[60vh] overflow-y-auto">
-            {isLoading ? (
+            {paymentId != null && isLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
             ) : rows.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">No edits recorded yet.</p>
@@ -88,9 +98,9 @@ export function PaymentEditHistory({ paymentId, label }: { paymentId: number; la
                   <li key={r.id} className="py-2.5 text-sm">
                     <div className="flex flex-wrap items-baseline gap-x-2">
                       <span className="font-medium text-foreground">{r.fieldLabel}</span>
-                      <span className="text-muted-foreground">{fmtValue(r.field, r.oldValue)}</span>
+                      <span className="text-muted-foreground">{fmtValue(r.valueKind, r.oldValue)}</span>
                       <span className="text-muted-foreground">→</span>
-                      <span className="text-foreground">{fmtValue(r.field, r.newValue)}</span>
+                      <span className="text-foreground">{fmtValue(r.valueKind, r.newValue)}</span>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       by {r.actorName || r.actorEmail || "Unknown"}

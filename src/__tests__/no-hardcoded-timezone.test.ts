@@ -45,7 +45,7 @@ const ALLOWED_FILES = new Set([
   // and save identically regardless of which zone the editing admin is in,
   // or two admins would silently disagree on what they saved.
   "src/pages/admin/hr/time.tsx",
-  "src/pages/admin/co-host-payments.tsx",
+  "src/components/modals/CoHostPaymentModal.tsx",
 
   // Reverses an already-Mountain-Time-collapsed string from the Day Schedule
   // API back into a UTC instant. The string has no timezone marker of its

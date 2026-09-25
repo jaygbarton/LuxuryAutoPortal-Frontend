@@ -1,246 +1,74 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Pencil, Check, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Edit, FileText } from "lucide-react";
 import { authMeQueryFn } from "@/lib/queryClient";
 import { api } from "@/lib/api";
+import { formatMonthDayYear } from "@/lib/date-format";
 import { useCoHost } from "@/hooks/use-co-host";
 import {
   PaymentFilterBar,
   type PaymentFilterCar,
-  type PaymentFilterStatus,
 } from "@/components/admin/payments/PaymentFilterBar";
-import { usePaymentListState } from "@/components/admin/payments/usePaymentListState";
 import { PaymentsPaginationFooter } from "@/components/admin/payments/PaymentsPaginationFooter";
 import { PaymentEditHistory } from "@/components/admin/payments/PaymentEditHistory";
+import { usePaymentListState } from "@/components/admin/payments/usePaymentListState";
+import { CoHostPaymentModal, type CoHostPaymentRow } from "@/components/modals/CoHostPaymentModal";
+import { PaymentReceiptModal } from "@/components/modals/PaymentReceiptModal";
 
-interface Payment {
+/**
+ * One co-hosted car-month. The car/month/Co-Host Split come from the
+ * client_payments row; everything paid to the co-host (co_host_*) comes from
+ * the separate co_host_payments ledger, so this page never reads or writes the
+ * car owner's Paid Amount.
+ */
+interface Payment extends CoHostPaymentRow {
   payments_aid: number;
-  payments_car_id: number;
-  payments_year_month: string;
-  payments_amount: number;
-  payments_amount_payout: number;
-  payments_amount_balance: number;
-  payments_reference_number: string;
-  payments_invoice_date: string | null;
-  payments_remarks: string | null;
-  payment_status_name: string;
-  payment_status_color: string;
   car_make_name: string;
-  car_make_model: string; // fallback alias
   car_plate_number: string;
   car_vin_number: string;
   car_year: number;
-  client_fname: string;
-  client_lname: string;
   fullname: string;
   co_host_name: string | null;
+  co_host_status_color: string | null;
+  co_host_balance: number;
 }
 
-function formatYearMonth(ym: string): string {
-  try {
-    const [year, month] = ym.split("-");
-    return new Date(Number(year), Number(month) - 1).toLocaleDateString("en-US", {
-      month: "2-digit",
-      year: "numeric",
-    });
-  } catch {
-    return ym;
-  }
+interface PaymentStatus {
+  payment_status_aid: number;
+  payment_status_name: string;
+  payment_status_color: string;
 }
 
-function fmt(n: number | string): string {
-  return `$${Number(n || 0).toFixed(2)}`;
-}
-
-// Shared mutation helper — sends a partial update to PUT /api/payments/:id
-function usePaymentUpdate(paymentId: number) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (body: Record<string, unknown>) => {
-      return api.put(`/api/payments/${paymentId}`, body, {
-        fallbackMessage: "Failed to update payment",
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/payments/search"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/payments", paymentId, "edit-history"] });
-    },
+const formatCurrency = (value: number): string => {
+  const formatted = Math.abs(value).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   });
-}
+  return value < 0 ? `($ ${formatted})` : `$ ${formatted}`;
+};
 
-// Inline-editable cell — only rendered for GLA admins. Shows `display` with a
-// hover pencil; editing opens an input and saves `toBody(value)`.
-function InlineEditCell({
-  paymentId,
-  display,
-  initialValue,
-  toBody,
-  title,
-  inputType,
-  inputClassName,
-  placeholder,
-  alignEnd,
-  mono,
-}: {
-  paymentId: number;
-  display: string;
-  initialValue: string;
-  toBody: (value: string) => Record<string, unknown>;
-  title: string;
-  inputType: "number" | "date" | "text";
-  inputClassName: string;
-  placeholder?: string;
-  alignEnd?: boolean;
-  mono?: boolean;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(initialValue);
-  const { mutate, isPending } = usePaymentUpdate(paymentId);
+const formatYearMonth = (yearMonth: string): string => {
+  const [year, month] = yearMonth.split("-");
+  return year && month ? `${month.padStart(2, "0")}/${year}` : yearMonth;
+};
 
-  const save = () => { mutate(toBody(value)); setEditing(false); };
-  const justify = alignEnd ? "justify-end" : "";
+const formatVehicleInfo = (p: Payment) => {
+  const name = `${p.car_make_name || ""} ${p.car_year || ""}`.trim();
+  const plate = p.car_plate_number ? `#${p.car_plate_number.trim()}` : "";
+  const vin = p.car_vin_number ? p.car_vin_number.trim() : "";
+  return [name, plate, vin].filter(Boolean).join(" – ");
+};
 
-  if (!editing) {
-    return (
-      <span className={`flex items-center ${justify} gap-1 group whitespace-nowrap ${mono ? "font-mono" : ""}`}>
-        <span>{display}</span>
-        <button
-          onClick={() => { setValue(initialValue); setEditing(true); }}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-          title={title}
-        >
-          <Pencil className="w-3 h-3" />
-        </button>
-      </span>
-    );
-  }
-
-  return (
-    <span className={`flex items-center ${justify} gap-1`}>
-      <input
-        type={inputType}
-        {...(inputType === "number" ? { step: "0.01", min: "0" } : {})}
-        value={value}
-        autoFocus
-        placeholder={placeholder}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") save();
-          if (e.key === "Escape") setEditing(false);
-        }}
-        className={`text-xs px-1 py-0.5 border border-border rounded bg-background ${inputClassName}`}
-      />
-      {isPending ? (
-        <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-      ) : (
-        <>
-          <button onClick={save} className="text-green-600 hover:text-green-700">
-            <Check className="w-3 h-3" />
-          </button>
-          <button onClick={() => setEditing(false)} className="text-muted-foreground hover:text-foreground">
-            <X className="w-3 h-3" />
-          </button>
-        </>
-      )}
-    </span>
-  );
-}
-
-// Deliberately pinned to America/Denver, not the viewer's timezone: this
-// round-trips through an <input type="date"> that SAVES the edited value
-// back as paymentsInvoiceDate. An invoice date is a specific calendar day,
-// and a Manila-based admin editing this must see and save the same day a
-// Utah-based admin would, or the two would silently disagree on which day
-// the invoice is dated. Convert stored UTC date to YYYY-MM-DD for the input.
-function toDateInputValue(d: string | null): string {
-  if (!d) return "";
-  try {
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(d));
-  } catch {
-    return d.slice(0, 10);
-  }
-}
-
-function EditablePaidCell({ payment }: { payment: Payment }) {
-  return (
-    <InlineEditCell
-      paymentId={payment.payments_aid}
-      display={fmt(payment.payments_amount_payout)}
-      initialValue={Number(payment.payments_amount_payout || 0).toFixed(2)}
-      toBody={(v) => ({ paymentsAmountPayout: Number(v) })}
-      title="Edit paid amount"
-      inputType="number"
-      inputClassName="w-20 text-right"
-      alignEnd
-    />
-  );
-}
-
-function EditableDateCell({ payment }: { payment: Payment }) {
-  return (
-    <InlineEditCell
-      paymentId={payment.payments_aid}
-      display={formatInvoiceDate(payment.payments_invoice_date)}
-      initialValue={toDateInputValue(payment.payments_invoice_date)}
-      toBody={(v) => ({ paymentsInvoiceDate: v || null })}
-      title="Edit payment date"
-      inputType="date"
-      inputClassName=""
-    />
-  );
-}
-
-function EditableRefCell({ payment }: { payment: Payment }) {
-  return (
-    <InlineEditCell
-      paymentId={payment.payments_aid}
-      display={payment.payments_reference_number || "—"}
-      initialValue={payment.payments_reference_number || ""}
-      toBody={(v) => ({ paymentsReferenceNumber: v })}
-      title="Edit reference #"
-      inputType="text"
-      inputClassName="w-28 font-mono"
-      placeholder="Ref #"
-      mono
-    />
-  );
-}
-
-const TH = "h-11 px-3 font-semibold text-foreground text-[11px] uppercase tracking-wider whitespace-nowrap";
-
-function EditableBadge() {
-  return (
-    <span className="text-[9px] font-semibold uppercase tracking-wide bg-blue-500/15 text-blue-500 border border-blue-500/30 rounded px-1 py-0.5">
-      Editable
-    </span>
-  );
-}
-
-function formatInvoiceDate(d: string | null): string {
-  return d
-    ? new Date(d).toLocaleDateString("en-US", {
-        timeZone: "America/Denver",
-        month: "2-digit",
-        day: "2-digit",
-        year: "numeric",
-      })
-    : "—";
-}
-
-function formatCar(p: Payment): string {
-  return [
-    p.car_make_name || p.car_make_model,
-    p.car_year,
-    p.car_vin_number ? `- ${p.car_vin_number}` : null,
-    p.car_plate_number ? `- #${p.car_plate_number}` : null,
-  ].filter(Boolean).join(" ") || "—";
-}
+const TH = "h-11 px-3 font-semibold text-foreground text-[11px] uppercase tracking-wider";
 
 export default function CoHostPaymentsPage() {
   const list = usePaymentListState();
   const { sortOrder, setSortOrder, page, effectivePageSize } = list;
+  const [editing, setEditing] = useState<Payment | null>(null);
+  const [receiptFor, setReceiptFor] = useState<Payment | null>(null);
 
   const { data: meData } = useQuery<{ user?: { isAdmin?: boolean } }>({
     queryKey: ["/api/auth/me"],
@@ -248,20 +76,23 @@ export default function CoHostPaymentsPage() {
     staleTime: 5 * 60 * 1000,
   });
   const isAdmin = !!(meData?.user as any)?.isAdmin;
-  // Payment writes are requireAdminNotCoHost on the backend, which rejects any
-  // co-host session (a real co-host login AND an admin using "View as
-  // Co-Host"), so only offer the inline editors to a plain GLA admin.
-  // Edit history is readable by any admin, including one viewing as a
-  // co-host, but never by a real co-host login.
+  // Writes are requireAdminNotCoHost on the backend, which rejects any co-host
+  // session (a real co-host login AND an admin using "View as Co-Host"), so
+  // only offer Edit to a plain GLA admin. Edit history is readable by any
+  // admin, including one viewing as a co-host, but never by a real co-host.
   const { isCoHost, isRealCoHost } = useCoHost();
   const canEdit = isAdmin && !isCoHost;
   const canSeeHistory = isAdmin && !isRealCoHost;
 
-  const { data: statusesData } = useQuery<{ success: boolean; data: PaymentFilterStatus[] }>({
+  const { data: statusesData } = useQuery<{ success: boolean; data: PaymentStatus[] }>({
     queryKey: ["/api/payment-status"],
     queryFn: async () => api.get("/api/payment-status", { fallbackMessage: "Failed to fetch payment statuses" }),
   });
   const statuses = statusesData?.data ?? [];
+  const statusColor = (p: Payment) =>
+    p.co_host_status_color ??
+    statuses.find((s) => s.payment_status_name === p.co_host_status_name)?.payment_status_color ??
+    "#e5e7eb";
 
   // /api/cars is already scoped to the co-host's own cars in a co-host
   // session. A GLA admin gets every car, so narrow the picker to the cars that
@@ -286,11 +117,7 @@ export default function CoHostPaymentsPage() {
     total: number;
     totalPages: number;
   }>({
-    queryKey: [
-      "/api/payments/search",
-      "co-host",
-      ...list.queryKeyParts,
-    ],
+    queryKey: ["/api/payments/search", "co-host", ...list.queryKeyParts],
     queryFn: async () =>
       api.post("/api/payments/search", { ...list.searchBody, coHost: true }, {
         fallbackMessage: "Failed to fetch payments",
@@ -304,13 +131,15 @@ export default function CoHostPaymentsPage() {
   const totals = payments.reduce(
     (acc, p) => ({
       split: acc.split + Number(p.payments_amount || 0),
-      paid: acc.paid + Number(p.payments_amount_payout || 0),
-      balance: acc.balance + Number(p.payments_amount_balance || 0),
+      paid: acc.paid + Number(p.co_host_paid || 0),
+      balance: acc.balance + Number(p.co_host_balance || 0),
     }),
     { split: 0, paid: 0, balance: 0 }
   );
 
-  const colCount = canSeeHistory ? 12 : 11;
+  const rowLabel = (p: Payment) => `${formatYearMonth(p.payments_year_month)} · ${formatVehicleInfo(p)}`;
+  const showActions = canEdit || canSeeHistory;
+  const colCount = showActions ? 14 : 13;
 
   return (
     <AdminLayout>
@@ -319,25 +148,23 @@ export default function CoHostPaymentsPage() {
         <div className="mb-5">
           <h1 className="text-2xl font-bold text-primary">Co-Host Payments</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            View payments for co-host assigned cars.
+            Payouts to co-hosts for their assigned cars. Separate from Client Payments.
           </p>
         </div>
 
-        <PaymentFilterBar
-          statuses={statuses}
-          cars={filterCars}
-          {...list.filterBarProps}
-        />
+        <PaymentFilterBar statuses={statuses} cars={filterCars} {...list.filterBarProps} />
 
         {/* Table card */}
         <div className="bg-card border border-border rounded-lg shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
           <div className="flex-1 min-h-0 overflow-auto">
-            <table className="w-full min-w-[1200px] caption-bottom text-sm border-collapse">
+            <table className="table-fixed w-full min-w-[1300px] caption-bottom text-sm border-collapse">
               <thead className="sticky top-0 z-20 bg-muted shadow-[0_1px_0_0_hsl(var(--border))]">
                 <tr>
                   <th className={`${TH} text-left w-12`}>#</th>
-                  <th className={`${TH} text-left`}>Status</th>
-                  <th className={`${TH} text-left`}>
+                  <th className={`${TH} text-left w-24`}>Status</th>
+                  <th className={`${TH} text-left w-32`}>Client</th>
+                  <th className={`${TH} text-left w-28`}>Co-Host</th>
+                  <th className={`${TH} text-left w-24 whitespace-nowrap`}>
                     <button
                       type="button"
                       onClick={() => setSortOrder((s) => (s === "desc" ? "asc" : "desc"))}
@@ -347,21 +174,15 @@ export default function CoHostPaymentsPage() {
                       Date <span className="text-primary">{sortOrder === "desc" ? "↓" : "↑"}</span>
                     </button>
                   </th>
-                  <th className={`${TH} text-left`}>Car</th>
-                  <th className={`${TH} text-left`}>Client</th>
-                  <th className={`${TH} text-left`}>Co-Host</th>
-                  <th className={`${TH} text-right`}>Co-Host Split</th>
-                  <th className={`${TH} text-right`}>
-                    <span className="flex items-center justify-end gap-1.5">Paid {canEdit && <EditableBadge />}</span>
-                  </th>
-                  <th className={`${TH} text-right`}>Balance</th>
-                  <th className={`${TH} text-left`}>
-                    <span className="flex items-center gap-1.5">Payment Date {canEdit && <EditableBadge />}</span>
-                  </th>
-                  <th className={`${TH} text-left`}>
-                    <span className="flex items-center gap-1.5">Reference # {canEdit && <EditableBadge />}</span>
-                  </th>
-                  {canSeeHistory && <th className={`${TH} text-center w-20`}>History</th>}
+                  <th className={`${TH} text-left min-w-[180px]`}>Car</th>
+                  <th className={`${TH} text-right w-32 whitespace-nowrap`}>Co-Host Split</th>
+                  <th className={`${TH} text-right w-32 whitespace-nowrap`}>Paid Amount</th>
+                  <th className={`${TH} text-right w-28`}>Balance</th>
+                  <th className={`${TH} text-left w-24`}>Ref #</th>
+                  <th className={`${TH} text-left w-28 whitespace-nowrap`}>Pmt Date</th>
+                  <th className={`${TH} text-center w-16`}>Receipt</th>
+                  <th className={`${TH} text-left min-w-[120px]`}>Remarks</th>
+                  {showActions && <th className={`${TH} text-center w-24`}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -379,65 +200,88 @@ export default function CoHostPaymentsPage() {
                   </tr>
                 ) : (
                   <>
-                    {payments.map((p, i) => (
-                      <tr key={p.payments_aid} className="border-b border-border/60 hover:bg-muted/40 transition-colors text-xs">
-                        <td className="px-3 py-3 text-muted-foreground">{(page - 1) * effectivePageSize + i + 1}.</td>
-                        <td className="px-3 py-3">
-                          <Badge
-                            style={{ backgroundColor: p.payment_status_color, color: "#000" }}
-                            className="text-[10px] font-medium px-2 py-0.5 rounded"
-                          >
-                            {p.payment_status_name}
-                          </Badge>
-                        </td>
-                        <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">
-                          {formatYearMonth(p.payments_year_month)}
-                        </td>
-                        <td className="px-3 py-3 text-foreground font-medium leading-snug">{formatCar(p)}</td>
-                        <td className="px-3 py-3 text-muted-foreground">
-                          {p.client_fname || p.client_lname
-                            ? [p.client_fname, p.client_lname].filter(Boolean).join(" ")
-                            : "—"}
-                        </td>
-                        <td className="px-3 py-3 text-muted-foreground">{p.co_host_name || "—"}</td>
-                        <td className="px-3 py-3 text-right tabular-nums text-primary font-semibold whitespace-nowrap">
-                          {fmt(p.payments_amount)}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums text-foreground whitespace-nowrap">
-                          {canEdit ? <EditablePaidCell payment={p} /> : fmt(p.payments_amount_payout)}
-                        </td>
-                        <td className="px-3 py-3 text-right tabular-nums whitespace-nowrap">
-                          <span className={Number(p.payments_amount_balance) < 0 ? "text-red-500" : "text-muted-foreground"}>
-                            {fmt(p.payments_amount_balance)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">
-                          {canEdit ? <EditableDateCell payment={p} /> : formatInvoiceDate(p.payments_invoice_date)}
-                        </td>
-                        <td className="px-3 py-3 text-muted-foreground">
-                          {canEdit ? (
-                            <EditableRefCell payment={p} />
-                          ) : (
-                            <span className="font-mono">{p.payments_reference_number || "—"}</span>
-                          )}
-                        </td>
-                        {canSeeHistory && (
-                          <td className="px-3 py-3 text-center">
-                            <PaymentEditHistory
-                              paymentId={p.payments_aid}
-                              label={`${formatYearMonth(p.payments_year_month)} · ${formatCar(p)}`}
-                            />
+                    {payments.map((p, i) => {
+                      const balance = Number(p.co_host_balance || 0);
+                      const balanceClass =
+                        balance < 0 ? "text-red-600" : balance > 0 ? "text-emerald-600" : "text-muted-foreground";
+                      return (
+                        <tr key={p.payments_aid} className="border-b border-border/60 hover:bg-muted/40 transition-colors text-xs">
+                          <td className="px-3 py-3 text-muted-foreground align-middle">{(page - 1) * effectivePageSize + i + 1}.</td>
+                          <td className="px-3 py-3 align-middle">
+                            <Badge
+                              style={{ backgroundColor: statusColor(p), color: "#000" }}
+                              className="text-[10px] font-medium px-2 py-0.5 rounded"
+                            >
+                              {p.co_host_status_name}
+                            </Badge>
                           </td>
-                        )}
-                      </tr>
-                    ))}
+                          <td className="px-3 py-3 text-foreground align-middle">{p.fullname}</td>
+                          <td className="px-3 py-3 text-foreground align-middle">{p.co_host_name || "—"}</td>
+                          <td className="px-3 py-3 text-muted-foreground whitespace-nowrap align-middle">
+                            {formatYearMonth(p.payments_year_month)}
+                          </td>
+                          <td className="px-3 py-3 text-muted-foreground align-middle leading-snug">{formatVehicleInfo(p)}</td>
+                          <td className="px-3 py-3 text-right tabular-nums whitespace-nowrap align-middle text-primary font-semibold">
+                            {formatCurrency(Number(p.payments_amount || 0))}
+                          </td>
+                          <td className="px-3 py-3 text-right tabular-nums whitespace-nowrap align-middle text-foreground">
+                            {formatCurrency(Number(p.co_host_paid || 0))}
+                          </td>
+                          <td className={`px-3 py-3 text-right tabular-nums whitespace-nowrap font-medium align-middle ${balanceClass}`}>
+                            {formatCurrency(balance)}
+                          </td>
+                          <td className="px-3 py-3 text-muted-foreground align-middle truncate">{p.co_host_reference_number || "--"}</td>
+                          <td className="px-3 py-3 text-muted-foreground whitespace-nowrap align-middle">
+                            {formatMonthDayYear(p.co_host_invoice_date, "--")}
+                          </td>
+                          <td className="px-3 py-3 text-center align-middle">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setReceiptFor(p)}
+                              className="text-muted-foreground hover:text-primary hover:bg-primary/10 h-7 w-7"
+                              title="View receipt"
+                            >
+                              <FileText className="w-4 h-4" />
+                            </Button>
+                          </td>
+                          <td className="px-3 py-3 max-w-[160px] truncate text-muted-foreground align-middle">
+                            {p.co_host_remarks || "--"}
+                          </td>
+                          {showActions && (
+                            <td className="px-3 py-3 text-center align-middle">
+                              <div className="flex items-center justify-center gap-1">
+                                {canSeeHistory && (
+                                  <PaymentEditHistory
+                                    paymentId={p.co_host_payment_id}
+                                    basePath="/api/co-host-payments"
+                                    label={rowLabel(p)}
+                                  />
+                                )}
+                                {canEdit && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setEditing(p)}
+                                    className="text-muted-foreground hover:text-primary hover:bg-primary/10 h-7 w-7"
+                                    title="Edit co-host payment"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
                     <tr className="border-t-2 border-border bg-muted/50 text-xs">
                       <td colSpan={6} className="px-3 py-3 text-right font-bold text-foreground uppercase tracking-wider">
                         Page Total
                       </td>
-                      <td className="px-3 py-3 text-right font-bold text-primary tabular-nums whitespace-nowrap">{fmt(totals.split)}</td>
-                      <td className="px-3 py-3 text-right font-bold text-primary tabular-nums whitespace-nowrap">{fmt(totals.paid)}</td>
-                      <td className="px-3 py-3 text-right font-bold text-primary tabular-nums whitespace-nowrap">{fmt(totals.balance)}</td>
+                      <td className="px-3 py-3 text-right font-bold text-primary tabular-nums whitespace-nowrap">{formatCurrency(totals.split)}</td>
+                      <td className="px-3 py-3 text-right font-bold text-primary tabular-nums whitespace-nowrap">{formatCurrency(totals.paid)}</td>
+                      <td className="px-3 py-3 text-right font-bold text-primary tabular-nums whitespace-nowrap">{formatCurrency(totals.balance)}</td>
                       <td colSpan={colCount - 9}></td>
                     </tr>
                   </>
@@ -449,10 +293,33 @@ export default function CoHostPaymentsPage() {
           <PaymentsPaginationFooter
             total={total}
             totalPages={totalPages}
-            {...list.paginationProps}
             isLoading={isLoading}
+            {...list.paginationProps}
           />
         </div>
+
+        <CoHostPaymentModal
+          payment={editing}
+          label={editing ? rowLabel(editing) : ""}
+          statuses={statuses}
+          onClose={() => setEditing(null)}
+        />
+
+        {/* Co-host receipts only: no car id, so the modal does not pull the
+            owner's Income & Expense receipts into the co-host payout. */}
+        <PaymentReceiptModal
+          isOpen={!!receiptFor}
+          onClose={() => setReceiptFor(null)}
+          payment={
+            receiptFor
+              ? {
+                  payments_aid: receiptFor.co_host_payment_id ?? 0,
+                  payments_year_month: receiptFor.payments_year_month,
+                  payments_attachment: receiptFor.co_host_attachment,
+                }
+              : null
+          }
+        />
       </div>
     </AdminLayout>
   );
