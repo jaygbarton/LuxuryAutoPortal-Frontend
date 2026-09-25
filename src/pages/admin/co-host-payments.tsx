@@ -1,12 +1,19 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Loader2, ChevronLeft, ChevronRight, Pencil, Check, X } from "lucide-react";
+import { Loader2, Pencil, Check, X } from "lucide-react";
 import { authMeQueryFn } from "@/lib/queryClient";
 import { api } from "@/lib/api";
+import { useCoHost } from "@/hooks/use-co-host";
+import {
+  PaymentFilterBar,
+  type PaymentFilterCar,
+  type PaymentFilterStatus,
+} from "@/components/admin/payments/PaymentFilterBar";
+import { usePaymentListState } from "@/components/admin/payments/usePaymentListState";
+import { PaymentsPaginationFooter } from "@/components/admin/payments/PaymentsPaginationFooter";
+import { PaymentEditHistory } from "@/components/admin/payments/PaymentEditHistory";
 
 interface Payment {
   payments_aid: number;
@@ -48,7 +55,7 @@ function fmt(n: number | string): string {
 }
 
 // Shared mutation helper — sends a partial update to PUT /api/payments/:id
-function usePaymentUpdate(paymentId: number, queryKey: readonly unknown[]) {
+function usePaymentUpdate(paymentId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: Record<string, unknown>) => {
@@ -56,35 +63,53 @@ function usePaymentUpdate(paymentId: number, queryKey: readonly unknown[]) {
         fallbackMessage: "Failed to update payment",
       });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKey as string[] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/search"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments", paymentId, "edit-history"] });
+    },
   });
 }
 
-// Inline-editable Paid cell — only rendered for admins.
-function EditablePaidCell({
-  payment,
-  queryKey,
+// Inline-editable cell — only rendered for GLA admins. Shows `display` with a
+// hover pencil; editing opens an input and saves `toBody(value)`.
+function InlineEditCell({
+  paymentId,
+  display,
+  initialValue,
+  toBody,
+  title,
+  inputType,
+  inputClassName,
+  placeholder,
+  alignEnd,
+  mono,
 }: {
-  payment: Payment;
-  queryKey: readonly unknown[];
+  paymentId: number;
+  display: string;
+  initialValue: string;
+  toBody: (value: string) => Record<string, unknown>;
+  title: string;
+  inputType: "number" | "date" | "text";
+  inputClassName: string;
+  placeholder?: string;
+  alignEnd?: boolean;
+  mono?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(String(Number(payment.payments_amount_payout || 0).toFixed(2)));
-  const { mutate, isPending } = usePaymentUpdate(payment.payments_aid, queryKey);
+  const [value, setValue] = useState(initialValue);
+  const { mutate, isPending } = usePaymentUpdate(paymentId);
 
-  const save = () => mutate({ paymentsAmountPayout: Number(value) });
+  const save = () => { mutate(toBody(value)); setEditing(false); };
+  const justify = alignEnd ? "justify-end" : "";
 
   if (!editing) {
     return (
-      <span className="flex items-center justify-end gap-1 group">
-        <span>{fmt(payment.payments_amount_payout)}</span>
+      <span className={`flex items-center ${justify} gap-1 group whitespace-nowrap ${mono ? "font-mono" : ""}`}>
+        <span>{display}</span>
         <button
-          onClick={() => {
-            setValue(String(Number(payment.payments_amount_payout || 0).toFixed(2)));
-            setEditing(true);
-          }}
+          onClick={() => { setValue(initialValue); setEditing(true); }}
           className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-          title="Edit paid amount"
+          title={title}
         >
           <Pencil className="w-3 h-3" />
         </button>
@@ -93,25 +118,25 @@ function EditablePaidCell({
   }
 
   return (
-    <span className="flex items-center justify-end gap-1">
+    <span className={`flex items-center ${justify} gap-1`}>
       <input
-        type="number"
-        step="0.01"
-        min="0"
+        type={inputType}
+        {...(inputType === "number" ? { step: "0.01", min: "0" } : {})}
         value={value}
         autoFocus
+        placeholder={placeholder}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") { save(); setEditing(false); }
+          if (e.key === "Enter") save();
           if (e.key === "Escape") setEditing(false);
         }}
-        className="w-20 text-xs px-1 py-0.5 border border-border rounded bg-background text-right"
+        className={`text-xs px-1 py-0.5 border border-border rounded bg-background ${inputClassName}`}
       />
       {isPending ? (
         <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
       ) : (
         <>
-          <button onClick={() => { save(); setEditing(false); }} className="text-green-600 hover:text-green-700">
+          <button onClick={save} className="text-green-600 hover:text-green-700">
             <Check className="w-3 h-3" />
           </button>
           <button onClick={() => setEditing(false)} className="text-muted-foreground hover:text-foreground">
@@ -123,149 +148,99 @@ function EditablePaidCell({
   );
 }
 
-// Inline-editable Payment Date cell.
-function EditableDateCell({
-  payment,
-  queryKey,
-}: {
-  payment: Payment;
-  queryKey: readonly unknown[];
-}) {
-  const [editing, setEditing] = useState(false);
-  // Deliberately pinned to America/Denver, not the viewer's timezone: this
-  // round-trips through an <input type="date"> that SAVES the edited value
-  // back as paymentsInvoiceDate. An invoice date is a specific calendar day,
-  // and a Manila-based admin editing this must see and save the same day a
-  // Utah-based admin would, or the two would silently disagree on which day
-  // the invoice is dated. Convert stored UTC date to YYYY-MM-DD for the input.
-  const toInputValue = (d: string | null): string => {
-    if (!d) return "";
-    try {
-      return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(d));
-    } catch {
-      return d.slice(0, 10);
-    }
-  };
-  const [value, setValue] = useState(toInputValue(payment.payments_invoice_date));
-  const { mutate, isPending } = usePaymentUpdate(payment.payments_aid, queryKey);
+// Deliberately pinned to America/Denver, not the viewer's timezone: this
+// round-trips through an <input type="date"> that SAVES the edited value
+// back as paymentsInvoiceDate. An invoice date is a specific calendar day,
+// and a Manila-based admin editing this must see and save the same day a
+// Utah-based admin would, or the two would silently disagree on which day
+// the invoice is dated. Convert stored UTC date to YYYY-MM-DD for the input.
+function toDateInputValue(d: string | null): string {
+  if (!d) return "";
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver" }).format(new Date(d));
+  } catch {
+    return d.slice(0, 10);
+  }
+}
 
-  const save = () => mutate({ paymentsInvoiceDate: value || null });
+function EditablePaidCell({ payment }: { payment: Payment }) {
+  return (
+    <InlineEditCell
+      paymentId={payment.payments_aid}
+      display={fmt(payment.payments_amount_payout)}
+      initialValue={Number(payment.payments_amount_payout || 0).toFixed(2)}
+      toBody={(v) => ({ paymentsAmountPayout: Number(v) })}
+      title="Edit paid amount"
+      inputType="number"
+      inputClassName="w-20 text-right"
+      alignEnd
+    />
+  );
+}
 
-  const displayDate = payment.payments_invoice_date
-    ? new Date(payment.payments_invoice_date).toLocaleDateString("en-US", {
+function EditableDateCell({ payment }: { payment: Payment }) {
+  return (
+    <InlineEditCell
+      paymentId={payment.payments_aid}
+      display={formatInvoiceDate(payment.payments_invoice_date)}
+      initialValue={toDateInputValue(payment.payments_invoice_date)}
+      toBody={(v) => ({ paymentsInvoiceDate: v || null })}
+      title="Edit payment date"
+      inputType="date"
+      inputClassName=""
+    />
+  );
+}
+
+function EditableRefCell({ payment }: { payment: Payment }) {
+  return (
+    <InlineEditCell
+      paymentId={payment.payments_aid}
+      display={payment.payments_reference_number || "—"}
+      initialValue={payment.payments_reference_number || ""}
+      toBody={(v) => ({ paymentsReferenceNumber: v })}
+      title="Edit reference #"
+      inputType="text"
+      inputClassName="w-28 font-mono"
+      placeholder="Ref #"
+      mono
+    />
+  );
+}
+
+const TH = "h-11 px-3 font-semibold text-foreground text-[11px] uppercase tracking-wider whitespace-nowrap";
+
+function EditableBadge() {
+  return (
+    <span className="text-[9px] font-semibold uppercase tracking-wide bg-blue-500/15 text-blue-500 border border-blue-500/30 rounded px-1 py-0.5">
+      Editable
+    </span>
+  );
+}
+
+function formatInvoiceDate(d: string | null): string {
+  return d
+    ? new Date(d).toLocaleDateString("en-US", {
         timeZone: "America/Denver",
         month: "2-digit",
         day: "2-digit",
         year: "numeric",
       })
     : "—";
-
-  if (!editing) {
-    return (
-      <span className="flex items-center gap-1 group whitespace-nowrap">
-        <span>{displayDate}</span>
-        <button
-          onClick={() => { setValue(toInputValue(payment.payments_invoice_date)); setEditing(true); }}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-          title="Edit payment date"
-        >
-          <Pencil className="w-3 h-3" />
-        </button>
-      </span>
-    );
-  }
-
-  return (
-    <span className="flex items-center gap-1">
-      <input
-        type="date"
-        value={value}
-        autoFocus
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") { save(); setEditing(false); }
-          if (e.key === "Escape") setEditing(false);
-        }}
-        className="text-xs px-1 py-0.5 border border-border rounded bg-background"
-      />
-      {isPending ? (
-        <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-      ) : (
-        <>
-          <button onClick={() => { save(); setEditing(false); }} className="text-green-600 hover:text-green-700">
-            <Check className="w-3 h-3" />
-          </button>
-          <button onClick={() => setEditing(false)} className="text-muted-foreground hover:text-foreground">
-            <X className="w-3 h-3" />
-          </button>
-        </>
-      )}
-    </span>
-  );
 }
 
-// Inline-editable Reference # cell.
-function EditableRefCell({
-  payment,
-  queryKey,
-}: {
-  payment: Payment;
-  queryKey: readonly unknown[];
-}) {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(payment.payments_reference_number || "");
-  const { mutate, isPending } = usePaymentUpdate(payment.payments_aid, queryKey);
-
-  const save = () => mutate({ paymentsReferenceNumber: value });
-
-  if (!editing) {
-    return (
-      <span className="flex items-center gap-1 group font-mono">
-        <span>{payment.payments_reference_number || "—"}</span>
-        <button
-          onClick={() => { setValue(payment.payments_reference_number || ""); setEditing(true); }}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-          title="Edit reference #"
-        >
-          <Pencil className="w-3 h-3" />
-        </button>
-      </span>
-    );
-  }
-
-  return (
-    <span className="flex items-center gap-1">
-      <input
-        type="text"
-        value={value}
-        autoFocus
-        placeholder="Ref #"
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") { save(); setEditing(false); }
-          if (e.key === "Escape") setEditing(false);
-        }}
-        className="w-28 text-xs px-1 py-0.5 border border-border rounded bg-background font-mono"
-      />
-      {isPending ? (
-        <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-      ) : (
-        <>
-          <button onClick={() => { save(); setEditing(false); }} className="text-green-600 hover:text-green-700">
-            <Check className="w-3 h-3" />
-          </button>
-          <button onClick={() => setEditing(false)} className="text-muted-foreground hover:text-foreground">
-            <X className="w-3 h-3" />
-          </button>
-        </>
-      )}
-    </span>
-  );
+function formatCar(p: Payment): string {
+  return [
+    p.car_make_name || p.car_make_model,
+    p.car_year,
+    p.car_vin_number ? `- ${p.car_vin_number}` : null,
+    p.car_plate_number ? `- #${p.car_plate_number}` : null,
+  ].filter(Boolean).join(" ") || "—";
 }
 
 export default function CoHostPaymentsPage() {
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(30);
+  const list = usePaymentListState();
+  const { sortOrder, setSortOrder, page, effectivePageSize } = list;
 
   const { data: meData } = useQuery<{ user?: { isAdmin?: boolean } }>({
     queryKey: ["/api/auth/me"],
@@ -273,8 +248,37 @@ export default function CoHostPaymentsPage() {
     staleTime: 5 * 60 * 1000,
   });
   const isAdmin = !!(meData?.user as any)?.isAdmin;
+  // Payment writes are requireAdminNotCoHost on the backend, which rejects any
+  // co-host session (a real co-host login AND an admin using "View as
+  // Co-Host"), so only offer the inline editors to a plain GLA admin.
+  // Edit history is readable by any admin, including one viewing as a
+  // co-host, but never by a real co-host login.
+  const { isCoHost, isRealCoHost } = useCoHost();
+  const canEdit = isAdmin && !isCoHost;
+  const canSeeHistory = isAdmin && !isRealCoHost;
 
-  const paymentsQueryKey = ["/api/payments/search", "co-host", page, pageSize] as const;
+  const { data: statusesData } = useQuery<{ success: boolean; data: PaymentFilterStatus[] }>({
+    queryKey: ["/api/payment-status"],
+    queryFn: async () => api.get("/api/payment-status", { fallbackMessage: "Failed to fetch payment statuses" }),
+  });
+  const statuses = statusesData?.data ?? [];
+
+  // /api/cars is already scoped to the co-host's own cars in a co-host
+  // session. A GLA admin gets every car, so narrow the picker to the cars that
+  // actually have a co-host — the only ones this page can list.
+  const { data: carsData } = useQuery<{ success: boolean; data: PaymentFilterCar[] }>({
+    queryKey: ["/api/cars", "payments-filter"],
+    queryFn: async () =>
+      api.get("/api/cars", { query: { limit: 1000, status: "all" }, fallbackMessage: "Failed to fetch cars" }),
+  });
+  const { data: coHostCarsData } = useQuery<{ success: boolean; groups: { cars: { id: number }[] }[] }>({
+    queryKey: ["/api/admin/all-co-host-cars"],
+    queryFn: async () =>
+      api.get("/api/admin/all-co-host-cars", { fallbackMessage: "Failed to fetch co-host cars" }),
+    enabled: isAdmin && !isCoHost,
+  });
+  const coHostedIds = new Set((coHostCarsData?.groups ?? []).flatMap((g) => g.cars.map((c) => c.id)));
+  const filterCars = (carsData?.data ?? []).filter((c) => isCoHost || coHostedIds.has(c.id));
 
   const { data: paymentsData, isLoading } = useQuery<{
     success: boolean;
@@ -282,195 +286,173 @@ export default function CoHostPaymentsPage() {
     total: number;
     totalPages: number;
   }>({
-    queryKey: paymentsQueryKey,
-    queryFn: async () => {
-      return api.post("/api/payments/search", {
-          carActiveStatus: "active",
-          coHost: true,
-          page,
-          limit: pageSize,
-          sortOrder: "desc",
-        }, {
+    queryKey: [
+      "/api/payments/search",
+      "co-host",
+      ...list.queryKeyParts,
+    ],
+    queryFn: async () =>
+      api.post("/api/payments/search", { ...list.searchBody, coHost: true }, {
         fallbackMessage: "Failed to fetch payments",
-      });
-    },
+      }),
   });
 
   const payments = paymentsData?.data ?? [];
   const total = paymentsData?.total ?? 0;
   const totalPages = paymentsData?.totalPages ?? 1;
 
+  const totals = payments.reduce(
+    (acc, p) => ({
+      split: acc.split + Number(p.payments_amount || 0),
+      paid: acc.paid + Number(p.payments_amount_payout || 0),
+      balance: acc.balance + Number(p.payments_amount_balance || 0),
+    }),
+    { split: 0, paid: 0, balance: 0 }
+  );
+
+  const colCount = canSeeHistory ? 12 : 11;
+
   return (
     <AdminLayout>
-      <div className="space-y-4 sm:space-y-6">
-        <div>
+      <div className="flex flex-col h-full overflow-x-hidden">
+        {/* Page header */}
+        <div className="mb-5">
           <h1 className="text-2xl font-bold text-primary">Co-Host Payments</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-sm text-muted-foreground mt-1">
             View payments for co-host assigned cars.
           </p>
         </div>
 
-        <Card className="bg-card border-border overflow-hidden">
-          {isLoading ? (
-            <CardContent className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </CardContent>
-          ) : payments.length === 0 ? (
-            <CardContent className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
-              <p className="text-sm">No payments found for your cars.</p>
-            </CardContent>
-          ) : (
-            <>
-              <div className="w-full overflow-x-auto">
-                <table className="w-full min-w-[640px] border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/30">
-                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">#</th>
-                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Status</th>
-                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Date</th>
-                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Car</th>
-                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden sm:table-cell">Client</th>
-                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Co-Host</th>
-                      <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">Co-Host Split</th>
-                      <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden md:table-cell">
-                        <span className="flex items-center justify-end gap-1.5">
-                          Paid
-                          {isAdmin && (
-                            <span className="text-[9px] font-semibold uppercase tracking-wide bg-blue-500/15 text-blue-500 border border-blue-500/30 rounded px-1 py-0.5">
-                              Editable
-                            </span>
-                          )}
-                        </span>
-                      </th>
-                      <th className="text-right font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 hidden md:table-cell">Balance</th>
-                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">
-                        <span className="flex items-center gap-1.5">
-                          Payment Date
-                          {isAdmin && (
-                            <span className="text-[9px] font-semibold uppercase tracking-wide bg-blue-500/15 text-blue-500 border border-blue-500/30 rounded px-1 py-0.5">
-                              Editable
-                            </span>
-                          )}
-                        </span>
-                      </th>
-                      <th className="text-left font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5">
-                        <span className="flex items-center gap-1.5">
-                          Reference #
-                          {isAdmin && (
-                            <span className="text-[9px] font-semibold uppercase tracking-wide bg-blue-500/15 text-blue-500 border border-blue-500/30 rounded px-1 py-0.5">
-                              Editable
-                            </span>
-                          )}
-                        </span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
+        <PaymentFilterBar
+          statuses={statuses}
+          cars={filterCars}
+          {...list.filterBarProps}
+        />
+
+        {/* Table card */}
+        <div className="bg-card border border-border rounded-lg shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-auto">
+            <table className="w-full min-w-[1200px] caption-bottom text-sm border-collapse">
+              <thead className="sticky top-0 z-20 bg-muted shadow-[0_1px_0_0_hsl(var(--border))]">
+                <tr>
+                  <th className={`${TH} text-left w-12`}>#</th>
+                  <th className={`${TH} text-left`}>Status</th>
+                  <th className={`${TH} text-left`}>
+                    <button
+                      type="button"
+                      onClick={() => setSortOrder((s) => (s === "desc" ? "asc" : "desc"))}
+                      className="inline-flex items-center gap-1 hover:text-primary transition-colors uppercase"
+                      title={sortOrder === "desc" ? "Sorted: newest first — click to reverse" : "Sorted: oldest first — click to reverse"}
+                    >
+                      Date <span className="text-primary">{sortOrder === "desc" ? "↓" : "↑"}</span>
+                    </button>
+                  </th>
+                  <th className={`${TH} text-left`}>Car</th>
+                  <th className={`${TH} text-left`}>Client</th>
+                  <th className={`${TH} text-left`}>Co-Host</th>
+                  <th className={`${TH} text-right`}>Co-Host Split</th>
+                  <th className={`${TH} text-right`}>
+                    <span className="flex items-center justify-end gap-1.5">Paid {canEdit && <EditableBadge />}</span>
+                  </th>
+                  <th className={`${TH} text-right`}>Balance</th>
+                  <th className={`${TH} text-left`}>
+                    <span className="flex items-center gap-1.5">Payment Date {canEdit && <EditableBadge />}</span>
+                  </th>
+                  <th className={`${TH} text-left`}>
+                    <span className="flex items-center gap-1.5">Reference # {canEdit && <EditableBadge />}</span>
+                  </th>
+                  {canSeeHistory && <th className={`${TH} text-center w-20`}>History</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={colCount} className="text-center py-16 text-muted-foreground">
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+                    </td>
+                  </tr>
+                ) : payments.length === 0 ? (
+                  <tr>
+                    <td colSpan={colCount} className="text-center py-16 text-muted-foreground">
+                      No payment records found
+                    </td>
+                  </tr>
+                ) : (
+                  <>
                     {payments.map((p, i) => (
-                      <tr key={p.payments_aid} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-3 py-2 text-muted-foreground">{(page - 1) * pageSize + i + 1}</td>
-                        <td className="px-3 py-2">
+                      <tr key={p.payments_aid} className="border-b border-border/60 hover:bg-muted/40 transition-colors text-xs">
+                        <td className="px-3 py-3 text-muted-foreground">{(page - 1) * effectivePageSize + i + 1}.</td>
+                        <td className="px-3 py-3">
                           <Badge
-                            variant="outline"
-                            className="text-xs font-semibold text-foreground border-border bg-muted/40"
+                            style={{ backgroundColor: p.payment_status_color, color: "#000" }}
+                            className="text-[10px] font-medium px-2 py-0.5 rounded"
                           >
                             {p.payment_status_name}
                           </Badge>
                         </td>
-                        <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                        <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">
                           {formatYearMonth(p.payments_year_month)}
                         </td>
-                        <td className="px-3 py-2 text-foreground">
-                          <div className="font-medium leading-tight whitespace-nowrap">
-                            {[
-                              p.car_make_name || p.car_make_model,
-                              p.car_year,
-                              p.car_vin_number ? `- ${p.car_vin_number}` : null,
-                              p.car_plate_number ? `- #${p.car_plate_number}` : null,
-                            ].filter(Boolean).join(" ") || "—"}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 text-muted-foreground hidden sm:table-cell">
+                        <td className="px-3 py-3 text-foreground font-medium leading-snug">{formatCar(p)}</td>
+                        <td className="px-3 py-3 text-muted-foreground">
                           {p.client_fname || p.client_lname
                             ? [p.client_fname, p.client_lname].filter(Boolean).join(" ")
                             : "—"}
                         </td>
-                        <td className="px-3 py-2 text-muted-foreground">
-                          {p.co_host_name || "—"}
-                        </td>
-                        <td className="px-3 py-2 text-right text-primary font-medium">
+                        <td className="px-3 py-3 text-muted-foreground">{p.co_host_name || "—"}</td>
+                        <td className="px-3 py-3 text-right tabular-nums text-primary font-semibold whitespace-nowrap">
                           {fmt(p.payments_amount)}
                         </td>
-                        <td className="px-3 py-2 text-right text-muted-foreground hidden md:table-cell">
-                          {isAdmin ? (
-                            <EditablePaidCell payment={p} queryKey={paymentsQueryKey} />
-                          ) : (
-                            fmt(p.payments_amount_payout)
-                          )}
+                        <td className="px-3 py-3 text-right tabular-nums text-foreground whitespace-nowrap">
+                          {canEdit ? <EditablePaidCell payment={p} /> : fmt(p.payments_amount_payout)}
                         </td>
-                        <td className="px-3 py-2 text-right hidden md:table-cell">
+                        <td className="px-3 py-3 text-right tabular-nums whitespace-nowrap">
                           <span className={Number(p.payments_amount_balance) < 0 ? "text-red-500" : "text-muted-foreground"}>
                             {fmt(p.payments_amount_balance)}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
-                          {isAdmin ? (
-                            <EditableDateCell payment={p} queryKey={paymentsQueryKey} />
-                          ) : (
-                            p.payments_invoice_date
-                              ? new Date(p.payments_invoice_date).toLocaleDateString("en-US", {
-                                  timeZone: "America/Denver",
-                                  month: "2-digit",
-                                  day: "2-digit",
-                                  year: "numeric",
-                                })
-                              : "—"
-                          )}
+                        <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">
+                          {canEdit ? <EditableDateCell payment={p} /> : formatInvoiceDate(p.payments_invoice_date)}
                         </td>
-                        <td className="px-3 py-2 text-muted-foreground text-xs">
-                          {isAdmin ? (
-                            <EditableRefCell payment={p} queryKey={paymentsQueryKey} />
+                        <td className="px-3 py-3 text-muted-foreground">
+                          {canEdit ? (
+                            <EditableRefCell payment={p} />
                           ) : (
                             <span className="font-mono">{p.payments_reference_number || "—"}</span>
                           )}
                         </td>
+                        {canSeeHistory && (
+                          <td className="px-3 py-3 text-center">
+                            <PaymentEditHistory
+                              paymentId={p.payments_aid}
+                              label={`${formatYearMonth(p.payments_year_month)} · ${formatCar(p)}`}
+                            />
+                          </td>
+                        )}
                       </tr>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                    <tr className="border-t-2 border-border bg-muted/50 text-xs">
+                      <td colSpan={6} className="px-3 py-3 text-right font-bold text-foreground uppercase tracking-wider">
+                        Page Total
+                      </td>
+                      <td className="px-3 py-3 text-right font-bold text-primary tabular-nums whitespace-nowrap">{fmt(totals.split)}</td>
+                      <td className="px-3 py-3 text-right font-bold text-primary tabular-nums whitespace-nowrap">{fmt(totals.paid)}</td>
+                      <td className="px-3 py-3 text-right font-bold text-primary tabular-nums whitespace-nowrap">{fmt(totals.balance)}</td>
+                      <td colSpan={colCount - 9}></td>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-              <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-                <span className="text-xs text-muted-foreground">
-                  Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
-                </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page <= 1}
-                    className="border-border text-muted-foreground"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                  </Button>
-                  <span className="text-xs text-muted-foreground">Page {page} of {totalPages}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page >= totalPages}
-                    className="border-border text-muted-foreground"
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </Card>
+          <PaymentsPaginationFooter
+            total={total}
+            totalPages={totalPages}
+            {...list.paginationProps}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
     </AdminLayout>
   );

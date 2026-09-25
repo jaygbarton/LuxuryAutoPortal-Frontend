@@ -29,7 +29,8 @@ interface AuditRow {
 
 const MONTHS = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-function fmtWhen(iso: string): string {
+/** Audit timestamp in the viewer's active timezone. Shared by the edit-history dialogs. */
+export function fmtWhen(iso: string): string {
   try {
     return new Date(iso).toLocaleString("en-US", {
       timeZone: getActiveTimezone(),

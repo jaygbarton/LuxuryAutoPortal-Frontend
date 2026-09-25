@@ -1,20 +1,12 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Edit, FileText, Loader2, Upload, Download, Wand2, CalendarX, Filter, FileSpreadsheet, CheckCircle2, X, AlertTriangle, Search, ChevronDown, Check } from "lucide-react";
+import { Plus, Trash2, Edit, FileText, Loader2, Upload, Download, Wand2, CalendarX, FileSpreadsheet, CheckCircle2, X, AlertTriangle } from "lucide-react";
 import { useCoHost } from "@/hooks/use-co-host";
-import { Label } from "@/components/ui/label";
 import { buildApiUrl } from "@/lib/queryClient";
 import { formatMonthDayYear } from "@/lib/date-format";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +18,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AddEditPaymentModal } from "@/components/modals/AddEditPaymentModal";
+import { PaymentFilterBar } from "@/components/admin/payments/PaymentFilterBar";
+import { usePaymentListState } from "@/components/admin/payments/usePaymentListState";
+import { PaymentsPaginationFooter } from "@/components/admin/payments/PaymentsPaginationFooter";
+import { PaymentEditHistory } from "@/components/admin/payments/PaymentEditHistory";
 import { PaymentReceiptModal } from "@/components/modals/PaymentReceiptModal";
 
 interface Payment {
@@ -88,15 +84,8 @@ const formatYearMonth = (yearMonth: string): string => {
 };
 
 export default function PaymentsMainPage() {
-  const [filterStatus, setFilterStatus] = useState<string>("");
-  const [startMonth, setStartMonth] = useState<string>("");
-  const [endMonth, setEndMonth] = useState<string>("");
-  const [carFilter, setCarFilter] = useState<string>("");
-  const [carActivityFilter, setCarActivityFilter] = useState<"all" | "active" | "inactive">("active");
-  const [carSearch, setCarSearch] = useState<string>("");
-  const [carDropdownOpen, setCarDropdownOpen] = useState(false);
-  const carDropdownRef = useRef<HTMLDivElement>(null);
-  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  const list = usePaymentListState();
+  const { sortOrder, setSortOrder, page, effectivePageSize } = list;
 
   // Developer-only mode: show destructive tools only when ?dev=1 is in the URL
   const devMode = new URLSearchParams(window.location.search).get("dev") === "1";
@@ -105,17 +94,9 @@ export default function PaymentsMainPage() {
   // requireAdmin alone let them create/edit/delete payment rows for cars they
   // merely manage. The backend now rejects those writes (requireAdminNotCoHost);
   // hide the controls too so the buttons aren't offered and then refused.
-  const { isCoHost } = useCoHost();
+  const { isCoHost, isRealCoHost } = useCoHost();
   const canEditPayments = !isCoHost;
-  const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(30);
-  // "Show All" bypasses pagination for the current filters (capped at the
-  // backend's max of 2000 so an unfiltered fetch can't pull all ~13k rows).
-  const SHOW_ALL_LIMIT = 2000;
-  const [showAll, setShowAll] = useState(false);
-  const effectivePageSize = showAll ? SHOW_ALL_LIMIT : pageSize;
 
-  const [isFilter, setIsFilter] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteByMonthModalOpen, setIsDeleteByMonthModalOpen] = useState(false);
@@ -134,13 +115,6 @@ export default function PaymentsMainPage() {
   } | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
-
-  const hasFilters =
-    !!filterStatus ||
-    !!startMonth ||
-    !!endMonth ||
-    !!carFilter ||
-    carActivityFilter !== "active";
 
   const { data: statusesData } = useQuery<{
     success: boolean;
@@ -184,19 +158,6 @@ export default function PaymentsMainPage() {
 
   const allCars = carsData?.data || [];
 
-  const isCarActive = (c: { isActive?: number | boolean; status?: string }): boolean => {
-    if (c.isActive !== undefined) {
-      return c.isActive === 1 || c.isActive === true;
-    }
-    return (c.status || "").toUpperCase() === "ACTIVE";
-  };
-
-  const carsList = allCars.filter((c) => {
-    if (carActivityFilter === "all") return true;
-    if (carActivityFilter === "active") return isCarActive(c);
-    return !isCarActive(c);
-  });
-
   const { data: paymentsData, isLoading: isLoadingPayments } = useQuery<{
     success: boolean;
     data: Payment[];
@@ -208,14 +169,7 @@ export default function PaymentsMainPage() {
   }>({
     queryKey: [
       "/api/payments/search",
-      filterStatus,
-      startMonth,
-      endMonth,
-      carFilter,
-      carActivityFilter,
-      page,
-      effectivePageSize,
-      sortOrder,
+      ...list.queryKeyParts,
     ],
     queryFn: async () => {
       const url = buildApiUrl("/api/payments/search");
@@ -223,16 +177,7 @@ export default function PaymentsMainPage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: filterStatus || undefined,
-          startDate: startMonth || undefined,
-          endDate: endMonth || undefined,
-          carId: carFilter || undefined,
-          carActiveStatus: carActivityFilter,
-          page,
-          limit: effectivePageSize,
-          sortOrder,
-        }),
+        body: JSON.stringify(list.searchBody),
       });
       if (!response.ok) throw new Error("Failed to fetch payments");
       return response.json();
@@ -533,31 +478,7 @@ export default function PaymentsMainPage() {
     }
   };
 
-  const handleClearFilters = () => {
-    setFilterStatus("");
-    setStartMonth("");
-    setEndMonth("");
-    setCarFilter("");
-    setCarActivityFilter("active");
-    setIsFilter(false);
-    setPage(1);
-  };
 
-  useEffect(() => {
-    setPage(1);
-  }, [filterStatus, startMonth, endMonth, carFilter, carActivityFilter, pageSize, showAll]);
-
-  // Close the car dropdown when the user clicks outside it
-  useEffect(() => {
-    if (!carDropdownOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (carDropdownRef.current && !carDropdownRef.current.contains(e.target as Node)) {
-        setCarDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [carDropdownOpen]);
 
   const formatVehicleInfo = (p: Payment) => {
     const name = `${p.car_make_name || ""} ${p.car_year || ""}`.trim();
@@ -572,7 +493,7 @@ export default function PaymentsMainPage() {
         {/* Page header */}
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-5">
           <div>
-            <h1 className="text-2xl font-bold text-primary">Payments</h1>
+            <h1 className="text-2xl font-bold text-primary">Client Payments</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Manage client payments across all cars
             </p>
@@ -674,205 +595,11 @@ export default function PaymentsMainPage() {
         </div>
 
         {/* Filter bar */}
-        <div className="bg-card border border-border rounded-lg shadow-sm p-4 mb-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:items-end gap-3">
-            <div className="col-span-full lg:col-auto flex items-center gap-2 text-primary text-xs font-semibold uppercase tracking-wider lg:mr-1 lg:pb-2 lg:self-end">
-              <Filter className="w-3.5 h-3.5" />
-              Filters
-            </div>
-            <div className="flex flex-col">
-              <label className="text-muted-foreground text-xs font-medium mb-1.5">Status</label>
-              <Select
-                value={filterStatus || "__all__"}
-                onValueChange={(v) => {
-                  setFilterStatus(v === "__all__" ? "" : v);
-                  setIsFilter(true);
-                }}
-              >
-                <SelectTrigger className="bg-background border-border text-foreground w-full lg:w-[140px] h-9 focus:ring-1 focus:ring-primary">
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border text-foreground">
-                  <SelectItem value="__all__">All</SelectItem>
-                  {statuses.map((s) => (
-                    <SelectItem key={s.payment_status_aid} value={s.payment_status_name}>
-                      {s.payment_status_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col">
-              <label className="text-muted-foreground text-xs font-medium mb-1.5">From</label>
-              <Input
-                type="month"
-                value={startMonth}
-                onChange={(e) => {
-                  setStartMonth(e.target.value);
-                  setIsFilter(true);
-                }}
-                className="bg-background border-border text-foreground w-full lg:w-[160px] h-9 focus-visible:ring-1 focus-visible:ring-primary"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-muted-foreground text-xs font-medium mb-1.5">To</label>
-              <Input
-                type="month"
-                value={endMonth}
-                onChange={(e) => {
-                  setEndMonth(e.target.value);
-                  setIsFilter(true);
-                }}
-                className="bg-background border-border text-foreground w-full lg:w-[160px] h-9 focus-visible:ring-1 focus-visible:ring-primary"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-muted-foreground text-xs font-medium mb-1.5">Cars</label>
-              <Select
-                value={carActivityFilter}
-                onValueChange={(v) => {
-                  setCarActivityFilter(v as "all" | "active" | "inactive");
-                  setIsFilter(true);
-                }}
-              >
-                <SelectTrigger className="bg-background border-border text-foreground w-full lg:w-[104px] h-9 focus:ring-1 focus:ring-primary">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border text-foreground min-w-[104px]">
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="all">All</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-full sm:col-span-2 lg:col-auto flex flex-col lg:flex-1 lg:min-w-[260px]" ref={carDropdownRef}>
-              <label className="text-muted-foreground text-xs font-medium mb-1.5">Car</label>
-              {/* Custom searchable car combobox */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCarDropdownOpen((prev) => !prev);
-                    setCarSearch("");
-                  }}
-                  className="flex items-center justify-between w-full h-9 px-3 py-2 text-sm bg-background border border-border rounded-md text-foreground hover:bg-muted/50 focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                >
-                  <span className="truncate">
-                    {carFilter
-                      ? (() => {
-                          const c = carsList.find((c) => String(c.id) === carFilter);
-                          if (!c) return "All Cars";
-                          const nameYear = [c.makeModel, c.year ? String(c.year) : ""].filter(Boolean).join(" ");
-                          const parts: string[] = [];
-                          if (nameYear) parts.push(nameYear);
-                          if (c.licensePlate) parts.push(`#${c.licensePlate}`);
-                          if (c.vin) parts.push(c.vin);
-                          return parts.join(" - ");
-                        })()
-                      : "All Cars"}
-                  </span>
-                  <ChevronDown className={`w-4 h-4 text-muted-foreground flex-shrink-0 ml-2 transition-transform duration-150 ${carDropdownOpen ? "rotate-180" : ""}`} />
-                </button>
-
-                {carDropdownOpen && (
-                  <div
-                    className="absolute z-50 top-full mt-1 w-full lg:min-w-[320px] bg-card border border-border rounded-md shadow-lg overflow-hidden"
-                    onMouseDown={(e) => e.stopPropagation()}
-                  >
-                    {/* Search input */}
-                    <div className="p-2 border-b border-border">
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-                        <input
-                          autoFocus
-                          type="text"
-                          value={carSearch}
-                          onChange={(e) => setCarSearch(e.target.value)}
-                          placeholder="Search make, plate, VIN…"
-                          className="w-full pl-8 pr-3 py-1.5 text-sm bg-background border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Options list */}
-                    <div className="max-h-56 overflow-y-auto">
-                      {/* All Cars option */}
-                      {!carSearch && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCarFilter("");
-                            setIsFilter(true);
-                            setCarDropdownOpen(false);
-                          }}
-                          className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left hover:bg-muted/60 transition-colors ${!carFilter ? "text-primary font-medium" : "text-foreground"}`}
-                        >
-                          <span>All Cars</span>
-                          {!carFilter && <Check className="w-3.5 h-3.5 flex-shrink-0" />}
-                        </button>
-                      )}
-
-                      {(() => {
-                        const lower = carSearch.toLowerCase();
-                        const filtered = carsList.filter((c) => {
-                          if (!lower) return true;
-                          const nameYear = [c.makeModel, c.year ? String(c.year) : ""].filter(Boolean).join(" ").toLowerCase();
-                          return (
-                            nameYear.includes(lower) ||
-                            (c.licensePlate || "").toLowerCase().includes(lower) ||
-                            (c.vin || "").toLowerCase().includes(lower)
-                          );
-                        });
-
-                        if (filtered.length === 0) {
-                          return (
-                            <p className="px-3 py-4 text-xs text-center text-muted-foreground">
-                              No cars match "{carSearch}"
-                            </p>
-                          );
-                        }
-
-                        return filtered.map((c) => {
-                          const nameYear = [c.makeModel, c.year ? String(c.year) : ""].filter(Boolean).join(" ");
-                          const parts: string[] = [];
-                          if (nameYear) parts.push(nameYear);
-                          if (c.licensePlate) parts.push(`#${c.licensePlate}`);
-                          if (c.vin) parts.push(c.vin);
-                          const label = parts.join(" - ");
-                          const isSelected = carFilter === String(c.id);
-                          return (
-                            <button
-                              key={c.id}
-                              type="button"
-                              onClick={() => {
-                                setCarFilter(String(c.id));
-                                setIsFilter(true);
-                                setCarDropdownOpen(false);
-                              }}
-                              className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left hover:bg-muted/60 transition-colors ${isSelected ? "text-primary font-medium" : "text-foreground"}`}
-                            >
-                              <span className="truncate pr-2">{label}</span>
-                              {isSelected && <Check className="w-3.5 h-3.5 flex-shrink-0" />}
-                            </button>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            {hasFilters && (
-              <Button
-                variant="ghost"
-                onClick={handleClearFilters}
-                className="col-span-full lg:col-auto text-red-600 hover:text-red-700 hover:bg-red-500/10 h-9 font-medium w-full lg:w-auto"
-              >
-                Clear
-              </Button>
-            )}
-          </div>
-        </div>
+        <PaymentFilterBar
+          statuses={statuses}
+          cars={allCars}
+          {...list.filterBarProps}
+        />
 
         {/* Table card */}
         <div className="bg-card border border-border rounded-lg shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
@@ -906,7 +633,7 @@ export default function PaymentsMainPage() {
                   <th className="h-11 px-3 text-left font-semibold text-foreground w-28 whitespace-nowrap text-[11px] uppercase tracking-wider">Pmt Date</th>
                   <th className="h-11 px-3 text-center font-semibold text-foreground w-16 text-[11px] uppercase tracking-wider">Receipt</th>
                   <th className="h-11 px-3 text-left font-semibold text-foreground min-w-[120px] text-[11px] uppercase tracking-wider">Remarks</th>
-                  <th className="h-11 px-3 text-center font-semibold text-foreground w-24 text-[11px] uppercase tracking-wider">Actions</th>
+                  <th className="h-11 px-3 text-center font-semibold text-foreground w-32 text-[11px] uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -992,6 +719,12 @@ export default function PaymentsMainPage() {
                           </td>
                           <td className="px-3 py-3 text-center align-middle">
                             <div className="flex items-center justify-center gap-1">
+                              {!isRealCoHost && (
+                                <PaymentEditHistory
+                                  paymentId={payment.payments_aid}
+                                  label={`${payment.fullname} · ${formatYearMonth(payment.payments_year_month)} · ${formatVehicleInfo(payment)}`}
+                                />
+                              )}
                               {canEditPayments && (
                                 <Button
                                   variant="ghost"
@@ -1053,95 +786,12 @@ export default function PaymentsMainPage() {
           </div>
 
           {/* Pagination footer pinned inside the card */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3 border-t border-border bg-card">
-            <div className="flex items-center gap-4">
-              <div className="text-xs text-muted-foreground">
-                {totalPayments > 0 ? (
-                  showAll ? (
-                    <>
-                      Showing all{" "}
-                      <span className="font-semibold text-foreground">{totalPayments}</span>{" "}
-                      payment{totalPayments === 1 ? "" : "s"}
-                      {totalPayments >= SHOW_ALL_LIMIT && (
-                        <span className="text-yellow-600"> (capped at {SHOW_ALL_LIMIT} — narrow filters to see more)</span>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      Showing{" "}
-                      <span className="font-semibold text-foreground">
-                        {(page - 1) * effectivePageSize + 1}
-                      </span>
-                      {"–"}
-                      <span className="font-semibold text-foreground">
-                        {Math.min(page * effectivePageSize, totalPayments)}
-                      </span>{" "}
-                      of{" "}
-                      <span className="font-semibold text-foreground">{totalPayments}</span>{" "}
-                      payment{totalPayments === 1 ? "" : "s"}
-                    </>
-                  )
-                ) : (
-                  <>No payments to display</>
-                )}
-              </div>
-              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  checked={showAll}
-                  onChange={(e) => setShowAll(e.target.checked)}
-                  className="h-3.5 w-3.5 rounded border-border accent-primary"
-                />
-                Show all (current filters)
-              </label>
-            </div>
-            {!showAll && (
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Rows</Label>
-                  <Select
-                    value={String(pageSize)}
-                    onValueChange={(v) => setPageSize(parseInt(v, 10))}
-                  >
-                    <SelectTrigger className="bg-background border-border text-foreground w-[72px] h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border text-foreground">
-                      {[10, 30, 50, 100, 200].map((n) => (
-                        <SelectItem key={n} value={String(n)}>
-                          {n}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page <= 1 || isLoadingPayments}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className="h-8 px-3 bg-background border-border text-foreground hover:bg-muted disabled:opacity-40"
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap px-2">
-                    Page <span className="font-semibold text-foreground">{page}</span> of{" "}
-                    <span className="font-semibold text-foreground">{totalPages}</span>
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages || isLoadingPayments}
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    className="h-8 px-3 bg-background border-border text-foreground hover:bg-muted disabled:opacity-40"
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
+          <PaymentsPaginationFooter
+            total={totalPayments}
+            totalPages={totalPages}
+            {...list.paginationProps}
+            isLoading={isLoadingPayments}
+          />
         </div>
 
         {isAddModalOpen && (

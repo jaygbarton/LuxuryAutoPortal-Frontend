@@ -60,6 +60,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { AddEditBankingInfoModal } from "@/components/modals/AddEditBankingInfoModal";
+import { useCoHost } from "@/hooks/use-co-host";
 
 interface ClientDetail {
   id: number;
@@ -725,6 +726,10 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
       });
     },
   });
+
+  // Co-hosts see only GLA-managed cars; the backend rejects their retire
+  // calls, so the remove button is not offered to them.
+  const { isCoHost } = useCoHost();
 
   // Retire (soft-delete) a car from this client's assigned cars.
   // Reversible — sets car_is_active=0 server-side, no data is destroyed.
@@ -1799,6 +1804,7 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                                 </a>
                               </TableCell>
                               <TableCell className="text-center px-4 py-3 align-middle">
+                                {!isCoHost && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -1817,6 +1823,7 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
+                                )}
                               </TableCell>
                             </TableRow>
                             );

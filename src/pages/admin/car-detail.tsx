@@ -43,6 +43,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { ClientSelectCombobox } from "./ClientSelectCombobox";
 import { PUBLIC_LOCATIONS } from "@/lib/location-config";
+import { useCoHost } from "@/hooks/use-co-host";
 
 /**
  * Extract Turo vehicle ID from a Turo listing URL.
@@ -323,6 +324,12 @@ export default function CarDetailPage() {
     retry: false,
   });
   const isAdmin = userData?.user?.isAdmin === true;
+  // Every car a co-host can open was added and assigned by the GLA team, and
+  // the backend rejects car edits/photo changes from co-host sessions
+  // (requireAdminNotCoHostWith on /api/cars/:id writes). Co-hosts keep the
+  // read-only admin view; only the write controls are withheld.
+  const { isCoHost } = useCoHost();
+  const canEditCar = isAdmin && !isCoHost;
 
   const { data, isLoading, error } = useQuery<{
     success: boolean;
@@ -1433,7 +1440,7 @@ export default function CarDetailPage() {
 
   // Photo selection and deletion handlers
   const handleSelectPhoto = (index: number) => {
-    if (!isAdmin) return;
+    if (!canEditCar) return;
     
     // Allow selecting any photo, including the carousel photo
     // The carousel photo will only be automatically deselected when "Select All" is clicked
@@ -1447,7 +1454,7 @@ export default function CarDetailPage() {
   };
 
   const handleSelectAll = () => {
-    if (!isAdmin || !car?.photos) return;
+    if (!canEditCar || !car?.photos) return;
     
     // Check if all photos are already selected
     const allIndices = car.photos.map((_, index) => index);
@@ -1463,7 +1470,7 @@ export default function CarDetailPage() {
   };
 
   const handleDeleteSelected = () => {
-    if (!isAdmin || !car?.photos || selectedPhotos.size === 0) return;
+    if (!canEditCar || !car?.photos || selectedPhotos.size === 0) return;
     
     // Get photo paths from selected indices
     const selectedIndices = Array.from(selectedPhotos);
@@ -1624,13 +1631,15 @@ export default function CarDetailPage() {
                 )}
                 Statement of Account
               </Button>
-              <Button
-                onClick={handleEditClick}
-                className="bg-primary text-primary-foreground hover:bg-primary/80 flex-1 sm:flex-initial"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
+              {canEditCar && (
+                <Button
+                  onClick={handleEditClick}
+                  className="bg-primary text-primary-foreground hover:bg-primary/80 flex-1 sm:flex-initial"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -2598,7 +2607,7 @@ export default function CarDetailPage() {
                 <Upload className="w-5 h-5" />
                 Photos ({car.photos?.length || 0} / 20)
               </CardTitle>
-              {isAdmin && (
+              {canEditCar && (
                 <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   {selectedPhotos.size > 0 && (
                     <>
@@ -2723,11 +2732,11 @@ export default function CarDetailPage() {
                         "relative group",
                         isSelected && "ring-2 ring-[#D3BC8D] rounded-lg",
                         // Removed carousel sync indicator - carousel and Photos card are independent
-                        isAdmin && "cursor-pointer"
+                        canEditCar && "cursor-pointer"
                       )}
                       onClick={(e) => {
                         // Only select if admin and not clicking on checkbox or delete button
-                        if (isAdmin) {
+                        if (canEditCar) {
                           const target = e.target as HTMLElement;
                           if (!target.closest('.checkbox-area') && !target.closest('button')) {
                             handleSelectPhoto(index);
@@ -2759,7 +2768,7 @@ export default function CarDetailPage() {
                           </div>
                         )}
                         {/* Checkbox Overlay */}
-                    {isAdmin && (
+                    {canEditCar && (
                           <div 
                             className="absolute top-2 left-2 z-10 checkbox-area"
                             onClick={(e) => e.stopPropagation()}
@@ -2784,7 +2793,7 @@ export default function CarDetailPage() {
                           </div>
                         )}
                         {/* Delete Button (Admin only, single delete) */}
-                        {isAdmin && (
+                        {canEditCar && (
                           <div 
                             className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                             onClick={(e) => e.stopPropagation()}
@@ -2829,7 +2838,7 @@ export default function CarDetailPage() {
                           </div>
                         )}
                         {/* Set Main Button (Admin only) */}
-                        {isAdmin && !isMain && (
+                        {canEditCar && !isMain && (
                           <div
                             className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                             onClick={(e) => e.stopPropagation()}
@@ -2862,7 +2871,7 @@ export default function CarDetailPage() {
             ) : (
               <div className="flex items-center justify-center py-16">
                 <p className="text-muted-foreground text-center">
-                  No photos uploaded. {isAdmin && "Upload one or multiple photos (up to 20) to get started."}
+                  No photos uploaded. {canEditCar && "Upload one or multiple photos (up to 20) to get started."}
                 </p>
               </div>
             )}
@@ -2959,7 +2968,7 @@ export default function CarDetailPage() {
         </Card>
 
         {/* Edit Modal - Only for admins */}
-        {isAdmin && (
+        {canEditCar && (
           <Dialog open={isEditModalOpen} onOpenChange={(open) => {
             setIsEditModalOpen(open);
             if (!open) {

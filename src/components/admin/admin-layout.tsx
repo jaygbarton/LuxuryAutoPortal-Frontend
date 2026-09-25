@@ -193,13 +193,13 @@ const allSidebarItems: SidebarItem[] = [
   },
   {
     href: "/admin/payments",
-    label: "Client Payments",
+    label: "Payments",
     icon: CreditCard,
     roles: ["admin"],
     children: [
       {
         href: "/admin/payments",
-        label: "Payments",
+        label: "Client Payments",
         icon: CreditCard,
         roles: ["admin"],
       },
@@ -658,10 +658,10 @@ export const coHostSidebarItems: SidebarItem[] = [
   { href: "/admin/income-expenses", label: "Income and Expenses", icon: DollarSign },
   {
     href: "/admin/payments",
-    label: "Client Payments",
+    label: "Payments",
     icon: CreditCard,
     children: [
-      { href: "/admin/payments", label: "Payments", icon: CreditCard },
+      { href: "/admin/payments", label: "Client Payments", icon: CreditCard },
       { href: "/admin/payment-status", label: "Status", icon: ClipboardList },
       { href: "/admin/co-host-payments", label: "Co-Host Payments", icon: CreditCard },
     ],

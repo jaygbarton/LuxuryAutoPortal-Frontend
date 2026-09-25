@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
-import { getActiveTimezone } from "@/hooks/use-timezone";
+import { fmtWhen } from "@/components/admin/ReceiptEditHistory";
 import {
   Dialog,
   DialogContent,
@@ -35,18 +35,6 @@ interface AuditRow {
   after: Record<string, unknown> | null;
   notes: string | null;
   createdAt: string;
-}
-
-function fmtWhen(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString("en-US", {
-      timeZone: getActiveTimezone(),
-      month: "2-digit", day: "2-digit", year: "numeric",
-      hour: "numeric", minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
 }
 
 function fmtValue(v: unknown): string {
