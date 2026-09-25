@@ -33,6 +33,7 @@ import { EditEmergencyModal } from "./components/EditEmergencyModal";
 import { EditOtherInfoModal } from "./components/EditOtherInfoModal";
 import { EditJobInfoModal } from "./components/EditJobInfoModal";
 import { EditPayInfoModal } from "./components/EditPayInfoModal";
+import { useCoHost } from "@/hooks/use-co-host";
 
 type ProfileSection =
   | "personal-information"
@@ -78,6 +79,8 @@ interface Employee {
   employee_car_insurance?: string | null;
   employee_hear_about_gla?: string | null;
   employee_created: string;
+  employee_co_host_id?: number | null;
+  employee_co_host_name?: string | null;
   employee_job_pay_aid?: number | null;
   employee_job_pay_work_email?: string | null;
   employee_job_pay_department_name?: string | null;
@@ -286,6 +289,36 @@ export default function EmployeeViewPage() {
   });
 
   const employee = data?.data;
+
+  // Who the employee works under: GLA Utah (null) or an approved co-host.
+  const { isCoHost } = useCoHost();
+  const { data: coHostsData } = useQuery<{ coHosts: { id: number; first_name: string; last_name: string }[] }>({
+    queryKey: ["/api/admin/co-hosts", "approved"],
+    queryFn: () =>
+      api.get("/api/admin/co-hosts", {
+        query: { status: "approved", limit: 100 },
+        fallbackMessage: "Failed to fetch co-hosts",
+      }),
+    enabled: !isCoHost,
+  });
+  const [savingCoHost, setSavingCoHost] = useState(false);
+  const handleCoHostChange = async (value: string) => {
+    if (!employee) return;
+    setSavingCoHost(true);
+    try {
+      const res = await api.patch<{ message: string }>(
+        `/api/employees/${employee.employee_aid}/co-host`,
+        { coHostId: value === "gla" ? null : Number(value) },
+        { fallbackMessage: "Failed to update assignment" },
+      );
+      toast({ title: "Assignment updated", description: res.message });
+      refetch();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to update assignment", variant: "destructive" });
+    } finally {
+      setSavingCoHost(false);
+    }
+  };
 
   const { data: editHistoryData, isLoading: editHistoryLoading } = useQuery<{
     success: boolean;
@@ -512,6 +545,39 @@ toast({ title: "Deleted", description: "Employee deleted successfully." });
               </Button>
             </div>
           )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <Label className="text-muted-foreground">Works under</Label>
+          {isCoHost ? (
+            <span className="text-foreground">{employee.employee_co_host_name ?? "GLA Utah"}</span>
+          ) : (
+            <Select
+              value={employee.employee_co_host_id ? String(employee.employee_co_host_id) : "gla"}
+              onValueChange={handleCoHostChange}
+              disabled={savingCoHost}
+            >
+              <SelectTrigger className="w-64 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gla">GLA Utah</SelectItem>
+                {/* Keep the current co-host selectable even if it is no longer approved. */}
+                {employee.employee_co_host_id &&
+                  !coHostsData?.coHosts.some((c) => c.id === employee.employee_co_host_id) && (
+                    <SelectItem value={String(employee.employee_co_host_id)}>
+                      Co-Host: {employee.employee_co_host_name ?? `#${employee.employee_co_host_id}`}
+                    </SelectItem>
+                  )}
+                {(coHostsData?.coHosts ?? []).map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    Co-Host: {c.first_name} {c.last_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {savingCoHost && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">

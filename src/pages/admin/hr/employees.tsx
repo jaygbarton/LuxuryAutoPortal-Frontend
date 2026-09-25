@@ -69,6 +69,7 @@ import {
 
 interface Employee {
   employee_aid: number;
+  employee_co_host_name?: string | null;
   employee_status: string;
   employee_is_active: number;
   employee_number: string;
@@ -928,6 +929,9 @@ export default function EmployeesPage() {
                     <TableHead className="text-left text-foreground font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[180px] text-[10px] sm:text-xs hidden xl:table-cell">
                       Job Title
                     </TableHead>
+                    <TableHead className="text-left text-foreground font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[160px] text-[10px] sm:text-xs hidden md:table-cell">
+                      Works Under
+                    </TableHead>
                     <TableHead className="text-left text-foreground font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[140px] text-[10px] sm:text-xs hidden md:table-cell">
                       Created
                     </TableHead>
@@ -938,10 +942,10 @@ export default function EmployeesPage() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRowSkeleton colSpan={9} rows={5} />
+                    <TableRowSkeleton colSpan={11} rows={5} />
                   ) : error ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8">
+                      <TableCell colSpan={11} className="text-center py-8">
                         <div className="flex flex-col items-center gap-3">
                           <p className="text-red-700 text-sm break-words max-w-2xl">
                             {error instanceof Error ? error.message : "Failed to fetch employees"}
@@ -958,7 +962,7 @@ export default function EmployeesPage() {
                     </TableRow>
                   ) : employees.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                         No employees found. Try adjusting your search or filters.
                       </TableCell>
                     </TableRow>
@@ -1013,6 +1017,9 @@ export default function EmployeesPage() {
                           </TableCell>
                           <TableCell className="text-left text-muted-foreground px-2 sm:px-4 md:px-6 py-3 sm:py-4 align-middle text-xs sm:text-sm hidden xl:table-cell">
                             {emp.employee_job_pay_job_title_name || <span className="text-gray-600">—</span>}
+                          </TableCell>
+                          <TableCell className="text-left text-muted-foreground px-2 sm:px-4 md:px-6 py-3 sm:py-4 align-middle text-xs sm:text-sm hidden md:table-cell">
+                            {emp.employee_co_host_name ? `Co-Host: ${emp.employee_co_host_name}` : "GLA Utah"}
                           </TableCell>
                           <TableCell className="text-left text-muted-foreground px-2 sm:px-4 md:px-6 py-3 sm:py-4 align-middle text-xs sm:text-sm hidden md:table-cell">
                             {formatDate(emp.employee_created)}
@@ -1904,7 +1911,8 @@ export default function EmployeesPage() {
                   <>
                     Are you sure you want to delete <strong className="text-foreground">{employeeToDelete.employee_last_name}, {employeeToDelete.employee_first_name}</strong>?
                     <br />
-                    This action cannot be undone.
+                    This action cannot be undone. To move them to a co-host's team, open the employee and change
+                    <strong className="text-foreground"> Works under</strong> instead.
                   </>
                 ) : null}
               </DialogDescription>
