@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "wouter";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
@@ -303,6 +303,24 @@ function readDragData(e: React.DragEvent): DragPayload | null {
 
 // ─── Event card ───────────────────────────────────────────────────────────────
 
+// A labelled line inside a card's "when & where" block: icon, bold label, value.
+// Keeps every detail on the same left rail so the rows read as a table.
+function DetailLine({ icon, label, value, className = "" }: {
+  icon: ReactNode;
+  label: string;
+  value: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`flex items-start gap-1.5 text-xs text-muted-foreground ${className}`}>
+      {icon}
+      <span className="min-w-0 break-words">
+        <span className="font-medium text-foreground">{label}:</span> {value}
+      </span>
+    </div>
+  );
+}
+
 function EventCard({
   event,
   date,
@@ -355,7 +373,7 @@ function EventCard({
     <div
       draggable
       onDragStart={(e) => setDragData(e, event)}
-      className={`group/event flex flex-col rounded-lg border ${c.border} shadow-sm cursor-grab active:cursor-grabbing sm:flex-row sm:items-stretch`}
+      className={`group/event flex flex-col overflow-hidden rounded-lg border ${c.border} bg-card shadow-sm cursor-grab active:cursor-grabbing sm:flex-row sm:items-stretch`}
     >
       {/* Color bar */}
       <div className={`h-1.5 w-full flex-shrink-0 ${c.bg} sm:h-auto sm:w-1.5`} />
@@ -373,73 +391,115 @@ function EventCard({
         )}
       </div>
 
-      {/* Content */}
-      <div className={`relative flex-1 min-w-0 space-y-1 px-2.5 py-2.5 ${event.car_photo ? "md:pr-40 lg:pr-52" : ""}`}>
+      {/* Content — one vertical rhythm: header → vehicle → where/when → notes → controls */}
+      <div className="flex min-w-0 flex-1 flex-col gap-2 px-3 py-2.5">
+        {/* Header: task type, status, quick actions, delete */}
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <GripVertical className="hidden h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/event:text-muted-foreground sm:block" />
-              <span className={`text-[11px] font-semibold px-2 py-1 rounded sm:px-1.5 sm:py-0.5 sm:text-[10px] ${c.bg} ${c.text}`}>
-                {event.category}
-              </span>
-              {statusOptions ? (
-                <span onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
-                  <Select
-                    value={event.status ?? "new"}
-                    onValueChange={(val) => onStatusChange(event.type, event.id, val, val === "completed" ? completionDate : undefined)}
-                  >
-                    <SelectTrigger className={`h-8 min-w-[7rem] cursor-pointer gap-1 rounded border px-2 py-0 text-[11px] sm:h-5 sm:min-w-0 sm:w-auto sm:px-1.5 sm:text-[10px] ${badgeClass}`}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statusOptions.map((s) => (
-                        <SelectItem key={s} value={s} className="text-xs">
-                          {s.replace(/_/g, " ")}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </span>
-              ) : event.status ? (
-                <span className={`text-[11px] px-2 py-1 rounded border sm:px-1.5 sm:py-0.5 sm:text-[10px] ${badgeClass}`}>
-                  {event.status.replace(/_/g, " ")}
-                </span>
-              ) : null}
-              {event.type === "cleaning" && event.status !== "completed" && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-8 px-2 text-[11px] sm:h-5 sm:text-[10px]"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowAlreadyCleanBy((v) => !v);
-                  }}
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            <GripVertical className="hidden h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/event:text-muted-foreground sm:block" />
+            <span className={`rounded px-2 py-1 text-[11px] font-semibold sm:px-1.5 sm:py-0.5 sm:text-[10px] ${c.bg} ${c.text}`}>
+              {event.category}
+            </span>
+            {statusOptions ? (
+              <span onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
+                <Select
+                  value={event.status ?? "new"}
+                  onValueChange={(val) => onStatusChange(event.type, event.id, val, val === "completed" ? completionDate : undefined)}
                 >
-                  Already clean?
-                </Button>
-              )}
-            </div>
-            <div className="space-y-0.5 sm:hidden">
-              {event.car_name && (
-                <div className="flex items-start gap-1.5 text-sm text-foreground">
-                  <Car className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 font-semibold leading-snug">
-                    {event.car_name}
-                    {event.plate && <span className="font-normal text-muted-foreground"> · {event.plate}</span>}
-                  </span>
-                </div>
-              )}
-              {(event.reservation_id || event.guest_name) && (
-                <div className="text-xs text-muted-foreground">
-                  {event.reservation_id && <span><span className="font-medium text-foreground">Res:</span> {event.reservation_id}</span>}
-                  {event.reservation_id && event.guest_name && <span> · </span>}
-                  {event.guest_name && <span>{event.guest_name}</span>}
-                </div>
-              )}
-            </div>
+                  <SelectTrigger className={`h-8 min-w-[7rem] cursor-pointer gap-1 rounded border px-2 py-0 text-[11px] sm:h-5 sm:min-w-0 sm:w-auto sm:px-1.5 sm:text-[10px] ${badgeClass}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((s) => (
+                      <SelectItem key={s} value={s} className="text-xs">
+                        {s.replace(/_/g, " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </span>
+            ) : event.status ? (
+              <span className={`rounded border px-2 py-1 text-[11px] sm:px-1.5 sm:py-0.5 sm:text-[10px] ${badgeClass}`}>
+                {event.status.replace(/_/g, " ")}
+              </span>
+            ) : null}
+            {showAssignee && (
+              <span className="inline-flex items-center gap-1 rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[11px] sm:text-[10px]">
+                <User className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                <span className={event.assigned_to ? "font-medium text-foreground" : "italic text-muted-foreground"}>
+                  {event.assigned_to ?? "Unassigned"}
+                </span>
+              </span>
+            )}
+            {event.type === "cleaning" && event.status !== "completed" && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 px-2 text-[11px] sm:h-5 sm:text-[10px]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowAlreadyCleanBy((v) => !v);
+                }}
+              >
+                Already clean?
+              </Button>
+            )}
           </div>
+          {isAdmin && (
+            <button
+              type="button"
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-red-200 bg-red-50 p-0 text-red-600 hover:border-red-300 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+              title="Delete task"
+              aria-label="Delete task"
+              data-day-schedule-delete
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(event);
+              }}
+              onDragStart={(e) => e.stopPropagation()}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
+
+        {/* Vehicle identity: car + plate, then reservation / guest on one muted line */}
+        {(event.car_name || event.reservation_id || event.guest_name) && (
+          <div className="min-w-0">
+            {event.car_name && (
+              <div className="flex items-start gap-1.5 text-sm leading-snug text-foreground">
+                <Car className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                <span className="min-w-0 break-words font-semibold">
+                  {event.car_name}
+                  {event.plate && <span className="font-normal text-muted-foreground"> · {event.plate}</span>}
+                </span>
+              </div>
+            )}
+            {(event.reservation_id || event.guest_name) && (
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground sm:pl-5">
+                {event.reservation_id && (
+                  <span>
+                    <span className="font-medium text-foreground">Res:</span> {event.reservation_id}
+                  </span>
+                )}
+                {event.guest_name && (
+                  <span className="inline-flex items-center gap-1">
+                    <User className="h-3 w-3 flex-shrink-0" />
+                    {event.guest_name}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {event.extras && (
+          <div className="inline-flex w-fit animate-pulse items-center gap-1 rounded bg-amber-300 px-1.5 py-0.5 text-xs font-medium text-amber-900">
+            <span className="font-semibold">Extras:</span> {event.extras}
+          </div>
+        )}
+
         <CarScheduleImage
           carPhoto={event.car_photo}
           carName={event.car_name}
@@ -448,107 +508,57 @@ function EventCard({
           hideBelowMd={false}
           fit="contain"
         />
-        {(canEditAssignee || canEditDuration || canEditDriver) && (
-          <div
-            className="grid grid-cols-1 gap-2 pt-1 min-[430px]:grid-cols-2 md:flex md:flex-wrap md:items-center"
-            onClick={(e) => e.stopPropagation()}
-            onDragStart={(e) => e.stopPropagation()}
-          >
-            {canEditAssignee && (
-              <div className="w-full md:w-36">
-                <EmployeeSelectCombobox
-                  value={event.assigned_to ?? ""}
-                  onChange={() => {}}
-                  onSelectEmployee={(emp) => {
-                    if (emp) onAssign(event, emp.employee_aid, [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`);
-                    else onUnassign(event);
-                  }}
-                  placeholder="Unassigned"
-                />
-              </div>
+
+        {/* When & where — one aligned block instead of loose stacked lines */}
+        {(event.trip_start_mt || event.trip_end_mt || event.pickup_location || event.dropoff_location || event.location) && (
+          <div className="grid gap-x-4 gap-y-1 rounded-md bg-muted/40 px-2.5 py-2 sm:grid-cols-2">
+            {(event.trip_start_mt || event.trip_end_mt) && (
+              <DetailLine
+                className="sm:col-span-2"
+                icon={<Clock className="mt-0.5 h-3 w-3 flex-shrink-0 text-muted-foreground" />}
+                label="Trip"
+                value={
+                  <span className="inline-flex flex-wrap items-center gap-1 font-medium text-foreground">
+                    {fmtTripDateTime(event.trip_start_mt)}
+                    <ArrowRight className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                    {fmtTripDateTime(event.trip_end_mt)}
+                  </span>
+                }
+              />
             )}
-            {canEditDuration && (
-              <label className="flex h-9 items-center gap-1 rounded-md border border-border bg-background px-2 text-[11px] text-muted-foreground md:h-auto md:border-0 md:bg-transparent md:px-0 md:text-[10px]">
-                <Clock className="w-3 h-3" />
-                <input
-                  type="number"
-                  min={0}
-                  step={5}
-                  value={event.duration_minutes ?? ""}
-                  placeholder="mins"
-                  onChange={(e) => {
-                    const raw = e.target.value.trim();
-                    onDurationChange(event, raw === "" ? null : Math.max(0, Number(raw)));
-                  }}
-                  className="h-7 w-16 rounded border border-border bg-background px-1 text-[11px] text-foreground md:h-6 md:w-14 md:text-[10px]"
-                />
-                <span>min</span>
-              </label>
+            {event.pickup_location && (
+              <DetailLine
+                icon={<ArrowUpFromLine className="mt-0.5 h-3 w-3 flex-shrink-0 text-emerald-600" />}
+                label="Pick Up"
+                value={event.pickup_location}
+              />
             )}
-            {canEditDriver && (
-              <div className="flex w-full items-center gap-1.5 min-[430px]:col-span-2 md:w-auto md:flex-wrap">
-                <span className="text-[11px] text-muted-foreground md:text-[10px]">Driver</span>
-                <Select
-                  value={driverMode}
-                  onValueChange={(val) => {
-                    if (val === "employee") {
-                      setDriverModeDraft("employee");
-                      return;
-                    }
-                    setDriverModeDraft("");
-                    onDriverChange(event, val === "clear" ? null : (val as "uber" | "na"));
-                  }}
-                >
-                  <SelectTrigger className="h-9 w-28 px-2 text-[11px] md:h-6 md:w-24 md:text-[10px]">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="clear">Clear</SelectItem>
-                    <SelectItem value="employee">Employee</SelectItem>
-                    <SelectItem value="uber">Uber</SelectItem>
-                    <SelectItem value="na">N/A</SelectItem>
-                  </SelectContent>
-                </Select>
-                {driverMode === "employee" && (
-                  <div className="min-w-0 flex-1 md:w-36 md:flex-none">
-                    <EmployeeSelectCombobox
-                      value={event.driver_assigned_to ?? ""}
-                      onChange={() => {}}
-                      onSelectEmployee={(emp) => {
-                        if (emp) {
-                          const fullname = [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`;
-                          onDriverChange(event, "employee", emp.employee_aid, fullname);
-                        } else {
-                          onDriverChange(event, null);
-                        }
-                      }}
-                      placeholder="Driver"
-                    />
-                  </div>
-                )}
-              </div>
+            {event.dropoff_location && (
+              <DetailLine
+                icon={<ArrowDownToLine className="mt-0.5 h-3 w-3 flex-shrink-0 text-rose-600" />}
+                label="Drop Off"
+                value={event.dropoff_location}
+              />
             )}
-            {event.type === "cleaning" && event.status !== "completed" && showAlreadyCleanBy && (
-              <div className="flex items-center gap-1 flex-wrap min-[430px]:col-span-2">
-                <span className="text-[11px] text-muted-foreground md:text-[10px]">Completed by:</span>
-                <div className="min-w-0 flex-1 md:w-36 md:flex-none">
-                  <EmployeeSelectCombobox
-                    value={event.assigned_to ?? ""}
-                    onChange={() => {}}
-                    onSelectEmployee={(emp) => {
-                      if (!emp) return;
-                      const fullname = [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`;
-                      onAssign(event, emp.employee_aid, fullname);
-                      onStatusChange(event.type, event.id, "completed");
-                      setShowAlreadyCleanBy(false);
-                    }}
-                    placeholder="Select employee"
-                  />
-                </div>
-              </div>
+            {/* Generic location (non-trip events: e.g. cleaning's own scheduled location, repair shop) — only when no trip endpoints shown */}
+            {event.location && !event.pickup_location && !event.dropoff_location && (
+              <DetailLine
+                className="sm:col-span-2"
+                icon={<MapPin className="mt-0.5 h-3 w-3 flex-shrink-0 text-muted-foreground" />}
+                label="Location"
+                value={event.location}
+              />
             )}
           </div>
         )}
+
+        {(event.detail || event.notes) && (
+          <div className="space-y-0.5 text-xs text-muted-foreground">
+            {event.detail && <div className="break-words italic">{event.detail}</div>}
+            {event.notes && <div className="break-words">{event.notes}</div>}
+          </div>
+        )}
+
         {(event.is_carryover || showActualCompletedDate) && (
           <div
             className="flex flex-wrap items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-950"
@@ -584,72 +594,7 @@ function EventCard({
             ) : null}
           </div>
         )}
-        {showAssignee && (
-          <div className="flex items-center gap-1 text-xs text-foreground">
-            <User className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
-            <span className={event.assigned_to ? "font-medium" : "italic text-muted-foreground"}>
-              {event.assigned_to ?? "Unassigned"}
-            </span>
-          </div>
-        )}
-        {event.car_name && (
-          <div className="hidden min-w-0 items-start gap-1 text-xs text-foreground sm:flex">
-            <Car className="w-3 h-3 flex-shrink-0 text-muted-foreground" />
-            <span className="min-w-0 break-words font-medium">{event.car_name}</span>
-            {event.plate && <span className="shrink-0 text-muted-foreground">· {event.plate}</span>}
-          </div>
-        )}
-        {event.reservation_id && (
-          <div className="hidden text-xs text-muted-foreground sm:block">
-            <span className="font-medium text-foreground">Res:</span> {event.reservation_id}
-          </div>
-        )}
-        {event.guest_name && (
-          <div className="hidden text-xs text-muted-foreground sm:block">{event.guest_name}</div>
-        )}
-        {event.extras && (
-          <div className="animate-pulse inline-flex items-center gap-1 text-xs font-medium text-amber-900 bg-amber-300 rounded px-1.5 py-0.5 w-fit">
-            <span className="font-semibold">Extras:</span> {event.extras}
-          </div>
-        )}
 
-        {/* Trip window: trip start → trip end (with date when it spans days) */}
-        {(event.trip_start_mt || event.trip_end_mt) && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
-            <Clock className="w-3 h-3 flex-shrink-0" />
-            <span className="text-foreground font-medium">{fmtTripDateTime(event.trip_start_mt)}</span>
-            <ArrowRight className="w-3 h-3 flex-shrink-0" />
-            <span className="text-foreground font-medium">{fmtTripDateTime(event.trip_end_mt)}</span>
-          </div>
-        )}
-
-        {/* Pick up & drop off locations */}
-        {event.pickup_location && (
-          <div className="flex items-start gap-1 text-xs text-muted-foreground">
-            <ArrowUpFromLine className="w-3 h-3 flex-shrink-0 mt-0.5 text-emerald-600" />
-            <span className="break-words"><span className="font-medium text-foreground">Pick Up:</span> {event.pickup_location}</span>
-          </div>
-        )}
-        {event.dropoff_location && (
-          <div className="flex items-start gap-1 text-xs text-muted-foreground">
-            <ArrowDownToLine className="w-3 h-3 flex-shrink-0 mt-0.5 text-rose-600" />
-            <span className="break-words"><span className="font-medium text-foreground">Drop Off:</span> {event.dropoff_location}</span>
-          </div>
-        )}
-
-        {/* Generic location (non-trip events: e.g. cleaning's own scheduled location, repair shop) — only when no trip endpoints shown */}
-        {event.location && !event.pickup_location && !event.dropoff_location && (
-          <div className="flex items-start gap-1 text-xs text-muted-foreground">
-            <MapPin className="w-3 h-3 flex-shrink-0" />
-            <span className="break-words">{event.location}</span>
-          </div>
-        )}
-        {event.detail && (
-          <div className="text-xs text-muted-foreground italic break-words">{event.detail}</div>
-        )}
-        {event.notes && (
-          <div className="text-xs text-muted-foreground break-words">{event.notes}</div>
-        )}
         {/* Photos from the underlying inspection/maintenance record — lets the
             morning-meeting review "back-track" what was actually done that day. */}
         {event.photos && event.photos.length > 0 && (
@@ -663,29 +608,122 @@ function EventCard({
             />
           </div>
         )}
-        {isAdmin && (
-          <button
-            type="button"
-            className={`absolute bottom-2 z-30 flex h-7 w-7 items-center justify-center rounded-md border border-red-700 bg-red-600 p-0 text-white shadow-md ring-2 ring-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-800 ${event.car_photo ? "right-2 md:right-[10.25rem] lg:right-[13.25rem]" : "right-2"}`}
-            title="Delete task"
-            aria-label="Delete task"
-            data-day-schedule-delete
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(event);
-            }}
+
+        {/* Controls footer — every editable field on one separated row */}
+        {(canEditAssignee || canEditDuration || canEditDriver) && (
+          <div
+            className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border/60 pt-2"
+            onClick={(e) => e.stopPropagation()}
             onDragStart={(e) => e.stopPropagation()}
           >
-            <Trash2 className="h-3 w-3" />
-          </button>
+            {canEditAssignee && (
+              <label className="flex w-full min-w-0 items-center gap-1.5 min-[430px]:w-auto">
+                <span className="text-[11px] text-muted-foreground md:text-[10px]">Assignee</span>
+                <div className="min-w-0 flex-1 min-[430px]:w-36 min-[430px]:flex-none">
+                  <EmployeeSelectCombobox
+                    value={event.assigned_to ?? ""}
+                    onChange={() => {}}
+                    onSelectEmployee={(emp) => {
+                      if (emp) onAssign(event, emp.employee_aid, [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`);
+                      else onUnassign(event);
+                    }}
+                    placeholder="Unassigned"
+                  />
+                </div>
+              </label>
+            )}
+            {canEditDuration && (
+              <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground md:text-[10px]">
+                <Clock className="h-3 w-3 flex-shrink-0" />
+                <input
+                  type="number"
+                  min={0}
+                  step={5}
+                  value={event.duration_minutes ?? ""}
+                  placeholder="mins"
+                  onChange={(e) => {
+                    const raw = e.target.value.trim();
+                    onDurationChange(event, raw === "" ? null : Math.max(0, Number(raw)));
+                  }}
+                  className="h-8 w-16 rounded border border-border bg-background px-1.5 text-[11px] text-foreground md:h-6 md:w-14 md:text-[10px]"
+                />
+                <span>min</span>
+              </label>
+            )}
+            {canEditDriver && (
+              <div className="flex w-full min-w-0 items-center gap-1.5 min-[430px]:w-auto">
+                <span className="text-[11px] text-muted-foreground md:text-[10px]">Driver</span>
+                <Select
+                  value={driverMode}
+                  onValueChange={(val) => {
+                    if (val === "employee") {
+                      setDriverModeDraft("employee");
+                      return;
+                    }
+                    setDriverModeDraft("");
+                    onDriverChange(event, val === "clear" ? null : (val as "uber" | "na"));
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-28 px-2 text-[11px] md:h-6 md:w-24 md:text-[10px]">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="clear">Clear</SelectItem>
+                    <SelectItem value="employee">Employee</SelectItem>
+                    <SelectItem value="uber">Uber</SelectItem>
+                    <SelectItem value="na">N/A</SelectItem>
+                  </SelectContent>
+                </Select>
+                {driverMode === "employee" && (
+                  <div className="min-w-0 flex-1 min-[430px]:w-36 min-[430px]:flex-none">
+                    <EmployeeSelectCombobox
+                      value={event.driver_assigned_to ?? ""}
+                      onChange={() => {}}
+                      onSelectEmployee={(emp) => {
+                        if (emp) {
+                          const fullname = [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`;
+                          onDriverChange(event, "employee", emp.employee_aid, fullname);
+                        } else {
+                          onDriverChange(event, null);
+                        }
+                      }}
+                      placeholder="Driver"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            {event.type === "cleaning" && event.status !== "completed" && showAlreadyCleanBy && (
+              <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground md:text-[10px]">Completed by:</span>
+                <div className="min-w-0 flex-1 min-[430px]:w-36 min-[430px]:flex-none">
+                  <EmployeeSelectCombobox
+                    value={event.assigned_to ?? ""}
+                    onChange={() => {}}
+                    onSelectEmployee={(emp) => {
+                      if (!emp) return;
+                      const fullname = [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`;
+                      onAssign(event, emp.employee_aid, fullname);
+                      onStatusChange(event.type, event.id, "completed");
+                      setShowAlreadyCleanBy(false);
+                    }}
+                    placeholder="Select employee"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         )}
-        <CarScheduleImage
-          carPhoto={event.car_photo}
-          carName={event.car_name}
-          className="absolute bottom-2 right-2 top-2 z-0 w-36 lg:w-48"
-          fit="contain"
-        />
       </div>
+
+      {/* Vehicle photo — a real column, so it never overlaps the details or the
+          delete button and the card height follows its content. */}
+      <CarScheduleImage
+        carPhoto={event.car_photo}
+        carName={event.car_name}
+        className="my-2 mr-2 hidden w-36 self-stretch md:block lg:w-44"
+        fit="contain"
+      />
     </div>
   );
 }
