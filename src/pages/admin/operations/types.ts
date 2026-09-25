@@ -230,6 +230,11 @@ export interface CarServiceDue {
 export interface MaintenanceRecord {
   id: number;
   inspection_id: number | null;
+  /** The ONE car issue this record covers. An inspection reporting three
+   *  issues produces three maintenance records, so each carries its own
+   *  assignee, schedule and status. Empty string when the inspection named no
+   *  issue types; null on a manually created record. */
+  car_issue_type?: string | null;
   /** Foreign key to the car. Preferred over car_name for new rows. */
   car_id: number | null;
   car_name: string;
@@ -308,3 +313,14 @@ export type MaintenanceStatus =
   | "in_review"
   | "in_repair"
   | "charged_customer";
+
+/** Toast wording after "Move to Maintenance". The endpoint returns one
+ *  maintenance record per reported car issue, so the count tells the user how
+ *  many records to expect under the vehicle. */
+export function movedToMaintenanceMessage(body: unknown): string {
+  const data = (body as { data?: unknown })?.data;
+  const count = Array.isArray(data) ? data.length : 0;
+  return count > 1
+    ? `Moved to Maintenance — ${count} records, one per car issue`
+    : "Moved to Maintenance";
+}

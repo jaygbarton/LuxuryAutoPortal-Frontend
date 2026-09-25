@@ -41,6 +41,7 @@ import {
   Plus,
   RotateCcw,
 } from "lucide-react";
+import { movedToMaintenanceMessage } from "./types";
 import type { Inspection, TuroTrip } from "./types";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
@@ -664,14 +665,14 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
       if (!response.ok) throw new Error("Failed to move to maintenance");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (body) => {
       queryClient.invalidateQueries({
         queryKey: ["/api/operations/inspections"],
       });
       queryClient.invalidateQueries({
         queryKey: ["/api/operations/maintenance"],
       });
-      toast({ title: "Success", description: "Moved to Maintenance" });
+      toast({ title: "Success", description: movedToMaintenanceMessage(body) });
     },
     onError: (error: Error) => {
       toast({

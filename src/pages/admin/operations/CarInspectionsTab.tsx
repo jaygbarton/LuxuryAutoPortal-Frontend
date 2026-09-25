@@ -16,6 +16,7 @@ import { InspectionModal } from "./InspectionModal";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Plus, Edit, Trash2, Wrench, History, CheckCircle2, RotateCcw } from "lucide-react";
+import { movedToMaintenanceMessage } from "./types";
 import type { Inspection, MaintenanceRecord, TuroTrip } from "./types";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
@@ -341,10 +342,10 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
         fallbackMessage: "Failed to move to maintenance",
       });
     },
-    onSuccess: () => {
+    onSuccess: (body) => {
       queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });
       queryClient.invalidateQueries({ queryKey: ["/api/operations/maintenance"] });
-      toast({ title: "Success", description: "Moved to Maintenance" });
+      toast({ title: "Success", description: movedToMaintenanceMessage(body) });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });

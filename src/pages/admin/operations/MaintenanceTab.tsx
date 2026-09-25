@@ -280,6 +280,7 @@ export function MaintenanceTab({
           rec.repair_shop_license,
           rec.status,
           rec.notes,
+          rec.car_issue_type,
           rec.inspection_car_issue_types?.join(" "),
           rec.scheduled_date,
           rec.due_date,
@@ -764,7 +765,10 @@ export function MaintenanceTab({
                       { label: "Extras", value: trip?.extras || "--" },
                       { label: "Gas Levels", value: gasEl },
                       { label: "Fuel Returned", value: <FuelReturnedCell level={rec.inspection_fuel_level_returned} /> },
-                      { label: "Car Issues", value: <CarIssueTypesCell types={rec.inspection_car_issue_types} /> },
+                      // The record's OWN issue — one record per reported issue.
+                      // Legacy rows created before the split fall back to the
+                      // inspection's full list.
+                      { label: "Car Issue", value: <CarIssueTypesCell types={rec.car_issue_type ? [rec.car_issue_type] : rec.inspection_car_issue_types} /> },
                       { label: "Owner Approval", value: <OwnerApprovalBadge rec={rec} /> },
                       { label: "Repair Shop", value: rec.repair_shop || "--" },
                       { label: "Repair Shop License #", value: rec.repair_shop_license || "--" },
