@@ -415,3 +415,44 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+/**
+ * Whose data the cache holds: the logged-in user plus any view-as target.
+ * null = no authenticated user in the payload.
+ */
+function sessionIdentity(data: unknown): string | null {
+  const u = (data as { user?: any } | undefined)?.user;
+  if (!u?.id) return null;
+  return [
+    u.id,
+    u.viewAsClient?.clientId ?? "",
+    u.viewAsEmployee?.employeeId ?? "",
+    u.viewAsCoHost?.coHostId ?? "",
+  ].join("|");
+}
+
+/**
+ * Drop page data when the server reports a different session identity.
+ *
+ * staleTime is Infinity, so scoped lists (Car Repaired, Payments, …) are never
+ * refetched on their own. refreshAuthForSessionTransition clears them when a
+ * view-as switch happens in THIS tab, but a switch made in another tab (the
+ * session cookie is shared) only surfaces here when /api/auth/me refetches on
+ * mount/focus — the banner then says "viewing as Co-Host" while every list
+ * still shows the admin's unscoped cache. Reset everything but auth/me the
+ * moment a fetched identity differs from the one the cache was built for.
+ * Manual setQueryData calls (login, refreshAuthForSessionTransition) only move
+ * the baseline — their callers already manage the cache.
+ */
+let cachedIdentity: string | null = null;
+queryClient.getQueryCache().subscribe((event) => {
+  if (event.type !== "updated" || event.action.type !== "success") return;
+  if (event.query.queryKey[0] !== "/api/auth/me") return;
+  const next = sessionIdentity(event.query.state.data);
+  const prev = cachedIdentity;
+  cachedIdentity = next;
+  if (event.action.manual || prev === null || next === null || prev === next) return;
+  queryClient.resetQueries({
+    predicate: (query) => query.queryKey[0] !== "/api/auth/me",
+  });
+});
