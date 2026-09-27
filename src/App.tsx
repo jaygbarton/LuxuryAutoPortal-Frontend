@@ -19,6 +19,7 @@ const Onboarding = lazy(() => import("@/pages/onboarding"));
 const Contact = lazy(() => import("@/pages/contact"));
 const ChauffeurPage = lazy(() => import("@/pages/chauffeur"));
 const CybercabPage = lazy(() => import("@/pages/cybercab"));
+const MeetUsPage = lazy(() => import("@/pages/meet-us"));
 const LocationInterest = lazy(() => import("@/pages/location-interest"));
 const legacyPage = <K extends keyof typeof import("@/pages/marketing/legacy-pages")>(key: K) =>
   lazy(() => import("@/pages/marketing/legacy-pages").then((module) => ({ default: module[key] as any })));
@@ -254,6 +255,7 @@ function Router() {
       <PublicRoute path="/salt-lake-city/detail-shop"><DetailShopPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/chauffeur-services"><ChauffeurPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/cybercab"><CybercabPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/meet-us"><MeetUsPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/deals"><DealsPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/jobs/apply"><JobApplicationPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/jobs"><JobsPage /></PublicRoute>
