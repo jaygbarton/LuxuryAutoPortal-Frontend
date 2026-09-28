@@ -31,12 +31,6 @@ if (!rootElement) {
   throw new Error("Root element not found. Make sure there's a div with id='root' in index.html");
 }
 
-// Clear the loading fallback immediately
-const loadingFallback = rootElement.querySelector('div[style*="Loading"]');
-if (loadingFallback) {
-  rootElement.innerHTML = '';
-}
-
 // Set a timeout to detect if app is stuck loading (10 seconds)
 const loadingTimeout = setTimeout(() => {
   if (rootElement.innerHTML === '' || rootElement.querySelector('#root-loading-timeout')) {
