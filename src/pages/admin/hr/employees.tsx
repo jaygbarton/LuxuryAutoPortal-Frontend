@@ -51,6 +51,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { TableRowSkeleton } from "@/components/ui/skeletons";
 import { TablePagination, ItemsPerPage } from "@/components/ui/table-pagination";
 import { cn } from "@/lib/utils";
+import { EmployeeDocumentImage } from "@/components/admin/EmployeeDocumentImage";
 import {
   AlertTriangle,
   Copy,
@@ -98,6 +99,7 @@ interface Employee {
   employee_marital_status: string;
   employee_created: string;
   employee_updated: string;
+  employee_photo?: string | null;
   employee_hear_about_gla?: string;
   employee_job_pay_work_email?: string | null;
   employee_job_pay_department_name?: string | null;
@@ -911,6 +913,9 @@ export default function EmployeesPage() {
                     <TableHead className="text-left text-foreground font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[140px] text-[10px] sm:text-xs">
                       Status
                     </TableHead>
+                    <TableHead className="text-center text-foreground font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 w-20 text-[10px] sm:text-xs">
+                      Photo
+                    </TableHead>
                     <TableHead className="text-left text-foreground font-medium px-2 sm:px-4 md:px-6 py-3 sm:py-4 min-w-[140px] text-[10px] sm:text-xs">
                       Employee #
                     </TableHead>
@@ -942,10 +947,10 @@ export default function EmployeesPage() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRowSkeleton colSpan={11} rows={5} />
+                    <TableRowSkeleton colSpan={12} rows={5} />
                   ) : error ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center py-8">
+                      <TableCell colSpan={12} className="text-center py-8">
                         <div className="flex flex-col items-center gap-3">
                           <p className="text-red-700 text-sm break-words max-w-2xl">
                             {error instanceof Error ? error.message : "Failed to fetch employees"}
@@ -962,7 +967,7 @@ export default function EmployeesPage() {
                     </TableRow>
                   ) : employees.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                         No employees found. Try adjusting your search or filters.
                       </TableCell>
                     </TableRow>
@@ -983,6 +988,14 @@ export default function EmployeesPage() {
                             >
                               {badge.text}
                             </Badge>
+                          </TableCell>
+                          <TableCell className="text-center px-2 sm:px-4 md:px-6 py-3 sm:py-4 align-middle">
+                            <EmployeeDocumentImage
+                              value={emp.employee_photo}
+                              alt={`${emp.employee_first_name} ${emp.employee_last_name}`}
+                              className="mx-auto h-10 w-10 rounded-full object-cover object-center"
+                              iconClassName="h-5 w-5"
+                            />
                           </TableCell>
                           <TableCell className="text-left text-muted-foreground px-2 sm:px-4 md:px-6 py-3 sm:py-4 align-middle text-xs sm:text-sm">
                             {emp.employee_number || <span className="text-gray-600">N/A</span>}

@@ -7,6 +7,8 @@ interface EmployeeDocumentImageProps {
   value: string | null | undefined;
   alt: string;
   className?: string;
+  /** Size of the placeholder icon shown when there is no image (default h-12 w-12). */
+  iconClassName?: string;
 }
 
 function extractFileIdOrUrl(value: string | null | undefined): string | null {
@@ -30,7 +32,7 @@ function extractFileIdOrUrl(value: string | null | undefined): string | null {
  * Renders an image from employee document (Drive file ID or URL).
  * For Drive file IDs, fetches via backend proxy with credentials.
  */
-export function EmployeeDocumentImage({ value, alt, className }: EmployeeDocumentImageProps) {
+export function EmployeeDocumentImage({ value, alt, className, iconClassName }: EmployeeDocumentImageProps) {
   const [src, setSrc] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const fileIdOrUrl = extractFileIdOrUrl(value);
@@ -76,7 +78,7 @@ export function EmployeeDocumentImage({ value, alt, className }: EmployeeDocumen
       <div
         className={`flex items-center justify-center bg-background border border-border rounded-md ${className || ""}`}
       >
-        <Image className="h-12 w-12 text-muted-foreground" />
+        <Image className={`${iconClassName || "h-12 w-12"} text-muted-foreground`} />
       </div>
     );
   }
