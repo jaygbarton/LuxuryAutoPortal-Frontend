@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Pencil, History } from "lucide-react";
+import { Download, Pencil, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
 import { OperationEditHistoryList } from "@/components/admin/OperationEditHistory";
@@ -528,6 +528,7 @@ function RegistrationCell({
 export function ServiceDueTab() {
   const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const onSaved = () => queryClient.invalidateQueries({ queryKey: ["/api/operations/maintenance/service-due"] });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "ACTIVE" | "INACTIVE">("all");
@@ -633,6 +634,82 @@ export function ServiceDueTab() {
     }));
   };
 
+  const handleExportCsv = () => {
+    const cell = (value: unknown) => {
+      if (value === null || value === undefined) return '""';
+      let text = String(value);
+      if (/^[=+\-@]/.test(text)) text = `'${text}`;
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+    const dayCount = (days: number) =>
+      `${days} day${days === 1 ? "" : "s"}`;
+    const serviceAge = (days: number | null, isEv = false) => {
+      if (isEv) return "EV";
+      if (days == null) return "No Data";
+      return days < 0 ? `In ${dayCount(Math.abs(days))}` : `${dayCount(days)} ago`;
+    };
+    const serviceDueDate = (date: string | null, kind: ServiceKind) =>
+      date && kind !== "windshield" ? formatDate(dueDateIso(date, THRESHOLDS[kind].due)) : "";
+    const registrationAge = (days: number | null) => {
+      if (days == null) return "No Data";
+      return days < 0 ? `Expired ${dayCount(Math.abs(days))} ago` : `Due in ${dayCount(days)}`;
+    };
+
+    const headers = [
+      "Status", "Car", "Plate", "VIN", "Location",
+      "Oil Change Status", "Last Oil Change", "Oil Change Due",
+      "Tires Status", "Last Tires", "Tires Due",
+      "Brakes Status", "Last Brakes", "Brakes Due",
+      "Windshield Status", "Last Windshield",
+      "Mechanic Status", "Last Mechanic", "Mechanic Due",
+      "License & Registration Status", "Last License & Registration", "License & Registration Due",
+      "Registration Status", "Registration Expiration", "Last Any Service",
+    ];
+    const lines = [headers.map(cell).join(",")];
+
+    for (const row of sorted) {
+      const isEv = row.car_fuel_type === "Electric";
+      lines.push([
+        row.car_status,
+        row.car_name,
+        row.car_plate,
+        row.car_vin,
+        row.locationTag,
+        serviceAge(row.days_since_oil_change, isEv),
+        isEv ? "" : formatDate(row.last_oil_change),
+        isEv ? "" : serviceDueDate(row.last_oil_change, "oil_change"),
+        serviceAge(row.days_since_tires),
+        formatDate(row.last_tires),
+        serviceDueDate(row.last_tires, "tires"),
+        serviceAge(row.days_since_brakes),
+        formatDate(row.last_brakes),
+        serviceDueDate(row.last_brakes, "brakes"),
+        serviceAge(row.days_since_windshield),
+        formatDate(row.last_windshield),
+        serviceAge(row.days_since_mechanic),
+        formatDate(row.last_mechanic),
+        serviceDueDate(row.last_mechanic, "mechanic"),
+        serviceAge(row.days_since_license_registration),
+        formatDate(row.last_license_registration),
+        serviceDueDate(row.last_license_registration, "license_registration"),
+        registrationAge(row.days_until_registration_expiration),
+        formatDate(row.registration_expiration),
+        formatDate(row.last_any_service),
+      ].map(cell).join(","));
+    }
+
+    const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `service-due-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    toast({ title: "Export ready", description: `${sorted.length} car${sorted.length === 1 ? "" : "s"} exported.` });
+  };
+
   const overdueOilCount = rows.filter((r) => r.car_fuel_type !== "Electric" && staleness(r.days_since_oil_change, "oil_change") === "red").length;
   const overdueTireCount = rows.filter((r) => staleness(r.days_since_tires, "tires") === "red").length;
   const overdueBrakesCount = rows.filter((r) => staleness(r.days_since_brakes, "brakes") === "red").length;
@@ -642,13 +719,24 @@ export function ServiceDueTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SectionHeader
           title="Service Due"
           subtitle="Last serviced per car from Income & Expenses receipt dates, with the next Service Due date calculated from each interval."
           variant="plain"
           className="mb-0"
         />
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 self-start sm:self-auto"
+          onClick={handleExportCsv}
+          disabled={isLoading || !!error || sorted.length === 0}
+          title="Export the cars matching the current filters to CSV"
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
