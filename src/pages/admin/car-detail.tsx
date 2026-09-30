@@ -44,6 +44,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ClientSelectCombobox } from "./ClientSelectCombobox";
 import { PUBLIC_LOCATIONS } from "@/lib/location-config";
 import { useCoHost } from "@/hooks/use-co-host";
+import { buildRentalHistorySearchParams, type RentalHistoryStatus } from "@/lib/rentalHistoryFilters";
 
 /**
  * Extract Turo vehicle ID from a Turo listing URL.
@@ -306,6 +307,7 @@ export default function CarDetailPage() {
   const [driversLicenseFiles, setDriversLicenseFiles] = useState<File[]>([]);
   const [driversLicensePreviews, setDriversLicensePreviews] = useState<string[]>([]);
   const [downloadingStatement, setDownloadingStatement] = useState(false);
+  const [rentalStatusFilter, setRentalStatusFilter] = useState<RentalHistoryStatus>("all");
 
   // Helper function to check if a URL is a PDF
   const isPdfDocument = (url: string): boolean => {
@@ -418,12 +420,14 @@ export default function CarDetailPage() {
     data: any[];
     total: number;
   }>({
-    queryKey: ["/api/turo-trips", "plate", carPlate, "vin", carVin],
+    queryKey: ["/api/turo-trips", "plate", carPlate, "vin", carVin, "status", rentalStatusFilter],
     queryFn: async () => {
       if (!carPlate && !carVin) throw new Error("No plate or VIN");
-      const params = new URLSearchParams({ limit: "200", offset: "0" });
-      if (carPlate) params.set("plate", carPlate);
-      if (carVin) params.set("vin", carVin);
+      const params = buildRentalHistorySearchParams({
+        plate: carPlate,
+        vin: carVin,
+        status: rentalStatusFilter,
+      });
       const url = buildApiUrl(`/api/turo-trips?${params.toString()}`);
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) return { success: false, data: [], total: 0 };
@@ -2881,7 +2885,7 @@ export default function CarDetailPage() {
 
         {/* Rental History — trips matched by plate number and/or VIN */}
         <Card className="bg-card border-border">
-          <CardHeader>
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
             <CardTitle className="text-primary text-lg flex items-center gap-2">
               Rental History
               {(carPlate || carVin) && (
@@ -2892,6 +2896,24 @@ export default function CarDetailPage() {
                 </span>
               )}
             </CardTitle>
+            <Select
+              value={rentalStatusFilter}
+              onValueChange={(value) => setRentalStatusFilter(value as RentalHistoryStatus)}
+            >
+              <SelectTrigger
+                className="bg-card border-border text-foreground w-44"
+                aria-label="Filter rental history by status"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border text-foreground">
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="booked">Booked</SelectItem>
+                <SelectItem value="ended">Ended</SelectItem>
+                <SelectItem value="returned">Returned</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
           </CardHeader>
           <CardContent className="p-0">
             {!carPlate && !carVin ? (
@@ -2904,7 +2926,9 @@ export default function CarDetailPage() {
               </div>
             ) : rentalTrips.length === 0 ? (
               <p className="text-muted-foreground text-center py-8 px-6">
-                No trips found for this car.
+                {rentalStatusFilter === "all"
+                  ? "No trips found for this car."
+                  : "No trips match the selected status."}
               </p>
             ) : (
               <div className="overflow-x-auto">
