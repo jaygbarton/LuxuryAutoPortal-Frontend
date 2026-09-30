@@ -24,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useCoHost } from "@/hooks/use-co-host";
 
 interface PaymentStatusItem {
   payment_status_aid: number;
@@ -43,6 +44,8 @@ export default function PaymentStatusPage() {
   const [formColor, setFormColor] = useState("#000000");
   const [formComputeTotal, setFormComputeTotal] = useState(false);
   const queryClient = useQueryClient();
+  const { isCoHost, user } = useCoHost();
+  const canEditStatuses = !!user && !isCoHost;
   const { toast } = useToast();
 
   const { data: statusesData, isLoading } = useQuery<{
@@ -241,13 +244,15 @@ export default function PaymentStatusPage() {
 
         <div className="flex items-center justify-between mb-4">
           <span className="text-muted-foreground text-sm">Total: {statuses.length}</span>
-          <Button
-            onClick={handleAdd}
-            className="bg-primary text-primary-foreground hover:bg-primary/80"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add
-          </Button>
+          {canEditStatuses && (
+            <Button
+              onClick={handleAdd}
+              className="bg-primary text-primary-foreground hover:bg-primary/80"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add
+            </Button>
+          )}
         </div>
 
         <div className="bg-card border border-border rounded-lg overflow-auto flex-1">
@@ -260,13 +265,13 @@ export default function PaymentStatusPage() {
                   <TableHead className="text-left text-foreground font-medium">Name</TableHead>
                   <TableHead className="text-left text-foreground font-medium w-24">Color</TableHead>
                   <TableHead className="text-left text-foreground font-medium w-36">Computed TOTALS</TableHead>
-                  <TableHead className="text-center text-foreground font-medium w-28">Actions</TableHead>
+                  {canEditStatuses && <TableHead className="text-center text-foreground font-medium w-28">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={canEditStatuses ? 6 : 5} className="text-center py-12 text-muted-foreground">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                     </TableCell>
                   </TableRow>
@@ -306,6 +311,7 @@ export default function PaymentStatusPage() {
                       <TableCell className="text-muted-foreground">
                         {item.payment_status_is_compute_total === 1 ? "Yes" : "No"}
                       </TableCell>
+                        {canEditStatuses && (
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
                           {item.payment_status_is_active === 1 ? (
@@ -353,11 +359,12 @@ export default function PaymentStatusPage() {
                           )}
                         </div>
                       </TableCell>
+                        )}
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={canEditStatuses ? 6 : 5} className="text-center py-12 text-muted-foreground">
                       No payment statuses found
                     </TableCell>
                   </TableRow>

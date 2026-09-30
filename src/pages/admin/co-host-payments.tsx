@@ -16,7 +16,7 @@ import { PaymentsPaginationFooter } from "@/components/admin/payments/PaymentsPa
 import { PaymentEditHistory } from "@/components/admin/payments/PaymentEditHistory";
 import { usePaymentListState } from "@/components/admin/payments/usePaymentListState";
 import { CoHostPaymentModal, type CoHostPaymentRow } from "@/components/modals/CoHostPaymentModal";
-import { PaymentReceiptModal } from "@/components/modals/PaymentReceiptModal";
+import { hasPaymentReceiptAttachment, PaymentReceiptModal } from "@/components/modals/PaymentReceiptModal";
 
 /**
  * One co-hosted car-month. The car/month/Co-Host Split come from the
@@ -238,9 +238,10 @@ export default function CoHostPaymentsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              disabled={!hasPaymentReceiptAttachment(p.co_host_attachment)}
                               onClick={() => setReceiptFor(p)}
                               className="text-muted-foreground hover:text-primary hover:bg-primary/10 h-7 w-7"
-                              title="View receipt"
+                              title={hasPaymentReceiptAttachment(p.co_host_attachment) ? "View co-host payment receipt" : "No co-host payment receipt attached"}
                             >
                               <FileText className="w-4 h-4" />
                             </Button>

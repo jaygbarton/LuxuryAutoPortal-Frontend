@@ -22,7 +22,7 @@ import { PaymentFilterBar } from "@/components/admin/payments/PaymentFilterBar";
 import { usePaymentListState } from "@/components/admin/payments/usePaymentListState";
 import { PaymentsPaginationFooter } from "@/components/admin/payments/PaymentsPaginationFooter";
 import { PaymentEditHistory } from "@/components/admin/payments/PaymentEditHistory";
-import { PaymentReceiptModal } from "@/components/modals/PaymentReceiptModal";
+import { hasPaymentReceiptAttachment, PaymentReceiptModal } from "@/components/modals/PaymentReceiptModal";
 
 interface Payment {
   payments_aid: number;
@@ -94,8 +94,8 @@ export default function PaymentsMainPage() {
   // requireAdmin alone let them create/edit/delete payment rows for cars they
   // merely manage. The backend now rejects those writes (requireAdminNotCoHost);
   // hide the controls too so the buttons aren't offered and then refused.
-  const { isCoHost, isRealCoHost } = useCoHost();
-  const canEditPayments = !isCoHost;
+  const { isCoHost, isRealCoHost, user } = useCoHost();
+  const canEditPayments = !!user && !isCoHost;
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -704,12 +704,13 @@ export default function PaymentsMainPage() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              disabled={!hasPaymentReceiptAttachment(payment.payments_attachment)}
                               onClick={() => {
                                 setSelectedPayment(payment);
                                 setIsReceiptModalOpen(true);
                               }}
                               className="text-muted-foreground hover:text-primary hover:bg-primary/10 h-7 w-7"
-                              title="View receipt"
+                              title={hasPaymentReceiptAttachment(payment.payments_attachment) ? "View payment receipt" : "No payment receipt attached"}
                             >
                               <FileText className="w-4 h-4" />
                             </Button>

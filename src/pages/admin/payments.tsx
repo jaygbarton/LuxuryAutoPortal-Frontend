@@ -30,7 +30,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AddEditPaymentModal } from "@/components/modals/AddEditPaymentModal";
-import { PaymentReceiptModal } from "@/components/modals/PaymentReceiptModal";
+import { hasPaymentReceiptAttachment, PaymentReceiptModal } from "@/components/modals/PaymentReceiptModal";
 
 interface CarDetail {
   id: number;
@@ -129,6 +129,8 @@ export default function PaymentsPage() {
   });
   const user = userData?.user;
   const isAdmin = user?.isAdmin === true;
+  const isCoHost = !!user?.isCoHost || !!user?.viewAsCoHost?.coHostId;
+  const canEditPayments = isAdmin && !isCoHost;
   const isClient = user?.isClient === true;
 
   // Fetch car data
@@ -363,7 +365,7 @@ export default function PaymentsPage() {
                 </p>
               )}
             </div>
-            {isAdmin && (
+            {canEditPayments && (
               <Button
                 onClick={() => {
                   if (!car?.clientId) {
@@ -454,7 +456,7 @@ export default function PaymentsPage() {
                     <TableHead className="text-left text-foreground font-medium">Payment Date</TableHead>
                     <TableHead className="text-center text-foreground font-medium">Receipt</TableHead>
                     <TableHead className="text-left text-foreground font-medium">Remarks</TableHead>
-                    {isAdmin && (
+                    {canEditPayments && (
                       <TableHead className="text-center text-foreground font-medium">Actions</TableHead>
                     )}
                   </TableRow>
@@ -462,7 +464,7 @@ export default function PaymentsPage() {
                 <TableBody>
                   {isLoadingPayments ? (
                     <TableRow>
-                      <TableCell colSpan={isAdmin ? 11 : 10} className="text-center py-12 text-muted-foreground">
+                      <TableCell colSpan={canEditPayments ? 11 : 10} className="text-center py-12 text-muted-foreground">
                         Loading...
                       </TableCell>
                     </TableRow>
@@ -508,7 +510,9 @@ export default function PaymentsPage() {
                           </TableCell>
                           <TableCell className="text-center">
                             <Button
+                              disabled={!hasPaymentReceiptAttachment(payment.payments_attachment)}
                               variant="ghost"
+                              title={hasPaymentReceiptAttachment(payment.payments_attachment) ? "View payment receipt" : "No payment receipt attached"}
                               size="sm"
                               onClick={() => handleReceipt(payment)}
                               className="text-muted-foreground hover:text-primary"
@@ -519,7 +523,7 @@ export default function PaymentsPage() {
                           <TableCell className="text-left text-muted-foreground max-w-[200px] truncate" title={payment.payments_remarks || undefined}>
                             {payment.payments_remarks || "--"}
                           </TableCell>
-                          {isAdmin && (
+                          {canEditPayments && (
                             <TableCell className="text-center">
                               <div className="flex items-center justify-center gap-2">
                                 <Button
@@ -558,12 +562,12 @@ export default function PaymentsPage() {
                         <TableCell className="text-right font-bold text-primary">
                           {formatCurrency(totals.balance)}
                         </TableCell>
-                        <TableCell colSpan={isAdmin ? 5 : 4}></TableCell>
+                        <TableCell colSpan={canEditPayments ? 5 : 4}></TableCell>
                       </TableRow>
                     </>
                   ) : (
                     <TableRow>
-                        <TableCell colSpan={isAdmin ? 11 : 10} className="text-center py-12 text-muted-foreground">
+                        <TableCell colSpan={canEditPayments ? 11 : 10} className="text-center py-12 text-muted-foreground">
                         No payment records found
                       </TableCell>
                     </TableRow>

@@ -16,8 +16,6 @@ interface Payment {
   payments_aid: number;
   payments_year_month: string;
   payments_attachment: string | null;
-  /** Used to look up matching Income & Expense receipts for the same month/car. */
-  payments_car_id?: number;
 }
 
 interface PaymentReceiptModalProps {
@@ -88,6 +86,17 @@ function normalizePaymentAttachment(entry: unknown): FileUrlData | null {
   };
 }
 
+export function hasPaymentReceiptAttachment(value: string | null | undefined): boolean {
+  if (typeof value !== "string" || !value.trim()) return false;
+  try {
+    const parsed = JSON.parse(value);
+    const entries = Array.isArray(parsed) ? parsed : [parsed];
+    return entries.some((entry) => normalizePaymentAttachment(entry) !== null);
+  } catch {
+    return normalizePaymentAttachment(value) !== null;
+  }
+}
+
 export function PaymentReceiptModal({
   isOpen,
   onClose,
@@ -111,55 +120,16 @@ export function PaymentReceiptModal({
     setIsLoadingFiles(true);
     setFileUrls([]);
 
-    // Load both sources in parallel:
-    //   (A) files attached directly to the payment row (existing behaviour)
-    //   (B) I&E receipts for the same car/month — cell-level images AND
-    //       approved expense-form-submission receipts (new).
+    // A payment receipt must come from the payment ledger itself. Income &
+    // Expense evidence belongs to a different workflow and must not be shown
+    // as proof that this owner/co-host payment was made.
     const loadAll = async () => {
-      const [paymentFiles, ieFiles] = await Promise.all([
-        loadPaymentAttachmentFiles(),
-        loadIncomeExpenseReceipts(),
-      ]);
-      const merged = [...paymentFiles, ...ieFiles];
-      setFileUrls(merged);
+      const paymentFiles = await loadPaymentAttachmentFiles();
+      setFileUrls(paymentFiles);
       setCurrentIndex(0);
       setIsLoadingFiles(false);
     };
 
-    // ---- (B) I&E receipts --------------------------------------------
-    const loadIncomeExpenseReceipts = async (): Promise<FileUrlData[]> => {
-      if (!payment?.payments_car_id || !payment?.payments_year_month) return [];
-      try {
-        const res = await fetch(
-          buildApiUrl(
-            `/api/payments/receipts/ie?carId=${encodeURIComponent(
-              String(payment.payments_car_id)
-            )}&yearMonth=${encodeURIComponent(payment.payments_year_month)}`
-          ),
-          { credentials: "include" }
-        );
-        if (!res.ok) return [];
-        const json = await res.json();
-        const list = Array.isArray(json?.files) ? json.files : [];
-        return list.map((f: any) => ({
-          fileId: String(f.fileId || ""),
-          name: f.name,
-          mimeType: f.mimeType,
-          url: f.url,
-          webViewLink: f.webViewLink,
-          webContentLink: f.webContentLink,
-          previewUrl: f.previewUrl,
-          source: f.source === "ie-cell" ? "ie-cell" : "form-submission",
-          contextLabel:
-            [f.category, f.field].filter(Boolean).join(" › ") || undefined,
-        }));
-      } catch (error) {
-        console.error("[Payment Receipts] Failed to fetch I&E receipts:", error);
-        return [];
-      }
-    };
-
-    // ---- (A) payment_attachment files (original behaviour) -----------
     const loadPaymentAttachmentFiles = async (): Promise<FileUrlData[]> => {
       if (!payment?.payments_attachment) return [];
       try {
