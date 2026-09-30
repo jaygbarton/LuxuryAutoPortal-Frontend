@@ -276,6 +276,10 @@ export function CarBlockOffContent({ includePageLinks = false }: { includePageLi
   // Table state
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [pickupFrom, setPickupFrom] = useState("");
+  const [pickupTo, setPickupTo] = useState("");
+  const [endFrom, setEndFrom] = useState("");
+  const [endTo, setEndTo] = useState("");
   const [page, setPage] = useState(1);
   const limit = 20;
   const [showAll, setShowAll] = useState<boolean>(() => {
@@ -316,7 +320,18 @@ export function CarBlockOffContent({ includePageLinks = false }: { includePageLi
 
   // Submissions list query
   const { data: submissionsData, isLoading } = useQuery<SubmissionsResponse>({
-    queryKey: ["/api/car-block-off/submissions", search, statusFilter, page, limit, showAll],
+    queryKey: [
+      "/api/car-block-off/submissions",
+      search,
+      statusFilter,
+      pickupFrom,
+      pickupTo,
+      endFrom,
+      endTo,
+      page,
+      limit,
+      showAll,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams({
         search,
@@ -324,6 +339,10 @@ export function CarBlockOffContent({ includePageLinks = false }: { includePageLi
         page: String(page),
         limit: String(limit),
         all: String(showAll),
+        pickupFrom,
+        pickupTo,
+        endFrom,
+        endTo,
       });
       return api.get(`/api/car-block-off/submissions?${params}`, {
         fallbackMessage: "Failed to fetch submissions",
@@ -731,7 +750,7 @@ export function CarBlockOffContent({ includePageLinks = false }: { includePageLi
         <div className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <h2 className="text-lg font-semibold text-foreground">Submissions</h2>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -753,6 +772,60 @@ export function CarBlockOffContent({ includePageLinks = false }: { includePageLi
                   <SelectItem value="update_requested">Update Requested</SelectItem>
                 </SelectContent>
               </Select>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Pick Up</span>
+                <Input
+                  type="date"
+                  value={pickupFrom}
+                  onChange={(e) => { setPickupFrom(e.target.value); setPage(1); }}
+                  className="bg-card border-border text-foreground h-9 w-[9.5rem]"
+                  aria-label="Pick Up date from"
+                />
+                <span className="text-xs text-muted-foreground">to</span>
+                <Input
+                  type="date"
+                  value={pickupTo}
+                  min={pickupFrom || undefined}
+                  onChange={(e) => { setPickupTo(e.target.value); setPage(1); }}
+                  className="bg-card border-border text-foreground h-9 w-[9.5rem]"
+                  aria-label="Pick Up date to"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Block Off End</span>
+                <Input
+                  type="date"
+                  value={endFrom}
+                  onChange={(e) => { setEndFrom(e.target.value); setPage(1); }}
+                  className="bg-card border-border text-foreground h-9 w-[9.5rem]"
+                  aria-label="Block Off End date from"
+                />
+                <span className="text-xs text-muted-foreground">to</span>
+                <Input
+                  type="date"
+                  value={endTo}
+                  min={endFrom || undefined}
+                  onChange={(e) => { setEndTo(e.target.value); setPage(1); }}
+                  className="bg-card border-border text-foreground h-9 w-[9.5rem]"
+                  aria-label="Block Off End date to"
+                />
+              </div>
+              {(pickupFrom || pickupTo || endFrom || endTo) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 text-muted-foreground"
+                  onClick={() => {
+                    setPickupFrom("");
+                    setPickupTo("");
+                    setEndFrom("");
+                    setEndTo("");
+                    setPage(1);
+                  }}
+                >
+                  Clear dates
+                </Button>
+              )}
             </div>
           </div>
 

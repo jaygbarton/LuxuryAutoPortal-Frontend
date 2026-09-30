@@ -103,23 +103,6 @@ function fmtDateTime(v: string | null | undefined) {
   }
 }
 
-/** "YYYY-MM-DD" day key of a stored datetime, without UTC conversion (values
- *  are already Mountain time — see fmtDateTime). */
-function dayKey(v: string | null | undefined): string {
-  if (!v) return "";
-  return String(v).replace(" ", "T").slice(0, 10);
-}
-
-/** Inclusive date-range test. A blank bound means "unbounded on that side";
- *  a row with no date is only excluded once a bound is actually set. */
-function inDateRange(value: string | null | undefined, from: string, to: string): boolean {
-  if (!from && !to) return true;
-  const day = dayKey(value);
-  if (!day) return false;
-  if (from && day < from) return false;
-  if (to && day > to) return false;
-  return true;
-}
 
 const PAGE_SIZE_KEY = "operations.carBlockOff.pageSize";
 const SHOW_ALL_KEY = "operations.carBlockOff.showAll";
@@ -148,7 +131,18 @@ export function CarBlockOffTab() {
   })();
 
   const { data, isLoading } = useQuery<SubmissionsResponse>({
-    queryKey: ["/api/car-block-off/submissions", search, statusFilter, page, limit, showAll],
+    queryKey: [
+      "/api/car-block-off/submissions",
+      search,
+      statusFilter,
+      pickupFrom,
+      pickupTo,
+      endFrom,
+      endTo,
+      page,
+      limit,
+      showAll,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams({
         search,
@@ -156,6 +150,10 @@ export function CarBlockOffTab() {
         page: String(page),
         limit: String(limit),
         all: String(showAll),
+        pickupFrom,
+        pickupTo,
+        endFrom,
+        endTo,
       });
       return api.get(`/api/car-block-off/submissions?${params}`, {
         fallbackMessage: "Failed to fetch",
@@ -164,18 +162,15 @@ export function CarBlockOffTab() {
     staleTime: 30_000,
   });
 
-  const records = (data?.data ?? [])
-    .filter((record) =>
-      operationLocationMatches(locationFilter, [
-        record.location_tag,
-        record.pickup_location,
-        record.dropoff_location,
-        record.car_name,
-        record.plate_number,
-      ]),
-    )
-    .filter((record) => inDateRange(record.pickup_date, pickupFrom, pickupTo))
-    .filter((record) => inDateRange(record.block_off_end_date, endFrom, endTo));
+  const records = (data?.data ?? []).filter((record) =>
+    operationLocationMatches(locationFilter, [
+      record.location_tag,
+      record.pickup_location,
+      record.dropoff_location,
+      record.car_name,
+      record.plate_number,
+    ]),
+  );
   const total = data?.total ?? 0;
   const totalPages = showAll ? 1 : Math.max(1, Math.ceil(total / limit));
 
@@ -260,27 +255,26 @@ export function CarBlockOffTab() {
             ))}
           </SelectContent>
         </Select>
-        {/* Date ranges are applied to the loaded page client-side, matching how
-            the location filter already narrows these rows. */}
+        {/* Date ranges are applied by the API before pagination. */}
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-muted-foreground whitespace-nowrap">Pick Up</span>
-          <Input type="date" value={pickupFrom} onChange={(e) => setPickupFrom(e.target.value)}
+          <Input type="date" value={pickupFrom} onChange={(e) => { setPickupFrom(e.target.value); setPage(1); }}
             className="bg-card border-border text-foreground h-9 w-[9.5rem]" aria-label="Pick Up date from" />
           <span className="text-xs text-muted-foreground">to</span>
-          <Input type="date" value={pickupTo} min={pickupFrom || undefined} onChange={(e) => setPickupTo(e.target.value)}
+          <Input type="date" value={pickupTo} min={pickupFrom || undefined} onChange={(e) => { setPickupTo(e.target.value); setPage(1); }}
             className="bg-card border-border text-foreground h-9 w-[9.5rem]" aria-label="Pick Up date to" />
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-muted-foreground whitespace-nowrap">Block Off End</span>
-          <Input type="date" value={endFrom} onChange={(e) => setEndFrom(e.target.value)}
+          <Input type="date" value={endFrom} onChange={(e) => { setEndFrom(e.target.value); setPage(1); }}
             className="bg-card border-border text-foreground h-9 w-[9.5rem]" aria-label="Block Off End date from" />
           <span className="text-xs text-muted-foreground">to</span>
-          <Input type="date" value={endTo} min={endFrom || undefined} onChange={(e) => setEndTo(e.target.value)}
+          <Input type="date" value={endTo} min={endFrom || undefined} onChange={(e) => { setEndTo(e.target.value); setPage(1); }}
             className="bg-card border-border text-foreground h-9 w-[9.5rem]" aria-label="Block Off End date to" />
         </div>
         {(pickupFrom || pickupTo || endFrom || endTo) && (
           <Button variant="ghost" size="sm" className="h-9 text-muted-foreground"
-            onClick={() => { setPickupFrom(""); setPickupTo(""); setEndFrom(""); setEndTo(""); }}>
+            onClick={() => { setPickupFrom(""); setPickupTo(""); setEndFrom(""); setEndTo(""); setPage(1); }}>
             Clear dates
           </Button>
         )}
