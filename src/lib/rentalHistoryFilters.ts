@@ -1,19 +1,19 @@
-export const RENTAL_HISTORY_STATUSES = ["booked", "cancelled", "ended", "returned"] as const;
+export const RENTAL_HISTORY_STATUSES = ["booked", "ended", "cancelled"] as const;
 
-export type RentalHistoryStatus = "all" | (typeof RENTAL_HISTORY_STATUSES)[number];
+export type RentalHistoryStatus = (typeof RENTAL_HISTORY_STATUSES)[number];
 
 export function buildRentalHistorySearchParams({
   plate,
   vin,
-  status,
+  statuses,
 }: {
   plate?: string | null;
   vin?: string | null;
-  status: RentalHistoryStatus;
+  statuses: readonly RentalHistoryStatus[];
 }): URLSearchParams {
   const params = new URLSearchParams({ limit: "200", offset: "0" });
   if (plate) params.set("plate", plate);
   if (vin) params.set("vin", vin);
-  if (status !== "all") params.set("status", status);
+  if (statuses.length > 0) params.set("status", statuses.join(","));
   return params;
 }

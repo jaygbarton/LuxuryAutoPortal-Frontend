@@ -6,7 +6,7 @@ describe("buildRentalHistorySearchParams", () => {
     const params = buildRentalHistorySearchParams({
       plate: "A907GJ",
       vin: "1C4SJSBP5RS130997",
-      status: "all",
+      statuses: [],
     });
 
     expect(params.get("plate")).toBe("A907GJ");
@@ -15,13 +15,13 @@ describe("buildRentalHistorySearchParams", () => {
     expect(params.get("limit")).toBe("200");
   });
 
-  it("sends the selected status to the server", () => {
+  it("sends all selected statuses to the server", () => {
     const params = buildRentalHistorySearchParams({
       plate: "A907GJ",
       vin: "1C4SJSBP5RS130997",
-      status: "cancelled",
+      statuses: ["ended", "cancelled"],
     });
 
-    expect(params.get("status")).toBe("cancelled");
+    expect(params.get("status")).toBe("ended,cancelled");
   });
 });

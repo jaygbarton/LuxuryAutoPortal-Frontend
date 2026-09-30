@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Car, Upload, X, Edit, Trash2, ChevronLeft, ChevronRight, CheckSquare, Square, FileText, Star, Plus, Minus, Loader2 } from "lucide-react";
+import { ArrowLeft, Car, Upload, X, Edit, Trash2, ChevronLeft, ChevronRight, ChevronDown, CheckSquare, Square, FileText, Star, Plus, Minus, Loader2 } from "lucide-react";
 import { CarDetailSkeleton } from "@/components/ui/skeletons";
 import { buildApiUrl, buildUploadApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -40,11 +40,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ClientSelectCombobox } from "./ClientSelectCombobox";
 import { PUBLIC_LOCATIONS } from "@/lib/location-config";
 import { useCoHost } from "@/hooks/use-co-host";
-import { buildRentalHistorySearchParams, type RentalHistoryStatus } from "@/lib/rentalHistoryFilters";
+import {
+  buildRentalHistorySearchParams,
+  RENTAL_HISTORY_STATUSES,
+  type RentalHistoryStatus,
+} from "@/lib/rentalHistoryFilters";
 
 /**
  * Extract Turo vehicle ID from a Turo listing URL.
@@ -307,7 +317,7 @@ export default function CarDetailPage() {
   const [driversLicenseFiles, setDriversLicenseFiles] = useState<File[]>([]);
   const [driversLicensePreviews, setDriversLicensePreviews] = useState<string[]>([]);
   const [downloadingStatement, setDownloadingStatement] = useState(false);
-  const [rentalStatusFilter, setRentalStatusFilter] = useState<RentalHistoryStatus>("all");
+  const [rentalStatusFilters, setRentalStatusFilters] = useState<RentalHistoryStatus[]>([]);
 
   // Helper function to check if a URL is a PDF
   const isPdfDocument = (url: string): boolean => {
@@ -420,13 +430,13 @@ export default function CarDetailPage() {
     data: any[];
     total: number;
   }>({
-    queryKey: ["/api/turo-trips", "plate", carPlate, "vin", carVin, "status", rentalStatusFilter],
+    queryKey: ["/api/turo-trips", "plate", carPlate, "vin", carVin, "status", rentalStatusFilters],
     queryFn: async () => {
       if (!carPlate && !carVin) throw new Error("No plate or VIN");
       const params = buildRentalHistorySearchParams({
         plate: carPlate,
         vin: carVin,
-        status: rentalStatusFilter,
+        statuses: rentalStatusFilters,
       });
       const url = buildApiUrl(`/api/turo-trips?${params.toString()}`);
       const res = await fetch(url, { credentials: "include" });
@@ -2896,24 +2906,43 @@ export default function CarDetailPage() {
                 </span>
               )}
             </CardTitle>
-            <Select
-              value={rentalStatusFilter}
-              onValueChange={(value) => setRentalStatusFilter(value as RentalHistoryStatus)}
-            >
-              <SelectTrigger
-                className="bg-card border-border text-foreground w-44"
-                aria-label="Filter rental history by status"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border text-foreground">
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="booked">Booked</SelectItem>
-                <SelectItem value="ended">Ended</SelectItem>
-                <SelectItem value="returned">Returned</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="bg-card border-border text-foreground w-44 justify-between font-normal"
+                  aria-label="Filter rental history by status"
+                >
+                  <span>
+                    {rentalStatusFilters.length === 0
+                      ? "All Statuses"
+                      : rentalStatusFilters.length <= 2
+                        ? rentalStatusFilters
+                            .map((status) => status.charAt(0).toUpperCase() + status.slice(1))
+                            .join(" + ")
+                        : `${rentalStatusFilters.length} selected`}
+                  </span>
+                  <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-44">
+                {RENTAL_HISTORY_STATUSES.map((status) => (
+                  <DropdownMenuCheckboxItem
+                    key={status}
+                    checked={rentalStatusFilters.includes(status)}
+                    onCheckedChange={(checked) => {
+                      setRentalStatusFilters((current) =>
+                        checked
+                          ? [...current, status]
+                          : current.filter((selected) => selected !== status),
+                      );
+                    }}
+                  >
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </CardHeader>
           <CardContent className="p-0">
             {!carPlate && !carVin ? (
@@ -2926,7 +2955,7 @@ export default function CarDetailPage() {
               </div>
             ) : rentalTrips.length === 0 ? (
               <p className="text-muted-foreground text-center py-8 px-6">
-                {rentalStatusFilter === "all"
+                {rentalStatusFilters.length === 0
                   ? "No trips found for this car."
                   : "No trips match the selected status."}
               </p>
