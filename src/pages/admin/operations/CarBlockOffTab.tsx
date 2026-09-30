@@ -122,6 +122,7 @@ function inDateRange(value: string | null | undefined, from: string, to: string)
 }
 
 const PAGE_SIZE_KEY = "operations.carBlockOff.pageSize";
+const SHOW_ALL_KEY = "operations.carBlockOff.showAll";
 
 // ── Tab component ─────────────────────────────────────────────────────────────
 
@@ -137,6 +138,9 @@ export function CarBlockOffTab() {
   const [endFrom, setEndFrom] = useState("");
   const [endTo, setEndTo] = useState("");
   const [page, setPage] = useState(1);
+  const [showAll, setShowAll] = useState<boolean>(() => {
+    try { return localStorage.getItem(SHOW_ALL_KEY) === "true"; } catch { return false; }
+  });
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const limit = (() => {
@@ -144,13 +148,14 @@ export function CarBlockOffTab() {
   })();
 
   const { data, isLoading } = useQuery<SubmissionsResponse>({
-    queryKey: ["/api/car-block-off/submissions", search, statusFilter, page],
+    queryKey: ["/api/car-block-off/submissions", search, statusFilter, page, limit, showAll],
     queryFn: async () => {
       const params = new URLSearchParams({
         search,
         status: statusFilter,
         page: String(page),
         limit: String(limit),
+        all: String(showAll),
       });
       return api.get(`/api/car-block-off/submissions?${params}`, {
         fallbackMessage: "Failed to fetch",
@@ -172,7 +177,7 @@ export function CarBlockOffTab() {
     .filter((record) => inDateRange(record.pickup_date, pickupFrom, pickupTo))
     .filter((record) => inDateRange(record.block_off_end_date, endFrom, endTo));
   const total = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const totalPages = showAll ? 1 : Math.max(1, Math.ceil(total / limit));
 
   // Inline status update
   const statusMutation = useMutation({
@@ -425,21 +430,42 @@ export function CarBlockOffTab() {
         </table>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total}
-          </span>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <span className="text-sm text-foreground px-2">Page {page} of {totalPages}</span>
-            <Button variant="ghost" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
+      {/* Pagination and Show All */}
+      {total > 0 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground">
+              {showAll
+                ? `Showing all ${records.length}${records.length !== total ? ` of ${total}` : ""} submissions`
+                : `${(page - 1) * limit + 1}–${Math.min(page * limit, total)} of ${total}`}
+            </span>
+            <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={showAll}
+                disabled={isLoading}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setShowAll(checked);
+                  setPage(1);
+                  try { localStorage.setItem(SHOW_ALL_KEY, String(checked)); } catch {}
+                }}
+                className="h-4 w-4 rounded border-border accent-primary"
+              />
+              Show all results
+            </label>
           </div>
+          {!showAll && totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm text-foreground px-2">Page {page} of {totalPages}</span>
+              <Button variant="ghost" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
