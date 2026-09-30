@@ -2,6 +2,12 @@ import React, { Component, ErrorInfo, ReactNode } from "react";
 import { AlertCircle, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { recoverFromStaleChunk } from "@/lib/chunkRecovery";
+import {
+  createDomRecoveryMarker,
+  DOM_RECOVERY_STORAGE_KEY,
+  isExternalDomMutationError,
+  shouldReloadAfterDomMutation,
+} from "@/lib/domMutationRecovery";
 
 interface Props {
   children: ReactNode;
@@ -21,20 +27,9 @@ interface State {
  * "Failed to execute 'removeChild' on 'Node'".
  *
  * Nothing is actually broken in the app, so a full-screen error page is the
- * wrong response — one silent remount recovers cleanly. `notranslate` on the
- * React root (index.html) prevents most of these; this is the safety net for
- * extensions that ignore it.
+ * wrong response. `notranslate` on the React root (index.html) prevents most
+ * of these; a guarded reload below recovers when extensions ignore it.
  */
-function isExternalDomMutationError(error: Error | null): boolean {
-  const msg = String(error?.message ?? "");
-  return (
-    msg.includes("removeChild") ||
-    msg.includes("insertBefore") ||
-    msg.includes("The node to be removed is not a child of this node") ||
-    msg.includes("The node before which the new node is to be inserted is not a child")
-  );
-}
-
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -73,15 +68,30 @@ export class ErrorBoundary extends Component<Props, State> {
       console.error("❌ [ERROR BOUNDARY] API Base URL:", import.meta.env.VITE_API_URL || 'Not set');
     }
     
-    // Recover once from an externally-mutated DOM rather than showing a
-    // dead-end error page for something cosmetic.
+    // React cannot safely reconcile a tree whose nodes were replaced outside
+    // React. Reload the current route once so it mounts against a clean DOM.
     if (isExternalDomMutationError(error) && !this.hasAttemptedDomRecovery) {
       this.hasAttemptedDomRecovery = true;
-      console.warn(
-        "⚠️ [ERROR BOUNDARY] DOM mutated by an external tool (likely a page translator). Remounting once.",
-      );
-      this.setState({ hasError: false, error: null, errorInfo: null });
-      return;
+      try {
+        const currentUrl = window.location.href;
+        const storedMarker = window.sessionStorage.getItem(DOM_RECOVERY_STORAGE_KEY);
+        if (shouldReloadAfterDomMutation(storedMarker, currentUrl)) {
+          window.sessionStorage.setItem(
+            DOM_RECOVERY_STORAGE_KEY,
+            createDomRecoveryMarker(currentUrl),
+          );
+          console.warn(
+            "⚠️ [ERROR BOUNDARY] DOM mutated outside React (likely a page translator). Reloading the current route once.",
+          );
+          window.location.reload();
+          return;
+        }
+      } catch (storageError) {
+        console.warn(
+          "⚠️ [ERROR BOUNDARY] DOM recovery storage is unavailable; showing the fallback to avoid a reload loop.",
+          storageError,
+        );
+      }
     }
 
     this.setState({
