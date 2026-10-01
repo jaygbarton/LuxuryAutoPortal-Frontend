@@ -1101,8 +1101,11 @@ export function DayScheduleTab() {
       );
       return { previous };
     },
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: dayScheduleQueryKey, exact: true, refetchType: "active" });
+      if (["block_off", "owner_pickup", "owner_cleaning", "owner_dropoff"].includes(vars.type)) {
+        queryClient.invalidateQueries({ queryKey: ["/api/turo-trips/calendar"] });
+      }
     },
     onError: (e: Error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(dayScheduleQueryKey, context.previous);

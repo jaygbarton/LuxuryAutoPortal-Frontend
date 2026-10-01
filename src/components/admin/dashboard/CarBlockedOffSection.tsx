@@ -117,8 +117,10 @@ export default function CarBlockedOffSection() {
       if (!res.ok || !body.success) throw new Error(body.error || `HTTP ${res.status}`);
       return body;
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["/api/car-block-off/submissions"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/car-block-off/submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips/calendar"] });
+    },
     onError: (err: any) =>
       toast({ title: "Error", description: err.message, variant: "destructive" }),
   });

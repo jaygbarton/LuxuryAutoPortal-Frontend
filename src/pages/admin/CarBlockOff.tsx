@@ -492,6 +492,7 @@ export function CarBlockOffContent({ includePageLinks = false }: { includePageLi
     onSuccess: () => {
       toast({ title: "Status updated" });
       queryClient.invalidateQueries({ queryKey: ["/api/car-block-off/submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/turo-trips/calendar"] });
     },
     onError: (err: any) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
