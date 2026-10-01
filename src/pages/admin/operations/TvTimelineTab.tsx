@@ -264,7 +264,6 @@ function useToggleTaskDone(scheduleDate: string) {
         body: JSON.stringify({ status: newStatus }),
       });
       qc.invalidateQueries({ queryKey: ["/api/operations/day-schedule", scheduleDate] });
-      qc.invalidateQueries({ queryKey: ["/api/turo-trips/calendar"] });
     } finally {
       setPending((s) => { const n = new Set(s); n.delete(taskId); return n; });
     }
@@ -283,6 +282,7 @@ function useToggleTaskDone(scheduleDate: string) {
         body: JSON.stringify({ status: newStatus }),
       });
       qc.invalidateQueries({ queryKey: ["/api/operations/day-schedule", scheduleDate] });
+      qc.invalidateQueries({ queryKey: ["/api/turo-trips/calendar"] });
     } finally {
       setPending((s) => { const n = new Set(s); n.delete(id); return n; });
     }
