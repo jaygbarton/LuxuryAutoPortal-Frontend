@@ -54,6 +54,38 @@ interface AddEditPaymentModalProps {
   clientId: number;
 }
 
+/**
+ * Parses payments_attachment JSON into a display-safe list. Entries are
+ * either a bare string (Drive file ID, /uploads path, or http URL) or —
+ * every row created by the legacy importer, which is the shape currently on
+ * every production payment that has a receipt — an object like
+ * { id_str, name, url, datetime }. Exported standalone so the legacy-object
+ * shape is covered by a unit test without needing a component render harness.
+ */
+export function parseExistingReceipts(
+  attachment: string | null | undefined,
+): Array<{ id: string; name?: string }> {
+  if (!attachment) return [];
+  try {
+    const parsed = JSON.parse(attachment);
+    const entries = Array.isArray(parsed) ? parsed : [parsed];
+    return entries
+      .map((entry: unknown) => {
+        if (typeof entry === "string" && entry.trim()) return { id: entry };
+        if (entry && typeof entry === "object") {
+          const o = entry as Record<string, unknown>;
+          const id = String(o.id_str || o.fileId || o.id || o.url || "").trim();
+          const name = typeof o.name === "string" ? o.name : undefined;
+          if (id) return { id, name };
+        }
+        return null;
+      })
+      .filter((e): e is { id: string; name?: string } => e !== null);
+  } catch {
+    return [];
+  }
+}
+
 export function AddEditPaymentModal({
   isOpen,
   onClose,
@@ -65,16 +97,14 @@ export function AddEditPaymentModal({
   const { toast } = useToast();
   const isEdit = payment !== null;
 
-  // Parse existing receipt file IDs from payments_attachment JSON
-  const existingReceiptIds: string[] = useMemo(() => {
-    if (!payment?.payments_attachment) return [];
-    try {
-      const parsed = JSON.parse(payment.payments_attachment);
-      return Array.isArray(parsed) ? parsed : [parsed];
-    } catch {
-      return [];
-    }
-  }, [payment?.payments_attachment]);
+  // Parse existing receipts from payments_attachment JSON. Treating every
+  // entry as a string (as this used to) throws on .startsWith()/.toLowerCase()
+  // for the legacy object shape, so the "Saved receipts" list never rendered
+  // for those payments — see parseExistingReceipts above.
+  const existingReceipts = useMemo(
+    () => parseExistingReceipts(payment?.payments_attachment),
+    [payment?.payments_attachment],
+  );
 
   // Form state
   const [yearMonth, setYearMonth] = useState("");
@@ -610,17 +640,18 @@ export function AddEditPaymentModal({
             </h4>
 
             {/* Existing receipts (edit mode) */}
-            {existingReceiptIds.length > 0 && (
+            {existingReceipts.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium">
-                  Saved ({existingReceiptIds.length} file{existingReceiptIds.length !== 1 ? "s" : ""})
+                  Saved ({existingReceipts.length} file{existingReceipts.length !== 1 ? "s" : ""})
                 </p>
-                {existingReceiptIds.map((id, index) => {
+                {existingReceipts.map((receipt, index) => {
+                  const { id, name } = receipt;
                   const isLocal = id.startsWith("/uploads/") || id.startsWith("http");
                   const url = isLocal
                     ? (id.startsWith("http") ? id : buildApiUrl(id))
                     : buildApiUrl(`/api/payments/receipt/file-content?fileId=${encodeURIComponent(id)}`);
-                  const isPdf = id.toLowerCase().endsWith(".pdf");
+                  const isPdf = (name || id).toLowerCase().endsWith(".pdf");
                   return (
                     <div
                       key={index}
@@ -633,7 +664,7 @@ export function AddEditPaymentModal({
                           <ImageIcon className="w-4 h-4 text-[#D3BC8D] flex-shrink-0" />
                         )}
                         <span className="text-sm text-foreground truncate">
-                          Receipt {index + 1}
+                          {name || `Receipt ${index + 1}`}
                         </span>
                       </div>
                       <a
@@ -668,7 +699,7 @@ export function AddEditPaymentModal({
               className="w-full bg-muted border-dashed border-border text-foreground hover:bg-muted h-12"
             >
               <Upload className="w-4 h-4 mr-2" />
-              {existingReceiptIds.length > 0
+              {existingReceipts.length > 0
                 ? receiptFiles.length > 0 ? "Add More Files" : "Add / Replace Receipt"
                 : receiptFiles.length > 0 ? "Add More Files" : "Upload Receipt (PDF / image)"}
             </Button>
