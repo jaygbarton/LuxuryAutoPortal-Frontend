@@ -1092,14 +1092,21 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       >
         <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <img
-              src={sidebarOpen ? "/logo.png" : "/favicon.png"}
-              alt="Golden Luxury Auto"
+            <div
               className={cn(
-                "object-contain transition-all duration-300 drop-shadow-[0_0_8px_rgba(234,235,128,0.3)]",
-                sidebarOpen ? "w-[180px] md:w-[200px]" : "w-[40px] rounded-md",
+                "shrink-0 overflow-hidden transition-all duration-300",
+                sidebarOpen ? "w-[180px] md:w-[200px] h-10" : "w-[40px] h-10",
               )}
-            />
+            >
+              <img
+                src={sidebarOpen ? "/logo.png" : "/favicon.png"}
+                alt="Golden Luxury Auto"
+                className={cn(
+                  "w-full h-full object-contain drop-shadow-[0_0_8px_rgba(234,235,128,0.3)]",
+                  !sidebarOpen && "rounded-md",
+                )}
+              />
+            </div>
           </Link>
           <button
             onClick={() => setMobileMenuOpen(false)}
