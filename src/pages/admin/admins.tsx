@@ -63,6 +63,8 @@ interface AdminUser {
   /** True when this user is a co-host (no dedicated role; flagged by the API
    *  via email match against co_hosts). Display-only — the role stays Admin. */
   isCoHost: boolean;
+  /** Name of the co-host whose team this user belongs to (null if none). */
+  coHostName: string | null;
   /** True when this user is a super admin (can edit Time Sheet + Admins panel). */
   isSuperAdmin: boolean;
   createdAt: string;
@@ -107,6 +109,7 @@ function normalizeUser(raw: any): AdminUser {
     roleId: Number(raw.roleId ?? 0),
     isActive: Boolean(raw.isActive),
     isCoHost: Boolean(raw.isCoHost),
+    coHostName: raw.coHostName ? String(raw.coHostName).trim() || null : null,
     isSuperAdmin: Boolean(raw.isSuperAdmin),
     createdAt: raw.createdAt
       ? typeof raw.createdAt === "string"
@@ -660,7 +663,9 @@ export default function AdminsPage() {
 
   // Co-hosts share the Admin role (no dedicated role exists), so show their
   // role as "Co-Host" in the UI. The underlying role/permissions are unchanged.
-  const displayRole = (user: AdminUser) => (user.isCoHost ? "Co-Host" : user.role);
+  // Team members added under a co-host show as "Co-Host Employee" / "Co-Host Admin".
+  const displayRole = (user: AdminUser) =>
+    user.isCoHost ? "Co-Host" : user.coHostName ? `Co-Host ${user.role}` : user.role;
 
   const getRoleBadgeColor = (role: string) => {
     if (role.toLowerCase().includes("co-host") || role.toLowerCase().includes("co_host")) {
@@ -747,6 +752,9 @@ export default function AdminsPage() {
                       Role
                     </th>
                     <th className="text-left text-[10px] sm:text-xs font-medium text-foreground uppercase tracking-wider px-3 sm:px-6 py-3 sm:py-4">
+                      Co-Host
+                    </th>
+                    <th className="text-left text-[10px] sm:text-xs font-medium text-foreground uppercase tracking-wider px-3 sm:px-6 py-3 sm:py-4">
                       Status
                     </th>
                     <th className="text-left text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 sm:px-6 py-3 sm:py-4 hidden lg:table-cell">
@@ -761,7 +769,7 @@ export default function AdminsPage() {
                   {isLoading ? (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         className="px-6 py-8 text-center text-muted-foreground"
                       >
                         Loading administrators...
@@ -814,6 +822,9 @@ export default function AdminsPage() {
                               </Badge>
                             )}
                           </div>
+                        </td>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-muted-foreground">
+                          {user.isCoHost ? `${user.firstName} ${user.lastName}` : user.coHostName ?? "—"}
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4">
                           <Badge
@@ -929,7 +940,7 @@ export default function AdminsPage() {
                   ) : (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         className="px-6 py-8 text-center text-muted-foreground"
                       >
                         {isFiltered ? "No administrators match your filters." : "No administrators found"}
