@@ -891,6 +891,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   const isViewingAsCoHost = !!(user as any)?.viewAsCoHost?.coHostId;
   const isRealCoHost = !!(user as any)?.isCoHost;
   const showCoHostSidebar = isRealCoHost || isViewingAsCoHost;
+  const displayRoleName = showCoHostSidebar ? "Co-Host" : user?.roleName;
 
   // When on /staff path, show staff sidebar for both employees and admins (managers) so staff functions are available.
   // While impersonating an employee, the backend has already flipped
@@ -1290,7 +1291,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
               <div className="flex items-center gap-2">
                 <span className="hidden sm:inline text-xs sm:text-sm text-muted-foreground truncate max-w-[120px] sm:max-w-none">
                   {user.firstName} {user.lastName}{" "}
-                  <span className="hidden sm:inline">({user.roleName})</span>
+                  <span className="hidden sm:inline">({displayRoleName})</span>
                 </span>
                 {(user as any).roles?.length > 1 &&
                   !(user as any).impersonatorIsAdmin && (

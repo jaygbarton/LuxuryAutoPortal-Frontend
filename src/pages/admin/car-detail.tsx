@@ -49,6 +49,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { ClientSelectCombobox } from "./ClientSelectCombobox";
 import { PUBLIC_LOCATIONS } from "@/lib/location-config";
+import { useTimezone } from "@/hooks/use-timezone";
+import { mtDayKey } from "@/lib/mt-datetime";
 import { useCoHost } from "@/hooks/use-co-host";
 import {
   buildRentalHistorySearchParams,
@@ -299,6 +301,7 @@ const carSchema = z.object({
 type CarFormData = z.infer<typeof carSchema>;
 
 export default function CarDetailPage() {
+  const activeTz = useTimezone();
   const [, params] = useRoute("/admin/cars/:id");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -2983,8 +2986,10 @@ export default function CarDetailPage() {
                       const days = start && end
                         ? Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
                         : null;
-                      const fmtDate = (d: Date | null) =>
-                        d ? d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }) : "-";
+                      const fmtDate = (d: Date | null) => {
+                        const key = d ? mtDayKey(d, activeTz) : "";
+                        return key ? `${key.slice(5, 7)}/${key.slice(8, 10)}/${key.slice(0, 4)}` : "-";
+                      };
                       return (
                         <tr key={trip.id} className="border-b border-border hover:bg-muted/30 transition-colors">
                           <td className="px-4 py-2 font-mono text-xs">{trip.reservationId || "-"}</td>
