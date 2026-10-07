@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import React, { useState, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -859,7 +860,7 @@ export default function NADADepreciationPage() {
               </SelectTrigger>
               <SelectContent className="bg-card border-border text-foreground">
                 {availableYears.map((year) => (
-                  <SelectItem key={year} value={year}>
+                  <SelectItem searchKeywords={optionKeywords(year)} key={year} value={year}>
                     {year}
                   </SelectItem>
                 ))}

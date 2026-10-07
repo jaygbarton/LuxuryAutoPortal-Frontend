@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Staff Time Sheet (Hubstaff-style).
  *
@@ -925,7 +926,7 @@ export default function StaffTime() {
                           </SelectTrigger>
                           <SelectContent>
                             {NUMERIC_OPTIONS.map((n) => (
-                              <SelectItem key={n} value={n}>
+                              <SelectItem searchKeywords={optionKeywords(n)} key={n} value={n}>
                                 {n}
                               </SelectItem>
                             ))}
@@ -942,7 +943,7 @@ export default function StaffTime() {
                           </SelectTrigger>
                           <SelectContent>
                             {ENERGY_OPTIONS.map((e) => (
-                              <SelectItem key={e} value={e}>
+                              <SelectItem searchKeywords={optionKeywords(e)} key={e} value={e}>
                                 {e}
                               </SelectItem>
                             ))}

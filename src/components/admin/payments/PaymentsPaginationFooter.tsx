@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import type { Dispatch, SetStateAction } from "react";
 import {
   Select,
@@ -94,7 +95,7 @@ export function PaymentsPaginationFooter({
               </SelectTrigger>
               <SelectContent className="bg-card border-border text-foreground">
                 {[10, 30, 50, 100, 200].map((n) => (
-                  <SelectItem key={n} value={String(n)}>
+                  <SelectItem searchKeywords={optionKeywords(n)} key={n} value={String(n)}>
                     {n}
                   </SelectItem>
                 ))}

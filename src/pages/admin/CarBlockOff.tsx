@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -170,7 +171,7 @@ function CarSelect({ value, onChange, isAdmin: _isAdmin }: { value: string; onCh
               .filter((s) => s && String(s).length > 0)
               .join(" - ") || `Car #${c.id}`;
           return (
-            <SelectItem key={c.id} value={String(c.id)}>
+            <SelectItem searchKeywords={optionKeywords(c)} key={c.id} value={String(c.id)}>
               {label}
             </SelectItem>
           );
@@ -206,7 +207,7 @@ function BlockOffSelect({ value, onChange }: { value: string; onChange: (v: stri
           <SelectItem value="_none" disabled>No active block-offs found</SelectItem>
         )}
         {records.map((r) => (
-          <SelectItem key={r.id} value={String(r.id)}>
+          <SelectItem searchKeywords={optionKeywords(r)} key={r.id} value={String(r.id)}>
             {r.car_name} — {r.owner_name} (picked up {fmtDateTime(r.pickup_date)})
           </SelectItem>
         ))}
@@ -876,7 +877,7 @@ export function CarBlockOffContent({ includePageLinks = false }: { includePageLi
                           </SelectTrigger>
                           <SelectContent className="bg-card border-border text-foreground">
                             {SELECTABLE_STATUSES.map((k) => (
-                              <SelectItem key={k} value={k} className="text-xs">
+                              <SelectItem searchKeywords={optionKeywords(k)} key={k} value={k} className="text-xs">
                                 {STATUS_META[k].label}
                               </SelectItem>
                             ))}

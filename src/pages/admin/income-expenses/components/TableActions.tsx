@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import React, { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -321,7 +322,7 @@ Trips Taken,0,0,0,0,0,0,0,0,0,0,0,0`;
           </SelectTrigger>
           <SelectContent className="bg-card border-border text-foreground">
             {yearOptions.map((yr) => (
-              <SelectItem key={yr} value={String(yr)}>
+              <SelectItem searchKeywords={optionKeywords(yr)} key={yr} value={String(yr)}>
                 {yr}
               </SelectItem>
             ))}

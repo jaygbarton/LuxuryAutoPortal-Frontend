@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -781,7 +782,7 @@ export function ServiceDueTab() {
               </SelectTrigger>
               <SelectContent className="bg-card border-border text-foreground">
                 {CATEGORY_FILTER_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  <SelectItem searchKeywords={optionKeywords(opt)} key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

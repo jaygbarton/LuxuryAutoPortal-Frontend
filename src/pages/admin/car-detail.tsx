@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
@@ -3451,7 +3452,7 @@ export default function CarDetailPage() {
                           </FormControl>
                           <SelectContent>
                             {Object.values(PUBLIC_LOCATIONS).map((loc) => (
-                              <SelectItem key={loc.locationTag} value={loc.locationTag}>
+                              <SelectItem searchKeywords={optionKeywords(loc)} key={loc.locationTag} value={loc.locationTag}>
                                 {loc.cityState}
                               </SelectItem>
                             ))}

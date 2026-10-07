@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
@@ -293,7 +294,7 @@ export function InspectionModal({
                 </SelectTrigger>
                 <SelectContent>
                   {employeeNames.map((name) => (
-                    <SelectItem key={name} value={name}>
+                    <SelectItem searchKeywords={optionKeywords(name)} key={name} value={name}>
                       {name}
                     </SelectItem>
                   ))}
@@ -347,7 +348,7 @@ export function InspectionModal({
                   </SelectTrigger>
                   <SelectContent>
                     {employeeNames.map((name) => (
-                      <SelectItem key={name} value={name}>
+                      <SelectItem searchKeywords={optionKeywords(name)} key={name} value={name}>
                         {name}
                       </SelectItem>
                     ))}
@@ -426,7 +427,7 @@ export function InspectionModal({
               </SelectTrigger>
               <SelectContent>
                 {FUEL_LEVEL_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
+                  <SelectItem searchKeywords={optionKeywords(opt)} key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>
                 ))}

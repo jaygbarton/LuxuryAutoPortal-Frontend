@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
@@ -447,7 +448,7 @@ export default function CoHostFormPage() {
                           </SelectTrigger>
                           <SelectContent className="bg-card border-border text-foreground">
                             {["Clean", "Salvage", "Rebuilt", "Branded", "Other"].map((t) => (
-                              <SelectItem key={t} value={t}>{t}</SelectItem>
+                              <SelectItem searchKeywords={optionKeywords(t)} key={t} value={t}>{t}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -612,7 +613,7 @@ export default function CoHostFormPage() {
                           </SelectTrigger>
                           <SelectContent className="bg-card border-border text-foreground">
                             {["Regular", "Premium", "Premium 91 Unleaded", "Regular Unleaded", "91 Unleaded", "Gasoline", "Electric", "Diesel", "Others"].map((f) => (
-                              <SelectItem key={f} value={f}>{f}</SelectItem>
+                              <SelectItem searchKeywords={optionKeywords(f)} key={f} value={f}>{f}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -818,7 +819,7 @@ export default function CoHostFormPage() {
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border text-foreground">
                         {["Small", "Medium", "Large", "XLarge", "XXLarge"].map((s) => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                          <SelectItem searchKeywords={optionKeywords(s)} key={s} value={s}>{s}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

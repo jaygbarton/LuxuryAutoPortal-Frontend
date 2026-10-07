@@ -1,3 +1,5 @@
+import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
+import { optionKeywords } from "@/lib/select-search";
 /**
  * My Tasks — tasks assigned to the current employee.
  * Pulls from /api/staff/task-management. Employees can edit the status
@@ -208,16 +210,16 @@ export default function MyTasksSection() {
             </button>
           )}
         </div>
-        <select
+        <SearchableNativeSelect
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]"
         >
-          <option value="all">All Statuses</option>
+          <SearchableOption value="all">All Statuses</SearchableOption>
           {STATUS_OPTIONS.map((s) => (
-            <option key={s.value} value={s.value}>{s.label}</option>
+            <SearchableOption searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>{s.label}</SearchableOption>
           ))}
-        </select>
+        </SearchableNativeSelect>
         {(search || statusFilter !== "all") && (
           <span className="text-xs text-gray-500">{tasks.length} result{tasks.length !== 1 ? "s" : ""}</span>
         )}
@@ -278,7 +280,7 @@ export default function MyTasksSection() {
                         </SelectTrigger>
                         <SelectContent>
                           {STATUS_OPTIONS.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
+                            <SelectItem searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>
                               {s.label}
                             </SelectItem>
                           ))}

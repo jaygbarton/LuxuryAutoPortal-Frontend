@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
@@ -253,7 +254,7 @@ export function CarBlockOffTab() {
           <SelectContent className="bg-card border-border text-foreground">
             <SelectItem value="all">All Statuses</SelectItem>
             {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+              <SelectItem searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>{s.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -400,7 +401,7 @@ export function CarBlockOffTab() {
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border text-foreground">
                         {STATUS_OPTIONS.map((s) => (
-                          <SelectItem key={s.value} value={s.value}>
+                          <SelectItem searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>
                             <Badge variant="outline" className={`text-xs ${s.className}`}>{s.label}</Badge>
                           </SelectItem>
                         ))}

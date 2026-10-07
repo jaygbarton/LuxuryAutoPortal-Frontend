@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { formatMonthDayYear } from "@/lib/date-format";
 import React, { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
@@ -401,7 +402,7 @@ export default function PaymentsPage() {
                   <SelectContent className="bg-card border-border text-foreground">
                     <SelectItem value="All">All</SelectItem>
                     {statuses.map((status) => (
-                      <SelectItem key={status.payment_status_aid} value={status.payment_status_name}>
+                      <SelectItem searchKeywords={optionKeywords(status)} key={status.payment_status_aid} value={status.payment_status_name}>
                         {status.payment_status_name}
                       </SelectItem>
                     ))}
@@ -607,7 +608,7 @@ export default function PaymentsPage() {
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border text-foreground">
                     {[10, 30, 50, 100, 200].map((n) => (
-                      <SelectItem key={n} value={String(n)}>
+                      <SelectItem searchKeywords={optionKeywords(n)} key={n} value={String(n)}>
                         {n}
                       </SelectItem>
                     ))}

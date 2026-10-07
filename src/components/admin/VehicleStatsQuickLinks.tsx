@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -151,7 +152,7 @@ export function VehicleStatsQuickLinks() {
           <SelectContent className="max-h-80 border-[#D3BC8D]/70 bg-card text-foreground">
             {cars.length > 0 ? (
               cars.map((car) => (
-                <SelectItem key={`stats-car-${car.id}`} value={String(car.id)}>
+                <SelectItem searchKeywords={optionKeywords(car)} key={`stats-car-${car.id}`} value={String(car.id)}>
                   {getCarLabel(car) || `Car #${car.id}`}
                 </SelectItem>
               ))

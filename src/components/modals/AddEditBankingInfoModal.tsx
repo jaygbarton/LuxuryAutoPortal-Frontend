@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
@@ -256,7 +257,7 @@ export function AddEditBankingInfoModal({
               <SelectContent className="bg-card border-border text-foreground">
                 <SelectItem value="none">Default (No specific car)</SelectItem>
                 {cars.map((car) => (
-                  <SelectItem key={car.id} value={String(car.id)}>
+                  <SelectItem searchKeywords={optionKeywords(car)} key={car.id} value={String(car.id)}>
                     {car.makeModel}{" "}
                     {car.year && `${car.year}`}
                     {car.licensePlate && ` - #${car.licensePlate}`}

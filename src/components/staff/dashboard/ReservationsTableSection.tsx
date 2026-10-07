@@ -1,3 +1,5 @@
+import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Shared reservation-style table section for the employee dashboard.
  * Used by Pick Up & Drop Off, Turo Inspections, Car Issues, Maintenance, Operations.
@@ -250,7 +252,7 @@ export default function ReservationsTableSection({
         </SelectTrigger>
         <SelectContent>
           {cfg.options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
+            <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>
               {o.label}
             </SelectItem>
           ))}
@@ -333,20 +335,20 @@ export default function ReservationsTableSection({
 
         {/* Status */}
         {statusOptions.length > 0 && (
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+          <SearchableNativeSelect value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
             className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]">
-            <option value="all">All Statuses</option>
-            {statusOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+            <SearchableOption value="all">All Statuses</SearchableOption>
+            {statusOptions.map((o) => <SearchableOption searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>{o.label}</SearchableOption>)}
+          </SearchableNativeSelect>
         )}
 
         {/* Assigned To */}
         {hasAssignedTo && assignedToOptions.length > 0 && (
-          <select value={assignedToFilter} onChange={(e) => setAssignedToFilter(e.target.value)}
+          <SearchableNativeSelect value={assignedToFilter} onChange={(e) => setAssignedToFilter(e.target.value)}
             className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]">
-            <option value="all">All Assignees</option>
-            {assignedToOptions.map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
+            <SearchableOption value="all">All Assignees</SearchableOption>
+            {assignedToOptions.map((n) => <SearchableOption searchKeywords={optionKeywords(n)} key={n} value={n}>{n}</SearchableOption>)}
+          </SearchableNativeSelect>
         )}
 
         {/* Trip Start */}

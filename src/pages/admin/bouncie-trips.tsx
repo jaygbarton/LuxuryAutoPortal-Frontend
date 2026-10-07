@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import "leaflet/dist/leaflet.css";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -141,7 +142,7 @@ export default function BouncieTripsPage() {
                   <SelectContent>
                     <SelectItem value="__all__">All vehicles</SelectItem>
                     {devices.map((d: any) => (
-                      <SelectItem key={d.id} value={String(d.id)}>
+                      <SelectItem searchKeywords={optionKeywords(d)} key={d.id} value={String(d.id)}>
                         {d.nickname || `IMEI ${d.imei}`}
                       </SelectItem>
                     ))}

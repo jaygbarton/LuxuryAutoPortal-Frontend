@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -285,7 +286,7 @@ export default function CarOnboardingForm() {
                             : `Car #${car.id}${car.plateNumber ? ` - ${car.plateNumber}` : ""}`;
                           
                           return (
-                            <SelectItem key={`car-${car.id}`} value={car.id.toString()}>
+                            <SelectItem searchKeywords={optionKeywords(car)} key={`car-${car.id}`} value={car.id.toString()}>
                               {displayText}
                             </SelectItem>
                           );

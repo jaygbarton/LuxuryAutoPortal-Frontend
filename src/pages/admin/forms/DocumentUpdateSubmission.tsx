@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Document Update Submission (client)
  *
@@ -269,7 +270,7 @@ export default function DocumentUpdateSubmission() {
                 </SelectTrigger>
                 <SelectContent>
                   {DOC_TYPE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>{o.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

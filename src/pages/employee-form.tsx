@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
@@ -343,7 +344,7 @@ export default function EmployeeFormPage() {
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border text-foreground">
                         {["Small", "Medium", "Large", "XLarge", "XXLarge"].map((s) => (
-                          <SelectItem key={s} value={s}>
+                          <SelectItem searchKeywords={optionKeywords(s)} key={s} value={s}>
                             {s}
                           </SelectItem>
                         ))}

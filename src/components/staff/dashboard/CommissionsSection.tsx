@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Commissions — 12-month commissions matrix per PDF design.
  * Tries /api/me/commissions?year=YYYY; falls back to zero-filled rows.
@@ -120,7 +121,7 @@ export default function CommissionsSection() {
             </SelectTrigger>
             <SelectContent className="border-gray-200 bg-white text-black">
               {YEAR_OPTIONS.map((y) => (
-                <SelectItem key={y} value={y}>
+                <SelectItem searchKeywords={optionKeywords(y)} key={y} value={y}>
                   {y}
                 </SelectItem>
               ))}

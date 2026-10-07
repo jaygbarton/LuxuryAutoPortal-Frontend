@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Commission Form Submission
  * Employee submits a commission claim with receipt upload.
@@ -236,7 +237,7 @@ export default function CommissionFormSubmission() {
                 </SelectTrigger>
                 <SelectContent>
                   {options.employees.map((emp) => (
-                    <SelectItem key={emp.id} value={String(emp.id)}>
+                    <SelectItem searchKeywords={optionKeywords(emp)} key={emp.id} value={String(emp.id)}>
                       {emp.name}
                     </SelectItem>
                   ))}

@@ -1,3 +1,5 @@
+import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Car Issues / Inspections — manual inspections assigned to me.
  * Card-based layout matching the admin dashboard CarIssuesSection,
@@ -179,11 +181,11 @@ export default function MyCarIssuesSection() {
             className="w-full pl-8 pr-7 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
           {search && <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
         </div>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+        <SearchableNativeSelect value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
           className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]">
-          <option value="all">All Statuses</option>
-          {INSPECTION_STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
+          <SearchableOption value="all">All Statuses</SearchableOption>
+          {INSPECTION_STATUS_OPTIONS.map(s => <SearchableOption searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>{s.label}</SearchableOption>)}
+        </SearchableNativeSelect>
         <div className="flex items-center gap-1">
           <span className="text-xs text-gray-500 whitespace-nowrap">Trip Start/End From</span>
           <input type="date" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)}
@@ -250,7 +252,7 @@ export default function MyCarIssuesSection() {
                     </SelectTrigger>
                     <SelectContent>
                       {INSPECTION_STATUS_OPTIONS.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                        <SelectItem searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>{s.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

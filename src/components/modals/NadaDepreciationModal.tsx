@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import React, { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
@@ -369,7 +370,7 @@ export function NadaDepreciationModal({
                       const catId = cat.currentCostAid || cat.currentCostWithAddAid;
                       if (!catName || !catId) return null;
                       return (
-                        <SelectItem
+                        <SelectItem searchKeywords={optionKeywords(cat)}
                           key={catId}
                           value={catId.toString()}
                         >

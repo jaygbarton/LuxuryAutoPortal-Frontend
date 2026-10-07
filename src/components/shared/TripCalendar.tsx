@@ -1,3 +1,4 @@
+import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -450,24 +451,24 @@ export function TripCalendar({ title }: { title?: string }) {
             onChange={(e) => setSearch(e.target.value)}
             className="h-8 w-48 text-sm"
           />
-          <select
+          <SearchableNativeSelect
             value={fleetFilter}
             onChange={(e) => setFleetFilter(e.target.value as typeof fleetFilter)}
             className="h-8 rounded-md border border-input bg-background px-2 text-sm"
           >
-            <option value="active">Active cars</option>
-            <option value="inactive">Inactive cars</option>
-            <option value="all">All cars</option>
-          </select>
-          <select
+            <SearchableOption value="active">Active cars</SearchableOption>
+            <SearchableOption value="inactive">Inactive cars</SearchableOption>
+            <SearchableOption value="all">All cars</SearchableOption>
+          </SearchableNativeSelect>
+          <SearchableNativeSelect
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
             className="h-8 rounded-md border border-input bg-background px-2 text-sm"
           >
-            <option value="all">All vehicles</option>
-            <option value="booked">Booked in view</option>
-            <option value="free">Free in view</option>
-          </select>
+            <SearchableOption value="all">All vehicles</SearchableOption>
+            <SearchableOption value="booked">Booked in view</SearchableOption>
+            <SearchableOption value="free">Free in view</SearchableOption>
+          </SearchableNativeSelect>
           {/* Two checkboxes, not a dropdown: ticking both asks "what turns over
               in this range?", which a single-select could not express. */}
           <div
@@ -531,7 +532,7 @@ export function TripCalendar({ title }: { title?: string }) {
               inputs rather than driving the window through a second, parallel
               mechanism — Cathy asked for this to *be* the date range, so the
               preset is a shortcut for filling it, not a competing control. */}
-          <select
+          <SearchableNativeSelect
             value={customRange ? "" : String(forwardDays)}
             onChange={(e) => {
               const n = parseInt(e.target.value, 10);
@@ -544,14 +545,14 @@ export function TripCalendar({ title }: { title?: string }) {
             className="h-8 rounded-md border border-input bg-background px-2 text-sm"
             title="Fill the date range with a quick span"
           >
-            <option value="">Quick span…</option>
-            <option value={7}>Next 7 days</option>
-            <option value={14}>Next 14 days</option>
-            <option value={21}>Next 21 days</option>
-            <option value={30}>Next 30 days</option>
-            <option value={60}>Next 60 days</option>
-            <option value={90}>Next 90 days</option>
-          </select>
+            <SearchableOption value="">Quick span…</SearchableOption>
+            <SearchableOption value={7}>Next 7 days</SearchableOption>
+            <SearchableOption value={14}>Next 14 days</SearchableOption>
+            <SearchableOption value={21}>Next 21 days</SearchableOption>
+            <SearchableOption value={30}>Next 30 days</SearchableOption>
+            <SearchableOption value={60}>Next 60 days</SearchableOption>
+            <SearchableOption value={90}>Next 90 days</SearchableOption>
+          </SearchableNativeSelect>
           <Button
             variant="outline"
             size="sm"

@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Parking Ticket Approval Dashboard
  * Admin view: review, edit (car / date / amount), approve, decline, and delete
@@ -537,7 +538,7 @@ export default function ParkingTicketApprovalDashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     {cars.map((c) => (
-                      <SelectItem key={c.id} value={String(c.id)}>
+                      <SelectItem searchKeywords={optionKeywords(c)} key={c.id} value={String(c.id)}>
                         {c.label}
                       </SelectItem>
                     ))}

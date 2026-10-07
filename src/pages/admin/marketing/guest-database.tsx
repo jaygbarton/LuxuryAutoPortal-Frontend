@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -542,7 +543,7 @@ export default function GuestDatabasePage() {
                             </SelectTrigger>
                             <SelectContent>
                               {CONTACT_STATUS_OPTIONS.map((cs) => (
-                                <SelectItem key={cs} value={cs}>
+                                <SelectItem searchKeywords={optionKeywords(cs)} key={cs} value={cs}>
                                   {CONTACT_STATUS_LABELS[cs]}
                                 </SelectItem>
                               ))}

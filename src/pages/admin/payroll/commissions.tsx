@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Admin Payroll – Commissions (v1 parity).
  * List, add, edit, delete commissions; filter by date range and paid status.
@@ -159,7 +160,7 @@ function CommissionsMatrix() {
               <SelectContent>
                 <SelectItem value="all">All employees</SelectItem>
                 {filterEmployees.map((e) => (
-                  <SelectItem key={e.id} value={String(e.id)}>{e.name}</SelectItem>
+                  <SelectItem searchKeywords={optionKeywords(e)} key={e.id} value={String(e.id)}>{e.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -170,7 +171,7 @@ function CommissionsMatrix() {
               </SelectTrigger>
               <SelectContent>
                 {MATRIX_YEAR_OPTIONS.map((y) => (
-                  <SelectItem key={y} value={y}>{y}</SelectItem>
+                  <SelectItem searchKeywords={optionKeywords(y)} key={y} value={y}>{y}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -444,7 +445,7 @@ export default function PayrollCommissionsPage() {
                   <SelectContent>
                     <SelectItem value="all">All employees</SelectItem>
                     {filterEmployees.map((e) => (
-                      <SelectItem key={e.id} value={String(e.id)}>{e.name}</SelectItem>
+                      <SelectItem searchKeywords={optionKeywords(e)} key={e.id} value={String(e.id)}>{e.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -458,7 +459,7 @@ export default function PayrollCommissionsPage() {
                   <SelectContent>
                     <SelectItem value="all">All types</SelectItem>
                     {COMMISSION_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                      <SelectItem searchKeywords={optionKeywords(t)} key={t} value={t}>{t}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

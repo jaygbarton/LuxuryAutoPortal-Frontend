@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -261,7 +262,7 @@ export default function Contact() {
                               </FormControl>
                               <SelectContent>
                                 {subjectOptions.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
+                                  <SelectItem searchKeywords={optionKeywords(option)} key={option.value} value={option.value}>
                                     {option.label}
                                   </SelectItem>
                                 ))}

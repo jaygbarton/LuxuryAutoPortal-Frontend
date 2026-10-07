@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Admin HR – Time Sheet Review.
  *
@@ -763,7 +764,7 @@ return true;
                   <SelectContent>
                     <SelectItem value="all">All employees</SelectItem>
                     {employees.map((e) => (
-                      <SelectItem key={e.employee_aid} value={String(e.employee_aid)}>
+                      <SelectItem searchKeywords={optionKeywords(e)} key={e.employee_aid} value={String(e.employee_aid)}>
                         {`${e.employee_first_name ?? ""} ${e.employee_last_name ?? ""}`.trim() ||
                           `Employee ${e.employee_aid}`}
                       </SelectItem>
@@ -1180,7 +1181,7 @@ function TimeEntryForm(props: {
                       const name = empName(e);
                       const isMatch = String(e.employee_aid) === form.employeeId;
                       return (
-                        <CommandItem
+                        <CommandItem keywords={optionKeywords(e)}
                           key={e.employee_aid}
                           value={name}
                           onSelect={() => {

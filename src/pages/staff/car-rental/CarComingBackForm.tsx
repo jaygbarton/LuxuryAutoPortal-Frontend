@@ -1,3 +1,5 @@
+import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Car Coming Back From Rental – GLA form (v1 logic).
  * Fields: Date, Car, Gas Gauge, Total Miles, 20 Yes/No questions,
@@ -204,33 +206,33 @@ export function CarComingBackForm({ onBack }: CarComingBackFormProps) {
         </div>
         <div>
           <Label>Car *</Label>
-          <select
+          <SearchableNativeSelect
             value={carId === "" ? "" : carId}
             onChange={(e) => setCarId(e.target.value === "" ? "" : Number(e.target.value))}
             required
             className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
-            <option value="">Select car</option>
+            <SearchableOption value="">Select car</SearchableOption>
             {cars.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <SearchableOption searchKeywords={optionKeywords(c)} key={c.id} value={c.id}>{c.name}</SearchableOption>
             ))}
-          </select>
+          </SearchableNativeSelect>
         </div>
       </div>
 
       <div>
         <Label>Gas Gauge *</Label>
-        <select
+        <SearchableNativeSelect
           value={gasGauge}
           onChange={(e) => setGasGauge(e.target.value)}
           required
           className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
         >
-          <option value="">--</option>
+          <SearchableOption value="">--</SearchableOption>
           {GAS_GAUGE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <SearchableOption searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>{o.label}</SearchableOption>
           ))}
-        </select>
+        </SearchableNativeSelect>
       </div>
 
       <div>
@@ -243,16 +245,16 @@ export function CarComingBackForm({ onBack }: CarComingBackFormProps) {
           {COMING_BACK_SURVEY_FIELDS.slice(2).map(({ key, name }) => (
             <div key={key}>
               <Label className="text-sm font-normal">{name} *</Label>
-              <select
+              <SearchableNativeSelect
                 value={values[key] ?? ""}
                 onChange={(e) => setValue(key, e.target.value)}
                 required
                 className="mt-1 flex h-9 w-full max-w-xs rounded-md border border-input bg-background px-3 py-1 text-sm"
               >
                 {YES_NO_OPTIONS.map((o) => (
-                  <option key={o.value || "empty"} value={o.value}>{o.label}</option>
+                  <SearchableOption searchKeywords={optionKeywords(o)} key={o.value || "empty"} value={o.value}>{o.label}</SearchableOption>
                 ))}
-              </select>
+              </SearchableNativeSelect>
             </div>
           ))}
         </CardContent>

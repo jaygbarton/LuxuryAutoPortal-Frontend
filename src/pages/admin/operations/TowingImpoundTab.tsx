@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -266,7 +267,7 @@ function TowingImpoundModal({
               <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
               <SelectContent>
                 {INCIDENT_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                  <SelectItem searchKeywords={optionKeywords(t)} key={t} value={t}>{t}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -293,7 +294,7 @@ function TowingImpoundModal({
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  <SelectItem searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>{s.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -489,7 +490,7 @@ export function TowingImpoundTab() {
                 <SelectContent className="bg-card border-border text-foreground">
                   <SelectItem value="all">All</SelectItem>
                   {STATUS_OPTIONS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    <SelectItem searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>{s.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -512,7 +513,7 @@ export function TowingImpoundTab() {
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border text-foreground">
                       {STATUS_OPTIONS.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                        <SelectItem searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>{s.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

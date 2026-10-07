@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Ticket Violation Submission ("Ticket Violation Form")
  * Clients submit a violation ticket against one of their own cars. They pick the
@@ -213,7 +214,7 @@ export default function TicketViolationSubmission() {
                 </SelectTrigger>
                 <SelectContent>
                   {cars.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
+                    <SelectItem searchKeywords={optionKeywords(c)} key={c.id} value={String(c.id)}>
                       {c.label}
                     </SelectItem>
                   ))}
@@ -236,7 +237,7 @@ export default function TicketViolationSubmission() {
               </SelectTrigger>
               <SelectContent>
                 {VIOLATION_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
+                  <SelectItem searchKeywords={optionKeywords(t)} key={t} value={t}>
                     {t}
                   </SelectItem>
                 ))}

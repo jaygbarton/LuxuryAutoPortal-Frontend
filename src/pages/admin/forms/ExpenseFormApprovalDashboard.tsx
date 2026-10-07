@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Approval Dashboard for Expense Form Submissions
  * Admins can approve, decline, edit, and delete pending submissions
@@ -115,7 +116,7 @@ function CarComboboxById({
             </CommandEmpty>
             <CommandGroup>
               {cars.map((car) => (
-                <CommandItem
+                <CommandItem keywords={optionKeywords(car)}
                   key={car.id}
                   value={label(car)}
                   onSelect={() => {
@@ -1220,7 +1221,7 @@ export default function ExpenseFormApprovalDashboard({
             <SelectContent>
               <SelectItem value="all">All types</SelectItem>
               {fieldOptions.map((f) => (
-                <SelectItem key={f.value} value={f.value}>
+                <SelectItem searchKeywords={optionKeywords(f)} key={f.value} value={f.value}>
                   {f.label}
                 </SelectItem>
               ))}
@@ -1240,7 +1241,7 @@ export default function ExpenseFormApprovalDashboard({
             <SelectContent className="max-h-[320px]">
               <SelectItem value="all">All cars</SelectItem>
               {(cars as Array<{ id: number; name: string }>).map((c) => (
-                <SelectItem key={c.id} value={String(c.id)}>
+                <SelectItem searchKeywords={optionKeywords(c)} key={c.id} value={String(c.id)}>
                   {c.name}
                 </SelectItem>
               ))}
@@ -1921,7 +1922,7 @@ export default function ExpenseFormApprovalDashboard({
                   </SelectTrigger>
                   <SelectContent>
                     {MONTHS.map((m, i) => (
-                      <SelectItem key={i + 1} value={String(i + 1)}>
+                      <SelectItem searchKeywords={optionKeywords(m)} key={i + 1} value={String(i + 1)}>
                         {m}
                       </SelectItem>
                     ))}
@@ -1951,7 +1952,7 @@ export default function ExpenseFormApprovalDashboard({
                     {(["income", "directDelivery", "cogs", "reimbursedBills"] as const)
                       .filter((cat) => (liveCategoryFields[cat]?.length ?? 0) > 0)
                       .map((cat) => (
-                        <SelectItem key={cat} value={cat}>
+                        <SelectItem searchKeywords={optionKeywords(cat)} key={cat} value={cat}>
                           {CATEGORY_LABELS[cat] || cat}
                         </SelectItem>
                       ))}
@@ -1972,7 +1973,7 @@ export default function ExpenseFormApprovalDashboard({
                   <SelectContent>
                     {(liveCategoryFields[editForm.category || ""] || []).map(
                       (f: { value: string; label: string }) => (
-                        <SelectItem key={f.value} value={f.value}>
+                        <SelectItem searchKeywords={optionKeywords(f)} key={f.value} value={f.value}>
                           {f.label}
                         </SelectItem>
                       ),
@@ -1999,7 +2000,7 @@ export default function ExpenseFormApprovalDashboard({
                 </SelectTrigger>
                 <SelectContent>
                   {employees.map((emp: { id: number; name: string }) => (
-                    <SelectItem key={emp.id} value={String(emp.id)}>
+                    <SelectItem searchKeywords={optionKeywords(emp)} key={emp.id} value={String(emp.id)}>
                       {emp.name}
                     </SelectItem>
                   ))}

@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "wouter";
@@ -411,7 +412,7 @@ function EventCard({
                   </SelectTrigger>
                   <SelectContent>
                     {statusOptions.map((s) => (
-                      <SelectItem key={s} value={s} className="text-xs">
+                      <SelectItem searchKeywords={optionKeywords(s)} key={s} value={s} className="text-xs">
                         {s.replace(/_/g, " ")}
                       </SelectItem>
                     ))}

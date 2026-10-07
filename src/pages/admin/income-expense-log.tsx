@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 // Log page for viewing edit history of income and expenses
 import React, { useState } from "react";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -149,7 +150,7 @@ export default function IncomeExpenseLogPage() {
               </SelectTrigger>
               <SelectContent className="bg-card border-border text-foreground">
                 {yearOptions.map((yr) => (
-                  <SelectItem key={yr} value={yr}>{yr}</SelectItem>
+                  <SelectItem searchKeywords={optionKeywords(yr)} key={yr} value={yr}>{yr}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

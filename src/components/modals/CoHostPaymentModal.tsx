@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -147,7 +148,7 @@ export function CoHostPaymentModal({ payment, label, statuses, onClose }: Props)
               </SelectTrigger>
               <SelectContent className="bg-card border-border text-foreground z-[4100]">
                 {statuses.map((s) => (
-                  <SelectItem key={s.payment_status_aid} value={String(s.payment_status_aid)}>
+                  <SelectItem searchKeywords={optionKeywords(s)} key={s.payment_status_aid} value={String(s.payment_status_aid)}>
                     {s.payment_status_name}
                   </SelectItem>
                 ))}

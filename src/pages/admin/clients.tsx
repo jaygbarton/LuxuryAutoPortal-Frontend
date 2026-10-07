@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -1300,7 +1301,7 @@ export default function ClientsPage() {
                             <SelectContent className="bg-card border-border text-foreground">
                               {["XS", "S", "M", "L", "XL", "XXL"].map(
                                 (s) => (
-                                  <SelectItem key={s} value={s}>
+                                  <SelectItem searchKeywords={optionKeywords(s)} key={s} value={s}>
                                     {s}
                                   </SelectItem>
                                 )
@@ -1327,7 +1328,7 @@ export default function ClientsPage() {
                             <SelectContent className="bg-card border-border text-foreground">
                               {/* Keep a saved rep visible even if later removed from the admin-managed list */}
                               {[...new Set([...salesReps, ...(field.value ? [field.value] : []), "Other"])].map((rep) => (
-                                <SelectItem key={rep} value={rep}>
+                                <SelectItem searchKeywords={optionKeywords(rep)} key={rep} value={rep}>
                                   {rep}
                                 </SelectItem>
                               ))}

@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Earnings History — pay-period totals (recent) and monthly totals (annual).
  * Pulls from /api/me/payslips. Period is derived from payrun_list_created
@@ -158,7 +159,7 @@ export default function EarningsHistorySection() {
           </SelectTrigger>
           <SelectContent className="border-gray-200 bg-white text-black">
             {yearOptions.map((y) => (
-              <SelectItem key={y} value={y}>
+              <SelectItem searchKeywords={optionKeywords(y)} key={y} value={y}>
                 {y}
               </SelectItem>
             ))}

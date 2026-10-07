@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Admin HR – Time Off (Leave). List, approve / decline, add / edit / delete employee leave requests.
  */
@@ -499,7 +500,7 @@ export default function AdminHrTimeOff() {
                       </SelectTrigger>
                       <SelectContent>
                         {PER_PAGE_OPTIONS.map((n) => (
-                          <SelectItem key={n} value={String(n)}>
+                          <SelectItem searchKeywords={optionKeywords(n)} key={n} value={String(n)}>
                             {n}
                           </SelectItem>
                         ))}
@@ -924,7 +925,7 @@ function TimeOffEditor({
                 </SelectTrigger>
                 <SelectContent>
                   {LEAVE_TYPE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
+                    <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>
                       {o.label}
                     </SelectItem>
                   ))}
@@ -941,7 +942,7 @@ function TimeOffEditor({
               </SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
+                  <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>
                     {o.label}
                   </SelectItem>
                 ))}

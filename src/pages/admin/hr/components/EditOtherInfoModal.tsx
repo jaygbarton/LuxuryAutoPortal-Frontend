@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -246,7 +247,7 @@ export function EditOtherInfoModal({ open, onOpenChange, employee }: EditOtherIn
                     </FormControl>
                     <SelectContent>
                       {HEAR_ABOUT_OPTIONS.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>
+                        <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>
                           {o.label}
                         </SelectItem>
                       ))}

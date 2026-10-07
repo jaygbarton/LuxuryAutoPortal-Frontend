@@ -1,3 +1,5 @@
+import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
+import { optionKeywords } from "@/lib/select-search";
 import { type FormEvent, type ReactNode, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
@@ -1691,7 +1693,7 @@ export function JobApplicationPage() {
                     <input className={fieldClass} name="dateOfBirth" type="date" required />
                   </FieldLabel>
                   <FieldLabel label="Role" required>
-                    <select
+                    <SearchableNativeSelect
                       className={fieldClass}
                       name="position"
                       value={selectedRole}
@@ -1702,9 +1704,9 @@ export function JobApplicationPage() {
                       }}
                     >
                       {applicationRoles.map((role) => (
-                        <option key={role} value={role}>{role}</option>
+                        <SearchableOption searchKeywords={optionKeywords(role)} key={role} value={role}>{role}</SearchableOption>
                       ))}
-                    </select>
+                    </SearchableNativeSelect>
                   </FieldLabel>
                 </div>
 

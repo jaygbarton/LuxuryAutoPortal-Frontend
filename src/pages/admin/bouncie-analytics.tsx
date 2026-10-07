@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -203,7 +204,7 @@ export default function BouncieAnalyticsPage() {
               </SelectTrigger>
               <SelectContent>
                 {DAYS_OPTIONS.map(o => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>{o.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

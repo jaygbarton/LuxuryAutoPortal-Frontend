@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
 import { Button } from "@/components/ui/button";
@@ -394,7 +395,7 @@ export default function StaffTaskManagement() {
                                 </SelectTrigger>
                                 <SelectContent>
                                   {STATUS_OPTIONS.map((s) => (
-                                    <SelectItem key={s.value} value={s.value}>
+                                    <SelectItem searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>
                                       {s.label}
                                     </SelectItem>
                                   ))}

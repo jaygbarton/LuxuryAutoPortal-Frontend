@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import {
@@ -105,7 +106,7 @@ setDraftStart(undefined);
       <SelectContent>
         <SelectItem value={NONE}>--</SelectItem>
         {GAS_OPTIONS.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
+          <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>
             {o.label}
           </SelectItem>
         ))}

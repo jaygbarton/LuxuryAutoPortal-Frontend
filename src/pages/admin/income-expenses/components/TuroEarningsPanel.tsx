@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { api } from "@/lib/api";
@@ -134,7 +135,7 @@ export function TuroEarningsPanel({ carId, year }: Props) {
             </SelectTrigger>
             <SelectContent>
               {MONTHS_FULL.map((m, i) => (
-                <SelectItem key={i + 1} value={String(i + 1)} disabled={uploadedMonths.has(i + 1)}>
+                <SelectItem searchKeywords={optionKeywords(m)} key={i + 1} value={String(i + 1)} disabled={uploadedMonths.has(i + 1)}>
                   {m}{uploadedMonths.has(i + 1) ? " ✓" : ""}
                 </SelectItem>
               ))}

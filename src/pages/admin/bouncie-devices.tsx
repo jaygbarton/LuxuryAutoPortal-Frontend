@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -181,7 +182,7 @@ function HomeLocationManager({ cars }: { cars: GlaCar[] }) {
             </SelectTrigger>
             <SelectContent>
               {cars.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
+                <SelectItem searchKeywords={optionKeywords(c)} key={c.id} value={c.id}>{c.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -444,7 +445,7 @@ export default function BouncieDevicesPage() {
       <SelectContent>
         <SelectItem value={UNASSIGNED}>— Unassigned —</SelectItem>
         {cars.map((car) => (
-          <SelectItem key={car.id} value={car.id}>
+          <SelectItem searchKeywords={optionKeywords(car)} key={car.id} value={car.id}>
             {car.label.trim() || car.id}
             {car.plate ? ` (${car.plate})` : ""}
           </SelectItem>

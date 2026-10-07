@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -1270,7 +1271,7 @@ export default function EmployeesPage() {
                           </FormControl>
                           <SelectContent className="bg-card border-border text-foreground">
                             {MARITAL_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
+                              <SelectItem searchKeywords={optionKeywords(opt)} key={opt.value} value={opt.value}>
                                 {opt.label}
                               </SelectItem>
                             ))}

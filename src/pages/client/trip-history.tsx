@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -188,7 +189,7 @@ export default function ClientTripHistory() {
                   <SelectContent>
                     <SelectItem value="all">All Cars</SelectItem>
                     {cars.map((c) => (
-                      <SelectItem key={c.plate} value={c.plate}>
+                      <SelectItem searchKeywords={optionKeywords(c)} key={c.plate} value={c.plate}>
                         {c.name}
                         {c.plate ? ` (${c.plate})` : ""}
                       </SelectItem>
@@ -210,7 +211,7 @@ export default function ClientTripHistory() {
                 </SelectTrigger>
                 <SelectContent>
                   {STATUS_TABS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
+                    <SelectItem searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>
                       {s.value === "all" ? "All Status" : s.label}
                     </SelectItem>
                   ))}

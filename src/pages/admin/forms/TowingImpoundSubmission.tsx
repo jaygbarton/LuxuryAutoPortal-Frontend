@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Towing & Impound Submission ("Towing & Impound Form")
  * Clients submit a towing/impound incident against one of their own cars. They pick
@@ -212,7 +213,7 @@ export default function TowingImpoundSubmission() {
                 </SelectTrigger>
                 <SelectContent>
                   {cars.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
+                    <SelectItem searchKeywords={optionKeywords(c)} key={c.id} value={String(c.id)}>
                       {c.label}
                     </SelectItem>
                   ))}
@@ -235,7 +236,7 @@ export default function TowingImpoundSubmission() {
               </SelectTrigger>
               <SelectContent>
                 {INCIDENT_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
+                  <SelectItem searchKeywords={optionKeywords(t)} key={t} value={t}>
                     {t}
                   </SelectItem>
                 ))}

@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
@@ -1760,7 +1761,7 @@ export default function TrainingManualPage() {
                           {tutorialModules
                             .filter(m => m.role === form.watch("role"))
                             .map((module) => (
-                              <SelectItem key={module.id} value={module.id.toString()}>
+                              <SelectItem searchKeywords={optionKeywords(module)} key={module.id} value={module.id.toString()}>
                                 {module.title}
                               </SelectItem>
                             ))}

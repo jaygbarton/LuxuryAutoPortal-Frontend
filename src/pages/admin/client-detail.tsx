@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
@@ -1911,7 +1912,7 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                     <SelectContent className="bg-card border-border text-foreground">
                       {["XS", "S", "M", "L", "XL", "XXL"].map(
                         (s) => (
-                          <SelectItem key={s} value={s}>
+                          <SelectItem searchKeywords={optionKeywords(s)} key={s} value={s}>
                             {s}
                           </SelectItem>
                         )
@@ -2184,7 +2185,7 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border text-foreground">
                         {nonOnboardedCars.map((car: any) => (
-                          <SelectItem key={car.id} value={car.id.toString()}>
+                          <SelectItem searchKeywords={optionKeywords(car)} key={car.id} value={car.id.toString()}>
                             {car.make || "N/A"} {car.model || ""} {car.year ? `(${car.year})` : ""} - VIN: {car.vin || "N/A"}
                           </SelectItem>
                         ))}
@@ -2457,7 +2458,7 @@ const [viewMyCarExpanded, setViewMyCarExpanded] = useState(true);
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border text-foreground">
                       {[2, 4, 5, 6, 7, 8].map((n) => (
-                        <SelectItem key={n} value={String(n)}>
+                        <SelectItem searchKeywords={optionKeywords(n)} key={n} value={String(n)}>
                           {n}
                         </SelectItem>
                       ))}

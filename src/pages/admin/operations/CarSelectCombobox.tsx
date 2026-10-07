@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -103,7 +104,7 @@ export function CarSelectCombobox({ value, onChange, onSelectCar, disabled }: Ca
             </CommandEmpty>
             <CommandGroup>
               {activeCars.map((car) => (
-                <CommandItem
+                <CommandItem keywords={optionKeywords(car)}
                   key={car.id}
                   value={formatCarLabel(car)}
                   onSelect={() => {

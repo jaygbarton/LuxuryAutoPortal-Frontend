@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Car Repaired Submission ("Car Repaired Form")
  * Staff log a completed vehicle repair: pick the car, repair completion
@@ -274,7 +275,7 @@ export default function CarRepairedSubmission() {
                       </CommandEmpty>
                       <CommandGroup>
                         {cars.map((c) => (
-                          <CommandItem
+                          <CommandItem keywords={optionKeywords(c)}
                             key={c.id}
                             value={c.label}
                             onSelect={() => {
@@ -328,7 +329,7 @@ export default function CarRepairedSubmission() {
               </SelectTrigger>
               <SelectContent>
                 {REPAIR_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
+                  <SelectItem searchKeywords={optionKeywords(t)} key={t} value={t}>
                     {t}
                   </SelectItem>
                 ))}

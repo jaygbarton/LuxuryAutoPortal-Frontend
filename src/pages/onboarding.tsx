@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
@@ -505,7 +506,7 @@ export default function Onboarding() {
                                     <SelectContent>
                                       {["XS", "S", "M", "L", "XL", "XXL"].map(
                                         (s) => (
-                                          <SelectItem key={s} value={s}>
+                                          <SelectItem searchKeywords={optionKeywords(s)} key={s} value={s}>
                                             {s}
                                           </SelectItem>
                                         )
@@ -614,7 +615,7 @@ export default function Onboarding() {
                                     </FormControl>
                                     <SelectContent>
                                       {[...salesReps, "Other"].map((rep) => (
-                                        <SelectItem key={rep} value={rep}>
+                                        <SelectItem searchKeywords={optionKeywords(rep)} key={rep} value={rep}>
                                           {rep}
                                         </SelectItem>
                                       ))}

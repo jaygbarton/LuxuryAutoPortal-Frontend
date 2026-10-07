@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Admin HR – Task Management (improved).
  * Full CRUD with status, employee assignment, photo upload, and edit history.
@@ -178,7 +179,7 @@ onChanged();
       </SelectTrigger>
       <SelectContent>
         {STATUS_OPTIONS.map((s) => (
-          <SelectItem key={s.value} value={s.value} className="text-xs">
+          <SelectItem searchKeywords={optionKeywords(s)} key={s.value} value={s.value} className="text-xs">
             {s.label}
           </SelectItem>
         ))}
@@ -944,7 +945,7 @@ export default function AdminHrTaskManagement() {
                   <SelectItem value={HIDE_COMPLETED_FILTER}>Active (hide Completed)</SelectItem>
                   <SelectItem value="all">All Statuses</SelectItem>
                   {STATUS_OPTIONS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    <SelectItem searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>{s.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -957,7 +958,7 @@ export default function AdminHrTaskManagement() {
                 <SelectContent>
                   <SelectItem value="all">All Assignees</SelectItem>
                   {assignedToOptions.map((name) => (
-                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                    <SelectItem searchKeywords={optionKeywords(name)} key={name} value={name}>{name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -1464,7 +1465,7 @@ export default function AdminHrTaskManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   {STATUS_OPTIONS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
+                    <SelectItem searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>
                       {s.label}
                     </SelectItem>
                   ))}

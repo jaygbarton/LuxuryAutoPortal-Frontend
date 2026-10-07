@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import React from "react";
 import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -68,7 +69,7 @@ export function IncomeExpensesSection({
           <Select value={selectedYear} onValueChange={onYearChange}>
             <SelectTrigger className="w-28 h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {yearOptions.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+              {yearOptions.map((y) => <SelectItem searchKeywords={optionKeywords(y)} key={y} value={String(y)}>{y}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -77,7 +78,7 @@ export function IncomeExpensesSection({
           <Select value={selectedYearTrips} onValueChange={onYearTripsChange}>
             <SelectTrigger className="w-28 h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {yearOptions.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+              {yearOptions.map((y) => <SelectItem searchKeywords={optionKeywords(y)} key={y} value={String(y)}>{y}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

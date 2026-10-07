@@ -1,3 +1,5 @@
+import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
+import { optionKeywords } from "@/lib/select-search";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -413,29 +415,29 @@ export default function ViewCarPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">From year</label>
-                <select
+                <SearchableNativeSelect
                   value={statementFromYear}
                   onChange={(e) => setStatementFromYear(e.target.value)}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 >
-                  <option value="">Earliest</option>
+                  <SearchableOption value="">Earliest</SearchableOption>
                   {statementYears.map((y) => (
-                    <option key={y} value={String(y)}>{y}</option>
+                    <SearchableOption searchKeywords={optionKeywords(y)} key={y} value={String(y)}>{y}</SearchableOption>
                   ))}
-                </select>
+                </SearchableNativeSelect>
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">To year</label>
-                <select
+                <SearchableNativeSelect
                   value={statementToYear}
                   onChange={(e) => setStatementToYear(e.target.value)}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 >
-                  <option value="">Latest</option>
+                  <SearchableOption value="">Latest</SearchableOption>
                   {statementYears.map((y) => (
-                    <option key={y} value={String(y)}>{y}</option>
+                    <SearchableOption searchKeywords={optionKeywords(y)} key={y} value={String(y)}>{y}</SearchableOption>
                   ))}
-                </select>
+                </SearchableNativeSelect>
               </div>
             </div>
 

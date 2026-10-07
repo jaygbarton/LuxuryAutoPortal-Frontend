@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -99,7 +100,7 @@ export function ClientSelectCombobox({
                 const name = displayName(c);
                 const isMatch = String(c.id) === value;
                 return (
-                  <CommandItem
+                  <CommandItem keywords={optionKeywords(c)}
                     key={c.id}
                     value={`${name} ${c.email ?? ""}`}
                     onSelect={() => {

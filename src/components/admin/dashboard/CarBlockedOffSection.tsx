@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, CalendarOff } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -217,7 +218,7 @@ export default function CarBlockedOffSection() {
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border text-foreground">
                         {STATUS_OPTIONS.map((s) => (
-                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                          <SelectItem searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>{s.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

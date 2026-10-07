@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -119,7 +120,7 @@ export default function OperationsPage() {
               </SelectTrigger>
               <SelectContent>
                 {locationOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem searchKeywords={optionKeywords(option)} key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
                 ))}

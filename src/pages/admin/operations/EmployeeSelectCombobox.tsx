@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Employee picker combobox used by Operations modals (Maintenance,
  * Inspections, etc.). Searchable list of active employees; matches the look
@@ -113,7 +114,7 @@ export function EmployeeSelectCombobox({
                 const name = displayName(e);
                 const isMatch = matchedByName?.employee_aid === e.employee_aid;
                 return (
-                  <CommandItem
+                  <CommandItem keywords={optionKeywords(e)}
                     key={e.employee_aid}
                     value={`${name} ${e.employee_email ?? ""}`}
                     onSelect={() => {

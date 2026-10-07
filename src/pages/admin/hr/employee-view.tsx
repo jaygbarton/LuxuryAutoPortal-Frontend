@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
@@ -570,7 +571,7 @@ toast({ title: "Deleted", description: "Employee deleted successfully." });
                     </SelectItem>
                   )}
                 {(coHostsData?.coHosts ?? []).map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
+                  <SelectItem searchKeywords={optionKeywords(c)} key={c.id} value={String(c.id)}>
                     Co-Host: {c.first_name} {c.last_name}
                   </SelectItem>
                 ))}

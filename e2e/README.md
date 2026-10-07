@@ -1,5 +1,16 @@
 # E2E regression suite
 
+## Searchable dropdown checks
+
+Run `npm run test:dropdowns` for isolated dropdown interaction tests. This command
+starts a local Vite server and needs no login, database, or live API. It checks a
+120-car list, VIN/plate/year/make/model search, employee email/department search,
+keyboard selection, empty states, required native form values, disabled options,
+modal placement, and mobile touch interaction. Install Chromium with
+`npx playwright install chromium`, or set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`
+to an installed Chromium executable. The fixtures are served only during
+development and are not production routes.
+
 Playwright tests for the 5 critical flows, driven through the real UI as a
 real user (no API shortcuts except for read-only assertions and admin-only
 teardown that has no client-facing equivalent). No application code was

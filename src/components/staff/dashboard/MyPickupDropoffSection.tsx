@@ -1,3 +1,5 @@
+import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Pick Up & Drop Off — operation_tasks assigned to me.
  * Card layout matching the Turo Messages / Inspections section.
@@ -224,21 +226,21 @@ export default function MyPickupDropoffSection() {
             </button>
           )}
         </div>
-        <select
+        <SearchableNativeSelect
           value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
           className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]"
         >
-          <option value="all">All Statuses</option>
-          {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
+          <SearchableOption value="all">All Statuses</SearchableOption>
+          {STATUS_OPTIONS.map((s) => <SearchableOption searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>{s.label}</SearchableOption>)}
+        </SearchableNativeSelect>
         {assignedToOptions.length > 0 && (
-          <select
+          <SearchableNativeSelect
             value={assignedToFilter} onChange={(e) => setAssignedToFilter(e.target.value)}
             className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]"
           >
-            <option value="all">All Assignees</option>
-            {assignedToOptions.map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
+            <SearchableOption value="all">All Assignees</SearchableOption>
+            {assignedToOptions.map((n) => <SearchableOption searchKeywords={optionKeywords(n)} key={n} value={n}>{n}</SearchableOption>)}
+          </SearchableNativeSelect>
         )}
         <div className="flex items-center gap-1">
           <span className="text-xs text-gray-500 whitespace-nowrap">Trip Start/End From</span>
@@ -316,7 +318,7 @@ export default function MyPickupDropoffSection() {
                       </SelectTrigger>
                       <SelectContent>
                         {STATUS_OPTIONS.map((s) => (
-                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                          <SelectItem searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>{s.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

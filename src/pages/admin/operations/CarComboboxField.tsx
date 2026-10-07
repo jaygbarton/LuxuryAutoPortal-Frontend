@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Searchable car-picker combobox used by the operations incident modals
  * (ticket violation, towing & impound, ...) to select a car by name, plate,
@@ -61,7 +62,7 @@ export function CarComboboxField({
             </CommandEmpty>
             <CommandGroup>
               {cars.map((c) => (
-                <CommandItem
+                <CommandItem keywords={optionKeywords(c)}
                   key={c.id}
                   value={c.label}
                   onSelect={() => {

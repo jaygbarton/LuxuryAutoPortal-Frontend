@@ -1,3 +1,5 @@
+import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Car Going Out For Rental – GLA form (v1 logic).
  * Fields: Date, Car, Start date of rental, Inventory checklist, Cleaning Inside/Outside/Fluids,
@@ -228,17 +230,17 @@ export function CarGoingOutForm({ onBack }: CarGoingOutFormProps) {
         </div>
         <div>
           <Label>Car *</Label>
-          <select
+          <SearchableNativeSelect
             value={carId === "" ? "" : carId}
             onChange={(e) => setCarId(e.target.value === "" ? "" : Number(e.target.value))}
             required
             className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
-            <option value="">Select car</option>
+            <SearchableOption value="">Select car</SearchableOption>
             {cars.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <SearchableOption searchKeywords={optionKeywords(c)} key={c.id} value={c.id}>{c.name}</SearchableOption>
             ))}
-          </select>
+          </SearchableNativeSelect>
         </div>
       </div>
       <div>

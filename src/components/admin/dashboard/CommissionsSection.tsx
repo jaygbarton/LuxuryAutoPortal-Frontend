@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -351,7 +352,7 @@ export default function CommissionsSection() {
             </SelectTrigger>
             <SelectContent>
               {YEAR_OPTIONS.map((y) => (
-                <SelectItem key={y} value={y}>{y}</SelectItem>
+                <SelectItem searchKeywords={optionKeywords(y)} key={y} value={y}>{y}</SelectItem>
               ))}
             </SelectContent>
           </Select>

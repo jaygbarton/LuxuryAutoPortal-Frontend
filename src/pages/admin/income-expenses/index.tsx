@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import React, { useEffect, useMemo, useState } from "react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
@@ -287,7 +288,7 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
                           const carDisplayName = formatCarDisplayName(carItem);
                           const isSelected = selectedCar === carItem.id.toString();
                           return (
-                            <CommandItem
+                            <CommandItem keywords={optionKeywords(carItem)}
                               key={carItem.id}
                               value={carDisplayName}
                               onSelect={() => {
@@ -320,7 +321,7 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
                 </SelectTrigger>
                 <SelectContent className="bg-muted border-border text-foreground">
                   {yearOptions.map((yr) => (
-                    <SelectItem key={yr} value={String(yr)}>
+                    <SelectItem searchKeywords={optionKeywords(yr)} key={yr} value={String(yr)}>
                       {yr}
                     </SelectItem>
                   ))}
@@ -410,7 +411,7 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
                               const carDisplayName = formatCarDisplayName(carItem);
                               const isSelected = selectedCar === carItem.id.toString();
                               return (
-                                <CommandItem
+                                <CommandItem keywords={optionKeywords(carItem)}
                                   key={carItem.id}
                                   value={carDisplayName}
                                   onSelect={() => {
@@ -580,7 +581,7 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
                               const carDisplayName = formatCarDisplayName(carItem);
                               const isSelected = selectedCar === carItem.id.toString();
                               return (
-                                <CommandItem
+                                <CommandItem keywords={optionKeywords(carItem)}
                                   key={carItem.id}
                                   value={carDisplayName}
                                   onSelect={() => {

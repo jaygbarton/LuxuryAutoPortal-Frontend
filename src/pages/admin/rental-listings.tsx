@@ -1,3 +1,5 @@
+import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
+import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -195,9 +197,9 @@ function DailyPricesTab({ carId }: { carId: number }) {
       <div className="flex items-end gap-3 flex-wrap">
         <div className="flex flex-col gap-1">
           <label className="text-xs text-muted-foreground">Year</label>
-          <select className="border border-border rounded-md h-9 px-2 text-sm bg-background" value={year} onChange={(e) => setYear(Number(e.target.value))}>
-            {yearOpts.map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
+          <SearchableNativeSelect className="border border-border rounded-md h-9 px-2 text-sm bg-background" value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            {yearOpts.map((y) => <SearchableOption searchKeywords={optionKeywords(y)} key={y} value={y}>{y}</SearchableOption>)}
+          </SearchableNativeSelect>
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs text-muted-foreground">Set date</label>

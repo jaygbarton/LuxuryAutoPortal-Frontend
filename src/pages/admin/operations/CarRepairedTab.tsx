@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -219,7 +220,7 @@ function CarRepairedModal({
                     </CommandEmpty>
                     <CommandGroup>
                       {cars.map((c) => (
-                        <CommandItem
+                        <CommandItem keywords={optionKeywords(c)}
                           key={c.id}
                           value={c.label}
                           onSelect={() => {
@@ -265,7 +266,7 @@ function CarRepairedModal({
               <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
               <SelectContent>
                 {REPAIR_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                  <SelectItem searchKeywords={optionKeywords(t)} key={t} value={t}>{t}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -483,7 +484,7 @@ export function CarRepairedTab() {
                 <SelectContent className="bg-card border-border text-foreground">
                   <SelectItem value="all">All</SelectItem>
                   {REPAIR_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                    <SelectItem searchKeywords={optionKeywords(t)} key={t} value={t}>{t}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

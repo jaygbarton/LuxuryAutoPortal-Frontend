@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Admin HR – Employee Stats Report.
  *
@@ -193,7 +194,7 @@ function EmployeeSelectCombobox(props: {
                 const name = employeeName(e);
                 const isMatch = String(e.employee_aid) === value;
                 return (
-                  <CommandItem
+                  <CommandItem keywords={optionKeywords(e)}
                     key={e.employee_aid}
                     value={name}
                     onSelect={() => {

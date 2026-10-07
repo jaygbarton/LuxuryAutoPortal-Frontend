@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
@@ -485,7 +486,7 @@ export function AddEditPaymentModal({
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border text-foreground z-[4100]">
                     {statuses.map((status) => (
-                      <SelectItem
+                      <SelectItem searchKeywords={optionKeywords(status)}
                         key={status.payment_status_aid}
                         value={status.payment_status_aid.toString()}
                       >

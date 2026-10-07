@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Employee Form: Income & Expense Receipt Submission
  * Income, Operating Expenses (Direct Delivery), COGS (Per Vehicle), Reimbursed Bills
@@ -497,7 +498,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map((emp: { id: number; name: string }) => (
-                      <SelectItem key={emp.id} value={String(emp.id)}>
+                      <SelectItem searchKeywords={optionKeywords(emp)} key={emp.id} value={String(emp.id)}>
                         {emp.name}
                       </SelectItem>
                     ))}
@@ -596,7 +597,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
                 </SelectTrigger>
                 <SelectContent>
                   {MONTHS.map((m, i) => (
-                    <SelectItem key={i} value={String(i + 1)}>
+                    <SelectItem searchKeywords={optionKeywords(m)} key={i} value={String(i + 1)}>
                       {m}
                     </SelectItem>
                   ))}
@@ -638,7 +639,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
                 {(["income", "directDelivery", "cogs", "reimbursedBills"] as const)
                   .filter((cat) => (categoryFields[cat]?.length ?? 0) > 0)
                   .map((cat) => (
-                    <SelectItem key={cat} value={cat}>
+                    <SelectItem searchKeywords={optionKeywords(cat)} key={cat} value={cat}>
                       {CATEGORY_LABELS[cat]}
                     </SelectItem>
                   ))}
@@ -659,7 +660,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
               </SelectTrigger>
               <SelectContent>
                 {fieldOptions.map((f: { value: string; label: string }) => (
-                  <SelectItem key={f.value} value={f.value}>
+                  <SelectItem searchKeywords={optionKeywords(f)} key={f.value} value={f.value}>
                     {f.label}
                   </SelectItem>
                 ))}

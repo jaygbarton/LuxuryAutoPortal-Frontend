@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -1096,7 +1097,7 @@ export default function AdminsPage() {
                             {roles
                               ?.filter((role) => role.isAdmin || role.isEmployee)
                               .map((role) => (
-                                <SelectItem
+                                <SelectItem searchKeywords={optionKeywords(role)}
                                   key={role.id}
                                   value={role.id.toString()}
                                 >

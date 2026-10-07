@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useRef, useState } from "react";
 import {
   Select,
@@ -124,7 +125,7 @@ export function PaymentFilterBar({
             <SelectContent className="bg-card border-border text-foreground">
               <SelectItem value="__all__">All</SelectItem>
               {statuses.map((s) => (
-                <SelectItem key={s.payment_status_aid} value={s.payment_status_name}>
+                <SelectItem searchKeywords={optionKeywords(s)} key={s.payment_status_aid} value={s.payment_status_name}>
                   {s.payment_status_name}
                 </SelectItem>
               ))}

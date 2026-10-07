@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Lets a user pick their own timezone. Everything they view elsewhere in the
  * app (dates, times, day-bucketed lists) follows this preference — see
@@ -171,7 +172,7 @@ export function TimezonePreferenceCard() {
                           Organization default ({ORG_TIMEZONE_FALLBACK})
                         </CommandItem>
                         {zones.map((tz) => (
-                          <CommandItem
+                          <CommandItem keywords={optionKeywords(tz)}
                             key={tz}
                             value={timezoneLabel(tz)}
                             onSelect={() => {

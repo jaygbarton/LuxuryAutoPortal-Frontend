@@ -1,3 +1,5 @@
+import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
+import { optionKeywords } from "@/lib/select-search";
 import React from "react";
 import { X, Loader2, Trash2 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -424,7 +426,7 @@ function ReceiptOcrPanel({
                 >
                   {money(it.amount)}
                 </span>
-                <select
+                <SearchableNativeSelect
                   value={v}
                   disabled={!canEdit || saving}
                   onChange={(e) =>
@@ -432,14 +434,14 @@ function ReceiptOcrPanel({
                   }
                   className="h-7 max-w-[16rem] flex-1 rounded border border-border bg-card px-1 text-[11px] text-foreground disabled:opacity-60"
                 >
-                  <option value="">— unassigned —</option>
-                  <option value="__skip">Skip (tax / fee / not a service)</option>
+                  <SearchableOption value="">— unassigned —</SearchableOption>
+                  <SearchableOption value="__skip">Skip (tax / fee / not a service)</SearchableOption>
                   {OCR_FIELD_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
+                    <SearchableOption searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>
                       {o.label}
-                    </option>
+                    </SearchableOption>
                   ))}
-                </select>
+                </SearchableNativeSelect>
               </div>
             );
           })}

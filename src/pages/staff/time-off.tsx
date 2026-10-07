@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Staff – Time Off. Submit and track personal leave requests.
  */
@@ -444,7 +445,7 @@ export default function StaffTimeOff() {
                       </SelectTrigger>
                       <SelectContent>
                         {PER_PAGE_OPTIONS.map((n) => (
-                          <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                          <SelectItem searchKeywords={optionKeywords(n)} key={n} value={String(n)}>{n}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

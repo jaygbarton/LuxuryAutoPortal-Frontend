@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -554,7 +555,7 @@ export default function ClientDashboard() {
                     c.vin ? `• ${c.vin}` : null,
                   ].filter(Boolean).join(" ");
                   return (
-                    <SelectItem key={c.id} value={String(c.id)}>
+                    <SelectItem searchKeywords={optionKeywords(c)} key={c.id} value={String(c.id)}>
                       {parts || `Car #${c.id}`}
                     </SelectItem>
                   );

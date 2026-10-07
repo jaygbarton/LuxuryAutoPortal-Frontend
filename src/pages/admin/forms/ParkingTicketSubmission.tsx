@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Parking Ticket Submission ("Submit a Parking Ticket")
  * Car owners submit a parking ticket against one of their own cars.
@@ -205,7 +206,7 @@ export default function ParkingTicketSubmission() {
                 </SelectTrigger>
                 <SelectContent>
                   {cars.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
+                    <SelectItem searchKeywords={optionKeywords(c)} key={c.id} value={String(c.id)}>
                       {c.label}
                     </SelectItem>
                   ))}

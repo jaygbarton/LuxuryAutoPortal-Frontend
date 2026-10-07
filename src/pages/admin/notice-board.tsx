@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -288,7 +289,7 @@ export default function NoticeBoardManagementPage() {
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {CATEGORIES.map((c) => <SelectItem searchKeywords={optionKeywords(c)} key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -300,7 +301,7 @@ export default function NoticeBoardManagementPage() {
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {PRIORITIES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    {PRIORITIES.map((p) => <SelectItem searchKeywords={optionKeywords(p)} key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -695,12 +696,12 @@ export function MaintenanceTab({
                   <div className="flex items-center gap-1 flex-wrap">
                     <Select value={gasStart || "__none__"} onValueChange={(v) => saveGas(v === "__none__" ? "" : v, gasEnd)}>
                       <SelectTrigger className="h-7 w-[90px] text-xs"><SelectValue placeholder="Start" /></SelectTrigger>
-                      <SelectContent>{GAS_OPTS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                      <SelectContent>{GAS_OPTS.map((o) => <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                     </Select>
                     <span className="text-muted-foreground text-xs">→</span>
                     <Select value={gasEnd || "__none__"} onValueChange={(v) => saveGas(gasStart, v === "__none__" ? "" : v)}>
                       <SelectTrigger className="h-7 w-[90px] text-xs"><SelectValue placeholder="End" /></SelectTrigger>
-                      <SelectContent>{GAS_OPTS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                      <SelectContent>{GAS_OPTS.map((o) => <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 ) : <span className="text-muted-foreground text-xs">--</span>;

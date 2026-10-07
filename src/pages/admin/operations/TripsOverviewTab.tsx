@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -722,7 +723,7 @@ export function TripsOverviewTab() {
                 <SelectContent className="bg-card border-border text-foreground">
                   <SelectItem value="all">All</SelectItem>
                   {statusOptions.map((s) => (
-                    <SelectItem key={s} value={s} className="capitalize">
+                    <SelectItem searchKeywords={optionKeywords(s)} key={s} value={s} className="capitalize">
                       {s}
                     </SelectItem>
                   ))}
@@ -741,7 +742,7 @@ export function TripsOverviewTab() {
                   <SelectItem value="all">All</SelectItem>
                   <SelectItem value="__unassigned__">Unassigned</SelectItem>
                   {assigneeOptions.map((name) => (
-                    <SelectItem key={name} value={name}>
+                    <SelectItem searchKeywords={optionKeywords(name)} key={name} value={name}>
                       {name}
                     </SelectItem>
                   ))}

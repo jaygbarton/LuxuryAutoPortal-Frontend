@@ -1,3 +1,5 @@
+import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
+import { optionKeywords } from "@/lib/select-search";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -161,16 +163,16 @@ function StatusSelect({ id, value }: { id: number; value: string }) {
   });
 
   return (
-    <select
+    <SearchableNativeSelect
       value={value}
       onChange={(e) => mutation.mutate(e.target.value)}
       disabled={mutation.isPending}
       className="text-xs border border-gray-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D] bg-white cursor-pointer"
     >
       {MAINT_STATUS_OPTIONS.map((o) => (
-        <option key={o.value} value={o.value}>{o.label}</option>
+        <SearchableOption searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>{o.label}</SearchableOption>
       ))}
-    </select>
+    </SearchableNativeSelect>
   );
 }
 
@@ -250,12 +252,12 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
             className="w-full pl-8 pr-7 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
           {search && <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="h-3 w-3" /></button>}
         </div>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+        <SearchableNativeSelect value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
           className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]">
-          <option value={HIDE_COMPLETED_FILTER}>Active (hide Completed)</option>
-          <option value="all">All Statuses</option>
-          {MAINT_STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
+          <SearchableOption value={HIDE_COMPLETED_FILTER}>Active (hide Completed)</SearchableOption>
+          <SearchableOption value="all">All Statuses</SearchableOption>
+          {MAINT_STATUS_OPTIONS.map(s => <SearchableOption searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>{s.label}</SearchableOption>)}
+        </SearchableNativeSelect>
         <div className="flex items-center gap-1">
           <span className="text-xs text-gray-500">Trip Start/End</span>
           <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}

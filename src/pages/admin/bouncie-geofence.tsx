@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import "leaflet/dist/leaflet.css";
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -377,7 +378,7 @@ function ZoneFormModal({ open, onClose, onSave, loading, initial, zones }: ZoneF
                 </SelectTrigger>
                 <SelectContent>
                   {ZONE_CATEGORIES.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>
+                    <SelectItem searchKeywords={optionKeywords(c)} key={c.value} value={c.value}>
                       {c.emoji} {c.label}
                     </SelectItem>
                   ))}
@@ -864,7 +865,7 @@ export default function BouncieGeofencePage() {
                   </SelectTrigger>
                   <SelectContent>
                     {HOURS_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>{o.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -964,7 +965,7 @@ export default function BouncieGeofencePage() {
                         <SelectTrigger className="w-44 h-8 text-xs"><SelectValue placeholder="All Zones" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Zones</SelectItem>
-                          {zoneNames.map((z) => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+                          {zoneNames.map((z) => <SelectItem searchKeywords={optionKeywords(z)} key={z} value={z}>{z}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     )}

@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Document Update Approval Dashboard (admin).
  *
@@ -406,7 +407,7 @@ export default function DocumentUpdateApprovalDashboard() {
           </SelectTrigger>
           <SelectContent>
             {STATUS_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
+              <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>
                 {o.label}
               </SelectItem>
             ))}
@@ -418,7 +419,7 @@ export default function DocumentUpdateApprovalDashboard() {
           </SelectTrigger>
           <SelectContent>
             {TYPE_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
+              <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>
                 {o.label}
               </SelectItem>
             ))}

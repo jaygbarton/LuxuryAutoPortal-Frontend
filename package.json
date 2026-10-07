@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "lint": "tsc --noEmit",
-    "dup": "jscpd"
+    "dup": "jscpd",
+    "test:dropdowns": "playwright test --config playwright.dropdowns.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

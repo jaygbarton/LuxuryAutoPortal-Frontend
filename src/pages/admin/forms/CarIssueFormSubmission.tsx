@@ -1,3 +1,5 @@
+import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
+import { optionKeywords } from "@/lib/select-search";
 /**
  * Car Issue Form Submission
  * Accessible by employees and admins from the Forms page.
@@ -61,7 +63,7 @@ function CarSelect({
   };
 
   return (
-    <select
+    <SearchableNativeSelect
       value={value}
       onChange={(e) => {
         const selected = cars.find((c) => carLabel(c) === e.target.value);
@@ -69,13 +71,13 @@ function CarSelect({
       }}
       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
     >
-      <option value="">Select a car…</option>
+      <SearchableOption value="">Select a car…</SearchableOption>
       {cars.map((c) => (
-        <option key={c.id} value={carLabel(c)}>
+        <SearchableOption searchKeywords={optionKeywords(c)} key={c.id} value={carLabel(c)}>
           {carLabel(c)}
-        </option>
+        </SearchableOption>
       ))}
-    </select>
+    </SearchableNativeSelect>
   );
 }
 
@@ -104,18 +106,18 @@ function EmployeeSelect({
   const employees = data?.data ?? [];
 
   return (
-    <select
+    <SearchableNativeSelect
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
     >
-      <option value="">Select employee…</option>
+      <SearchableOption value="">Select employee…</SearchableOption>
       {employees.map((emp) => (
-        <option key={emp.employee_aid} value={emp.fullname}>
+        <SearchableOption searchKeywords={optionKeywords(emp)} key={emp.employee_aid} value={emp.fullname}>
           {emp.fullname}
-        </option>
+        </SearchableOption>
       ))}
-    </select>
+    </SearchableNativeSelect>
   );
 }
 

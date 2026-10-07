@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import React, { useState, useEffect } from "react";
 import {
   useQuery,
@@ -846,7 +847,7 @@ export default function CarsPage() {
                 <SelectContent className="bg-card border-border text-foreground">
                   <SelectItem value="all">All States</SelectItem>
                   {STATE_FILTER_OPTIONS.map((state) => (
-                    <SelectItem key={state} value={state}>
+                    <SelectItem searchKeywords={optionKeywords(state)} key={state} value={state}>
                       {state}
                     </SelectItem>
                   ))}
@@ -1647,7 +1648,7 @@ export default function CarsPage() {
                                 No client
                               </CommandItem>
                               {filteredClients.slice(0, 50).map(c => (
-                                <CommandItem
+                                <CommandItem keywords={optionKeywords(c)}
                                   key={c.id}
                                   value={`${c.firstName} ${c.lastName} ${c.email}`}
                                   onSelect={() => {

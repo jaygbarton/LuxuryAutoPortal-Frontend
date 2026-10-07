@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import React, { useState, useRef, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
@@ -506,7 +507,7 @@ export default function TotalsPage() {
               <SelectContent className="bg-card border-border text-foreground max-h-[300px]">
                 <SelectItem value="all">All Cars (Aggregated)</SelectItem>
                 {carsList.map((c) => (
-                  <SelectItem key={c.id} value={c.id.toString()}>
+                  <SelectItem searchKeywords={optionKeywords(c)} key={c.id} value={c.id.toString()}>
                     {c.makeModel}{c.licensePlate ? ` — #${c.licensePlate}` : ""}{c.vin ? ` (${c.vin.slice(-6)})` : ""}
                   </SelectItem>
                 ))}
@@ -600,7 +601,7 @@ export default function TotalsPage() {
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border text-foreground">
                       {Array.from({ length: 10 }, (_, i) => nowYear - i).map((y) => (
-                        <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                        <SelectItem searchKeywords={optionKeywords(y)} key={y} value={y.toString()}>{y}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -613,7 +614,7 @@ export default function TotalsPage() {
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border text-foreground">
                       {Array.from({ length: 10 }, (_, i) => nowYear - i).map((y) => (
-                        <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                        <SelectItem searchKeywords={optionKeywords(y)} key={y} value={y.toString()}>{y}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

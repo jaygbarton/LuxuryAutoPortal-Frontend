@@ -1,3 +1,5 @@
+import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
+import { optionKeywords } from "@/lib/select-search";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -312,15 +314,15 @@ export default function AdminDashboard() {
           {/* Year dropdown — same row as Filter Sections */}
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium text-gray-600">Year:</label>
-            <select
+            <SearchableNativeSelect
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
               className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#D3BC8D]"
             >
               {Array.from({ length: 8 }, (_, i) => String(new Date().getFullYear() - i)).map((y) => (
-                <option key={y} value={y}>{y}</option>
+                <SearchableOption searchKeywords={optionKeywords(y)} key={y} value={y}>{y}</SearchableOption>
               ))}
-            </select>
+            </SearchableNativeSelect>
           </div>
 
           {filterOpen && (

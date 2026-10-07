@@ -1,3 +1,4 @@
+import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
@@ -301,7 +302,7 @@ export function EditBasicInfoModal({ open, onOpenChange, employee }: EditBasicIn
                       </FormControl>
                       <SelectContent>
                         {MARITAL_OPTIONS.map((o) => (
-                          <SelectItem key={o.value} value={o.value}>
+                          <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>
                             {o.label}
                           </SelectItem>
                         ))}
@@ -442,7 +443,7 @@ export function EditBasicInfoModal({ open, onOpenChange, employee }: EditBasicIn
                       </FormControl>
                       <SelectContent>
                         {SHIRT_OPTIONS.map((o) => (
-                          <SelectItem key={o} value={o}>
+                          <SelectItem searchKeywords={optionKeywords(o)} key={o} value={o}>
                             {o}
                           </SelectItem>
                         ))}
