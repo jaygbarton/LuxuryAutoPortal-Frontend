@@ -157,7 +157,7 @@
           "value": "app.goldenluxuryauto.com"
         }
       ],
-      "destination": "/index.html"
+      "destination": "/legacy-index.html"
     },
     {
       "source": "/((?!api/|rest/|contracts/|signed-contracts/|car-photos/|income-expense-images/).*)",
