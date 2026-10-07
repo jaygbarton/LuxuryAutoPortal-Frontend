@@ -1,0 +1,13 @@
+{
+  "repository": "jaygbarton/gla-v3",
+  "revision": "75aa29f3a4f87344be1b0dcfa5edbda9565bedd1",
+  "baseRevision": "4a45ae226fd8510e95d24ba5325de3d0639caefd",
+  "entry": "public/legacy-restored-index.html",
+  "active": false,
+  "activationRequires": "Verified original PHP backend and uploads origin",
+  "assets": [
+    "/legacy-assets/Poppins-Regular-JiV4gZDp.ttf",
+    "/legacy-assets/index-DYzATs8v.js",
+    "/legacy-assets/index-CW430uEF.css"
+  ]
+}
