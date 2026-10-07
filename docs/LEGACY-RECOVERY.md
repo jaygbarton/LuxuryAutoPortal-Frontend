@@ -18,6 +18,12 @@ The original full application needs these upstream paths:
 
 The current `/rest/gla` proxy to `devapp.fbasapp.com` is not verified as the full production backend. `/img` currently maps to only 11 packaged images. No original `/portal` API/uploads upstream is configured. Do not redirect the recovered UI to the Node compatibility layer and assume it supplies the complete PHP application.
 
+## Login failure handling
+
+The origin can return a SiteGround CAPTCHA page or HTTP 403 before PHP handles authentication. A failed API response previously rejected JSON parsing silently on the login page. The recovered source now displays a sign-in service error, aborts requests after 20 seconds, and releases the form. Saved-session failures release the loading screen; an explicitly expired token no longer prevents a subsequent valid sign-in from redirecting. No account-role or password checks are bypassed.
+
+`node scripts/check-legacy-login.cjs` runs isolated browser fixtures against the legacy preview for regular and developer login: 403, CAPTCHA HTML, network failure, timeout, invalid credentials, successful sign-in after token expiry, and failed session restoration. Production credentials are never submitted. These checks validate UI behavior, not removal of SiteGround's WAF block.
+
 ## Rebuild
 
 Check out the legacy recovery branch and install its dependencies. With a clean, committed legacy checkout:

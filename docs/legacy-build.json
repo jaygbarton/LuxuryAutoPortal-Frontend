@@ -1,14 +1,14 @@
 {
   "repository": "jaygbarton/gla-v3",
-  "revision": "75aa29f3a4f87344be1b0dcfa5edbda9565bedd1",
+  "revision": "f9985cdd06d43bc42602b384227b51a91ac8b7a0",
   "baseRevision": "4a45ae226fd8510e95d24ba5325de3d0639caefd",
   "entry": "public/legacy-index.html",
   "active": true,
   "assets": [
     "/legacy-assets/Poppins-Regular-JiV4gZDp.ttf",
-    "/legacy-assets/index-DYzATs8v.js",
+    "/legacy-assets/index-BOD4GpK6.js",
     "/legacy-assets/index-CW430uEF.css"
   ],
   "origin": "https://legacy-origin.goldenluxuryauto.com",
-  "verification": "User confirmed origin logo and API response in browser; authenticated records remain to be verified after deployment."
+  "verification": "Live frontend and logo verified; API access remains blocked by SiteGround. Login error handling validated with 14 isolated browser checks."
 }
