@@ -103,12 +103,12 @@ export function DashboardRecordCard({
         {/* Header: type badge · reservation # · (spacer) · status */}
         <div className="flex items-start gap-2 flex-wrap">
           {typeLabel && (
-            <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${accentBg} ${typeTextClass}`}>
+            <span className={`text-xs sm:text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${accentBg} ${typeTextClass}`}>
               {typeLabel}
             </span>
           )}
           {!isEmpty(reservationId) && (
-            <span className="text-[11px] font-medium text-muted-foreground">
+            <span className="text-xs sm:text-[11px] font-medium text-muted-foreground">
               #{reservationId}
             </span>
           )}
@@ -126,7 +126,7 @@ export function DashboardRecordCard({
           <div className="space-y-1.5 lg:flex-1 lg:min-w-0 flex flex-col lg:self-stretch">
             {/* Car + plate */}
             {!isEmpty(carName) && (
-              <div className="flex items-center gap-1.5 text-sm text-foreground">
+              <div className="flex flex-wrap items-center gap-1.5 text-sm text-foreground">
                 <Car className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
                 <span className="font-semibold">{carName}</span>
                 {!isEmpty(plate) &&
@@ -184,11 +184,11 @@ export function DashboardRecordCard({
 
           {/* Middle: details grid */}
           {shownDetails.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 pt-1 mt-1 border-t border-border/60 lg:pt-0 lg:mt-0 lg:border-t-0 lg:flex-[2] lg:min-w-0 lg:self-stretch">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2 sm:gap-x-4 sm:gap-y-1 pt-1 mt-1 border-t border-border/60 lg:pt-0 lg:mt-0 lg:border-t-0 lg:flex-[2] lg:min-w-0 lg:self-stretch">
               {shownDetails.map((d) => (
                 <div key={d.label} className="min-w-0">
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground/70 leading-tight">{d.label}</div>
-                  <div className="text-xs text-foreground break-words">{d.value}</div>
+                  <div className="text-xs sm:text-[10px] uppercase tracking-wide text-muted-foreground/70 leading-tight">{d.label}</div>
+                  <div className="text-sm sm:text-xs text-foreground break-words">{d.value}</div>
                 </div>
               ))}
             </div>

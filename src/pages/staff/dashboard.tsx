@@ -100,7 +100,7 @@ export default function StaffDashboard() {
   return (
     <AdminLayout>
       <div className="min-h-screen bg-background">
-        <div className="space-y-4 px-4 pt-6 sm:px-6">
+        <div className="space-y-4 pt-3 sm:px-6 sm:pt-6">
           {/* Profile banner — always visible */}
           <EmployeeProfileSection />
 
@@ -110,7 +110,9 @@ export default function StaffDashboard() {
             <button
               type="button"
               onClick={() => setPanelOpen((o) => !o)}
-              className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-accent"
+              aria-expanded={panelOpen}
+              aria-controls="staff-dashboard-section-filters"
+              className="flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-accent sm:min-h-9"
             >
               <SlidersHorizontal className="h-4 w-4" />
               Filter Sections
@@ -123,8 +125,8 @@ export default function StaffDashboard() {
             </button>
 
             {panelOpen && (
-              <div className="mt-2 w-full rounded-lg border border-border bg-card p-4 shadow-sm">
-                <div className="mb-3 flex items-center gap-3">
+              <div id="staff-dashboard-section-filters" className="mt-2 w-full rounded-lg border border-border bg-card p-3 shadow-sm sm:p-4">
+                <div className="mb-3 flex flex-wrap items-center gap-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -133,7 +135,7 @@ export default function StaffDashboard() {
                       localStorage.setItem(STORAGE_KEY, JSON.stringify([...all]));
                     }}
                     disabled={visible.size === ALL_SECTIONS.length}
-                    className="text-xs font-medium text-amber-600 hover:text-amber-800 disabled:text-muted-foreground"
+                    className="min-h-11 px-2 text-sm font-medium text-amber-600 hover:text-amber-800 disabled:text-muted-foreground sm:min-h-8 sm:text-xs"
                   >
                     Select All
                   </button>
@@ -145,22 +147,22 @@ export default function StaffDashboard() {
                       localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
                     }}
                     disabled={visible.size === 0}
-                    className="text-xs font-medium text-amber-600 hover:text-amber-800 disabled:text-muted-foreground"
+                    className="min-h-11 px-2 text-sm font-medium text-amber-600 hover:text-amber-800 disabled:text-muted-foreground sm:min-h-8 sm:text-xs"
                   >
                     Deselect All
                   </button>
                 </div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                   {ALL_SECTIONS.map((s) => (
                     <label
                       key={s.id}
-                      className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground transition hover:bg-accent"
+                      className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-sm text-foreground transition hover:bg-accent sm:min-h-9 sm:gap-2 sm:py-1.5"
                     >
                       <input
                         type="checkbox"
                         checked={visible.has(s.id)}
                         onChange={() => toggle(s.id)}
-                        className="h-4 w-4 rounded border-border text-amber-600 focus:ring-amber-500"
+                        className="h-4 w-4 shrink-0 rounded border-border text-amber-600 focus:ring-amber-500"
                       />
                       {s.label}
                     </label>

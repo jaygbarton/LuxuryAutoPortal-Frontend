@@ -1,5 +1,5 @@
 import { optionKeywords } from "@/lib/select-search";
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "wouter";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
@@ -7,7 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical, LayoutList, Rows3, Plus, Trash2, CheckCircle } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical, LayoutList, Rows3, Plus, Trash2, CheckCircle, MoreHorizontal } from "lucide-react";
 import { PhotoUpload } from "./PhotoUpload";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarScheduleImage } from "./CarScheduleImage";
@@ -160,7 +161,7 @@ const STATUS_BADGE: Record<string, string> = {
 function formatDisplayDate(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
   return new Intl.DateTimeFormat("en-US", {
-    weekday: "long", year: "numeric", month: "2-digit", day: "2-digit",
+    weekday: "short", month: "short", day: "numeric",
     timeZone: "UTC",
   }).format(new Date(Date.UTC(y, m - 1, d)));
 }
@@ -365,22 +366,34 @@ function EventCard({
   const canEditDriver = DRIVER_EDITABLE_TYPES.includes(event.type);
   const [driverModeDraft, setDriverModeDraft] = useState<"employee" | "uber" | "na" | "">("");
   const [showAlreadyCleanBy, setShowAlreadyCleanBy] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsId = useId();
   const [completionDate, setCompletionDate] = useState(event.completed_day || date);
   const driverMode = driverModeDraft || event.driver_assignment_type || "";
   const showCompletionDatePicker = !!event.is_carryover && statusOptions && event.status !== "completed";
   const showActualCompletedDate = !!event.completed_day && event.completed_day !== (event.scheduled_day ?? date);
+  const hasDetails = canEditAssignee || canEditDuration || canEditDriver || Boolean(
+    event.trip_start_mt || event.trip_end_mt || event.pickup_location || event.dropoff_location ||
+    event.location || event.detail || event.notes || event.is_carryover || showActualCompletedDate || event.photos?.length,
+  );
+  const summaryLocation = event.location || (
+    event.type === "delivery" || event.type === "trip_end" || event.type === "owner_dropoff"
+      ? event.dropoff_location || event.pickup_location
+      : event.pickup_location || event.dropoff_location
+  );
 
   return (
     <div
       draggable
       onDragStart={(e) => setDragData(e, event)}
-      className={`group/event flex flex-col overflow-hidden rounded-lg border ${c.border} bg-card shadow-sm cursor-grab active:cursor-grabbing sm:flex-row sm:items-stretch`}
+      data-day-schedule-card
+      className="group/event flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card sm:cursor-grab sm:flex-row sm:items-stretch sm:active:cursor-grabbing"
     >
       {/* Color bar */}
       <div className={`h-1.5 w-full flex-shrink-0 ${c.bg} sm:h-auto sm:w-1.5`} />
 
       {/* Time gutter */}
-      <div className="flex w-full flex-shrink-0 items-center justify-between gap-2 border-b border-border bg-muted/30 px-2.5 py-2 text-[11px] leading-tight text-muted-foreground sm:w-20 sm:flex-col sm:items-end sm:justify-center sm:border-b-0 sm:border-r sm:px-1.5 sm:text-right sm:text-[10px]">
+      <div className="flex w-full flex-shrink-0 items-center justify-between gap-2 border-b border-border bg-muted/30 px-3 py-2 text-xs leading-tight text-muted-foreground sm:w-20 sm:flex-col sm:items-end sm:justify-center sm:border-b-0 sm:border-r sm:px-1.5 sm:text-right sm:text-xs">
         <span>{formatDateCompact(displayDay)}</span>
         {event.start_time ? (
           <span className="flex items-center gap-1.5 sm:flex-col sm:items-end sm:gap-0">
@@ -393,12 +406,12 @@ function EventCard({
       </div>
 
       {/* Content — one vertical rhythm: header → vehicle → where/when → notes → controls */}
-      <div className="flex min-w-0 flex-1 flex-col gap-2 px-3 py-2.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-3 px-3 py-3 sm:gap-2 sm:py-2.5">
         {/* Header: task type, status, quick actions, delete */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
             <GripVertical className="hidden h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/event:text-muted-foreground sm:block" />
-            <span className={`rounded px-2 py-1 text-[11px] font-semibold sm:px-1.5 sm:py-0.5 sm:text-[10px] ${c.bg} ${c.text}`}>
+            <span className={`rounded-md px-2 py-1 text-xs font-semibold sm:px-1.5 sm:py-0.5 sm:text-xs ${c.bg} ${c.text}`}>
               {event.category}
             </span>
             {statusOptions ? (
@@ -407,7 +420,7 @@ function EventCard({
                   value={event.status ?? "new"}
                   onValueChange={(val) => onStatusChange(event.type, event.id, val, val === "completed" ? completionDate : undefined)}
                 >
-                  <SelectTrigger className={`h-8 min-w-[7rem] cursor-pointer gap-1 rounded border px-2 py-0 text-[11px] sm:h-5 sm:min-w-0 sm:w-auto sm:px-1.5 sm:text-[10px] ${badgeClass}`}>
+                  <SelectTrigger aria-label="Task status" className={`h-11 min-w-[7rem] cursor-pointer gap-1 rounded-md border px-2 py-0 text-sm sm:h-8 sm:min-w-0 sm:w-auto sm:px-1.5 sm:text-xs ${badgeClass}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -420,301 +433,333 @@ function EventCard({
                 </Select>
               </span>
             ) : event.status ? (
-              <span className={`rounded border px-2 py-1 text-[11px] sm:px-1.5 sm:py-0.5 sm:text-[10px] ${badgeClass}`}>
+              <span className={`rounded border px-2 py-1 text-[11px] sm:px-1.5 sm:py-0.5 sm:text-xs ${badgeClass}`}>
                 {event.status.replace(/_/g, " ")}
               </span>
             ) : null}
             {showAssignee && (
-              <span className="inline-flex items-center gap-1 rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[11px] sm:text-[10px]">
+              <span className="inline-flex items-center gap-1 rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[11px] sm:text-xs">
                 <User className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
                 <span className={event.assigned_to ? "font-medium text-foreground" : "italic text-muted-foreground"}>
                   {event.assigned_to ?? "Unassigned"}
                 </span>
               </span>
             )}
-            {event.type === "cleaning" && event.status !== "completed" && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-8 px-2 text-[11px] sm:h-5 sm:text-[10px]"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowAlreadyCleanBy((v) => !v);
-                }}
-              >
-                Already clean?
-              </Button>
-            )}
           </div>
-          {isAdmin && (
-            <button
-              type="button"
-              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-red-200 bg-red-50 p-0 text-red-600 hover:border-red-300 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-              title="Delete task"
-              aria-label="Delete task"
-              data-day-schedule-delete
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(event);
-              }}
-              onDragStart={(e) => e.stopPropagation()}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+          {(isAdmin || (event.type === "cleaning" && event.status !== "completed")) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-11 shrink-0 sm:h-8 sm:w-8"
+                  aria-label={`More actions for ${event.category}${event.car_name ? `, ${event.car_name}` : ""}`}
+                  onClick={(e) => e.stopPropagation()}
+                  onDragStart={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {event.type === "cleaning" && event.status !== "completed" && (
+                  <DropdownMenuItem className="min-h-11" onSelect={() => {
+                    setDetailsOpen(true);
+                    setShowAlreadyCleanBy((v) => !v);
+                  }}>
+                    <CheckCircle className="h-4 w-4" /> Already clean?
+                  </DropdownMenuItem>
+                )}
+                {isAdmin && (
+                  <DropdownMenuItem className="min-h-11 text-destructive focus:text-destructive" data-day-schedule-delete onSelect={() => onDelete(event)}>
+                    <Trash2 className="h-4 w-4" /> Delete task
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
 
         {/* Vehicle identity: car + plate, then reservation / guest on one muted line */}
         {(event.car_name || event.reservation_id || event.guest_name) && (
-          <div className="min-w-0">
-            {event.car_name && (
-              <div className="flex items-start gap-1.5 text-sm leading-snug text-foreground">
-                <Car className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-                <span className="min-w-0 break-words font-semibold">
-                  {event.car_name}
-                  {event.plate && <span className="font-normal text-muted-foreground"> · {event.plate}</span>}
-                </span>
-              </div>
-            )}
-            {(event.reservation_id || event.guest_name) && (
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground sm:pl-5">
-                {event.reservation_id && (
-                  <span>
-                    <span className="font-medium text-foreground">Res:</span> {event.reservation_id}
+          <div className="flex min-w-0 items-start gap-3">
+            <CarScheduleImage
+              carPhoto={event.car_photo}
+              carName={event.car_name}
+              className="h-14 w-20 md:hidden"
+              size={160}
+              hideBelowMd={false}
+              fit="contain"
+            />
+            <div className="min-w-0 flex-1">
+              {event.car_name && (
+                <div className="flex items-start gap-1.5 text-sm leading-snug text-foreground">
+                  <Car className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 break-words font-semibold">
+                    {event.car_name}
+                    {event.plate && <span className="font-normal text-muted-foreground"> · {event.plate}</span>}
                   </span>
-                )}
-                {event.guest_name && (
-                  <span className="inline-flex items-center gap-1">
-                    <User className="h-3 w-3 flex-shrink-0" />
-                    {event.guest_name}
-                  </span>
-                )}
-              </div>
-            )}
+                </div>
+              )}
+              {(event.reservation_id || event.guest_name) && (
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground sm:pl-5">
+                  {event.reservation_id && (
+                    <span>
+                      <span className="font-medium text-foreground">Res:</span> {event.reservation_id}
+                    </span>
+                  )}
+                  {event.guest_name && (
+                    <span className="inline-flex items-center gap-1">
+                      <User className="h-3 w-3 flex-shrink-0" />
+                      {event.guest_name}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {summaryLocation && (
+          <div className="flex min-w-0 items-start gap-1.5 text-xs text-muted-foreground sm:hidden">
+            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span className="line-clamp-2 break-words">{summaryLocation}</span>
           </div>
         )}
 
         {event.extras && (
-          <div className="inline-flex w-fit animate-pulse items-center gap-1 rounded bg-amber-300 px-1.5 py-0.5 text-xs font-medium text-amber-900">
+          <div className="inline-flex w-fit max-w-full items-start gap-1 rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900 break-words">
             <span className="font-semibold">Extras:</span> {event.extras}
           </div>
         )}
 
-        <CarScheduleImage
-          carPhoto={event.car_photo}
-          carName={event.car_name}
-          className="h-32 w-full md:hidden"
-          size={360}
-          hideBelowMd={false}
-          fit="contain"
-        />
-
-        {/* When & where — one aligned block instead of loose stacked lines */}
-        {(event.trip_start_mt || event.trip_end_mt || event.pickup_location || event.dropoff_location || event.location) && (
-          <div className="grid gap-x-4 gap-y-1 rounded-md bg-muted/40 px-2.5 py-2 sm:grid-cols-2">
-            {(event.trip_start_mt || event.trip_end_mt) && (
-              <DetailLine
-                className="sm:col-span-2"
-                icon={<Clock className="mt-0.5 h-3 w-3 flex-shrink-0 text-muted-foreground" />}
-                label="Trip"
-                value={
-                  <span className="inline-flex flex-wrap items-center gap-1 font-medium text-foreground">
-                    {fmtTripDateTime(event.trip_start_mt)}
-                    <ArrowRight className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
-                    {fmtTripDateTime(event.trip_end_mt)}
-                  </span>
-                }
-              />
-            )}
-            {event.pickup_location && (
-              <DetailLine
-                icon={<ArrowUpFromLine className="mt-0.5 h-3 w-3 flex-shrink-0 text-emerald-600" />}
-                label="Pick Up"
-                value={event.pickup_location}
-              />
-            )}
-            {event.dropoff_location && (
-              <DetailLine
-                icon={<ArrowDownToLine className="mt-0.5 h-3 w-3 flex-shrink-0 text-rose-600" />}
-                label="Drop Off"
-                value={event.dropoff_location}
-              />
-            )}
-            {/* Generic location (non-trip events: e.g. cleaning's own scheduled location, repair shop) — only when no trip endpoints shown */}
-            {event.location && !event.pickup_location && !event.dropoff_location && (
-              <DetailLine
-                className="sm:col-span-2"
-                icon={<MapPin className="mt-0.5 h-3 w-3 flex-shrink-0 text-muted-foreground" />}
-                label="Location"
-                value={event.location}
-              />
-            )}
-          </div>
+        {event.is_carryover && (
+          <span className="text-xs font-medium text-amber-800 sm:hidden">Carried over from {formatDateCompact(displayDay)}</span>
         )}
 
-        {(event.detail || event.notes) && (
-          <div className="space-y-0.5 text-xs text-muted-foreground">
-            {event.detail && <div className="break-words italic">{event.detail}</div>}
-            {event.notes && <div className="break-words">{event.notes}</div>}
-          </div>
-        )}
+        {hasDetails && <Button
+          type="button"
+          variant="ghost"
+          className="h-11 w-full justify-between border-t border-border/60 px-0 text-sm sm:hidden"
+          aria-expanded={detailsOpen}
+          aria-controls={detailsId}
+          onClick={(e) => { e.stopPropagation(); setDetailsOpen((open) => !open); }}
+          onDragStart={(e) => e.stopPropagation()}
+        >
+          {detailsOpen ? "Hide details" : canEditAssignee || canEditDuration || canEditDriver ? "Details & edit" : "Details"}
+          <ChevronDown className={`h-4 w-4 transition-transform ${detailsOpen ? "rotate-180" : ""}`} />
+        </Button>}
 
-        {(event.is_carryover || showActualCompletedDate) && (
-          <div
-            className="flex flex-wrap items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-950"
-            onClick={(e) => e.stopPropagation()}
-            onDragStart={(e) => e.stopPropagation()}
-          >
-            <span className="font-medium">Supposed:</span>
-            <span>{formatDateCompact(event.scheduled_day ?? date)}</span>
-            {showCompletionDatePicker ? (
-              <>
-                <span className="font-medium">Actually done:</span>
-                <input
-                  type="date"
-                  value={completionDate}
-                  onChange={(e) => e.target.value && setCompletionDate(e.target.value)}
-                  className="h-7 rounded border border-amber-300 bg-white px-1.5 text-[11px] text-foreground"
+        <div id={detailsId} className={`${detailsOpen ? "flex" : "hidden"} min-w-0 flex-col gap-3 sm:flex sm:gap-2`}>
+
+          {/* When & where — one aligned block instead of loose stacked lines */}
+          {(event.trip_start_mt || event.trip_end_mt || event.pickup_location || event.dropoff_location || event.location) && (
+            <div className="grid gap-x-4 gap-y-1 rounded-md bg-muted/40 px-2.5 py-2 sm:grid-cols-2">
+              {(event.trip_start_mt || event.trip_end_mt) && (
+                <DetailLine
+                  className="sm:col-span-2"
+                  icon={<Clock className="mt-0.5 h-3 w-3 flex-shrink-0 text-muted-foreground" />}
+                  label="Trip"
+                  value={
+                    <span className="inline-flex flex-wrap items-center gap-1 font-medium text-foreground">
+                      {fmtTripDateTime(event.trip_start_mt)}
+                      <ArrowRight className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                      {fmtTripDateTime(event.trip_end_mt)}
+                    </span>
+                  }
                 />
-                <Button
-                  type="button"
-                  size="sm"
-                  className="h-7 gap-1 bg-green-700 px-2 text-[11px] text-white hover:bg-green-800"
-                  onClick={() => onStatusChange(event.type, event.id, "completed", completionDate)}
-                >
-                  <CheckCircle className="h-3 w-3" />
-                  Complete
-                </Button>
-              </>
-            ) : showActualCompletedDate ? (
-              <>
-                <span className="font-medium">Done:</span>
-                <span>{formatDateCompact(event.completed_day!)}</span>
-              </>
-            ) : null}
-          </div>
-        )}
+              )}
+              {event.pickup_location && (
+                <DetailLine
+                  icon={<ArrowUpFromLine className="mt-0.5 h-3 w-3 flex-shrink-0 text-emerald-600" />}
+                  label="Pick Up"
+                  value={event.pickup_location}
+                />
+              )}
+              {event.dropoff_location && (
+                <DetailLine
+                  icon={<ArrowDownToLine className="mt-0.5 h-3 w-3 flex-shrink-0 text-rose-600" />}
+                  label="Drop Off"
+                  value={event.dropoff_location}
+                />
+              )}
+              {/* Generic location (non-trip events: e.g. cleaning's own scheduled location, repair shop) — only when no trip endpoints shown */}
+              {event.location && !event.pickup_location && !event.dropoff_location && (
+                <DetailLine
+                  className="sm:col-span-2"
+                  icon={<MapPin className="mt-0.5 h-3 w-3 flex-shrink-0 text-muted-foreground" />}
+                  label="Location"
+                  value={event.location}
+                />
+              )}
+            </div>
+          )}
 
-        {/* Photos from the underlying inspection/maintenance record — lets the
-            morning-meeting review "back-track" what was actually done that day. */}
-        {event.photos && event.photos.length > 0 && (
-          <div onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
-            <PhotoUpload
-              photos={event.photos}
-              onPhotosChange={() => {}}
-              entityType={event.type === "maintenance" ? "maintenance" : "inspection"}
-              disabled
-              compact
-            />
-          </div>
-        )}
+          {(event.detail || event.notes) && (
+            <div className="space-y-0.5 text-xs text-muted-foreground">
+              {event.detail && <div className="break-words italic">{event.detail}</div>}
+              {event.notes && <div className="break-words">{event.notes}</div>}
+            </div>
+          )}
 
-        {/* Controls footer — every editable field on one separated row */}
-        {(canEditAssignee || canEditDuration || canEditDriver) && (
-          <div
-            className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border/60 pt-2"
-            onClick={(e) => e.stopPropagation()}
-            onDragStart={(e) => e.stopPropagation()}
-          >
-            {canEditAssignee && (
-              <label className="flex w-full min-w-0 items-center gap-1.5 min-[430px]:w-auto">
-                <span className="text-[11px] text-muted-foreground md:text-[10px]">Assignee</span>
-                <div className="min-w-0 flex-1 min-[430px]:w-36 min-[430px]:flex-none">
-                  <EmployeeSelectCombobox
-                    value={event.assigned_to ?? ""}
-                    onChange={() => {}}
-                    onSelectEmployee={(emp) => {
-                      if (emp) onAssign(event, emp.employee_aid, [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`);
-                      else onUnassign(event);
-                    }}
-                    placeholder="Unassigned"
+          {(event.is_carryover || showActualCompletedDate) && (
+            <div
+              className="flex flex-wrap items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-950"
+              onClick={(e) => e.stopPropagation()}
+              onDragStart={(e) => e.stopPropagation()}
+            >
+              <span className="font-medium">Supposed:</span>
+              <span>{formatDateCompact(event.scheduled_day ?? date)}</span>
+              {showCompletionDatePicker ? (
+                <>
+                  <span className="font-medium">Actually done:</span>
+                  <input
+                    type="date"
+                    value={completionDate}
+                    onChange={(e) => e.target.value && setCompletionDate(e.target.value)}
+                    aria-label="Actual completion date"
+                    className="h-11 min-w-0 max-w-full rounded border border-amber-300 bg-white px-2 text-base text-foreground sm:h-8 sm:text-xs"
                   />
-                </div>
-              </label>
-            )}
-            {canEditDuration && (
-              <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground md:text-[10px]">
-                <Clock className="h-3 w-3 flex-shrink-0" />
-                <input
-                  type="number"
-                  min={0}
-                  step={5}
-                  value={event.duration_minutes ?? ""}
-                  placeholder="mins"
-                  onChange={(e) => {
-                    const raw = e.target.value.trim();
-                    onDurationChange(event, raw === "" ? null : Math.max(0, Number(raw)));
-                  }}
-                  className="h-8 w-16 rounded border border-border bg-background px-1.5 text-[11px] text-foreground md:h-6 md:w-14 md:text-[10px]"
-                />
-                <span>min</span>
-              </label>
-            )}
-            {canEditDriver && (
-              <div className="flex w-full min-w-0 items-center gap-1.5 min-[430px]:w-auto">
-                <span className="text-[11px] text-muted-foreground md:text-[10px]">Driver</span>
-                <Select
-                  value={driverMode}
-                  onValueChange={(val) => {
-                    if (val === "employee") {
-                      setDriverModeDraft("employee");
-                      return;
-                    }
-                    setDriverModeDraft("");
-                    onDriverChange(event, val === "clear" ? null : (val as "uber" | "na"));
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-28 px-2 text-[11px] md:h-6 md:w-24 md:text-[10px]">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="clear">Clear</SelectItem>
-                    <SelectItem value="employee">Employee</SelectItem>
-                    <SelectItem value="uber">Uber</SelectItem>
-                    <SelectItem value="na">N/A</SelectItem>
-                  </SelectContent>
-                </Select>
-                {driverMode === "employee" && (
-                  <div className="min-w-0 flex-1 min-[430px]:w-36 min-[430px]:flex-none">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-11 gap-1 bg-green-700 px-3 text-sm text-white hover:bg-green-800 sm:h-8 sm:text-xs"
+                    onClick={() => onStatusChange(event.type, event.id, "completed", completionDate)}
+                  >
+                    <CheckCircle className="h-3 w-3" />
+                    Complete
+                  </Button>
+                </>
+              ) : showActualCompletedDate ? (
+                <>
+                  <span className="font-medium">Done:</span>
+                  <span>{formatDateCompact(event.completed_day!)}</span>
+                </>
+              ) : null}
+            </div>
+          )}
+
+          {/* Photos from the underlying inspection/maintenance record — lets the
+              morning-meeting review "back-track" what was actually done that day. */}
+          {event.photos && event.photos.length > 0 && (
+            <div onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
+              <PhotoUpload
+                photos={event.photos}
+                onPhotosChange={() => {}}
+                entityType={event.type === "maintenance" ? "maintenance" : "inspection"}
+                disabled
+                compact
+              />
+            </div>
+          )}
+
+          {/* Controls footer — every editable field on one separated row */}
+          {(canEditAssignee || canEditDuration || canEditDriver) && (
+            <div
+              className="mt-auto grid min-w-0 grid-cols-1 gap-3 border-t border-border/60 pt-3 sm:flex sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2 sm:pt-2"
+              onClick={(e) => e.stopPropagation()}
+              onDragStart={(e) => e.stopPropagation()}
+            >
+              {canEditAssignee && (
+                <label className="flex w-full min-w-0 flex-col gap-1.5 sm:w-auto sm:flex-row sm:items-center">
+                  <span className="text-xs text-muted-foreground md:text-xs">Assignee</span>
+                  <div className="min-w-0 sm:w-36">
                     <EmployeeSelectCombobox
-                      value={event.driver_assigned_to ?? ""}
+                      value={event.assigned_to ?? ""}
                       onChange={() => {}}
                       onSelectEmployee={(emp) => {
-                        if (emp) {
-                          const fullname = [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`;
-                          onDriverChange(event, "employee", emp.employee_aid, fullname);
-                        } else {
-                          onDriverChange(event, null);
-                        }
+                        if (emp) onAssign(event, emp.employee_aid, [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`);
+                        else onUnassign(event);
                       }}
-                      placeholder="Driver"
+                      placeholder="Unassigned"
                     />
                   </div>
-                )}
-              </div>
-            )}
-            {event.type === "cleaning" && event.status !== "completed" && showAlreadyCleanBy && (
-              <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5">
-                <span className="text-[11px] text-muted-foreground md:text-[10px]">Completed by:</span>
-                <div className="min-w-0 flex-1 min-[430px]:w-36 min-[430px]:flex-none">
-                  <EmployeeSelectCombobox
-                    value={event.assigned_to ?? ""}
-                    onChange={() => {}}
-                    onSelectEmployee={(emp) => {
-                      if (!emp) return;
-                      const fullname = [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`;
-                      onAssign(event, emp.employee_aid, fullname);
-                      onStatusChange(event.type, event.id, "completed");
-                      setShowAlreadyCleanBy(false);
+                </label>
+              )}
+              {canEditDuration && (
+                <label className="flex items-center gap-2 text-xs text-muted-foreground md:text-xs">
+                  <Clock className="h-3 w-3 flex-shrink-0" />
+                  <input
+                    type="number"
+                    min={0}
+                    step={5}
+                    value={event.duration_minutes ?? ""}
+                    placeholder="mins"
+                    onChange={(e) => {
+                      const raw = e.target.value.trim();
+                      onDurationChange(event, raw === "" ? null : Math.max(0, Number(raw)));
                     }}
-                    placeholder="Select employee"
+                    aria-label="Estimated duration in minutes"
+                    className="h-11 w-20 rounded-md border border-border bg-background px-2 text-base text-foreground md:h-8 md:w-16 md:text-xs"
                   />
+                  <span>min</span>
+                </label>
+              )}
+              {canEditDriver && (
+                <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
+                  <span className="w-full text-xs text-muted-foreground sm:w-auto md:text-xs">Driver</span>
+                  <Select
+                    value={driverMode}
+                    onValueChange={(val) => {
+                      if (val === "employee") {
+                        setDriverModeDraft("employee");
+                        return;
+                      }
+                      setDriverModeDraft("");
+                      onDriverChange(event, val === "clear" ? null : (val as "uber" | "na"));
+                    }}
+                  >
+                    <SelectTrigger aria-label="Driver type" className="h-11 w-28 px-2 text-sm md:h-8 md:w-24 md:text-xs">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="clear">Clear</SelectItem>
+                      <SelectItem value="employee">Employee</SelectItem>
+                      <SelectItem value="uber">Uber</SelectItem>
+                      <SelectItem value="na">N/A</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {driverMode === "employee" && (
+                    <div className="min-w-0 flex-1 sm:w-36 sm:flex-none">
+                      <EmployeeSelectCombobox
+                        value={event.driver_assigned_to ?? ""}
+                        onChange={() => {}}
+                        onSelectEmployee={(emp) => {
+                          if (emp) {
+                            const fullname = [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`;
+                            onDriverChange(event, "employee", emp.employee_aid, fullname);
+                          } else {
+                            onDriverChange(event, null);
+                          }
+                        }}
+                        placeholder="Driver"
+                      />
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+              {event.type === "cleaning" && event.status !== "completed" && showAlreadyCleanBy && (
+                <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5">
+                  <span className="w-full text-xs text-muted-foreground sm:w-auto md:text-xs">Completed by:</span>
+                  <div className="min-w-0 flex-1 sm:w-36 sm:flex-none">
+                    <EmployeeSelectCombobox
+                      value={event.assigned_to ?? ""}
+                      onChange={() => {}}
+                      onSelectEmployee={(emp) => {
+                        if (!emp) return;
+                        const fullname = [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`;
+                        onAssign(event, emp.employee_aid, fullname);
+                        onStatusChange(event.type, event.id, "completed");
+                        setShowAlreadyCleanBy(false);
+                      }}
+                      placeholder="Select employee"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Vehicle photo — a real column, so it never overlaps the details or the
@@ -805,7 +850,7 @@ function EmployeeSection({
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-foreground">{emp.fullname}</div>
           {emp.shifts.length > 0 ? (
-            <div className="text-[10px] text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5">
+            <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5 sm:text-xs">
               <Clock className="w-3 h-3" />
               <span>Shift{emp.shifts.length > 1 ? "s" : ""}:</span>
               {emp.shifts.map((sh, i) => (
@@ -815,7 +860,7 @@ function EmployeeSection({
               ))}
             </div>
           ) : (
-            <div className="text-[10px] text-muted-foreground italic">No shift on record</div>
+            <div className="text-xs text-muted-foreground italic sm:text-xs">No shift on record</div>
           )}
         </div>
         <Badge variant="outline" className="ml-auto text-xs">
@@ -868,8 +913,24 @@ function UnassignedCard({
       className={`relative flex items-stretch rounded overflow-hidden border ${c.border} text-xs cursor-grab active:cursor-grabbing`}
     >
       <div className={`w-1 flex-shrink-0 ${c.bg}`} />
-      <div className={`flex-1 min-w-0 px-2 py-1.5 space-y-0.5 ${isAdmin ? "pb-9" : ""}`}>
-        <div className={`font-semibold`}>{event.category}</div>
+      <div className="flex-1 min-w-0 px-2 py-1.5 space-y-0.5">
+        <div className="flex items-start justify-between gap-1">
+          <span className="font-semibold">{event.category}</span>
+          {isAdmin && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={`More actions for ${event.category}${event.car_name ? `, ${event.car_name}` : ""}`} onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem className="min-h-11 text-destructive focus:text-destructive" data-day-schedule-delete onSelect={() => onDelete(event)}>
+                  <Trash2 className="h-4 w-4" /> Delete task
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
         {event.start_time && (
           <div className="text-muted-foreground flex items-center gap-1">
             <Clock className="w-3 h-3" />{displayDay ? `${formatDateCompact(displayDay)} ` : ""}{fmt12(event.start_time)}
@@ -923,22 +984,6 @@ function UnassignedCard({
         )}
         {event.detail && <div className="text-muted-foreground italic break-words">{event.detail}</div>}
       </div>
-      {isAdmin && (
-        <button
-          type="button"
-          className="absolute bottom-1.5 right-1.5 z-30 flex h-7 w-7 items-center justify-center rounded-md border border-red-700 bg-red-600 p-0 text-white shadow-md ring-2 ring-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-800"
-          title="Delete task"
-          aria-label="Delete task"
-          data-day-schedule-delete
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(event);
-          }}
-          onDragStart={(e) => e.stopPropagation()}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      )}
     </div>
   );
 }
@@ -965,6 +1010,7 @@ export function DayScheduleTab() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [unassignOver, setUnassignOver] = useState(false);
+  const [showAllUnassigned, setShowAllUnassigned] = useState(false);
   // Clicking a category badge/legend entry toggles it into this set to filter
   // the task list down to just that category; click again to clear. Empty
   // set = no filter (show everything), matching today's default behavior.
@@ -1431,41 +1477,47 @@ export function DayScheduleTab() {
   }, {});
 
   return (
-    <div className="space-y-4 overflow-x-hidden">
+    <div className="min-w-0 space-y-4">
       {/* Date nav */}
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:flex sm:flex-wrap sm:gap-3">
-        <Button variant="outline" size="sm" className="h-10 w-10 p-0 sm:h-9 sm:w-auto sm:px-3" onClick={() => setDate((d) => shiftDate(d, -1))}>
+      <div className="space-y-2 rounded-xl border border-border bg-card p-3 sm:flex sm:flex-wrap sm:items-center sm:gap-3 sm:space-y-0">
+        <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 sm:flex sm:gap-3">
+        <Button aria-label="Previous day" variant="outline" size="sm" className="h-11 w-11 p-0 sm:h-9 sm:w-9" onClick={() => setDate((d) => shiftDate(d, -1))}>
           <ChevronLeft className="w-4 h-4" />
         </Button>
         <div className="min-w-0 flex items-center justify-center gap-2 sm:justify-start">
-          <CalendarDays className="w-4 h-4 text-muted-foreground" />
-          <span className="truncate text-sm font-semibold">{formatDisplayDate(date)}</span>
+          <CalendarDays className="hidden w-4 h-4 shrink-0 text-muted-foreground sm:block" />
+          <span className="truncate text-sm font-semibold" aria-live="polite">{formatDisplayDate(date)}</span>
         </div>
-        <Button variant="outline" size="sm" className="h-10 w-10 p-0 sm:h-9 sm:w-auto sm:px-3" onClick={() => setDate((d) => shiftDate(d, 1))}>
+        <Button aria-label="Next day" variant="outline" size="sm" className="h-11 w-11 p-0 sm:h-9 sm:w-9" onClick={() => setDate((d) => shiftDate(d, 1))}>
           <ChevronRight className="w-4 h-4" />
         </Button>
+        </div>
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] gap-2 sm:flex">
         <input
           type="date"
+          aria-label="Schedule date"
           value={date}
           onChange={(e) => e.target.value && setDate(e.target.value)}
-          className="col-span-3 h-10 min-w-0 rounded border border-border bg-background px-2 py-1 text-sm text-foreground sm:col-span-1 sm:h-9"
+          className="h-11 min-w-0 w-full rounded-md border border-border bg-background px-2 text-base text-foreground sm:h-9 sm:w-auto sm:text-sm"
         />
-        <Button variant="outline" size="sm" className="h-10 sm:h-9" onClick={() => setDate(mtTodayKey(activeTz))}>
+        <Button variant="outline" size="sm" className="h-11 px-2.5 text-sm sm:h-9" onClick={() => setDate(mtTodayKey(activeTz))}>
           Today
         </Button>
-        <Button variant="default" size="sm" className="col-span-2 h-10 sm:col-span-1 sm:h-9" onClick={() => setShowAddEntry((v) => !v)}>
-          <Plus className="w-4 h-4 mr-1" />
-          Add Entry
+        <Button variant="default" size="sm" className="h-11 px-2.5 text-sm sm:h-9" aria-expanded={showAddEntry} aria-controls="day-schedule-add-entry" onClick={() => setShowAddEntry((v) => !v)}>
+          <Plus className="w-4 h-4" />
+          <span className="sm:hidden">Add</span><span className="hidden sm:inline">Add Entry</span>
         </Button>
+        </div>
 
         {/* View toggle: group by employee (default), or a single flat list
             sorted by time across everyone. */}
-        <div className="col-span-3 grid grid-cols-2 overflow-hidden rounded-md border border-border sm:col-span-1 sm:ml-auto sm:inline-flex">
+        <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-border bg-muted/40 sm:ml-auto sm:inline-flex" aria-label="Schedule view">
           <button
             type="button"
             onClick={() => setViewMode("employee")}
-            className={`inline-flex h-10 items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors sm:h-auto ${
-              viewMode === "employee" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"
+            aria-pressed={viewMode === "employee"}
+            className={`inline-flex h-11 items-center justify-center gap-1.5 px-2.5 py-1.5 text-sm font-medium transition-colors sm:h-9 sm:text-xs ${
+              viewMode === "employee" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:bg-muted"
             }`}
           >
             <Rows3 className="w-3.5 h-3.5" /> By Employee
@@ -1473,8 +1525,9 @@ export function DayScheduleTab() {
           <button
             type="button"
             onClick={() => setViewMode("timeline")}
-            className={`inline-flex h-10 items-center justify-center gap-1.5 border-l border-border px-2.5 py-1.5 text-xs font-medium transition-colors sm:h-auto ${
-              viewMode === "timeline" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"
+            aria-pressed={viewMode === "timeline"}
+            className={`inline-flex h-11 items-center justify-center gap-1.5 border-l border-border px-2.5 py-1.5 text-sm font-medium transition-colors sm:h-9 sm:text-xs ${
+              viewMode === "timeline" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:bg-muted"
             }`}
           >
             <LayoutList className="w-3.5 h-3.5" /> Timeline
@@ -1483,12 +1536,12 @@ export function DayScheduleTab() {
       </div>
 
       {showAddEntry && (
-        <div className="border border-border rounded-lg bg-background p-3">
+        <div id="day-schedule-add-entry" className="border border-border rounded-xl bg-background p-3">
           <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
             <label className="space-y-1">
               <span className="text-xs font-medium text-muted-foreground">Type</span>
               <Select value={entryType} onValueChange={(v) => setEntryType(v as "refuel" | "custom")}>
-                <SelectTrigger className="h-9">
+                <SelectTrigger aria-label="Entry type" className="h-11 sm:h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1503,7 +1556,7 @@ export function DayScheduleTab() {
                 value={entryCarName}
                 onChange={(e) => setEntryCarName(e.target.value)}
                 placeholder="Car refueled or worked on"
-                className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm"
+                className="w-full h-11 rounded-md border border-border bg-background px-3 text-base sm:h-9 sm:text-sm"
               />
             </label>
             <label className="space-y-1">
@@ -1512,7 +1565,7 @@ export function DayScheduleTab() {
                 type="time"
                 value={entryTime}
                 onChange={(e) => setEntryTime(e.target.value)}
-                className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm"
+                className="w-full h-11 rounded-md border border-border bg-background px-3 text-base sm:h-9 sm:text-sm"
               />
             </label>
             <label className="space-y-1 md:col-span-2">
@@ -1537,12 +1590,13 @@ export function DayScheduleTab() {
                 value={entryNotes}
                 onChange={(e) => setEntryNotes(e.target.value)}
                 placeholder="Details"
-                className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm"
+                className="w-full h-11 rounded-md border border-border bg-background px-3 text-base sm:h-9 sm:text-sm"
               />
             </label>
             <Button
               type="button"
               disabled={!entryCarName.trim() || addEntryMutation.isPending}
+              className="h-11 sm:h-9"
               onClick={() => addEntryMutation.mutate()}
             >
               Save Entry
@@ -1554,7 +1608,7 @@ export function DayScheduleTab() {
       {/* Summary badges — click to filter the task list down to that category;
           click again (or the same legend entry) to clear it. */}
       {Object.keys(categoryCounts).length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
+        <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0" aria-label="Filter schedule by task type">
           {Object.entries(categoryCounts).map(([cat, count]) => {
             const c = colorFor(cat);
             const active = activeCategories.has(cat);
@@ -1563,17 +1617,19 @@ export function DayScheduleTab() {
                 type="button"
                 key={cat}
                 onClick={() => toggleCategoryFilter(cat)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium ${c.bg} ${c.text} transition-opacity cursor-pointer hover:opacity-80 sm:py-1 ${
-                  activeCategories.size > 0 && !active ? "opacity-40" : ""
-                } ${active ? "ring-2 ring-offset-1 ring-foreground/60" : ""}`}
+                aria-pressed={active}
+                className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer sm:min-h-8 sm:py-1 ${
+                  active ? `${c.bg} ${c.text} border-transparent` : "border-border bg-card text-muted-foreground hover:bg-muted"
+                }`}
                 title={active ? `Click to clear the ${cat} filter` : `Click to filter by ${cat}`}
               >
-                {cat} <span className="bg-white/20 rounded-full px-1.5 py-0.5 text-[10px] font-bold">{count}</span>
+                {!active && <span className={`h-2 w-2 rounded-full ${c.bg}`} />}
+                {cat} <span className={`rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${active ? "bg-white/20" : "bg-muted"}`}>{count}</span>
               </button>
             );
           })}
           {activeCategories.size > 0 && (
-            <Button variant="ghost" size="sm" className="h-8 shrink-0 text-xs sm:h-6" onClick={() => setActiveCategories(new Set())}>
+            <Button variant="ghost" size="sm" className="h-11 shrink-0 text-xs sm:h-8" onClick={() => setActiveCategories(new Set())}>
               Clear filter
             </Button>
           )}
@@ -1587,35 +1643,30 @@ export function DayScheduleTab() {
         <div className="flex gap-4 flex-col lg:flex-row items-start">
 
           {/* Main content: grouped by employee, or a flat timeline */}
-          <div className="flex-1 min-w-0 space-y-3">
-            {viewMode === "employee" ? (
-              sortedEmployees.length === 0 && unassigned.length === 0 ? (
-                <div className="border border-border rounded-lg py-12 text-center text-sm text-muted-foreground bg-background">
-                  No scheduled events for this day.
-                </div>
-              ) : (
-                sortedEmployees.map(([key, emp]) => (
-                  <EmployeeSection
-                    key={key}
-                    empKey={key}
-                    emp={emp}
-                    events={assignedMap.get(key) ?? []}
-                    date={date}
-                    onAssign={assignTo}
-                    onStatusChange={handleStatusChange}
-                    onAssignEvent={assignEventTo}
-                    onUnassignEvent={unassignEvent}
-                    onDurationChange={handleDurationChange}
-                    onDriverChange={handleDriverChange}
-                    onDelete={handleDelete}
-                    isAdmin={isAdmin}
-                  />
-                ))
-              )
-            ) : timelineEvents.length === 0 ? (
-              <div className="border border-border rounded-lg py-12 text-center text-sm text-muted-foreground bg-background">
-                No scheduled events for this day.
+          <div className="w-full flex-1 min-w-0 space-y-3">
+            {events.length === 0 ? (
+              <div className="space-y-3 border border-border rounded-xl py-10 px-4 text-center text-sm text-muted-foreground bg-background">
+                <p>{activeCategories.size > 0 ? "No events match the selected task types." : "No scheduled events for this day."}</p>
+                {activeCategories.size > 0 && <Button variant="outline" className="h-11 sm:h-9" onClick={() => setActiveCategories(new Set())}>Clear filter</Button>}
               </div>
+            ) : viewMode === "employee" ? (
+              sortedEmployees.map(([key, emp]) => (
+                <EmployeeSection
+                  key={key}
+                  empKey={key}
+                  emp={emp}
+                  events={assignedMap.get(key) ?? []}
+                  date={date}
+                  onAssign={assignTo}
+                  onStatusChange={handleStatusChange}
+                  onAssignEvent={assignEventTo}
+                  onUnassignEvent={unassignEvent}
+                  onDurationChange={handleDurationChange}
+                  onDriverChange={handleDriverChange}
+                  onDelete={handleDelete}
+                  isAdmin={isAdmin}
+                />
+              ))
             ) : (
               <div className="space-y-1.5">
                 {timelineEvents.map((e) => (
@@ -1638,7 +1689,7 @@ export function DayScheduleTab() {
           </div>
 
           {/* Sidebar */}
-          <div className="w-full lg:w-72 space-y-4 flex-shrink-0">
+          <div className={`order-first w-full min-w-0 space-y-4 flex-shrink-0 lg:order-last lg:w-72 ${viewMode === "timeline" ? "hidden lg:block" : ""}`}>
 
             {/* Needs assignment — drop here to unassign */}
             <div
@@ -1658,21 +1709,9 @@ export function DayScheduleTab() {
                 unassignOver ? "border-primary ring-2 ring-primary/40 bg-primary/5" : "border-border"
               }`}
             >
-              <div className="px-3 py-2 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center justify-between">
+              <div className="px-3 py-2 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span>Needs Assignment</span>
-                  {canBulkCompleteOldTasks && (
-                    <button
-                      type="button"
-                      onClick={handleCompleteOldNormalTasks}
-                      disabled={oldNormalUnassignedCount === 0 || completeOldNormalTasksMutation.isPending}
-                      className="inline-flex items-center gap-1 rounded border border-emerald-700/30 bg-emerald-50 px-2 py-1 text-[10px] font-semibold normal-case tracking-normal text-emerald-800 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-45"
-                      title="Mark old unassigned pick up, drop off, and cleaning tasks completed without assigning an employee"
-                    >
-                      <CheckCircle className="h-3 w-3" />
-                      Complete Old
-                    </button>
-                  )}
                 </div>
                 <div className="flex items-center gap-1.5">
                   {canBulkCompleteOldTasks && oldNormalUnassignedCount > 0 && (
@@ -1683,28 +1722,58 @@ export function DayScheduleTab() {
                   {unassigned.length > 0 && (
                     <Badge variant="destructive" className="text-[10px] px-1.5 py-0">{unassigned.length}</Badge>
                   )}
+                  {canBulkCompleteOldTasks && oldNormalUnassignedCount > 0 && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="ghost" size="icon" aria-label="Unassigned task actions" className="h-11 w-11 sm:h-8 sm:w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem className="min-h-11" disabled={completeOldNormalTasksMutation.isPending} onSelect={handleCompleteOldNormalTasks}>
+                          <CheckCircle className="h-4 w-4" /> Complete Old
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               </div>
-              <div className="p-2 space-y-1.5 max-h-[55vh] overflow-y-auto lg:max-h-80">
+              <div className="p-2 space-y-2 lg:max-h-80 lg:overflow-y-auto">
                 {unassigned.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-3">
-                    {unassignOver ? "Drop to unassign" : "All events assigned ✓ — drag a task here to unassign"}
+                    {unassignOver ? "Drop to unassign" : <><span className="lg:hidden">All events assigned ✓</span><span className="hidden lg:inline">All events assigned ✓ — drag a task here to unassign</span></>}
                   </p>
                 ) : (
-                  unassigned.map((e) => (
-                    <UnassignedCard
-                      key={`${e.type}-${e.id}`}
-                      event={e}
-                      onDelete={handleDelete}
-                      isAdmin={isAdmin}
-                    />
+                  unassigned.map((e, index) => (
+                    <div key={`${e.type}-${e.id}`} className={index >= 3 && !showAllUnassigned ? "hidden lg:block" : ""}>
+                      <div className="lg:hidden">
+                        <EventCard
+                          event={e}
+                          date={date}
+                          onStatusChange={handleStatusChange}
+                          onAssign={assignEventTo}
+                          onUnassign={unassignEvent}
+                          onDurationChange={handleDurationChange}
+                          onDriverChange={handleDriverChange}
+                          onDelete={handleDelete}
+                          isAdmin={isAdmin}
+                        />
+                      </div>
+                      <div className="hidden lg:block"><UnassignedCard event={e} onDelete={handleDelete} isAdmin={isAdmin} /></div>
+                    </div>
                   ))
+                )}
+                {unassigned.length > 3 && (
+                  <Button type="button" variant="ghost" className="h-11 w-full text-sm lg:hidden" aria-expanded={showAllUnassigned} onClick={() => setShowAllUnassigned((show) => !show)}>
+                    {showAllUnassigned ? "Show fewer unassigned tasks" : `Show all ${unassigned.length} unassigned tasks`}
+                    <ChevronDown className={`h-4 w-4 transition-transform ${showAllUnassigned ? "rotate-180" : ""}`} />
+                  </Button>
                 )}
               </div>
             </div>
 
             {/* Legend */}
-            <div className="border border-border rounded-lg overflow-hidden bg-background">
+            <div className="hidden lg:block border border-border rounded-lg overflow-hidden bg-background">
               <div className="px-3 py-2 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 Legend
               </div>
@@ -1716,7 +1785,8 @@ export function DayScheduleTab() {
                       type="button"
                       key={cat}
                       onClick={() => toggleCategoryFilter(cat)}
-                      className={`w-full flex items-center gap-2 text-xs text-foreground rounded px-1 py-0.5 -mx-1 hover:bg-muted transition-opacity ${
+                      aria-pressed={active}
+                      className={`w-full flex min-h-8 items-center gap-2 text-xs text-foreground rounded px-1 py-0.5 -mx-1 hover:bg-muted transition-opacity ${
                         activeCategories.size > 0 && !active ? "opacity-40" : ""
                       } ${active ? "bg-muted font-semibold" : ""}`}
                       title={active ? `Click to clear the ${cat} filter` : `Click to filter by ${cat}`}
@@ -1731,7 +1801,7 @@ export function DayScheduleTab() {
 
             {/* Shift roster */}
             {shifts.length > 0 && (
-              <div className="border border-border rounded-lg overflow-hidden bg-background">
+              <div className="hidden lg:block border border-border rounded-lg overflow-hidden bg-background">
                 <div className="px-3 py-2 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   <User className="w-3 h-3 inline mr-1" />Shift Roster
                 </div>

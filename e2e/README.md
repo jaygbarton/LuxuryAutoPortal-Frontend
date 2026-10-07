@@ -1,5 +1,14 @@
 # E2E regression suite
 
+## Operations layout checks
+
+Run `npm run test:operations-ui` for the real Operations pages at phone and
+desktop sizes. This suite starts Vite, mocks authentication and API responses,
+and checks schedule edits, maintenance dialogs, filters, pagination, navigation,
+and overflow without a database or production account. API mutations are
+intercepted and checked locally. Set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` if
+using an existing Chromium installation.
+
 ## Searchable dropdown checks
 
 Run `npm run test:dropdowns` for isolated dropdown interaction tests. This command

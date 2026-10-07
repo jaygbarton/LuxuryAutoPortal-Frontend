@@ -102,7 +102,7 @@ export function AdminPageLinks() {
       <QuickLinksSection title="Database" links={databaseLinks} />
 
       {/* Row 2 — Accounting (1/2) + Operations (1/2) */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <QuickLinksSection title="Accounting" links={accountingLinks} cols={2} />
         <QuickLinksSection title="Operations" links={operationsLinks} cols={2} />
       </div>

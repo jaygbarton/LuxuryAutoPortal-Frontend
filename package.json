@@ -12,7 +12,8 @@
     "test:e2e": "playwright test",
     "lint": "tsc --noEmit",
     "dup": "jscpd",
-    "test:dropdowns": "playwright test --config playwright.dropdowns.config.ts"
+    "test:dropdowns": "playwright test --config playwright.dropdowns.config.ts",
+    "test:operations-ui": "playwright test --config playwright.operations.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -54,7 +54,7 @@ export function UserAccountMenu({ context = "public", className }: UserAccountMe
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "inline-flex h-10 w-10 items-center justify-center rounded-full border transition-all",
+            "inline-flex h-11 w-11 items-center justify-center rounded-full border transition-all sm:h-10 sm:w-10",
             "border-[#D4A017]/45 bg-white text-[#1C1C1C] shadow-[0_6px_20px_rgba(0,0,0,0.08)]",
             "hover:border-[#D4A017] hover:bg-[#FDF8EE] hover:text-[#C49000] focus:outline-none focus:ring-2 focus:ring-[#D4A017]/45",
             className,

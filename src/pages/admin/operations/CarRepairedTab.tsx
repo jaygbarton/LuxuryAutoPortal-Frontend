@@ -447,13 +447,13 @@ export function CarRepairedTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <SectionHeader title="Car Repaired" variant="plain" className="mb-0" />
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <SectionHeader title="Car Repaired" variant="plain" className="mb-0 min-w-0" />
         <Button
           onClick={() => { setEditing(null); setModalOpen(true); }}
-          className="bg-primary text-primary-foreground hover:bg-primary/80"
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/80 sm:w-auto"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4" />
           Add Car Repaired
         </Button>
       </div>

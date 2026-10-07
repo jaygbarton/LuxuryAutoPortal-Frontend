@@ -230,7 +230,7 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border text-foreground max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md overflow-y-auto border-border bg-card p-4 text-foreground sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-foreground">{isEdit ? "Edit Maintenance" : "Add Maintenance"}</DialogTitle>
         </DialogHeader>
@@ -256,14 +256,14 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground">Service Type</label>
+            <label htmlFor="maintenance-service-type" className="text-sm text-muted-foreground">Service Type</label>
             <Select
               value={formData.service_type ?? "__none__"}
               onValueChange={(v) =>
                 setFormData({ ...formData, service_type: v === "__none__" ? null : (v as MaintenanceServiceType) })
               }
             >
-              <SelectTrigger className="bg-card border-border text-foreground mt-1">
+              <SelectTrigger id="maintenance-service-type" className="mt-1 min-w-0 border-border bg-card text-foreground">
                 <SelectValue placeholder="Select a service type..." />
               </SelectTrigger>
               <SelectContent>
@@ -279,11 +279,12 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground">Description *</label>
+            <label htmlFor="maintenance-description" className="text-sm text-muted-foreground">Description *</label>
             <Textarea
+              id="maintenance-description"
               value={formData.task_description}
               onChange={(e) => setFormData({ ...formData, task_description: e.target.value })}
-              className="bg-card border-border text-foreground mt-1"
+              className="mt-1 min-w-0 border-border bg-card text-foreground"
               placeholder="What maintenance is needed..."
               rows={2}
               required
@@ -305,13 +306,13 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground">Scheduled Date/Time</label>
+            <label htmlFor="maintenance-scheduled" className="text-sm text-muted-foreground">Scheduled Date/Time</label>
             <Input
               type="datetime-local"
+              id="maintenance-scheduled"
               value={formData.scheduled_date}
               onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
-              className="bg-card border-border text-foreground mt-1"
-              style={{ colorScheme: "dark" }}
+              className="mt-1 min-w-0 border-border bg-card text-foreground"
             />
             <p className="text-xs text-muted-foreground mt-1">
               Setting a scheduled date adds this maintenance to the Google Calendar.
@@ -319,42 +320,45 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground">Due Date</label>
+            <label htmlFor="maintenance-due" className="text-sm text-muted-foreground">Due Date</label>
             <Input
               type="datetime-local"
+              id="maintenance-due"
               value={formData.due_date}
               onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-              className="bg-card border-border text-foreground mt-1"
-              style={{ colorScheme: "dark" }}
+              className="mt-1 min-w-0 border-border bg-card text-foreground"
             />
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground">Repair Shop</label>
+            <label htmlFor="maintenance-shop" className="text-sm text-muted-foreground">Repair Shop</label>
             <Input
+              id="maintenance-shop"
               value={formData.repair_shop}
               onChange={(e) => setFormData({ ...formData, repair_shop: e.target.value })}
-              className="bg-card border-border text-foreground mt-1"
+              className="mt-1 min-w-0 border-border bg-card text-foreground"
               placeholder="Shop name / location"
             />
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground">Repair Shop License #</label>
+            <label htmlFor="maintenance-shop-license" className="text-sm text-muted-foreground">Repair Shop License #</label>
             <Input
+              id="maintenance-shop-license"
               value={formData.repair_shop_license}
               onChange={(e) => setFormData({ ...formData, repair_shop_license: e.target.value })}
-              className="bg-card border-border text-foreground mt-1"
+              className="mt-1 min-w-0 border-border bg-card text-foreground"
               placeholder="Shop/mechanic license or certification number"
             />
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground">Notes</label>
+            <label htmlFor="maintenance-notes" className="text-sm text-muted-foreground">Notes</label>
             <Textarea
+              id="maintenance-notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="bg-card border-border text-foreground mt-1"
+              className="mt-1 min-w-0 border-border bg-card text-foreground"
               placeholder="Additional notes..."
               rows={3}
             />
@@ -370,7 +374,7 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="sticky -bottom-4 grid grid-cols-2 gap-2 border-t border-border bg-card py-3 sm:-bottom-6 sm:flex sm:justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="bg-card text-foreground border-border">
               Cancel
             </Button>

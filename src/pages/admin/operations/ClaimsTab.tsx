@@ -202,13 +202,13 @@ export function ClaimsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <SectionHeader title="Claims" variant="plain" className="mb-0" />
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <SectionHeader title="Claims" variant="plain" className="mb-0 min-w-0" />
         <Button
           onClick={() => { setEditingClaim(null); setModalOpen(true); }}
-          className="bg-primary text-primary-foreground hover:bg-primary/80"
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/80 sm:w-auto"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4" />
           Add Manual Claim
         </Button>
       </div>

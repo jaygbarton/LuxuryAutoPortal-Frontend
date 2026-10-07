@@ -1066,14 +1066,14 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
   return (
     // Root shell:
-    //   - `flex h-screen`  — horizontal row, exactly viewport height.
+    //   - `flex h-dvh`  — horizontal row, follows the visible viewport.
     //   - `overflow-hidden` — nothing is allowed to scroll the page itself.
     //     Vertical scrolling lives on <main>; horizontal scrolling lives on
     //     whatever inner widget needs it (e.g. the income/expense table).
     //     This stops the whole document from scrolling when a child is wider
     //     than the viewport, which used to visually "cut" the main content
     //     during browser resizes.
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-dvh bg-background overflow-hidden">
       <aside
         className={cn(
           // Base: flex column chrome for the sidebar.
@@ -1084,13 +1084,13 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
           // Desktop (lg+): promote the sidebar to a normal flex child so it
           // naturally contributes its width to the row and <main> doesn't need
           // a hand-tuned margin. `lg:translate-x-0` cancels the mobile slide
-          // transform; `lg:h-screen` guarantees full height even when the flex
+          // transform; `lg:h-dvh` guarantees full height even when the flex
           // parent's stretch ever gets overridden.
-          "lg:static lg:translate-x-0 lg:h-screen lg:flex-shrink-0",
+          "lg:static lg:translate-x-0 lg:h-dvh lg:flex-shrink-0",
           sidebarOpen ? "w-64" : "w-20",
         )}
       >
-        <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
+        <div className="flex shrink-0 items-center justify-between h-16 px-4 border-b border-sidebar-border">
           <Link href="/dashboard" className="flex items-center gap-2">
             <img
               src={sidebarOpen ? "/logo.png" : "/favicon.png"}
@@ -1103,7 +1103,8 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
           </Link>
           <button
             onClick={() => setMobileMenuOpen(false)}
-            className="lg:hidden text-muted-foreground hover:text-foreground"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md lg:hidden text-muted-foreground hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Close navigation"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1136,9 +1137,12 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
               return (
                 <div key={item.href} className="mx-2">
-                  <div
+                  <button
+                    type="button"
+                    aria-expanded={expanded}
+                    aria-label={item.label}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-md transition-colors relative cursor-pointer border-l-2",
+                      "flex min-h-11 w-full items-center gap-3 px-3 py-2 rounded-md text-left transition-colors relative cursor-pointer border-l-2 lg:min-h-9 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       isParentActive ? activeClasses : inactiveClasses,
                     )}
                     onClick={() => toggleExpand(item.href)}
@@ -1153,7 +1157,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                         />
                       </>
                     )}
-                  </div>
+                  </button>
 
                   {expanded && sidebarOpen && (
                     <div className="mt-1 ml-4 border-l-2 border-[hsl(var(--sidebar-primary)/0.35)] pl-2">
@@ -1165,7 +1169,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                             key={child.href}
                             href={child.href}
                             className={cn(
-                              "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors border-l-2",
+                              "flex min-h-11 items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors border-l-2 lg:min-h-8 lg:py-1.5",
                               childActive
                                 ? childActiveClasses
                                 : inactiveClasses,
@@ -1203,7 +1207,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className={cn(
-                    "flex items-center gap-3 mx-2 px-3 py-2 rounded-md transition-colors relative border-l-2",
+                    "flex min-h-11 items-center gap-3 mx-2 px-3 py-2 rounded-md transition-colors relative border-l-2 lg:min-h-9",
                     inactiveClasses,
                   )}
                   onClick={() => setMobileMenuOpen(false)}
@@ -1227,7 +1231,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 mx-2 px-3 py-2 rounded-md transition-colors relative border-l-2",
+                  "flex min-h-11 items-center gap-3 mx-2 px-3 py-2 rounded-md transition-colors relative border-l-2 lg:min-h-9",
                   isActive ? childActiveClasses : inactiveClasses,
                 )}
                 onClick={() => setMobileMenuOpen(false)}
@@ -1247,7 +1251,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         <div className="p-4 border-t border-sidebar-border">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3 py-2 rounded text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+            className="flex min-h-11 items-center gap-3 w-full px-3 py-2 rounded text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors lg:min-h-9"
             data-testid="button-logout"
           >
             <LogOut className="w-4 h-4" />
@@ -1272,16 +1276,18 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         width declaration is needed. `flex-1 min-w-0` is the whole formula.
       */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden transition-all duration-300">
-        <header className="relative z-[1500] h-14 bg-background border-b border-border flex items-center justify-between px-3 sm:px-4 lg:px-6">
+        <header className="relative z-[1500] h-14 shrink-0 bg-background border-b border-border flex items-center justify-between px-3 sm:px-4 lg:px-6">
           <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="lg:hidden text-muted-foreground hover:text-foreground"
+            onClick={() => { setSidebarOpen(true); setMobileMenuOpen(true); }}
+            className="flex h-11 w-11 items-center justify-center rounded-md lg:hidden text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Open navigation"
           >
             <Menu className="w-6 h-6" />
           </button>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hidden lg:flex text-muted-foreground hover:text-foreground"
+            className="hidden h-9 w-9 items-center justify-center rounded-md lg:flex text-muted-foreground hover:text-foreground"
+            aria-label={sidebarOpen ? "Collapse navigation" : "Expand navigation"}
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -1303,6 +1309,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                           className="text-muted-foreground"
                           disabled={switching}
                           title="Switch account (same login)"
+                          aria-label="Switch account"
                         >
                           {switching ? (
                             <RefreshCw className="h-4 w-4 animate-spin" />

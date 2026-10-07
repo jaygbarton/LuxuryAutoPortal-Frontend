@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { SummaryCard } from "@/components/admin/dashboard/SummaryCard";
-import { DashboardRecordCard } from "@/components/admin/dashboard/DashboardRecordCard";
+import { MaintenanceRecordCard } from "./MaintenanceRecordCard";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
 import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
@@ -32,7 +32,13 @@ import { MaintenanceModal } from "./MaintenanceModal";
 import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit, Trash2, History } from "lucide-react";
+import { Plus, MoreHorizontal, Search, SlidersHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { OperationEditHistoryList } from "@/components/admin/OperationEditHistory";
 import type { Inspection, MaintenanceRecord, TuroTrip } from "./types";
 import { MAINTENANCE_SERVICE_TYPE_LABELS } from "./types";
@@ -187,6 +193,7 @@ export function MaintenanceTab({
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>(defaultStatus);
   const [search, setSearch] = useState<string>("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
@@ -446,113 +453,128 @@ export function MaintenanceTab({
   ).length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="min-w-0 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <SectionHeader title="Maintenance" variant="plain" className="mb-0" />
-        <div className="flex gap-2">
-          <Button onClick={() => setTaskModalOpen(true)} variant="outline" className="border-primary text-primary hover:bg-primary/10">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Task
-          </Button>
+        <div className="flex shrink-0 items-center gap-1">
           <Button
             onClick={() => { setEditingRecord(null); setModalOpen(true); }}
-            className="bg-primary text-primary-foreground hover:bg-primary/80"
+            className="min-h-11 bg-primary px-3 text-primary-foreground hover:bg-primary/80 sm:min-h-9"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="h-4 w-4" />
             Add Maintenance
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="ghost" size="icon" className="h-11 w-11" aria-label="More maintenance actions">
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem className="min-h-11" onSelect={() => setTaskModalOpen(true)}><Plus /> Add Task</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <SummaryCard label="New" value={String(newCount)} variant="gold" />
         <SummaryCard label="In Progress" value={String(inProgressCount)} variant="dark" />
         <SummaryCard label="Completed" value={String(completedCount)} variant="white" />
       </div>
 
-      <div className="bg-card border border-border rounded-lg">
-        <div className="p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-row lg:items-end gap-3 mb-4">
-            <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1 lg:flex-1 lg:min-w-[200px]">
-              <label className="text-muted-foreground text-xs">Search</label>
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Car, plate, description, assignee, location..."
-                className="bg-card border-border text-foreground h-9 w-full"
-              />
-            </div>
-            {!lockedStatus && (
-              <div className="flex flex-col gap-1">
-                <label className="text-muted-foreground text-xs">Status</label>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="bg-card border-border text-foreground w-full lg:w-[170px] h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border text-foreground">
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="damage_reported">
-                      Maintenance Reported
-                    </SelectItem>
-                    <SelectItem value="in_review">In Review</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="in_repair">In Repair</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="completed_no_receipt">
-                      Completed-No Receipt Yet
-                    </SelectItem>
-                    <SelectItem value="charged_customer">
-                      Charged Customer
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+      <div className="rounded-xl border border-border bg-card">
+        <div className="p-3 sm:p-4">
+          <div className="mb-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-0 flex-1">
+                <label htmlFor="maintenance-search" className="sr-only">Search maintenance</label>
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="maintenance-search"
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search cars, plates, tasks..."
+                  className="h-11 w-full border-border bg-card pl-9 text-base text-foreground sm:h-9 sm:text-sm"
+                />
               </div>
-            )}
-            <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">
-                Trip Start/End From
-              </label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                title="Show records whose Trip Start OR Trip End is on/after this day"
-                className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-muted-foreground text-xs">
-                To
-              </label>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                title="Show records whose Trip Start OR Trip End is on/before this day"
-                className="bg-card border-border text-foreground h-9 w-full lg:w-[150px]"
-              />
-            </div>
-            {hasActiveFilters && (
               <Button
-                variant="ghost"
-                onClick={() => {
-                  setFilterStatus(defaultStatus ?? "all");
-                  setSearch("");
-                  setDateFrom("");
-                  setDateTo("");
-                }}
-                className="text-red-700 hover:text-red-700 hover:bg-red-900/20 h-9 sm:col-span-2 lg:col-span-1 w-full lg:w-auto"
+                variant="outline"
+                onClick={() => setFiltersOpen((open) => !open)}
+                aria-expanded={filtersOpen}
+                aria-controls="maintenance-filters"
+                className="min-h-11 shrink-0 px-3 sm:hidden"
               >
-                Clear Filters
+                <SlidersHorizontal /> Filters
+                {(filterStatus !== defaultStatus || dateFrom || dateTo) && <span className="h-2 w-2 rounded-full bg-primary" aria-label="Filters applied" />}
               </Button>
-            )}
+            </div>
+            <div id="maintenance-filters" className={`${filtersOpen ? "grid" : "hidden"} grid-cols-2 items-end gap-3 sm:grid lg:grid-cols-[minmax(150px,1fr)_150px_150px_auto]`}>
+              {!lockedStatus && (
+                <div className="col-span-2 flex min-w-0 flex-col gap-1 sm:col-span-1">
+                  <label htmlFor="maintenance-status-filter" className="text-xs text-muted-foreground">Status</label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger id="maintenance-status-filter" className="h-11 w-full border-border bg-card text-foreground sm:h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border text-foreground">
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="damage_reported">Maintenance Reported</SelectItem>
+                      <SelectItem value="in_review">In Review</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="in_repair">In Repair</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="completed_no_receipt">Completed-No Receipt Yet</SelectItem>
+                      <SelectItem value="charged_customer">Charged Customer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="flex min-w-0 flex-col gap-1">
+                <label htmlFor="maintenance-date-from" className="text-xs text-muted-foreground">Trip start/end from</label>
+                <Input
+                  id="maintenance-date-from"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  title="Show records whose Trip Start OR Trip End is on/after this day"
+                  className="h-11 min-w-0 w-full border-border bg-card text-base text-foreground sm:h-9 sm:text-sm"
+                />
+              </div>
+              <div className="flex min-w-0 flex-col gap-1">
+                <label htmlFor="maintenance-date-to" className="text-xs text-muted-foreground">To</label>
+                <Input
+                  id="maintenance-date-to"
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  title="Show records whose Trip Start OR Trip End is on/before this day"
+                  className="h-11 min-w-0 w-full border-border bg-card text-base text-foreground sm:h-9 sm:text-sm"
+                />
+              </div>
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setFilterStatus(defaultStatus ?? "all");
+                    setSearch("");
+                    setDateFrom("");
+                    setDateTo("");
+                  }}
+                  className="col-span-2 min-h-11 text-muted-foreground sm:col-span-1 sm:min-h-9"
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span>{records.length} {records.length === 1 ? "record" : "records"}</span>
+              {hasActiveFilters && !filtersOpen && <Button variant="ghost" onClick={() => { setFilterStatus(defaultStatus); setSearch(""); setDateFrom(""); setDateTo(""); }} className="min-h-11 px-2 text-xs sm:hidden">Clear Filters</Button>}
+            </div>
           </div>
-          <div className="text-sm text-muted-foreground mb-3">
-            Total: {records.length}
-          </div>
-
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-2">
             {isLoading ? (
               <p className="text-center py-12 text-muted-foreground">Loading maintenance records...</p>
             ) : records.length === 0 ? (
@@ -624,8 +646,8 @@ export function MaintenanceTab({
                     value={rec.status}
                     onValueChange={(v) => statusUpdateMutation.mutate({ id: rec.id, status: v })}
                   >
-                    <SelectTrigger className="bg-transparent border-0 p-0 h-auto w-auto shadow-none focus:ring-0">
-                      <StatusBadge status={rec.status} />
+                    <SelectTrigger aria-label={`Change maintenance status for ${carDisplayName}`} className="h-auto min-h-11 min-w-0 w-full border-border bg-card px-3 py-2 sm:min-h-9">
+                      <StatusBadge status={rec.status} className="min-w-0 whitespace-normal text-left leading-4" />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border text-foreground">
                       <SelectItem value="new">New</SelectItem>
@@ -640,20 +662,6 @@ export function MaintenanceTab({
                   </Select>
                 );
 
-                const actionsEl = (
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => { setEditingRecord(rec); setModalOpen(true); }} className="text-muted-foreground hover:text-primary h-7 px-2" title="Edit">
-                      <Edit className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => { setHistoryRecord(rec); setHistoryModalOpen(true); }} className="text-muted-foreground hover:text-blue-400 h-7 px-2" title="View History">
-                      <History className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => { setDeletingRecord(rec); setDeleteModalOpen(true); }} className="text-muted-foreground hover:text-red-700 h-7 px-2" title="Delete">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                );
-
                 const assigneeEl = (
                   <EmployeeSelectCombobox
                     value={rec.assigned_to || ""}
@@ -664,7 +672,7 @@ export function MaintenanceTab({
                         assigneeUpdateMutation.mutate({ id: rec.id, assigned_to: fullName, assigned_to_id: emp.employee_aid });
                       }
                     }}
-                    placeholder="Assign..."
+                    placeholder="Assign employee..."
                   />
                 );
 
@@ -695,56 +703,44 @@ export function MaintenanceTab({
                 const gasEl = tripIdForGas ? (
                   <div className="flex items-center gap-1 flex-wrap">
                     <Select value={gasStart || "__none__"} onValueChange={(v) => saveGas(v === "__none__" ? "" : v, gasEnd)}>
-                      <SelectTrigger className="h-7 w-[90px] text-xs"><SelectValue placeholder="Start" /></SelectTrigger>
+                      <SelectTrigger aria-label={`Trip starting gas for ${carDisplayName}`} className="h-11 w-[100px] text-sm sm:h-9"><SelectValue placeholder="Start" /></SelectTrigger>
                       <SelectContent>{GAS_OPTS.map((o) => <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                     </Select>
                     <span className="text-muted-foreground text-xs">→</span>
                     <Select value={gasEnd || "__none__"} onValueChange={(v) => saveGas(gasStart, v === "__none__" ? "" : v)}>
-                      <SelectTrigger className="h-7 w-[90px] text-xs"><SelectValue placeholder="End" /></SelectTrigger>
+                      <SelectTrigger aria-label={`Trip ending gas for ${carDisplayName}`} className="h-11 w-[100px] text-sm sm:h-9"><SelectValue placeholder="End" /></SelectTrigger>
                       <SelectContent>{GAS_OPTS.map((o) => <SelectItem searchKeywords={optionKeywords(o)} key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 ) : <span className="text-muted-foreground text-xs">--</span>;
 
-                // Uploaded maintenance photos stay on the right; the car's own
-                // photo always shows in the left column under the trip details
-                // so every record identifies its vehicle visually, even when a
-                // maintenance-specific photo has been uploaded.
                 const photosEl = rec.photos && rec.photos.length > 0 ? (
                   <PhotoUpload photos={rec.photos} onPhotosChange={() => {}} entityType="maintenance" entityId={rec.id} disabled compact />
                 ) : null;
-                const carPhotoEl = rec.car_photo
-                  ? (
-                    <CarPhotoCell
-                      carPhoto={rec.car_photo}
-                      carName={carDisplayName}
-                      // Fill the left column instead of sitting as a small
-                      // fixed thumbnail in a mostly-empty space. Capped so a
-                      // short card doesn't grow a huge image.
-                      className="w-full max-w-[420px] h-40 sm:h-48"
-                      size={960}
-                    />
-                  )
-                  : null;
+                const carPhotoEl = rec.car_photo ? (
+                  <CarPhotoCell carPhoto={rec.car_photo} carName={carDisplayName} className="h-14 w-20 sm:h-16 sm:w-24" size={240} />
+                ) : null;
 
                 return (
-                  <DashboardRecordCard
+                  <MaintenanceRecordCard
                     key={rec.id}
                     accentBg={statusAccent.bg}
-                    accentBorder={statusAccent.border}
-                    typeLabel="Maintenance"
-                    reservationId={reservationId}
-                    carName={rec.car_id ? undefined : carDisplayName}
+                    carLabel={carDisplayName}
+                    carName={rec.car_id ? <Link href={`/admin/cars/${rec.car_id}/maintenance`} className="hover:underline">{carDisplayName}</Link> : carDisplayName}
                     plate={plateNumber}
-                    assignedTo={rec.assigned_to || null}
-                    tripStart={trip ? formatDateTime(trip.tripStart) : formatDateTime(insp?.inspection_date ?? null)}
-                    tripEnd={trip ? formatDateTime(trip.tripEnd) : null}
-                    pickupLocation={pickupLocation}
-                    dropoffLocation={dropOffLocation}
+                    image={carPhotoEl}
+                    service={rec.service_type ? MAINTENANCE_SERVICE_TYPE_LABELS[rec.service_type] : null}
+                    description={rec.task_description}
+                    scheduled={formatDateTime(rec.scheduled_date)}
+                    due={formatDateTime(rec.due_date)}
                     statusControl={statusControl}
-                    media={photosEl}
-                    leftMedia={carPhotoEl}
+                    assigneeControl={assigneeEl}
+                    approval={(rec.owner_approval_status && rec.owner_approval_status !== "not_sent") || (rec.status === "damage_reported" && !(rec.owner_has_app_access === 1 || rec.owner_has_app_access === true)) ? <OwnerApprovalBadge rec={rec} /> : undefined}
+                    photos={photosEl}
                     notes={rec.notes}
+                    onEdit={() => { setEditingRecord(rec); setModalOpen(true); }}
+                    onHistory={() => { setHistoryRecord(rec); setHistoryModalOpen(true); }}
+                    onDelete={() => { setDeletingRecord(rec); setDeleteModalOpen(true); }}
                     details={[
                       { label: "CAR Name", value: rec.car_id ? (
                         <Link href={`/admin/cars/${rec.car_id}/maintenance`} className="text-[#D3BC8D] hover:underline">{carNameWithPlateLabel}</Link>
@@ -753,9 +749,11 @@ export function MaintenanceTab({
                       { label: "VIN #", value: rec.car_vin || "--" },
                       { label: "Service Type", value: rec.service_type ? MAINTENANCE_SERVICE_TYPE_LABELS[rec.service_type] : "--" },
                       { label: "Description", value: rec.task_description },
-                      { label: "Assigned To", value: assigneeEl },
-                      { label: "Scheduled", value: formatDateTime(rec.scheduled_date) },
-                      { label: "Due Date", value: formatDateTime(rec.due_date) },
+                      { label: "Reservation #", value: reservationId || "--" },
+                      { label: "Trip Start", value: trip ? formatDateTime(trip.tripStart) : formatDateTime(insp?.inspection_date ?? null) },
+                      { label: "Trip End", value: trip ? formatDateTime(trip.tripEnd) : "--" },
+                      { label: "Pick Up", value: pickupLocation || "--" },
+                      { label: "Drop Off", value: dropOffLocation || "--" },
                       { label: "Trip Status", value: trip?.status ? <StatusBadge status={trip.status} /> : "Manual" },
                       { label: "Days Rented", value: daysRented ?? "--" },
                       { label: "Earnings", value: tripEarnings != null ? formatCurrency(tripEarnings) : "--" },
@@ -773,7 +771,6 @@ export function MaintenanceTab({
                       { label: "Owner Approval", value: <OwnerApprovalBadge rec={rec} /> },
                       { label: "Repair Shop", value: rec.repair_shop || "--" },
                       { label: "Repair Shop License #", value: rec.repair_shop_license || "--" },
-                      { label: "Actions", value: actionsEl },
                     ]}
                   />
                 );

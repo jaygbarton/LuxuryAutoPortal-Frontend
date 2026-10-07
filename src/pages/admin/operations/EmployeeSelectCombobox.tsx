@@ -90,7 +90,7 @@ export function EmployeeSelectCombobox({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="w-full justify-between bg-card border-border text-foreground hover:bg-card hover:text-foreground mt-1 font-normal"
+          className="w-full min-w-0 justify-between bg-card border-border text-foreground hover:bg-card hover:text-foreground font-normal"
         >
           <span className="truncate">{value || placeholder}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { getActiveTimezone } from "@/hooks/use-timezone";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,7 @@ import { StatusBadge } from "./StatusBadge";
 import { InspectionModal } from "./InspectionModal";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit, Trash2, Wrench, History, CheckCircle2, RotateCcw } from "lucide-react";
+import { Plus, Edit, Trash2, Wrench, History, CheckCircle2, RotateCcw, MoreHorizontal } from "lucide-react";
 import { movedToMaintenanceMessage } from "./types";
 import type { Inspection, MaintenanceRecord, TuroTrip } from "./types";
 import { TaskAssignmentModal } from "./TaskAssignmentModal";
@@ -387,20 +388,32 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <SectionHeader title="Car Inspections" variant="plain" className="mb-0" />
-        <div className="flex gap-2">
-          <Button onClick={() => setDeleteAllConfirm(true)} variant="outline" className="border-destructive text-destructive hover:bg-destructive/10">
-            Delete All
-          </Button>
-          <Button onClick={() => { setTaskModalOpen(true); }} variant="outline" className="border-primary text-primary hover:bg-primary/10">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Task
-          </Button>
-          <Button onClick={() => { setEditingInspection(null); setModalOpen(true); }} className="bg-primary text-primary-foreground hover:bg-primary/80">
-            <Plus className="w-4 h-4 mr-2" />
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <SectionHeader title="Car Inspections" variant="plain" className="mb-0 min-w-0" />
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <Button onClick={() => { setEditingInspection(null); setModalOpen(true); }} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/80 sm:flex-none">
+            <Plus className="w-4 h-4" />
             Add Manual Inspection
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" aria-label="More inspection actions">
+                <MoreHorizontal className="h-4 w-4" />
+                More
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => setTaskModalOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Add Task
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => setDeleteAllConfirm(true)} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                <Trash2 className="h-4 w-4" />
+                Delete All
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

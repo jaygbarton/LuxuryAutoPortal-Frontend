@@ -28,6 +28,13 @@ import { useCoHostLocationTags } from "@/hooks/use-co-host";
 
 const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "towing-impound", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "day-schedule", "tv-timeline"] as const;
 type TabId = typeof TAB_IDS[number];
+const TAB_LABELS: Record<TabId, string> = {
+  trips: "Trips Overview", "turo-inspection": "Turo Messages", inspections: "Car Issues",
+  claims: "Claims", "ticket-violation": "Ticket Violation", "towing-impound": "Towing & Impound",
+  maintenance: "Maintenance", "service-due": "Service Due", completed: "No Car Issues",
+  "car-repaired": "Car Repaired", "car-block-off": "Car Block Off",
+  "day-schedule": "Day Schedule", "tv-timeline": "TV Timeline",
+};
 
 // Renders a tab's content only after it has been activated for the first time,
 // then keeps it mounted (hidden) so state and cache are preserved on re-visit.
@@ -102,20 +109,34 @@ export default function OperationsPage() {
 
   return (
     <AdminLayout>
-      <div className="flex flex-col">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-primary">Operations</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+      <div className="flex min-w-0 flex-col">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl font-semibold text-foreground sm:text-2xl">Operations</h1>
+          <p className="hidden text-sm text-muted-foreground mt-1 sm:block">
             Vehicle operations workflow — trips, tasks, inspections, and maintenance.
           </p>
         </div>
 
         <OperationLocationFilterProvider value={locationFilter}>
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Location</div>
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between">
+            <div className="min-w-0 sm:hidden">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Section</label>
+              <Select value={activeTab} onValueChange={handleTabChange}>
+                <SelectTrigger aria-label="Operations section" className="w-full min-w-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TAB_IDS.map((tab) => (
+                    <SelectItem key={tab} value={tab}>{TAB_LABELS[tab]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="min-w-0 sm:ml-auto">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground sm:sr-only">Location</label>
             <Select value={locationFilter} onValueChange={(value) => setLocationFilter(value as OperationLocationFilter)}>
-              <SelectTrigger className="h-9 w-full sm:w-48">
+              <SelectTrigger aria-label="Operations location" className="w-full min-w-0 sm:h-9 sm:w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -126,6 +147,7 @@ export default function OperationsPage() {
                 ))}
               </SelectContent>
             </Select>
+            </div>
           </div>
 
           {/* No tab strip: every tab is already a sidebar item under

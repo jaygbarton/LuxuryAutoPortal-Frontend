@@ -1,6 +1,7 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type ItemsPerPage = 5 | 10 | 20 | 50;
 
@@ -77,34 +78,24 @@ export function TablePagination({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-card border-t border-border">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 py-3 bg-card border-t border-border sm:px-6 sm:py-4">
       {/* Left: Rows per page + Info */}
-      <div className="flex flex-col sm:flex-row items-center gap-4">
-        {/* Rows per page buttons */}
+      <div className="flex items-center gap-4">
+        {/* One page-size control keeps the record list footer compact. */}
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground hidden sm:inline">Rows per page:</span>
-          <div className="flex gap-1">
-            {([5, 10, 20, 50] as ItemsPerPage[]).map((limit) => (
-              <button
-                key={limit}
-                onClick={() => onItemsPerPageChange(limit)}
-                disabled={isLoading}
-                className={cn(
-                  "px-3 py-1.5 text-sm font-medium rounded transition-all duration-200",
-                  "disabled:opacity-50 disabled:cursor-not-allowed",
-                  itemsPerPage === limit
-                    ? "bg-[#D3BC8D] text-[#1a1a1a] font-bold shadow-md"
-                    : "bg-card text-foreground border border-border hover:bg-[#D3BC8D]/20 hover:border-[#D3BC8D]/50 hover:text-[#8B6914] font-medium"
-                )}
-              >
-                {limit}
-              </button>
-            ))}
-          </div>
+          <span className="text-xs text-muted-foreground sm:text-sm">Rows<span className="hidden sm:inline"> per page</span></span>
+          <Select value={String(itemsPerPage)} disabled={isLoading} onValueChange={(value) => onItemsPerPageChange(Number(value) as ItemsPerPage)}>
+            <SelectTrigger className="w-[72px]" aria-label="Rows per page"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {([5, 10, 20, 50] as ItemsPerPage[]).map((limit) => (
+                <SelectItem key={limit} value={String(limit)}>{limit}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Info text */}
-        <span className="text-sm text-muted-foreground">
+        <span className="hidden text-sm text-muted-foreground sm:inline">
           Showing <span className="text-foreground font-medium">{startItem}</span> to{" "}
           <span className="text-foreground font-medium">{endItem}</span> of{" "}
           <span className="text-foreground font-medium">{totalItems}</span>
@@ -119,7 +110,7 @@ export function TablePagination({
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1 || isLoading}
             className={cn(
-              "p-2 rounded transition-all duration-200",
+              "flex h-11 w-11 items-center justify-center rounded transition-all duration-200",
               "disabled:opacity-50 disabled:cursor-not-allowed",
               "text-foreground hover:bg-[#D3BC8D]/20 hover:text-[#8B6914]"
             )}
@@ -127,14 +118,14 @@ export function TablePagination({
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="px-3 py-1.5 text-sm font-medium text-foreground bg-card rounded">
+          <span className="min-w-10 text-center text-xs font-medium text-foreground">
             {currentPage} / {totalPages}
           </span>
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages || isLoading}
             className={cn(
-              "p-2 rounded transition-all duration-200",
+              "flex h-11 w-11 items-center justify-center rounded transition-all duration-200",
               "disabled:opacity-50 disabled:cursor-not-allowed",
               "text-foreground hover:bg-[#D3BC8D]/20 hover:text-[#8B6914]"
             )}
@@ -237,6 +228,9 @@ export function TablePagination({
           </button>
         </div>
       </div>
+      <span className="w-full text-center text-xs text-muted-foreground sm:hidden" aria-live="polite">
+        {startItem}–{endItem} of {totalItems} records
+      </span>
     </div>
   );
 }

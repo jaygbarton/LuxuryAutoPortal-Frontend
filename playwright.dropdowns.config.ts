@@ -3,6 +3,7 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   testMatch: "searchable-dropdowns.spec.ts",
+  outputDir: "test-results/dropdowns",
   timeout: 20_000,
   expect: { timeout: 5_000 },
   workers: 1,

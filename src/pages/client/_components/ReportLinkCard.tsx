@@ -10,14 +10,14 @@ interface ReportLinkCardProps {
 
 export function ReportLinkCard({ href, icon: Icon, label, external = false }: ReportLinkCardProps) {
   const inner = (
-    <div className="flex items-center gap-3 py-1.5 px-1 rounded-md hover:bg-muted/40 transition-colors cursor-pointer">
+    <div className="flex min-h-11 min-w-0 items-center gap-2 rounded-md px-1 py-2 transition-colors hover:bg-muted/40 sm:min-h-8 sm:gap-3 sm:py-1.5">
       <Icon className="w-5 h-5 shrink-0 text-foreground/80" strokeWidth={1.5} />
-      <span className="text-sm text-foreground leading-tight">{label}</span>
+      <span className="min-w-0 break-words text-sm text-foreground leading-snug">{label}</span>
     </div>
   );
 
   if (external) {
-    return <a href={href} target="_blank" rel="noopener noreferrer">{inner}</a>;
+    return <a href={href} target="_blank" rel="noopener noreferrer" className="block min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{inner}</a>;
   }
-  return <Link href={href}>{inner}</Link>;
+  return <Link href={href} className="block min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{inner}</Link>;
 }

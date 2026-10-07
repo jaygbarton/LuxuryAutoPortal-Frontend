@@ -37,9 +37,9 @@ export function QuickLinksSection({
   cols = 4,
 }: QuickLinksSectionProps) {
   return (
-    <div className={`h-full rounded-xl border-2 ${accentClass} bg-[#D3BC8D]/10 px-6 py-5 shadow-sm shadow-[#D3BC8D]/10`}>
+    <div className={`h-full min-w-0 rounded-xl border-2 ${accentClass} bg-[#D3BC8D]/10 p-4 shadow-sm shadow-[#D3BC8D]/10 sm:px-6 sm:py-5`}>
       <h2 className="text-base font-bold text-foreground mb-3">{title}</h2>
-      <div className={`grid ${colClass[cols]} gap-x-6 gap-y-1 pl-2`}>
+      <div className={`grid ${colClass[cols]} gap-x-3 gap-y-1 sm:gap-x-6 sm:pl-2`}>
         {links.map((link, idx) =>
           link.placeholder ? (
             <div key={`placeholder-${idx}`} aria-hidden className="invisible" />

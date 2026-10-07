@@ -127,8 +127,9 @@ export function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-2 text-muted-foreground hover:text-[#D3BC8D] transition-colors rounded-lg hover:bg-card"
+        className="relative flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-[#D3BC8D] transition-colors rounded-lg hover:bg-card sm:h-9 sm:w-9"
         aria-label="Notifications"
+        aria-expanded={open}
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -145,7 +146,7 @@ export function NotificationBell() {
               <button
                 onClick={() => markAllReadMutation.mutate()}
                 disabled={markAllReadMutation.isPending}
-                className="text-xs text-[#D3BC8D] hover:underline flex items-center gap-1"
+                className="min-h-11 px-2 text-sm text-[#D3BC8D] hover:underline flex items-center gap-1 sm:min-h-8 sm:text-xs"
               >
                 {markAllReadMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                 Mark all read
@@ -186,7 +187,7 @@ export function NotificationBell() {
               setOpen(false);
               setLocation("/admin/notifications");
             }}
-            className="w-full text-center px-4 py-2.5 border-t border-border text-sm text-[#D3BC8D] hover:bg-card transition-colors"
+            className="min-h-11 w-full text-center px-4 py-2.5 border-t border-border text-sm text-[#D3BC8D] hover:bg-card transition-colors"
           >
             View all notifications
           </button>
