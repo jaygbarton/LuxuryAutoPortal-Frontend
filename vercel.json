@@ -116,6 +116,26 @@
   ],
   "rewrites": [
     {
+      "source": "/portal/rest/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://legacy-origin.goldenluxuryauto.com/portal/rest/:path*"
+    },
+    {
+      "source": "/portal/img/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://legacy-origin.goldenluxuryauto.com/portal/img/:path*"
+    },
+    {
       "source": "/rest/gla/:path*",
       "has": [
         {
@@ -123,7 +143,7 @@
           "value": "app.goldenluxuryauto.com"
         }
       ],
-      "destination": "https://devapp.fbasapp.com/rest/gla/:path*"
+      "destination": "https://legacy-origin.goldenluxuryauto.com/portal/rest/v1/:path*"
     },
     {
       "source": "/img/:path*",
@@ -133,7 +153,17 @@
           "value": "app.goldenluxuryauto.com"
         }
       ],
-      "destination": "/legacy-img/:path*"
+      "destination": "https://legacy-origin.goldenluxuryauto.com/portal/img/:path*"
+    },
+    {
+      "source": "/carrental/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://legacy-origin.goldenluxuryauto.com/carrental/:path*"
     },
     {
       "source": "/api/:path*",

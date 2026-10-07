@@ -6,7 +6,9 @@ The full audit, source changes, and route inventory are in [the legacy recovery 
 
 ## Deployment status
 
-This branch **prepares but does not activate** the replacement. `public/legacy-index.html` and `vercel.json` are unchanged. A separate `public/legacy-restored-index.html` and its compiled assets are ready. Simply deploying this branch does not reconnect the old database or files.
+This branch activates the recovered frontend on `app.goldenluxuryauto.com` and connects its PHP API and uploaded files to `https://legacy-origin.goldenluxuryauto.com`. The user created this SiteGround parked domain, installed its HTTPS certificate, and confirmed the legacy logo and API response in their browser. The cloud workspace cannot directly verify this origin because its egress allowlist blocks the hostname. Real-account login and historical-record completeness still require post-deployment verification.
+
+Only app-host legacy API/file rewrites change. Modern-site routing remains intact. No database import, migration, or upload move is performed. The previous compiled bundle remains available for cached browser tabs and rollback.
 
 The original full application needs these upstream paths:
 
@@ -39,7 +41,7 @@ node --test scripts/legacy-routing.test.mjs
 
 The browser check requires installed frontend dependencies and Chromium. Override `CHROMIUM_PATH` or `LEGACY_PREVIEW_URL` as needed. It blocks external network requests and mocks all PHP calls; it does not log in to or modify production. Output is written under `test-results/legacy/`.
 
-## Cutover after locating the original PHP host
+## Cutover tooling for subsequent origin changes
 
 Verify the original host's API and existing uploads first, using the existing production database. Check an authorized account's login, representative historical records, a photo, a receipt, and a document. Reconnect the separate rental service if it is on another host. Do not import historical SQL backups into the live database.
 
