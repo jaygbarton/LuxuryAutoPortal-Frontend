@@ -50,22 +50,6 @@ function getMonthEntry<T extends { month: number }>(arr: T[], month: number): T 
   return arr.find((e) => e.month === month);
 }
 
-function grossRentalIncome(m: IncomeExpenseMonth): number {
-  return (
-    m.rentalIncome +
-    m.deliveryIncome +
-    m.electricPrepaidIncome +
-    m.smokingFines +
-    m.gasPrepaidIncome +
-    m.skiRacksIncome +
-    m.milesIncome +
-    m.childSeatIncome +
-    m.coolersIncome +
-    m.insuranceWreckIncome +
-    m.otherIncome
-  );
-}
-
 // Pre-computed fields from aggregated API (per-car splits summed on backend)
 interface IncomeExpenseMonthWithSplits extends IncomeExpenseMonth {
   mgmtIncome?: number;
@@ -409,8 +393,11 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     const hist = getMonthEntry(ieData?.history ?? [], m);
     const dd = getMonthEntry(ieData?.directDelivery ?? [], m);
 
-    const gross = ie ? grossRentalIncome(ie) : 0;
+    // rentalIncome is already the total: the I&E split formulas subtract
+    // delivery/prepaid/miles/etc. back OUT of it, so adding those lines on top
+    // double-counts them.
     const rentalIncome = ie ? Number(ie.rentalIncome ?? 0) : 0;
+    const gross = rentalIncome;
     // All-Cars splits are pre-summed per car on the backend. Do not fall
     // back to formulaSetting × fleet gross — aggregated percents are 0 and
     // a single % cannot be applied to combined income.
