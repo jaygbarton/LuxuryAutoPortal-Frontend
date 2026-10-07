@@ -7,6 +7,17 @@ const isAppHost = (rule: any) => rule.has?.some(
   (condition: any) => condition.type === "host" && condition.value === "app.goldenluxuryauto.com",
 );
 
+function apiDestination(host: string, path: string): string | undefined {
+  for (const rule of config.rewrites) {
+    if (!rule.source.startsWith("/rest/") && !rule.source.startsWith("/api/")) continue;
+    if (rule.has && !rule.has.every((condition: any) =>
+      condition.type === "host" && condition.value === host,
+    )) continue;
+    const prefix = rule.source.replace(":path*", "");
+    if (path.startsWith(prefix)) return rule.destination.replace(":path*", path.slice(prefix.length));
+  }
+}
+
 describe("production domain routing", () => {
   it("serves the old portal for app-domain SPA routes and the new portal otherwise", () => {
     const appIndex = config.rewrites.findIndex((rule: any) => rule.source === "/:path*" && isAppHost(rule));
@@ -30,6 +41,40 @@ describe("production domain routing", () => {
       .toBe("https://luxuryautoportal-replit-1.onrender.com/rest/:path*");
     expect(config.rewrites.find((rule: any) => rule.source === "/img/:path*" && isAppHost(rule)).destination)
       .toBe("/legacy-img/:path*");
+  });
+
+  it("sends old-portal authentication and data requests to the original legacy API", () => {
+    const legacyIndex = config.rewrites.findIndex((rule: any) =>
+      rule.source === "/rest/gla/:path*" && isAppHost(rule),
+    );
+    const genericRestIndex = config.rewrites.findIndex((rule: any) =>
+      rule.source === "/rest/:path*" && !rule.has,
+    );
+    expect(legacyIndex).toBeGreaterThanOrEqual(0);
+    expect(legacyIndex).toBeLessThan(genericRestIndex);
+    const legacy = config.rewrites[legacyIndex];
+    expect(legacy.has).toEqual([{ type: "host", value: "app.goldenluxuryauto.com" }]);
+    expect(legacy.destination).toBe("https://devapp.fbasapp.com/rest/gla/:path*");
+    // Both credential checks and token restoration must use the same backend
+    // as the legacy data routes, without requiring a new-portal session first.
+    for (const path of [
+      "user-other/login", "user-other/token", "user-system/login", "user-system/token",
+      "car/page/1", "car/read-by-id", "car-history/read-by-date-and-year",
+    ]) {
+      expect(apiDestination("app.goldenluxuryauto.com", `/rest/gla/${path}`))
+        .toBe(`https://devapp.fbasapp.com/rest/gla/${path}`);
+      expect(apiDestination("goldenluxuryauto.com", `/rest/gla/${path}`))
+        .toBe(`https://luxuryautoportal-replit-1.onrender.com/rest/gla/${path}`);
+    }
+    // The new site keeps its existing backend routing and authentication.
+    expect(config.rewrites[genericRestIndex].destination)
+      .toBe("https://luxuryautoportal-replit-1.onrender.com/rest/:path*");
+    expect(config.rewrites.find((rule: any) => rule.source === "/api/:path*").destination)
+      .toBe("https://luxuryautoportal-replit-1.onrender.com/api/:path*");
+    for (const host of ["app.goldenluxuryauto.com", "goldenluxuryauto.com"]) {
+      expect(apiDestination(host, "/api/auth/login"))
+        .toBe("https://luxuryautoportal-replit-1.onrender.com/api/auth/login");
+    }
   });
 
   it("ships the legacy entry point and every referenced legacy bundle", () => {

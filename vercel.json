@@ -116,6 +116,16 @@
   ],
   "rewrites": [
     {
+      "source": "/rest/gla/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "app.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://devapp.fbasapp.com/rest/gla/:path*"
+    },
+    {
       "source": "/img/:path*",
       "has": [
         {
