@@ -54,6 +54,11 @@ function Bridge({
       queryClient.invalidateQueries({
         queryKey: ["/api/income-expense/images/summary", carId, year],
       });
+      // A custom-subcategory edit saves to a separate endpoint whose data the
+      // Earnings page caches under its own key — refresh it too.
+      queryClient.invalidateQueries({
+        queryKey: ["/api/income-expense/dynamic-subcategories", carId, year],
+      });
     }
   }, [editingCell, queryClient, carId, year]);
 

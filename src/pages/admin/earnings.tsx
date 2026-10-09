@@ -19,6 +19,8 @@ import EarningsCellEditor, { type OpenCellEditor } from "./EarningsCellEditor";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useFormAmounts } from "@/pages/admin/income-expenses/utils/useFormAmounts";
 import ReceiptViewerModal from "@/pages/admin/income-expenses/components/ReceiptViewerModal";
+import { findStandardCategoryMatch } from "@/pages/admin/income-expenses/utils/standardCategoryNames";
+import { dynamicFieldValue } from "@/pages/admin/income-expenses/utils/expenseFormLink";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -1255,6 +1257,27 @@ export default function EarningsPage() {
       }
     : undefined;
 
+  // Custom (dynamic) subcategories, e.g. "Gas Receipt". Their amounts already
+  // roll into each section's TOTAL row above, so they must render as rows too
+  // or the total doesn't add up to its visible lines. Mirrors I&E: a dynamic
+  // row whose name duplicates a standard row is not shown separately. Approved
+  // form submissions for a dynamic row are keyed `db_<metadataId>` (receipts
+  // too); the editor modal keys the same row `dynamic-<type>`/`subcategory-<id>`.
+  const renderDynamicRows = (categoryType: "directDelivery" | "cogs" | "parkingFeeLabor" | "reimbursedBills") =>
+    dynamicSubcategories[categoryType]
+      .filter((subcat: any) => findStandardCategoryMatch(categoryType, subcat.name) == null)
+      .map((subcat: any) => (
+        <TableRow
+          key={`dynamic-${categoryType}-${subcat.id}`}
+          label={subcat.name}
+          values={MONTHS.map((_, i) => subcat.values.find((v: any) => v.month === i + 1)?.value || 0)}
+          category={categoryType} field={dynamicFieldValue(subcat.id)} receiptCells={receiptCells} onViewReceipts={openReceipts}
+          onEditCell={handleEditCell && ((month, _category, _field, value) => handleEditCell(month, `dynamic-${categoryType}`, `subcategory-${subcat.id}`, value))}
+          // GLA Parking Fee & Labor is not form-backed (same as I&E), so no form amount there.
+          getFormAmount={categoryType === "parkingFeeLabor" ? undefined : getFormAmount}
+        />
+      ));
+
   // Handle chart image upload
   const handleChartUpload = async (month: number, file: File) => {
     if (!carId) return;
@@ -1720,6 +1743,7 @@ export default function EarningsPage() {
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.directDelivery || [], i + 1, "uberLyftLime"))}
                     category="directDelivery" field="uberLyftLime" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
+                  {renderDynamicRows("directDelivery")}
                   <TableRow
                     label="TOTAL OPERATING EXPENSE (Direct Delivery)"
                     values={MONTHS.map((_, i) => getTotalDirectDeliveryForMonth(i + 1))}
@@ -1856,6 +1880,7 @@ export default function EarningsPage() {
                     values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.cogs || [], i + 1, "wipers"))}
                     category="cogs" field="wipers" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                   />
+                  {renderDynamicRows("cogs")}
                   <TableRow
                     label="TOTAL OPERATING EXPENSE (COGS - Per Vehicle)"
                     values={MONTHS.map((_, i) => getTotalCogsForMonth(i + 1))}
@@ -1883,6 +1908,7 @@ export default function EarningsPage() {
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.parkingFeeLabor || [], i + 1, "laborCleaning"))}
                       category="parkingFeeLabor" field="laborCleaning" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
+                    {renderDynamicRows("parkingFeeLabor")}
                   </CategorySection>
 
                 {/* REIMBURSED AND NON-REIMBURSED BILLS — GLA-internal. Hidden
@@ -1935,6 +1961,7 @@ export default function EarningsPage() {
                       values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.reimbursedBills || [], i + 1, "uberLyftLimeReimbursed"))}
                       category="reimbursedBills" field="uberLyftLimeReimbursed" receiptCells={receiptCells} onViewReceipts={openReceipts} onEditCell={handleEditCell} getFormAmount={getFormAmount}
                     />
+                    {renderDynamicRows("reimbursedBills")}
                     <TableRow
                       label="TOTAL REIMBURSED AND NON-REIMBURSED BILLS"
                       values={MONTHS.map((_, i) => getTotalReimbursedBillsForMonth(i + 1))}
