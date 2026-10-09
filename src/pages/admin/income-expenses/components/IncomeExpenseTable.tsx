@@ -44,6 +44,7 @@ import {
   type ExpenseFormCategory,
 } from "../utils/expenseFormLink";
 import { computeOwnerSplit } from "@/lib/ownerSplit";
+import { incomeShareNote, type IncomeShareField } from "../utils/incomeShareNotes";
 import {
   computeAnnualSplitPercent,
   annualSplitPercentTooltip,
@@ -179,6 +180,10 @@ export default function IncomeExpenseTable({
     receiptViewerImages,
     isReceiptViewerLoading,
   } = useIncomeExpense();
+
+  // Who gets each add-on income, for the year's formula (see incomeShareNotes).
+  const shareNote = (field: IncomeShareField) =>
+    incomeShareNote(field, parseInt(year, 10), monthModes);
 
   // ── Co-Hosting: tri-state ownership selector (drives the split formula) ──
   // Seeded from the I&E read (data.ownership); persisted via the
@@ -2559,7 +2564,7 @@ lastSavedNote.current = coHostNote;
               />
               <CategoryRow
                 label="Delivery Income"
-                splitLabel="100% Host Share"
+                splitLabel={shareNote("deliveryIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "deliveryIncome"),
                 )}
@@ -2568,7 +2573,7 @@ lastSavedNote.current = coHostNote;
               />
               <CategoryRow
                 label="Electric Prepaid Income"
-                splitLabel="100% Host Share"
+                splitLabel={shareNote("electricPrepaidIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(
                     data.incomeExpenses,
@@ -2581,7 +2586,7 @@ lastSavedNote.current = coHostNote;
               />
               <CategoryRow
                 label="Smoking Fines"
-                splitLabel="10% Owner Share, 90% Host Share"
+                splitLabel={shareNote("smokingFines")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "smokingFines"),
                 )}
@@ -2590,7 +2595,7 @@ lastSavedNote.current = coHostNote;
               />
               <CategoryRow
                 label="Gas Prepaid Income"
-                splitLabel="100% Host Share"
+                splitLabel={shareNote("gasPrepaidIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "gasPrepaidIncome"),
                 )}
@@ -2599,7 +2604,7 @@ lastSavedNote.current = coHostNote;
               />
               <CategoryRow
                 label="Ski Racks Income"
-                splitLabel="100% Ski Racks Owner Share"
+                splitLabel={shareNote("skiRacksIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "skiRacksIncome"),
                 )}
@@ -2608,7 +2613,7 @@ lastSavedNote.current = coHostNote;
               />
               <CategoryRow
                 label="Miles Income"
-                splitLabel="100% Owner Share"
+                splitLabel={shareNote("milesIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "milesIncome"),
                 )}
@@ -2617,7 +2622,7 @@ lastSavedNote.current = coHostNote;
               />
               <CategoryRow
                 label="Child Seat Income"
-                splitLabel="100% Host Share"
+                splitLabel={shareNote("childSeatIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "childSeatIncome"),
                 )}
@@ -2626,7 +2631,7 @@ lastSavedNote.current = coHostNote;
               />
               <CategoryRow
                 label="Coolers Income"
-                splitLabel="100% Host Share"
+                splitLabel={shareNote("coolersIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "coolersIncome"),
                 )}
@@ -2635,7 +2640,7 @@ lastSavedNote.current = coHostNote;
               />
               <CategoryRow
                 label="Income Insurance and Client Wrecks"
-                splitLabel="100% Host Share"
+                splitLabel={shareNote("insuranceWreckIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(
                     data.incomeExpenses,
@@ -2648,7 +2653,7 @@ lastSavedNote.current = coHostNote;
               />
               <CategoryRow
                 label="Other Income"
-                splitLabel="100% Host Share"
+                splitLabel={shareNote("otherIncome")}
                 values={MONTHS.map((_, i) =>
                   getMonthValue(data.incomeExpenses, i + 1, "otherIncome"),
                 )}
@@ -5267,10 +5272,7 @@ function CategoryRow({
   // to the manual value for DISPLAY. This is needed in the read-only cell branch
   // below too — otherwise approved submissions never appear on the (read-only)
   // /admin/income-expenses grid, only in the editable modal path.
-  const { getFormAmount, receiptCells, openReceipts, year } = useIncomeExpense();
-  // Income share notes ("100% Host Share", …) describe the 2026+ split rules;
-  // they don't apply to 2025 and earlier, so don't show them there.
-  const shownSplitLabel = parseInt(year, 10) >= 2026 ? splitLabel : undefined;
+  const { getFormAmount, receiptCells, openReceipts } = useIncomeExpense();
   // Hidden standard rows are removed entirely from this car's table. They are
   // also excluded from section totals by the caller (see isRowHidden).
   // (Placed after hooks to respect the rules of hooks.)
@@ -5411,9 +5413,9 @@ function CategoryRow({
         {onEdit || onHide ? (
           <div className="flex items-center gap-1.5">
             <span className="truncate">{label}</span>
-            {shownSplitLabel && (
+            {splitLabel && (
               <span className="truncate italic text-[#B8860B] font-medium">
-                {shownSplitLabel}
+                {splitLabel}
               </span>
             )}
             {onEdit && !isReadOnly && (
@@ -5438,9 +5440,9 @@ function CategoryRow({
         ) : (
           <div className="flex items-center gap-1.5">
             <span className="truncate">{label}</span>
-            {shownSplitLabel && (
+            {splitLabel && (
               <span className="truncate italic text-[#B8860B] font-medium">
-                {shownSplitLabel}
+                {splitLabel}
               </span>
             )}
           </div>
