@@ -88,6 +88,12 @@ function TotalRow({ label, value, isCurrency = true, bold, separator, indent, ne
   );
 }
 
+// Custom subcategory rows (I&E "Add Subcategory", e.g. Gas) for a section,
+// with the receipts filed to them. Already included in the section total.
+function SubcategoryRows({ rows }: { rows?: Array<{ id: number; name: string; amount: number }> }) {
+  return <>{(rows ?? []).map((r) => <TotalRow key={r.id} label={r.name} value={r.amount} />)}</>;
+}
+
 interface SectionProps {
   title: string;
   totalValue?: unknown;
@@ -311,12 +317,35 @@ export default function TotalsPage() {
   const [filterType, setFilterType] = useState<string>("Year");
   const [fromYear, setFromYear] = useState<string>(nowYear.toString());
   const [toYear, setToYear] = useState<string>(nowYear.toString());
-  // Month mode: single "from" month picker → auto "to" = now
+  // Month mode: "from" month → "to" month (defaults to now)
   const [pickedMonth, setPickedMonth] = useState<number>(nowMonth);
   const [pickedMonthYear, setPickedMonthYear] = useState<number>(nowYear);
-  // Quarter mode: single "from" quarter picker → auto "to" = now
+  const [pickedToMonth, setPickedToMonth] = useState<number>(nowMonth);
+  const [pickedToMonthYear, setPickedToMonthYear] = useState<number>(nowYear);
+  // Quarter mode: "from" quarter → "to" quarter (defaults to now)
   const [pickedQuarter, setPickedQuarter] = useState<number>(nowQuarter);
   const [pickedQuarterYear, setPickedQuarterYear] = useState<number>(nowYear);
+  const [pickedToQuarter, setPickedToQuarter] = useState<number>(nowQuarter);
+  const [pickedToQuarterYear, setPickedToQuarterYear] = useState<number>(nowYear);
+
+  // Keep from ≤ to: picking a "from" after "to" (or a "to" before "from")
+  // moves the other end along, so the range never comes back empty.
+  const setMonthFrom = (m: number, y: number) => {
+    setPickedMonth(m); setPickedMonthYear(y);
+    if (y * 12 + m > pickedToMonthYear * 12 + pickedToMonth) { setPickedToMonth(m); setPickedToMonthYear(y); }
+  };
+  const setMonthTo = (m: number, y: number) => {
+    setPickedToMonth(m); setPickedToMonthYear(y);
+    if (y * 12 + m < pickedMonthYear * 12 + pickedMonth) { setPickedMonth(m); setPickedMonthYear(y); }
+  };
+  const setQuarterFrom = (q: number, y: number) => {
+    setPickedQuarter(q); setPickedQuarterYear(y);
+    if (y * 4 + q > pickedToQuarterYear * 4 + pickedToQuarter) { setPickedToQuarter(q); setPickedToQuarterYear(y); }
+  };
+  const setQuarterTo = (q: number, y: number) => {
+    setPickedToQuarter(q); setPickedToQuarterYear(y);
+    if (y * 4 + q < pickedQuarterYear * 4 + pickedQuarter) { setPickedQuarter(q); setPickedQuarterYear(y); }
+  };
 
   const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
 
@@ -326,20 +355,20 @@ export default function TotalsPage() {
       return {
         filterType: "Month",
         fromYear: pickedMonthYear.toString(),
-        toYear: nowYear.toString(),
+        toYear: pickedToMonthYear.toString(),
         fromMonth: pickedMonth.toString(),
-        toMonth: nowMonth.toString(),
+        toMonth: pickedToMonth.toString(),
       };
     }
     if (filterType === "Quarter") {
       const qStartMonth = (pickedQuarter - 1) * 3 + 1;
-      const nowQEndMonth = Math.min(nowQuarter * 3, 12);
+      const qEndMonth = pickedToQuarter * 3;
       return {
         filterType: "Quarter",
         fromYear: pickedQuarterYear.toString(),
-        toYear: nowYear.toString(),
+        toYear: pickedToQuarterYear.toString(),
         fromMonth: qStartMonth.toString(),
-        toMonth: nowQEndMonth.toString(),
+        toMonth: qEndMonth.toString(),
       };
     }
     // Year mode
@@ -361,7 +390,7 @@ export default function TotalsPage() {
     }, 350);
     return () => clearTimeout(debounceRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterType, fromYear, toYear, pickedMonth, pickedMonthYear, pickedQuarter, pickedQuarterYear]);
+  }, [filterType, fromYear, toYear, pickedMonth, pickedMonthYear, pickedToMonth, pickedToMonthYear, pickedQuarter, pickedQuarterYear, pickedToQuarter, pickedToQuarterYear]);
 
   const isAllCarsReport = !!allCarsRoute || (isStandalonePage && selectedCarId === null);
   const carId = urlCarId || (isStandalonePage ? selectedCarId : null);
@@ -622,7 +651,7 @@ export default function TotalsPage() {
               </>
             )}
 
-            {/* Month mode: Month picker → Now */}
+            {/* Month mode: From month → To month */}
             {filterType === "Month" && (
               <>
                 <div>
@@ -630,7 +659,7 @@ export default function TotalsPage() {
                   <MonthPicker
                     month={pickedMonth}
                     year={pickedMonthYear}
-                    onChange={(m, y) => { setPickedMonth(m); setPickedMonthYear(y); }}
+                    onChange={setMonthFrom}
                   />
                 </div>
                 <div className="hidden lg:flex items-end h-9">
@@ -638,14 +667,16 @@ export default function TotalsPage() {
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">To</label>
-                  <div className="h-9 px-3 flex items-center rounded-md border border-border bg-muted/50 text-sm text-muted-foreground w-full lg:min-w-[140px]">
-                    {MONTH_FULL[nowMonth - 1]} {nowYear}
-                  </div>
+                  <MonthPicker
+                    month={pickedToMonth}
+                    year={pickedToMonthYear}
+                    onChange={setMonthTo}
+                  />
                 </div>
               </>
             )}
 
-            {/* Quarter mode: Quarter picker → Now */}
+            {/* Quarter mode: From quarter → To quarter */}
             {filterType === "Quarter" && (
               <>
                 <div>
@@ -653,7 +684,7 @@ export default function TotalsPage() {
                   <QuarterPicker
                     quarter={pickedQuarter}
                     year={pickedQuarterYear}
-                    onChange={(q, y) => { setPickedQuarter(q); setPickedQuarterYear(y); }}
+                    onChange={setQuarterFrom}
                   />
                 </div>
                 <div className="hidden lg:flex items-end h-9">
@@ -661,9 +692,11 @@ export default function TotalsPage() {
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1.5 block">To</label>
-                  <div className="h-9 px-3 flex items-center rounded-md border border-border bg-muted/50 text-sm text-muted-foreground w-full lg:min-w-[100px]">
-                    {QUARTER_SHORT[nowQuarter - 1]} {nowYear}
-                  </div>
+                  <QuarterPicker
+                    quarter={pickedToQuarter}
+                    year={pickedToQuarterYear}
+                    onChange={setQuarterTo}
+                  />
                 </div>
               </>
             )}
@@ -678,16 +711,16 @@ export default function TotalsPage() {
             )}
             {filterType === "Month" && (
               <span>
-                Showing {MONTH_FULL[pickedMonth - 1]} {pickedMonthYear} — {MONTH_FULL[nowMonth - 1]} {nowYear}
+                Showing {MONTH_FULL[pickedMonth - 1]} {pickedMonthYear} — {MONTH_FULL[pickedToMonth - 1]} {pickedToMonthYear}
                 {` (${(() => {
-                  const totalMonths = (nowYear - pickedMonthYear) * 12 + (nowMonth - pickedMonth) + 1;
+                  const totalMonths = (pickedToMonthYear - pickedMonthYear) * 12 + (pickedToMonth - pickedMonth) + 1;
                   return totalMonths === 1 ? "1 month" : `${totalMonths} months`;
                 })()})`}
               </span>
             )}
             {filterType === "Quarter" && (
               <span>
-                Showing {QUARTER_SHORT[pickedQuarter - 1]} {pickedQuarterYear} — {QUARTER_SHORT[nowQuarter - 1]} {nowYear}
+                Showing {QUARTER_SHORT[pickedQuarter - 1]} {pickedQuarterYear} — {QUARTER_SHORT[pickedToQuarter - 1]} {pickedToQuarterYear}
               </span>
             )}
           </div>
@@ -755,7 +788,9 @@ export default function TotalsPage() {
               <TotalRow label="Labor - Car Cleaning" value={totals?.operatingExpensesDirect?.laborCarCleaning} />
               <TotalRow label="Labor - Driver" value={totals?.operatingExpensesDirect?.laborDriver} />
               <TotalRow label="Parking - Airport" value={totals?.operatingExpensesDirect?.parkingAirport} />
+              <TotalRow label="Parking - Lot" value={totals?.operatingExpensesDirect?.parkingLot} />
               <TotalRow label="Taxi/Uber/Lyft/Lime" value={totals?.operatingExpensesDirect?.taxiUberLyftLime} />
+              <SubcategoryRows rows={totals?.operatingExpensesDirect?.subcategories} />
               <TotalRow label="Total Operating Expenses (Direct Delivery)" value={totals?.operatingExpensesDirect?.total} separator bold />
             </Section>
 
@@ -788,6 +823,7 @@ export default function TotalsPage() {
               <TotalRow label="Uber/Lyft/Lime" value={totals?.expenses?.uberLyftLime} />
               <TotalRow label="Windshield" value={totals?.expenses?.windshield} />
               <TotalRow label="Wipers" value={totals?.expenses?.wipers} />
+              <SubcategoryRows rows={totals?.expenses?.subcategories} />
               <TotalRow label="Total COGS (Per Vehicle)" value={totals?.expenses?.totalOperatingExpenses} separator bold />
             </Section>
 
@@ -798,6 +834,7 @@ export default function TotalsPage() {
             >
               <TotalRow label="GLA Labor - Cleaning" value={totals?.gla?.laborCleaning} />
               <TotalRow label="GLA Parking Fee" value={totals?.gla?.parkingFee} />
+              <SubcategoryRows rows={totals?.gla?.subcategories} />
               <TotalRow label="Total GLA Parking Fee & Labor Cleaning" value={totals?.gla?.total} separator bold />
             </Section>
 
@@ -848,16 +885,7 @@ export default function TotalsPage() {
             {isAdmin && (
             <Section
               title="REIMBURSED & NON-REIMBURSED BILLS"
-              totalValue={
-                Number(totals?.reimbursedBills?.electricReimbursed || 0) +
-                Number(totals?.reimbursedBills?.electricNotReimbursed || 0) +
-                Number(totals?.reimbursedBills?.gasReimbursed || 0) +
-                Number(totals?.reimbursedBills?.gasNotReimbursed || 0) +
-                Number(totals?.reimbursedBills?.gasServiceRun || 0) +
-                Number(totals?.reimbursedBills?.parkingAirport || 0) +
-                Number(totals?.reimbursedBills?.uberLyftLimeReimbursed || 0) +
-                Number(totals?.reimbursedBills?.uberLyftLimeNotReimbursed || 0)
-              }
+              totalValue={totals?.reimbursedBills?.total}
             >
               <TotalRow label="Electric - Reimbursed" value={totals?.reimbursedBills?.electricReimbursed} />
               <TotalRow label="Electric - Not Reimbursed" value={totals?.reimbursedBills?.electricNotReimbursed} />
@@ -867,6 +895,7 @@ export default function TotalsPage() {
               <TotalRow label="Parking Airport" value={totals?.reimbursedBills?.parkingAirport} />
               <TotalRow label="Uber/Lyft/Lime - Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeReimbursed} />
               <TotalRow label="Uber/Lyft/Lime - Not Reimbursed" value={totals?.reimbursedBills?.uberLyftLimeNotReimbursed} />
+              <SubcategoryRows rows={totals?.reimbursedBills?.subcategories} />
             </Section>
             )}
 
