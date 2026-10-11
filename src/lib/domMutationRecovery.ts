@@ -10,6 +10,8 @@ export const DOM_RECOVERY_STORAGE_KEY = "gla:external-dom-recovery";
 export function isExternalDomMutationError(error: Error | null): boolean {
   const message = String(error?.message ?? "");
   return (
+    // WebKit omits the DOM method and node details from this exception.
+    (error?.name === "NotFoundError" && /^The object can\s?not be found here\.?$/i.test(message)) ||
     message.includes("removeChild") ||
     message.includes("insertBefore") ||
     message.includes("The node to be removed is not a child of this node") ||
