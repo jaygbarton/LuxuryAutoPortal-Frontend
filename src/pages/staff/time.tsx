@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
+import { ClockOutPropertyCheck } from "@/components/staff/ClockOutPropertyCheck";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -295,8 +296,13 @@ export default function StaffTime() {
   const [endNotes, setEndNotes] = useState("");
   const [lunchMinutes, setLunchMinutes] = useState("");
   const [shiftStep, setShiftStep] = useState<"choose" | "questionnaire">("choose");
+  const [propertyCheckConfirmed, setPropertyCheckConfirmed] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>(buildEmptyAnswers);
   const [statsSession, setStatsSession] = useState<SessionRow | null>(null);
+
+  useEffect(() => {
+    if (!clockOutOpen || shiftStep !== "questionnaire") setPropertyCheckConfirmed(false);
+  }, [clockOutOpen, shiftStep]);
 
   const today = utahToday();
   const [fromDate, setFromDate] = useState<string>(today);
@@ -406,6 +412,7 @@ export default function StaffTime() {
     }>,
     lunchMin?: number
   ) => {
+    if (endReason === "shift_end" && !propertyCheckConfirmed) return;
     setActionLoading(true);
     try {
       const r = await fetch(buildApiUrl("/api/me/time-sheet/clock-out"), {
@@ -982,6 +989,12 @@ export default function StaffTime() {
                 </div>
               </div>
 
+              <ClockOutPropertyCheck
+                checked={propertyCheckConfirmed}
+                onCheckedChange={setPropertyCheckConfirmed}
+                disabled={actionLoading}
+              />
+
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 border-t">
                 <Button
                   variant="outline"
@@ -993,7 +1006,7 @@ export default function StaffTime() {
                 <Button
                   variant="destructive"
                   onClick={onSubmitShiftEnd}
-                  disabled={actionLoading}
+                  disabled={actionLoading || !propertyCheckConfirmed}
                   className="gap-2"
                 >
                   {actionLoading ? (

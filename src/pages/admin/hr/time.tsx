@@ -9,6 +9,7 @@ import { optionKeywords } from "@/lib/select-search";
  */
 
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { ClockOutPropertyCheck } from "@/components/staff/ClockOutPropertyCheck";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -390,6 +391,11 @@ export default function AdminHrTime() {
   const [clockOutMode, setClockOutMode] = useState<"choose" | "shift_end">("choose");
   const [clockOutNotes, setClockOutNotes] = useState("");
   const [clockOutLunchMinutes, setClockOutLunchMinutes] = useState("");
+  const [propertyCheckConfirmed, setPropertyCheckConfirmed] = useState(false);
+
+  useEffect(() => {
+    if (!clockOutOpen || clockOutMode !== "shift_end") setPropertyCheckConfirmed(false);
+  }, [clockOutOpen, clockOutMode]);
 
   // Keep the open-session elapsed timer moving while the admin page is open.
   const [, setClockTick] = useState(0);
@@ -447,6 +453,7 @@ export default function AdminHrTime() {
   };
 
   const submitClockOut = async (endReason: "break" | "shift_end") => {
+    if (endReason === "shift_end" && !propertyCheckConfirmed) return;
     setClockActionLoading(true);
     try {
       const notes = clockOutNotes.trim();
@@ -989,6 +996,11 @@ return true;
                   Lunch minutes are subtracted from worked time when you stayed clocked in through lunch.
                 </p>
               </div>
+              <ClockOutPropertyCheck
+                checked={propertyCheckConfirmed}
+                onCheckedChange={setPropertyCheckConfirmed}
+                disabled={clockActionLoading}
+              />
               <DialogFooter>
                 <Button
                   type="button"
@@ -1001,7 +1013,7 @@ return true;
                 <Button
                   type="button"
                   variant="destructive"
-                  disabled={clockActionLoading}
+                  disabled={clockActionLoading || !propertyCheckConfirmed}
                   onClick={() => void submitClockOut("shift_end")}
                   className="gap-2"
                 >
