@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { buildApiUrl } from "@/lib/queryClient";
+import { normalizeNotificationLink } from "@/lib/notificationLinks";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Bell, Check, Loader2 } from "lucide-react";
@@ -99,15 +100,16 @@ export function NotificationBell() {
   const handleNotificationClick = (n: Notification) => {
     if (!n.isRead) markReadMutation.mutate(n.id);
     if (n.link) {
+      const link = normalizeNotificationLink(n.link, window.location.origin);
       try {
-        const url = new URL(n.link);
+        const url = new URL(link);
         if (url.origin === window.location.origin) {
           setLocation(url.pathname + url.search);
         } else {
-          window.location.href = n.link;
+          window.location.href = link;
         }
       } catch {
-        setLocation(n.link.startsWith("/") ? n.link : "/admin/forms");
+        setLocation(link.startsWith("/") ? link : "/admin/forms");
       }
     }
     setOpen(false);
