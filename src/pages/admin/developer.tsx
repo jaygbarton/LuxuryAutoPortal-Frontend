@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { LegacyArchivePortal } from "@/components/developer/LegacyArchivePortal";
 
 type PageStatus = {
   path: string;
@@ -104,6 +105,8 @@ export default function DeveloperPage() {
           Control which public frontend pages are visible while new pages are being built.
         </p>
       </div>
+
+      <LegacyArchivePortal />
 
       <Card>
         <CardHeader className="pb-3">
