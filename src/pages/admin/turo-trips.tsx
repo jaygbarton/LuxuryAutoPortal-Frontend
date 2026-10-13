@@ -136,7 +136,7 @@ function calculateDaysRented(
 
 export default function TuroTripsPage() {
   const [selectedTrip, setSelectedTrip] = useState<TuroTrip | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('reservation') || "");
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   // When true, show only reservations flagged as a vehicle swap.
   const [vehicleSwapOnly, setVehicleSwapOnly] = useState(false);
@@ -154,7 +154,7 @@ export default function TuroTripsPage() {
   // Default earliest→latest by trip time (chronological), per Cathy's request.
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(() => new URLSearchParams(window.location.search).get('reservation') || "");
   // Inline odometer editing: tripId → { start, end }
   const [odometerEdits, setOdometerEdits] = useState<
     Record<number, { start: string; end: string }>

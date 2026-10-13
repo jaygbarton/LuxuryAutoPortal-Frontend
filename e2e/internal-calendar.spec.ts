@@ -1,6 +1,23 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const calendarUrl = "/admin/trip-calendar?from=2026-10-10&to=2026-10-17";
+
+test('offers confirmed-email recovery and a reservation-specific review link without hiding unresolved dates', async ({page}) => {
+  await mockCalendar(page);
+  await page.route('**/api/internal-calendar/events?*', route => route.fulfill({contentType:'application/json',body:JSON.stringify({...response(),warnings:['1 turo records have an unknown end time.']})}));
+  let requests = 0;
+  await page.route('**/api/internal-calendar/date-recovery', async route => {
+    if(route.request().method()==='POST') { requests++; await route.fulfill({status:202,contentType:'application/json',body:'{"accepted":true}'}); }
+    else await route.fulfill({contentType:'application/json',body:JSON.stringify({issues:[{tripId:7,reservationId:'12345678',result:'needs_review',error:'No confirmed Turo booking email was found.'}]})});
+  });
+  await page.goto(calendarUrl);
+  await expect(page.getByText('No confirmed Turo booking email was found.',{exact:false})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Review trip'})).toHaveAttribute('href','/admin/turo-trips?reservation=12345678');
+  await page.getByRole('button',{name:'Recover trip dates'}).click();
+  await expect(page.getByRole('status').filter({hasText:'Recovery requested'})).toBeVisible();
+  expect(requests).toBe(1);
+  await expect(page.getByText('Calendar coverage needs attention.')).toBeVisible();
+});
 const cars = [
   { carId: 101, carName: "Mercedes-Benz GLS", plate: "ABC123", status: "available", vin: "TESTVIN101" },
   { carId: 102, carName: "BMW X5", plate: "XYZ789", status: "off_fleet", vin: "TESTVIN102" },

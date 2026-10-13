@@ -90,6 +90,7 @@ export function FleetCalendar() {
     queryKey: ["/api/auth/me"], queryFn: authMeQueryFn, staleTime: 300_000,
   });
   const isDeveloper = auth?.user?.isSuperAdmin === true;
+  const [recoveryRequestedAt, setRecoveryRequestedAt] = useState<number | null>(null);
 
   const { data, error, isLoading, isFetching, isError, refetch, dataUpdatedAt } = useQuery<FleetCalendarResponse>({
     queryKey: ["/api/internal-calendar/events", from, to, activeTimezone],
@@ -110,6 +111,29 @@ export function FleetCalendar() {
   const timezone = data?.timezone || activeTimezone;
   const allEvents = data?.events ?? [];
   const warnings = data?.warnings ?? [];
+  const needsDateRecovery = warnings.some(warning => /turo records have.*(?:start|end)/i.test(warning));
+  const { data: dateRecovery, error: recoveryReadError, refetch: refetchRecovery } = useQuery<{ issues: { tripId: number; reservationId: string; result: string | null; error: string | null }[] }>({
+    queryKey: ["/api/internal-calendar/date-recovery"],
+    enabled: needsDateRecovery,
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl('/api/internal-calendar/date-recovery'), { credentials: 'include' });
+      if (!response.ok) throw new Error('Date recovery details could not be loaded.');
+      const payload = await response.json();
+      if (!Array.isArray(payload.issues)) throw new Error('Date recovery returned an incomplete response.');
+      return payload;
+    },
+    refetchInterval: needsDateRecovery ? 15_000 : false,
+  });
+  useEffect(() => {
+    if (dateRecovery && dateRecovery.issues.length === 0 && needsDateRecovery) void refetch();
+  }, [dateRecovery, needsDateRecovery, refetch]);
+  const recoverDates = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(buildApiUrl('/api/internal-calendar/date-recovery'), { method: 'POST', credentials: 'include' });
+      if (!response.ok) throw new Error('Date recovery could not be started.');
+    },
+    onSuccess: () => { setRecoveryRequestedAt(Date.now()); void refetchRecovery(); },
+  });
   const { data: liveSync, error: syncStatusError, isFetching: syncStatusLoading, refetch: refetchSync } = useQuery<FleetCalendarSyncHealth>({
     queryKey: ["/api/internal-calendar/sync"],
     queryFn: async () => {
@@ -326,6 +350,13 @@ export function FleetCalendar() {
             <p className="font-medium">Calendar coverage needs attention.</p>
             {warnings.map((warning, index) => <p key={index} className="mt-1">{warning}</p>)}
             <p className="mt-1">An empty period does not confirm that a vehicle is available for booking.</p>
+            {needsDateRecovery && <div className="mt-3 space-y-2 border-t border-amber-300 pt-3">
+              <p>Confirmed Turo emails are checked automatically to recover missing or invalid dates.</p>
+              {data.role === 'admin' && <Button variant="outline" disabled={recoverDates.isPending} onClick={() => recoverDates.mutate()}>Recover trip dates</Button>}
+              {recoveryRequestedAt && <p role="status">Recovery requested. Results will update here; confirmed dates are never guessed.</p>}
+              {(recoverDates.error || recoveryReadError) && <p role="alert">{(recoverDates.error || recoveryReadError) instanceof Error ? ((recoverDates.error || recoveryReadError) as Error).message : 'Recovery needs attention.'}</p>}
+              {dateRecovery?.issues.map(issue => <p key={issue.tripId}>Reservation #{issue.reservationId || issue.tripId}: {issue.error || (issue.result === 'source_changed' ? 'This record changed during recovery; it will be checked again.' : 'Waiting for a confirmed source email.')} <a className="underline" href={`/admin/turo-trips?reservation=${encodeURIComponent(issue.reservationId)}`}>Review trip</a></p>)}
+            </div>}
           </div>
         </div>
       )}
