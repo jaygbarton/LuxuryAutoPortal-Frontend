@@ -16,9 +16,11 @@ type Archive = {
   id: string; name: string; size: number; createdAt: string; status: 'uploading' | 'processing' | 'ready' | 'failed';
   chunkSize: number; uploadedChunks: number; totalChunks: number; counts: Record<Exclude<Category, 'all'>, number>;
   tableCount: number; skipped: number; warnings: string[]; error?: string;
+  databaseCandidateCount?: number; needsDatabaseIndex?: boolean;
+  databaseIndex?: { status: 'processing' | 'ready' | 'failed'; startedAt: string; finishedAt?: string; completed: number; total: number; files: { fileId: string; path: string; status: 'pending' | 'processing' | 'ready' | 'failed'; tableCount?: number; error?: string }[] };
 };
 type ArchivedFile = { id: string; path: string; size: number; category: Category };
-type ArchiveTable = { id: string; name: string; fileId: string; columns: string[]; rowCount: number };
+type ArchiveTable = { id: string; name: string; fileId: string; sourcePath?: string; database?: string; columns: string[]; rowCount: number };
 const bytes = (size: number) => size >= 1024 ** 3 ? `${(size / 1024 ** 3).toFixed(1)} GB` : size >= 1024 ** 2 ? `${(size / 1024 ** 2).toFixed(1)} MB` : `${Math.ceil(size / 1024)} KB`;
 
 async function fingerprint(file: File): Promise<string> {
@@ -76,6 +78,7 @@ export function LegacyArchivePortal() {
   const [busy, setBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const stopped = useRef(false);
+  const automaticallyIndexed = useRef(new Set<string>());
   useEffect(() => () => { stopped.current = true; abortRef.current?.abort(); }, []);
   const archivesQuery = useQuery<{ archives: Archive[] }>({ queryKey: [ROOT], queryFn: () => api.get(ROOT), refetchInterval: uploading ? false : 10_000, retry: false });
   const archives = archivesQuery.data?.archives ?? [];
@@ -83,7 +86,8 @@ export function LegacyArchivePortal() {
   const archiveQuery = useQuery<{ archive: Archive }>({ queryKey: [ROOT, activeId], queryFn: () => api.get(`${ROOT}/${activeId}`), enabled: !!activeId, refetchInterval: 5000, retry: false });
   const archive = archiveQuery.data?.archive;
   const files = useQuery<{ files: ArchivedFile[]; total: number }>({ queryKey: [ROOT, activeId, 'files', category, search, fileOffset], queryFn: () => api.get(`${ROOT}/${activeId}/files`, { query: { category, search, offset: fileOffset } }), enabled: !!archive && archive.status !== 'uploading', refetchInterval: archive?.status === 'processing' ? 5000 : false });
-  const tables = useQuery<{ tables: ArchiveTable[] }>({ queryKey: [ROOT, activeId, 'tables'], queryFn: () => api.get(`${ROOT}/${activeId}/tables`), enabled: !!archive && archive.status !== 'uploading', refetchInterval: archive?.status === 'processing' ? 5000 : false });
+  const tables = useQuery<{ tables: ArchiveTable[] }>({ queryKey: [ROOT, activeId, 'tables', archive?.tableCount, archive?.databaseIndex?.finishedAt], queryFn: () => api.get(`${ROOT}/${activeId}/tables`), enabled: !!archive && archive.status !== 'uploading', refetchInterval: archive?.status === 'processing' || archive?.databaseIndex?.status === 'processing' ? 5000 : false });
+  useEffect(() => { if (tableId && tables.data && !tables.data.tables.some(table => table.id === tableId)) { setTableId(''); setRowOffset(0); } }, [tables.data, tableId]);
   const rows = useQuery<{ table: ArchiveTable; rows: (string | null)[][]; total: number }>({ queryKey: [ROOT, activeId, 'rows', tableId, rowOffset], queryFn: () => api.get(`${ROOT}/${activeId}/tables/${tableId}`, { query: { offset: rowOffset } }), enabled: !!activeId && !!tableId, retry: false });
   const refresh = () => queryClient.invalidateQueries({ queryKey: [ROOT] });
   const index = async (id: string) => {
@@ -92,6 +96,22 @@ export function LegacyArchivePortal() {
     catch (e) { toast({ title: 'Could not index backup', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' }); return false; }
     finally { setBusy(false); }
   };
+  const indexDatabases = async (id: string) => {
+    setBusy(true); setTableId(''); setRowOffset(0);
+    try { await api.post(`${ROOT}/${id}/index-databases`, {}); await refresh(); }
+    catch (e) { toast({ title: 'Could not index database backups', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' }); }
+    finally { setBusy(false); }
+  };
+  useEffect(() => {
+    if (!archive || archive.status !== 'ready' || !archive.needsDatabaseIndex || archive.databaseIndex?.startedAt || busy || automaticallyIndexed.current.has(archive.id)) return;
+    automaticallyIndexed.current.add(archive.id);
+    void indexDatabases(archive.id);
+  }, [archive?.id, archive?.status, archive?.needsDatabaseIndex, archive?.databaseIndex?.startedAt, busy]);
+  const tableGroups = [...(tables.data?.tables ?? []).reduce((groups, table) => {
+    const key = `${table.fileId}:${table.database ?? ''}`;
+    const group = groups.get(key) ?? { label: `${table.sourcePath ?? table.fileId}${table.database ? ` · ${table.database}` : ''}`, tables: [] as ArchiveTable[] };
+    group.tables.push(table); groups.set(key, group); return groups;
+  }, new Map<string, { label: string; tables: ArchiveTable[] }>()).values()];
   const upload = async (file: File) => {
     if (!/\.(tar\.gz|tgz)$/i.test(file.name) || file.size > 2 * 1024 ** 3 || !file.size) { toast({ title: 'Choose a .tar.gz file up to 2 GB', variant: 'destructive' }); return; }
     stopped.current = false; setUploading(true); setUploadSize(file.size); setUploadName(file.name); setUploaded(0);
@@ -124,7 +144,7 @@ export function LegacyArchivePortal() {
     <CardContent className="space-y-5">
       <div className="space-y-3 rounded-lg border border-dashed p-4">
         <label className="block space-y-2"><span className="flex items-center gap-2 text-sm font-medium"><Upload className="h-4 w-4" />Upload or resume a backup</span><Input type="file" accept=".tar.gz,.tgz" disabled={uploading} aria-label="Legacy backup file" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void upload(file); }} /></label>
-        <p className="text-xs text-muted-foreground">Supports .tar.gz backups up to 2 GB. Uploads resume when you select the same file again. Include the database export to browse records; a files-only backup can still contain receipts and pages.</p>
+        <p className="text-xs text-muted-foreground">Supports .tar.gz backups up to 2 GB, including SiteGround’s compressed database backups. Uploads resume when you select the same file again. Original files remain in the private archive.</p>
         {uploading && <div className="space-y-2"><p className="break-all text-sm">{uploadName}</p><progress aria-label="Backup upload progress" value={uploaded} max={uploadSize} className="h-3 w-full accent-primary" /><div className="flex items-center justify-between gap-2"><span className="text-sm">{bytes(uploaded)} / {bytes(uploadSize)}</span><Button size="sm" variant="outline" onClick={() => { stopped.current = true; abortRef.current?.abort(); }}><Pause />Pause upload</Button></div></div>}
       </div>
       {archivesQuery.isLoading && <p className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />Loading private archives…</p>}
@@ -135,6 +155,10 @@ export function LegacyArchivePortal() {
       {archive && <>
         <div className="flex flex-wrap items-center gap-2"><Badge variant={archive.status === 'ready' ? 'default' : 'secondary'}>{archive.status === 'processing' ? 'Indexing backup' : archive.status === 'uploading' ? 'Upload incomplete' : archive.status === 'failed' ? 'Indexing needs attention' : 'Ready'}</Badge><span className="text-sm text-muted-foreground">{Object.values(archive.counts).reduce((sum, count) => sum + count, 0).toLocaleString()} files · {archive.tableCount.toLocaleString()} data tables</span></div>
         {archive.status === 'ready' && <div className="flex flex-wrap items-center gap-3 rounded border p-3"><Button size="sm" variant="outline" asChild><a href={buildApiUrl(`${ROOT}/${archive.id}/inventory`)}><Download />Download inventory</a></Button><p className="min-w-0 flex-1 text-xs text-muted-foreground">A small file with filenames and table structure for reviewing this backup. It includes no document contents or database rows.</p></div>}
+        {archive.status === 'ready' && !!archive.databaseCandidateCount && <section aria-label="Database backup recovery" className="space-y-3 rounded border p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold">{archive.databaseCandidateCount} database backups found</h3><p className="text-xs text-muted-foreground">Recover records from the uploaded dumps without uploading the backup again. If processing stops, resume below.</p></div><Button size="sm" variant="outline" disabled={busy || uploading} onClick={() => void indexDatabases(archive.id)}>{(busy || archive.databaseIndex?.status === 'processing') && <Loader2 className="h-4 w-4 animate-spin" />}{archive.databaseIndex?.status === 'failed' ? 'Retry database backups' : archive.databaseIndex?.status === 'processing' ? 'Resume database backups' : 'Index database backups'}</Button></div>
+          {archive.databaseIndex && <><p role="status" className="text-sm">{archive.databaseIndex.status === 'processing' ? 'Indexing database backups' : archive.databaseIndex.status === 'failed' ? 'Some database backups need attention' : 'Database indexing complete'} · {archive.databaseIndex.completed} / {archive.databaseIndex.total} processed</p><ul className="space-y-2 text-xs">{archive.databaseIndex.files.map(file => <li key={file.fileId} className="min-w-0"><p className="break-all">{file.path}</p><p className={file.status === 'failed' ? 'text-destructive' : 'text-muted-foreground'}>{file.status}{file.tableCount !== undefined ? ` · ${file.tableCount.toLocaleString()} tables` : ''}{file.error ? ` · ${file.error}` : ''}</p></li>)}</ul></>}
+        </section>}
         {archive.status === 'uploading' && <p className="text-sm text-muted-foreground">{bytes(Math.min(archive.size, archive.uploadedChunks * archive.chunkSize))} uploaded. Select this same backup file above to continue.</p>}
         {archive.error && <p role="alert" className="text-sm text-destructive">{archive.error}</p>}
         {!!archive.warnings.length && <details className="text-sm"><summary>Import notes ({archive.warnings.length})</summary><ul className="mt-2 space-y-1">{archive.warnings.map((warning, i) => <li key={i}>{warning}</li>)}</ul></details>}
@@ -145,12 +169,13 @@ export function LegacyArchivePortal() {
           {files.error && <p role="alert" className="text-sm text-destructive">{files.error.message}</p>}
           <div className="divide-y rounded border">{files.data?.files.map(file => <div key={file.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 px-3 py-3"><div className="min-w-0 flex-1"><p className="break-all text-sm">{file.path}</p><p className="text-xs text-muted-foreground">{bytes(file.size)}</p></div><Button size="sm" variant="outline" onClick={() => setViewer(file)}>View</Button></div>)}{files.isLoading && <p className="p-4 text-sm">Loading files…</p>}{files.data?.total === 0 && <p className="p-4 text-sm text-muted-foreground">No matching files in this backup.</p>}</div>
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm"><span>{files.data?.total ? `${fileOffset + 1}–${Math.min(fileOffset + 50, files.data.total)} of ${files.data.total.toLocaleString()}` : '0 files'}</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={!fileOffset} onClick={() => setFileOffset(Math.max(0, fileOffset - 50))}>Previous</Button><Button size="sm" variant="outline" disabled={!files.data || fileOffset + 50 >= files.data.total} onClick={() => setFileOffset(fileOffset + 50)}>Next</Button></div></div>
-          {!!tables.data?.tables.length && <section className="space-y-3 border-t pt-4"><h3 className="font-semibold">Archived database records</h3><p className="text-xs text-muted-foreground">Read-only records extracted from SQL exports. Password and token columns are redacted.</p><select aria-label="Archived database table" className="min-h-11 w-full rounded-md border bg-background px-3 text-sm" value={tableId} onChange={e => { setTableId(e.target.value); setRowOffset(0); }}><option value="">Choose a table…</option>{tables.data.tables.map(table => <option key={table.id} value={table.id}>{table.name} · {table.rowCount.toLocaleString()} records</option>)}</select>
+          {!!tables.data?.tables.length && <section className="space-y-3 border-t pt-4"><h3 className="font-semibold">Archived database records</h3><p className="text-xs text-muted-foreground">Read-only records grouped by source backup and database. Snapshots remain separate. Password and token columns are redacted.</p><select aria-label="Archived database table" className="min-h-11 w-full rounded-md border bg-background px-3 text-sm" value={tableId} onChange={e => { setTableId(e.target.value); setRowOffset(0); }}><option value="">Choose a table…</option>{tableGroups.map(group => <optgroup key={group.label} label={group.label}>{group.tables.map(table => <option key={table.id} value={table.id}>{table.name} · {table.rowCount.toLocaleString()} records</option>)}</optgroup>)}</select>
             {rows.error && <p role="alert" className="text-sm text-destructive">{rows.error.message}</p>}
             {rows.isLoading && tableId && <p className="text-sm">Loading records…</p>}
             {rows.data && <><div className="max-h-[500px] overflow-auto rounded border"><table className="w-full text-left text-xs"><thead className="sticky top-0 bg-muted"><tr>{rows.data.table.columns.map(column => <th className="whitespace-nowrap border-b p-2" key={column}>{column}</th>)}</tr></thead><tbody>{rows.data.rows.map((row, i) => <tr className="border-b" key={i}>{row.map((cell, j) => <td className="max-w-xs break-words p-2 align-top" key={j}>{cell ?? <span className="text-muted-foreground">NULL</span>}</td>)}</tr>)}</tbody></table></div><div className="flex flex-wrap items-center justify-between gap-2 text-sm"><span>{rows.data.total ? `${rowOffset + 1}–${Math.min(rowOffset + 50, rows.data.total)} of ${rows.data.total.toLocaleString()} records` : '0 records'}</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={!rowOffset} onClick={() => setRowOffset(Math.max(0, rowOffset - 50))}>Previous records</Button><Button size="sm" variant="outline" disabled={rowOffset + 50 >= rows.data.total} onClick={() => setRowOffset(rowOffset + 50)}>Next records</Button></div></div></>}
           </section>}
-          {archive.status === 'ready' && !archive.tableCount && <p className="text-sm text-muted-foreground">No SQL tables were found. If this backup contains only website files, upload a backup containing the database export to browse stored records.</p>}
+          {category === 'page' && <p className="text-xs text-muted-foreground">Legacy pages open as read-only source previews. Archived PHP and JavaScript are never executed.</p>}
+          {archive.status === 'ready' && !archive.tableCount && !archive.databaseCandidateCount && <p className="text-sm text-muted-foreground">No supported database exports were found. Website files and documents are still available above.</p>}
         </>}
       </>}
       {viewer && <FileViewer key={viewer.id} archiveId={activeId} file={viewer} close={() => setViewer(null)} />}
