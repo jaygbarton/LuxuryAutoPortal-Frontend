@@ -231,7 +231,7 @@ const allSidebarItems: SidebarItem[] = [
   },
   {
     href: "/admin/trip-calendar",
-    label: "Trips Calendar",
+    label: "Calendar",
     icon: CalendarDays,
     roles: ["admin"],
   },
@@ -542,7 +542,7 @@ const employeeSidebarItems: SidebarItem[] = [
   },
   {
     href: "/admin/trip-calendar",
-    label: "Trips Calendar",
+    label: "Calendar",
     icon: CalendarDays,
     roles: ["employee"],
   },

@@ -140,6 +140,8 @@ const NewsMediaPage = lazy(() => import("@/pages/admin/news-media"));
 const NoticeBoardManagementPage = lazy(() => import("@/pages/admin/notice-board"));
 const NotificationsPage = lazy(() => import("@/pages/admin/notifications"));
 const DeveloperPage = lazy(() => import("@/pages/admin/developer"));
+const DirectBookingPreviewPage = lazy(() => import("@/pages/admin/direct-booking-preview"));
+const CarRentalsPreviewPage = lazy(() => import("@/pages/admin/car-rentals"));
 
 function PageFallback() {
   return (
@@ -688,6 +690,12 @@ function Router() {
             </Route>
             <Route path="/admin/notifications">
               <RequireRole roles={["isAdmin", "isEmployee", "isClient"]}><NotificationsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/developer/direct-bookings">
+              <RequireRole roles={["isSuperAdmin"]}><DirectBookingPreviewPage /></RequireRole>
+            </Route>
+            <Route path="/admin/developer/car-rentals">
+              <RequireRole roles={["isSuperAdmin"]}><CarRentalsPreviewPage /></RequireRole>
             </Route>
             <Route path="/admin/developer">
               <RequireRole roles={["isSuperAdmin"]}><DeveloperPage /></RequireRole>

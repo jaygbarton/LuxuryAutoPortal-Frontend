@@ -1,5 +1,5 @@
 import { optionKeywords } from "@/lib/select-search";
-import { useId, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "wouter";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
@@ -15,6 +15,9 @@ import { CarScheduleImage } from "./CarScheduleImage";
 import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
 import { mtLocalInputToUtcIso, mtTodayKey, addUtcDays, dayKeyToUtcDate, utcDateToDayKey } from "@/lib/mt-datetime";
 import { useTimezone } from "@/hooks/use-timezone";
+import { BookingNavigation } from "@/components/shared/BookingNavigation";
+import { dayScheduleBookingKey, linkedScheduleDate, validScheduleDate } from "@/lib/dayScheduleBooking";
+import type { FleetCalendarEvent } from "@/lib/fleetCalendar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,6 +32,7 @@ type DayEventType =
 interface DayEvent {
   id: number;
   type: DayEventType;
+  bookingKey?: string;
   category: string;
   car_name: string | null;
   plate: string | null;
@@ -323,6 +327,18 @@ function DetailLine({ icon, label, value, className = "" }: {
   );
 }
 
+const ScheduleBookingContext = createContext<{ selectedBooking: string | null; developerAccess: boolean; date: string }>({
+  selectedBooking: null, developerAccess: false, date: "",
+});
+
+function ScheduleBookingLinks({ event }: { event: DayEvent }) {
+  const context = useContext(ScheduleBookingContext);
+  if (!event.bookingKey) return null;
+  return <div className="pt-1" onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
+    <BookingNavigation bookingKey={event.bookingKey} currentView="day-schedule" developerAccess={context.developerAccess} date={context.date} />
+  </div>;
+}
+
 function EventCard({
   event,
   date,
@@ -357,6 +373,8 @@ function EventCard({
   onDelete: (event: DayEvent) => void;
   isAdmin: boolean;
 }) {
+  const bookingContext = useContext(ScheduleBookingContext);
+  const selectedBooking = Boolean(event.bookingKey && event.bookingKey === bookingContext.selectedBooking);
   const c = colorFor(event.category);
   const displayDay = event.scheduled_day ?? date;
   const badgeClass = STATUS_BADGE[event.status ?? ""] ?? "bg-gray-100 text-gray-700 border-gray-300";
@@ -387,7 +405,9 @@ function EventCard({
       draggable
       onDragStart={(e) => setDragData(e, event)}
       data-day-schedule-card
-      className="group/event flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card sm:cursor-grab sm:flex-row sm:items-stretch sm:active:cursor-grabbing"
+      data-booking-key={event.bookingKey}
+      data-booking-selected={selectedBooking || undefined}
+      className={`group/event flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card sm:cursor-grab sm:flex-row sm:items-stretch sm:active:cursor-grabbing ${selectedBooking ? "ring-2 ring-primary ring-offset-2" : ""}`}
     >
       {/* Color bar */}
       <div className={`h-1.5 w-full flex-shrink-0 ${c.bg} sm:h-auto sm:w-1.5`} />
@@ -760,6 +780,7 @@ function EventCard({
             </div>
           )}
         </div>
+        <ScheduleBookingLinks event={event} />
       </div>
 
       {/* Vehicle photo — a real column, so it never overlaps the details or the
@@ -904,13 +925,17 @@ function UnassignedCard({
   onDelete: (event: DayEvent) => void;
   isAdmin: boolean;
 }) {
+  const bookingContext = useContext(ScheduleBookingContext);
+  const selectedBooking = Boolean(event.bookingKey && event.bookingKey === bookingContext.selectedBooking);
   const c = colorFor(event.category);
   const displayDay = event.scheduled_day ?? "";
   return (
     <div
       draggable
       onDragStart={(e) => setDragData(e, event)}
-      className={`relative flex items-stretch rounded overflow-hidden border ${c.border} text-xs cursor-grab active:cursor-grabbing`}
+      data-booking-key={event.bookingKey}
+      data-booking-selected={selectedBooking || undefined}
+      className={`relative flex items-stretch rounded overflow-hidden border ${c.border} text-xs cursor-grab active:cursor-grabbing ${selectedBooking ? "ring-2 ring-primary ring-offset-2" : ""}`}
     >
       <div className={`w-1 flex-shrink-0 ${c.bg}`} />
       <div className="flex-1 min-w-0 px-2 py-1.5 space-y-0.5">
@@ -983,6 +1008,7 @@ function UnassignedCard({
           </div>
         )}
         {event.detail && <div className="text-muted-foreground italic break-words">{event.detail}</div>}
+        <ScheduleBookingLinks event={event} />
       </div>
     </div>
   );
@@ -993,6 +1019,10 @@ function UnassignedCard({
 export function DayScheduleTab() {
   const activeTz = useTimezone();
   const search = useSearch();
+  const selectedBooking = dayScheduleBookingKey(search);
+  const requestedDate = validScheduleDate(new URLSearchParams(search).get("date"));
+  const requestedLink = useRef<string | null>(null);
+  const scrolledLink = useRef<string | null>(null);
   // Lazy-initialized once at mount, using whatever timezone is resolved at
   // that instant (falls back to Mountain Time if /api/auth/me hasn't loaded
   // yet — see useTimezone()'s doc comment). Deliberately NOT re-derived if
@@ -1001,10 +1031,7 @@ export function DayScheduleTab() {
   // them would be more surprising than a one-time stale seed. The "Today"
   // button (below) always uses the current activeTz, so it self-corrects.
   const [date, setDate] = useState(() => {
-    const dateParam = new URLSearchParams(search).get("date");
-    return dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
-      ? dateParam
-      : mtTodayKey(activeTz);
+    return requestedDate ?? mtTodayKey(activeTz);
   });
   const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
@@ -1033,13 +1060,43 @@ export function DayScheduleTab() {
   );
   const [entryNotes, setEntryNotes] = useState("");
   const [entryEmployee, setEntryEmployee] = useState<{ id: number | null; name: string }>({ id: null, name: "" });
-  const { data: authData } = useQuery<{ user?: { isAdmin?: boolean; isEmployee?: boolean; impersonatorIsAdmin?: boolean } }>({
+  const { data: authData } = useQuery<{ user?: { isAdmin?: boolean; isEmployee?: boolean; isSuperAdmin?: boolean; impersonatorIsAdmin?: boolean } }>({
     queryKey: ["/api/auth/me"],
     queryFn: authMeQueryFn,
     refetchOnMount: "always",
   });
   const canBulkCompleteOldTasks = authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true;
   const isAdmin = authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true || authData?.user?.isEmployee === true;
+
+  const developerAccess = authData?.user?.isSuperAdmin === true;
+  const bookingContextQuery = useQuery<{ event: FleetCalendarEvent; timezone: string }>({
+    queryKey: ["/api/internal-calendar/bookings", selectedBooking, activeTz],
+    enabled: Boolean(selectedBooking),
+    queryFn: async () => {
+      const res = await fetch(buildApiUrl(`/api/internal-calendar/bookings/${encodeURIComponent(selectedBooking!)}?${new URLSearchParams({ timezone: activeTz })}`), { credentials: "include" });
+      if (!res.ok) throw new Error(res.status === 404 ? "Booking not found or unavailable for this account." : "Booking details could not be loaded.");
+      const result = await res.json();
+      if (!result.event || result.event.bookingKey !== selectedBooking) throw new Error("Booking details did not match the selected booking.");
+      return result;
+    },
+    staleTime: 30 * 1000,
+    retry: false,
+  });
+  const linkedBooking = bookingContextQuery.data?.event;
+
+  useEffect(() => {
+    // Apply each incoming link once. Background refreshes must not undo a
+    // worker's manual date navigation after opening the booking.
+    const requestKey = `${selectedBooking ?? ""}|${requestedDate ?? ""}|${activeTz}`;
+    if (requestedLink.current === requestKey) return;
+    const resolvedDate = linkedScheduleDate(requestedDate, linkedBooking?.start ?? null, activeTz);
+    if (resolvedDate) {
+      setDate(resolvedDate);
+      requestedLink.current = requestKey;
+    } else if (!selectedBooking || linkedBooking) {
+      requestedLink.current = requestKey;
+    }
+  }, [selectedBooking, requestedDate, activeTz, linkedBooking]);
 
   function toggleCategoryFilter(category: string) {
     setActiveCategories((prev) => {
@@ -1387,6 +1444,19 @@ export function DayScheduleTab() {
     ? allEvents
     : allEvents.filter((e) => activeCategories.has(e.category));
   const shifts = data?.work_shifts ?? [];
+  const matchingBookingEvents = (data?.events ?? []).filter((event) => event.bookingKey === selectedBooking);
+  const visibleBookingEvents = events.filter((event) => event.bookingKey === selectedBooking);
+  useEffect(() => {
+    if (!selectedBooking || isLoading || !data || data.date !== date) return;
+    const scrollKey = `${selectedBooking}|${date}|${viewMode}`;
+    if (scrolledLink.current === scrollKey) return;
+    const target = [...document.querySelectorAll<HTMLElement>("[data-booking-selected]")]
+      .find((element) => element.dataset.bookingKey === selectedBooking && element.getClientRects().length > 0);
+    if (target) {
+      target.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      scrolledLink.current = scrollKey;
+    }
+  }, [selectedBooking, date, viewMode, data, isLoading, showAllUnassigned, visibleBookingEvents.length]);
 
   // Build employee map from work_sched. An employee can have multiple shifts
   // in a day, so accumulate them rather than overwriting on employee_id.
@@ -1477,7 +1547,23 @@ export function DayScheduleTab() {
   }, {});
 
   return (
+    <ScheduleBookingContext.Provider value={{ selectedBooking, developerAccess, date }}>
     <div className="min-w-0 space-y-4">
+      {selectedBooking && (
+        <section aria-label="Selected booking" className="space-y-2 rounded-xl border border-primary/40 bg-primary/5 p-3">
+          {bookingContextQuery.isLoading ? <p className="text-sm" role="status">Loading selected booking…</p> : bookingContextQuery.isError ? (
+            <div className="flex flex-wrap items-center gap-2"><p className="text-sm text-destructive" role="alert">{bookingContextQuery.error.message}</p><Button size="sm" variant="outline" onClick={() => bookingContextQuery.refetch()}>Retry booking details</Button></div>
+          ) : linkedBooking ? (
+            <>
+              <p className="text-sm font-semibold">{linkedBooking.title} · {linkedBooking.carName}</p>
+              <p className="text-xs text-muted-foreground">{linkedBooking.reservationId ? `Reservation ${linkedBooking.reservationId} · ` : ""}{linkedBooking.status.replace(/_/g, " ")}</p>
+              {linkedBooking.cancelled ? <p className="text-sm">Cancelled booking — shown for reference. No cancelled work is added to this schedule.</p> : matchingBookingEvents.length === 0 && !isLoading ? <p className="text-sm">No linked operational tasks on this day. The booking remains available in the internal calendar.</p> : null}
+              {matchingBookingEvents.length > visibleBookingEvents.length && <p className="text-sm">Some linked tasks are hidden by the current task-type or location filters.</p>}
+            </>
+          ) : null}
+          <BookingNavigation bookingKey={selectedBooking} currentView="day-schedule" developerAccess={developerAccess} date={date} />
+        </section>
+      )}
       {/* Date nav */}
       <div className="space-y-2 rounded-xl border border-border bg-card p-3 sm:flex sm:flex-wrap sm:items-center sm:gap-3 sm:space-y-0">
         <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 sm:flex sm:gap-3">
@@ -1745,7 +1831,7 @@ export function DayScheduleTab() {
                   </p>
                 ) : (
                   unassigned.map((e, index) => (
-                    <div key={`${e.type}-${e.id}`} className={index >= 3 && !showAllUnassigned ? "hidden lg:block" : ""}>
+                    <div key={`${e.type}-${e.id}`} className={index >= 3 && !showAllUnassigned && e.bookingKey !== selectedBooking ? "hidden lg:block" : ""}>
                       <div className="lg:hidden">
                         <EventCard
                           event={e}
@@ -1821,5 +1907,6 @@ export function DayScheduleTab() {
         </div>
       )}
     </div>
+    </ScheduleBookingContext.Provider>
   );
 }

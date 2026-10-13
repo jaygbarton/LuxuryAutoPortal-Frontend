@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { Car, ExternalLink, Loader2, ShieldCheck } from "lucide-react";
 import { PUBLIC_PAGES, type PublicPageDefinition } from "@/lib/public-pages";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -107,6 +107,20 @@ export default function DeveloperPage() {
       </div>
 
       <LegacyArchivePortal />
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex flex-wrap items-center gap-2 text-lg"><Car className="h-5 w-5" />Direct booking previews<Badge variant="secondary"><ShieldCheck className="mr-1 h-3 w-3" />Developer only</Badge></CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">Review the rebuilt customer and worker rental areas, with private draft bookings linked to their preview calendar and day schedule. Direct bookings are not live.</p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" asChild><a href="/admin/developer/direct-bookings?view=customer">Customer preview</a></Button>
+            <Button size="sm" variant="outline" asChild><a href="/admin/developer/direct-bookings?view=worker">Worker preview</a></Button>
+            <Button size="sm" variant="outline" asChild><a href="/admin/developer/car-rentals">Fleet booking details preview</a></Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-3">

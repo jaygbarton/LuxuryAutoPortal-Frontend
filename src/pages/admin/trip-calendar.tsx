@@ -1,15 +1,17 @@
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { TripCalendar } from "@/components/shared/TripCalendar";
+import { FleetCalendar } from "@/components/shared/FleetCalendar";
+import { useCoHost } from "@/hooks/use-co-host";
 
 /**
- * Fleet booking calendar for admins and co-hosts. The vehicles shown are
- * decided server-side (admins see every car, co-hosts only their co-hosted
- * fleet), so this page just renders the shared timeline.
+ * Internal calendar for admins and staff. Co-hosts keep their existing scoped
+ * booking timeline, using its separate protected endpoint.
  */
 export default function TripCalendarPage() {
+  const { isCoHost } = useCoHost();
   return (
     <AdminLayout>
-      <TripCalendar title="Trips Calendar" />
+      {isCoHost ? <TripCalendar title="Trips Calendar" /> : <FleetCalendar />}
     </AdminLayout>
   );
 }
