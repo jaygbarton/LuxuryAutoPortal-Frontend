@@ -32,6 +32,7 @@ for (const width of [390, 1280]) test(`developer can browse receipts and SQL rec
   await page.setViewportSize({ width, height: 844 }); await fixtures(page);
   await page.goto('/admin/developer');
   await expect(page.getByText('Legacy Software Archive', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Download inventory' })).toHaveAttribute('href', `${ROOT}/${id}/inventory`);
   await page.getByRole('button', { name: 'Receipts (1)', exact: true }).click();
   await expect(page.getByText('portal/img/receipts/gas.pdf', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'View', exact: true }).click();
