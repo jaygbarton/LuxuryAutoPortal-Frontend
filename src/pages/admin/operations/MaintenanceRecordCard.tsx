@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { ChevronDown, Edit, History, MoreHorizontal, Trash2 } from "lucide-react";
+import { CalendarCheck, ChevronDown, Edit, History, MoreHorizontal, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -17,7 +17,7 @@ interface MaintenanceRecordCardProps {
   image?: ReactNode;
   service?: string | null;
   description: string;
-  scheduled: string;
+  scheduled: ReactNode;
   due: string;
   statusControl: ReactNode;
   assigneeControl: ReactNode;
@@ -29,6 +29,7 @@ interface MaintenanceRecordCardProps {
   onEdit: () => void;
   onHistory: () => void;
   onDelete: () => void;
+  onAppointment?: () => void;
 }
 
 /** Keep the maintenance task and its working controls in view; reveal the
@@ -36,7 +37,7 @@ interface MaintenanceRecordCardProps {
 export function MaintenanceRecordCard({
   carName, carLabel, plate, image, service, description, scheduled, due,
   statusControl, assigneeControl, approval, details, notes, photos, accentBg,
-  onEdit, onHistory, onDelete,
+  onEdit, onHistory, onDelete, onAppointment,
 }: MaintenanceRecordCardProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -74,7 +75,7 @@ export function MaintenanceRecordCard({
 
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div className="min-w-0">
-              <dt className="text-xs text-muted-foreground">Scheduled</dt>
+              <dt className="text-xs text-muted-foreground">Appointment</dt>
               <dd className="mt-1 break-words leading-5">{scheduled}</dd>
             </div>
             <div className="min-w-0">
@@ -99,6 +100,7 @@ export function MaintenanceRecordCard({
             <Button type="button" variant="outline" onClick={onEdit} className="min-h-11 sm:min-h-9">
               <Edit /> Edit
             </Button>
+            {onAppointment && <Button type="button" variant="outline" onClick={onAppointment} className="min-h-11 shrink-0 px-3 sm:min-h-9" aria-label={`Appointment for ${carLabel}`} title="View or schedule a maintenance appointment"><CalendarCheck /><span className="hidden min-[420px]:inline">Appointment</span></Button>}
             <CollapsibleTrigger asChild>
               <Button type="button" variant="ghost" className="min-h-11 min-w-0 flex-1 justify-between px-3 text-muted-foreground sm:min-h-9">
                 {expanded ? "Hide details" : "View details"}

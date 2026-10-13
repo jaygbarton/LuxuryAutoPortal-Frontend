@@ -320,7 +320,7 @@ export default function MaintenanceSection(_props: MaintenanceSectionProps) {
                       { label: "Miles Included", value: task.trip_miles_included || (task.trip_total_distance != null ? String(task.trip_total_distance) : null) || "—" },
                       { label: "Earnings", value: earnings != null ? formatCurrency(earnings) : "—" },
                       { label: "Trip Status", value: tripStatusLabel(task.trip_status) },
-                      { label: "Scheduled Date", value: formatDate(task.scheduled_date) },
+                      { label: "Suggested Date (unconfirmed)", value: formatDate(task.scheduled_date) },
                       { label: "Due Date", value: formatDate(task.due_date) },
                       { label: "Repair Shop", value: task.repair_shop || "—" },
                     ]}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,76 +12,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
-import { api } from "@/lib/api";
 import { toMtLocalInput, mtLocalInputToUtcDbString } from "@/lib/mt-datetime";
 import { getActiveTimezone } from "@/hooks/use-timezone";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { PhotoUpload } from "./PhotoUpload";
 import { CarSelectCombobox } from "./CarSelectCombobox";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import type { MaintenanceRecord, MaintenanceServiceType } from "./types";
 import { MAINTENANCE_SERVICE_TYPE_LABELS } from "./types";
-
-interface CarAvailability {
-  carId: number;
-  isBookedNow: boolean;
-  currentTrip: { id: number; reservationId: string | null; tripStart: string; tripEnd: string; guestName: string | null } | null;
-  nextTrip: { id: number; reservationId: string | null; tripStart: string; tripEnd: string; guestName: string | null } | null;
-}
-
-function formatMt(dateStr: string): string {
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  const tz = getActiveTimezone();
-  return d.toLocaleDateString("en-US", { timeZone: tz, month: "2-digit", day: "2-digit", year: "numeric" }) +
-    ", " + d.toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" });
-}
-
-function TuroAvailabilityNotice({ carId }: { carId: number | null }) {
-  const { data, isLoading } = useQuery<{ success: boolean; data: CarAvailability }>({
-    queryKey: ["/api/operations/cars", carId, "availability"],
-    queryFn: async () => {
-      return api.get(`/api/operations/cars/${carId}/availability`, {
-        fallbackMessage: "Failed to check Turo availability",
-      });
-    },
-    enabled: carId != null,
-    staleTime: 60 * 1000,
-  });
-
-  if (carId == null || isLoading || !data?.data) return null;
-  const a = data.data;
-
-  if (a.isBookedNow && a.currentTrip) {
-    return (
-      <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-500">
-        <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-        <span>
-          Currently on an active Turo trip{a.currentTrip.reservationId ? ` (#${a.currentTrip.reservationId})` : ""}
-          {a.currentTrip.guestName ? ` with ${a.currentTrip.guestName}` : ""}, ends {formatMt(a.currentTrip.tripEnd)}.
-        </span>
-      </div>
-    );
-  }
-  if (a.nextTrip) {
-    return (
-      <div className="flex items-start gap-2 rounded-md border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-xs text-blue-400">
-        <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-        <span>
-          Available now, but booked starting {formatMt(a.nextTrip.tripStart)}
-          {a.nextTrip.reservationId ? ` (#${a.nextTrip.reservationId})` : ""}.
-        </span>
-      </div>
-    );
-  }
-  return (
-    <div className="flex items-center gap-2 rounded-md border border-green-500/40 bg-green-500/10 px-3 py-2 text-xs text-green-500">
-      <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
-      <span>No upcoming Turo bookings — available for maintenance.</span>
-    </div>
-  );
-}
 
 interface MaintenanceModalProps {
   open: boolean;
@@ -99,7 +37,7 @@ interface MaintenanceModalProps {
     /**
      * If set, approving this maintenance record also flips the matching
      * Pending Car Issue to status='approved' and links it to the new
-     * maintenance row. Used by the "Approve & Schedule" flow.
+     * maintenance row. Used by the maintenance approval flow.
      */
     pending_issue_id?: number;
   };
@@ -118,8 +56,8 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
     task_description: record?.task_description || prefill?.task_description || "",
     assigned_to: record?.assigned_to || "",
     assigned_to_id: record?.assigned_to_id ?? null,
-    scheduled_date: toMtLocalInput(record?.scheduled_date),
-    due_date: toMtLocalInput(record?.due_date),
+    scheduled_date: toMtLocalInput(record?.scheduled_date, getActiveTimezone()),
+    due_date: toMtLocalInput(record?.due_date, getActiveTimezone()),
     notes: record?.notes || prefill?.notes || "",
     photos: record?.photos || prefill?.photos || [],
     repair_shop: record?.repair_shop || "",
@@ -137,8 +75,8 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
         task_description: record.task_description,
         assigned_to: record.assigned_to,
         assigned_to_id: record.assigned_to_id ?? null,
-        scheduled_date: toMtLocalInput(record.scheduled_date),
-        due_date: toMtLocalInput(record.due_date),
+        scheduled_date: toMtLocalInput(record.scheduled_date, getActiveTimezone()),
+        due_date: toMtLocalInput(record.due_date, getActiveTimezone()),
         notes: record.notes || "",
         photos: record.photos || [],
         repair_shop: record.repair_shop || "",
@@ -167,8 +105,8 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
         credentials: "include",
         body: JSON.stringify({
           ...data,
-          scheduled_date: mtLocalInputToUtcDbString(data.scheduled_date),
-          due_date: mtLocalInputToUtcDbString(data.due_date),
+          scheduled_date: mtLocalInputToUtcDbString(data.scheduled_date, getActiveTimezone()),
+          due_date: mtLocalInputToUtcDbString(data.due_date, getActiveTimezone()),
         }),
       });
       if (!response.ok) throw new Error("Failed to save maintenance record");
@@ -177,7 +115,7 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
     onSuccess: async (resp) => {
       queryClient.invalidateQueries({ queryKey: ["/api/operations/maintenance"] });
 
-      // If this save was launched via "Approve & Schedule" from the Pending
+      // If this save was launched via maintenance approval from the Pending
       // Car Issues queue, flip that pending issue to approved and link it to
       // the maintenance row we just created.
       const pendingIssueId = prefill?.pending_issue_id;
@@ -232,7 +170,7 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md overflow-y-auto border-border bg-card p-4 text-foreground sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-foreground">{isEdit ? "Edit Maintenance" : "Add Maintenance"}</DialogTitle>
+          <DialogTitle className="text-foreground">{isEdit ? "Edit Maintenance" : "Report Maintenance Needed"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -251,7 +189,7 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
               }
             />
             <div className="mt-2">
-              <TuroAvailabilityNotice carId={formData.car_id} />
+              <p className="text-xs text-muted-foreground">Record what maintenance is needed here. Scheduling a confirmed appointment is a separate step.</p>
             </div>
           </div>
 
@@ -306,7 +244,7 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
           </div>
 
           <div>
-            <label htmlFor="maintenance-scheduled" className="text-sm text-muted-foreground">Scheduled Date/Time</label>
+            <label htmlFor="maintenance-scheduled" className="text-sm text-muted-foreground">Suggested service date (not an appointment)</label>
             <Input
               type="datetime-local"
               id="maintenance-scheduled"
@@ -315,7 +253,7 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
               className="mt-1 min-w-0 border-border bg-card text-foreground"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Setting a scheduled date adds this maintenance to the Google Calendar.
+              This is a suggested date only. After saving the need, use Appointment to check availability and confirm a start and return time.
             </p>
           </div>
 

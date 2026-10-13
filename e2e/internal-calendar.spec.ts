@@ -22,7 +22,7 @@ const events = [
   event("turo", 2, "Cancelled Turo trip", { carId: 104, carName: "Volvo XC90", plate: "VOLVO104", status: "cancelled", cancelled: true, blocksAvailability: false }),
   event("owner_rental", 3, "Owner personal use", { status: "car_blocked_off" }),
   event("block_off", 4, "Google blocked period", { id: "block_off:google:4", bookingKey: "block_off:google:4", status: "blocked" }),
-  event("maintenance", 5, "Oil change", { start: "2026-10-14T15:00:00Z", end: "2026-10-14T16:00:00Z", status: "new" }),
+  event("maintenance", 5, "Oil change appointment", { start: "2026-10-14T15:00:00Z", end: "2026-10-14T16:00:00Z", status: "scheduled", destination: "Example vehicle service shop", maintenanceWorkStatus: "in_progress", appointmentVersion: 2 }),
   event("maintenance", 6, "Inspection without dates", { start: null, end: null, timeStatus: "missing", blocksAvailability: false, status: "new" }),
   event("owner_rental", 7, "Open-ended owner use", { carId: 102, carName: "BMW X5", plate: "XYZ789", end: null, timeStatus: "open_ended", status: "car_blocked_off" }),
   event("turo", 8, "Unmatched trip", { carId: null, carName: "Unmatched vehicle", plate: null }),
@@ -39,9 +39,12 @@ function response() {
   };
 }
 
-async function mockCalendar(page: Page, options: { developer?: boolean; employee?: boolean; cohost?: boolean } = {}) {
+async function mockCalendar(page: Page, options: { developer?: boolean; employee?: boolean; cohost?: boolean; firstGoogleSync?: boolean; importError?: string } = {}) {
   let failCalendar = false;
   let failMapping = false;
+  let failSync = false;
+  let syncAccepted = false;
+  let syncPolls = 0;
   const mappingUpdates = new Map<number, { classification: string; carId: number | null }>();
   const requests: URL[] = [];
   const mutations: string[] = [];
@@ -52,7 +55,22 @@ async function mockCalendar(page: Page, options: { developer?: boolean; employee
     const url = new URL(request.url());
     if (request.method() !== "GET") mutations.push(`${request.method()} ${url.pathname}`);
     let payload: unknown = { success: true, data: [], unreadCount: 0 };
-    if (request.method() === "PATCH" && /^\/api\/internal-calendar\/google-blocks\/\d+$/.test(url.pathname)) {
+    if (request.method() === "POST" && url.pathname === "/api/internal-calendar/sync") {
+      if (failSync) {
+        await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Google synchronization could not start." }) });
+      } else {
+        syncAccepted = true;
+        await route.fulfill({ status: 202, contentType: "application/json", body: JSON.stringify({ accepted: true }) });
+      }
+      return;
+    } else if (request.method() === "GET" && url.pathname === "/api/internal-calendar/sync") {
+      const completed = syncAccepted && ++syncPolls >= 2;
+      const lastSuccess = completed ? new Date(Date.now() + 1000).toISOString() : options.firstGoogleSync ? null : "2026-10-13T17:00:00Z";
+      payload = {
+        sync: { status: completed ? "synced" : "pending", pending: completed || options.firstGoogleSync ? 0 : 1, failed: 0, configured: true, enabled: true, lastSuccessAt: lastSuccess, lastError: null },
+        import: { lastSuccess, lastError: options.importError ?? null }, enabled: true,
+      };
+    } else if (request.method() === "PATCH" && /^\/api\/internal-calendar\/google-blocks\/\d+$/.test(url.pathname)) {
       if (failMapping) {
         await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Calendar mapping could not be saved." }) });
         return;
@@ -89,7 +107,7 @@ async function mockCalendar(page: Page, options: { developer?: boolean; employee
     }
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(payload) });
   });
-  return { requests, mutations, errors, fail: (value: boolean) => { failCalendar = value; }, failMapping: (value: boolean) => { failMapping = value; } };
+  return { requests, mutations, errors, fail: (value: boolean) => { failCalendar = value; }, failMapping: (value: boolean) => { failMapping = value; }, failSync: (value: boolean) => { failSync = value; } };
 }
 
 test("shows every source, cancellations, overlapping events, and attention records", async ({ page }) => {
@@ -97,7 +115,7 @@ test("shows every source, cancellations, overlapping events, and attention recor
   await page.goto(calendarUrl);
   const calendar = page.getByTestId("fleet-calendar");
   await expect(calendar.getByText("9 of 9 events shown", { exact: false })).toBeVisible();
-  for (const name of ["Active Turo trip", "Owner personal use", "Google blocked period", "Oil change", "Confirmed direct rental"]) {
+  for (const name of ["Active Turo trip", "Owner personal use", "Google blocked period", "Oil change appointment", "Confirmed direct rental"]) {
     await expect(calendar.getByRole("button", { name: `${name} · Mercedes-Benz GLS`, exact: true })).toBeVisible();
   }
   await expect(calendar.getByRole("button", { name: "Cancelled · Cancelled Turo trip · Volvo XC90", exact: true })).toBeVisible();
@@ -218,4 +236,50 @@ test("invalid ranges are explicit and do not request a guessed date window", asy
   await page.getByLabel("From", { exact: true }).fill("2026-10-20");
   await expect(page.getByText("Choose valid dates in order", { exact: false })).toBeVisible();
   expect(mock.requests).toHaveLength(count);
+});
+
+test("shows pending Google status before the first import even when no events are queued", async ({ page }) => {
+  await mockCalendar(page, { firstGoogleSync: true });
+  await page.goto(calendarUrl);
+  const status = page.getByRole("region", { name: "Google Calendar status" });
+  await expect(status.getByRole("heading", { name: "Google Calendar: Configured · first connection pending", exact: true })).toBeVisible();
+  await expect(status.getByText("Google Calendar sync: pending · 0 pending · 0 failed", { exact: true })).toBeVisible();
+  await expect(status.getByText("Not completed yet", { exact: true })).toHaveCount(2);
+});
+
+test("shows the actual Google import error alongside its connection status", async ({ page }) => {
+  await mockCalendar(page, { firstGoogleSync: true, importError: "invalid_grant: The refresh token has expired." });
+  await page.goto(calendarUrl);
+  const status = page.getByRole("region", { name: "Google Calendar status" });
+  await expect(status.getByRole("heading", { name: "Google Calendar: Connection needs attention", exact: true })).toBeVisible();
+  await expect(status.getByText("Google import failed: invalid_grant: The refresh token has expired.", { exact: true })).toBeVisible();
+});
+
+test("Sync now reports acceptance, polls to completion, and exposes failed requests", async ({ page }) => {
+  const mock = await mockCalendar(page, { firstGoogleSync: true });
+  await page.goto(calendarUrl);
+  const status = page.getByRole("region", { name: "Google Calendar status" });
+  const sync = status.getByRole("button", { name: "Sync now", exact: true });
+  await expect(sync).toBeEnabled();
+  mock.failSync(true);
+  await sync.click();
+  await expect(status.getByText("Google synchronization could not start.", { exact: true })).toBeVisible();
+  mock.failSync(false);
+  await sync.click();
+  await expect(status.getByText("Sync request accepted. Checking Google import and updates…", { exact: true })).toBeVisible();
+  await expect(status.getByText("Google synchronization completed.", { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(status.getByRole("heading", { name: "Google Calendar: Connected", exact: true })).toBeVisible();
+  expect(mock.mutations).toEqual(["POST /api/internal-calendar/sync", "POST /api/internal-calendar/sync"]);
+});
+
+test("staff can read Google status and open the real scheduled appointment without a sync action", async ({ page }) => {
+  await mockCalendar(page, { employee: true });
+  await page.goto(calendarUrl);
+  await expect(page.getByRole("checkbox", { name: "Scheduled maintenance", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sync now", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Oil change appointment · Mercedes-Benz GLS", exact: true }).click();
+  await expect(page.getByRole("dialog").getByText("Example vehicle service shop", { exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog").getByText("in progress", { exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("link", { name: "Open maintenance appointment", exact: true }))
+    .toHaveAttribute("href", "/admin/operations?tab=maintenance&appointment=5");
 });

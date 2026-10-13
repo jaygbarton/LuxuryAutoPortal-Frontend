@@ -1,6 +1,6 @@
 import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { api } from "@/lib/api";
@@ -29,6 +29,9 @@ import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
 import { StatusBadge } from "./StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { MaintenanceModal } from "./MaintenanceModal";
+import { MaintenanceAppointmentDialog } from "./MaintenanceAppointmentDialog";
+import { MAINTENANCE_APPOINTMENTS_API, type MaintenanceAppointment } from "@/lib/maintenanceAppointments";
+import { formatBookingDate } from "@/lib/directBookingPreviewDates";
 import { PhotoUpload } from "./PhotoUpload";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -96,21 +99,6 @@ const formatCurrency = (n: number | null | undefined): string => {
   if (n == null || isNaN(n)) return "--";
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 };
-
-function oneMaintenancePerInspection(recs: MaintenanceRecord[]): MaintenanceRecord[] {
-  const seen = new Set<number>();
-  const out: MaintenanceRecord[] = [];
-  for (const rec of recs) {
-    if (rec.inspection_id == null) {
-      out.push(rec);
-      continue;
-    }
-    if (seen.has(rec.inspection_id)) continue;
-    seen.add(rec.inspection_id);
-    out.push(rec);
-  }
-  return out;
-}
 
 const calculateDaysRented = (
   tripStart: string | null,
@@ -188,6 +176,9 @@ export function MaintenanceTab({
   defaultStatus = "all",
   lockedStatus = false,
 }: MaintenanceTabProps = {}) {
+  const searchParams = useSearch(), [, navigate] = useLocation();
+  const linkedAppointment = new URLSearchParams(searchParams).get("appointment");
+  const [appointmentId, setAppointmentId] = useState<number | null>(null);
   const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -214,7 +205,7 @@ export function MaintenanceTab({
   );
   const carNameWithYear = useCarNameWithYear();
 
-  const { data, isLoading } = useQuery<{ data: MaintenanceRecord[]; total: number }>({
+  const { data, isLoading, error: maintenanceError, refetch: reloadMaintenance } = useQuery<{ data: MaintenanceRecord[]; total: number }>({
     queryKey: ["/api/operations/maintenance", filterStatus],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -225,8 +216,11 @@ export function MaintenanceTab({
         { credentials: "include" },
       );
       if (!response.ok) throw new Error("Failed to fetch maintenance records");
-      return response.json();
+      const payload = await response.json();
+      if (!Array.isArray(payload.data) || payload.data.some((record: MaintenanceRecord) => !Number.isSafeInteger(Number(record?.id)) || Number(record.id) <= 0)) throw new Error("The maintenance response is incomplete. Please retry.");
+      return { ...payload, data: payload.data.map((record: MaintenanceRecord) => ({ ...record, id: Number(record.id) })) };
     },
+    retry: false,
   });
 
   // Fetch inspections so we can resolve inspection_id → turo_trip_id
@@ -252,7 +246,8 @@ export function MaintenanceTab({
   const inspectionsById = new Map((inspectionsData?.data || []).map((i) => [i.id, i]));
   const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
 
-  const rawRecords = oneMaintenancePerInspection(data?.data || []);
+  // Independent issues from one inspection remain independent maintenance needs.
+  const rawRecords = [...new Map((data?.data ?? []).map(record => [record.id, record])).values()];
 
   const toMtDate = (iso: string | null | undefined): string | null =>
     mtDayKeyOrNull(iso, getActiveTimezone());
@@ -348,6 +343,32 @@ export function MaintenanceTab({
     () => records.slice((page - 1) * pageSize, page * pageSize),
     [records, page, pageSize],
   );
+
+  const appointmentIds = pagedRecords.map(record => record.id).sort((a, b) => a - b).join(",");
+  const appointments = useQuery<{ appointments: MaintenanceAppointment[] }>({
+    queryKey: [MAINTENANCE_APPOINTMENTS_API, "list", appointmentIds],
+    queryFn: async () => {
+      const ids = appointmentIds.split(",").filter(Boolean);
+      const batches: string[][] = [];
+      for (let offset = 0; offset < ids.length; offset += 500) batches.push(ids.slice(offset, offset + 500));
+      const results = await Promise.all(batches.map(async batch => {
+        const response = await api.get<{ appointments: MaintenanceAppointment[] }>(MAINTENANCE_APPOINTMENTS_API, { query: { taskIds: batch.join(",") } });
+        if (!Array.isArray(response.appointments)) throw new Error("Appointment statuses could not be verified.");
+        return response.appointments;
+      }));
+      return { appointments: results.flat() };
+    },
+    enabled: appointmentIds.length > 0, retry: false,
+  });
+  const appointmentsById = new Map((appointments.data?.appointments ?? []).map(appointment => [appointment.maintenanceId, appointment]));
+  useEffect(() => {
+    if (linkedAppointment && /^[1-9]\d*$/.test(linkedAppointment) && Number.isSafeInteger(Number(linkedAppointment))) setAppointmentId(Number(linkedAppointment));
+  }, [linkedAppointment]);
+  const closeAppointment = (open: boolean) => {
+    if (open) return;
+    setAppointmentId(null);
+    if (linkedAppointment) { const params = new URLSearchParams(searchParams); params.delete("appointment"); navigate(`/admin/operations?${params}`); }
+  };
 
   const statusUpdateMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -476,6 +497,7 @@ export function MaintenanceTab({
           </DropdownMenu>
         </div>
       </div>
+      <p className="text-sm text-muted-foreground">Maintenance needs stay here until resolved. Only appointments with a confirmed destination, start, and return time appear on the internal calendar.</p>
 
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <SummaryCard label="New" value={String(newCount)} variant="gold" />
@@ -575,7 +597,7 @@ export function MaintenanceTab({
             </div>
           </div>
           <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-2">
-            {isLoading ? (
+            {maintenanceError ? <div role="alert" className="space-y-3 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-900"><p>Maintenance needs could not be loaded. No empty or complete list can be confirmed.</p><Button variant="outline" onClick={() => reloadMaintenance()}>Retry maintenance needs</Button></div> : isLoading ? (
               <p className="text-center py-12 text-muted-foreground">Loading maintenance records...</p>
             ) : records.length === 0 ? (
               <p className="text-center py-12 text-muted-foreground">No maintenance records found</p>
@@ -731,7 +753,7 @@ export function MaintenanceTab({
                     image={carPhotoEl}
                     service={rec.service_type ? MAINTENANCE_SERVICE_TYPE_LABELS[rec.service_type] : null}
                     description={rec.task_description}
-                    scheduled={formatDateTime(rec.scheduled_date)}
+                    scheduled={appointments.error ? <span className="text-amber-800">Status unavailable — open Appointment to verify</span> : appointments.isLoading ? "Checking appointment status…" : appointmentsById.get(rec.id)?.status === "confirmed" ? <><span className="font-medium text-emerald-700">Confirmed</span><br />{formatBookingDate(appointmentsById.get(rec.id)!.startAt, appointmentsById.get(rec.id)!.timezone)}<br /><span className="text-xs text-muted-foreground">Return: {formatBookingDate(appointmentsById.get(rec.id)!.endAt, appointmentsById.get(rec.id)!.timezone)}</span></> : appointmentsById.get(rec.id)?.status === "cancelled" ? "Appointment cancelled — need remains" : "Maintenance needed — not scheduled"}
                     due={formatDateTime(rec.due_date)}
                     statusControl={statusControl}
                     assigneeControl={assigneeEl}
@@ -739,6 +761,7 @@ export function MaintenanceTab({
                     photos={photosEl}
                     notes={rec.notes}
                     onEdit={() => { setEditingRecord(rec); setModalOpen(true); }}
+                    onAppointment={() => setAppointmentId(rec.id)}
                     onHistory={() => { setHistoryRecord(rec); setHistoryModalOpen(true); }}
                     onDelete={() => { setDeletingRecord(rec); setDeleteModalOpen(true); }}
                     details={[
@@ -749,6 +772,7 @@ export function MaintenanceTab({
                       { label: "VIN #", value: rec.car_vin || "--" },
                       { label: "Service Type", value: rec.service_type ? MAINTENANCE_SERVICE_TYPE_LABELS[rec.service_type] : "--" },
                       { label: "Description", value: rec.task_description },
+                      { label: "Suggested date (unconfirmed)", value: formatDateTime(rec.scheduled_date) },
                       { label: "Reservation #", value: reservationId || "--" },
                       { label: "Trip Start", value: trip ? formatDateTime(trip.tripStart) : formatDateTime(insp?.inspection_date ?? null) },
                       { label: "Trip End", value: trip ? formatDateTime(trip.tripEnd) : "--" },
@@ -796,6 +820,7 @@ export function MaintenanceTab({
         }}
         record={editingRecord}
       />
+      <MaintenanceAppointmentDialog maintenanceId={appointmentId} open={appointmentId !== null} onOpenChange={closeAppointment} suggestedDate={rawRecords.find(record => record.id === appointmentId)?.scheduled_date} />
 
       {deleteModalOpen && deletingRecord && (
         <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>

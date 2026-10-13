@@ -27,6 +27,23 @@ export interface FleetCalendarEvent {
   notes?: string | null;
   detailUrl?: string | null;
   googleClassification?: "blocked" | "unclassified" | "ignored";
+  googleSyncStatus?: string;
+  destination?: string | null;
+  appointmentVersion?: number;
+  maintenanceWorkStatus?: string | null;
+}
+
+export interface FleetCalendarSyncHealth {
+  status: string;
+  lastAttemptAt: string | null;
+  lastSuccessAt: string | null;
+  pending: number;
+  failed: number;
+  attention: number;
+  configured?: boolean;
+  enabled?: boolean;
+  lastError: string | null;
+  import: { lastAttemptAt: string | null; lastSuccessAt: string | null; lastError: string | null };
 }
 
 export interface FleetCalendarResponse {
@@ -41,14 +58,14 @@ export interface FleetCalendarResponse {
   warnings: string[];
   complete: boolean;
   availabilityComplete: boolean;
-  sync?: { status: string; lastSuccessAt: string | null; pending: number; failed: number; configured?: boolean; lastError?: string | null };
+  sync?: FleetCalendarSyncHealth;
 }
 
 export const FLEET_SOURCE_LABELS: Record<FleetCalendarSource, string> = {
   turo: "Turo trips",
   owner_rental: "Owner rentals",
   block_off: "Blocked off",
-  maintenance: "Maintenance",
+  maintenance: "Scheduled maintenance",
   direct_booking: "Direct rentals",
 };
 
@@ -63,6 +80,34 @@ export function eventBlocksAvailability(event: FleetCalendarEvent): boolean {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/** Read both the feed summary and the fuller Google status response. */
+export function normalizeFleetCalendarSync(value: unknown, importValue?: unknown): FleetCalendarSyncHealth | undefined {
+  if (!isRecord(value)) return undefined;
+  const counts = isRecord(value.counts) ? value.counts : {};
+  const googleImport = isRecord(importValue) ? importValue : isRecord(value.googleImport) ? value.googleImport : {};
+  const pending = Number(value.pending ?? counts.pending ?? 0);
+  const failed = Number(value.failed ?? counts.error ?? 0);
+  const lastAttempt = value.lastAttemptAt ?? value.lastAttempt;
+  const lastSuccess = value.lastSuccessAt ?? value.lastSuccess;
+  const importLastAttempt = googleImport.lastAttemptAt ?? googleImport.lastAttempt;
+  const importLastSuccess = googleImport.lastSuccessAt ?? googleImport.lastSuccess;
+  const firstSuccessPending = !lastSuccess && !importLastSuccess;
+  return {
+    status: typeof value.status === "string" ? value.status : value.lastError || failed > 0 ? "needs_attention" : pending > 0 || firstSuccessPending ? "pending" : "synced",
+    lastAttemptAt: typeof lastAttempt === "string" ? lastAttempt : null,
+    lastSuccessAt: typeof lastSuccess === "string" ? lastSuccess : null,
+    pending, failed, attention: Number(counts.attention ?? value.attention ?? 0),
+    configured: typeof value.configured === "boolean" ? value.configured : undefined,
+    enabled: typeof value.enabled === "boolean" ? value.enabled : undefined,
+    lastError: typeof value.lastError === "string" ? value.lastError : null,
+    import: {
+      lastAttemptAt: typeof importLastAttempt === "string" ? importLastAttempt : null,
+      lastSuccessAt: typeof importLastSuccess === "string" ? importLastSuccess : null,
+      lastError: typeof googleImport.lastError === "string" ? googleImport.lastError : null,
+    },
+  };
 }
 
 /** Reject malformed feeds rather than silently hiding unsupported records. */
@@ -95,17 +140,6 @@ export function normalizeFleetCalendarResponse(value: unknown): FleetCalendarRes
     }
     return { ...event, plateNumber: event.plateNumber ?? event.plate ?? null };
   });
-  const rawSync = isRecord(value.sync) ? value.sync : null;
-  const counts = rawSync && isRecord(rawSync.counts) ? rawSync.counts : {};
-  const pending = Number(rawSync?.pending ?? counts.pending ?? 0);
-  const failed = Number(rawSync?.failed ?? counts.error ?? 0);
-  const lastSuccess = rawSync?.lastSuccessAt ?? rawSync?.lastSuccess;
-  const sync = rawSync ? {
-    status: typeof rawSync.status === "string" ? rawSync.status : rawSync.lastError || failed > 0 ? "needs_attention" : pending > 0 ? "pending" : lastSuccess ? "synced" : "not_started",
-    lastSuccessAt: typeof lastSuccess === "string" ? lastSuccess : null,
-    pending, failed,
-    configured: typeof rawSync.configured === "boolean" ? rawSync.configured : undefined,
-    lastError: typeof rawSync.lastError === "string" ? rawSync.lastError : null,
-  } : undefined;
+  const sync = normalizeFleetCalendarSync(value.sync);
   return { ...value, cars, events, sync } as unknown as FleetCalendarResponse;
 }

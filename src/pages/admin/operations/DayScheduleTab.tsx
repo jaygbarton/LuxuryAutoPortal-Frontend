@@ -1,7 +1,7 @@
 import { optionKeywords } from "@/lib/select-search";
 import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useSearch } from "wouter";
+import { Link, useSearch } from "wouter";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +58,8 @@ interface DayEvent {
   car_photo: string | null;
   duration_minutes: number | null;
   scheduled_day?: string | null;
+  appointment_start_local?: string | null;
+  appointment_end_local?: string | null;
   completed_day?: string | null;
   is_carryover?: boolean;
   driver_assignment_type?: "employee" | "uber" | "na" | null;
@@ -90,10 +92,10 @@ const OPERATION_TASK_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup", 
 const DAY_SCHEDULE_REFRESH_MS = 10 * 60 * 1000;
 
 // Event types that carry an editable estimated_duration_minutes column on the
-// backend (see setEventDuration in dayScheduleService.ts). Trip Start/End,
-// Inspections, Block Offs, and Calendar Events already have real start/end
-// timing and can't be assigned a duration.
-const DURATION_EDITABLE_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup", "refuel", "custom", "maintenance"];
+// backend (see setEventDuration in dayScheduleService.ts). Confirmed maintenance
+// appointments are rescheduled in their maintenance record; an old report
+// work estimate must not look like an editable vehicle booking span.
+const DURATION_EDITABLE_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup", "refuel", "custom"];
 
 // Event types assignable via the on-card employee picker / drag-and-drop.
 // Matches ASSIGNABLE_TYPES in routes/operations.ts.
@@ -213,8 +215,9 @@ function taskTypeLabel(type: DayEventType): string {
 /** Format "HH:MM" → "9:30 AM" */
 function fmt12(t: string | null): string {
   if (!t) return "";
-  const [h, m] = t.split(":").map(Number);
-  if (isNaN(h)) return t;
+  const [rawHour, m] = t.split(":").map(Number);
+  if (isNaN(rawHour)) return t;
+  const h = rawHour === 24 ? 0 : rawHour;
   const ampm = h < 12 ? "AM" : "PM";
   const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
   return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
@@ -336,6 +339,9 @@ function ScheduleBookingLinks({ event }: { event: DayEvent }) {
   if (!event.bookingKey) return null;
   return <div className="pt-1" onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
     <BookingNavigation bookingKey={event.bookingKey} currentView="day-schedule" developerAccess={context.developerAccess} date={context.date} />
+    {(event.type === "maintenance" || event.type === "maintenance_driver") && <Button className="mt-2" size="sm" variant="outline" asChild>
+      <Link href={`/admin/operations?tab=maintenance&appointment=${event.id}`}>Maintenance record</Link>
+    </Button>}
   </div>;
 }
 
@@ -376,7 +382,7 @@ function EventCard({
   const bookingContext = useContext(ScheduleBookingContext);
   const selectedBooking = Boolean(event.bookingKey && event.bookingKey === bookingContext.selectedBooking);
   const c = colorFor(event.category);
-  const displayDay = event.scheduled_day ?? date;
+  const displayDay = event.appointment_start_local ? date : event.scheduled_day ?? date;
   const badgeClass = STATUS_BADGE[event.status ?? ""] ?? "bg-gray-100 text-gray-700 border-gray-300";
   const statusOptions = statusOptionsFor(event.type);
   const canEditAssignee = ASSIGNEE_EDITABLE_TYPES.includes(event.type);
@@ -389,7 +395,7 @@ function EventCard({
   const [completionDate, setCompletionDate] = useState(event.completed_day || date);
   const driverMode = driverModeDraft || event.driver_assignment_type || "";
   const showCompletionDatePicker = !!event.is_carryover && statusOptions && event.status !== "completed";
-  const showActualCompletedDate = !!event.completed_day && event.completed_day !== (event.scheduled_day ?? date);
+  const showActualCompletedDate = !event.appointment_start_local && !!event.completed_day && event.completed_day !== (event.scheduled_day ?? date);
   const hasDetails = canEditAssignee || canEditDuration || canEditDriver || Boolean(
     event.trip_start_mt || event.trip_end_mt || event.pickup_location || event.dropoff_location ||
     event.location || event.detail || event.notes || event.is_carryover || showActualCompletedDate || event.photos?.length,
@@ -552,6 +558,10 @@ function EventCard({
             <span className="font-semibold">Extras:</span> {event.extras}
           </div>
         )}
+
+        {event.appointment_start_local && event.appointment_end_local && <div className="rounded-md bg-red-50 px-2 py-1.5 text-xs text-red-950" data-maintenance-appointment>
+          <span className="font-medium">Confirmed maintenance:</span> {fmtTripDateTime(event.appointment_start_local)} — {fmtTripDateTime(event.appointment_end_local)}
+        </div>}
 
         {event.is_carryover && (
           <span className="text-xs font-medium text-amber-800 sm:hidden">Carried over from {formatDateCompact(displayDay)}</span>
@@ -928,7 +938,7 @@ function UnassignedCard({
   const bookingContext = useContext(ScheduleBookingContext);
   const selectedBooking = Boolean(event.bookingKey && event.bookingKey === bookingContext.selectedBooking);
   const c = colorFor(event.category);
-  const displayDay = event.scheduled_day ?? "";
+  const displayDay = event.appointment_start_local ? bookingContext.date : event.scheduled_day ?? "";
   return (
     <div
       draggable
@@ -961,6 +971,9 @@ function UnassignedCard({
             <Clock className="w-3 h-3" />{displayDay ? `${formatDateCompact(displayDay)} ` : ""}{fmt12(event.start_time)}
           </div>
         )}
+        {event.appointment_start_local && event.appointment_end_local && <div className="text-red-950" data-maintenance-appointment>
+          <span className="font-medium">Confirmed maintenance:</span> {fmtTripDateTime(event.appointment_start_local)} — {fmtTripDateTime(event.appointment_end_local)}
+        </div>}
         {event.car_name && (
           <div className="text-muted-foreground flex items-start gap-1">
             <Car className="w-3 h-3 flex-shrink-0 mt-0.5" />
@@ -977,7 +990,7 @@ function UnassignedCard({
             <span className="font-semibold">Extras:</span> {event.extras}
           </div>
         )}
-        {(event.is_carryover || (event.completed_day && event.completed_day !== (event.scheduled_day ?? ""))) && (
+        {(event.is_carryover || (!event.appointment_start_local && event.completed_day && event.completed_day !== (event.scheduled_day ?? ""))) && (
           <div className="rounded border border-amber-200 bg-amber-50 px-1.5 py-1 text-[11px] text-amber-950">
             <span className="font-medium">Supposed:</span> {formatDateCompact(event.scheduled_day ?? "")}
             {event.completed_day && (

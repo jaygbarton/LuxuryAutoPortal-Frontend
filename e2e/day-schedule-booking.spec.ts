@@ -4,7 +4,7 @@ function task(id: number, bookingKey: string, overrides: Record<string, unknown>
   return { id, bookingKey, type: "cleaning", category: "Cleaning", car_name: `Vehicle task ${id}`, plate: "TEST123", guest_name: "Test Guest", assigned_to: "Test Worker", assigned_to_id: 41, start_time: "09:00", end_time: null, location: "Test airport", status: "new", notes: null, detail: null, reservation_id: "RES-208", extras: null, trip_start: "09:00", trip_end: "10:00", trip_start_mt: "2026-10-07 09:00", trip_end_mt: "2026-10-08 10:00", pickup_location: "Test airport", dropoff_location: "Test airport", location_tag: "slc", photos: null, car_photo: null, duration_minutes: 60, scheduled_day: "2026-10-07", ...overrides };
 }
 
-async function mock(page: Page, options: { developer?: boolean; cancelled?: boolean; failedFirst?: boolean; empty?: boolean; unassigned?: boolean } = {}) {
+async function mock(page: Page, options: { developer?: boolean; cancelled?: boolean; failedFirst?: boolean; empty?: boolean; unassigned?: boolean; maintenance?: boolean } = {}) {
   const reads: string[] = [], mutations: { method: string; path: string; body: unknown }[] = [], errors: string[] = [];
   let lookupCount = 0;
   page.on("pageerror", (error) => errors.push(error.message));
@@ -20,10 +20,15 @@ async function mock(page: Page, options: { developer?: boolean; cancelled?: bool
       lookupCount++;
       if (options.failedFirst && lookupCount === 1) return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "Not found" }) });
       const key = decodeURIComponent(path.split("/").pop()!);
-      body = { timezone: "America/Denver", event: { id: key, bookingKey: key, source: "turo", sourceId: 208, carId: 101, carName: "Test vehicle", title: "Turo reservation", start: "2026-10-07T01:00:00Z", end: "2026-10-09T18:00:00Z", status: options.cancelled ? "cancelled" : "booked", cancelled: options.cancelled === true, blocksAvailability: !options.cancelled, timeStatus: "confirmed", reservationId: "RES-208" } };
+      body = { timezone: "America/Denver", event: { id: key, bookingKey: key, source: options.maintenance ? "maintenance" : "turo", sourceId: options.maintenance ? 12 : 208, carId: 101, carName: "Test vehicle", title: options.maintenance ? "Scheduled maintenance" : "Turo reservation", start: "2026-10-07T01:00:00Z", end: "2026-10-09T18:00:00Z", status: options.cancelled ? "cancelled" : "booked", cancelled: options.cancelled === true, blocksAvailability: !options.cancelled, timeStatus: "confirmed", reservationId: "RES-208" } };
     } else if (path === "/api/operations/day-schedule") {
       reads.push(url.searchParams.get("date")!);
-      const events = options.empty ? [] : options.unassigned ? [task(1, "turo:201", { assigned_to: null, assigned_to_id: null }), task(2, "turo:202", { assigned_to: null, assigned_to_id: null }), task(3, "turo:203", { assigned_to: null, assigned_to_id: null }), task(19, "turo:208", { assigned_to: null, assigned_to_id: null })] : [task(19, "turo:208"), task(208, "turo:209")];
+      const events = options.empty ? [] : options.maintenance ? [task(12, "maintenance:12", {
+        type: "maintenance", category: "Mechanical Run", guest_name: null, reservation_id: null,
+        trip_start: null, trip_end: null, trip_start_mt: null, trip_end_mt: null, pickup_location: null, dropoff_location: null,
+        location: "Confirmed repair shop", start_time: "00:00", end_time: "24:00", scheduled_day: "2026-10-07",
+        appointment_start_local: "2026-10-07 09:00", appointment_end_local: "2026-10-10 12:00", is_carryover: false,
+      })] : options.unassigned ? [task(1, "turo:201", { assigned_to: null, assigned_to_id: null }), task(2, "turo:202", { assigned_to: null, assigned_to_id: null }), task(3, "turo:203", { assigned_to: null, assigned_to_id: null }), task(19, "turo:208", { assigned_to: null, assigned_to_id: null })] : [task(19, "turo:208"), task(208, "turo:209")];
       body = { date: url.searchParams.get("date"), events, work_shifts: [{ employee_id: 41, fullname: "Test Worker", start_time: "08:00", end_time: "17:00", shift_label: "Operations" }] };
     } else if (path === "/api/employees") body = { success: true, data: [{ employee_aid: 41, employee_first_name: "Test", employee_last_name: "Worker", employee_is_active: 1 }] };
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
@@ -92,4 +97,27 @@ test.describe("mobile booking selection", () => {
     expect(result.mutations).toEqual([]);
     expect(result.errors).toEqual([]);
   });
+});
+
+
+test("confirmed maintenance shows the full multi-day appointment and keeps scheduling changes in its record", async ({ page }) => {
+  const result = await mock(page, { maintenance: true });
+  await page.goto("/admin/operations?tab=day-schedule&date=2026-10-08&booking=maintenance:12");
+  const card = page.locator('[data-day-schedule-card][data-booking-key="maintenance:12"]');
+  await expect(card).toHaveAttribute("data-booking-selected", "true");
+  const period = card.locator("[data-maintenance-appointment]");
+  await expect(period).toContainText("Confirmed maintenance:");
+  await expect(period).toContainText("10/07");
+  await expect(period).toContainText("9:00 AM");
+  await expect(period).toContainText("10/10");
+  await expect(period).toContainText("12:00 PM");
+  await expect(card).toContainText("Confirmed repair shop");
+  await expect(card).not.toContainText("Carried over");
+  await expect(card.getByRole("spinbutton")).toHaveCount(0);
+  await expect(card.getByRole("link", { name: "Maintenance record", exact: true })).toHaveAttribute("href", "/admin/operations?tab=maintenance&appointment=12");
+  await expect(card.getByRole("link", { name: "Internal calendar", exact: true })).toHaveAttribute("href", /booking=maintenance%3A12.*date=2026-10-08/);
+  await card.getByRole("combobox", { name: "Task status" }).click();
+  await page.getByRole("option", { name: "completed", exact: true }).click();
+  await expect.poll(() => result.mutations).toContainEqual({ method: "PUT", path: "/api/operations/maintenance/12", body: { status: "completed", completedDate: "2026-10-08" } });
+  expect(result.errors).toEqual([]);
 });

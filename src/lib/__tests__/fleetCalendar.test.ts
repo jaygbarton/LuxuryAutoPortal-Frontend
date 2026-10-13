@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eventBlocksAvailability, normalizeFleetCalendarResponse } from "../fleetCalendar";
+import { eventBlocksAvailability, normalizeFleetCalendarResponse, normalizeFleetCalendarSync } from "../fleetCalendar";
 
 function fixture() {
   return {
@@ -35,6 +35,14 @@ describe("internal calendar response and booking impact", () => {
     });
     expect(result.sync).toMatchObject({ status: "needs_attention", pending: 2, failed: 1, lastSuccessAt: "2026-10-13T17:00:00Z" });
     expect(result.sync?.configured).toBeUndefined();
+  });
+
+  it("keeps first-sync pending status and actual import diagnostics even with zero queued events", () => {
+    const sync = normalizeFleetCalendarSync({ configured: true, enabled: true, pending: 0, failed: 0, lastSuccessAt: null }, {
+      lastSuccess: null, lastAttempt: "2026-10-13T17:00:00Z", lastError: "Google rejected the refresh token.",
+    });
+    expect(sync).toMatchObject({ status: "pending", pending: 0, configured: true, enabled: true });
+    expect(sync?.import).toEqual({ lastSuccessAt: null, lastAttemptAt: "2026-10-13T17:00:00Z", lastError: "Google rejected the refresh token." });
   });
 
   it("rejects a broken response instead of presenting an empty calendar", () => {

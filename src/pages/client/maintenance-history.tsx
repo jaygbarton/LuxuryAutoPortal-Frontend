@@ -132,7 +132,7 @@ export default function ClientMaintenanceHistory() {
                   <TableHead>Description</TableHead>
                   <TableHead className="whitespace-nowrap">Status</TableHead>
                   <TableHead className="whitespace-nowrap">Your Approval</TableHead>
-                  <TableHead className="whitespace-nowrap">Scheduled</TableHead>
+                  <TableHead className="whitespace-nowrap">Suggested date (unconfirmed)</TableHead>
                   <TableHead className="whitespace-nowrap">Repair Shop</TableHead>
                   <TableHead className="whitespace-nowrap">Photos</TableHead>
                   <TableHead className="whitespace-nowrap">Reported</TableHead>

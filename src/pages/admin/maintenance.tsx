@@ -355,7 +355,7 @@ export default function MaintenancePage() {
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Service Type</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Task Description</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Assigned To</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Scheduled Date</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Suggested Date (unconfirmed)</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Due Date</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Repair Shop</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Photos</th>

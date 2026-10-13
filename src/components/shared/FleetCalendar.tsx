@@ -17,13 +17,15 @@ import { calendarBarPosition, calendarInstant, calendarRangeDays, MAX_CALENDAR_D
 import { laneCountOf, packLanes } from "@/lib/lanePack";
 import {
   eventBlocksAvailability, FLEET_CALENDAR_SOURCES, FLEET_SOURCE_LABELS,
-  isCancelledCalendarEvent, normalizeFleetCalendarResponse, type FleetCalendarCar, type FleetCalendarEvent,
+  isCancelledCalendarEvent, normalizeFleetCalendarResponse, normalizeFleetCalendarSync, type FleetCalendarCar, type FleetCalendarEvent,
+  type FleetCalendarSyncHealth,
   type FleetCalendarResponse, type FleetCalendarSource,
 } from "@/lib/fleetCalendar";
 
 const COLUMN_WIDTH = 48;
 const LABEL_WIDTH = 190;
 const LANE_HEIGHT = 34;
+const SYNC_REQUEST_KEY = "gla:internal-calendar:last-sync-request";
 const SOURCE_COLORS: Record<FleetCalendarSource, string> = {
   turo: "border-[#BD9C5D] bg-[#D3BC8D] text-black",
   owner_rental: "border-blue-400 bg-blue-100 text-blue-950",
@@ -77,6 +79,12 @@ export function FleetCalendar() {
   const [view, setView] = useState<"timeline" | "list">("timeline");
   const [selected, setSelected] = useState<FleetCalendarEvent | null>(null);
   const [mappingCar, setMappingCar] = useState("unmatched");
+  const [syncRequestedAt, setSyncRequestedAt] = useState<number | null>(() => {
+    try {
+      const stored = Number(sessionStorage.getItem(SYNC_REQUEST_KEY));
+      return stored > 0 && stored <= Date.now() && Date.now() - stored < 600_000 ? stored : null;
+    } catch { return null; }
+  });
   const days = calendarRangeDays(from, to);
   const { data: auth } = useQuery<{ user?: { isSuperAdmin?: boolean } }>({
     queryKey: ["/api/auth/me"], queryFn: authMeQueryFn, staleTime: 300_000,
@@ -102,6 +110,46 @@ export function FleetCalendar() {
   const timezone = data?.timezone || activeTimezone;
   const allEvents = data?.events ?? [];
   const warnings = data?.warnings ?? [];
+  const { data: liveSync, error: syncStatusError, isFetching: syncStatusLoading, refetch: refetchSync } = useQuery<FleetCalendarSyncHealth>({
+    queryKey: ["/api/internal-calendar/sync"],
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl("/api/internal-calendar/sync"), { credentials: "include" });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.error || `Google status could not be loaded (${response.status})`);
+      const normalized = normalizeFleetCalendarSync(payload?.sync, payload?.import);
+      if (!normalized) throw new Error("Google Calendar returned an incomplete status response.");
+      return normalized;
+    },
+    retry: 1, staleTime: 10_000,
+    refetchInterval: () => syncRequestedAt !== null && Date.now() - syncRequestedAt < 120_000 ? 3_000 : 30_000,
+  });
+  const syncHealth = liveSync ?? data?.sync;
+  useEffect(() => {
+    if (syncRequestedAt === null) return;
+    const importedAt = liveSync?.import.lastSuccessAt ? Date.parse(liveSync.import.lastSuccessAt) : 0;
+    const updatedAt = liveSync?.lastSuccessAt ? Date.parse(liveSync.lastSuccessAt) : 0;
+    if (importedAt >= syncRequestedAt || updatedAt >= syncRequestedAt) {
+      void queryClient.invalidateQueries({ queryKey: ["/api/internal-calendar/events"] });
+    }
+  }, [syncRequestedAt, liveSync?.import.lastSuccessAt, liveSync?.lastSuccessAt, queryClient]);
+  const syncNow = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(buildApiUrl("/api/internal-calendar/sync"), { method: "POST", credentials: "include" });
+      const payload = await response.json().catch(() => null);
+      if (response.status !== 202 || payload?.accepted !== true) {
+        throw new Error(payload?.error || `Google synchronization was not accepted (${response.status})`);
+      }
+    },
+    onSuccess: async () => {
+      const requestedAt = Date.now();
+      setSyncRequestedAt(requestedAt);
+      try { sessionStorage.setItem(SYNC_REQUEST_KEY, String(requestedAt)); } catch { /* Status polling also works without browser storage. */ }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/internal-calendar/sync"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/internal-calendar/events"] }),
+      ]);
+    },
+  });
   const windowBooking = linkedBooking ? allEvents.find((event) => event.bookingKey === linkedBooking) : null;
   const { data: pointBooking, error: pointError, isFetching: pointLoading, refetch: refetchPoint } = useQuery<FleetCalendarEvent>({
     queryKey: ["/api/internal-calendar/bookings", linkedBooking, activeTimezone],
@@ -216,6 +264,14 @@ export function FleetCalendar() {
     selectEvent(null);
   }
 
+  const verifiedGoogleAt = syncHealth?.import.lastSuccessAt ?? syncHealth?.lastSuccessAt;
+  const googleConnectionLabel = syncHealth?.configured === false ? "Not connected"
+    : syncHealth?.import.lastError ? "Connection needs attention"
+      : verifiedGoogleAt ? "Connected"
+        : syncHealth?.configured === true ? "Configured · first connection pending" : "Connection not yet verified";
+  const syncCompleted = syncRequestedAt !== null && syncHealth?.lastSuccessAt && Date.parse(syncHealth.lastSuccessAt) >= syncRequestedAt;
+  const selectedSourceUrl = selected?.detailUrl ?? (selected?.source === "maintenance" ? `/admin/operations?tab=maintenance&appointment=${selected.sourceId}` : null);
+
   function eventButton(event: FleetCalendarEvent) {
     return <button type="button" className="text-left text-sm font-medium underline-offset-4 hover:underline" onClick={() => selectEvent(event)}>{eventLabel(event)}</button>;
   }
@@ -227,7 +283,7 @@ export function FleetCalendar() {
           <h1 className="flex items-center gap-2 text-xl font-semibold"><CalendarDays className="h-5 w-5" /> Calendar</h1>
           <p className="mt-1 text-sm text-muted-foreground">Turo trips, owner rentals, blocked-off dates, and scheduled maintenance.</p>
         </div>
-        <Button variant="outline" onClick={() => { void refetch(); if (pointError) void refetchPoint(); }} disabled={isFetching || !days} className="gap-2">
+        <Button variant="outline" onClick={() => { void refetch(); void refetchSync(); if (pointError) void refetchPoint(); }} disabled={isFetching || !days} className="gap-2">
           <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} /> Refresh
         </Button>
       </div>
@@ -273,14 +329,23 @@ export function FleetCalendar() {
           </div>
         </div>
       )}
-      {data?.sync && (data.sync.configured === false || data.sync.pending > 0 || data.sync.failed > 0 || data.sync.lastError || data.sync.status === "not_started") && (
-        <div role="status" className="rounded-lg border border-amber-300 p-3 text-sm">
-          <p className="font-medium">Google Calendar sync: {data.sync.status.replace(/_/g, " ")}</p>
-          <p>{data.sync.configured === false ? "Google Calendar is not connected." : data.sync.status === "not_started" ? "No successful Google synchronization has been recorded." : `${data.sync.pending} pending · ${data.sync.failed} failed`}</p>
-          {data.sync.lastError && <p className="mt-1 text-xs text-destructive">{data.sync.lastError}</p>}
-          <p className="mt-1 text-xs text-muted-foreground">This internal calendar reads the software's records. Google changes may still be pending.</p>
+      <section className="space-y-2 rounded-lg border border-border bg-card p-3 text-sm" aria-label="Google Calendar status">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-medium">Google Calendar: {googleConnectionLabel}</h2>
+            {syncHealth && <p className="mt-1 text-xs text-muted-foreground">Google Calendar sync: {syncHealth.status.replace(/_/g, " ")} · {syncHealth.pending} pending · {syncHealth.failed} failed{syncHealth.attention > 0 ? ` · ${syncHealth.attention} need review` : ""}</p>}
+          </div>
+          {data?.role === "admin" && <Button variant="outline" onClick={() => syncNow.mutate()} disabled={syncNow.isPending || syncHealth?.configured === false || syncHealth?.enabled === false} className="gap-2"><RefreshCw className={cn("h-4 w-4", syncNow.isPending && "animate-spin")} />{syncNow.isPending ? "Requesting sync…" : "Sync now"}</Button>}
         </div>
-      )}
+        {syncStatusLoading && !syncHealth && <p role="status" className="text-xs text-muted-foreground">Checking Google Calendar status…</p>}
+        {syncHealth && <dl className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground"><div><dt className="inline">Last Google import: </dt><dd className="inline">{syncHealth.import.lastSuccessAt ? formatInstant(syncHealth.import.lastSuccessAt, timezone) : "Not completed yet"}</dd></div><div><dt className="inline">Last Google update: </dt><dd className="inline">{syncHealth.lastSuccessAt ? formatInstant(syncHealth.lastSuccessAt, timezone) : "Not completed yet"}</dd></div></dl>}
+        {syncHealth?.enabled === false && <p className="text-xs text-amber-800">Google synchronization is disabled for this environment.</p>}
+        {syncHealth?.import.lastError && <p role="alert" className="text-xs text-destructive">Google import failed: {syncHealth.import.lastError}</p>}
+        {syncHealth?.lastError && <p role="alert" className="text-xs text-destructive">Google update failed: {syncHealth.lastError}</p>}
+        {syncStatusError && <p role="alert" className="text-xs text-destructive">Google status could not be refreshed: {syncStatusError instanceof Error ? syncStatusError.message : "Please retry."}</p>}
+        {syncNow.isError && <p role="alert" className="text-xs text-destructive">{syncNow.error instanceof Error ? syncNow.error.message : "Google synchronization could not be requested."}</p>}
+        {syncRequestedAt !== null && <p role="status" className="text-xs text-muted-foreground">{syncCompleted ? "Google synchronization completed." : syncHealth?.lastError || syncHealth?.import.lastError ? "Sync request accepted. Google still reports an error; review the message above." : "Sync request accepted. Checking Google import and updates…"}</p>}
+      </section>
       {linkedBooking && pointLoading && <p role="status" className="text-sm text-muted-foreground">Loading linked booking…</p>}
       {linkedBooking && pointError && !windowBooking && <p role="alert" className="rounded-md border border-destructive/40 p-3 text-sm text-destructive">The linked booking could not be loaded: {pointError instanceof Error ? pointError.message : "Please retry."}</p>}
       <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground"><span>{listedEvents.length} of {allEvents.length} events shown · {rows.length} vehicles · {timezone}</span><span>{isFetching ? "Refreshing…" : dataUpdatedAt ? `Updated ${new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""}</span></div>
@@ -305,6 +370,8 @@ export function FleetCalendar() {
       <Dialog open={selected !== null} onOpenChange={(open) => { if (!open) selectEvent(null); }}><DialogContent><DialogHeader className="pr-8"><DialogTitle>{selected ? eventLabel(selected) : "Calendar event"}</DialogTitle><DialogDescription>{selected ? `${selected.carName || "Unmatched vehicle"}${selected.plateNumber ? ` · ${selected.plateNumber}` : ""}` : ""}</DialogDescription></DialogHeader><Button variant="ghost" size="icon" className="absolute right-2 top-2" aria-label="Close" onClick={() => selectEvent(null)}><X className="h-4 w-4" /></Button>{selected && <div className="space-y-3 text-sm"><dl className="space-y-2">{[
         ["Source", FLEET_SOURCE_LABELS[selected.source]], ["Status", selected.status.replace(/_/g, " ")], ["Starts", formatInstant(selected.start, timezone)], ["Ends", selected.end === null && selected.start ? "Ongoing / no end recorded" : formatInstant(selected.end, timezone)],
         ["Booking impact", eventBlocksAvailability(selected) ? "Blocks vehicle" : "Does not block availability"], ...(selected.reservationId ? [["Reservation", selected.reservationId]] : []),
+        ...(selected.destination ? [["Destination", selected.destination]] : []),
+        ...(selected.source === "maintenance" && selected.maintenanceWorkStatus ? [["Maintenance work", selected.maintenanceWorkStatus.replace(/_/g, " ")]] : []),
       ].map(([label, value]) => <div key={label} className="flex flex-wrap justify-between gap-2 border-b border-border pb-2"><dt className="text-muted-foreground">{label}</dt><dd className="font-medium">{value}</dd></div>)}</dl>{selected.notes && <p className="whitespace-pre-wrap rounded-md bg-muted p-3">{selected.notes}</p>}
         {selected.id.startsWith("block_off:google:") && (
           <section className="space-y-2 rounded-md border border-border p-3">
@@ -329,7 +396,7 @@ export function FleetCalendar() {
         <div className="flex flex-wrap gap-2">
           {calendarInstant(selected.start) !== null && <Button variant="outline" onClick={() => jumpToEvent(selected)}>Show event in calendar</Button>}
           <BookingNavigation bookingKey={selected.bookingKey} currentView="calendar" developerAccess={isDeveloper} date={calendarInstant(selected.start) === null ? undefined : mtDayKey(selected.start!, timezone)} />
-          {selected.detailUrl?.startsWith("/") && !selected.detailUrl.startsWith("//") && (!selected.detailUrl.startsWith("/admin/developer/") || isDeveloper) && (data?.role !== "employee" || selected.detailUrl.startsWith("/admin/operations")) && <a className="inline-flex rounded-md bg-primary px-4 py-2 text-primary-foreground" href={selected.detailUrl}>Open source record</a>}
+          {selectedSourceUrl?.startsWith("/") && !selectedSourceUrl.startsWith("//") && (!selectedSourceUrl.startsWith("/admin/developer/") || isDeveloper) && (data?.role !== "employee" || selectedSourceUrl.startsWith("/admin/operations")) && <a className="inline-flex rounded-md bg-primary px-4 py-2 text-primary-foreground" href={selectedSourceUrl}>{selected.source === "maintenance" ? "Open maintenance appointment" : "Open source record"}</a>}
         </div>
       </div>}</DialogContent></Dialog>
     </div>
