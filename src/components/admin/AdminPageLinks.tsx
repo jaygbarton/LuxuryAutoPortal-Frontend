@@ -4,7 +4,7 @@
  * Five sections as specified by the project manager:
  *   Database        — admins, clients, cars, income & expenses, payments, totals
  *   Operations      — turo trips, bouncie, operations, forms
- *   Human Resources — employees, work schedule, task mgmt, timesheet, day-off, stats report
+ *   Human Resources — applications, employees, work schedule, schedule overview, task mgmt, timesheet, day-off, stats report
  *   Accounting      — payroll, commissions
  *   Support         — turo guide, system tutorial, client testimonials, news & media, slack notifications
  *
@@ -21,6 +21,7 @@ import {
   Bell,
   BookOpen,
   Briefcase,
+  CalendarDays,
   CalendarOff,
   Car,
   CheckSquare,
@@ -75,8 +76,10 @@ export function AdminPageLinks() {
   ];
 
   const hrLinks = [
+    { href: "/admin/hr/applications",   icon: ClipboardList, label: "Applications" },
     { href: "/admin/hr/employees",      icon: Users,       label: "Employees" },
     { href: "/admin/hr/work-schedule",  icon: Clock,       label: "Work Schedule" },
+    { href: "/admin/hr/schedule-timeline", icon: CalendarDays, label: "Schedule Overview" },
     { href: "/admin/hr/task-management",icon: CheckSquare, label: "Task Management" },
     { href: "/admin/hr/time",           icon: FileText,    label: "Employees Timesheet" },
     { href: "/admin/hr/time-off",       icon: CalendarOff, label: "Employees Day Off Request" },
@@ -107,7 +110,7 @@ export function AdminPageLinks() {
         <QuickLinksSection title="Operations" links={operationsLinks} cols={2} />
       </div>
 
-      {/* Row 3+4 — Human Resources, full width (6 links fills 2 grid rows) */}
+      {/* Row 3+4 — Human Resources, full width (8 links fills 2 grid rows) */}
       <QuickLinksSection title="Human Resources" links={hrLinks} />
 
       {/* Row 5 — Support, full width (5 links) */}

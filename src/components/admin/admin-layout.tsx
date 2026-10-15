@@ -713,6 +713,7 @@ export const coHostSidebarItems: SidebarItem[] = [
       { href: "/admin/hr/applications", label: "Applications", icon: FileText },
       { href: "/admin/hr/employees", label: "Employees", icon: Users },
       { href: "/admin/hr/work-schedule", label: "Work Schedule", icon: Clock },
+      { href: "/admin/hr/schedule-timeline", label: "Schedule Overview", icon: CalendarDays },
       { href: "/admin/hr/task-management", label: "Task Management", icon: Briefcase },
       { href: "/admin/hr/time", label: "Time", icon: Clock },
       { href: "/admin/hr/time-off", label: "Time Off", icon: Clock },
