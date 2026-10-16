@@ -7,7 +7,7 @@ const clearAvailability = { status: "clear", complete: true, canConfirm: false, 
 const car = { carId: 1, name: "2024 Mercedes-Benz GLS", year: 2024, make: "Mercedes-Benz", specs: "GLS", photo: null, city: "Salt Lake City", state: "UT", baseDailyRate: 175, isListed: true };
 const detail = { ...car, description: "Synthetic vehicle description", guidelines: "Return with fuel.", features: ["All-wheel drive", "Bluetooth"], faq: [{ question: "Is this a live booking?", answer: "No. This is a private preview." }], locations: [{ id: 1, name: "SLC Airport", fee: "Review required" }], extras: [{ id: 1, type: "Child seat", description: "Request only", price: null }] };
 const baseDraft = { id, bookingKey: key, carId: 1, startAt: "2026-10-14T16:00:00.000Z", endAt: "2026-10-16T16:00:00.000Z", timezone: "America/Denver", customerName: "Preview Guest", customerEmail: "guest@example.test", customerPhone: "", notes: "Synthetic private request", status: "draft", isPreview: true, version: 1, quote: { currency: "USD", baseDailyRate: 175, estimatedTotal: null, requiresReview: true, reason: "Final pricing and direct booking policies require review." }, availability: clearAvailability, createdAt: "2026-10-13T18:00:00Z", updatedAt: "2026-10-13T18:00:00Z" };
-async function fixture(page: Page, options: { developer?: boolean; availability?: Record<string, unknown>; errorOnPatch?: boolean; errorAfterSave?: boolean; hasDraft?: boolean } = {}) {
+async function fixture(page: Page, options: { developer?: boolean; availability?: Record<string, unknown>; errorOnPatch?: boolean; errorAfterSave?: boolean; hasDraft?: boolean; photo?: string } = {}) {
   const drafts: Record<string, any>[] = options.hasDraft === false ? [] : [structuredClone(baseDraft), { ...structuredClone(baseDraft), id: otherId, bookingKey: `direct_booking_preview:${otherId}`, customerName: "Cancelled Preview Guest", status: "cancelled" }];
   const writes: { path: string; method: string; body: Record<string, any> }[] = [], errors: string[] = [], requests: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
@@ -16,8 +16,8 @@ async function fixture(page: Page, options: { developer?: boolean; availability?
     let data: unknown = { success: true, data: [], total: 0, notifications: [], unreadCount: 0 };
     if (method !== "GET") writes.push({ path, method, body: request.postDataJSON() });
     if (path === "/api/auth/me") data = { user: { id: 1, fullname: "Preview Developer", email: "developer@example.test", isAdmin: true, isSuperAdmin: options.developer ?? true, isEmployee: false, isClient: false, effectiveTimezone: "America/Denver" } };
-    else if (path === `${ROOT}/vehicles`) data = { vehicles: [car] };
-    else if (path === `${ROOT}/vehicles/1`) data = { vehicle: detail };
+    else if (path === `${ROOT}/vehicles`) data = { vehicles: [{ ...car, photo: options.photo ?? car.photo }] };
+    else if (path === `${ROOT}/vehicles/1`) data = { vehicle: { ...detail, photo: options.photo ?? detail.photo } };
     else if (path === `${ROOT}/availability`) data = { availability: options.availability ?? clearAvailability };
     else if (path === `${ROOT}/drafts`) {
       if (method === "POST") {
@@ -37,6 +37,36 @@ async function fixture(page: Page, options: { developer?: boolean; availability?
   });
   return { drafts, writes, errors, requests };
 }
+
+test("saved car photos use the schedule proxies and recover from a broken first photo across preview views", async ({ page }) => {
+  const mock = await fixture(page, { photo: JSON.stringify([{ url: "https://storage.googleapis.com/test-fleet/missing.jpg" }, { id: "synthetic-drive-file" }]) });
+  await page.route("**/api/gcs-image-proxy?*", route => route.fulfill({ status: 404, body: "Missing photo" }));
+  await page.route("**/api/employees/drive-file?*", route => route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWWQAAAAASUVORK5CYII=", "base64") }));
+  for (const view of ["customer", "worker", "calendar", "day-schedule"]) {
+    await page.goto(`/admin/developer/direct-bookings?view=${view}&booking=${encodeURIComponent(key)}`);
+    const photo = page.getByRole("img", { name: `${car.name} photo`, exact: true }).first();
+    await expect(photo).toBeVisible();
+    await expect(photo).toHaveAttribute("src", /\/api\/employees\/drive-file\?fileId=synthetic-drive-file/);
+    await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  }
+  expect(mock.writes).toEqual([]); expect(mock.errors).toEqual([]);
+});
+
+test("described testing views keep the selected request and mark the current view", async ({ page }) => {
+  const mock = await fixture(page);
+  await page.goto(`/admin/developer/direct-bookings?view=worker&booking=${encodeURIComponent(key)}`);
+  const nav = page.getByRole("navigation", { name: "Direct booking preview areas" });
+  await expect(nav.getByRole("link", { name: /Manage requests/ })).toHaveAttribute("aria-current", "page");
+  await expect(nav.getByText("Review and edit saved test requests.")).toBeVisible();
+  for (const [label, view] of [["Booking calendar", "calendar"], ["Daily schedule", "day-schedule"], ["Customer booking page", "customer"], ["Manage requests", "worker"]]) {
+    const link = nav.getByRole("link", { name: new RegExp(label) });
+    await link.click();
+    await expect(link).toHaveAttribute("aria-current", "page");
+    expect(new URL(page.url()).searchParams.get("view")).toBe(view);
+    expect(new URL(page.url()).searchParams.get("booking")).toBe(key);
+  }
+  expect(mock.writes).toEqual([]); expect(mock.errors).toEqual([]);
+});
 
 test("customer preview saves only a private draft with explicit UTC instants", async ({ page }) => {
   const mock = await fixture(page, { hasDraft: false });

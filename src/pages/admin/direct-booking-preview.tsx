@@ -11,19 +11,22 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BookingNavigation } from "@/components/shared/BookingNavigation";
+import { VehiclePhoto } from "@/components/shared/VehiclePhoto";
 import { api } from "@/lib/api";
 import { isApiError } from "@/lib/errors";
-import { getProxiedImageUrl } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
 import { directBookingPreviewHref, isBookingKey, type DirectBookingPreviewView } from "@/lib/booking-navigation";
 import { formatBookingDate, previewDateRange } from "@/lib/directBookingPreviewDates";
 import { DIRECT_BOOKING_PREVIEW_API as ROOT, type PreviewAvailability, type PreviewDraft, type PreviewDraftInput, type PreviewDraftStatus, type PreviewVehicle, type PreviewVehicleDetails } from "@/lib/directBookingPreview";
 import { mtDayKey, mtTodayKey, toMtLocalInput } from "@/lib/mt-datetime";
 import { useTimezone } from "@/hooks/use-timezone";
 
-const VIEWS: { id: DirectBookingPreviewView; label: string }[] = [
-  { id: "customer", label: "Customer preview" }, { id: "worker", label: "Worker preview" },
-  { id: "calendar", label: "Calendar preview" }, { id: "day-schedule", label: "Day schedule preview" },
-];
+const VIEWS = [
+  { id: "customer", label: "Customer booking page", description: "Browse cars and create a test request.", icon: Car },
+  { id: "worker", label: "Manage requests", description: "Review and edit saved test requests.", icon: ClipboardList },
+  { id: "calendar", label: "Booking calendar", description: "See saved test requests in date order.", icon: CalendarDays },
+  { id: "day-schedule", label: "Daily schedule", description: "View test requests for a selected day.", icon: ClipboardList },
+] as const;
 const STATUS_LABELS: Record<PreviewDraftStatus, string> = { draft: "Draft", ready_for_review: "Ready for review", cancelled: "Cancelled preview" };
 const money = (amount: number | null) => amount === null || !Number.isFinite(amount) ? "Rate pending" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
 
@@ -52,12 +55,11 @@ function AvailabilityNotice({ availability, isLoading, error }: { availability?:
     <p className="text-xs">Preview checks do not hold a vehicle or confirm a booking.</p>
   </div>;
 }
-function CarPhoto({ vehicle }: { vehicle: PreviewVehicle }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [vehicle.photo]);
-  return <div className="flex aspect-[16/9] items-center justify-center overflow-hidden bg-slate-100">
-    {vehicle.photo && !failed ? <img src={getProxiedImageUrl(vehicle.photo)} alt={vehicle.name} className="h-full w-full object-cover" loading="lazy" onError={() => setFailed(true)} /> : <Car className="h-14 w-14 text-slate-300" aria-label="Vehicle photo unavailable" />}
-  </div>;
+function CarPhoto({ vehicle, className, size = 800 }: { vehicle: PreviewVehicle | undefined; className?: string; size?: number }) {
+  if (!vehicle) return null;
+  return <VehiclePhoto carPhoto={vehicle.photo} carName={vehicle.name} size={size}
+    className={cn("flex aspect-[16/9] items-center justify-center rounded-none border-0 bg-slate-100", className)}
+    fallback={<Car className="h-10 w-10 text-slate-300" aria-label="Vehicle photo unavailable" />} />;
 }
 
 function savedPreviewKey(error: unknown): string | null {
@@ -157,6 +159,7 @@ function CustomerPreview({ vehicles, onCreated }: { vehicles: PreviewVehicle[]; 
 
 function VehicleDetails({ vehicle }: { vehicle: PreviewVehicleDetails }) {
   return <div className="space-y-3 text-sm">
+    <CarPhoto vehicle={vehicle} className="rounded-lg" />
     {vehicle.description && <p className="whitespace-pre-wrap text-muted-foreground">{vehicle.description}</p>}
     {vehicle.features.length > 0 && <div className="flex flex-wrap gap-2">{vehicle.features.map((feature, i) => <Badge key={`${feature}-${i}`} variant="secondary">{feature}</Badge>)}</div>}
     {vehicle.locations.length > 0 && <details><summary className="cursor-pointer font-medium">Pickup & delivery options</summary><ul className="mt-2 space-y-1 text-muted-foreground">{vehicle.locations.map(location => <li key={location.id}>{location.name}{location.fee ? ` · ${location.fee}` : ""}</li>)}</ul></details>}
@@ -183,6 +186,7 @@ function DraftEditor({ draft, vehicles, onUpdated }: { draft: PreviewDraft; vehi
     return api.patch<{ draft: PreviewDraft }>(`${ROOT}/drafts/${draft.id}`, { carId, ...dates, timezone: draft.timezone, customerName, customerEmail, customerPhone, notes, status, version: draft.version });
   }, onSuccess: () => { setSaved(true); onUpdated(); }, onError: error => { if (savedPreviewKey(error)) onUpdated(); } });
   return <Card><CardHeader><CardTitle className="text-lg">Preview request details</CardTitle></CardHeader><CardContent className="space-y-5">
+    <CarPhoto vehicle={vehicles.find(car => car.carId === carId)} className="max-w-sm rounded-lg" />
     <div className="flex flex-wrap items-center gap-2"><Badge variant="outline">{STATUS_LABELS[draft.status]}</Badge><span className="text-xs text-muted-foreground">Preview only · Revision {draft.version}</span></div>
     <BookingNavigation bookingKey={draft.bookingKey} developerAccess currentView="rental" />
     <form className="space-y-4" onSubmit={e => { e.preventDefault(); save.mutate(); }} onChange={() => setSaved(false)}>
@@ -216,6 +220,7 @@ function DraftSchedule({ drafts, vehicles, view, selectedKey }: { drafts: Previe
     <div className="flex flex-wrap items-center gap-4">{view === "day-schedule" && <div><Label htmlFor="draft-schedule-day">Schedule date ({userTimezone})</Label><Input id="draft-schedule-day" type="date" value={day} onChange={e => setDay(e.target.value)} /></div>}<label className="flex items-center gap-2 text-sm"><Checkbox checked={includeCancelled} onCheckedChange={value => setIncludeCancelled(value === true)} />Show cancelled previews</label></div>
     {rows.length === 0 && <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No preview bookings match this view.</p>}
     {rows.map(draft => <article key={draft.id} className={`space-y-3 rounded-lg border p-4 ${draft.bookingKey === selectedKey ? "border-primary bg-primary/5" : ""}`}>
+      <CarPhoto vehicle={vehicles.find(car => car.carId === draft.carId)} className="w-40 rounded-lg" size={320} />
       <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-medium">{vehicles.find(car => car.carId === draft.carId)?.name ?? `Vehicle #${draft.carId}`}</h3><Badge variant={draft.status === "cancelled" ? "secondary" : "outline"}>{STATUS_LABELS[draft.status]}</Badge></div>
       <p className="text-sm text-muted-foreground">{draft.customerName || "Guest details pending"}</p>
       <div className="grid gap-2 text-sm sm:grid-cols-2"><p>Pickup: {formatBookingDate(draft.startAt, userTimezone)}</p><p>Return: {formatBookingDate(draft.endAt, userTimezone)}</p></div>
@@ -241,7 +246,20 @@ export default function DirectBookingPreviewPage() {
     <Button size="sm" variant="ghost" asChild><Link href="/admin/developer"><ArrowLeft className="mr-2 h-4 w-4" />Back to Developer</Link></Button>
     <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Direct booking previews</h1><p className="mt-1 text-sm text-muted-foreground">Customer and worker workflows rebuilt from the legacy rental pages.</p></div><Badge variant="secondary"><ShieldCheck className="mr-1.5 h-4 w-4" />Developer only</Badge></div>
     <div role="note" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><p className="font-semibold">Private preview — direct bookings are not live.</p><p className="mt-1">Saving or editing a draft does not reserve a vehicle, charge a card, email a customer, or add a Google Calendar event.</p></div>
-    <nav aria-label="Direct booking preview areas" className="flex flex-wrap gap-2">{VIEWS.map(item => <Button key={item.id} size="sm" variant={view === item.id ? "default" : "outline"} asChild><Link href={directBookingPreviewHref(item.id, selectedKey ?? undefined)}>{item.label}</Link></Button>)}</nav>
+    <section aria-labelledby="preview-navigation-heading" className="space-y-3">
+      <div><h2 id="preview-navigation-heading" className="text-base font-semibold">Choose a testing view</h2><p className="text-sm text-muted-foreground">These views share the same saved test requests.</p></div>
+      <nav aria-label="Direct booking preview areas" className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {VIEWS.map(item => {
+          const active = view === item.id, Icon = item.icon;
+          return <Link key={item.id} href={directBookingPreviewHref(item.id, selectedKey ?? undefined)}
+            aria-current={active ? "page" : undefined}
+            className={cn("flex min-w-0 gap-3 rounded-lg border p-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", active ? "border-primary bg-primary/10 ring-1 ring-primary" : "bg-background hover:bg-muted")}>
+            <Icon className="mt-0.5 h-5 w-5 shrink-0" />
+            <span className="min-w-0"><span className="flex flex-wrap items-center gap-2 text-sm font-semibold">{item.label}{active && <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">Current view</span>}</span><span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{item.description}</span></span>
+          </Link>;
+        })}
+      </nav>
+    </section>
     {rawKey && !selectedKey && <ErrorNotice error={new Error("This is not a valid preview booking link.")} />}
     {vehicles.isLoading ? <Loading text="Loading preview vehicles…" /> : vehicles.error ? <ErrorNotice error={vehicles.error} onRetry={() => vehicles.refetch()} /> : view === "customer" ? <CustomerPreview vehicles={vehicles.data?.vehicles ?? []} onCreated={refreshDrafts} /> : <>
       {drafts.isLoading ? <Loading text="Loading saved preview requests…" /> : drafts.error ? <ErrorNotice error={drafts.error} onRetry={() => drafts.refetch()} /> : view === "worker" ? <div className="grid gap-5 xl:grid-cols-[minmax(280px,0.7fr)_minmax(0,1fr)]">
@@ -250,6 +268,7 @@ export default function DirectBookingPreviewPage() {
           <select aria-label="Filter preview request status" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={filter} onChange={e => setFilter(e.target.value)}><option value="all">All preview statuses</option>{Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
           {visibleDrafts.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No preview requests found.</p>}
           {visibleDrafts.map(draft => <Link key={draft.id} href={directBookingPreviewHref("worker", draft.bookingKey)} className={`block rounded-lg border p-3 transition-colors hover:bg-muted ${draft.bookingKey === selectedKey ? "border-primary bg-primary/5" : ""}`}>
+            <CarPhoto vehicle={vehicles.data?.vehicles.find(car => car.carId === draft.carId)} className="mb-2 w-28 rounded-md" size={240} />
             <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-medium">{draft.customerName || "Guest details pending"}</p><Badge variant="outline">{STATUS_LABELS[draft.status]}</Badge></div>
             <p className="mt-1 text-sm text-muted-foreground">{vehicles.data?.vehicles.find(car => car.carId === draft.carId)?.name ?? `Vehicle #${draft.carId}`}</p><p className="mt-1 text-xs text-muted-foreground">{formatBookingDate(draft.startAt, draft.timezone)}</p>
           </Link>)}
