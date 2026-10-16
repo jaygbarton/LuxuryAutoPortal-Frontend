@@ -96,6 +96,17 @@
       "has": [
         {
           "type": "host",
+          "value": "www.goldenluxuryauto.com"
+        }
+      ],
+      "destination": "https://goldenluxuryauto.com/",
+      "permanent": true
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
           "value": "goldenluxuryauto.com"
         }
       ],
