@@ -14,7 +14,7 @@ type Context = {
   submission: { id: number; status: string; carId: number } | null; preview?: boolean;
 };
 type Options = { data: { employees: Option[]; cars: Option[]; categoryFields: Record<string, { value: string; label: string }[]> } };
-type Reading = { receiptUrl: string; amount: number | null; date: string | null; vendor: string | null; receiptNumber: string | null; enteredAt: string | null; exitedAt: string | null; needsManualEntry: boolean; gallons?: number | null; pricePerGallon?: number | null };
+type Reading = { receiptUrl: string; amount: number | null; date: string | null; vendor: string | null; receiptNumber: string | null; enteredAt: string | null; exitedAt: string | null; needsManualEntry: boolean; gallons?: number | null; pricePerGallon?: number | null; readerStatus?: "busy" | "timeout" };
 
 async function responseJson<T>(response: Response): Promise<T> {
   const body = await response.json().catch(() => ({}));
@@ -99,13 +99,18 @@ export function TripReceiptDialog({ taskId, bookingKey, kind = "parking", onClos
         setSavedId(id);
         queryClient.invalidateQueries({ queryKey: ["/api/expense-form-submissions"] });
       }
+      // Assignment is saved with the expense, even if completing the pickup
+      // subsequently fails. Refresh it before the separate status mutation.
+      await queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
       await onComplete?.(id);
       queryClient.removeQueries({ queryKey });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not finish saving. Please retry.");
       // A dropped response can still mean the server saved it. Recover the durable link.
-      void context.refetch();
+      void context.refetch().then(result => {
+        if (result.data?.submission) void queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
+      });
     } finally { setBusy(null); }
   }
 
@@ -125,15 +130,15 @@ export function TripReceiptDialog({ taskId, bookingKey, kind = "parking", onClos
             </select>{!context.data?.carId && <p className="text-xs text-amber-700">The vehicle could not be matched safely. Select it from the list.</p>}</div>
             <div><Label htmlFor="parking-employee">Employee</Label><select id="parking-employee" className="mt-1 h-11 w-full rounded-md border bg-background px-2 text-sm" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required disabled={!!busy}>
               <option value="">Select employee</option>{employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </select><p className="text-xs text-muted-foreground mt-1">{context.data?.employeeId ? "Prefilled from the return assignment." : "Unassigned return — select the employee."}</p></div>
+            </select><p className="text-xs text-muted-foreground mt-1">{context.data?.preview ? "Select the employee for this preview." : context.data?.employeeId || context.data?.employeeName?.trim() ? "Existing task assignments will be kept." : "Submitting assigns this unassigned task to the employee you select."}</p></div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="parking-receipt">Receipt photo</Label>
             <Input ref={inputRef} id="parking-receipt" type="file" accept="image/jpeg,image/png,image/heic,image/heif,image/webp,.heic,.heif" disabled={!!busy} onChange={(e) => { const file = e.target.files?.[0]; if (file) void upload(file); e.target.value = ""; }} />
-            <p className="text-xs text-muted-foreground">Take a photo or choose one from your phone. JPEG, PNG, HEIC or WebP, up to 10 MB.</p>
+            <p className="text-xs text-muted-foreground">Take a photo or choose one from your phone. Include the whole receipt, with the total and date in focus. JPEG, PNG, HEIC or WebP, up to 10 MB.</p>
             {busy === "upload" && <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />Uploading and reading receipt…</p>}
             {reading && <img className="max-h-48 max-w-full rounded border object-contain" src={getProxiedImageUrl(reading.receiptUrl)} alt={`Uploaded ${isFuel ? "gas" : "airport parking"} receipt`} />}
-            {reading?.needsManualEntry ? <p role="alert" className="text-sm text-destructive">Could not reliably read every required field. Please manually enter any missing date or amount and check the receipt.</p> : reading ? <p className="text-sm text-muted-foreground">Date and amount filled from the receipt. Please check them before submitting.</p> : null}
+            {reading?.needsManualEntry ? <p role="alert" className="text-sm text-destructive">{reading.readerStatus === "busy" ? "The receipt reader is busy. Your photo is uploaded; you can select it again to retry, or enter the values below." : reading.readerStatus === "timeout" ? "Reading took too long. Your photo and any readable values are saved in this form." : "Could not reliably read every required field."} Please manually enter any missing date or amount and check the receipt.</p> : reading ? <p className="text-sm text-muted-foreground">Date and amount filled from the receipt. Please check them before submitting.</p> : null}
           </div>
           <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">Please double-check the amount, date, and other values against the receipt before submitting. The receipt reader can make mistakes.</p>
           <div className="grid grid-cols-2 gap-3">

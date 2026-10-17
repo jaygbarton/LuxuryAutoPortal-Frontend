@@ -4,9 +4,9 @@ const image = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQ
 function event(id: number, extra: Record<string, unknown> = {}) {
   return { id, type: "pickup", bookingKey: `turo:${id + 100}`, category: "Pick Up", car_name: `Test Vehicle ${id}`, plate: `TEST${id}`, guest_name: "Test Guest", assigned_to: "Test Worker", assigned_to_id: 41, start_time: "09:00", end_time: null, location: "SLC Airport", status: "new", notes: null, detail: null, reservation_id: `R${id}`, extras: null, trip_start: "09:00", trip_end: "10:00", trip_start_mt: "2026-10-16 09:00", trip_end_mt: "2026-10-17 10:00", pickup_location: "SLC Airport", dropoff_location: "Office", location_tag: "slc", photos: null, car_photo: null, duration_minutes: null, scheduled_day: "2026-10-17", airport_parking_required: true, ...extra };
 }
-async function mock(page: Page, options: { unreadable?: boolean; failStatus?: boolean; unassigned?: boolean; owner?: boolean; nonAirport?: boolean; failUpload?: boolean; dropGasResponse?: boolean } = {}) {
+async function mock(page: Page, options: { unreadable?: boolean; failStatus?: boolean; unassigned?: boolean; owner?: boolean; nonAirport?: boolean; failUpload?: boolean; dropGasResponse?: boolean; myEmployeeId?: number; failSubmit?: boolean } = {}) {
   const calls: { path: string; body: any }[] = [], errors: string[] = [];
-  let saved = false, failed = false;
+  let saved = false, failed = false, myTasksFirst = true;
   const events = options.unassigned ? [1,2,3,4,5].map(id => event(id, { assigned_to: null, assigned_to_id: null })) : [event(19, options.owner ? { type: "owner_dropoff", bookingKey: "owner_rental:19", category: "Drop Off", airport_parking_required: false } : options.nonAirport ? { location: "Office", airport_parking_required: false } : {})];
   page.on("pageerror", e => errors.push(e.message));
   await page.route((url) => url.pathname.startsWith("/api/"), async route => {
@@ -16,15 +16,25 @@ async function mock(page: Page, options: { unreadable?: boolean; failStatus?: bo
     if (isWrite) calls.push({ path, body });
     let result: any = { success: true, data: [], notifications: [], unreadCount: 0 }, status = 200;
     if (path === "/api/auth/me") result = { user: { id: 7, name: "Actual Submitter", roleName: "Admin", isAdmin: true, isSuperAdmin: true, isEmployee: false, isClient: false, effectiveTimezone: "America/Denver" } };
+    else if (path === "/api/me/preferences/day-schedule") {
+      if (isWrite) myTasksFirst = body.myTasksFirst;
+      result = { myTasksFirst, employeeId: options.myEmployeeId ?? 41 };
+    }
     else if (path === "/api/operations/day-schedule") result = { date: "2026-10-17", events, work_shifts: [{ employee_id: 41, fullname: "Test Worker", start_time: "08:00", end_time: "17:00", shift_label: "Operations" }] };
     else if (path === "/api/employees") result = { success: true, data: [{ employee_aid: 41, employee_first_name: "Test", employee_last_name: "Worker", employee_is_active: 1 }, { employee_aid: 42, employee_first_name: "Second", employee_last_name: "Worker", employee_is_active: 1 }] };
     else if (path === "/api/expense-form-submissions/options") result = { data: { currentEmployeeId: 7, isAdmin: true, employees: [{ id: 41, name: "Test Worker" }, { id: 42, name: "Second Worker" }], cars: [{ id: 101, name: "Test Vehicle" }], categoryFields: { reimbursedBills: [{ value: "db_42", label: "Parking Airport" }, { value: "gasReimbursed", label: "Gas Reimbursed" }] } } };
     else if (path.endsWith("/receipt")) {
       if (options.failUpload) { status = 500; result = { error: "Receipt upload failed. Please retry." }; }
       else result = { receiptUrl: "https://storage.googleapis.com/test-bucket/receipts/airport-task-19-00000000-0000-4000-8000-000000000001.jpg", amount: options.unreadable ? null : 5, date: options.unreadable ? null : "2026-10-16", vendor: "SLC International Airport", receiptNumber: "A209", enteredAt: null, exitedAt: null, needsManualEntry: !!options.unreadable };
-    } else if (path.includes("/airport-parking") || path.includes("/return-receipts/")) result = { carId: 101, carName: "Test Vehicle", employeeId: options.unassigned ? null : 41, employeeName: "Test Worker", reservationId: "R19", submission: saved ? { id: 55, status: "pending", carId: 101 } : null };
+    } else if (path.includes("/airport-parking") || path.includes("/return-receipts/")) result = { carId: 101, carName: "Test Vehicle", employeeId: options.unassigned ? null : 41, employeeName: options.unassigned ? null : "Test Worker", reservationId: "R19", submission: saved ? { id: 55, status: "pending", carId: 101 } : null };
     else if (path === "/api/expense-form-submissions" && isWrite) {
+      if (options.failSubmit) return route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "Could not save receipt." }) });
       saved = true; result = { success: true, id: 55 };
+      const source = events.find(e => body.airportPickupTaskId ? e.id === body.airportPickupTaskId : e.bookingKey === body.fuelReturnKey);
+      if (source && !source.assigned_to_id && !source.assigned_to) {
+        source.assigned_to_id = body.employeeId;
+        source.assigned_to = body.employeeId === 42 ? "Second Worker" : "Test Worker";
+      }
       if (body.fuelReturnKey) events.push(event(301, { type: "refuel", category: "Refuel Run", status: "completed", bookingKey: body.fuelReturnKey, airport_parking_required: false }));
       if (options.dropGasResponse && body.fuelReturnKey) return route.abort("failed");
     }
@@ -129,5 +139,64 @@ for (const mobile of [false, true]) test.describe(mobile ? "phone" : "desktop", 
     await region.getByRole("button", { name: "Collapse", exact: true }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
     expect(state.errors).toEqual([]);
+  });
+});
+
+for (const gas of [false, true]) test(`successful ${gas ? "gas" : "parking"} form assigns only its source task to the chosen employee`, async ({ page }) => {
+  const state = await mock(page, { unassigned: true });
+  const region = page.getByRole("region", { name: "Unassigned tasks", exact: true });
+  await region.getByRole("button", { name: "Expand", exact: true }).click();
+  const source = region.locator('[data-booking-key="turo:101"]');
+  await source.getByRole("button", { name: gas ? "Refuel" : "Airport parking receipt", exact: true }).click();
+  await expect(page.getByRole("dialog").getByText(/Submitting assigns this unassigned task/)).toBeVisible();
+  await page.getByLabel("Employee", { exact: true }).selectOption("42");
+  await upload(page);
+  await expect(page.locator('[aria-label="Unassigned tasks"] [data-booking-key="turo:101"]')).toHaveCount(1); // Reading a photo alone must not assign it.
+  await page.getByRole("button", { name: gas ? "Submit gas receipt" : "Submit receipt & complete pickup", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(source).toHaveCount(0);
+  expect(state.calls.find(c => c.path === "/api/expense-form-submissions")?.body.employeeId).toBe(42);
+  expect(state.calls.filter(c => c.path.endsWith("/assign"))).toHaveLength(0); // Assignment is part of the form transaction.
+  await expect(region.locator('[data-booking-key="turo:102"]')).toBeVisible();
+  expect(state.errors).toEqual([]);
+});
+
+test("failed form save leaves the source task unassigned", async ({ page }) => {
+  await mock(page, { unassigned: true, failSubmit: true });
+  const region = page.getByRole("region", { name: "Unassigned tasks", exact: true });
+  await region.getByRole("button", { name: "Expand", exact: true }).click();
+  const source = region.locator('[data-booking-key="turo:101"]');
+  await source.getByRole("button", { name: "Airport parking receipt", exact: true }).click();
+  await page.getByLabel("Employee", { exact: true }).selectOption("42"); await upload(page);
+  await page.getByRole("button", { name: "Submit receipt & complete pickup" }).click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText("Could not save receipt");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(source).toBeVisible();
+});
+
+for (const mobile of [false, true]) test.describe(`saved priority ${mobile ? "phone" : "desktop"}`, () => {
+  test.use({ viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 } });
+  test("automatically shows my tasks first and remembers disabling after a refresh", async ({ page }) => {
+    const state = await mock(page);
+    const checkbox = page.getByRole("checkbox", { name: "My tasks first", exact: true });
+    await expect(checkbox).toBeChecked();
+    const mine = page.getByRole("region", { name: "My tasks", exact: true });
+    await expect(mine.locator('[data-booking-key="turo:119"]')).toBeVisible();
+    const unassigned = page.getByRole("region", { name: "Unassigned tasks", exact: true });
+    expect((await mine.boundingBox())!.y).toBeLessThan((await unassigned.boundingBox())!.y);
+    await checkbox.click(); await expect(checkbox).not.toBeChecked(); await expect(mine).toHaveCount(0);
+    expect(state.calls.find(c => c.path === "/api/me/preferences/day-schedule")?.body).toEqual({ myTasksFirst: false });
+    await page.reload();
+    await expect(checkbox).not.toBeChecked();
+    await expect(mine).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
+  });
+  test("shows Unassigned first when this employee has no tasks", async ({ page }) => {
+    await mock(page, { myEmployeeId: 42 });
+    await expect(page.getByRole("checkbox", { name: "My tasks first", exact: true })).toBeChecked();
+    await expect(page.getByRole("region", { name: "My tasks", exact: true })).toHaveCount(0);
+    const unassigned = page.getByRole("region", { name: "Unassigned tasks", exact: true });
+    const otherTask = page.locator('[data-day-schedule-card][data-booking-key="turo:119"]');
+    expect((await unassigned.boundingBox())!.y).toBeLessThan((await otherTask.boundingBox())!.y);
   });
 });

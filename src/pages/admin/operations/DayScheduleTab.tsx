@@ -1101,13 +1101,36 @@ export function DayScheduleTab() {
   );
   const [entryNotes, setEntryNotes] = useState("");
   const [entryEmployee, setEntryEmployee] = useState<{ id: number | null; name: string }>({ id: null, name: "" });
-  const { data: authData } = useQuery<{ user?: { isAdmin?: boolean; isEmployee?: boolean; isSuperAdmin?: boolean; impersonatorIsAdmin?: boolean } }>({
+  const { data: authData } = useQuery<{ user?: { id?: number; viewAsEmployee?: { employeeId: number }; isAdmin?: boolean; isEmployee?: boolean; isSuperAdmin?: boolean; impersonatorIsAdmin?: boolean } }>({
     queryKey: ["/api/auth/me"],
     queryFn: authMeQueryFn,
     refetchOnMount: "always",
   });
   const canBulkCompleteOldTasks = authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true;
   const isAdmin = authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true || authData?.user?.isEmployee === true;
+  const preferenceKey = ["/api/me/preferences/day-schedule", authData?.user?.id, authData?.user?.viewAsEmployee?.employeeId];
+  const schedulePreference = useQuery<{ myTasksFirst: boolean; employeeId: number | null }>({
+    queryKey: preferenceKey,
+    enabled: !!authData?.user?.id,
+    queryFn: async () => {
+      const response = await fetch(buildApiUrl("/api/me/preferences/day-schedule"), { credentials: "include" });
+      if (!response.ok) throw new Error("Could not load your schedule preference.");
+      return response.json();
+    },
+  });
+  const saveSchedulePreference = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const response = await fetch(buildApiUrl("/api/me/preferences/day-schedule"), {
+        method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ myTasksFirst: enabled }),
+      });
+      if (!response.ok) throw new Error("Your schedule preference could not be saved. Please retry.");
+      return response.json() as Promise<{ myTasksFirst: boolean }>;
+    },
+    onSuccess: result => queryClient.setQueryData(preferenceKey, (previous: typeof schedulePreference.data) => ({ ...previous, ...result })),
+    onError: (error: Error) => toast({ variant: "destructive", title: "Setting not saved", description: error.message }),
+  });
+  const myTasksFirst = saveSchedulePreference.isPending ? saveSchedulePreference.variables : schedulePreference.data?.myTasksFirst ?? true;
 
   const developerAccess = authData?.user?.isSuperAdmin === true;
   const bookingContextQuery = useQuery<{ event: FleetCalendarEvent; timezone: string }>({
@@ -1545,10 +1568,16 @@ export function DayScheduleTab() {
     if (!aHas && bHas) return 1;
     return a.fullname.localeCompare(b.fullname);
   });
+  // Employee IDs come from the staff record, never the unrelated login user ID.
+  const myEmployeeKey = schedulePreference.data?.employeeId ? `id:${schedulePreference.data.employeeId}` : null;
+  const myEvents = myTasksFirst && myEmployeeKey ? assignedMap.get(myEmployeeKey) ?? [] : [];
+  const pinMyTasks = myEvents.length > 0;
+  const unassignedFirst = myTasksFirst && !pinMyTasks;
 
   // Flat, time-sorted list for the Timeline view — every task across every
   // employee in one list, instead of grouped by employee section.
-  const timelineEvents = [...events].sort((a, b) => timeKey(a.start_time).localeCompare(timeKey(b.start_time)));
+  const timelineEvents = events.filter(e => !pinMyTasks || assigneeKey(e) !== myEmployeeKey)
+    .sort((a, b) => timeKey(a.start_time).localeCompare(timeKey(b.start_time)));
   const searchedUnassigned = showAllUnassigned && unassignedSearch.trim()
     ? unassigned.filter((event) => [event.car_name, event.plate, event.guest_name, event.reservation_id, event.category, event.location, event.notes, event.scheduled_day].filter(Boolean).join(" ").toLowerCase().includes(unassignedSearch.trim().toLowerCase()))
     : unassigned;
@@ -1678,6 +1707,14 @@ export function DayScheduleTab() {
         </div>
       </div>
 
+      <label className="flex min-h-11 w-fit cursor-pointer items-center gap-2 text-sm">
+        <input type="checkbox" className="h-4 w-4 accent-primary" checked={myTasksFirst} disabled={saveSchedulePreference.isPending || !schedulePreference.data}
+          onChange={event => saveSchedulePreference.mutate(event.target.checked)} />
+        My tasks first
+        {saveSchedulePreference.isPending && <span className="text-xs text-muted-foreground" role="status">Saving…</span>}
+      </label>
+      {schedulePreference.isError && <p role="alert" className="text-sm text-destructive">Could not load your saved schedule setting. <button className="underline" onClick={() => void schedulePreference.refetch()}>Retry</button></p>}
+
       {showAddEntry && (
         <div id="day-schedule-add-entry" className="border border-border rounded-xl bg-background p-3">
           <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
@@ -1783,7 +1820,14 @@ export function DayScheduleTab() {
       {error && <div className="text-sm text-destructive py-4">Failed to load schedule.</div>}
 
       {!isLoading && !error && (
-        <div className={`flex gap-4 flex-col ${showAllUnassigned ? "" : "lg:flex-row"} items-start`}>
+        <>
+        {pinMyTasks && myEmployeeKey && <section aria-label="My tasks" className="space-y-2">
+          <h3 className="text-sm font-semibold">My tasks</h3>
+          <EmployeeSection empKey={myEmployeeKey} emp={empById.get(myEmployeeKey)!} events={myEvents} date={date}
+            onAssign={assignTo} onStatusChange={handleStatusChange} onAssignEvent={assignEventTo} onUnassignEvent={unassignEvent}
+            onDurationChange={handleDurationChange} onDriverChange={handleDriverChange} onDelete={handleDelete} isAdmin={isAdmin} />
+        </section>}
+        <div className={`flex gap-4 flex-col ${showAllUnassigned || unassignedFirst ? "" : "lg:flex-row"} items-start`}>
 
           {/* Main content: grouped by employee, or a flat timeline */}
           <div className="w-full flex-1 min-w-0 space-y-3">
@@ -1793,7 +1837,7 @@ export function DayScheduleTab() {
                 {activeCategories.size > 0 && <Button variant="outline" className="h-11 sm:h-9" onClick={() => setActiveCategories(new Set())}>Clear filter</Button>}
               </div>
             ) : viewMode === "employee" ? (
-              sortedEmployees.map(([key, emp]) => (
+              sortedEmployees.filter(([key]) => !pinMyTasks || key !== myEmployeeKey).map(([key, emp]) => (
                 <EmployeeSection
                   key={key}
                   empKey={key}
@@ -1832,7 +1876,7 @@ export function DayScheduleTab() {
           </div>
 
           {/* Sidebar */}
-          <div className={`order-first w-full min-w-0 space-y-4 flex-shrink-0 ${showAllUnassigned ? "" : "lg:order-last lg:w-72"}`}>
+          <div className={unassignedFirst ? "contents" : `order-first w-full min-w-0 space-y-4 flex-shrink-0 ${showAllUnassigned ? "" : "lg:order-last lg:w-72"}`}>
 
             {/* Needs assignment — drop here to unassign */}
             <div
@@ -1849,7 +1893,7 @@ export function DayScheduleTab() {
                 const payload = readDragData(e);
                 if (payload) unassign(payload);
               }}
-              className={`border rounded-lg overflow-hidden bg-background transition-colors ${
+              className={`w-full order-first border rounded-lg overflow-hidden bg-background transition-colors ${
                 unassignOver ? "border-primary ring-2 ring-primary/40 bg-primary/5" : "border-border"
               }`}
             >
@@ -1929,7 +1973,7 @@ export function DayScheduleTab() {
             </div>
 
             {/* Legend */}
-            <div className="hidden lg:block border border-border rounded-lg overflow-hidden bg-background">
+            <div className="hidden lg:block order-last w-full border border-border rounded-lg overflow-hidden bg-background">
               <div className="px-3 py-2 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 Legend
               </div>
@@ -1957,7 +2001,7 @@ export function DayScheduleTab() {
 
             {/* Shift roster */}
             {shifts.length > 0 && (
-              <div className="hidden lg:block border border-border rounded-lg overflow-hidden bg-background">
+              <div className="hidden lg:block order-last w-full border border-border rounded-lg overflow-hidden bg-background">
                 <div className="px-3 py-2 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   <User className="w-3 h-3 inline mr-1" />Shift Roster
                 </div>
@@ -1975,6 +2019,7 @@ export function DayScheduleTab() {
             )}
           </div>
         </div>
+        </>
       )}
     </div>
     </ScheduleBookingContext.Provider>
