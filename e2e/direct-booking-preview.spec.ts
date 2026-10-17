@@ -14,8 +14,12 @@ async function fixture(page: Page, options: { developer?: boolean; availability?
   await page.route(url => url.pathname.startsWith("/api/"), async route => {
     const request = route.request(), path = new URL(request.url()).pathname, method = request.method(); requests.push(path);
     let data: unknown = { success: true, data: [], total: 0, notifications: [], unreadCount: 0 };
-    if (method !== "GET") writes.push({ path, method, body: request.postDataJSON() });
+    if (method !== "GET") writes.push({ path, method, body: request.headers()["content-type"]?.includes("application/json") ? request.postDataJSON() : {} });
     if (path === "/api/auth/me") data = { user: { id: 1, fullname: "Preview Developer", email: "developer@example.test", isAdmin: true, isSuperAdmin: options.developer ?? true, isEmployee: false, isClient: false, effectiveTimezone: "America/Denver" } };
+    else if (path === "/api/expense-form-submissions/options") data = { data: { employees: [{ id: 41, name: "Test Worker" }], cars: [{ id: 1, name: car.name }], categoryFields: { reimbursedBills: [{ value: "gasReimbursed", label: "Gas Reimbursed" }] } } };
+    else if (path.startsWith("/api/operations/return-receipts/")) data = path.endsWith("/receipt")
+      ? { receiptUrl: "https://storage.googleapis.com/test-bucket/receipts/preview.jpg", amount: 60, date: "2026-10-16", needsManualEntry: false }
+      : { carId: 1, carName: car.name, employeeId: null, preview: true, submission: null };
     else if (path === `${ROOT}/vehicles`) data = { vehicles: [{ ...car, photo: options.photo ?? car.photo }] };
     else if (path === `${ROOT}/vehicles/1`) data = { vehicle: { ...detail, photo: options.photo ?? detail.photo } };
     else if (path === `${ROOT}/availability`) data = { availability: options.availability ?? clearAvailability };
@@ -50,6 +54,23 @@ test("saved car photos use the schedule proxies and recover from a broken first 
     await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
   }
   expect(mock.writes).toEqual([]); expect(mock.errors).toEqual([]);
+});
+
+test("direct return refuel preview reads the receipt without creating real expenses or completed tasks", async ({ page }) => {
+  const mock = await fixture(page);
+  await page.goto(`/admin/developer/direct-bookings?view=day-schedule&booking=${encodeURIComponent(key)}`);
+  await page.getByLabel("Schedule date", { exact: false }).fill("2026-10-16");
+  await page.getByRole("button", { name: "Refuel", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Gas reimbursed receipt" });
+  await expect(dialog.getByText(/Direct booking preview only/)).toBeVisible();
+  await dialog.getByLabel("Employee", { exact: true }).selectOption("41");
+  await dialog.getByLabel("Receipt photo", { exact: true }).setInputFiles({ name: "test.png", mimeType: "image/png", buffer: Buffer.from("synthetic upload fixture") });
+  await expect(dialog.getByLabel("Amount ($)", { exact: true })).toHaveValue("60.00");
+  await dialog.getByRole("button", { name: "Finish receipt preview" }).click();
+  await expect(dialog.getByText("Receipt preview checked. No expense was created.")).toBeVisible();
+  expect(mock.writes).toHaveLength(1);
+  expect(mock.writes[0].path).toMatch(/\/return-receipts\/.*\/receipt$/);
+  expect(mock.errors).toEqual([]);
 });
 
 test("described testing views keep the selected request and mark the current view", async ({ page }) => {

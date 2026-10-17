@@ -20,6 +20,7 @@ import { formatBookingDate, previewDateRange } from "@/lib/directBookingPreviewD
 import { DIRECT_BOOKING_PREVIEW_API as ROOT, type PreviewAvailability, type PreviewDraft, type PreviewDraftInput, type PreviewDraftStatus, type PreviewVehicle, type PreviewVehicleDetails } from "@/lib/directBookingPreview";
 import { mtDayKey, mtTodayKey, toMtLocalInput } from "@/lib/mt-datetime";
 import { useTimezone } from "@/hooks/use-timezone";
+import { TripReceiptDialog } from "./operations/TripReceiptDialog";
 
 const VIEWS = [
   { id: "customer", label: "Customer booking page", description: "Browse cars and create a test request.", icon: Car },
@@ -209,6 +210,7 @@ function DraftEditor({ draft, vehicles, onUpdated }: { draft: PreviewDraft; vehi
 }
 
 function DraftSchedule({ drafts, vehicles, view, selectedKey }: { drafts: PreviewDraft[]; vehicles: PreviewVehicle[]; view: "calendar" | "day-schedule"; selectedKey: string | null }) {
+  const [fuelDraft, setFuelDraft] = useState<PreviewDraft | null>(null);
   const userTimezone = useTimezone();
   const selected = drafts.find(draft => draft.bookingKey === selectedKey);
   const [day, setDay] = useState(() => selected ? mtDayKey(selected.startAt, selected.timezone) : mtTodayKey(userTimezone));
@@ -216,6 +218,7 @@ function DraftSchedule({ drafts, vehicles, view, selectedKey }: { drafts: Previe
   useEffect(() => { if (selected) setDay(mtDayKey(selected.startAt, selected.timezone)); }, [selected?.id]);
   const rows = drafts.filter(draft => (includeCancelled || draft.status !== "cancelled") && (view === "calendar" || mtDayKey(draft.startAt, userTimezone) <= day && mtDayKey(draft.endAt, userTimezone) >= day)).sort((a, b) => a.startAt.localeCompare(b.startAt));
   return <Card><CardHeader><CardTitle className="flex items-center gap-2 text-lg">{view === "calendar" ? <CalendarDays className="h-5 w-5" /> : <ClipboardList className="h-5 w-5" />}{view === "calendar" ? "Preview booking calendar" : "Preview day schedule"}</CardTitle></CardHeader><CardContent className="space-y-4">
+    {fuelDraft && <TripReceiptDialog kind="gas" bookingKey={fuelDraft.bookingKey} onClose={() => setFuelDraft(null)} />}
     <p className="text-sm text-muted-foreground">Private draft bookings stay in this preview. They are not included in the operational calendar or Google Calendar.</p>
     <div className="flex flex-wrap items-center gap-4">{view === "day-schedule" && <div><Label htmlFor="draft-schedule-day">Schedule date ({userTimezone})</Label><Input id="draft-schedule-day" type="date" value={day} onChange={e => setDay(e.target.value)} /></div>}<label className="flex items-center gap-2 text-sm"><Checkbox checked={includeCancelled} onCheckedChange={value => setIncludeCancelled(value === true)} />Show cancelled previews</label></div>
     {rows.length === 0 && <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">No preview bookings match this view.</p>}
@@ -224,6 +227,7 @@ function DraftSchedule({ drafts, vehicles, view, selectedKey }: { drafts: Previe
       <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-medium">{vehicles.find(car => car.carId === draft.carId)?.name ?? `Vehicle #${draft.carId}`}</h3><Badge variant={draft.status === "cancelled" ? "secondary" : "outline"}>{STATUS_LABELS[draft.status]}</Badge></div>
       <p className="text-sm text-muted-foreground">{draft.customerName || "Guest details pending"}</p>
       <div className="grid gap-2 text-sm sm:grid-cols-2"><p>Pickup: {formatBookingDate(draft.startAt, userTimezone)}</p><p>Return: {formatBookingDate(draft.endAt, userTimezone)}</p></div>
+      {view === "day-schedule" && draft.status !== "cancelled" && mtDayKey(draft.endAt, userTimezone) === day && <Button variant="outline" className="min-h-11" onClick={() => setFuelDraft(draft)}>Refuel</Button>}
       <BookingNavigation bookingKey={draft.bookingKey} currentView={view} developerAccess />
     </article>)}
   </CardContent></Card>;

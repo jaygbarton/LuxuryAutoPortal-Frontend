@@ -18,6 +18,7 @@ import { useTimezone } from "@/hooks/use-timezone";
 import { BookingNavigation } from "@/components/shared/BookingNavigation";
 import { dayScheduleBookingKey, linkedScheduleDate, validScheduleDate } from "@/lib/dayScheduleBooking";
 import type { FleetCalendarEvent } from "@/lib/fleetCalendar";
+import { TripReceiptDialog } from "./TripReceiptDialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ type DayEventType =
   | "trip_start" | "trip_end" | "task_timer";
 
 interface DayEvent {
+  airport_parking_required?: boolean;
   id: number;
   type: DayEventType;
   bookingKey?: string;
@@ -129,6 +131,13 @@ function statusEndpointFor(type: DayEventType, id: number): { url: string; metho
     return { url: `/api/operations/block-off/${id}/status`, method: "PATCH" };
   }
   return null;
+}
+
+function canRefuel(event: DayEvent): boolean {
+  if (!event.bookingKey || /cancel[le]+d/i.test(event.status || "")) return false;
+  return (event.type === "pickup" || event.type === "trip_end" || event.type === "airport") && event.bookingKey.startsWith("turo:")
+    || event.type === "owner_dropoff" && event.bookingKey.startsWith("owner_rental:")
+    || event.type === "trip_end" && event.bookingKey.startsWith("direct_booking:");
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -330,7 +339,7 @@ function DetailLine({ icon, label, value, className = "" }: {
   );
 }
 
-const ScheduleBookingContext = createContext<{ selectedBooking: string | null; developerAccess: boolean; date: string }>({
+const ScheduleBookingContext = createContext<{ selectedBooking: string | null; developerAccess: boolean; date: string; openAirportReceipt?: (event: DayEvent) => void; openFuelReceipt?: (event: DayEvent) => void }>({
   selectedBooking: null, developerAccess: false, date: "",
 });
 
@@ -356,6 +365,7 @@ function EventCard({
   onDelete,
   isAdmin,
   showAssignee = false,
+  quickAssign = false,
 }: {
   event: DayEvent;
   /** The Day Schedule page's selected date ("YYYY-MM-DD"), shown on the card
@@ -367,6 +377,7 @@ function EventCard({
    *  Timeline view, which (unlike the Employee view) has no per-employee
    *  header to convey who a task belongs to. */
   showAssignee?: boolean;
+  quickAssign?: boolean;
   onAssign: (event: DayEvent, employeeId: number, fullname: string) => void;
   onUnassign: (event: DayEvent) => void;
   onDurationChange: (event: DayEvent, minutes: number | null) => void;
@@ -433,6 +444,12 @@ function EventCard({
 
       {/* Content — one vertical rhythm: header → vehicle → where/when → notes → controls */}
       <div className="flex min-w-0 flex-1 flex-col gap-3 px-3 py-3 sm:gap-2 sm:py-2.5">
+        {quickAssign && canEditAssignee && <div onDragStart={(e) => e.stopPropagation()}>
+          <EmployeeSelectCombobox value="" onChange={() => {}} placeholder="Assign to employee" ariaLabel={`Assign ${event.car_name || event.category}`} touchFriendly
+            onSelectEmployee={(employee) => { if (employee) onAssign(event, employee.employee_aid, [employee.employee_first_name, employee.employee_last_name].filter(Boolean).join(" ")); }} />
+        </div>}
+        {canRefuel(event) && <Button type="button" variant="outline" className="h-11 w-fit max-w-full" onClick={() => bookingContext.openFuelReceipt?.(event)}>Refuel</Button>}
+        {event.airport_parking_required && <Button type="button" variant="outline" className="h-11 w-fit max-w-full" onClick={() => bookingContext.openAirportReceipt?.(event)}>Airport parking receipt</Button>}
         {/* Header: task type, status, quick actions, delete */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
@@ -930,10 +947,12 @@ function UnassignedCard({
   event,
   onDelete,
   isAdmin,
+  onAssign,
 }: {
   event: DayEvent;
   onDelete: (event: DayEvent) => void;
   isAdmin: boolean;
+  onAssign: (event: DayEvent, employeeId: number, fullname: string) => void;
 }) {
   const bookingContext = useContext(ScheduleBookingContext);
   const selectedBooking = Boolean(event.bookingKey && event.bookingKey === bookingContext.selectedBooking);
@@ -1022,6 +1041,12 @@ function UnassignedCard({
         )}
         {event.detail && <div className="text-muted-foreground italic break-words">{event.detail}</div>}
         <ScheduleBookingLinks event={event} />
+        {ASSIGNEE_EDITABLE_TYPES.includes(event.type) && <div className="pt-2" onDragStart={(e) => e.stopPropagation()}>
+          <EmployeeSelectCombobox value="" onChange={() => {}} placeholder="Assign to employee" ariaLabel={`Assign ${event.car_name || event.category}`} touchFriendly
+            onSelectEmployee={(employee) => { if (employee) onAssign(event, employee.employee_aid, [employee.employee_first_name, employee.employee_last_name].filter(Boolean).join(" ")); }} />
+        </div>}
+        {canRefuel(event) && <Button type="button" variant="outline" className="h-11 w-fit max-w-full" onClick={() => bookingContext.openFuelReceipt?.(event)}>Refuel</Button>}
+        {event.airport_parking_required && <Button type="button" variant="outline" className="mt-2 h-11 w-full" onClick={() => bookingContext.openAirportReceipt?.(event)}>Airport parking receipt</Button>}
       </div>
     </div>
   );
@@ -1051,6 +1076,9 @@ export function DayScheduleTab() {
   const { toast } = useToast();
   const [unassignOver, setUnassignOver] = useState(false);
   const [showAllUnassigned, setShowAllUnassigned] = useState(false);
+  const [unassignedSearch, setUnassignedSearch] = useState("");
+  const [fuelReturn, setFuelReturn] = useState<DayEvent | null>(null);
+  const [parkingTask, setParkingTask] = useState<{ event: DayEvent; status: string; completedDate?: string } | null>(null);
   // Clicking a category badge/legend entry toggles it into this set to filter
   // the task list down to just that category; click again to clear. Empty
   // set = no filter (show everything), matching today's default behavior.
@@ -1360,14 +1388,14 @@ export function DayScheduleTab() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: async ({ type, id, status, completedDate }: { type: DayEventType; id: number; status: string; completedDate?: string }) => {
+    mutationFn: async ({ type, id, status, completedDate, airportParkingSubmissionId }: { type: DayEventType; id: number; status: string; completedDate?: string; airportParkingSubmissionId?: number }) => {
       const endpoint = statusEndpointFor(type, id);
       if (!endpoint) throw new Error("Cannot update status for this event type");
       const res = await fetch(buildApiUrl(endpoint.url), {
         method: endpoint.method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ status, ...(completedDate ? { completedDate } : {}) }),
+        body: JSON.stringify({ status, ...(completedDate ? { completedDate } : {}), ...(airportParkingSubmissionId ? { airportParkingSubmissionId } : {}) }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -1400,6 +1428,11 @@ export function DayScheduleTab() {
   });
 
   function handleStatusChange(type: DayEventType, id: number, status: string, completedDate?: string) {
+    const event = data?.events.find((e) => e.id === id && e.type === type);
+    if (event?.airport_parking_required && (status === "completed" || status === "delivered")) {
+      setParkingTask({ event, status, completedDate });
+      return;
+    }
     statusMutation.mutate({ type, id, status, completedDate });
   }
 
@@ -1516,6 +1549,9 @@ export function DayScheduleTab() {
   // Flat, time-sorted list for the Timeline view — every task across every
   // employee in one list, instead of grouped by employee section.
   const timelineEvents = [...events].sort((a, b) => timeKey(a.start_time).localeCompare(timeKey(b.start_time)));
+  const searchedUnassigned = showAllUnassigned && unassignedSearch.trim()
+    ? unassigned.filter((event) => [event.car_name, event.plate, event.guest_name, event.reservation_id, event.category, event.location, event.notes, event.scheduled_day].filter(Boolean).join(" ").toLowerCase().includes(unassignedSearch.trim().toLowerCase()))
+    : unassigned;
   const oldNormalUnassignedCount = unassigned.filter((event) =>
     (event.type === "pickup" || event.type === "delivery" || event.type === "cleaning") &&
     event.scheduled_day != null &&
@@ -1560,8 +1596,16 @@ export function DayScheduleTab() {
   }, {});
 
   return (
-    <ScheduleBookingContext.Provider value={{ selectedBooking, developerAccess, date }}>
+    <ScheduleBookingContext.Provider value={{ selectedBooking, developerAccess, date, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
     <div className="min-w-0 space-y-4">
+      {fuelReturn?.bookingKey && <TripReceiptDialog key={fuelReturn.bookingKey} kind="gas" bookingKey={fuelReturn.bookingKey} onClose={() => setFuelReturn(null)} onComplete={async () => {
+        await queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
+        toast({ title: "Gas receipt submitted", description: "Refuel Run completed. Receipt saved for expense approval." });
+      }} />}
+      {parkingTask && <TripReceiptDialog key={parkingTask.event.id} taskId={parkingTask.event.id} onClose={() => setParkingTask(null)} onComplete={async (submissionId) => {
+        await statusMutation.mutateAsync({ type: parkingTask.event.type, id: parkingTask.event.id, status: parkingTask.status, completedDate: parkingTask.completedDate, airportParkingSubmissionId: submissionId });
+        toast({ title: "Pickup completed", description: "Parking receipt saved for expense approval." });
+      }} />}
       {selectedBooking && (
         <section aria-label="Selected booking" className="space-y-2 rounded-xl border border-primary/40 bg-primary/5 p-3">
           {bookingContextQuery.isLoading ? <p className="text-sm" role="status">Loading selected booking…</p> : bookingContextQuery.isError ? (
@@ -1739,7 +1783,7 @@ export function DayScheduleTab() {
       {error && <div className="text-sm text-destructive py-4">Failed to load schedule.</div>}
 
       {!isLoading && !error && (
-        <div className="flex gap-4 flex-col lg:flex-row items-start">
+        <div className={`flex gap-4 flex-col ${showAllUnassigned ? "" : "lg:flex-row"} items-start`}>
 
           {/* Main content: grouped by employee, or a flat timeline */}
           <div className="w-full flex-1 min-w-0 space-y-3">
@@ -1788,10 +1832,11 @@ export function DayScheduleTab() {
           </div>
 
           {/* Sidebar */}
-          <div className={`order-first w-full min-w-0 space-y-4 flex-shrink-0 lg:order-last lg:w-72 ${viewMode === "timeline" ? "hidden lg:block" : ""}`}>
+          <div className={`order-first w-full min-w-0 space-y-4 flex-shrink-0 ${showAllUnassigned ? "" : "lg:order-last lg:w-72"}`}>
 
             {/* Needs assignment — drop here to unassign */}
             <div
+              role="region" aria-label="Unassigned tasks"
               onDragOver={(e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "move";
@@ -1813,6 +1858,9 @@ export function DayScheduleTab() {
                   <span>Needs Assignment</span>
                 </div>
                 <div className="flex items-center gap-1.5">
+                  <Button type="button" variant="outline" className="h-11 px-2 text-xs normal-case tracking-normal" aria-expanded={showAllUnassigned} aria-controls="unassigned-task-list" onClick={() => setShowAllUnassigned((value) => !value)}>
+                    {showAllUnassigned ? "Collapse" : "Expand"}
+                  </Button>
                   {canBulkCompleteOldTasks && oldNormalUnassignedCount > 0 && (
                     <Badge variant="outline" className="border-emerald-300 bg-emerald-50 px-1.5 py-0 text-[10px] text-emerald-800">
                       {oldNormalUnassignedCount} old
@@ -1837,18 +1885,26 @@ export function DayScheduleTab() {
                   )}
                 </div>
               </div>
-              <div className="p-2 space-y-2 lg:max-h-80 lg:overflow-y-auto">
+              {showAllUnassigned && <div className="space-y-2 border-b p-3">
+                <label htmlFor="unassigned-search" className="text-sm font-medium">Search unassigned tasks</label>
+                <div className="flex gap-2"><input id="unassigned-search" type="search" value={unassignedSearch} onChange={(e) => setUnassignedSearch(e.target.value)} placeholder="Vehicle, plate, reservation, location…" className="h-11 min-w-0 flex-1 rounded-md border bg-background px-3 text-base" />
+                  {unassignedSearch && <Button variant="outline" className="h-11" onClick={() => setUnassignedSearch("")}>Clear</Button>}
+                </div>
+                <p className="text-xs text-muted-foreground">{searchedUnassigned.length} of {unassigned.length} unassigned tasks · Select an employee on a task to assign it.</p>
+              </div>}
+              <div id="unassigned-task-list" className={showAllUnassigned ? "grid gap-3 p-3 xl:grid-cols-2" : "p-2 space-y-2 lg:max-h-80 lg:overflow-y-auto"}>
                 {unassigned.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-3">
                     {unassignOver ? "Drop to unassign" : <><span className="lg:hidden">All events assigned ✓</span><span className="hidden lg:inline">All events assigned ✓ — drag a task here to unassign</span></>}
                   </p>
                 ) : (
-                  unassigned.map((e, index) => (
+                  searchedUnassigned.map((e, index) => (
                     <div key={`${e.type}-${e.id}`} className={index >= 3 && !showAllUnassigned && e.bookingKey !== selectedBooking ? "hidden lg:block" : ""}>
-                      <div className="lg:hidden">
+                      <div className={showAllUnassigned ? "" : "lg:hidden"}>
                         <EventCard
                           event={e}
                           date={date}
+                          quickAssign
                           onStatusChange={handleStatusChange}
                           onAssign={assignEventTo}
                           onUnassign={unassignEvent}
@@ -1858,11 +1914,12 @@ export function DayScheduleTab() {
                           isAdmin={isAdmin}
                         />
                       </div>
-                      <div className="hidden lg:block"><UnassignedCard event={e} onDelete={handleDelete} isAdmin={isAdmin} /></div>
+                      {!showAllUnassigned && <div className="hidden lg:block"><UnassignedCard event={e} onDelete={handleDelete} isAdmin={isAdmin} onAssign={assignEventTo} /></div>}
                     </div>
                   ))
                 )}
-                {unassigned.length > 3 && (
+                {unassigned.length > 0 && searchedUnassigned.length === 0 && <p className="p-3 text-sm text-muted-foreground">No unassigned tasks match your search.</p>}
+                {unassigned.length > 3 && !showAllUnassigned && (
                   <Button type="button" variant="ghost" className="h-11 w-full text-sm lg:hidden" aria-expanded={showAllUnassigned} onClick={() => setShowAllUnassigned((show) => !show)}>
                     {showAllUnassigned ? "Show fewer unassigned tasks" : `Show all ${unassigned.length} unassigned tasks`}
                     <ChevronDown className={`h-4 w-4 transition-transform ${showAllUnassigned ? "rotate-180" : ""}`} />

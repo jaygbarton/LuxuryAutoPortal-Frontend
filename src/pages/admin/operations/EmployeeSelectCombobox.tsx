@@ -41,6 +41,8 @@ interface EmployeeSelectComboboxProps {
   onSelectEmployee?: (employee: EmployeeOption | null) => void;
   placeholder?: string;
   disabled?: boolean;
+  ariaLabel?: string;
+  touchFriendly?: boolean;
 }
 
 function displayName(e: EmployeeOption): string {
@@ -57,6 +59,8 @@ export function EmployeeSelectCombobox({
   onSelectEmployee,
   placeholder = "Select an employee...",
   disabled,
+  ariaLabel,
+  touchFriendly,
 }: EmployeeSelectComboboxProps) {
   const [open, setOpen] = useState(false);
 
@@ -89,8 +93,9 @@ export function EmployeeSelectCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-label={ariaLabel}
           disabled={disabled}
-          className="w-full min-w-0 justify-between bg-card border-border text-foreground hover:bg-card hover:text-foreground font-normal"
+          className={cn("w-full min-w-0 justify-between bg-card border-border text-foreground hover:bg-card hover:text-foreground font-normal", touchFriendly && "min-h-11")}
         >
           <span className="truncate">{value || placeholder}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -122,7 +127,7 @@ export function EmployeeSelectCombobox({
                       onSelectEmployee?.(e);
                       setOpen(false);
                     }}
-                    className="text-foreground data-[selected=true]:bg-primary/20 data-[selected=true]:text-foreground cursor-pointer"
+                    className={cn("text-foreground data-[selected=true]:bg-primary/20 data-[selected=true]:text-foreground cursor-pointer", touchFriendly && "min-h-11")}
                   >
                     <Check
                       className={cn(
