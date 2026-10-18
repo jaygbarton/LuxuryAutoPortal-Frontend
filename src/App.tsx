@@ -12,6 +12,7 @@ import { RequireRole } from "@/components/admin/require-role";
 import { PublicPageGate } from "@/components/public-page-gate";
 import { PUBLIC_LOCATIONS, rememberPublicLocationFromPath } from "@/lib/location-config";
 import DashboardRouter from "@/pages/dashboard-router";
+import { NativePortalIntegration } from "@/components/NativePortalIntegration";
 
 const Home = lazy(() => import("@/pages/home"));
 const Fleet = lazy(() => import("@/pages/fleet"));
@@ -187,20 +188,6 @@ const legacyCarRoute = (section: "detail" | "income" | "expenses" | "depreciatio
 
 function Router() {
   const [currentPath] = useLocation();
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const isNativeShell =
-      Boolean((window as any).Capacitor?.isNativePlatform?.()) ||
-      /GLA-Portal-App|Capacitor/i.test(window.navigator.userAgent);
-
-    document.documentElement.classList.toggle("native-app-shell", isNativeShell);
-
-    return () => {
-      document.documentElement.classList.remove("native-app-shell");
-    };
-  }, []);
 
   useEffect(() => {
     rememberPublicLocationFromPath(currentPath);
@@ -735,6 +722,7 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
+        <NativePortalIntegration />
         <TooltipProvider>
           <TutorialProvider>
             <Toaster />
