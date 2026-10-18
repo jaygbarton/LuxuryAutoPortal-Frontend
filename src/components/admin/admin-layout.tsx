@@ -1017,12 +1017,13 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   const mobileDestinations = useMemo(() => {
     const home = sidebarItems.find(item => item.href === "/staff/dashboard" || item.href === "/dashboard");
     const schedule = sidebarItems.flatMap(item => item.children ?? []).find(item => item.href === "/admin/operations?tab=day-schedule");
-    const calendar = sidebarItems.find(item => item.href === "/admin/trip-calendar");
+    const timeClock = sidebarItems.flatMap(item => [item, ...(item.children ?? [])])
+      .find(item => item.href === "/staff/time" || item.href === "/admin/hr/time");
     const forms = sidebarItems.find(item => item.href === "/staff/forms" || item.href === "/admin/forms");
     return [
       home && { ...home, label: "Home", icon: LayoutDashboard },
       schedule && { ...schedule, label: "Schedule", icon: ClipboardList },
-      calendar && { ...calendar, label: "Calendar", icon: CalendarDays },
+      timeClock && { ...timeClock, label: "Time Clock", icon: Clock },
       forms && { ...forms, label: "Forms", icon: FileText },
     ].filter(Boolean) as SidebarItem[];
   }, [sidebarItems]);
