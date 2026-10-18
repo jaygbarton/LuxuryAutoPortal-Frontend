@@ -51,9 +51,9 @@ export default function StaffTuroGuide() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6 p-4 md:p-6">
+      <div className="staff-page min-w-0 space-y-4 sm:space-y-6 sm:p-4 md:p-6">
         <div>
-          <h1 className="text-2xl font-semibold text-primary flex items-center gap-2">
+          <h1 className="text-2xl font-semibold text-foreground flex items-center gap-2">
             <Map className="w-6 h-6" />
             Turo Guide
           </h1>

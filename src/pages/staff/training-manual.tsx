@@ -80,7 +80,7 @@ export default function StaffTrainingManual() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="staff-page min-w-0 space-y-4 sm:space-y-6">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">System Tutorial</h1>
           <p className="text-muted-foreground">Employee onboarding and how to use the GLA portal—guided tutorial and step-by-step videos.</p>

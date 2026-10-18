@@ -25,6 +25,7 @@ import {
   OperationLocationFilterProvider,
 } from "./operations/OperationLocationFilter";
 import { useCoHostLocationTags } from "@/hooks/use-co-host";
+import { WorkScheduleNavigation } from "@/components/shared/WorkScheduleNavigation";
 
 const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "towing-impound", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "day-schedule", "tv-timeline"] as const;
 type TabId = typeof TAB_IDS[number];
@@ -110,7 +111,7 @@ export default function OperationsPage() {
   return (
     <AdminLayout>
       <div className="flex min-w-0 flex-col">
-        <div className="mb-4 sm:mb-6">
+        <div className={activeTab === "day-schedule" ? "sr-only sm:not-sr-only sm:mb-6" : "mb-3 sm:mb-6"}>
           <h1 className="text-xl font-semibold text-foreground sm:text-2xl">Operations</h1>
           <p className="hidden text-sm text-muted-foreground mt-1 sm:block">
             Vehicle operations workflow — trips, tasks, inspections, and maintenance.
@@ -119,11 +120,12 @@ export default function OperationsPage() {
 
         <OperationLocationFilterProvider value={locationFilter}>
         <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <div className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between">
-            <div className="min-w-0 sm:hidden">
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Section</label>
+          {activeTab === "day-schedule" && <WorkScheduleNavigation className="mb-3" />}
+          <div className={`mb-3 gap-2 sm:mb-4 sm:flex sm:items-center sm:justify-between ${activeTab === "day-schedule" ? "flex justify-end" : "grid grid-cols-2"}`}>
+            <div className={activeTab === "day-schedule" ? "hidden" : "min-w-0 sm:hidden"}>
+              <label className="sr-only">Section</label>
               <Select value={activeTab} onValueChange={handleTabChange}>
-                <SelectTrigger aria-label="Operations section" className="w-full min-w-0">
+                <SelectTrigger aria-label="Operations section" className="h-11 w-full min-w-0 rounded-xl bg-card text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -133,10 +135,10 @@ export default function OperationsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="min-w-0 sm:ml-auto">
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground sm:sr-only">Location</label>
+            <div className={`min-w-0 sm:ml-auto ${activeTab === "day-schedule" ? "w-44 sm:w-auto" : ""}`}>
+            <label className="sr-only">Location</label>
             <Select value={locationFilter} onValueChange={(value) => setLocationFilter(value as OperationLocationFilter)}>
-              <SelectTrigger aria-label="Operations location" className="w-full min-w-0 sm:h-9 sm:w-48">
+              <SelectTrigger aria-label="Operations location" className="h-11 w-full min-w-0 rounded-xl bg-card text-xs sm:h-9 sm:w-48 sm:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

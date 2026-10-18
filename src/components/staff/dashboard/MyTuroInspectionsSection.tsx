@@ -175,7 +175,7 @@ export default function MyTuroInspectionsSection() {
   function clearAll() { setSearch(""); setStatusFilter("all"); setRangeFrom(""); setRangeTo(""); }
 
   return (
-    <div className="mb-8">
+    <div className="mb-4 min-w-0 sm:mb-8">
       <SectionHeader title="TURO MESSAGES / INSPECTIONS" />
 
       <div className="flex flex-wrap items-center gap-2 mb-3 mt-2">
@@ -191,7 +191,7 @@ export default function MyTuroInspectionsSection() {
           <SearchableOption value="all">All Statuses</SearchableOption>
           {INSPECTION_STATUS_OPTIONS.map(s => <SearchableOption searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>{s.label}</SearchableOption>)}
         </SearchableNativeSelect>
-        <div className="flex items-center gap-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-1">
           <span className="text-xs text-gray-500 whitespace-nowrap">Trip Start/End From</span>
           <input type="date" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)}
             className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />

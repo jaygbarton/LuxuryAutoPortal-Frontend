@@ -191,7 +191,7 @@ export default function MyWorkScheduleSection() {
   })();
 
   return (
-    <div className="mb-8">
+    <div className="mb-4 min-w-0 sm:mb-8">
       <SectionHeader
         title="WORK SCHEDULE"
         subtitle="Your assigned shifts for the selected month."

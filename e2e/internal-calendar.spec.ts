@@ -300,3 +300,164 @@ test("staff can read Google status and open the real scheduled appointment witho
   await expect(page.getByRole("dialog").getByRole("link", { name: "Open maintenance appointment", exact: true }))
     .toHaveAttribute("href", "/admin/operations?tab=maintenance&appointment=5");
 });
+
+for (const width of [360, 390, 430]) {
+  test(`mobile ${width}: agenda contains every record, filters stay accessible, and booking links fit`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    const mock = await mockCalendar(page, { employee: true });
+    await page.goto(calendarUrl);
+    const calendar = page.getByTestId("fleet-calendar");
+    const agenda = calendar.getByTestId("fleet-calendar-agenda");
+    await expect(agenda).toBeVisible();
+    await expect(agenda.getByRole("button")).toHaveCount(9);
+    expect((await agenda.getByRole("button").first().boundingBox())!.y).toBeLessThanOrEqual(500);
+    await expect.poll(() => calendar.getByRole("textbox", { name: "Search vehicle or plate" }).evaluate((input) => parseFloat(getComputedStyle(input).fontSize))).toBeGreaterThanOrEqual(16);
+    if (width === 390) await page.screenshot({ path: "/tmp/gla-calendar-mobile-top.png", fullPage: false, animations: "disabled" });
+    await expect(agenda.getByRole("button", { name: "Inspection without dates · Mercedes-Benz GLS", exact: true })).toBeVisible();
+    await expect(agenda.getByRole("button", { name: "Open-ended owner use · BMW X5", exact: true })).toContainText("Ongoing / no end recorded");
+    const coverage = calendar.getByRole("button", { name: "Calendar coverage needs attention.", exact: true });
+    await expect(coverage).toHaveAttribute("aria-expanded", "false");
+    await coverage.click();
+    await expect(page.getByText("An empty period does not confirm that a vehicle is available for booking.")).toBeVisible();
+    await expect(page.getByText("One reservation has not been matched to a vehicle.")).toBeVisible();
+    await coverage.click();
+    await expect(page.getByRole("button", { name: "Sync now", exact: true })).toHaveCount(0);
+    await calendar.getByRole("button", { name: "Google sync details", exact: true }).click();
+    await expect(calendar.getByText("Last Google import:", { exact: true })).toBeVisible();
+    await calendar.getByRole("button", { name: "Google sync details", exact: true }).click();
+    await calendar.getByRole("button", { name: "Calendar filters", exact: true }).click();
+    const filterSheet = page.getByRole("dialog", { name: "Calendar filters", exact: true });
+    await expect(filterSheet).toBeVisible();
+    await expect(filterSheet.getByRole("button", { name: "Agenda", exact: true })).toHaveAttribute("aria-pressed", "true");
+    const closeBounds = await filterSheet.getByRole("button", { name: "Close filters" }).boundingBox();
+    const filterBounds = await filterSheet.boundingBox();
+    expect(closeBounds!.x).toBeGreaterThan(width - 65);
+    expect(closeBounds!.y - filterBounds!.y).toBeLessThan(20);
+    if (width === 390) await page.screenshot({ path: "/tmp/gla-calendar-mobile-filters.png", fullPage: false, animations: "disabled" });
+    await expect(filterSheet.getByRole("checkbox", { name: "Scheduled maintenance", exact: true })).toBeVisible();
+    await filterSheet.getByRole("checkbox", { name: "Show cancelled trips", exact: true }).click();
+    await filterSheet.getByRole("button", { name: "Show 8 events", exact: true }).click();
+    await expect(agenda.getByRole("button")).toHaveCount(8);
+    await expect(agenda.getByRole("button", { name: "Cancelled · Cancelled Turo trip · Volvo XC90", exact: true })).toHaveCount(0);
+    await expect(calendar.getByRole("button", { name: "Calendar filters, 1 active", exact: true })).toBeVisible();
+    await calendar.getByRole("textbox", { name: "Search vehicle or plate" }).fill("XYZ789");
+    await expect(agenda.getByRole("button")).toHaveCount(1);
+    await calendar.getByRole("textbox", { name: "Search vehicle or plate" }).fill("");
+    const eventButton = agenda.getByRole("button", { name: "Active Turo trip · Mercedes-Benz GLS", exact: true });
+    const bounds = await eventButton.boundingBox();
+    expect(bounds!.height).toBeGreaterThanOrEqual(44);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+    await eventButton.click();
+    const detail = page.getByRole("dialog", { name: "Active Turo trip", exact: true });
+    await expect(detail.getByRole("link", { name: "Day schedule", exact: true })).toHaveAttribute("href", "/admin/operations?booking=turo%3A1&date=2026-10-13&tab=day-schedule");
+    await expect(detail.getByRole("link", { name: "Car rental preview", exact: true })).toHaveCount(0);
+    const dialogBounds = await detail.boundingBox();
+    expect(dialogBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(dialogBounds!.x + dialogBounds!.width).toBeLessThanOrEqual(width);
+    await detail.getByRole("button", { name: "Close", exact: true }).click();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: `/tmp/gla-calendar-mobile-${width}.png`, fullPage: false, animations: "disabled" });
+    await calendar.getByRole("button", { name: /^Calendar filters/ }).click();
+    await filterSheet.getByRole("button", { name: "Timeline", exact: true }).click();
+    await filterSheet.getByRole("button", { name: /^Show \d+ events$/ }).click();
+    await expect(calendar.getByTestId("fleet-calendar-timeline")).toBeVisible();
+    const appointmentBounds = await calendar.getByTestId("fleet-calendar-timeline").getByRole("button", { name: "Oil change appointment · Mercedes-Benz GLS", exact: true }).boundingBox();
+    expect(appointmentBounds!.width).toBeGreaterThanOrEqual(44);
+    expect(appointmentBounds!.height).toBeGreaterThanOrEqual(44);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(mock.mutations).toEqual([]);
+    expect(mock.errors).toEqual([]);
+  });
+}
+
+test("mobile keeps Google errors visible when sync details are collapsed", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockCalendar(page, { firstGoogleSync: true, importError: "invalid_grant: The refresh token has expired." });
+  await page.goto(calendarUrl);
+  const status = page.getByRole("region", { name: "Google Calendar status" });
+  await expect(status.getByRole("button", { name: "Google sync details" })).toHaveAttribute("aria-expanded", "false");
+  await expect(status.getByText("Google import failed: invalid_grant: The refresh token has expired.", { exact: true })).toBeVisible();
+  await status.getByRole("button", { name: "Google sync details" }).click();
+  await expect(status.getByRole("button", { name: "Sync now", exact: true })).toBeEnabled();
+});
+
+test("mobile History defaults to the last 30 days, keeps confirmed past records, and preserves review warnings", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.clock.setFixedTime(new Date("2026-10-18T18:00:00Z"));
+  const mock = await mockCalendar(page, { employee: true });
+  await page.route("**/api/internal-calendar/events?*", async (route) => {
+    mock.requests.push(new URL(route.request().url()));
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({
+      ...response(), role: "employee", events: [
+        ...events,
+        event("turo", 20, "Future rental", { start: "2026-10-19T15:00:00Z", end: "2026-10-21T15:00:00Z" }),
+        event("turo", 21, "Invalid reversed dates", { start: "2026-10-17T15:00:00Z", end: "2026-10-15T15:00:00Z" }),
+        event("turo", 22, "Invalid missing start", { start: null, end: "2026-10-15T15:00:00Z" }),
+        event("turo", 23, "Ended outside selected range", { start: "2026-09-15T15:00:00Z", end: "2026-09-18T15:00:00Z" }),
+        event("turo", 24, "Invalid zero duration", { start: "2026-10-15T15:00:00Z", end: "2026-10-15T15:00:00Z" }),
+      ],
+    }) });
+  });
+  await page.goto("/admin/trip-calendar?view=history");
+  const calendar = page.getByTestId("fleet-calendar");
+  await expect(calendar.getByRole("heading", { name: "History", exact: true })).toHaveText("History");
+  const tabs = calendar.getByRole("navigation", { name: "Work schedule views" });
+  await expect(tabs.getByRole("link", { name: "History", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(tabs.getByRole("link", { name: "Day Schedule", exact: true })).toHaveAttribute("href", "/admin/operations?tab=day-schedule");
+  await calendar.getByRole("button", { name: /^Change date range/ }).click();
+  await expect(page.getByLabel("From", { exact: true })).toHaveValue("2026-09-19");
+  await expect(page.getByLabel("To", { exact: true })).toHaveValue("2026-10-18");
+  await page.getByRole("button", { name: "Close filters", exact: true }).click();
+  await expect(calendar.getByTestId("history-range-description")).toContainText("2026-09-19 through 2026-10-18");
+  const agenda = calendar.getByTestId("fleet-calendar-agenda");
+  await expect(agenda.getByRole("button")).toHaveCount(7);
+  for (const absent of ["Future rental", "Invalid reversed dates", "Invalid missing start", "Ended outside selected range", "Invalid zero duration", "Inspection without dates", "Open-ended owner use"]) {
+    await expect(agenda.getByRole("button", { name: new RegExp(absent) })).toHaveCount(0);
+  }
+  await expect(agenda.getByRole("button", { name: "Active Turo trip · Mercedes-Benz GLS", exact: true })).toContainText("booked");
+  await expect(calendar.getByText("5 date records need review", { exact: true })).toBeVisible();
+  const historyCoverage = calendar.getByRole("button", { name: "Calendar coverage needs attention.", exact: true });
+  await historyCoverage.click();
+  await expect(calendar.getByText("5 records have unconfirmed or open-ended dates and are not classified as past.", { exact: false })).toBeVisible();
+  await historyCoverage.click();
+  await calendar.getByRole("button", { name: "Calendar filters", exact: true }).click();
+  const filters = page.getByRole("dialog", { name: "Calendar filters", exact: true });
+  await filters.getByRole("checkbox", { name: "Show cancelled trips", exact: true }).click();
+  await filters.getByRole("button", { name: "Show 6 events", exact: true }).click();
+  await expect(agenda.getByRole("button")).toHaveCount(6);
+  expect((await agenda.getByRole("button").first().boundingBox())!.y).toBeLessThanOrEqual(500);
+  await page.screenshot({ path: "/tmp/gla-calendar-history-mobile.png", animations: "disabled" });
+  expect(mock.requests.some((url) => url.searchParams.get("from") === "2026-09-19" && url.searchParams.get("to") === "2026-10-18")).toBe(true);
+  expect(mock.mutations).toEqual([]);
+});
+
+test("mobile Calendar and History tabs reset their own date windows on query-only navigation", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.clock.setFixedTime(new Date("2026-10-18T18:00:00Z"));
+  await mockCalendar(page, { employee: true });
+  await page.goto(calendarUrl);
+  const calendar = page.getByTestId("fleet-calendar");
+  const tabs = calendar.getByRole("navigation", { name: "Work schedule views" });
+  await tabs.getByRole("link", { name: "History", exact: true }).click();
+  await expect(page).toHaveURL(/view=history/);
+  await calendar.getByRole("button", { name: /^Change date range/ }).click();
+  await expect(page.getByLabel("From", { exact: true })).toHaveValue("2026-09-19");
+  await expect(page.getByLabel("To", { exact: true })).toHaveValue("2026-10-18");
+  await page.getByRole("button", { name: "Close filters", exact: true }).click();
+  await tabs.getByRole("link", { name: "Calendar", exact: true }).click();
+  await expect(tabs.getByRole("link", { name: "Calendar", exact: true })).toHaveAttribute("aria-current", "page");
+  await calendar.getByRole("button", { name: /^Change date range/ }).click();
+  await expect(page.getByLabel("From", { exact: true })).toHaveValue("2026-10-15");
+  await expect(page.getByLabel("To", { exact: true })).toHaveValue("2026-11-07");
+  await page.getByRole("button", { name: "Close filters", exact: true }).click();
+  await page.goto("/admin/trip-calendar?view=history&from=2026-10-13&to=2026-10-14");
+  await calendar.getByRole("button", { name: /^Change date range/ }).click();
+  await expect(page.getByLabel("From", { exact: true })).toHaveValue("2026-10-13");
+  await expect(page.getByLabel("To", { exact: true })).toHaveValue("2026-10-14");
+  await expect(page.getByRole("dialog").getByRole("button", { name: "Show 1 events", exact: true })).toBeVisible();
+  await page.getByLabel("To", { exact: true }).fill("2026-10-12");
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText("Choose valid dates in order");
+  await page.getByLabel("To", { exact: true }).fill("2026-10-15");
+  await page.getByRole("dialog").getByRole("button", { name: "Show 7 events", exact: true }).click();
+  await expect(calendar.getByTestId("fleet-calendar-agenda").getByRole("button")).toHaveCount(7);
+});

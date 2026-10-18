@@ -147,7 +147,7 @@ export default function EarningsHistorySection() {
   const monthlyTotal = monthly.reduce((s, v) => s + v, 0);
 
   return (
-    <div className="mb-8">
+    <div className="mb-4 min-w-0 sm:mb-8">
       <SectionHeader title="TOTAL EARNINGS" />
 
       {/* Year filter */}

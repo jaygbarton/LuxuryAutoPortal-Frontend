@@ -7,7 +7,7 @@ const clearAvailability = { status: "clear", complete: true, canConfirm: false, 
 const car = { carId: 1, name: "2024 Mercedes-Benz GLS", year: 2024, make: "Mercedes-Benz", specs: "GLS", photo: null, city: "Salt Lake City", state: "UT", baseDailyRate: 175, isListed: true };
 const detail = { ...car, description: "Synthetic vehicle description", guidelines: "Return with fuel.", features: ["All-wheel drive", "Bluetooth"], faq: [{ question: "Is this a live booking?", answer: "No. This is a private preview." }], locations: [{ id: 1, name: "SLC Airport", fee: "Review required" }], extras: [{ id: 1, type: "Child seat", description: "Request only", price: null }] };
 const baseDraft = { id, bookingKey: key, carId: 1, startAt: "2026-10-14T16:00:00.000Z", endAt: "2026-10-16T16:00:00.000Z", timezone: "America/Denver", customerName: "Preview Guest", customerEmail: "guest@example.test", customerPhone: "", notes: "Synthetic private request", status: "draft", isPreview: true, version: 1, quote: { currency: "USD", baseDailyRate: 175, estimatedTotal: null, requiresReview: true, reason: "Final pricing and direct booking policies require review." }, availability: clearAvailability, createdAt: "2026-10-13T18:00:00Z", updatedAt: "2026-10-13T18:00:00Z" };
-async function fixture(page: Page, options: { developer?: boolean; availability?: Record<string, unknown>; errorOnPatch?: boolean; errorAfterSave?: boolean; hasDraft?: boolean; photo?: string } = {}) {
+async function fixture(page: Page, options: { developer?: boolean; availability?: Record<string, unknown>; errorOnPatch?: boolean; errorAfterSave?: boolean; hasDraft?: boolean; photo?: string; vehicleCount?: number } = {}) {
   const drafts: Record<string, any>[] = options.hasDraft === false ? [] : [structuredClone(baseDraft), { ...structuredClone(baseDraft), id: otherId, bookingKey: `direct_booking_preview:${otherId}`, customerName: "Cancelled Preview Guest", status: "cancelled" }];
   const writes: { path: string; method: string; body: Record<string, any> }[] = [], errors: string[] = [], requests: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
@@ -20,7 +20,7 @@ async function fixture(page: Page, options: { developer?: boolean; availability?
     else if (path.startsWith("/api/operations/return-receipts/")) data = path.endsWith("/receipt")
       ? { receiptUrl: "https://storage.googleapis.com/test-bucket/receipts/preview.jpg", amount: 60, date: "2026-10-16", needsManualEntry: false }
       : { carId: 1, carName: car.name, employeeId: null, preview: true, submission: null };
-    else if (path === `${ROOT}/vehicles`) data = { vehicles: [{ ...car, photo: options.photo ?? car.photo }] };
+    else if (path === `${ROOT}/vehicles`) data = { vehicles: Array.from({ length: options.vehicleCount ?? 1 }, (_, i) => ({ ...car, carId: i + 1, name: i === 0 ? car.name : `${car.name} ${i + 1}`, photo: options.photo ?? car.photo })) };
     else if (path === `${ROOT}/vehicles/1`) data = { vehicle: { ...detail, photo: options.photo ?? detail.photo } };
     else if (path === `${ROOT}/availability`) data = { availability: options.availability ?? clearAvailability };
     else if (path === `${ROOT}/drafts`) {
@@ -195,11 +195,64 @@ test("regular admins cannot open either private rental preview", async ({ page }
   expect(mock.writes).toEqual([]);
 });
 
-for (const width of [390, 1280]) test(`preview request layout fits at ${width}px`, async ({ page }) => {
+for (const width of [360, 390, 430, 1280]) test(`preview request layout fits at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 }); const mock = await fixture(page);
   await page.goto("/admin/developer/direct-bookings");
   await page.getByRole("button", { name: `Select ${car.name}`, exact: true }).click();
   await expect(page.getByRole("button", { name: "Save preview request" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   expect(mock.errors).toEqual([]);
+});
+
+test("phone booking selection opens the request directly and returns to the filtered fleet", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  const mock = await fixture(page, { vehicleCount: 40 });
+  await page.goto("/admin/developer/direct-bookings");
+  const nav = page.getByRole("navigation", { name: "Direct booking preview areas" });
+  const navBox = await nav.boundingBox();
+  expect(navBox!.height).toBeLessThan(160);
+  for (const link of await nav.getByRole("link").all()) {
+    const box = await link.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(360);
+  }
+  await page.screenshot({ path: test.info().outputPath("booking-mobile-views.png") });
+  await page.getByLabel("Pickup date & time").fill("2026-10-14T10:00");
+  await page.getByLabel("Return date & time").fill("2026-10-16T10:00");
+  await page.getByRole("textbox", { name: "Search preview vehicles" }).fill("Mercedes");
+  await page.getByRole("button", { name: `Select ${car.name}`, exact: true }).click();
+  await expect(page.getByRole("region", { name: "Preview vehicles", exact: true })).toBeHidden();
+  await expect(page.getByRole("region", { name: "Trip request preview" }).getByRole("heading", { name: car.name, exact: true })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Back to vehicles" })).toBeInViewport();
+  await page.screenshot({ path: test.info().outputPath("booking-mobile-selected.png") });
+  await expect(page.getByLabel("Guest name", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Back to vehicles" }).click();
+  await expect(page.getByRole("textbox", { name: "Search preview vehicles" })).toHaveValue("Mercedes");
+  await expect(page.getByLabel("Pickup date & time")).toHaveValue("2026-10-14T10:00");
+  await expect(page.getByRole("button", { name: `Select ${car.name}`, exact: true })).toBeVisible();
+  expect(mock.writes).toEqual([]); expect(mock.errors).toEqual([]);
+});
+
+test("phone worker details and booking crosslinks remain inside the private preview", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  const mock = await fixture(page);
+  await page.goto(`/admin/developer/direct-bookings?view=worker&booking=${encodeURIComponent(key)}`);
+  await expect(page.getByRole("heading", { name: "Preview requests", exact: true })).toBeHidden();
+  await expect(page.getByLabel("Staff notes & request")).toBeVisible();
+  const nav = page.getByRole("navigation", { name: "Booking views" });
+  for (const link of await nav.getByRole("link").all()) {
+    const box = await link.boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(360);
+    await expect(link).toHaveAttribute("href", /^\/admin\/developer\/direct-bookings\?/);
+  }
+  await nav.getByRole("link", { name: "Internal calendar preview", exact: true }).click();
+  expect(new URL(page.url()).searchParams.get("booking")).toBe(key);
+  await page.getByRole("navigation", { name: "Direct booking preview areas" }).getByRole("link", { name: /Manage requests/ }).click();
+  await page.getByRole("link", { name: "Back to requests" }).click();
+  await expect(page.getByRole("heading", { name: "Preview requests", exact: true })).toBeVisible();
+  expect(new URL(page.url()).searchParams.has("booking")).toBe(false);
+  expect(mock.writes).toEqual([]); expect(mock.errors).toEqual([]);
 });

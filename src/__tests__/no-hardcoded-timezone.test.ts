@@ -26,6 +26,12 @@ const ALLOWED_FILES = new Set([
   "src/lib/mt-datetime.ts",
   "src/hooks/use-timezone.ts",
 
+  // Explicit choices in user-controlled timezone pickers. These forms start
+  // with the viewer's active timezone (or the saved appointment's timezone);
+  // Denver is offered alongside other zones, not forced onto display values.
+  "src/pages/admin/direct-booking-preview.tsx",
+  "src/pages/admin/operations/MaintenanceAppointmentDialog.tsx",
+
   // Feeds a backend query window (?from=/?to=/day-bucketing param) rather
   // than rendering to the screen — changing this is Phase 5 (backend SQL
   // day-bucketing) territory, not a display fix. Converting it now would

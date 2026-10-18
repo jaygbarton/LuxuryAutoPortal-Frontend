@@ -151,9 +151,9 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string
   "Driver":                { bg: "bg-amber-600",   text: "text-white", border: "border-amber-700" },
   "Mechanical Run":        { bg: "bg-red-500",     text: "text-white", border: "border-red-600" },
   "Car Inspection":        { bg: "bg-yellow-500",  text: "text-white", border: "border-yellow-600" },
-  "Windshield Run":        { bg: "bg-purple-500",  text: "text-white", border: "border-purple-600" },
+  "Windshield Run":        { bg: "bg-amber-700",   text: "text-white", border: "border-amber-800" },
   "License Plate Run":     { bg: "bg-cyan-600",    text: "text-white", border: "border-cyan-700" },
-  "HR Task":               { bg: "bg-indigo-600",  text: "text-white", border: "border-indigo-700" },
+  "HR Task":               { bg: "bg-stone-600",   text: "text-white", border: "border-stone-700" },
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -402,14 +402,16 @@ function EventCard({
   const [driverModeDraft, setDriverModeDraft] = useState<"employee" | "uber" | "na" | "">("");
   const [showAlreadyCleanBy, setShowAlreadyCleanBy] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   const detailsId = useId();
+  const mobileContentId = useId();
   const [completionDate, setCompletionDate] = useState(event.completed_day || date);
   const driverMode = driverModeDraft || event.driver_assignment_type || "";
   const showCompletionDatePicker = !!event.is_carryover && statusOptions && event.status !== "completed";
   const showActualCompletedDate = !event.appointment_start_local && !!event.completed_day && event.completed_day !== (event.scheduled_day ?? date);
   const hasDetails = canEditAssignee || canEditDuration || canEditDriver || Boolean(
     event.trip_start_mt || event.trip_end_mt || event.pickup_location || event.dropoff_location ||
-    event.location || event.detail || event.notes || event.is_carryover || showActualCompletedDate || event.photos?.length,
+    event.location || event.detail || event.notes || event.is_carryover || showActualCompletedDate || event.photos?.length || event.bookingKey,
   );
   const summaryLocation = event.location || (
     event.type === "delivery" || event.type === "trip_end" || event.type === "owner_dropoff"
@@ -424,13 +426,37 @@ function EventCard({
       data-day-schedule-card
       data-booking-key={event.bookingKey}
       data-booking-selected={selectedBooking || undefined}
-      className={`group/event flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card sm:cursor-grab sm:flex-row sm:items-stretch sm:active:cursor-grabbing ${selectedBooking ? "ring-2 ring-primary ring-offset-2" : ""}`}
+      className={`group/event flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card sm:cursor-grab sm:flex-row sm:items-stretch sm:rounded-xl sm:active:cursor-grabbing ${selectedBooking ? "ring-2 ring-primary ring-offset-2" : ""}`}
     >
+      <button type="button" className="w-full min-w-0 rounded-2xl p-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:hidden"
+        aria-label={`Task details for ${event.car_name || event.category}`} aria-expanded={mobileExpanded} aria-controls={mobileContentId}
+        onClick={(e) => { e.stopPropagation(); setMobileExpanded((open) => !open); }}>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold">{event.start_time ? fmt12(event.start_time) : "Time not set"}{event.end_time && ` – ${fmt12(event.end_time)}`}</span>
+          <span className="text-xs text-muted-foreground">{formatDisplayDate(displayDay)}</span>
+        </div>
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold leading-snug text-foreground">{event.car_name || event.category}</p>
+            {event.plate && <p className="mt-0.5 text-xs text-muted-foreground">{event.plate}</p>}
+            {(event.guest_name || event.reservation_id) && <p className="mt-1 text-xs text-muted-foreground">{event.guest_name}{event.guest_name && event.reservation_id ? " · " : ""}{event.reservation_id && `#${event.reservation_id}`}</p>}
+          </div>
+          <CarScheduleImage carPhoto={event.car_photo} carName={event.car_name} className="h-16 w-24 shrink-0 rounded-xl bg-muted/30" size={160} hideBelowMd={false} fit="contain" />
+        </div>
+        {summaryLocation && <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="line-clamp-2 break-words">{summaryLocation}</span></p>}
+        <div className="mt-2 flex min-w-0 items-center gap-2">
+          <span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium">{event.category}</span>
+          {event.status && <span className={`rounded-md px-2 py-1 text-xs ${badgeClass}`}>{event.status.replace(/_/g, " ")}</span>}
+          <ChevronDown className={`ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform ${mobileExpanded ? "rotate-180" : ""}`} />
+        </div>
+        {showAssignee && <p className="mt-2 text-xs text-muted-foreground">{event.assigned_to || "Unassigned"}</p>}
+        {event.is_carryover && <p className="mt-1 text-xs font-medium text-amber-800">Carried over from {formatDateCompact(displayDay)}</p>}
+      </button>
       {/* Color bar */}
-      <div className={`h-1.5 w-full flex-shrink-0 ${c.bg} sm:h-auto sm:w-1.5`} />
+      <div className={`hidden flex-shrink-0 ${c.bg} sm:block sm:w-1.5`} />
 
       {/* Time gutter */}
-      <div className="flex w-full flex-shrink-0 items-center justify-between gap-2 border-b border-border bg-muted/30 px-3 py-2 text-xs leading-tight text-muted-foreground sm:w-20 sm:flex-col sm:items-end sm:justify-center sm:border-b-0 sm:border-r sm:px-1.5 sm:text-right sm:text-xs">
+      <div className="hidden flex-shrink-0 gap-2 border-border bg-muted/30 py-2 text-xs leading-tight text-muted-foreground sm:flex sm:w-20 sm:flex-col sm:items-end sm:justify-center sm:border-r sm:px-1.5 sm:text-right">
         <span>{formatDateCompact(displayDay)}</span>
         {event.start_time ? (
           <span className="flex items-center gap-1.5 sm:flex-col sm:items-end sm:gap-0">
@@ -443,18 +469,12 @@ function EventCard({
       </div>
 
       {/* Content — one vertical rhythm: header → vehicle → where/when → notes → controls */}
-      <div className="flex min-w-0 flex-1 flex-col gap-3 px-3 py-3 sm:gap-2 sm:py-2.5">
-        {quickAssign && canEditAssignee && <div onDragStart={(e) => e.stopPropagation()}>
-          <EmployeeSelectCombobox value="" onChange={() => {}} placeholder="Assign to employee" ariaLabel={`Assign ${event.car_name || event.category}`} touchFriendly
-            onSelectEmployee={(employee) => { if (employee) onAssign(event, employee.employee_aid, [employee.employee_first_name, employee.employee_last_name].filter(Boolean).join(" ")); }} />
-        </div>}
-        {canRefuel(event) && <Button type="button" variant="outline" className="h-11 w-fit max-w-full" onClick={() => bookingContext.openFuelReceipt?.(event)}>Refuel</Button>}
-        {event.airport_parking_required && <Button type="button" variant="outline" className="h-11 w-fit max-w-full" onClick={() => bookingContext.openAirportReceipt?.(event)}>Airport parking receipt</Button>}
+      <div id={mobileContentId} className={`${mobileExpanded ? "flex" : "hidden"} min-w-0 flex-1 flex-col gap-2 border-t border-border/60 px-3 py-2 sm:flex sm:border-t-0 sm:py-2.5`}>
         {/* Header: task type, status, quick actions, delete */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
             <GripVertical className="hidden h-3 w-3 flex-shrink-0 text-muted-foreground/40 group-hover/event:text-muted-foreground sm:block" />
-            <span className={`rounded-md px-2 py-1 text-xs font-semibold sm:px-1.5 sm:py-0.5 sm:text-xs ${c.bg} ${c.text}`}>
+            <span className={`hidden rounded-md px-2 py-1 text-xs font-semibold sm:block sm:px-1.5 sm:py-0.5 ${c.bg} ${c.text}`}>
               {event.category}
             </span>
             {statusOptions ? (
@@ -463,7 +483,7 @@ function EventCard({
                   value={event.status ?? "new"}
                   onValueChange={(val) => onStatusChange(event.type, event.id, val, val === "completed" ? completionDate : undefined)}
                 >
-                  <SelectTrigger aria-label="Task status" className={`h-11 min-w-[7rem] cursor-pointer gap-1 rounded-md border px-2 py-0 text-sm sm:h-8 sm:min-w-0 sm:w-auto sm:px-1.5 sm:text-xs ${badgeClass}`}>
+                  <SelectTrigger aria-label="Task status" className={`h-11 w-auto min-w-0 cursor-pointer gap-1 rounded-lg border-0 px-2 py-0 text-xs sm:h-8 sm:border sm:px-1.5 ${badgeClass}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -481,7 +501,7 @@ function EventCard({
               </span>
             ) : null}
             {showAssignee && (
-              <span className="inline-flex items-center gap-1 rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[11px] sm:text-xs">
+              <span className="hidden items-center gap-1 rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[11px] sm:inline-flex sm:text-xs">
                 <User className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
                 <span className={event.assigned_to ? "font-medium text-foreground" : "italic text-muted-foreground"}>
                   {event.assigned_to ?? "Unassigned"}
@@ -525,11 +545,11 @@ function EventCard({
 
         {/* Vehicle identity: car + plate, then reservation / guest on one muted line */}
         {(event.car_name || event.reservation_id || event.guest_name) && (
-          <div className="flex min-w-0 items-start gap-3">
+          <div className="hidden min-w-0 items-center gap-3 sm:flex">
             <CarScheduleImage
               carPhoto={event.car_photo}
               carName={event.car_name}
-              className="h-14 w-20 md:hidden"
+              className="h-16 w-20 rounded-xl bg-muted/30 md:hidden"
               size={160}
               hideBelowMd={false}
               fit="contain"
@@ -537,15 +557,15 @@ function EventCard({
             <div className="min-w-0 flex-1">
               {event.car_name && (
                 <div className="flex items-start gap-1.5 text-sm leading-snug text-foreground">
-                  <Car className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                  <Car className="mt-0.5 hidden h-3.5 w-3.5 flex-shrink-0 text-muted-foreground sm:block" />
                   <span className="min-w-0 break-words font-semibold">
                     {event.car_name}
-                    {event.plate && <span className="font-normal text-muted-foreground"> · {event.plate}</span>}
+                    {event.plate && <span className="block text-xs font-normal text-muted-foreground sm:inline"> <span className="hidden sm:inline">· </span>{event.plate}</span>}
                   </span>
                 </div>
               )}
               {(event.reservation_id || event.guest_name) && (
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground sm:pl-5">
+                <div className="mt-0.5 hidden flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground sm:flex sm:pl-5">
                   {event.reservation_id && (
                     <span>
                       <span className="font-medium text-foreground">Res:</span> {event.reservation_id}
@@ -563,13 +583,6 @@ function EventCard({
           </div>
         )}
 
-        {summaryLocation && (
-          <div className="flex min-w-0 items-start gap-1.5 text-xs text-muted-foreground sm:hidden">
-            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span className="line-clamp-2 break-words">{summaryLocation}</span>
-          </div>
-        )}
-
         {event.extras && (
           <div className="inline-flex w-fit max-w-full items-start gap-1 rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900 break-words">
             <span className="font-semibold">Extras:</span> {event.extras}
@@ -584,10 +597,19 @@ function EventCard({
           <span className="text-xs font-medium text-amber-800 sm:hidden">Carried over from {formatDateCompact(displayDay)}</span>
         )}
 
+        {(canRefuel(event) || event.airport_parking_required) && <div className="flex flex-wrap gap-2" onDragStart={(e) => e.stopPropagation()}>
+          {canRefuel(event) && <Button type="button" variant="outline" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" onClick={() => bookingContext.openFuelReceipt?.(event)}>Refuel</Button>}
+          {event.airport_parking_required && <Button type="button" variant="outline" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" onClick={() => bookingContext.openAirportReceipt?.(event)}>Airport parking receipt</Button>}
+        </div>}
+        {quickAssign && canEditAssignee && <div onDragStart={(e) => e.stopPropagation()}>
+          <EmployeeSelectCombobox value="" onChange={() => {}} placeholder="Assign to employee" ariaLabel={`Assign ${event.car_name || event.category}`} touchFriendly
+            onSelectEmployee={(employee) => { if (employee) onAssign(event, employee.employee_aid, [employee.employee_first_name, employee.employee_last_name].filter(Boolean).join(" ")); }} />
+        </div>}
+
         {hasDetails && <Button
           type="button"
           variant="ghost"
-          className="h-11 w-full justify-between border-t border-border/60 px-0 text-sm sm:hidden"
+          className="-mb-1 h-11 w-full justify-between border-t border-border/60 px-0 text-xs sm:hidden"
           aria-expanded={detailsOpen}
           aria-controls={detailsId}
           onClick={(e) => { e.stopPropagation(); setDetailsOpen((open) => !open); }}
@@ -598,6 +620,9 @@ function EventCard({
         </Button>}
 
         <div id={detailsId} className={`${detailsOpen ? "flex" : "hidden"} min-w-0 flex-col gap-3 sm:flex sm:gap-2`}>
+          {(event.reservation_id || event.guest_name) && <p className="text-xs text-muted-foreground sm:hidden">
+            {event.guest_name}{event.guest_name && event.reservation_id ? " · " : ""}{event.reservation_id && `Reservation ${event.reservation_id}`}
+          </p>}
 
           {/* When & where — one aligned block instead of loose stacked lines */}
           {(event.trip_start_mt || event.trip_end_mt || event.pickup_location || event.dropoff_location || event.location) && (
@@ -806,8 +831,8 @@ function EventCard({
               )}
             </div>
           )}
+          <ScheduleBookingLinks event={event} />
         </div>
-        <ScheduleBookingLinks event={event} />
       </div>
 
       {/* Vehicle photo — a real column, so it never overlaps the details or the
@@ -886,12 +911,12 @@ function EmployeeSection({
       }}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
-      className={`border rounded-lg overflow-hidden transition-colors ${sorted.length === 0 ? "hidden md:block" : ""} ${
+      className={`overflow-hidden rounded-2xl border border-border/70 transition-colors sm:rounded-lg ${sorted.length === 0 ? "hidden md:block" : ""} ${
         dragOver ? "border-primary ring-2 ring-primary/40 bg-primary/5" : "border-border"
       }`}
     >
       {/* Employee header */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-muted border-b border-border sm:gap-3">
+      <div className="flex items-center gap-2 border-b border-border/60 bg-muted/30 px-3 py-2.5 sm:gap-3 sm:bg-muted">
         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
           <User className="w-3.5 h-3.5 text-primary" />
         </div>
@@ -917,7 +942,7 @@ function EmployeeSection({
       </div>
 
       {/* Event list */}
-      <div className="p-2 space-y-2 bg-background sm:space-y-1.5">
+      <div className="space-y-2 bg-muted/15 p-2 sm:space-y-1.5 sm:bg-background">
         {sorted.length === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-3 italic">No tasks scheduled</div>
         ) : (
@@ -1626,7 +1651,7 @@ export function DayScheduleTab() {
 
   return (
     <ScheduleBookingContext.Provider value={{ selectedBooking, developerAccess, date, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
-    <div className="min-w-0 space-y-4">
+    <div className="min-w-0 space-y-3 sm:space-y-4">
       {fuelReturn?.bookingKey && <TripReceiptDialog key={fuelReturn.bookingKey} kind="gas" bookingKey={fuelReturn.bookingKey} onClose={() => setFuelReturn(null)} onComplete={async () => {
         await queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
         toast({ title: "Gas receipt submitted", description: "Refuel Run completed. Receipt saved for expense approval." });
@@ -1651,32 +1676,33 @@ export function DayScheduleTab() {
         </section>
       )}
       {/* Date nav */}
-      <div className="space-y-2 rounded-xl border border-border bg-card p-3 sm:flex sm:flex-wrap sm:items-center sm:gap-3 sm:space-y-0">
-        <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 sm:flex sm:gap-3">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 rounded-2xl border border-border/70 bg-card p-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3 sm:rounded-xl sm:p-3">
+        <div className="col-span-2 grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 sm:flex sm:gap-3">
         <Button aria-label="Previous day" variant="outline" size="sm" className="h-11 w-11 p-0 sm:h-9 sm:w-9" onClick={() => setDate((d) => shiftDate(d, -1))}>
           <ChevronLeft className="w-4 h-4" />
         </Button>
-        <div className="min-w-0 flex items-center justify-center gap-2 sm:justify-start">
-          <CalendarDays className="hidden w-4 h-4 shrink-0 text-muted-foreground sm:block" />
+        <div className="relative flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-lg focus-within:ring-2 focus-within:ring-ring sm:min-h-0 sm:justify-start">
+          <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="truncate text-sm font-semibold" aria-live="polite">{formatDisplayDate(date)}</span>
+          <input
+            type="date"
+            aria-label="Schedule date"
+            value={date}
+            onChange={(e) => e.target.value && setDate(e.target.value)}
+            onClick={(e) => { try { e.currentTarget.showPicker?.(); } catch { /* The native input remains available in browsers without showPicker support. */ } }}
+            className="absolute inset-0 h-11 w-full min-w-0 cursor-pointer text-base opacity-0 sm:static sm:h-9 sm:w-auto sm:rounded-md sm:border sm:border-border sm:bg-background sm:px-2 sm:text-sm sm:text-foreground sm:opacity-100"
+          />
         </div>
         <Button aria-label="Next day" variant="outline" size="sm" className="h-11 w-11 p-0 sm:h-9 sm:w-9" onClick={() => setDate((d) => shiftDate(d, 1))}>
           <ChevronRight className="w-4 h-4" />
         </Button>
         </div>
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] gap-2 sm:flex">
-        <input
-          type="date"
-          aria-label="Schedule date"
-          value={date}
-          onChange={(e) => e.target.value && setDate(e.target.value)}
-          className="h-11 min-w-0 w-full rounded-md border border-border bg-background px-2 text-base text-foreground sm:h-9 sm:w-auto sm:text-sm"
-        />
-        <Button variant="outline" size="sm" className="h-11 px-2.5 text-sm sm:h-9" onClick={() => setDate(mtTodayKey(activeTz))}>
+        <div className="flex min-w-0 gap-1.5 sm:gap-2">
+        <Button variant="outline" size="sm" className="h-11 px-2.5 text-xs sm:h-9 sm:text-sm" onClick={() => setDate(mtTodayKey(activeTz))}>
           Today
         </Button>
-        <Button variant="default" size="sm" className="h-11 px-2.5 text-sm sm:h-9" aria-expanded={showAddEntry} aria-controls="day-schedule-add-entry" onClick={() => setShowAddEntry((v) => !v)}>
-          <Plus className="w-4 h-4" />
+        <Button variant="default" size="sm" className="h-11 px-2.5 text-xs sm:h-9 sm:text-sm" aria-expanded={showAddEntry} aria-controls="day-schedule-add-entry" onClick={() => setShowAddEntry((v) => !v)}>
+          <Plus className="hidden h-4 w-4 sm:block" />
           <span className="sm:hidden">Add</span><span className="hidden sm:inline">Add Entry</span>
         </Button>
         </div>
@@ -1688,31 +1714,25 @@ export function DayScheduleTab() {
             type="button"
             onClick={() => setViewMode("employee")}
             aria-pressed={viewMode === "employee"}
-            className={`inline-flex h-11 items-center justify-center gap-1.5 px-2.5 py-1.5 text-sm font-medium transition-colors sm:h-9 sm:text-xs ${
+            className={`inline-flex h-11 items-center justify-center gap-1.5 px-1.5 py-1.5 text-xs font-medium transition-colors sm:h-9 sm:px-2.5 ${
               viewMode === "employee" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:bg-muted"
             }`}
           >
-            <Rows3 className="w-3.5 h-3.5" /> By Employee
+            <Rows3 className="hidden h-3.5 w-3.5 sm:block" /> <span className="sm:hidden">Employees</span><span className="hidden sm:inline">By Employee</span>
           </button>
           <button
             type="button"
             onClick={() => setViewMode("timeline")}
             aria-pressed={viewMode === "timeline"}
-            className={`inline-flex h-11 items-center justify-center gap-1.5 border-l border-border px-2.5 py-1.5 text-sm font-medium transition-colors sm:h-9 sm:text-xs ${
+            className={`inline-flex h-11 items-center justify-center gap-1.5 border-l border-border px-1.5 py-1.5 text-xs font-medium transition-colors sm:h-9 sm:px-2.5 ${
               viewMode === "timeline" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:bg-muted"
             }`}
           >
-            <LayoutList className="w-3.5 h-3.5" /> Timeline
+            <LayoutList className="hidden h-3.5 w-3.5 sm:block" /> Timeline
           </button>
         </div>
       </div>
 
-      <label className="flex min-h-11 w-fit cursor-pointer items-center gap-2 text-sm">
-        <input type="checkbox" className="h-4 w-4 accent-primary" checked={myTasksFirst} disabled={saveSchedulePreference.isPending || !schedulePreference.data}
-          onChange={event => saveSchedulePreference.mutate(event.target.checked)} />
-        My tasks first
-        {saveSchedulePreference.isPending && <span className="text-xs text-muted-foreground" role="status">Saving…</span>}
-      </label>
       {schedulePreference.isError && <p role="alert" className="text-sm text-destructive">Could not load your saved schedule setting. <button className="underline" onClick={() => void schedulePreference.refetch()}>Retry</button></p>}
 
       {showAddEntry && (
@@ -1787,8 +1807,14 @@ export function DayScheduleTab() {
 
       {/* Summary badges — click to filter the task list down to that category;
           click again (or the same legend entry) to clear it. */}
-      {Object.keys(categoryCounts).length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0" aria-label="Filter schedule by task type">
+      <div className="flex min-w-0 items-center gap-3 sm:flex-wrap">
+        <label className="flex min-h-11 shrink-0 cursor-pointer items-center gap-2 text-xs sm:text-sm">
+          <input type="checkbox" className="h-4 w-4 accent-primary" checked={myTasksFirst} disabled={saveSchedulePreference.isPending || !schedulePreference.data}
+            onChange={event => saveSchedulePreference.mutate(event.target.checked)} />
+          My tasks first
+          {saveSchedulePreference.isPending && <span className="text-xs text-muted-foreground" role="status">Saving…</span>}
+        </label>
+        <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0" aria-label="Filter schedule by task type">
           {Object.entries(categoryCounts).map(([cat, count]) => {
             const c = colorFor(cat);
             const active = activeCategories.has(cat);
@@ -1814,7 +1840,7 @@ export function DayScheduleTab() {
             </Button>
           )}
         </div>
-      )}
+      </div>
 
       {isLoading && <div className="text-sm text-muted-foreground py-8 text-center">Loading schedule…</div>}
       {error && <div className="text-sm text-destructive py-4">Failed to load schedule.</div>}
@@ -1893,13 +1919,13 @@ export function DayScheduleTab() {
                 const payload = readDragData(e);
                 if (payload) unassign(payload);
               }}
-              className={`w-full order-first border rounded-lg overflow-hidden bg-background transition-colors ${
+              className={`order-first w-full overflow-hidden rounded-2xl border bg-background transition-colors sm:rounded-lg ${
                 unassignOver ? "border-primary ring-2 ring-primary/40 bg-primary/5" : "border-border"
               }`}
             >
-              <div className="px-3 py-2 bg-muted border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-2 border-b border-border/60 bg-muted/30 px-3 py-2 text-sm font-semibold text-foreground sm:bg-muted sm:text-xs sm:uppercase sm:tracking-wide sm:text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <span>Needs Assignment</span>
+                  <span>Unassigned</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Button type="button" variant="outline" className="h-11 px-2 text-xs normal-case tracking-normal" aria-expanded={showAllUnassigned} aria-controls="unassigned-task-list" onClick={() => setShowAllUnassigned((value) => !value)}>
@@ -1911,7 +1937,7 @@ export function DayScheduleTab() {
                     </Badge>
                   )}
                   {unassigned.length > 0 && (
-                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0">{unassigned.length}</Badge>
+                    <Badge variant="outline" className="border-primary/30 bg-primary/10 px-1.5 py-0 text-xs">{unassigned.length}</Badge>
                   )}
                   {canBulkCompleteOldTasks && oldNormalUnassignedCount > 0 && (
                     <DropdownMenu>

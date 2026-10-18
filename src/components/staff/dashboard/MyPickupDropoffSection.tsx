@@ -101,7 +101,7 @@ function asStr(v: unknown): string {
 // task_type → accent color (matches category colors used in admin operations)
 const TASK_TYPE_ACCENT: Record<string, { bg: string; border: string; label: string }> = {
   pickup:   { bg: "bg-blue-500",   border: "border-blue-300",   label: "Pick Up" },
-  delivery: { bg: "bg-indigo-500", border: "border-indigo-300", label: "Drop Off" },
+  delivery: { bg: "bg-[#B08B45]", border: "border-[#D3BC8D]", label: "Drop Off" },
   cleaning: { bg: "bg-teal-500",   border: "border-teal-300",   label: "Cleaning" },
   refuel:   { bg: "bg-orange-500", border: "border-orange-300", label: "Refuel" },
 };
@@ -208,7 +208,7 @@ export default function MyPickupDropoffSection() {
   }
 
   return (
-    <div className="mb-8">
+    <div className="mb-4 min-w-0 sm:mb-8">
       <SectionHeader title="PICK UP AND DROP OFF" />
 
       {/* Filter bar */}
@@ -242,7 +242,7 @@ export default function MyPickupDropoffSection() {
             {assignedToOptions.map((n) => <SearchableOption searchKeywords={optionKeywords(n)} key={n} value={n}>{n}</SearchableOption>)}
           </SearchableNativeSelect>
         )}
-        <div className="flex items-center gap-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-1">
           <span className="text-xs text-gray-500 whitespace-nowrap">Trip Start/End From</span>
           <input
             type="date" value={tripStartFrom} onChange={(e) => setTripStartFrom(e.target.value)}

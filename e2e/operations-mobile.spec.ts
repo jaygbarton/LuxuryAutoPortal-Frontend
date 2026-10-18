@@ -138,7 +138,7 @@ async function expectFitsScreen(page: Page, locator?: Locator) {
   }
 }
 
-for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }, { width: 430, height: 932 }, { width: 1280, height: 900 }]) {
   const mobile = viewport.width < 768;
   test.describe(`${mobile ? "touch" : "desktop"} Operations at ${viewport.width}px`, () => {
     test.use({ viewport, isMobile: mobile, hasTouch: mobile, timezoneId: "America/Denver" });
@@ -147,7 +147,8 @@ for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }
     test("Day Schedule keeps compact cards, editing, status updates and date navigation usable", async ({ page }) => {
       const { errors, mutations } = await mockOperations(page);
       await page.goto(`/admin/operations?tab=day-schedule&date=${fixtureDate}`);
-      await expect(page.getByRole("heading", { name: "Operations", exact: true, level: 1 })).toBeVisible({ timeout: 25_000 });
+      if (mobile) await expect(page.getByRole("navigation", { name: "Work schedule views" })).toBeVisible({ timeout: 25_000 });
+      else await expect(page.getByRole("heading", { name: "Operations", exact: true, level: 1 })).toBeVisible({ timeout: 25_000 });
       const card = page.locator("[data-day-schedule-card]:visible").filter({ hasText: "Mercedes-Benz GLS 450 2025" }).first();
       await expect(card).toBeVisible();
       const thumbnail = card.locator("img:visible").first();
@@ -156,7 +157,9 @@ for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }
       await expectFitsScreen(page);
       await page.screenshot({ path: screenshotPath(`operations-day-${viewport.width}.png`), fullPage: true });
       if (mobile) {
-        expect((await card.boundingBox())!.height).toBeLessThan(400);
+        expect((await card.boundingBox())!.height).toBeLessThan(260);
+        await expect(card.getByRole("combobox", { name: "Task status" })).not.toBeVisible();
+        await activate(card.getByRole("button", { name: "Task details for Mercedes-Benz GLS 450 2025", exact: true }));
         await expect(card.getByLabel("Estimated duration in minutes")).not.toBeVisible();
         await activate(card.getByRole("button", { name: "Details & edit" }));
       }
@@ -177,7 +180,10 @@ for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }
       await activate(page.getByRole("option", { name: "Jordan Lee", exact: true }));
       await expect.poll(() => mutations.find((item) => item.path === "/api/operations/day-schedule/assign")?.body).toMatchObject({ type: "cleaning", eventId: 501, employeeId: 42, fullname: "Jordan Lee" });
       const carryover = page.locator("[data-day-schedule-card]:visible").filter({ hasText: "Carryover car task" }).first();
-      if (mobile) await activate(carryover.getByRole("button", { name: "Details & edit" }));
+      if (mobile) {
+        await activate(carryover.getByRole("button", { name: "Task details for Carryover car task", exact: true }));
+        await activate(carryover.getByRole("button", { name: "Details & edit" }));
+      }
       await carryover.getByLabel("Actual completion date").fill(fixtureDate);
       await activate(carryover.getByRole("button", { name: "Complete", exact: true }));
       await expect.poll(() => mutations.find((item) => item.path === "/api/operations/tasks/504/status")?.body).toMatchObject({ status: "completed", completedDate: fixtureDate });
@@ -268,8 +274,9 @@ for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }
         await activate(page.getByRole("option", { name: "Day Schedule", exact: true }));
         await expect(page).toHaveURL(/tab=day-schedule/);
         await expect(page.getByLabel("Schedule date")).toBeVisible();
-        await activate(page.getByRole("combobox", { name: "Operations section" }));
-        await activate(page.getByRole("option", { name: "Maintenance", exact: true }));
+        await expect(page.getByRole("combobox", { name: "Operations section" })).not.toBeVisible();
+        await activate(page.getByRole("button", { name: "Open navigation", exact: true }));
+        await activate(page.getByTestId("link-admin-maintenance"));
         await expect(page).toHaveURL(/tab=maintenance/);
         await expect(page.getByRole("heading", { name: "Maintenance", exact: true })).toBeVisible();
         await activate(page.getByRole("button", { name: "Open navigation", exact: true }));

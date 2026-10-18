@@ -11,6 +11,7 @@ async function mock(page: Page, options: { unreadable?: boolean; failStatus?: bo
   page.on("pageerror", e => errors.push(e.message));
   await page.route((url) => url.pathname.startsWith("/api/"), async route => {
     const req = route.request(), path = new URL(req.url()).pathname;
+    if (path === "/api/gcs-image-proxy") return route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="500"><rect width="300" height="500" fill="#fff"/><g font-family="monospace" fill="#222" font-size="20"><text x="28" y="55">PARKING RECEIPT</text><text x="28" y="100">2026-10-16</text><text x="28" y="180">TOTAL $5.00</text><text x="28" y="225">Thank you</text></g></svg>' });
     const isWrite = req.method() !== "GET" && req.method() !== "OPTIONS";
     const body = req.headers()["content-type"]?.includes("application/json") ? req.postDataJSON() : null;
     if (isWrite) calls.push({ path, body });
@@ -51,6 +52,57 @@ async function mock(page: Page, options: { unreadable?: boolean; failStatus?: bo
   return { calls, errors };
 }
 const upload = async (page: Page) => page.getByLabel("Receipt photo", { exact: true }).setInputFiles({ name: "receipt.png", mimeType: "image/png", buffer: image });
+
+for (const { width, height } of [{ width: 360, height: 844 }, { width: 390, height: 844 }, { width: 430, height: 844 }, { width: 390, height: 500 }]) test.describe(`compact mobile receipt flow at ${width}×${height}px`, () => {
+  const screenshotSize = height < 600 ? `${width}-short` : width;
+  test.use({ viewport: { width, height }, isMobile: true, hasTouch: true });
+  test("keeps task actions compact and submits the required parking receipt in a phone sheet", async ({ page }) => {
+    const state = await mock(page);
+    const card = page.locator('[data-day-schedule-card][data-booking-key="turo:119"]');
+    await expect(card).toBeVisible();
+    expect((await card.boundingBox())!.height).toBeLessThan(240);
+    const summary = card.getByRole("button", { name: "Task details for Test Vehicle 19", exact: true });
+    await expect(summary).toHaveAttribute("aria-expanded", "false");
+    await expect(card.getByRole("combobox", { name: "Task status" })).not.toBeVisible();
+    await expect(card.getByRole("button", { name: "Airport parking receipt", exact: true })).not.toBeVisible();
+    await page.screenshot({ path: `/tmp/gla-mobile-day-${screenshotSize}.png`, fullPage: true });
+    await summary.tap();
+    await expect(summary).toHaveAttribute("aria-expanded", "true");
+    const bounds = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, width: document.documentElement.clientWidth }));
+    expect(bounds.scroll).toBeLessThanOrEqual(bounds.width);
+    for (const button of [card.getByRole("combobox", { name: "Task status" }), card.getByRole("button", { name: "Refuel", exact: true }), card.getByRole("button", { name: "Airport parking receipt", exact: true })]) {
+      expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    }
+    await expect(card.getByRole("navigation", { name: "Booking views" })).not.toBeVisible();
+    await card.getByRole("button", { name: "Details & edit", exact: true }).tap();
+    await expect(card.getByRole("navigation", { name: "Booking views" })).toBeVisible();
+    await card.getByRole("button", { name: "Hide details", exact: true }).tap();
+    await page.screenshot({ path: `/tmp/gla-mobile-day-expanded-${screenshotSize}.png`, fullPage: true });
+    await card.getByRole("combobox", { name: "Task status" }).tap();
+    await page.getByRole("option", { name: "completed", exact: true }).tap();
+    const dialog = page.getByRole("dialog", { name: "Airport parking receipt" });
+    await expect(dialog).toBeVisible();
+    expect(state.calls).toHaveLength(0);
+    await upload(page);
+    await expect(dialog.getByLabel("Amount ($)", { exact: true })).toHaveValue("5.00");
+    for (const name of ["Employee", "Receipt date", "Amount ($)"]) {
+      expect(await dialog.getByLabel(name, { exact: true }).evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+    }
+    const box = (await dialog.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height).toBeLessThanOrEqual(height);
+    await dialog.getByLabel("Receipt date", { exact: true }).fill("2026-10-16");
+    await dialog.getByLabel("Amount ($)", { exact: true }).fill("5.00");
+    await page.screenshot({ path: `/tmp/gla-mobile-receipt-${screenshotSize}.png`, fullPage: true });
+    await dialog.getByRole("button", { name: "Submit receipt & complete pickup" }).tap();
+    await expect(dialog).toHaveCount(0);
+    expect(state.calls.filter(call => call.path === "/api/expense-form-submissions")).toHaveLength(1);
+    expect(state.calls.at(-1)).toMatchObject({ path: "/api/operations/tasks/19/status", body: { status: "completed", airportParkingSubmissionId: 55 } });
+    expect(state.errors).toEqual([]);
+  });
+});
 
 test("airport Completed opens receipt before any status write and preserves expense category, vehicle, and assignee", async ({ page }) => {
   const state = await mock(page);
@@ -129,6 +181,7 @@ for (const mobile of [false, true]) test.describe(mobile ? "phone" : "desktop", 
     await region.getByLabel("Search unassigned tasks").fill("TEST4");
     await expect(region.getByText("1 of 5 unassigned tasks", { exact: false })).toBeVisible();
     await expect(region.locator("[data-day-schedule-card]")).toHaveCount(1);
+    if (mobile) await region.getByRole("button", { name: "Task details for Test Vehicle 4", exact: true }).tap();
     await region.getByRole("combobox", { name: "Assign Test Vehicle 4", exact: true }).click();
     await page.getByPlaceholder("Search employees...").fill("Second");
     await page.getByRole("option", { name: "Second Worker", exact: true }).click();

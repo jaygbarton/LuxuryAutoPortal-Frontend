@@ -39,7 +39,7 @@ export default function EmployeeNoticeBoardSection() {
   const notices = (data ?? []).filter((n) => n.notice_board_is_active !== 0);
 
   return (
-    <div className="mb-8">
+    <div className="mb-4 min-w-0 sm:mb-8">
       <SectionHeader title="NOTICE BOARD" />
 
       {isLoading ? (

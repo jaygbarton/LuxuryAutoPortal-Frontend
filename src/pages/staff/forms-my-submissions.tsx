@@ -12,7 +12,7 @@ import { ArrowLeft } from "lucide-react";
 export default function StaffFormsMySubmissions() {
   return (
     <AdminLayout>
-      <div className="space-y-4 p-4 md:p-6">
+      <div className="staff-page min-w-0 space-y-4 sm:p-4 md:p-6">
         <div className="flex items-center gap-2">
           <Link href="/staff/forms">
             <Button variant="ghost" size="sm" className="gap-1">

@@ -190,7 +190,7 @@ export default function MyTasksSection() {
   }, [allTasks, search, statusFilter]);
 
   return (
-    <div className="mb-8">
+    <div className="mb-4 min-w-0 sm:mb-8">
       <SectionHeader title="TASK MANAGEMENT" subtitle="Tasks assigned to you." />
 
       {/* Filter bar */}

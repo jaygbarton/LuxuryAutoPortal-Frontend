@@ -26,7 +26,7 @@ const MAINT_STATUS_OPTIONS = [
   { value: "new", label: "New", className: "bg-gray-100 text-gray-700" },
   { value: "in_progress", label: "In Progress", className: "bg-blue-100 text-blue-700" },
   { value: "completed", label: "Completed", className: "bg-green-100 text-green-700" },
-  { value: "delivered", label: "Delivered", className: "bg-purple-100 text-purple-700" },
+  { value: "delivered", label: "Delivered", className: "bg-[#D3BC8D]/25 text-[#705523]" },
 ];
 
 function statusMeta(v: string | undefined | null) {
@@ -144,7 +144,7 @@ export default function MyMaintenanceSection() {
   function clearAll() { setSearch(""); setStatusFilter("all"); setRangeFrom(""); setRangeTo(""); }
 
   return (
-    <div className="mb-8">
+    <div className="mb-4 min-w-0 sm:mb-8">
       <SectionHeader title="MAINTENANCE" />
 
       <div className="flex flex-wrap items-center gap-2 mb-3 mt-2">
@@ -160,7 +160,7 @@ export default function MyMaintenanceSection() {
           <SearchableOption value="all">All Statuses</SearchableOption>
           {MAINT_STATUS_OPTIONS.map(s => <SearchableOption searchKeywords={optionKeywords(s)} key={s.value} value={s.value}>{s.label}</SearchableOption>)}
         </SearchableNativeSelect>
-        <div className="flex items-center gap-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-1">
           <span className="text-xs text-gray-500 whitespace-nowrap">Trip Start/End From</span>
           <input type="date" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)}
             className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />

@@ -22,10 +22,10 @@ export default function StaffFormsSubmit() {
 
   return (
     <AdminLayout>
-      <div className="space-y-4 p-4 md:p-6">
+      <div className="staff-page min-w-0 space-y-4 sm:p-4 md:p-6">
         <div className="flex items-center gap-2">
           <Link href="/staff/forms">
-            <Button variant="ghost" size="sm" className="gap-1">
+            <Button variant="ghost" size="sm" className="min-h-11 gap-1 sm:min-h-9">
               <ArrowLeft className="h-4 w-4" />
               Back to Forms
             </Button>

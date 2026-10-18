@@ -28,8 +28,8 @@ import {
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, MessageCircle, Info, Loader2, Search } from "lucide-react";
-import { useCallback, useState } from "react";
+import { Briefcase, ChevronDown, MessageCircle, Info, Loader2, Search } from "lucide-react";
+import { useCallback, useId, useState } from "react";
 import TaskCommentsDialog from "@/components/tasks/TaskCommentsDialog";
 
 interface TaskItem {
@@ -170,6 +170,8 @@ export default function StaffTaskManagement() {
   const [commentItem, setCommentItem] = useState<TaskItem | null>(null);
   const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [expandedTaskIds, setExpandedTaskIds] = useState<Set<string>>(() => new Set());
+  const taskActionsId = useId();
 
   const updateStatus = useMutation({
     mutationFn: async (vars: { id: number; status: number }) => {
@@ -238,9 +240,9 @@ export default function StaffTaskManagement() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="staff-page min-w-0 space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-primary">
+          <h1 className="text-2xl font-semibold text-foreground">
             Task Management
           </h1>
           <p className="text-muted-foreground">
@@ -250,14 +252,14 @@ export default function StaffTaskManagement() {
 
         <Card className="bg-card border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-primary">
+            <CardTitle className="flex items-center gap-2 text-base text-foreground">
               <Briefcase className="w-5 h-5" />
               Tasks
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+            <div className="grid min-w-0 grid-cols-2 gap-2 sm:gap-3 lg:flex lg:flex-wrap lg:items-center">
+              <div className="col-span-2 flex flex-col gap-1 sm:col-span-1 sm:flex-row sm:items-center sm:gap-2">
                 <label className="text-sm text-muted-foreground">Status</label>
                 <Select
                   value={statusFilter || "all"}
@@ -275,7 +277,7 @@ export default function StaffTaskManagement() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+              <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                 <label className="text-sm text-muted-foreground whitespace-nowrap">Due From</label>
                 <Input
                   type="date"
@@ -284,7 +286,7 @@ export default function StaffTaskManagement() {
                   className="w-full sm:w-[140px]"
                 />
               </div>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+              <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                 <label className="text-sm text-muted-foreground whitespace-nowrap">Due To</label>
                 <Input
                   type="date"
@@ -316,7 +318,57 @@ export default function StaffTaskManagement() {
               </div>
             </div>
 
-            <div className="rounded-md border border-border overflow-auto max-h-[60vh]">
+            {!isLoading && !isError && tasks.length > 0 && (
+              <div className="divide-y divide-border rounded-xl border border-border sm:hidden" data-staff-task-list>
+                {tasks.map((item, idx) => {
+                  const photos = parseTaskPhotos(item.task_timer_photos);
+                  const taskKey = String(item.task_timer_aid ?? `row-${idx}`);
+                  const expanded = expandedTaskIds.has(taskKey);
+                  const actionsId = `${taskActionsId}-${taskKey}`;
+                  return (
+                    <article key={taskKey} className="min-w-0">
+                      <button
+                        type="button"
+                        aria-label={`Task: ${item.task_timer_name || "Untitled task"}`}
+                        aria-expanded={expanded}
+                        aria-controls={actionsId}
+                        className="flex min-h-11 w-full items-start gap-3 rounded-xl p-3 text-left hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                        onClick={() => setExpandedTaskIds(current => {
+                          const next = new Set(current);
+                          if (next.has(taskKey)) next.delete(taskKey); else next.add(taskKey);
+                          return next;
+                        })}
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block break-words text-sm font-semibold">{item.task_timer_name || "Untitled task"}</span>
+                          {item.task_timer_car_name && <span className="mt-0.5 block break-words text-xs text-muted-foreground">{item.task_timer_car_name}</span>}
+                          <span className="mt-2 flex flex-wrap items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Due {formatDueDateTime(item.task_timer_date_end, item.task_timer_start_time)}</span>
+                            <TaskStatusBadge status={item.task_timer_status} />
+                          </span>
+                        </span>
+                        <ChevronDown aria-hidden="true" className={`mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} />
+                      </button>
+                      <div id={actionsId} hidden={!expanded} className="border-t border-border px-3 pb-3 pt-2">
+                      <p className="break-words text-xs text-muted-foreground">Assigned to {getAssignedToDisplay(item.task_timer_emp_list)}</p>
+                      <div className="mt-3 flex items-center gap-2">
+                        {item.task_timer_aid != null ? (
+                          <Select value={String(Number(item.task_timer_status ?? 0))} onValueChange={(v) => updateStatus.mutate({ id: Number(item.task_timer_aid), status: Number(v) })} disabled={updateStatus.isPending}>
+                            <SelectTrigger aria-label={`Status for ${item.task_timer_name || "task"}`} className="h-11 min-w-0 flex-1 text-base"><SelectValue /></SelectTrigger>
+                            <SelectContent>{STATUS_OPTIONS.map((status) => <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>)}</SelectContent>
+                          </Select>
+                        ) : <TaskStatusBadge status={item.task_timer_status} />}
+                        <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label={`Comments for ${item.task_timer_name || "task"}`} onClick={() => setCommentItem(item)}><MessageCircle className="h-4 w-4" /></Button>
+                        <Button variant="outline" className="h-11 shrink-0 px-3" onClick={() => setViewItem(item)}>Details</Button>
+                      </div>
+                      {photos.length > 0 && <Button variant="ghost" className="mt-1 min-h-11 px-0 text-sm" onClick={() => { setLightboxPhotos(photos); setLightboxIndex(0); }}>View {photos.length} photo{photos.length !== 1 ? "s" : ""}</Button>}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+            <div className={`rounded-md border border-border overflow-auto max-h-[60vh] ${!isLoading && !isError && tasks.length > 0 ? "hidden sm:block" : ""}`}>
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -507,6 +559,8 @@ export default function StaffTaskManagement() {
                 <span className="font-medium">Task name:</span>{" "}
                 {viewItem.task_timer_name ?? "--"}
               </p>
+              <p><span className="font-medium">Assigned by:</span> {viewItem.task_timer_goal?.trim() || "--"}</p>
+              <p><span className="font-medium">Created:</span> {formatDate(viewItem.task_timer_created)}</p>
               <p>
                 <span className="font-medium">Assign to:</span>{" "}
                 {getAssignedToDisplay(viewItem.task_timer_emp_list)}
@@ -523,6 +577,7 @@ export default function StaffTaskManagement() {
               )}
             </div>
           )}
+          <Button variant="outline" className="min-h-11 w-full" onClick={() => setViewItem(null)}>Close</Button>
         </DialogContent>
       </Dialog>
 
@@ -543,7 +598,7 @@ export default function StaffTaskManagement() {
             <DialogHeader className="sr-only">
               <DialogTitle>Photo viewer</DialogTitle>
             </DialogHeader>
-            <div className="relative flex items-center justify-center min-h-[400px]">
+            <div className="relative flex min-h-[240px] items-center justify-center sm:min-h-[400px]">
               <img
                 src={getProxiedImageUrl(lightboxPhotos[lightboxIndex])}
                 alt={`Photo ${lightboxIndex + 1} of ${lightboxPhotos.length}`}
@@ -559,7 +614,7 @@ export default function StaffTaskManagement() {
                           (i - 1 + lightboxPhotos.length) % lightboxPhotos.length,
                       )
                     }
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white rounded-full w-9 h-9 flex items-center justify-center text-lg transition-colors"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white rounded-full w-11 h-11 flex items-center justify-center text-lg transition-colors"
                   >
                     ‹
                   </button>
@@ -568,7 +623,7 @@ export default function StaffTaskManagement() {
                     onClick={() =>
                       setLightboxIndex((i) => (i + 1) % lightboxPhotos.length)
                     }
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white rounded-full w-9 h-9 flex items-center justify-center text-lg transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white rounded-full w-11 h-11 flex items-center justify-center text-lg transition-colors"
                   >
                     ›
                   </button>

@@ -557,10 +557,10 @@ export default function StaffTime() {
   if (!canViewTimesheet) {
     return (
       <AdminLayout>
-        <div className="space-y-6">
+        <div className="staff-page min-w-0 space-y-4 sm:space-y-6">
           <div>
-            <h1 className="text-2xl font-semibold text-primary">Time Sheet</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl font-semibold text-foreground">Time Sheet</h1>
+            <p className="text-sm text-muted-foreground">
               Clock in and out throughout the day. Times shown in Utah (Mountain) time.
             </p>
           </div>
@@ -577,18 +577,18 @@ export default function StaffTime() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="staff-page min-w-0 space-y-4 sm:space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-primary">Time Sheet</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl font-semibold text-foreground">Time Sheet</h1>
+            <p className="text-sm text-muted-foreground">
               Clock in and out throughout the day. Times shown in Utah (Mountain) time.
             </p>
           </div>
           <Button
             onClick={onMainButton}
             disabled={actionLoading || lastQuery.isLoading}
-            className="gap-2 min-w-[140px]"
+            className="min-h-11 w-full gap-2 sm:w-auto sm:min-w-[140px]"
             variant={isClockedIn ? "destructive" : "default"}
           >
             {actionLoading || lastQuery.isLoading ? (
@@ -614,7 +614,7 @@ export default function StaffTime() {
 
         <Card className="bg-card border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-primary">
+            <CardTitle className="flex items-center gap-2 text-base text-foreground">
               <Clock className="w-5 h-5" />
               Current status
             </CardTitle>
@@ -655,30 +655,30 @@ export default function StaffTime() {
         {/* Sessions list with filters */}
         <Card className="bg-card border-border">
           <CardHeader className="pb-3 space-y-3">
-            <CardTitle className="flex items-center gap-2 text-primary">
+            <CardTitle className="flex items-center gap-2 text-base text-foreground">
               <Clock className="w-5 h-5" />
               Sessions
             </CardTitle>
-            <div className="flex flex-wrap items-end gap-2">
-              <div className="space-y-1">
+            <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
+              <div className="min-w-0 space-y-1">
                 <Label className="text-xs text-muted-foreground">From</Label>
                 <Input
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="w-44"
+                  className="min-w-0 w-full sm:w-44"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="min-w-0 space-y-1">
                 <Label className="text-xs text-muted-foreground">To</Label>
                 <Input
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="w-44"
+                  className="min-w-0 w-full sm:w-44"
                 />
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="col-span-2 flex flex-wrap gap-1.5 sm:gap-2">
                 <Button variant="outline" size="sm" onClick={() => setQuickRange("today")}>
                   Today
                 </Button>
@@ -711,7 +711,31 @@ export default function StaffTime() {
                 No sessions in this range.
               </p>
             ) : (
-              <div className="overflow-auto">
+              <>
+              <div className="divide-y divide-border sm:hidden" data-staff-session-list>
+                {sessions.map((session) => (
+                  <article key={session.time_aid} className="py-3 first:pt-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-semibold">{utahDate(session.time_in)}</h3>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{utahTime(session.time_in)} – {session.time_out ? utahTime(session.time_out) : "In progress"}</p>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums">{formatDuration(session.time_in, session.time_out)}</span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span className={`text-xs ${session.time_out ? "text-muted-foreground" : "text-emerald-700"}`}>{!session.time_out ? "Clocked in" : session.time_end_reason === "break" ? "Break" : "Shift ended"}</span>
+                      {session.time_out && <Button variant="ghost" size="sm" className="min-h-11 gap-1.5 px-2" onClick={() => setStatsSession(session)}><BarChart2 className="h-4 w-4" />View stats</Button>}
+                    </div>
+                  </article>
+                ))}
+                <dl className="grid grid-cols-2 gap-3 pt-3 text-sm">
+                  <div><dt className="text-xs text-muted-foreground">Total worked</dt><dd className="mt-1 font-semibold tabular-nums">{formatHms(totals.workedSec)}</dd></div>
+                  <div><dt className="text-xs text-muted-foreground">Break time</dt><dd className="mt-1 font-semibold tabular-nums">{formatHms(totals.breakSec)}</dd></div>
+                  <div><dt className="text-xs text-muted-foreground">Hours</dt><dd className="mt-1 tabular-nums">{(totals.workedSec / 3600).toFixed(2)} hrs</dd></div>
+                  <div><dt className="text-xs text-muted-foreground">Pay</dt><dd className="mt-1 font-semibold tabular-nums">{hourlyRate > 0 ? formatUsd(totalPay) : "Rate not set"}</dd>{hourlyRate > 0 && <dd className="text-xs text-muted-foreground">{formatUsd(hourlyRate)}/hr</dd>}</div>
+                </dl>
+              </div>
+              <div className="hidden overflow-auto sm:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -824,6 +848,7 @@ export default function StaffTime() {
                   </TableFooter>
                 </Table>
               </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -839,14 +864,14 @@ export default function StaffTime() {
           }
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {shiftStep === "questionnaire" && (
                 <button
                   type="button"
                   onClick={() => setShiftStep("choose")}
-                  className="rounded p-1 hover:bg-muted"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg hover:bg-muted"
                   title="Back"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -869,7 +894,7 @@ export default function StaffTime() {
                 Are you stepping away for a break or ending your shift?
               </p>
 
-              <div className="space-y-1">
+              <div className="min-w-0 space-y-1">
                 <Label htmlFor="end-notes">Notes (optional)</Label>
                 <textarea
                   id="end-notes"
@@ -1023,7 +1048,7 @@ export default function StaffTime() {
       </Dialog>
       {/* Stats viewer modal */}
       <Dialog open={!!statsSession} onOpenChange={(v) => { if (!v) setStatsSession(null); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BarChart2 className="w-5 h-5 text-primary" />

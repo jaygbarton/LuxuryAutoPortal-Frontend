@@ -72,7 +72,7 @@ export default function MyMonthlyStatsSection() {
   });
 
   return (
-    <div className="mb-8">
+    <div className="mb-4 min-w-0 sm:mb-8">
       <SectionHeader
         title="MONTHLY EMPLOYEE STATS — INDIVIDUAL"
         subtitle="Your activity totals by month for the selected year."

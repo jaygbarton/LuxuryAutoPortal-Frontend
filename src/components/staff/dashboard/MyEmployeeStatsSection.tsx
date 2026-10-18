@@ -85,7 +85,7 @@ export default function MyEmployeeStatsSection() {
   });
 
   return (
-    <div className="mb-8">
+    <div className="mb-4 min-w-0 sm:mb-8">
       <SectionHeader
         title="EMPLOYEE STATS REPORT — INDIVIDUAL"
         subtitle="Your daily activity counts for the selected month."

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearch, Link } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, ArrowLeft, ArrowRight, CalendarDays, Car, CheckCircle2, ClipboardList, CreditCard, Loader2, MapPin, RefreshCw, Search, ShieldCheck } from "lucide-react";
@@ -84,6 +84,13 @@ function CustomerPreview({ vehicles, onCreated }: { vehicles: PreviewVehicle[]; 
   const [notes, setNotes] = useState("");
   const [saved, setSaved] = useState<PreviewDraft | null>(null);
   const [savedDraftKey, setSavedDraftKey] = useState<string | null>(null);
+  const requestHeading = useRef<HTMLHeadingElement>(null);
+  const vehicleSearch = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (carId === null || !window.matchMedia("(max-width: 1023px)").matches) return;
+    requestHeading.current?.focus({ preventScroll: true });
+    requestHeading.current?.closest("section")?.scrollIntoView({ block: "start", behavior: "instant" });
+  }, [carId]);
   const dates = previewDateRange(start, end, timezone);
   const selected = vehicles.find(vehicle => vehicle.carId === carId);
   const cities = [...new Set(vehicles.map(vehicle => [vehicle.city, vehicle.state].filter(Boolean).join(", ")).filter(Boolean))].sort();
@@ -102,12 +109,12 @@ function CustomerPreview({ vehicles, onCreated }: { vehicles: PreviewVehicle[]; 
     onSuccess: ({ draft }) => { setSaved(draft); onCreated(); },
     onError: error => { const key = savedPreviewKey(error); if (key) { setSavedDraftKey(key); onCreated(); } },
   });
-  return <div className="space-y-6">
-    <section className="rounded-xl bg-[#161817] p-6 text-white sm:p-9">
+  return <div className="space-y-4 sm:space-y-6">
+    <section className="rounded-xl bg-[#161817] p-4 text-white sm:p-9">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d7bd82]">Golden Luxury Auto · Customer preview</p>
       <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">Your next drive starts here.</h2>
       <p className="mt-2 max-w-xl text-sm text-slate-300">Explore vehicles, pickup options, and your trip dates. This private preview saves a request for the team to review.</p>
-      <div className="mt-6 grid gap-4 rounded-lg bg-white p-4 text-foreground md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid gap-3 rounded-lg bg-white p-3 text-foreground sm:mt-6 sm:gap-4 sm:p-4 md:grid-cols-2 xl:grid-cols-4">
         <div><Label htmlFor="preview-city">Pickup city</Label><select id="preview-city" className="mt-1 h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm" value={city} onChange={e => setCity(e.target.value)}><option value="">All locations</option>{cities.map(value => <option key={value}>{value}</option>)}</select></div>
         <div><Label htmlFor="preview-start">Pickup date & time</Label><Input id="preview-start" type="datetime-local" value={start} onChange={e => { setStart(e.target.value); setSaved(null); }} className="mt-1 min-w-0" /></div>
         <div><Label htmlFor="preview-end">Return date & time</Label><Input id="preview-end" type="datetime-local" value={end} onChange={e => { setEnd(e.target.value); setSaved(null); }} className="mt-1 min-w-0" /></div>
@@ -115,9 +122,9 @@ function CustomerPreview({ vehicles, onCreated }: { vehicles: PreviewVehicle[]; 
       </div>
     </section>
     {(start || end) && !dates && <p role="alert" className="text-sm text-amber-800">Choose a return time after pickup. Times that are skipped or repeated during daylight saving changes need a different time.</p>}
-    <div className="relative max-w-md"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input aria-label="Search preview vehicles" placeholder="Search make or model…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" /></div>
+    <div className={cn("relative max-w-md", selected && "hidden lg:block")}><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input ref={vehicleSearch} aria-label="Search preview vehicles" placeholder="Search make or model…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" /></div>
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.8fr)]">
-      <section aria-label="Preview vehicles" className="space-y-4">
+      <section aria-label="Preview vehicles" className={cn("min-w-0 space-y-4", selected && "hidden lg:block")}>
         <p className="text-sm text-muted-foreground">{filtered.length} vehicle{filtered.length === 1 ? "" : "s"} · Availability is checked after selection</p>
         {filtered.length === 0 && <Card><CardContent className="p-6 text-sm text-muted-foreground">No vehicles match these filters.</CardContent></Card>}
         <div className="grid gap-4 sm:grid-cols-2">
@@ -133,9 +140,10 @@ function CustomerPreview({ vehicles, onCreated }: { vehicles: PreviewVehicle[]; 
           </Card>)}
         </div>
       </section>
-      <section aria-label="Trip request preview" className="min-w-0 space-y-4">
+      <section aria-label="Trip request preview" className={cn("min-w-0 space-y-4", !selected && "hidden lg:block")}>
+        {selected && <Button type="button" variant="ghost" className="lg:hidden" onClick={() => { setCarId(null); requestAnimationFrame(() => { vehicleSearch.current?.focus({ preventScroll: true }); vehicleSearch.current?.scrollIntoView({ block: "start", behavior: "instant" }); }); }}><ArrowLeft className="h-4 w-4" />Back to vehicles</Button>}
         <Card>
-          <CardHeader><CardTitle className="text-lg">{selected ? selected.name : "Your trip preview"}</CardTitle></CardHeader>
+          <CardHeader><h2 ref={requestHeading} tabIndex={-1} className="scroll-mt-4 text-lg font-semibold leading-tight outline-none">{selected ? selected.name : "Your trip preview"}</h2></CardHeader>
           <CardContent className="space-y-5">
             {!selected ? <p className="text-sm text-muted-foreground">Choose a vehicle to explore its features and save a preview request.</p> : <>
               {details.isLoading ? <Loading text="Loading vehicle details…" /> : details.error ? <ErrorNotice error={details.error} onRetry={() => details.refetch()} /> : details.data && <VehicleDetails vehicle={details.data.vehicle} />}
@@ -244,30 +252,37 @@ export default function DirectBookingPreviewPage() {
   const drafts = useQuery<{ drafts: PreviewDraft[] }>({ queryKey: [ROOT, "drafts"], queryFn: () => api.get(`${ROOT}/drafts`), retry: false });
   const selectedId = selectedKey?.split(":")[1];
   const selectedDraft = useQuery<{ draft: PreviewDraft }>({ queryKey: [ROOT, "drafts", selectedId], queryFn: () => api.get(`${ROOT}/drafts/${selectedId}`), enabled: !!selectedId && view === "worker", retry: false });
+  const workerDetails = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (view !== "worker" || !selectedDraft.data?.draft || !window.matchMedia("(max-width: 1279px)").matches) return;
+    workerDetails.current?.focus({ preventScroll: true });
+    workerDetails.current?.scrollIntoView({ block: "start", behavior: "instant" });
+  }, [view, selectedId, selectedDraft.data?.draft.id]);
   const refreshDrafts = () => { qc.invalidateQueries({ queryKey: [ROOT, "drafts"] }); qc.invalidateQueries({ queryKey: [ROOT, "availability"] }); };
   const visibleDrafts = useMemo(() => (drafts.data?.drafts ?? []).filter(draft => (filter === "all" || draft.status === filter) && `${draft.customerName} ${draft.customerEmail} ${vehicles.data?.vehicles.find(car => car.carId === draft.carId)?.name ?? ""}`.toLowerCase().includes(draftSearch.trim().toLowerCase())), [drafts.data, vehicles.data, filter, draftSearch]);
-  return <AdminLayout><div className="min-w-0 space-y-6">
+  return <AdminLayout><div className="min-w-0 space-y-4 sm:space-y-6">
     <Button size="sm" variant="ghost" asChild><Link href="/admin/developer"><ArrowLeft className="mr-2 h-4 w-4" />Back to Developer</Link></Button>
     <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Direct booking previews</h1><p className="mt-1 text-sm text-muted-foreground">Customer and worker workflows rebuilt from the legacy rental pages.</p></div><Badge variant="secondary"><ShieldCheck className="mr-1.5 h-4 w-4" />Developer only</Badge></div>
     <div role="note" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><p className="font-semibold">Private preview — direct bookings are not live.</p><p className="mt-1">Saving or editing a draft does not reserve a vehicle, charge a card, email a customer, or add a Google Calendar event.</p></div>
     <section aria-labelledby="preview-navigation-heading" className="space-y-3">
       <div><h2 id="preview-navigation-heading" className="text-base font-semibold">Choose a testing view</h2><p className="text-sm text-muted-foreground">These views share the same saved test requests.</p></div>
-      <nav aria-label="Direct booking preview areas" className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <nav aria-label="Direct booking preview areas" className="grid grid-cols-2 gap-2 xl:grid-cols-4">
         {VIEWS.map(item => {
           const active = view === item.id, Icon = item.icon;
           return <Link key={item.id} href={directBookingPreviewHref(item.id, selectedKey ?? undefined)}
             aria-current={active ? "page" : undefined}
-            className={cn("flex min-w-0 gap-3 rounded-lg border p-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", active ? "border-primary bg-primary/10 ring-1 ring-primary" : "bg-background hover:bg-muted")}>
-            <Icon className="mt-0.5 h-5 w-5 shrink-0" />
-            <span className="min-w-0"><span className="flex flex-wrap items-center gap-2 text-sm font-semibold">{item.label}{active && <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground">Current view</span>}</span><span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{item.description}</span></span>
+            className={cn("flex min-h-16 min-w-0 items-center gap-2 rounded-lg border p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:items-start sm:gap-3 sm:p-4", active ? "border-primary bg-primary/10 ring-1 ring-primary" : "bg-background hover:bg-muted")}>
+            <Icon className="h-4 w-4 shrink-0 sm:mt-0.5 sm:h-5 sm:w-5" />
+            <span className="min-w-0"><span className="flex flex-wrap items-center gap-2 text-xs font-semibold sm:text-sm">{item.label}{active && <span className="hidden rounded bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-foreground sm:inline">Current view</span>}</span><span className="mt-1 hidden text-xs leading-relaxed text-muted-foreground sm:block">{item.description}</span></span>
           </Link>;
         })}
       </nav>
+      <p className="text-xs text-muted-foreground sm:hidden">{VIEWS.find(item => item.id === view)?.description}</p>
     </section>
     {rawKey && !selectedKey && <ErrorNotice error={new Error("This is not a valid preview booking link.")} />}
     {vehicles.isLoading ? <Loading text="Loading preview vehicles…" /> : vehicles.error ? <ErrorNotice error={vehicles.error} onRetry={() => vehicles.refetch()} /> : view === "customer" ? <CustomerPreview vehicles={vehicles.data?.vehicles ?? []} onCreated={refreshDrafts} /> : <>
       {drafts.isLoading ? <Loading text="Loading saved preview requests…" /> : drafts.error ? <ErrorNotice error={drafts.error} onRetry={() => drafts.refetch()} /> : view === "worker" ? <div className="grid gap-5 xl:grid-cols-[minmax(280px,0.7fr)_minmax(0,1fr)]">
-        <Card><CardHeader><CardTitle className="text-lg">Preview requests</CardTitle></CardHeader><CardContent className="space-y-4">
+        <Card className={cn(selectedId && "hidden xl:block")}><CardHeader><h2 className="text-lg font-semibold leading-tight">Preview requests</h2></CardHeader><CardContent className="space-y-4">
           <Input aria-label="Search preview requests" placeholder="Search guest or vehicle…" value={draftSearch} onChange={e => setDraftSearch(e.target.value)} />
           <select aria-label="Filter preview request status" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={filter} onChange={e => setFilter(e.target.value)}><option value="all">All preview statuses</option>{Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
           {visibleDrafts.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No preview requests found.</p>}
@@ -277,7 +292,10 @@ export default function DirectBookingPreviewPage() {
             <p className="mt-1 text-sm text-muted-foreground">{vehicles.data?.vehicles.find(car => car.carId === draft.carId)?.name ?? `Vehicle #${draft.carId}`}</p><p className="mt-1 text-xs text-muted-foreground">{formatBookingDate(draft.startAt, draft.timezone)}</p>
           </Link>)}
         </CardContent></Card>
-        {selectedId ? selectedDraft.isLoading ? <Loading text="Loading preview request…" /> : selectedDraft.error ? <ErrorNotice error={selectedDraft.error} onRetry={() => selectedDraft.refetch()} /> : selectedDraft.data ? <DraftEditor key={`${selectedDraft.data.draft.id}:${selectedDraft.data.draft.version}`} draft={selectedDraft.data.draft} vehicles={vehicles.data?.vehicles ?? []} onUpdated={refreshDrafts} /> : null : <Card><CardContent className="flex min-h-64 flex-col items-center justify-center gap-3 p-6 text-center text-muted-foreground"><ClipboardList className="h-10 w-10" /><p>Select a request to review or edit its private draft.</p><Button variant="outline" asChild><Link href={directBookingPreviewHref("customer")}>Create a preview request</Link></Button></CardContent></Card>}
+        <section ref={workerDetails} tabIndex={-1} aria-label="Selected preview request" className={cn("min-w-0 scroll-mt-4 space-y-3 outline-none", !selectedId && "hidden xl:block")}>
+          {selectedId && <Button variant="ghost" className="xl:hidden" asChild><Link href={directBookingPreviewHref("worker")}><ArrowLeft className="h-4 w-4" />Back to requests</Link></Button>}
+          {selectedId ? selectedDraft.isLoading ? <Loading text="Loading preview request…" /> : selectedDraft.error ? <ErrorNotice error={selectedDraft.error} onRetry={() => selectedDraft.refetch()} /> : selectedDraft.data ? <DraftEditor key={`${selectedDraft.data.draft.id}:${selectedDraft.data.draft.version}`} draft={selectedDraft.data.draft} vehicles={vehicles.data?.vehicles ?? []} onUpdated={refreshDrafts} /> : null : <Card><CardContent className="flex min-h-64 flex-col items-center justify-center gap-3 p-6 text-center text-muted-foreground"><ClipboardList className="h-10 w-10" /><p>Select a request to review or edit its private draft.</p><Button variant="outline" asChild><Link href={directBookingPreviewHref("customer")}>Create a preview request</Link></Button></CardContent></Card>}
+        </section>
       </div> : <DraftSchedule drafts={drafts.data?.drafts ?? []} vehicles={vehicles.data?.vehicles ?? []} view={view} selectedKey={selectedKey} />}
     </>}
   </div></AdminLayout>;

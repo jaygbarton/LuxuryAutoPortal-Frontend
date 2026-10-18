@@ -20,7 +20,8 @@
  * Each section can be toggled via the Filter Sections panel; preference is
  * persisted in localStorage.
  */
-import { useState } from "react";
+import { useId, useState, type ReactNode } from "react";
+import { Link } from "wouter";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
 import {
@@ -39,7 +40,7 @@ import {
   MyTripsCalendarSection,
 } from "@/components/staff/dashboard";
 import { SectionHeader } from "@/components/admin/dashboard";
-import { SlidersHorizontal, ChevronDown } from "lucide-react";
+import { CalendarDays, Clock3, SlidersHorizontal, ChevronDown } from "lucide-react";
 
 const STORAGE_KEY = "staff-dashboard-visible-sections";
 
@@ -82,6 +83,19 @@ function loadVisible(): Set<SectionId> {
   return new Set(allIds);
 }
 
+function DashboardSection({ title, children, work = false }: { title: string; children: ReactNode; work?: boolean }) {
+  const panelId = useId();
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <section className={`${work ? "order-first md:order-none" : ""} min-w-0 rounded-xl border border-border bg-card md:rounded-none md:border-0 md:bg-transparent`}>
+      <button type="button" className="flex min-h-[52px] w-full items-center justify-between gap-3 px-4 text-left text-sm font-medium md:hidden" aria-expanded={expanded} aria-controls={panelId} onClick={() => setExpanded(value => !value)}>
+        {title}<ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} />
+      </button>
+      <div id={panelId} className={`${expanded ? "block" : "hidden"} min-w-0 overflow-x-auto px-3 pb-1 md:block md:overflow-visible md:p-0`}>{children}</div>
+    </section>
+  );
+}
+
 export default function StaffDashboard() {
   const [visible, setVisible] = useState<Set<SectionId>>(loadVisible);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -99,10 +113,14 @@ export default function StaffDashboard() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-background">
-        <div className="space-y-4 pt-3 sm:px-6 sm:pt-6">
+      <div className="staff-page min-w-0 bg-background">
+        <div className="space-y-3 sm:space-y-4 sm:px-6 sm:pt-6">
           {/* Profile banner — always visible */}
           <EmployeeProfileSection />
+          <div className="grid grid-cols-2 gap-2 md:hidden">
+            <Link href="/admin/operations?tab=day-schedule" className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-sm font-medium text-primary-foreground"><CalendarDays className="h-4 w-4" />Day Schedule</Link>
+            <Link href="/staff/time" className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 text-sm font-medium"><Clock3 className="h-4 w-4" />Time Sheet</Link>
+          </div>
 
           {/* Filter Sections button + panel — mirrors the admin dashboard:
               count badge, chevron, Select All / Deselect All, checkbox grid. */}
@@ -173,24 +191,24 @@ export default function StaffDashboard() {
           </div>
 
           {/* Sections */}
-          <div className="flex flex-col gap-2 pt-2">
-            {show("earnings")    && <EarningsHistorySection />}
-            {show("commissions") && <CommissionsSection />}
-            {show("schedule")    && <MyWorkScheduleSection />}
-            {show("hours")       && <LoggedHoursSection />}
+          <div className="flex min-w-0 flex-col gap-3 sm:gap-2 sm:pt-2">
+            {show("earnings") && <DashboardSection title="Earnings & pay periods"><EarningsHistorySection /></DashboardSection>}
+            {show("commissions") && <DashboardSection title="Commissions"><CommissionsSection /></DashboardSection>}
+            {show("schedule") && <DashboardSection title="Work schedule" work><MyWorkScheduleSection /></DashboardSection>}
+            {show("hours") && <DashboardSection title="Logged hours"><LoggedHoursSection /></DashboardSection>}
             {show("operations")  && (
-              <div>
+              <DashboardSection title="Operations & trips" work>
                 <SectionHeader title="OPERATIONS" />
                 <MyPickupDropoffSection />
                 <MyTripsCalendarSection />
-              </div>
+              </DashboardSection>
             )}
-            {show("turo")        && <MyTuroInspectionsSection />}
-            {show("carissues")   && <MyCarIssuesSection />}
-            {show("maintenance") && <MyMaintenanceSection />}
-            {show("tasks")       && <MyTasksSection />}
-            {show("carblockoff") && <MyCarBlockOffSection />}
-            {show("noticeboard") && <EmployeeNoticeBoardSection />}
+            {show("turo") && <DashboardSection title="Turo messages & inspections"><MyTuroInspectionsSection /></DashboardSection>}
+            {show("carissues") && <DashboardSection title="Car issues & inspections"><MyCarIssuesSection /></DashboardSection>}
+            {show("maintenance") && <DashboardSection title="Maintenance"><MyMaintenanceSection /></DashboardSection>}
+            {show("tasks") && <DashboardSection title="Tasks" work><MyTasksSection /></DashboardSection>}
+            {show("carblockoff") && <DashboardSection title="Car block off"><MyCarBlockOffSection /></DashboardSection>}
+            {show("noticeboard") && <DashboardSection title="Notice board"><EmployeeNoticeBoardSection /></DashboardSection>}
 
             {visible.size === 0 && (
               <div className="py-20 text-center text-muted-foreground">

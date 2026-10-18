@@ -311,7 +311,7 @@ export default function ReservationsTableSection({
   }
 
   return (
-    <div className="mb-8">
+    <div className="mb-4 min-w-0 sm:mb-8">
       <SectionHeader title={title} subtitle={subtitle} />
 
       {/* Filter bar */}
@@ -353,7 +353,7 @@ export default function ReservationsTableSection({
 
         {/* Trip Start */}
         {hasTripStart && (
-          <div className="flex items-center gap-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
             <label className="text-xs text-gray-500 whitespace-nowrap">Trip Start</label>
             <input type="date" value={tripStartFrom} onChange={(e) => setTripStartFrom(e.target.value)}
               className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />
@@ -363,7 +363,7 @@ export default function ReservationsTableSection({
 
         {/* Trip Ends */}
         {hasTripEnd && (
-          <div className="flex items-center gap-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
             <label className="text-xs text-gray-500 whitespace-nowrap">Trip Ends</label>
             <input type="date" value={tripEndTo} onChange={(e) => setTripEndTo(e.target.value)}
               className="text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#D3BC8D]" />

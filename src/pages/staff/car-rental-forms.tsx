@@ -20,9 +20,9 @@ const CAR_RENTAL_FORMS = [
 export default function StaffCarRentalForms() {
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="staff-page min-w-0 space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-primary">Car rental – Forms</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Car rental – Forms</h1>
           <p className="text-muted-foreground">Submit car rental forms (going out / coming back).</p>
         </div>
 

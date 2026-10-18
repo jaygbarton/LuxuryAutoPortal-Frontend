@@ -498,3 +498,70 @@
     display: none;
   }
 }
+
+/* Employee workspace: phone-sized rhythm, without changing public pages. */
+@media (max-width: 1023px) {
+  .native-app-shell body[data-staff-workspace="true"] { padding-top: 0; }
+  .native-app-shell .staff-app-content { padding-bottom: 12px; }
+  .staff-app-shell .workspace-header {
+    height: calc(56px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .staff-app-shell .workspace-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: max(4px, env(safe-area-inset-left, 0px));
+    padding-right: max(4px, env(safe-area-inset-right, 0px));
+  }
+  .staff-app-shell .staff-app-content {
+    overscroll-behavior-y: contain;
+    scroll-padding-top: 12px;
+    scroll-padding-bottom: 20px;
+  }
+  .staff-app-shell aside {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .staff-app-shell aside .bg-gradient-to-r {
+    background-image: none;
+    background-color: hsl(var(--primary) / 0.25);
+    box-shadow: none;
+    border-color: hsl(var(--primary));
+  }
+  .staff-app-shell [data-testid="button-account-menu"] {
+    box-shadow: none;
+    background-image: none;
+  }
+}
+@media (max-width: 639px) {
+  .staff-app-content { font-size: 14px; }
+  .staff-app-content h1 { font-size: 22px; line-height: 1.3; letter-spacing: -0.025em; }
+  .staff-app-content .shadcn-card > .p-6 { padding: 16px; }
+  .staff-app-content .shadcn-card > .p-6.pt-0 { padding-top: 0; }
+  .staff-app-content .shadcn-card .text-2xl { font-size: 20px; line-height: 1.3; }
+  .staff-app-content [data-slot="table-container"] {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .staff-app-content [data-slot="table-container"] th,
+  .staff-app-content [data-slot="table-container"] td { padding: 10px 12px; }
+  .staff-app-content [data-slot="table-container"] th { height: 40px; font-size: 12px; }
+  body[data-staff-workspace="true"] :is(.staff-app-content, [role="dialog"]) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="range"]):not([type="file"]), select, textarea) {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  body[data-staff-workspace="true"] :is(.staff-app-content, [role="dialog"]) button[role="combobox"] { min-height: 44px; }
+  body[data-staff-workspace="true"] [data-slot="dialog-header"] { text-align: left; }
+  body[data-staff-workspace="true"] [data-slot="dialog-content"] {
+    overscroll-behavior-y: contain;
+    scroll-padding-block: 16px;
+  }
+  body[data-staff-workspace="true"] [role="menu"] { max-width: calc(100vw - 24px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .staff-app-shell *, .staff-app-shell *::before, .staff-app-shell *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

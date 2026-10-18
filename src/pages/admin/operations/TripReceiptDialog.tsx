@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { buildApiUrl, buildUploadApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
-import { Loader2 } from "lucide-react";
+import { Camera, Loader2 } from "lucide-react";
 
 type Option = { id: number; name: string };
 type Context = {
@@ -116,43 +116,45 @@ export function TripReceiptDialog({ taskId, bookingKey, kind = "parking", onClos
 
   const loadError = context.error || options.error;
   return <Dialog open onOpenChange={(open) => { if (!open && !busy) onClose(); }}>
-    <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-xl" onInteractOutside={(event) => event.preventDefault()}>
-      <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{context.data?.preview ? "Try the gas receipt reader for this test return. No real expense or Refuel Run will be created." : isFuel ? "Submit Gas Reimbursed and automatically record a completed Refuel Run for the selected employee on today's Day Schedule. The receipt stays pending expense approval." : "Submit Parking Airport under Reimbursed and Non-Reimbursed Bills, then complete this pickup."}</DialogDescription></DialogHeader>
+    <DialogContent className="top-auto bottom-0 max-h-[94dvh] w-full translate-y-0 gap-3 overflow-y-auto rounded-b-none rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:bottom-auto sm:top-[50%] sm:max-h-[92dvh] sm:max-w-xl sm:translate-y-[-50%] sm:rounded-xl sm:p-6" onInteractOutside={(event) => event.preventDefault()}>
+      <DialogHeader className="text-left"><DialogTitle className="text-base sm:text-lg">{title}</DialogTitle><DialogDescription className="text-xs leading-relaxed sm:text-sm">{context.data?.preview ? "Try the receipt reader. No real expense or Refuel Run will be created." : isFuel ? "Upload your receipt to submit Gas Reimbursed and complete a Refuel Run. The expense stays pending approval." : "Upload your parking receipt, check the details, and complete this airport pickup."}</DialogDescription></DialogHeader>
       {context.isLoading || options.isLoading ? <p role="status">Loading pickup details…</p> : loadError ? <div role="alert"><p>{loadError.message}</p><Button onClick={() => { void context.refetch(); void options.refetch(); }}>Retry</Button></div> : <form onSubmit={submit} className="space-y-4">
         {context.data?.preview && <p role="status" className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Direct booking preview only. This form does not create an expense or change a real booking.</p>}
-        <p className="text-sm font-medium">{context.data?.carName}{context.data?.reservationId ? ` · Reservation ${context.data.reservationId}` : ""}</p>
+        <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs font-medium">{context.data?.carName}{context.data?.reservationId ? ` · Reservation ${context.data.reservationId}` : ""}</p>
         {submissionId ? <div role="status" className="rounded-md border p-3 text-sm">
           {declined ? "This receipt was declined. Correct the existing submission in Forms → My submissions." : isFuel ? "The Gas Reimbursed receipt and completed Refuel Run are already saved for this return. Another expense or task will not be created." : "The receipt is saved for approval. Finish completing this pickup below; another expense will not be created."}
         </div> : <>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div><Label htmlFor="parking-car">Vehicle</Label><select id="parking-car" className="mt-1 h-11 w-full rounded-md border bg-background px-2 text-sm" value={carId} onChange={(e) => setCarId(e.target.value)} required disabled={!!busy || !!context.data?.carId}>
+            <div className="min-w-0"><Label htmlFor="parking-car" className="text-xs">Vehicle</Label><select id="parking-car" className="mt-1 h-11 w-full min-w-0 rounded-lg border bg-background px-2 text-base sm:text-sm" value={carId} onChange={(e) => setCarId(e.target.value)} required disabled={!!busy || !!context.data?.carId}>
               <option value="">Select vehicle</option>{cars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>{!context.data?.carId && <p className="text-xs text-amber-700">The vehicle could not be matched safely. Select it from the list.</p>}</div>
-            <div><Label htmlFor="parking-employee">Employee</Label><select id="parking-employee" className="mt-1 h-11 w-full rounded-md border bg-background px-2 text-sm" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required disabled={!!busy}>
+            <div className="min-w-0"><Label htmlFor="parking-employee" className="text-xs">Employee</Label><select id="parking-employee" className="mt-1 h-11 w-full min-w-0 rounded-lg border bg-background px-2 text-base sm:text-sm" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required disabled={!!busy}>
               <option value="">Select employee</option>{employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select><p className="text-xs text-muted-foreground mt-1">{context.data?.preview ? "Select the employee for this preview." : context.data?.employeeId || context.data?.employeeName?.trim() ? "Existing task assignments will be kept." : "Submitting assigns this unassigned task to the employee you select."}</p></div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="parking-receipt">Receipt photo</Label>
-            <Input ref={inputRef} id="parking-receipt" type="file" accept="image/jpeg,image/png,image/heic,image/heif,image/webp,.heic,.heif" disabled={!!busy} onChange={(e) => { const file = e.target.files?.[0]; if (file) void upload(file); e.target.value = ""; }} />
-            <p className="text-xs text-muted-foreground">Take a photo or choose one from your phone. Include the whole receipt, with the total and date in focus. JPEG, PNG, HEIC or WebP, up to 10 MB.</p>
+            <div className="relative rounded-xl border border-dashed border-primary/50 bg-primary/5 focus-within:ring-2 focus-within:ring-ring">
+              <Label htmlFor="parking-receipt" className="flex min-h-20 cursor-pointer items-center justify-center gap-3 px-3 py-4 text-sm"><Camera className="h-5 w-5 text-primary" /><span>{reading ? "Replace receipt photo" : "Take or upload receipt photo"}</span></Label>
+              <Input ref={inputRef} id="parking-receipt" aria-label="Receipt photo" className="absolute inset-0 h-full w-full cursor-pointer opacity-0" type="file" accept="image/jpeg,image/png,image/heic,image/heif,image/webp,.heic,.heif" disabled={!!busy} onChange={(e) => { const file = e.target.files?.[0]; if (file) void upload(file); e.target.value = ""; }} />
+            </div>
+            <p className="text-xs text-muted-foreground">Keep the total and date in focus. JPEG, PNG, HEIC or WebP · up to 10 MB.</p>
             {busy === "upload" && <p role="status" className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" />Uploading and reading receipt…</p>}
             {reading && <img className="max-h-48 max-w-full rounded border object-contain" src={getProxiedImageUrl(reading.receiptUrl)} alt={`Uploaded ${isFuel ? "gas" : "airport parking"} receipt`} />}
             {reading?.needsManualEntry ? <p role="alert" className="text-sm text-destructive">{reading.readerStatus === "busy" ? "The receipt reader is busy. Your photo is uploaded; you can select it again to retry, or enter the values below." : reading.readerStatus === "timeout" ? "Reading took too long. Your photo and any readable values are saved in this form." : "Could not reliably read every required field."} Please manually enter any missing date or amount and check the receipt.</p> : reading ? <p className="text-sm text-muted-foreground">Date and amount filled from the receipt. Please check them before submitting.</p> : null}
           </div>
-          <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">Please double-check the amount, date, and other values against the receipt before submitting. The receipt reader can make mistakes.</p>
+          <p className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs leading-relaxed text-amber-950">Please double-check the amount, date, and other values against the receipt before submitting. The receipt reader can make mistakes.</p>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label htmlFor="parking-date">Receipt date</Label><Input id="parking-date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} disabled={!!busy} /></div>
-            <div><Label htmlFor="parking-amount">Amount ($)</Label><Input id="parking-amount" type="number" inputMode="decimal" min="0.01" max="1000" step="0.01" required value={amount} onChange={(e) => setAmount(e.target.value)} disabled={!!busy} /></div>
+            <div className="min-w-0"><Label htmlFor="parking-date" className="text-xs">Receipt date</Label><Input id="parking-date" className="mt-1 h-11 min-w-0 text-base sm:text-sm" type="date" required value={date} onChange={(e) => setDate(e.target.value)} disabled={!!busy} /></div>
+            <div className="min-w-0"><Label htmlFor="parking-amount" className="text-xs">Amount ($)</Label><Input id="parking-amount" className="mt-1 h-11 min-w-0 text-base sm:text-sm" type="number" inputMode="decimal" min="0.01" max="1000" step="0.01" required value={amount} onChange={(e) => setAmount(e.target.value)} disabled={!!busy} /></div>
           </div>
-          <div><Label htmlFor="parking-notes">Notes (optional)</Label><Input id="parking-notes" maxLength={1500} value={remarks} onChange={(e) => setRemarks(e.target.value)} disabled={!!busy} /></div>
+          <div><Label htmlFor="parking-notes" className="text-xs">Notes (optional)</Label><Input id="parking-notes" className="mt-1 h-11 text-base sm:text-sm" maxLength={1500} value={remarks} onChange={(e) => setRemarks(e.target.value)} disabled={!!busy} /></div>
           {!parkingField && <p role="alert" className="text-sm text-destructive">{isFuel ? "Gas Reimbursed" : "Parking Airport"} is unavailable in your expense options. Contact an administrator.</p>}
         </>}
         {previewDone && <p role="status" className="text-sm text-emerald-800">Receipt preview checked. No expense was created.</p>}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose} disabled={!!busy}>Cancel</Button>
-          <Button type="submit" disabled={!!busy || declined || previewDone || (!submissionId && (!reading || !parkingField))}>
+        <div className="sticky bottom-0 flex flex-col-reverse gap-2 border-t bg-background pt-3 sm:flex-row sm:justify-end">
+          <Button type="button" className="h-11" variant="outline" onClick={onClose} disabled={!!busy}>Cancel</Button>
+          <Button type="submit" className="h-11 text-sm" disabled={!!busy || declined || previewDone || (!submissionId && (!reading || !parkingField))}>
             {busy === "submit" ? "Saving…" : context.data?.preview ? "Finish receipt preview" : submissionId ? isFuel ? "Close" : "Complete pickup" : isFuel ? "Submit gas receipt" : "Submit receipt & complete pickup"}
           </Button>
         </div>

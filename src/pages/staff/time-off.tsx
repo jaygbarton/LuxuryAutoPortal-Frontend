@@ -113,12 +113,12 @@ function StatCard({
 }) {
   return (
     <Card>
-      <CardContent className="flex items-center gap-4 p-4">
-        <div className={`p-2.5 rounded-xl ${color}`}>
+      <CardContent className="flex flex-col items-start gap-2 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-4">
+        <div className={`hidden rounded-xl p-2.5 sm:block ${color}`}>
           <Icon className="w-5 h-5" />
         </div>
         <div>
-          <p className="text-2xl font-semibold leading-none">{value}</p>
+          <p className="text-xl font-semibold leading-none sm:text-2xl">{value}</p>
           <p className="text-xs text-muted-foreground mt-1">{label}</p>
         </div>
       </CardContent>
@@ -263,7 +263,7 @@ export default function StaffTimeOff() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="staff-page min-w-0 space-y-4 sm:space-y-6">
         {/* Page header */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -286,7 +286,7 @@ export default function StaffTimeOff() {
         </div>
 
         {/* Summary stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
           <StatCard
             icon={CalendarCheck}
             label="Total requests"
@@ -314,7 +314,7 @@ export default function StaffTimeOff() {
               <CardTitle className="text-base font-semibold">
                 Leave requests
               </CardTitle>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-3">
                 <Select
                   value={statusFilter}
                   onValueChange={(v) => {
@@ -322,7 +322,7 @@ export default function StaffTimeOff() {
                     setPage(1);
                   }}
                 >
-                  <SelectTrigger className="w-[120px] h-8 text-sm">
+                  <SelectTrigger className="col-span-2 min-h-11 w-full text-base sm:h-8 sm:min-h-8 sm:w-[120px] sm:text-sm">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -340,7 +340,7 @@ export default function StaffTimeOff() {
                     setFromDate(e.target.value);
                     setPage(1);
                   }}
-                  className="w-[140px] h-8 text-sm"
+                  className="min-h-11 min-w-0 w-full text-base sm:h-8 sm:min-h-8 sm:w-[140px] sm:text-sm"
                 />
                 <Input
                   type="date"
@@ -349,7 +349,7 @@ export default function StaffTimeOff() {
                     setToDate(e.target.value);
                     setPage(1);
                   }}
-                  className="w-[140px] h-8 text-sm"
+                  className="min-h-11 min-w-0 w-full text-base sm:h-8 sm:min-h-8 sm:w-[140px] sm:text-sm"
                 />
                 {hasActiveFilters && (
                   <Button
@@ -382,6 +382,16 @@ export default function StaffTimeOff() {
               </div>
             ) : (
               <>
+                <div className="divide-y divide-border px-4 sm:hidden" data-staff-leave-list>
+                  {rows.map((item, idx) => (
+                    <article key={item.leave_aid ?? idx} className="py-3">
+                      <div className="flex items-start justify-between gap-2"><div><h3 className="text-sm font-semibold">{toTitleCase(item.leave_type)}</h3><p className="mt-0.5 text-xs text-muted-foreground">{formatDate(item.leave_date)}</p></div><LeaveStatusBadge status={item.leave_is_status} /></div>
+                      <div className="mt-2 flex gap-4 text-xs text-muted-foreground"><span>{item.leave_hour != null ? `${item.leave_hour}h ${item.leave_minute ?? 0}m` : "Duration not specified"}</span>{item.leave_amount != null && <span>${Number(item.leave_amount).toFixed(2)}</span>}</div>
+                      {item.leave_remarks && <p className="mt-2 break-words text-sm text-muted-foreground">{item.leave_remarks}</p>}
+                    </article>
+                  ))}
+                </div>
+                <div className="hidden sm:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -428,10 +438,11 @@ export default function StaffTimeOff() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
 
                 {/* Pagination footer */}
                 <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-border">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm text-muted-foreground">Rows per page</span>
                     <Select
                       value={String(pageSize)}
@@ -459,7 +470,7 @@ export default function StaffTimeOff() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 w-8 p-0"
+                      className="h-11 w-11 p-0 sm:h-8 sm:w-8"
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page <= 1}
                     >
@@ -471,7 +482,7 @@ export default function StaffTimeOff() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 w-8 p-0"
+                      className="h-11 w-11 p-0 sm:h-8 sm:w-8"
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={page >= totalPages}
                     >
@@ -487,7 +498,7 @@ export default function StaffTimeOff() {
 
       {/* Apply form dialog */}
       <Dialog open={applyOpen} onOpenChange={(o) => { if (!o) closeForm(); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <TreePalm className="w-5 h-5 text-primary" />

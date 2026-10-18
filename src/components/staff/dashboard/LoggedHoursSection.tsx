@@ -215,7 +215,7 @@ export default function LoggedHoursSection() {
   };
 
   return (
-    <div className="mb-8">
+    <div className="mb-4 min-w-0 sm:mb-8">
       <SectionHeader title="LOGGED HOURS HISTORY" />
 
       <div className="rounded-lg border border-gray-200 bg-white p-4">

@@ -8,7 +8,7 @@ import { TripCalendar } from "@/components/shared/TripCalendar";
 
 export default function MyTripsCalendarSection() {
   return (
-    <div className="mb-8">
+    <div className="mb-4 min-w-0 sm:mb-8">
       <TripCalendar title="My Trips Calendar" />
     </div>
   );

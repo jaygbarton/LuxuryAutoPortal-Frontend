@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
-import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Loader2, RefreshCw, X } from "lucide-react";
+import { AlertTriangle, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock3, Loader2, RefreshCw, SlidersHorizontal, X } from "lucide-react";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { useTimezone } from "@/hooks/use-timezone";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BookingNavigation } from "@/components/shared/BookingNavigation";
+import { WorkScheduleNavigation } from "@/components/shared/WorkScheduleNavigation";
 import { cn } from "@/lib/utils";
 import { addUtcDays, dayKeyToUtcDate, mtDayKey, mtTodayKey, utcDateToDayKey } from "@/lib/mt-datetime";
 import { calendarBarPosition, calendarInstant, calendarRangeDays, MAX_CALENDAR_DAYS } from "@/lib/fleetCalendarDates";
@@ -30,7 +32,7 @@ const SOURCE_COLORS: Record<FleetCalendarSource, string> = {
   turo: "border-[#BD9C5D] bg-[#D3BC8D] text-black",
   owner_rental: "border-blue-400 bg-blue-100 text-blue-950",
   block_off: "border-amber-400 bg-amber-100 text-amber-950",
-  maintenance: "border-purple-400 bg-purple-100 text-purple-950",
+  maintenance: "border-slate-400 bg-slate-100 text-slate-800",
   direct_booking: "border-emerald-400 bg-emerald-100 text-emerald-950",
 };
 
@@ -57,8 +59,16 @@ type VehicleRow = FleetCalendarCar & { key: string; events: FleetCalendarEvent[]
 
 /** Internal planning calendar. Customer booking views keep their separate feed. */
 export function FleetCalendar() {
+  const params = new URLSearchParams(useSearch());
+  const historyMode = params.get("view") === "history";
+  // Query-only tab navigation stays on this route; each mode gets its own date defaults.
+  return <FleetCalendarContent key={historyMode ? "history" : "calendar"} historyMode={historyMode} />;
+}
+
+function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
   const queryClient = useQueryClient();
   const activeTimezone = useTimezone();
+  const isMobile = useIsMobile();
   const [, setLocation] = useLocation();
   const searchParams = useSearch();
   const linkedBooking = new URLSearchParams(searchParams).get("booking");
@@ -68,15 +78,20 @@ export function FleetCalendar() {
     const to = params.get("to");
     return from && to && calendarRangeDays(from, to) !== null ? { from, to } : null;
   };
-  const [from, setFrom] = useState(() => initialRange()?.from ?? utcDateToDayKey(addUtcDays(dayKeyToUtcDate(mtTodayKey(activeTimezone)), -3)));
-  const [to, setTo] = useState(() => initialRange()?.to ?? utcDateToDayKey(addUtcDays(dayKeyToUtcDate(mtTodayKey(activeTimezone)), 20)));
+  const [from, setFrom] = useState(() => initialRange()?.from ?? utcDateToDayKey(addUtcDays(dayKeyToUtcDate(mtTodayKey(activeTimezone)), historyMode ? -29 : -3)));
+  const [to, setTo] = useState(() => initialRange()?.to ?? utcDateToDayKey(addUtcDays(dayKeyToUtcDate(mtTodayKey(activeTimezone)), historyMode ? 0 : 20)));
   const [search, setSearch] = useState("");
   const [fleet, setFleet] = useState<"all" | "active" | "inactive">("all");
   const [occupancy, setOccupancy] = useState<"all" | "blocking" | "none">("all");
   const [status, setStatus] = useState("all");
   const [sources, setSources] = useState<FleetCalendarSource[]>([...FLEET_CALENDAR_SOURCES]);
   const [showCancelled, setShowCancelled] = useState(true);
-  const [view, setView] = useState<"timeline" | "list">("timeline");
+  const [chosenView, setView] = useState<"timeline" | "list" | null>(null);
+  const view = chosenView ?? (isMobile || historyMode ? "list" : "timeline");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [coverageOpen, setCoverageOpen] = useState(false);
+  const [syncDetailsOpen, setSyncDetailsOpen] = useState(false);
+  const [attentionOpen, setAttentionOpen] = useState(false);
   const [selected, setSelected] = useState<FleetCalendarEvent | null>(null);
   const [mappingCar, setMappingCar] = useState("unmatched");
   const [syncRequestedAt, setSyncRequestedAt] = useState<number | null>(() => {
@@ -111,6 +126,19 @@ export function FleetCalendar() {
   const timezone = data?.timezone || activeTimezone;
   const allEvents = data?.events ?? [];
   const warnings = data?.warnings ?? [];
+  const historyNow = Date.now();
+  const scopedEvents = useMemo(() => historyMode ? allEvents.filter((event) => {
+    const start = calendarInstant(event.start);
+    const end = calendarInstant(event.end);
+    if (event.timeStatus !== "confirmed" || start === null || end === null || end <= start || end > historyNow) return false;
+    const endedOn = mtDayKey(end, timezone);
+    return endedOn >= from && endedOn <= to;
+  }) : allEvents, [allEvents, historyMode, historyNow, timezone, from, to]);
+  const uncertainHistoryCount = historyMode ? allEvents.filter((event) => {
+    const start = calendarInstant(event.start);
+    const end = calendarInstant(event.end);
+    return event.timeStatus !== "confirmed" || start === null || end === null || end <= start;
+  }).length : 0;
   const needsDateRecovery = warnings.some(warning => /turo records have.*(?:start|end)/i.test(warning));
   const { data: dateRecovery, error: recoveryReadError, refetch: refetchRecovery } = useQuery<{ issues: { tripId: number; reservationId: string; result: string | null; error: string | null }[] }>({
     queryKey: ["/api/internal-calendar/date-recovery"],
@@ -186,10 +214,10 @@ export function FleetCalendar() {
     enabled: Boolean(linkedBooking && data && !windowBooking),
     retry: 1, staleTime: 10_000,
   });
-  const sourceCounts = useMemo(() => Object.fromEntries(FLEET_CALENDAR_SOURCES.map((source) => [source, allEvents.filter((event) => event.source === source).length])) as Record<FleetCalendarSource, number>, [allEvents]);
-  const statuses = useMemo(() => Array.from(new Set(allEvents.map((event) => event.status))).sort(), [allEvents]);
+  const sourceCounts = useMemo(() => Object.fromEntries(FLEET_CALENDAR_SOURCES.map((source) => [source, scopedEvents.filter((event) => event.source === source).length])) as Record<FleetCalendarSource, number>, [scopedEvents]);
+  const statuses = useMemo(() => Array.from(new Set(scopedEvents.map((event) => event.status))).sort(), [scopedEvents]);
 
-  const visibleEvents = useMemo(() => allEvents.filter((event) => sources.includes(event.source) && (showCancelled || !isCancelledCalendarEvent(event)) && (status === "all" || event.status === status)), [allEvents, sources, showCancelled, status]);
+  const visibleEvents = useMemo(() => scopedEvents.filter((event) => sources.includes(event.source) && (showCancelled || !isCancelledCalendarEvent(event)) && (status === "all" || event.status === status)), [scopedEvents, sources, showCancelled, status]);
   const rows = useMemo(() => {
     const carMap = new Map<number, VehicleRow>();
     for (const car of data?.cars ?? []) carMap.set(car.carId, { ...car, key: `car-${car.carId}`, events: [] });
@@ -207,7 +235,7 @@ export function FleetCalendar() {
       }
     }
     // Occupancy uses all sources, even if their bars are filtered out.
-    const blockingCars = new Set(allEvents.filter(eventBlocksAvailability).map((event) => event.carId));
+    const blockingCars = new Set(scopedEvents.filter(eventBlocksAvailability).map((event) => event.carId));
     const q = search.trim().toLowerCase();
     return [...carMap.values(), ...unmatched.values()].filter((car) => {
       if (q && !`${car.carName} ${car.plateNumber ?? ""}`.toLowerCase().includes(q)) return false;
@@ -221,8 +249,23 @@ export function FleetCalendar() {
       }
       return true;
     });
-  }, [data?.cars, visibleEvents, allEvents, search, fleet, occupancy]);
-  const listedEvents = rows.flatMap((row) => row.events);
+  }, [data?.cars, visibleEvents, scopedEvents, search, fleet, occupancy]);
+  const listedEvents = useMemo(() => {
+    const events = rows.flatMap((row) => row.events);
+    return historyMode ? events.sort((a, b) => calendarInstant(b.end)! - calendarInstant(a.end)! || a.id.localeCompare(b.id)) : events;
+  }, [rows, historyMode]);
+  // A phone agenda includes every filtered record once, including ongoing and undated events.
+  const agendaGroups = useMemo(() => {
+    const groups = new Map<string, FleetCalendarEvent[]>();
+    for (const event of historyMode ? listedEvents : [...listedEvents].sort((a, b) => (calendarInstant(a.start) ?? Infinity) - (calendarInstant(b.start) ?? Infinity) || a.id.localeCompare(b.id))) {
+      const start = calendarInstant(historyMode ? event.end : event.start);
+      const day = start === null ? "undated" : mtDayKey(start, timezone);
+      const key = day < from ? "ongoing" : day;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(event);
+    }
+    return [...groups.entries()];
+  }, [listedEvents, from, timezone, historyMode]);
   const needsReview = listedEvents.filter((event) => calendarInstant(event.start) === null || (event.end !== null && (calendarInstant(event.end) === null || calendarInstant(event.end)! < calendarInstant(event.start)!)));
   const dayList = useMemo(() => days ? Array.from({ length: days }, (_, index) => addUtcDays(dayKeyToUtcDate(from), index)) : [], [from, days]);
   const hasFilters = search !== "" || fleet !== "all" || occupancy !== "all" || status !== "all" || sources.length !== FLEET_CALENDAR_SOURCES.length || !showCancelled;
@@ -293,63 +336,96 @@ export function FleetCalendar() {
     : syncHealth?.import.lastError ? "Connection needs attention"
       : verifiedGoogleAt ? "Connected"
         : syncHealth?.configured === true ? "Configured · first connection pending" : "Connection not yet verified";
+  const labelWidth = isMobile ? 150 : LABEL_WIDTH;
   const syncCompleted = syncRequestedAt !== null && syncHealth?.lastSuccessAt && Date.parse(syncHealth.lastSuccessAt) >= syncRequestedAt;
   const selectedSourceUrl = selected?.detailUrl ?? (selected?.source === "maintenance" ? `/admin/operations?tab=maintenance&appointment=${selected.sourceId}` : null);
 
   function eventButton(event: FleetCalendarEvent) {
-    return <button type="button" className="text-left text-sm font-medium underline-offset-4 hover:underline" onClick={() => selectEvent(event)}>{eventLabel(event)}</button>;
+    return <button type="button" className="min-h-11 text-left text-sm font-medium underline-offset-4 hover:underline md:min-h-0" onClick={() => selectEvent(event)}>{eventLabel(event)}</button>;
   }
 
-  return (
-    <div className="space-y-4" data-testid="fleet-calendar">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-semibold"><CalendarDays className="h-5 w-5" /> Calendar</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Turo trips, owner rentals, blocked-off dates, and scheduled maintenance.</p>
-        </div>
-        <Button variant="outline" onClick={() => { void refetch(); void refetchSync(); if (pointError) void refetchPoint(); }} disabled={isFetching || !days} className="gap-2">
-          <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} /> Refresh
-        </Button>
-      </div>
+  function resetDateRange() {
+    const today = dayKeyToUtcDate(mtTodayKey(timezone));
+    setFrom(utcDateToDayKey(addUtcDays(today, historyMode ? -29 : -3)));
+    setTo(utcDateToDayKey(addUtcDays(today, historyMode ? 0 : 20)));
+  }
+  const compactRange = days ? `${dayKeyToUtcDate(from).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" })} – ${dayKeyToUtcDate(to).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" })}` : "Choose dates";
+  const dateFields = <>
+    <div className="min-w-0 space-y-1"><Label className="text-xs text-muted-foreground md:text-sm" htmlFor="fleet-calendar-from">From</Label><Input id="fleet-calendar-from" type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="h-11 min-w-0 w-full text-base md:h-9 md:w-40 md:text-sm" /></div>
+    <div className="min-w-0 space-y-1"><Label className="text-xs text-muted-foreground md:text-sm" htmlFor="fleet-calendar-to">To</Label><Input id="fleet-calendar-to" type="date" value={to} onChange={(event) => setTo(event.target.value)} className="h-11 min-w-0 w-full text-base md:h-9 md:w-40 md:text-sm" /></div>
+  </>;
+  const viewControls = <div className="ml-auto flex rounded-lg bg-muted p-0.5" aria-label="Calendar view">
+    <Button className="min-h-11 px-2 text-xs md:min-h-9 md:px-3 md:text-sm" variant={view === "list" ? "default" : "ghost"} onClick={() => setView("list")} aria-pressed={view === "list"}>{isMobile ? "Agenda" : "List"}</Button>
+    <Button className="min-h-11 px-2 text-xs md:min-h-9 md:px-3 md:text-sm" variant={view === "timeline" ? "default" : "ghost"} onClick={() => setView("timeline")} aria-pressed={view === "timeline"}>Timeline</Button>
+  </div>;
+  const refreshButton = <Button variant="outline" aria-label="Refresh" onClick={() => { void refetch(); void refetchSync(); if (pointError) void refetchPoint(); }} disabled={isFetching || !days} className="h-11 w-11 shrink-0 px-0 md:h-auto md:w-auto md:gap-2 md:px-4"><RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} /><span className="hidden md:inline">Refresh</span></Button>;
+  const filterCount = Number(fleet !== "all") + Number(status !== "all") + Number(occupancy !== "all") + FLEET_CALENDAR_SOURCES.length - sources.length + Number(!showCancelled);
+  const filterControls = <>
+    <div className="grid gap-3 md:flex md:flex-wrap md:items-center">
+      <Select value={fleet} onValueChange={(value) => setFleet(value as typeof fleet)}><SelectTrigger className="min-h-11 w-full text-base md:min-h-9 md:w-40 md:text-sm" aria-label="Fleet filter"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All vehicles</SelectItem><SelectItem value="active">Active vehicles</SelectItem><SelectItem value="inactive">Inactive vehicles</SelectItem></SelectContent></Select>
+      <Select value={status} onValueChange={setStatus}><SelectTrigger className="min-h-11 w-full text-base md:min-h-9 md:w-40 md:text-sm" aria-label="Event status filter"><SelectValue placeholder="All statuses" /></SelectTrigger><SelectContent><SelectItem value="all">All statuses</SelectItem>{statuses.map((value) => <SelectItem key={value} value={value}>{value.replace(/_/g, " ")}</SelectItem>)}</SelectContent></Select>
+      <Select value={occupancy} onValueChange={(value) => setOccupancy(value as typeof occupancy)}><SelectTrigger className="min-h-11 w-full text-base md:min-h-9 md:w-64 md:text-sm" aria-label="Blocking event filter"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All activity</SelectItem><SelectItem value="blocking">Blocking events in view</SelectItem><SelectItem value="none">No blocking events in view</SelectItem></SelectContent></Select>
+      {hasFilters && !isMobile && <Button variant="ghost" onClick={resetFilters}>Clear filters</Button>}
+    </div>
+    <div className="mt-3 grid divide-y divide-border md:flex md:flex-wrap md:gap-x-5 md:gap-y-1 md:divide-y-0 md:rounded-lg md:border md:border-border md:px-3 md:py-1">
+      {FLEET_CALENDAR_SOURCES.map((source) => <label key={source} className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+        <Checkbox checked={sources.includes(source)} onCheckedChange={(checked) => setSources((current) => checked === true ? [...current, source] : current.filter((value) => value !== source))} aria-label={FLEET_SOURCE_LABELS[source]} />
+        <span className={cn("h-3 w-3 shrink-0 rounded-full border", SOURCE_COLORS[source])} /> <span>{FLEET_SOURCE_LABELS[source]}</span><span className="ml-auto pl-1 text-xs text-muted-foreground md:ml-0">{sourceCounts[source]}</span>
+      </label>)}
+      <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm"><Checkbox checked={showCancelled} onCheckedChange={(checked) => setShowCancelled(checked === true)} aria-label="Show cancelled trips" /><span className="h-3 w-3 rounded-full border border-dashed border-slate-400 bg-slate-100" /> Show cancelled trips</label>
+    </div>
+  </>;
 
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-3">
-        <div className="space-y-1"><Label htmlFor="fleet-calendar-from">From</Label><Input id="fleet-calendar-from" type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="w-40" /></div>
-        <div className="space-y-1"><Label htmlFor="fleet-calendar-to">To</Label><Input id="fleet-calendar-to" type="date" value={to} onChange={(event) => setTo(event.target.value)} className="w-40" /></div>
-        <div className="flex gap-1">
-          <Button variant="outline" aria-label="Previous week" onClick={() => shift(-7)} disabled={!days}><ChevronLeft className="h-4 w-4" /></Button>
-          <Button variant="outline" onClick={() => { const today = dayKeyToUtcDate(mtTodayKey(timezone)); setFrom(utcDateToDayKey(addUtcDays(today, -3))); setTo(utcDateToDayKey(addUtcDays(today, 20))); }}>Today</Button>
-          <Button variant="outline" aria-label="Next week" onClick={() => shift(7)} disabled={!days}><ChevronRight className="h-4 w-4" /></Button>
+  return (
+    <div className="min-w-0 space-y-3 md:space-y-4" data-testid="fleet-calendar">
+      <WorkScheduleNavigation />
+      <div className={cn("flex items-start justify-between gap-3", isMobile && "sr-only")}>
+        <div className="min-w-0">
+          <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight"><CalendarDays className="h-5 w-5 text-primary" /> {historyMode ? "History" : "Calendar"}</h1>
+          <p className="mt-1 text-xs text-muted-foreground md:text-sm">{historyMode ? "Trips, blocks and scheduled service that ended in this date range." : "Turo trips, owner rentals, blocked-off dates, and scheduled maintenance."}</p>
         </div>
-        <div className="ml-auto flex gap-1" aria-label="Calendar view">
-          <Button variant={view === "timeline" ? "default" : "outline"} onClick={() => setView("timeline")} aria-pressed={view === "timeline"}>Timeline</Button>
-          <Button variant={view === "list" ? "default" : "outline"} onClick={() => setView("list")} aria-pressed={view === "list"}>List</Button>
-        </div>
+        {!isMobile && refreshButton}
       </div>
+      {historyMode && <p className={cn("text-xs text-muted-foreground", isMobile && "sr-only")} data-testid="history-range-description">History range · {from} through {to}</p>}
+      {isMobile ? <div className="flex min-w-0 items-center gap-1">
+        <Button variant="ghost" size="icon" aria-label="Previous week" onClick={() => shift(-7)} disabled={!days}><ChevronLeft /></Button>
+        <Button variant="ghost" className="h-11 min-w-0 flex-1 gap-1 px-1 text-sm" aria-label={`Change date range, ${compactRange}`} onClick={() => setFiltersOpen(true)}><span className="truncate">{compactRange}</span><ChevronDown className="h-3.5 w-3.5 shrink-0" /></Button>
+        <Button variant="ghost" size="icon" aria-label="Next week" onClick={() => shift(7)} disabled={!days}><ChevronRight /></Button>
+        {refreshButton}
+      </div> : <div className="grid grid-cols-2 items-end gap-2 rounded-xl border border-border bg-card p-3 md:flex md:flex-wrap md:gap-3 md:rounded-lg">
+        {dateFields}
+        <div className="flex min-w-0 items-center gap-0.5">
+          <Button variant="ghost" size="icon" aria-label="Previous week" onClick={() => shift(-7)} disabled={!days}><ChevronLeft className="h-4 w-4" /></Button>
+          <Button variant="ghost" className="px-2" onClick={resetDateRange}>Today</Button>
+          <Button variant="ghost" size="icon" aria-label="Next week" onClick={() => shift(7)} disabled={!days}><ChevronRight className="h-4 w-4" /></Button>
+        </div>
+        {viewControls}
+      </div>}
       {!days && <div role="alert" className="rounded-md border border-destructive/40 p-3 text-sm text-destructive">Choose valid dates in order, spanning no more than {MAX_CALENDAR_DAYS} days.</div>}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Input aria-label="Search vehicle or plate" placeholder="Search vehicle or plate…" value={search} onChange={(event) => setSearch(event.target.value)} className="w-full sm:w-60" />
-        <Select value={fleet} onValueChange={(value) => setFleet(value as typeof fleet)}><SelectTrigger className="w-40" aria-label="Fleet filter"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All vehicles</SelectItem><SelectItem value="active">Active vehicles</SelectItem><SelectItem value="inactive">Inactive vehicles</SelectItem></SelectContent></Select>
-        <Select value={status} onValueChange={setStatus}><SelectTrigger className="w-40" aria-label="Event status filter"><SelectValue placeholder="All statuses" /></SelectTrigger><SelectContent><SelectItem value="all">All statuses</SelectItem>{statuses.map((value) => <SelectItem key={value} value={value}>{value.replace(/_/g, " ")}</SelectItem>)}</SelectContent></Select>
-        <Select value={occupancy} onValueChange={(value) => setOccupancy(value as typeof occupancy)}><SelectTrigger className="w-64" aria-label="Blocking event filter"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All activity</SelectItem><SelectItem value="blocking">Blocking events in view</SelectItem><SelectItem value="none">No blocking events in view</SelectItem></SelectContent></Select>
-        {hasFilters && <Button variant="ghost" onClick={resetFilters}>Clear filters</Button>}
+      <div className="flex min-w-0 items-center gap-2">
+        <Input aria-label="Search vehicle or plate" placeholder="Search vehicle or plate…" value={search} onChange={(event) => setSearch(event.target.value)} className="h-11 min-w-0 flex-1 text-base md:h-9 md:max-w-60 md:text-sm" />
+        {isMobile && <Button variant="outline" className="h-11 shrink-0 gap-2 px-3" onClick={() => setFiltersOpen(true)} aria-label={`Calendar filters${filterCount ? `, ${filterCount} active` : ""}`}><SlidersHorizontal className="h-4 w-4" />Filters{filterCount > 0 && <span className="rounded-full bg-primary/20 px-1.5 text-xs">{filterCount}</span>}</Button>}
       </div>
-      <div className="flex flex-wrap gap-x-5 gap-y-3 rounded-lg border border-border p-3">
-        {FLEET_CALENDAR_SOURCES.map((source) => <label key={source} className="flex cursor-pointer items-center gap-2 text-sm">
-          <Checkbox checked={sources.includes(source)} onCheckedChange={(checked) => setSources((current) => checked === true ? [...current, source] : current.filter((value) => value !== source))} aria-label={FLEET_SOURCE_LABELS[source]} />
-          <span className={cn("h-3 w-4 rounded border", SOURCE_COLORS[source])} /> {FLEET_SOURCE_LABELS[source]} ({sourceCounts[source]})
-        </label>)}
-        <label className="flex cursor-pointer items-center gap-2 text-sm"><Checkbox checked={showCancelled} onCheckedChange={(checked) => setShowCancelled(checked === true)} aria-label="Show cancelled trips" /><span className="h-3 w-4 rounded border border-dashed border-slate-400 bg-slate-100" /> Show cancelled trips</label>
-      </div>
+      {!isMobile && filterControls}
+      {isMobile && <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}><DialogContent className="bottom-0 top-auto flex w-full max-w-none translate-y-0 flex-col gap-3 overflow-hidden rounded-b-none rounded-t-2xl pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <DialogHeader className="shrink-0 pr-10 text-left"><DialogTitle>Calendar filters</DialogTitle><DialogDescription>Choose dates, vehicles and events.</DialogDescription></DialogHeader>
+        <Button variant="ghost" size="icon" className="absolute right-2 top-2" style={{ position: "absolute" }} aria-label="Close filters" onClick={() => setFiltersOpen(false)}><X /></Button>
+        <div className="min-h-0 space-y-4 overflow-y-auto py-1"><div className="grid grid-cols-2 gap-3">{dateFields}</div>{!days && <p role="alert" className="text-xs text-destructive">Choose valid dates in order, spanning no more than {MAX_CALENDAR_DAYS} days.</p>}<div className="flex items-center justify-between gap-3"><Button variant="ghost" onClick={resetDateRange}>Today</Button>{viewControls}</div>{filterControls}</div>
+        <div className="flex shrink-0 gap-2 border-t border-border pt-3"><Button variant="outline" onClick={resetFilters}>Reset</Button><Button className="flex-1" disabled={!days} onClick={() => setFiltersOpen(false)}>Show {listedEvents.length} events</Button></div>
+      </DialogContent></Dialog>}
+
 
       {isError && <div role="alert" className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive"><p className="font-medium">Calendar could not be refreshed.</p><p>{error instanceof Error ? error.message : "Please retry."}</p>{data && <p className="mt-1">Previously loaded records remain visible. They may be out of date.</p>}</div>}
-      {data && (data.complete === false || data.availabilityComplete === false || warnings.length > 0) && (
-        <div role="alert" className="flex gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+      {data && (data.complete === false || data.availabilityComplete === false || warnings.length > 0 || uncertainHistoryCount > 0) && (
+        <div role="alert" className="flex gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-sm text-amber-950 md:p-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <div>
-            <p className="font-medium">Calendar coverage needs attention.</p>
+          <div className="min-w-0 flex-1">
+            {isMobile ? <button type="button" className="flex min-h-11 w-full items-center justify-between gap-2 text-left font-medium" aria-expanded={coverageOpen} onClick={() => setCoverageOpen(!coverageOpen)}><span>Calendar coverage needs attention.</span><ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", coverageOpen && "rotate-180")} /></button> : <p className="font-medium">Calendar coverage needs attention.</p>}
+            {isMobile && !coverageOpen && historyMode && uncertainHistoryCount > 0 && <p className="text-xs">{uncertainHistoryCount} date records need review</p>}
+            {(!isMobile || coverageOpen) && (historyMode && uncertainHistoryCount > 0 ? <p className="text-xs md:mt-1 md:text-sm">{uncertainHistoryCount} {uncertainHistoryCount === 1 ? "record has" : "records have"} unconfirmed or open-ended dates and {uncertainHistoryCount === 1 ? "is" : "are"} not classified as past. <a href="/admin/trip-calendar" className="underline">Review in Calendar</a>.</p> : <p className="text-xs md:mt-1 md:text-sm">An empty period does not confirm that a vehicle is available for booking.</p>)}
+            {(!isMobile || coverageOpen) && <div className="break-words">
             {warnings.map((warning, index) => <p key={index} className="mt-1">{warning}</p>)}
-            <p className="mt-1">An empty period does not confirm that a vehicle is available for booking.</p>
             {needsDateRecovery && <div className="mt-3 space-y-2 border-t border-amber-300 pt-3">
               <p>Confirmed Turo emails are checked automatically to recover missing or invalid dates.</p>
               {data.role === 'admin' && <Button variant="outline" disabled={recoverDates.isPending} onClick={() => recoverDates.mutate()}>Recover trip dates</Button>}
@@ -357,19 +433,21 @@ export function FleetCalendar() {
               {(recoverDates.error || recoveryReadError) && <p role="alert">{(recoverDates.error || recoveryReadError) instanceof Error ? ((recoverDates.error || recoveryReadError) as Error).message : 'Recovery needs attention.'}</p>}
               {dateRecovery?.issues.map(issue => <p key={issue.tripId}>Reservation #{issue.reservationId || issue.tripId}: {issue.error || (issue.result === 'source_changed' ? 'This record changed during recovery; it will be checked again.' : 'Waiting for a confirmed source email.')} <a className="underline" href={`/admin/turo-trips?reservation=${encodeURIComponent(issue.reservationId)}`}>Review trip</a></p>)}
             </div>}
+            </div>}
           </div>
         </div>
       )}
-      <section className="space-y-2 rounded-lg border border-border bg-card p-3 text-sm" aria-label="Google Calendar status">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="font-medium">Google Calendar: {googleConnectionLabel}</h2>
-            {syncHealth && <p className="mt-1 text-xs text-muted-foreground">Google Calendar sync: {syncHealth.status.replace(/_/g, " ")} · {syncHealth.pending} pending · {syncHealth.failed} failed{syncHealth.attention > 0 ? ` · ${syncHealth.attention} need review` : ""}</p>}
+      <section className="space-y-2 rounded-lg border border-border bg-card p-2 text-sm md:p-3" aria-label="Google Calendar status">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xs font-medium md:text-sm">Google Calendar: {googleConnectionLabel}</h2>
+            {syncHealth && <p className="mt-1 text-xs text-muted-foreground">{isMobile && !syncDetailsOpen ? "" : "Google Calendar sync: "}{syncHealth.status.replace(/_/g, " ")} · {syncHealth.pending} pending · {syncHealth.failed} failed{syncHealth.attention > 0 ? ` · ${syncHealth.attention} need review` : ""}</p>}
           </div>
-          {data?.role === "admin" && <Button variant="outline" onClick={() => syncNow.mutate()} disabled={syncNow.isPending || syncHealth?.configured === false || syncHealth?.enabled === false} className="gap-2"><RefreshCw className={cn("h-4 w-4", syncNow.isPending && "animate-spin")} />{syncNow.isPending ? "Requesting sync…" : "Sync now"}</Button>}
+          {isMobile && <Button variant="ghost" size="icon" aria-label="Google sync details" aria-expanded={syncDetailsOpen} onClick={() => setSyncDetailsOpen(!syncDetailsOpen)}><ChevronDown className={cn("transition-transform", syncDetailsOpen && "rotate-180")} /></Button>}
+          {data?.role === "admin" && (!isMobile || syncDetailsOpen) && <Button variant="outline" onClick={() => syncNow.mutate()} disabled={syncNow.isPending || syncHealth?.configured === false || syncHealth?.enabled === false} className="gap-2"><RefreshCw className={cn("h-4 w-4", syncNow.isPending && "animate-spin")} />{syncNow.isPending ? "Requesting sync…" : "Sync now"}</Button>}
         </div>
         {syncStatusLoading && !syncHealth && <p role="status" className="text-xs text-muted-foreground">Checking Google Calendar status…</p>}
-        {syncHealth && <dl className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground"><div><dt className="inline">Last Google import: </dt><dd className="inline">{syncHealth.import.lastSuccessAt ? formatInstant(syncHealth.import.lastSuccessAt, timezone) : "Not completed yet"}</dd></div><div><dt className="inline">Last Google update: </dt><dd className="inline">{syncHealth.lastSuccessAt ? formatInstant(syncHealth.lastSuccessAt, timezone) : "Not completed yet"}</dd></div></dl>}
+        {syncHealth && (!isMobile || syncDetailsOpen) && <dl className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground"><div><dt className="inline">Last Google import: </dt><dd className="inline">{syncHealth.import.lastSuccessAt ? formatInstant(syncHealth.import.lastSuccessAt, timezone) : "Not completed yet"}</dd></div><div><dt className="inline">Last Google update: </dt><dd className="inline">{syncHealth.lastSuccessAt ? formatInstant(syncHealth.lastSuccessAt, timezone) : "Not completed yet"}</dd></div></dl>}
         {syncHealth?.enabled === false && <p className="text-xs text-amber-800">Google synchronization is disabled for this environment.</p>}
         {syncHealth?.import.lastError && <p role="alert" className="text-xs text-destructive">Google import failed: {syncHealth.import.lastError}</p>}
         {syncHealth?.lastError && <p role="alert" className="text-xs text-destructive">Google update failed: {syncHealth.lastError}</p>}
@@ -379,26 +457,49 @@ export function FleetCalendar() {
       </section>
       {linkedBooking && pointLoading && <p role="status" className="text-sm text-muted-foreground">Loading linked booking…</p>}
       {linkedBooking && pointError && !windowBooking && <p role="alert" className="rounded-md border border-destructive/40 p-3 text-sm text-destructive">The linked booking could not be loaded: {pointError instanceof Error ? pointError.message : "Please retry."}</p>}
-      <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground"><span>{listedEvents.length} of {allEvents.length} events shown · {rows.length} vehicles · {timezone}</span><span>{isFetching ? "Refreshing…" : dataUpdatedAt ? `Updated ${new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""}</span></div>
+      <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground"><span>{listedEvents.length} of {scopedEvents.length} {historyMode ? "past events" : "events"} shown · {rows.length} vehicles · {timezone}</span><span className="sr-only md:not-sr-only">{isFetching ? "Refreshing…" : dataUpdatedAt ? `Updated ${new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""}</span></div>
 
-      {isLoading ? <div role="status" className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading calendar…</div> : !days || !data ? null : view === "list" ? (
+      {isLoading ? <div role="status" className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading calendar…</div> : !days || !data ? null : view === "list" && isMobile ? (
+        <div className="space-y-5" data-testid="fleet-calendar-agenda">
+          {agendaGroups.map(([day, events]) => <section key={day} aria-label={day === "undated" ? "Dates need review" : day === "ongoing" ? "Started before this range" : dayKeyToUtcDate(day).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" })}>
+            <h2 className="mb-2 flex items-center justify-between gap-2 text-sm font-semibold">
+              <span>{historyMode ? "Ended " : ""}{day === "undated" ? "Dates need review" : day === "ongoing" ? "Started before this range" : dayKeyToUtcDate(day).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" })}</span><span className="text-xs font-normal text-muted-foreground">{events.length} {events.length === 1 ? "event" : "events"}</span>
+            </h2>
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+              {events.map((event) => <button key={event.id} type="button" aria-label={`${eventLabel(event)} · ${event.carName || "Unmatched vehicle"}`} className="flex w-full min-w-0 items-start gap-3 p-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" onClick={() => selectEvent(event)}>
+                <span className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border", eventColor(event))} />
+                <span className="min-w-0 flex-1 space-y-1">
+                  <span className="block text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{event.carName || "Unmatched vehicle"}</span>
+                  <span className="block text-[11px] text-muted-foreground">{FLEET_SOURCE_LABELS[event.source]}{event.plateNumber ? ` · ${event.plateNumber}` : ""}</span>
+                  <span className="block text-sm leading-snug [overflow-wrap:anywhere]">{eventLabel(event)}</span>
+                  <span className="flex items-start gap-1.5 pt-0.5 text-xs leading-relaxed text-muted-foreground"><Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span><span className="block">{formatInstant(event.start, timezone)}</span><span className="block">to {event.end === null && event.start ? "Ongoing / no end recorded" : formatInstant(event.end, timezone)}</span></span></span>
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1 text-[11px]"><span className={cn("rounded px-1.5 py-0.5", isCancelledCalendarEvent(event) ? "bg-muted text-muted-foreground" : "bg-primary/10 text-foreground")}>{event.status.replace(/_/g, " ")}</span><span className="text-muted-foreground">{eventBlocksAvailability(event) ? "Blocks vehicle" : "Does not block"}</span>{(event.carId === null || event.timeStatus !== "confirmed") && <span className="text-amber-800">Needs review</span>}</span>
+                </span>
+                <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+              </button>)}
+            </div>
+          </section>)}
+          {listedEvents.length === 0 && <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center"><CalendarDays className="mx-auto mb-2 h-6 w-6 text-muted-foreground" /><p className="text-sm font-medium">No events match the current filters.</p>{hasFilters && <Button variant="ghost" onClick={resetFilters} className="mt-2">Clear filters</Button>}</div>}
+        </div>
+      ) : view === "list" ? (
         <div className="overflow-x-auto rounded-lg border border-border"><table className="w-full text-left text-sm"><thead className="bg-muted"><tr>{["Vehicle", "Event", "Starts", "Ends", "Status", "Booking impact"].map((label) => <th key={label} className="p-3 font-medium">{label}</th>)}</tr></thead><tbody>{listedEvents.map((event) => <tr key={event.id} className="border-t border-border"><td className="p-3">{event.carName || "Unmatched vehicle"}<div className="text-xs text-muted-foreground">{event.plateNumber}</div></td><td className="p-3">{eventButton(event)}<div className="text-xs text-muted-foreground">{FLEET_SOURCE_LABELS[event.source]}</div></td><td className="whitespace-nowrap p-3">{formatInstant(event.start, timezone)}</td><td className="whitespace-nowrap p-3">{event.end === null && event.start ? "Ongoing / no end recorded" : formatInstant(event.end, timezone)}</td><td className="p-3">{event.status.replace(/_/g, " ")}</td><td className="p-3">{eventBlocksAvailability(event) ? "Blocks vehicle" : "Does not block"}</td></tr>)}</tbody></table>{listedEvents.length === 0 && <p className="p-10 text-center text-sm text-muted-foreground">No events match the current filters.</p>}</div>
       ) : rows.length === 0 ? <p className="py-12 text-center text-sm text-muted-foreground">No vehicles match the current filters.</p> : (
-        <div className="overflow-auto rounded-lg border border-border" style={{ maxHeight: "calc(100vh - 340px)" }} data-testid="fleet-calendar-timeline">
-          <div style={{ minWidth: LABEL_WIDTH + dayList.length * COLUMN_WIDTH }}>
-            <div className="sticky top-0 z-20 flex bg-muted"><div className="sticky left-0 z-30 shrink-0 border-r border-border bg-muted px-3 py-2 text-xs font-semibold" style={{ width: LABEL_WIDTH }}>Vehicle</div>{dayList.map((day) => <div key={utcDateToDayKey(day)} className={cn("shrink-0 border-l border-border py-1 text-center text-[11px]", utcDateToDayKey(day) === mtTodayKey(timezone) && "bg-primary/15")} style={{ width: COLUMN_WIDTH }}><div>{day.toLocaleDateString("en-US", { timeZone: "UTC", month: "short" })}</div><div className="font-medium">{day.getUTCDate()}</div><div>{day.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short" })}</div></div>)}</div>
+        <div className="overflow-auto rounded-lg border border-border" style={{ maxHeight: isMobile ? "65dvh" : "calc(100vh - 340px)" }} data-testid="fleet-calendar-timeline" tabIndex={0} role="region" aria-label="Vehicle timeline, scroll to see more dates">
+          <div style={{ minWidth: labelWidth + dayList.length * COLUMN_WIDTH }}>
+            <div className="sticky top-0 z-20 flex bg-muted"><div className="sticky left-0 z-30 shrink-0 border-r border-border bg-muted px-3 py-2 text-xs font-semibold" style={{ width: labelWidth }}>Vehicle</div>{dayList.map((day) => <div key={utcDateToDayKey(day)} className={cn("shrink-0 border-l border-border py-1 text-center text-[11px]", utcDateToDayKey(day) === mtTodayKey(timezone) && "bg-primary/15")} style={{ width: COLUMN_WIDTH }}><div>{day.toLocaleDateString("en-US", { timeZone: "UTC", month: "short" })}</div><div className="font-medium">{day.getUTCDate()}</div><div>{day.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short" })}</div></div>)}</div>
             {rows.map((row) => {
               const placed = packLanes(row.events, (event) => calendarBarPosition(event.start, event.end, from, to, timezone, COLUMN_WIDTH));
-              const height = Math.max(54, laneCountOf(placed) * LANE_HEIGHT + 10);
-              return <div key={row.key} className="flex border-t border-border" style={{ height }}><div className="sticky left-0 z-10 shrink-0 border-r border-border bg-card p-3" style={{ width: LABEL_WIDTH }}><p className="truncate text-xs font-medium">{row.carName || `Vehicle #${row.carId}`}</p><p className="truncate text-[10px] text-muted-foreground">{row.plateNumber || "No plate"}{row.unmatched ? " · Needs matching" : ""}</p></div><div className="relative" style={{ width: days * COLUMN_WIDTH }}><div className="absolute inset-0 flex">{dayList.map((day) => <div key={utcDateToDayKey(day)} className={cn("h-full shrink-0 border-l border-border/50", [0, 6].includes(day.getUTCDay()) && "bg-muted/35")} style={{ width: COLUMN_WIDTH }} />)}</div>{placed.map(({ item: event, pos, lane }) => <button key={event.id} type="button" onClick={() => selectEvent(event)} aria-label={`${eventLabel(event)} · ${row.carName}`} title={`${eventLabel(event)}\n${formatInstant(event.start, timezone)} → ${event.end ? formatInstant(event.end, timezone) : "Ongoing / no end recorded"}\n${eventBlocksAvailability(event) ? "Blocks vehicle" : "Does not block availability"}`} className={cn("absolute truncate rounded border px-2 text-left text-[10px] font-medium hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary", eventColor(event), pos.clippedLeft && "rounded-l-none", pos.clippedRight && "rounded-r-none")} style={{ left: pos.left + 3, width: pos.width, top: 6 + lane * LANE_HEIGHT, height: 28 }}>{eventLabel(event)}</button>)}</div></div>;
+              const laneHeight = isMobile ? 48 : LANE_HEIGHT;
+              const height = Math.max(54, laneCountOf(placed) * laneHeight + 10);
+              return <div key={row.key} className="flex border-t border-border" style={{ height }}><div className="sticky left-0 z-10 shrink-0 border-r border-border bg-card p-3" style={{ width: labelWidth }}><p className="truncate text-xs font-medium">{row.carName || `Vehicle #${row.carId}`}</p><p className="truncate text-[10px] text-muted-foreground">{row.plateNumber || "No plate"}{row.unmatched ? " · Needs matching" : ""}</p></div><div className="relative" style={{ width: days * COLUMN_WIDTH }}><div className="absolute inset-0 flex">{dayList.map((day) => <div key={utcDateToDayKey(day)} className={cn("h-full shrink-0 border-l border-border/50", [0, 6].includes(day.getUTCDay()) && "bg-muted/35")} style={{ width: COLUMN_WIDTH }} />)}</div>{placed.map(({ item: event, pos, lane }) => <button key={event.id} type="button" onClick={() => selectEvent(event)} aria-label={`${eventLabel(event)} · ${row.carName}`} title={`${eventLabel(event)}\n${formatInstant(event.start, timezone)} → ${event.end ? formatInstant(event.end, timezone) : "Ongoing / no end recorded"}\n${eventBlocksAvailability(event) ? "Blocks vehicle" : "Does not block availability"}`} className={cn("absolute truncate rounded border px-2 text-left text-[10px] font-medium hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary", eventColor(event), pos.clippedLeft && "rounded-l-none", pos.clippedRight && "rounded-r-none")} style={{ left: pos.left + 3, width: isMobile ? Math.max(44, pos.width) : pos.width, top: 6 + lane * laneHeight, height: isMobile ? 44 : 28 }}>{eventLabel(event)}</button>)}</div></div>;
             })}
           </div>
         </div>
       )}
-      {attentionEvents.length > 0 && <div className="rounded-lg border border-amber-300 p-3"><h2 className="text-sm font-medium">Records needing attention ({attentionEvents.length})</h2><p className="mb-2 text-xs text-muted-foreground">Review vehicle matching, missing dates, and open-ended periods before making a booking decision.</p>{attentionEvents.map((event) => <div key={event.id} className="flex flex-wrap justify-between gap-2 border-t border-border py-2">{eventButton(event)}<span className="text-xs text-muted-foreground">{event.carId === null ? "Unmatched vehicle" : event.timeStatus === "open_ended" ? "No end recorded" : "Dates need review"}</span></div>)}</div>}
+      {attentionEvents.length > 0 && <div className="rounded-lg border border-amber-300 p-3">{isMobile ? <button type="button" className="flex min-h-11 w-full items-center justify-between gap-2 text-left text-sm font-medium" aria-expanded={attentionOpen} onClick={() => setAttentionOpen(!attentionOpen)}><span>Records needing attention ({attentionEvents.length})</span><ChevronDown className={cn("h-4 w-4 shrink-0", attentionOpen && "rotate-180")} /></button> : <h2 className="text-sm font-medium">Records needing attention ({attentionEvents.length})</h2>}{(!isMobile || attentionOpen) && <><p className="mb-2 text-xs text-muted-foreground">Review vehicle matching, missing dates, and open-ended periods before making a booking decision.</p>{attentionEvents.map((event) => <div key={event.id} className="flex flex-wrap justify-between gap-2 border-t border-border py-2">{eventButton(event)}<span className="text-xs text-muted-foreground">{event.carId === null ? "Unmatched vehicle" : event.timeStatus === "open_ended" ? "No end recorded" : "Dates need review"}</span></div>)}</>}</div>}
       <p className="text-xs text-muted-foreground">Cancelled trips are shown as history and do not block availability. Timeline bars show calendar days; open an event for its exact times.</p>
 
-      <Dialog open={selected !== null} onOpenChange={(open) => { if (!open) selectEvent(null); }}><DialogContent><DialogHeader className="pr-8"><DialogTitle>{selected ? eventLabel(selected) : "Calendar event"}</DialogTitle><DialogDescription>{selected ? `${selected.carName || "Unmatched vehicle"}${selected.plateNumber ? ` · ${selected.plateNumber}` : ""}` : ""}</DialogDescription></DialogHeader><Button variant="ghost" size="icon" className="absolute right-2 top-2" aria-label="Close" onClick={() => selectEvent(null)}><X className="h-4 w-4" /></Button>{selected && <div className="space-y-3 text-sm"><dl className="space-y-2">{[
+      <Dialog open={selected !== null} onOpenChange={(open) => { if (!open) selectEvent(null); }}><DialogContent className="[overflow-wrap:anywhere]"><DialogHeader className="pr-10 text-left"><DialogTitle>{selected ? eventLabel(selected) : "Calendar event"}</DialogTitle><DialogDescription>{selected ? `${selected.carName || "Unmatched vehicle"}${selected.plateNumber ? ` · ${selected.plateNumber}` : ""}` : ""}</DialogDescription></DialogHeader><Button variant="ghost" size="icon" className="absolute right-2 top-2" style={{ position: "absolute" }} aria-label="Close" onClick={() => selectEvent(null)}><X className="h-4 w-4" /></Button>{selected && <div className="space-y-3 text-sm"><dl className="space-y-2">{[
         ["Source", FLEET_SOURCE_LABELS[selected.source]], ["Status", selected.status.replace(/_/g, " ")], ["Starts", formatInstant(selected.start, timezone)], ["Ends", selected.end === null && selected.start ? "Ongoing / no end recorded" : formatInstant(selected.end, timezone)],
         ["Booking impact", eventBlocksAvailability(selected) ? "Blocks vehicle" : "Does not block availability"], ...(selected.reservationId ? [["Reservation", selected.reservationId]] : []),
         ...(selected.destination ? [["Destination", selected.destination]] : []),
@@ -427,7 +528,7 @@ export function FleetCalendar() {
         <div className="flex flex-wrap gap-2">
           {calendarInstant(selected.start) !== null && <Button variant="outline" onClick={() => jumpToEvent(selected)}>Show event in calendar</Button>}
           <BookingNavigation bookingKey={selected.bookingKey} currentView="calendar" developerAccess={isDeveloper} date={calendarInstant(selected.start) === null ? undefined : mtDayKey(selected.start!, timezone)} />
-          {selectedSourceUrl?.startsWith("/") && !selectedSourceUrl.startsWith("//") && (!selectedSourceUrl.startsWith("/admin/developer/") || isDeveloper) && (data?.role !== "employee" || selectedSourceUrl.startsWith("/admin/operations")) && <a className="inline-flex rounded-md bg-primary px-4 py-2 text-primary-foreground" href={selectedSourceUrl}>{selected.source === "maintenance" ? "Open maintenance appointment" : "Open source record"}</a>}
+          {selectedSourceUrl?.startsWith("/") && !selectedSourceUrl.startsWith("//") && (!selectedSourceUrl.startsWith("/admin/developer/") || isDeveloper) && (data?.role !== "employee" || selectedSourceUrl.startsWith("/admin/operations")) && <a className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 py-2 text-primary-foreground md:min-h-9" href={selectedSourceUrl}>{selected.source === "maintenance" ? "Open maintenance appointment" : "Open source record"}</a>}
         </div>
       </div>}</DialogContent></Dialog>
     </div>

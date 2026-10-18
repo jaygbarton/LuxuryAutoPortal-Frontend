@@ -331,9 +331,9 @@ export default function StaffMyInfoSection() {
     const errorMessage = empError instanceof Error ? empError.message : null;
     return (
       <AdminLayout>
-        <div className="space-y-6">
+        <div className="staff-page min-w-0 space-y-4 sm:space-y-6">
           <div>
-            <h1 className="text-2xl font-semibold text-primary">My Info</h1>
+            <h1 className="text-2xl font-semibold text-foreground">My Info</h1>
             <p className="text-muted-foreground">Your profile and employment information.</p>
           </div>
           <Card className="bg-card border-border">
@@ -443,7 +443,7 @@ export default function StaffMyInfoSection() {
                 <div className="mb-3">
                   <p className="font-bold text-foreground mb-1">Profile Photo <span className="font-normal text-muted-foreground">(Optional)</span></p>
                   <div className="flex items-center gap-4">
-                    <div className="h-20 w-20 rounded-full border-2 border-border flex items-center justify-center overflow-hidden bg-background shrink-0">
+                    <div className="h-14 w-14 rounded-full sm:h-20 sm:w-20 border-2 border-border flex items-center justify-center overflow-hidden bg-background shrink-0">
                       {photoPreview ? (
                         <img src={photoPreview} alt="Preview" className="h-full w-full object-cover" />
                       ) : employee.employee_photo ? (
@@ -841,25 +841,25 @@ export default function StaffMyInfoSection() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="staff-page min-w-0 space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-primary">My Info</h1>
+          <h1 className="text-2xl font-semibold text-foreground">My Info</h1>
           <p className="text-muted-foreground">Your profile and employment information.</p>
         </div>
 
         <Card className="bg-card border-border overflow-hidden">
           <CardContent className="p-5">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="shrink-0">
                 {employee.employee_photo ? (
                   <EmployeeDocumentImage
                     value={employee.employee_photo}
                     alt="Profile"
-                    className="h-20 w-20 rounded-full object-cover object-center border border-border"
+                    className="h-14 w-14 rounded-full sm:h-20 sm:w-20 object-cover object-center border border-border"
                   />
                 ) : (
                   <div
-                    className="h-20 w-20 rounded-full border-2 border-border flex items-center justify-center bg-muted/30"
+                    className="h-14 w-14 rounded-full sm:h-20 sm:w-20 border-2 border-border flex items-center justify-center bg-muted/30"
                     title="No photo uploaded"
                   >
                     <Image className="h-10 w-10 text-muted-foreground" />
@@ -867,7 +867,7 @@ export default function StaffMyInfoSection() {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xl font-serif text-primary italic truncate">
+                <p className="truncate text-lg font-semibold text-foreground sm:text-xl">
                   {fullName || "Employee"}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -895,12 +895,12 @@ export default function StaffMyInfoSection() {
           onValueChange={(v) => setLocation(`/staff/my-info/${v}`)}
           className="flex-1"
         >
-          <TabsList className="bg-muted border border-border mb-6 flex-wrap h-auto gap-1 p-1">
+          <TabsList className="mb-4 flex h-auto max-w-full justify-start gap-1 overflow-x-auto rounded-xl border border-border bg-muted p-1 sm:mb-6 sm:flex-wrap">
             {PROFILE_SECTIONS.map((s) => (
               <TabsTrigger
                 key={s.id}
                 value={s.id}
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-sm"
+                className="min-h-11 shrink-0 text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground sm:min-h-9"
               >
                 {s.label}
               </TabsTrigger>

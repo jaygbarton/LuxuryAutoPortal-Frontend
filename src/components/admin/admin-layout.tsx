@@ -4,6 +4,7 @@ import React, {
   useEffect,
   createContext,
   useContext,
+  useRef,
 } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -47,6 +48,7 @@ import {
   CalendarDays,
   Truck,
   Code2,
+  Ellipsis,
 } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { ViewAsClientBanner } from "./ViewAsClientBanner";
@@ -748,6 +750,9 @@ interface RoleOption {
 function AdminLayoutContent({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [compactViewport, setCompactViewport] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
   const [location, setLocation] = useLocation();
   // wouter's useLocation() drops the query string, but tab sub-items are
   // addressed by one (e.g. /admin/operations?tab=maintenance). Keep the full
@@ -1006,6 +1011,63 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       .filter(Boolean) as SidebarItem[];
   }, [user, location, showStaffSidebar, showCoHostSidebar]);
 
+  // Derive shortcuts from the same authorized menu as desktop, including
+  // impersonation. A client must never gain employee links through mobile UI.
+  const hasStaffWorkspace = sidebarItems.some(item => item.href === "/admin/operations");
+  const mobileDestinations = useMemo(() => {
+    const home = sidebarItems.find(item => item.href === "/staff/dashboard" || item.href === "/dashboard");
+    const schedule = sidebarItems.flatMap(item => item.children ?? []).find(item => item.href === "/admin/operations?tab=day-schedule");
+    const calendar = sidebarItems.find(item => item.href === "/admin/trip-calendar");
+    const forms = sidebarItems.find(item => item.href === "/staff/forms" || item.href === "/admin/forms");
+    return [
+      home && { ...home, label: "Home", icon: LayoutDashboard },
+      schedule && { ...schedule, label: "Schedule", icon: ClipboardList },
+      calendar && { ...calendar, label: "Calendar", icon: CalendarDays },
+      forms && { ...forms, label: "Forms", icon: FileText },
+    ].filter(Boolean) as SidebarItem[];
+  }, [sidebarItems]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1023px)");
+    const update = () => { setCompactViewport(media.matches); if (!media.matches) setMobileMenuOpen(false); };
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => { setMobileMenuOpen(false); }, [fullLocation]);
+
+  useEffect(() => {
+    if (hasStaffWorkspace) document.body.setAttribute("data-staff-workspace", "true");
+    else document.body.removeAttribute("data-staff-workspace");
+    return () => document.body.removeAttribute("data-staff-workspace");
+  }, [hasStaffWorkspace]);
+
+  useEffect(() => {
+    const sidebar = sidebarRef.current;
+    const workspace = workspaceRef.current;
+    if (!sidebar || !workspace) return;
+    sidebar.toggleAttribute("inert", compactViewport && !mobileMenuOpen);
+    workspace.toggleAttribute("inert", compactViewport && mobileMenuOpen);
+    if (!compactViewport || !mobileMenuOpen) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const focusable = () => Array.from(sidebar.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, select, [tabindex="0"]')).filter(el => el.getClientRects().length > 0);
+    sidebar.querySelector<HTMLButtonElement>('[aria-label="Close navigation"]')?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); setMobileMenuOpen(false); }
+      if (event.key !== "Tab") return;
+      const targets = focusable(), first = targets[0], last = targets[targets.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      workspace.removeAttribute("inert");
+      document.removeEventListener("keydown", onKeyDown);
+      if (previous?.isConnected) previous.focus();
+    };
+  }, [compactViewport, mobileMenuOpen]);
+
   const handleLogout = async () => {
     try {
       await apiRequest("POST", "/api/auth/logout");
@@ -1074,8 +1136,13 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     //     This stops the whole document from scrolling when a child is wider
     //     than the viewport, which used to visually "cut" the main content
     //     during browser resizes.
-    <div className="flex h-dvh bg-background overflow-hidden">
+    <div className={cn("flex h-dvh bg-background overflow-hidden", hasStaffWorkspace && "staff-app-shell")}>
       <aside
+        ref={sidebarRef}
+        id="workspace-navigation"
+        role={compactViewport && mobileMenuOpen ? "dialog" : undefined}
+        aria-modal={compactViewport && mobileMenuOpen ? true : undefined}
+        aria-label="Workspace navigation"
         className={cn(
           // Base: flex column chrome for the sidebar.
           "z-[3000] flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300",
@@ -1088,11 +1155,12 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
           // transform; `lg:h-dvh` guarantees full height even when the flex
           // parent's stretch ever gets overridden.
           "lg:static lg:translate-x-0 lg:h-dvh lg:flex-shrink-0",
-          sidebarOpen ? "w-64" : "w-20",
+          "w-[min(320px,calc(100vw-40px))]",
+          sidebarOpen ? "lg:w-64" : "lg:w-20",
         )}
       >
         <div className="flex shrink-0 items-center justify-between h-16 px-4 border-b border-sidebar-border">
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href={mobileDestinations[0]?.href ?? "/dashboard"} className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
             <img
               src={sidebarOpen ? "/logo.png" : "/favicon.png"}
               alt="Golden Luxury Auto"
@@ -1276,15 +1344,21 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         so it contributes its own width to the row and no manual margin or
         width declaration is needed. `flex-1 min-w-0` is the whole formula.
       */}
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden transition-all duration-300">
-        <header className="relative z-[1500] h-14 shrink-0 bg-background border-b border-border flex items-center justify-between px-3 sm:px-4 lg:px-6">
+      <div ref={workspaceRef} className="flex-1 min-w-0 flex flex-col overflow-hidden transition-all duration-300">
+        <header className="workspace-header relative z-[1500] h-14 shrink-0 bg-background border-b border-border flex items-center justify-between px-3 sm:px-4 lg:px-6">
           <button
             onClick={() => { setSidebarOpen(true); setMobileMenuOpen(true); }}
             className="flex h-11 w-11 items-center justify-center rounded-md lg:hidden text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Open navigation"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="workspace-navigation"
           >
             <Menu className="w-6 h-6" />
           </button>
+          {hasStaffWorkspace && <Link href={mobileDestinations[0]?.href ?? "/dashboard"} className="min-w-0 flex-1 px-2 lg:hidden" aria-label="Golden Luxury Auto home">
+            <span className="block text-[13px] font-semibold tracking-[0.14em] leading-4">GOLDEN</span>
+            <span className="block text-[9px] tracking-[0.16em] text-muted-foreground leading-4">LUXURY AUTO</span>
+          </Link>}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="hidden h-9 w-9 items-center justify-center rounded-md lg:flex text-muted-foreground hover:text-foreground"
@@ -1307,7 +1381,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-muted-foreground"
+                          className="min-h-11 min-w-11 sm:min-h-9 sm:min-w-9 text-muted-foreground"
                           disabled={switching}
                           title="Switch account (same login)"
                           aria-label="Switch account"
@@ -1353,12 +1427,32 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
           scroll position resets to the top. The sidebar and header are
           outside this subtree, so they stay mounted and do NOT reload.
         */}
-        <main className="flex-1 min-w-0 flex flex-col overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 bg-background">
+        <main className={cn("flex-1 min-w-0 flex flex-col overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 bg-background", hasStaffWorkspace && "staff-app-content")}>
           <ViewAsClientBanner />
           <div key={location} className="flex-1 min-h-0">
             {children}
           </div>
         </main>
+        {hasStaffWorkspace && (
+          <nav aria-label="Quick navigation" className="workspace-bottom-nav flex shrink-0 items-stretch border-t border-border bg-background px-1 lg:hidden">
+            {mobileDestinations.map(item => {
+              const Icon = item.icon;
+              const active = !mobileMenuOpen && isPathActive(location, item.href, search);
+              return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}
+                className={cn("workspace-bottom-link flex min-h-[60px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-medium leading-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", active ? "text-foreground" : "text-muted-foreground")}
+                onClick={() => setMobileMenuOpen(false)}>
+                <span className={cn("flex h-7 w-11 items-center justify-center rounded-full", active && "bg-primary/30")}><Icon aria-hidden="true" className="h-5 w-5" strokeWidth={active ? 2.2 : 1.7} /></span>
+                {item.label}
+              </Link>;
+            })}
+            <button type="button" aria-label="More navigation" aria-expanded={mobileMenuOpen} aria-controls="workspace-navigation"
+              onClick={() => { setSidebarOpen(true); setMobileMenuOpen(true); }}
+              className="workspace-bottom-link flex min-h-[60px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-medium leading-3 text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <span className={cn("flex h-7 w-11 items-center justify-center rounded-full", !mobileDestinations.some(item => isPathActive(location, item.href, search)) && "bg-primary/30 text-foreground")}><Ellipsis className="h-5 w-5" aria-hidden="true" /></span>
+              More
+            </button>
+          </nav>
+        )}
       </div>
 
       {mobileMenuOpen && (

@@ -6,7 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { api } from "@/lib/api";
 import { EmployeeDocumentImage } from "@/components/admin/EmployeeDocumentImage";
-import { Image } from "lucide-react";
+import { ChevronRight, Image, UserRound } from "lucide-react";
+import { Link } from "wouter";
 import { NewsMediaSlot } from "@/pages/client/_components/NewsMediaSlot";
 
 interface MeEmployeeResponse {
@@ -67,7 +68,7 @@ export default function EmployeeProfileSection() {
 
   if (isLoading) {
     return (
-      <div className="bg-white p-6">
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
         <div className="flex animate-pulse items-center gap-4">
           <div className="h-20 w-20 rounded-full bg-gray-200" />
           <div className="flex-1 space-y-2">
@@ -90,8 +91,32 @@ export default function EmployeeProfileSection() {
   const email = e.employee_job_pay_work_email?.trim() || e.employee_email || "";
 
   return (
-    <div className="bg-white p-6">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
+    <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
+      <div className="flex items-center gap-3 sm:hidden" data-staff-profile-summary>
+        {e.employee_photo ? (
+          <EmployeeDocumentImage value={e.employee_photo} alt="Profile" className="h-12 w-12 shrink-0 rounded-full border border-primary/30 object-cover" />
+        ) : (
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15"><UserRound className="h-6 w-6 text-foreground" /></div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-muted-foreground">Your workspace</p>
+          <h1 className="truncate text-xl font-semibold tracking-tight">{fullName || "Employee"}</h1>
+          {e.employee_job_pay_job_title_name && <p className="truncate text-sm text-muted-foreground">{e.employee_job_pay_job_title_name}</p>}
+        </div>
+        <Link href="/staff/my-info/personal-information" aria-label="View my profile" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border hover:bg-muted">
+          <ChevronRight className="h-5 w-5" />
+        </Link>
+      </div>
+      {(newsSlot1Items.length > 0 || newsSlot2Items.length > 0) && (
+        <details className="mt-3 border-t border-border pt-1 sm:hidden">
+          <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium">Company updates</summary>
+          <div className="space-y-3 pb-1">
+            {newsSlot1Items.length > 0 && <NewsMediaSlot slot={1} items={newsSlot1Items} />}
+            {newsSlot2Items.length > 0 && <NewsMediaSlot slot={2} items={newsSlot2Items} />}
+          </div>
+        </details>
+      )}
+      <div className="hidden grid-cols-1 gap-6 sm:grid lg:grid-cols-3 lg:items-stretch">
         {/* Column 1 — Info + Photo */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
@@ -196,7 +221,7 @@ export default function EmployeeProfileSection() {
       </div>
 
       {(e.employee_job_pay_department_name || e.employee_job_pay_job_title_name) && (
-        <div className="mt-4 pt-3 text-xs text-gray-500">
+        <div className="mt-4 hidden pt-3 text-xs text-gray-500 sm:block">
           <span className="font-semibold text-gray-700">
             {unspecified(e.employee_job_pay_job_title_name)}
           </span>
