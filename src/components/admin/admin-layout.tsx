@@ -1355,9 +1355,10 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
           >
             <Menu className="w-6 h-6" />
           </button>
-          {hasStaffWorkspace && <Link href={mobileDestinations[0]?.href ?? "/dashboard"} className="min-w-0 flex-1 px-2 lg:hidden" aria-label="Golden Luxury Auto home">
-            <span className="block text-[13px] font-semibold tracking-[0.14em] leading-4">GOLDEN</span>
-            <span className="block text-[9px] tracking-[0.16em] text-muted-foreground leading-4">LUXURY AUTO</span>
+          {hasStaffWorkspace && <Link href={mobileDestinations[0]?.href ?? "/dashboard"} className="flex h-11 min-w-0 flex-1 items-center px-2 lg:hidden" aria-label="Golden Luxury Auto home">
+            <span className="relative block h-8 w-[148px] max-w-full overflow-hidden min-[390px]:w-[164px]">
+              <img src="/logo.png" alt="Golden Luxury Auto" width={1920} height={1080} className="absolute left-0 top-1/2 h-auto w-full -translate-y-1/2 drop-shadow-[0_0_0.6px_rgba(0,0,0,0.85)]" />
+            </span>
           </Link>}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
