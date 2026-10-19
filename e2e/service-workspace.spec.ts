@@ -93,6 +93,44 @@ for (const width of [360, 1280]) test(`service category bar, vehicle photos and 
   await expect(workspace.getByTestId('fleet-calendar')).toBeVisible();
   await expect(workspace).not.toContainText('Inactive Lexus');
 });
+for (const width of [360, 1280]) test(`service calendar day width resizes dates and events and persists at ${width}`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 }); await fixture(page);
+  await page.goto('/admin/service-calendar?from=2026-10-18&to=2026-10-20');
+  const calendar = page.getByTestId('fleet-calendar');
+  const showTimeline = async () => {
+    if (width < 768) {
+      await calendar.getByRole('button', { name: /^Calendar filters/ }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Timeline', exact: true }).click();
+      await page.getByRole('button', { name: /^Show \d+ events$/ }).click();
+    }
+  };
+  await showTimeline();
+  const slider = calendar.getByRole('slider', { name: 'Day width' });
+  const timeline = calendar.getByTestId('fleet-calendar-timeline');
+  const event = timeline.getByRole('button', { name: 'Receipt · Oil change · Urgent Audi', exact: true });
+  await expect(slider).toHaveValue('160');
+  await expect(event).toHaveCSS('width', '154px');
+  await expect(event).toHaveCSS('left', '163px');
+  await calendar.getByRole('button', { name: 'Wider days', exact: true }).click();
+  await expect(slider).toHaveValue('176');
+  await slider.focus(); await slider.press('End');
+  await expect(slider).toHaveValue('400');
+  await expect(event).toHaveCSS('width', '394px');
+  await expect(event).toHaveCSS('left', '403px');
+  expect(await event.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  // The event remains under Oct 19; widening does not change its dates or data.
+  await event.scrollIntoViewIfNeeded();
+  await event.click();
+  await expect(page.getByRole('link', { name: 'Open receipt / file 1' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.reload(); await showTimeline();
+  await expect(slider).toHaveValue('400');
+  await expect(event).toHaveCSS('width', '394px');
+  await calendar.getByRole('button', { name: 'Narrower days', exact: true }).click();
+  await expect(slider).toHaveValue('384');
+});
+
 test('service calendar shows receipt markers and files; master combines trip and service feeds', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 }); const calls = await fixture(page);
   await page.goto('/admin/operations?tab=service-due');

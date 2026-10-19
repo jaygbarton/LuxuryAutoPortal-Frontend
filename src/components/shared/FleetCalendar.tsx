@@ -24,7 +24,9 @@ import {
   type FleetCalendarResponse, type FleetCalendarSource,
 } from "@/lib/fleetCalendar";
 
-const COLUMN_WIDTH = 48;
+const MIN_DAY_WIDTH = 48;
+const MAX_DAY_WIDTH = 400;
+const DAY_WIDTH_STEP = 16;
 const LABEL_WIDTH = 190;
 const LANE_HEIGHT = 34;
 const SYNC_REQUEST_KEY = "gla:internal-calendar:last-sync-request";
@@ -94,6 +96,16 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehi
   const [showCancelled, setShowCancelled] = useState(true);
   const [chosenView, setView] = useState<"timeline" | "list" | null>(null);
   const view = chosenView ?? (isMobile || historyMode ? "list" : "timeline");
+  const [columnWidth, setColumnWidth] = useState(() => {
+    try {
+      const saved = Number(localStorage.getItem(`gla:calendar:${calendarScope}:day-width`));
+      if (Number.isFinite(saved) && saved >= MIN_DAY_WIDTH && saved <= MAX_DAY_WIDTH) return saved;
+    } catch { /* Use the default when browser storage is unavailable. */ }
+    return calendarScope === "services" ? 160 : MIN_DAY_WIDTH;
+  });
+  useEffect(() => {
+    try { localStorage.setItem(`gla:calendar:${calendarScope}:day-width`, String(columnWidth)); } catch { /* Resizing still works without storage. */ }
+  }, [calendarScope, columnWidth]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [coverageOpen, setCoverageOpen] = useState(false);
   const [syncDetailsOpen, setSyncDetailsOpen] = useState(false);
@@ -471,6 +483,16 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehi
       {linkedBooking && pointError && !windowBooking && <p role="alert" className="rounded-md border border-destructive/40 p-3 text-sm text-destructive">The linked booking could not be loaded: {pointError instanceof Error ? pointError.message : "Please retry."}</p>}
       <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground"><span>{listedEvents.length} of {scopedEvents.length} {historyMode ? "past events" : "events"} shown · {rows.length} vehicles · {timezone}</span><span className="sr-only md:not-sr-only">{isFetching ? "Refreshing…" : dataUpdatedAt ? `Updated ${new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""}</span></div>
 
+      {view === "timeline" && <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border bg-card px-3 py-2">
+        <Label htmlFor={`fleet-calendar-day-width-${calendarScope}`} className="shrink-0 text-sm">Day width</Label>
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:max-w-sm">
+          <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label="Narrower days" disabled={columnWidth <= MIN_DAY_WIDTH} onClick={() => setColumnWidth(width => Math.max(MIN_DAY_WIDTH, width - DAY_WIDTH_STEP))}><ChevronLeft className="h-4 w-4" /></Button>
+          <input id={`fleet-calendar-day-width-${calendarScope}`} type="range" min={MIN_DAY_WIDTH} max={MAX_DAY_WIDTH} step={DAY_WIDTH_STEP} value={columnWidth} onChange={event => setColumnWidth(Number(event.target.value))} className="h-11 min-w-0 w-full cursor-pointer accent-primary" aria-valuetext={`${columnWidth} pixels per day`} />
+          <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label="Wider days" disabled={columnWidth >= MAX_DAY_WIDTH} onClick={() => setColumnWidth(width => Math.min(MAX_DAY_WIDTH, width + DAY_WIDTH_STEP))}><ChevronRight className="h-4 w-4" /></Button>
+        </div>
+        <p className="w-full text-xs text-muted-foreground sm:w-auto">Widen days to read events. Scroll sideways for more dates.</p>
+      </div>}
+
       {isLoading ? <div role="status" className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading calendar…</div> : !days || !data ? null : view === "list" && isMobile ? (
         <div className="space-y-5" data-testid="fleet-calendar-agenda">
           {agendaGroups.map(([day, events]) => <section key={day} aria-label={day === "undated" ? "Dates need review" : day === "ongoing" ? "Started before this range" : dayKeyToUtcDate(day).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" })}>
@@ -497,13 +519,13 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehi
         <div className="overflow-x-auto rounded-lg border border-border"><table className="w-full text-left text-sm"><thead className="bg-muted"><tr>{["Vehicle", "Event", "Starts", "Ends", "Status", "Booking impact"].map((label) => <th key={label} className="p-3 font-medium">{label}</th>)}</tr></thead><tbody>{listedEvents.map((event) => <tr key={event.id} className="border-t border-border"><td className="p-3">{event.carName || "Unmatched vehicle"}<div className="text-xs text-muted-foreground">{event.plateNumber}</div></td><td className="p-3">{eventButton(event)}<div className="text-xs text-muted-foreground">{FLEET_SOURCE_LABELS[event.source]}</div></td><td className="whitespace-nowrap p-3">{formatInstant(event.start, timezone)}</td><td className="whitespace-nowrap p-3">{event.end === null && event.start ? "Ongoing / no end recorded" : formatInstant(event.end, timezone)}</td><td className="p-3">{event.status.replace(/_/g, " ")}</td><td className="p-3">{eventBlocksAvailability(event) ? "Blocks vehicle" : "Does not block"}</td></tr>)}</tbody></table>{listedEvents.length === 0 && <p className="p-10 text-center text-sm text-muted-foreground">No events match the current filters.</p>}</div>
       ) : rows.length === 0 ? <p className="py-12 text-center text-sm text-muted-foreground">No vehicles match the current filters.</p> : (
         <div className="overflow-auto rounded-lg border border-border" style={{ maxHeight: isMobile ? "65dvh" : "calc(100vh - 340px)" }} data-testid="fleet-calendar-timeline" tabIndex={0} role="region" aria-label="Vehicle timeline, scroll to see more dates">
-          <div style={{ minWidth: labelWidth + dayList.length * COLUMN_WIDTH }}>
-            <div className="sticky top-0 z-20 flex bg-muted"><div className="sticky left-0 z-30 shrink-0 border-r border-border bg-muted px-3 py-2 text-xs font-semibold" style={{ width: labelWidth }}>Vehicle</div>{dayList.map((day) => <div key={utcDateToDayKey(day)} className={cn("shrink-0 border-l border-border py-1 text-center text-[11px]", utcDateToDayKey(day) === mtTodayKey(timezone) && "bg-primary/15")} style={{ width: COLUMN_WIDTH }}><div>{day.toLocaleDateString("en-US", { timeZone: "UTC", month: "short" })}</div><div className="font-medium">{day.getUTCDate()}</div><div>{day.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short" })}</div></div>)}</div>
+          <div style={{ minWidth: labelWidth + dayList.length * columnWidth }}>
+            <div className="sticky top-0 z-20 flex bg-muted"><div className="sticky left-0 z-30 shrink-0 border-r border-border bg-muted px-3 py-2 text-xs font-semibold" style={{ width: labelWidth }}>Vehicle</div>{dayList.map((day) => <div key={utcDateToDayKey(day)} className={cn("shrink-0 border-l border-border py-1 text-center text-[11px]", utcDateToDayKey(day) === mtTodayKey(timezone) && "bg-primary/15")} style={{ width: columnWidth }}><div>{day.toLocaleDateString("en-US", { timeZone: "UTC", month: "short" })}</div><div className="font-medium">{day.getUTCDate()}</div><div>{day.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short" })}</div></div>)}</div>
             {rows.map((row) => {
-              const placed = packLanes(row.events, (event) => calendarBarPosition(event.start, event.end, from, to, timezone, COLUMN_WIDTH));
+              const placed = packLanes(row.events, (event) => calendarBarPosition(event.start, event.end, from, to, timezone, columnWidth));
               const laneHeight = isMobile ? 48 : LANE_HEIGHT;
               const height = Math.max(54, laneCountOf(placed) * laneHeight + 10);
-              return <div key={row.key} className="flex border-t border-border" style={{ height }}><div className="sticky left-0 z-10 shrink-0 border-r border-border bg-card p-3" style={{ width: labelWidth }}><p className="truncate text-xs font-medium">{row.carName || `Vehicle #${row.carId}`}</p><p className="truncate text-[10px] text-muted-foreground">{row.plateNumber || "No plate"}{row.unmatched ? " · Needs matching" : ""}</p></div><div className="relative" style={{ width: days * COLUMN_WIDTH }}><div className="absolute inset-0 flex">{dayList.map((day) => <div key={utcDateToDayKey(day)} className={cn("h-full shrink-0 border-l border-border/50", [0, 6].includes(day.getUTCDay()) && "bg-muted/35")} style={{ width: COLUMN_WIDTH }} />)}</div>{placed.map(({ item: event, pos, lane }) => <button key={event.id} type="button" onClick={() => selectEvent(event)} aria-label={`${eventLabel(event)} · ${row.carName}`} title={`${eventLabel(event)}\n${formatInstant(event.start, timezone)} → ${event.end ? formatInstant(event.end, timezone) : "Ongoing / no end recorded"}\n${eventBlocksAvailability(event) ? "Blocks vehicle" : "Does not block availability"}`} className={cn("absolute truncate rounded border px-2 text-left text-[10px] font-medium hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary", eventColor(event), pos.clippedLeft && "rounded-l-none", pos.clippedRight && "rounded-r-none")} style={{ left: pos.left + 3, width: isMobile ? Math.max(44, pos.width) : pos.width, top: 6 + lane * laneHeight, height: isMobile ? 44 : 28 }}>{eventLabel(event)}</button>)}</div></div>;
+              return <div key={row.key} className="flex border-t border-border" style={{ height }}><div className="sticky left-0 z-10 shrink-0 border-r border-border bg-card p-3" style={{ width: labelWidth }}><p className="truncate text-xs font-medium">{row.carName || `Vehicle #${row.carId}`}</p><p className="truncate text-[10px] text-muted-foreground">{row.plateNumber || "No plate"}{row.unmatched ? " · Needs matching" : ""}</p></div><div className="relative" style={{ width: days * columnWidth }}><div className="absolute inset-0 flex">{dayList.map((day) => <div key={utcDateToDayKey(day)} className={cn("h-full shrink-0 border-l border-border/50", [0, 6].includes(day.getUTCDay()) && "bg-muted/35")} style={{ width: columnWidth }} />)}</div>{placed.map(({ item: event, pos, lane }) => <button key={event.id} type="button" onClick={() => selectEvent(event)} aria-label={`${eventLabel(event)} · ${row.carName}`} title={`${eventLabel(event)}\n${formatInstant(event.start, timezone)} → ${event.end ? formatInstant(event.end, timezone) : "Ongoing / no end recorded"}\n${eventBlocksAvailability(event) ? "Blocks vehicle" : "Does not block availability"}`} className={cn("absolute truncate rounded border px-2 text-left text-[10px] font-medium hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary", columnWidth >= 128 && "text-xs", eventColor(event), pos.clippedLeft && "rounded-l-none", pos.clippedRight && "rounded-r-none")} style={{ left: pos.left + 3, width: isMobile ? Math.max(44, pos.width) : pos.width, top: 6 + lane * laneHeight, height: isMobile ? 44 : 28 }}>{eventLabel(event)}</button>)}</div></div>;
             })}
           </div>
         </div>
