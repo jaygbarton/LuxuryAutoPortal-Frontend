@@ -26,5 +26,5 @@ export function safeServiceFile(url: string) { return /^https:\/\//i.test(url) |
 
 export function compareServiceUrgency(a: ServiceItem, b: ServiceItem) {
   const rank = (s: ServiceItem) => ({ overdue: 0, due_today: 1, due_soon: 2, upcoming: 3, as_needed: 4, no_data: 5, not_applicable: 6 })[s.status];
-  return rank(a)-rank(b) || (a.daysUntil ?? Infinity)-(b.daysUntil ?? Infinity) || (a.milesRemaining ?? Infinity)-(b.milesRemaining ?? Infinity) || a.label.localeCompare(b.label);
+  return rank(a)-rank(b) || (a.daysUntil ?? Infinity)-(b.daysUntil ?? Infinity) || (a.milesRemaining ?? Infinity)-(b.milesRemaining ?? Infinity) || Number(!a.lastServiced)-Number(!b.lastServiced) || a.label.localeCompare(b.label);
 }

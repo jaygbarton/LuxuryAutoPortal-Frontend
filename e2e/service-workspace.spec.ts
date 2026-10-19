@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-const service = (id: string, kind: string, days: number | null) => ({ id, kind, label: kind === 'tires' ? 'Tires' : 'Oil change', lastServiced: days === null ? null : '2026-01-01', dueDate: days === null ? null : '2026-10-18', daysUntil: days, status: days === null ? 'no_data' : days < 0 ? 'overdue' : 'upcoming' });
+const service = (id: string, kind: string, days: number | null) => ({ id, kind, label: kind === 'tires' ? 'Tires' : 'Oil change', lastServiced: days === null ? null : '2026-01-01', dueDate: days === null || kind === 'tires' ? null : '2026-10-18', daysUntil: kind === 'tires' ? null : days, status: kind === 'tires' ? 'as_needed' : days === null ? 'no_data' : days < 0 ? 'overdue' : 'upcoming' });
 const car = (id: number, name: string, days: number | null) => ({ car_id: id, car_name: name, car_plate: `P${id}`, car_vin: `VIN${id}`, car_status: 'ACTIVE', locationTag: 'SLC', car_photo: '/fixture/service-car.svg', car_fuel_type: 'Gasoline', last_any_service: '2026-01-01', services: [service(`${id}:oil_change`, 'oil_change', days), service(`${id}:tires`, 'tires', days === null ? null : days + 180)], nextService: days === null ? null : service(`${id}:oil_change`, 'oil_change', days) });
 test('shows a safe service failure reference for troubleshooting and retry', async ({ page }) => {
   await fixture(page);
@@ -15,7 +15,7 @@ async function fixture(page: Page) {
     const url = new URL(route.request().url()); calls.push(url);
     let result: any = { success: true, data: [], total: 0, notifications: [], unreadCount: 0 };
     if (url.pathname === '/api/auth/me') result = { user: { id: 7, firstName: 'Test', isAdmin: true, isSuperAdmin: true, isEmployee: false, isClient: false, tourCompleted: true } };
-    if (url.pathname === '/api/service-workspace') result = { success: true, today: '2026-10-19', canOpenCarFiles: true, cars: [car(2, 'Urgent Audi', -8), car(3, 'Upcoming Buick', 20), car(1, 'No History Acura', null), { ...car(4, 'Inactive Lexus', -100), car_status: 'INACTIVE' }], rules: [{ kind: 'oil_change', label: 'Oil change', interval: 90 }, { kind: 'tires', label: 'Tires', interval: 180 }] };
+    if (url.pathname === '/api/service-workspace') result = { success: true, today: '2026-10-19', canOpenCarFiles: true, cars: [car(2, 'Urgent Audi', -8), car(3, 'Upcoming Buick', 20), car(1, 'No History Acura', null), { ...car(4, 'Inactive Lexus', -100), car_status: 'INACTIVE' }], rules: [{ kind: 'oil_change', label: 'Oil change', interval: 90 }, { kind: 'tires', label: 'Tires', interval: null }] };
     if (url.pathname.endsWith('/history')) result = { history: [{ id: 'receipt:7', carId: 2, kind: 'oil_change', label: 'Oil change', date: '2026-10-18', dateBasis: 'receipt_submission_date', status: 'approved', amount: 65, files: ['https://example.test/receipt.pdf'], notes: 'Verified receipt' }] };
     if (url.pathname === '/api/service-workspace/legacy') result = { status: 'ready', records: 3, vehicles: 1, canRecover: true, carFiles: { records: 3, files: 4, pending: 1, needReview: 0 }, summary: { scanned: 10, skippedVehicle: 7, unresolvedFiles: 0, unsupportedTables: [] } };
     if (url.pathname === '/api/expense-form-submissions/options') result = { data: { employees: [{ id: 41, name: 'Test Employee' }], cars: [{ id: 2, name: 'Urgent Audi - P2' }], currentEmployeeId: 41, isEmployee: true, isAdmin: false, categoryFields: { cogs: [{ value: 'db_42', label: 'Oil/Lube', serviceKind: 'oil_change' }, { value: 'db_43', label: 'Brakes', serviceKind: 'brakes' }, { value: 'db_44', label: 'Car Insurance', serviceKind: null }], directDelivery: [] } } };
@@ -48,15 +48,15 @@ for (const width of [360, 1280]) test(`service views, urgency, receipts and mobi
   await expect(workspace.getByText('Overdue · 8 days', { exact: true }).first()).toBeVisible();
   await workspace.getByRole('button', { name: 'By service', exact: true }).click();
   await workspace.getByRole('group', { name: 'Service categories' }).getByRole('button', { name: 'Tires', exact: true }).click();
-  await expect(workspace.locator('details').filter({ has: page.locator('summary img') }).first()).toContainText('Tires');
-  await expect(workspace.locator('details').filter({ has: page.locator('summary img') }).last()).toContainText('No Data');
+  await expect(workspace.getByRole('table', { name: 'Service due spreadsheet' }).locator('tr[data-service-row]').first()).toContainText('Tires');
+  await expect(workspace.getByRole('table', { name: 'Service due spreadsheet' }).locator('tr[data-service-row]').last()).toContainText('No Data');
   await expect(workspace.getByRole('link', { name: 'Open Google Sheet', exact: true })).toBeVisible();
   await expect(workspace.getByRole('button', { name: /CSV/i })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 for (const width of [360, 1280]) test(`service category bar, vehicle photos and active fleet at ${width}`, async ({ page }) => {
-  await page.setViewportSize({ width, height: 900 }); await fixture(page);
+  await page.setViewportSize({ width, height: 900 }); const calls = await fixture(page);
   await page.goto('/admin/operations?tab=service-due');
   const workspace = page.getByTestId('service-due-workspace');
   await expect(workspace).not.toContainText('Inactive Lexus');
@@ -65,18 +65,25 @@ for (const width of [360, 1280]) test(`service category bar, vehicle photos and 
   const bar = workspace.getByRole('group', { name: 'Service categories' });
   await bar.getByRole('button', { name: 'Tires', exact: true }).click();
   await expect(bar.getByRole('button', { name: 'Tires', exact: true })).toHaveAttribute('aria-pressed','true');
-  const cards = workspace.locator('details').filter({ has: page.locator('summary img') });
+  const cards = workspace.getByRole('table', { name: 'Service due spreadsheet' }).locator('tr[data-service-row]');
   await expect(cards).toHaveCount(3);
-  await expect(cards.first()).toContainText('Urgent Audi');
+  await expect(cards.first()).toContainText('Upcoming Buick');
   await expect(cards.last()).toContainText('No History Acura');
-  await expect(cards.first().getByRole('img', { name: 'Urgent Audi' })).toBeVisible();
-  await expect.poll(() => cards.first().getByRole('img', { name: 'Urgent Audi' }).evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
-  await expect(cards.first().locator('summary')).toContainText('Tires');
+  await expect(cards.first().getByRole('img', { name: 'Upcoming Buick' })).toBeVisible();
+  await expect.poll(() => cards.first().getByRole('img', { name: 'Upcoming Buick' }).evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  await expect(cards.first()).toContainText('Tires');
+  await expect(cards.first()).toContainText('As needed');
+  expect(calls.filter(url => url.pathname.endsWith('/history'))).toHaveLength(0);
   await expect(workspace).not.toContainText('Inactive Lexus');
   await expect(workspace.getByRole('combobox', { name: 'Vehicle status' })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await cards.first().scrollIntoViewIfNeeded();
-  await page.screenshot({ path: `/tmp/gla-service-selector-${width}.png` });
+  await page.screenshot({ path: `/tmp/gla-service-grid-${width}.png` });
+  await bar.getByRole('button', { name: 'Oil change', exact: true }).click();
+  await expect(cards.first()).toContainText('Urgent Audi');
+  await cards.first().getByRole('button', { name: 'History & files' }).click();
+  await expect(workspace.getByRole('link', { name: 'Receipt / file 1' })).toBeVisible();
+  expect(calls.filter(url => url.pathname.endsWith('/history'))).toHaveLength(1);
   await workspace.getByText('Legacy service recovery', { exact: false }).click();
   await expect(workspace).toContainText('4 receipts/files copied');
   await workspace.getByRole('button', { name: 'By car', exact: true }).click();
