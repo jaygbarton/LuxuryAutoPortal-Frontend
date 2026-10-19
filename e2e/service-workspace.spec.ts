@@ -194,3 +194,45 @@ test('mileage overdue is visible with source/time and historical service mileage
   await expect(page.getByRole('dialog').getByText('55,200 miles · Bouncie', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Odometer at service (miles)', { exact: true })).toHaveValue('');
 });
+
+for (const width of [360, 1280]) test(`license deadline can be cleared without losing history at ${width}`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 }); await fixture(page);
+  let dueDate: string | null = '2026-11-01';
+  const writes: any[] = [];
+  await page.route('**/api/service-workspace', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+    success: true, canOpenCarFiles: true, today: '2026-10-19', cars: [{ ...car(2, 'Urgent Audi', -8), services: [
+      { id: '2:license_registration', kind: 'license_registration', label: 'License', lastServiced: '2025-02-18', lastServicedSource: 'legacy', dueDate, daysUntil: dueDate ? 13 : null, status: dueDate ? 'due_soon' : 'no_data' },
+      { id: '2:registration', kind: 'registration', label: 'Registration expiration', lastServiced: null, dueDate: null, daysUntil: null, status: 'no_data' },
+    ], nextService: null }], rules: [{ kind: 'license_registration', label: 'License', interval: null }] }) }));
+  await page.route('**/api/service-workspace/cars/2/license-due', async route => {
+    writes.push(route.request().postDataJSON()); dueDate = writes.at(-1).dueDate;
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, dueDate }) });
+  });
+  await page.goto('/admin/operations?tab=service-due');
+  const workspace = page.getByTestId('service-due-workspace');
+  await workspace.locator('article').first().getByRole('button').first().click();
+  await expect(workspace).not.toContainText('License & registration');
+  await workspace.getByRole('button', { name: 'Edit license due date', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'License due date' })).toHaveValue('2026-11-01');
+  await page.getByRole('button', { name: 'Clear date', exact: true }).click();
+  await expect.poll(() => writes).toEqual([{ dueDate: null }]);
+  await workspace.getByRole('button', { name: 'Edit license due date', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'License due date' })).toHaveValue('');
+  await page.getByRole('textbox', { name: 'License due date' }).fill('2027-02-18');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect.poll(() => writes.length).toBe(2);
+  expect(writes[1]).toEqual({ dueDate: '2027-02-18' });
+  await page.reload();
+  await workspace.locator('article').first().getByRole('button').first().click();
+  await expect(workspace).toContainText('Last serviced: Feb 18, 2025');
+  await expect(workspace).toContainText('Due date: Feb 18, 2027');
+  await workspace.getByRole('button', { name: 'By service', exact: true }).click();
+  await workspace.getByRole('group', { name: 'Service categories' }).getByRole('button', { name: 'License', exact: true }).click();
+  const grid = workspace.getByRole('table', { name: 'Service due spreadsheet' });
+  await grid.getByRole('button', { name: 'Edit license due date', exact: true }).click();
+  await page.getByRole('button', { name: 'Clear date', exact: true }).click();
+  await expect.poll(() => writes.length).toBe(3);
+  await expect(grid).toContainText('No Data');
+  await expect(grid).toContainText('Feb 18, 2025');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

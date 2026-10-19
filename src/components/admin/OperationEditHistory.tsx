@@ -22,7 +22,8 @@ export type OperationsEntityType =
   | "towing_impound"
   | "car_pending_issue"
   | "service_date"
-  | "car_registration";
+  | "car_registration"
+  | "car_license";
 
 interface AuditRow {
   id: number;

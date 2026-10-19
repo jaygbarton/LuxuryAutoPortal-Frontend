@@ -11,7 +11,7 @@ import { ServiceDueWorkspace } from "./ServiceDueWorkspace";
 
 type ServiceKind = "oil_change" | "tires" | "brakes" | "windshield" | "mechanic" | "license_registration";
 const SERVICE_KIND_FIELD: Record<ServiceKind, string> = { oil_change: "oilLube", tires: "tires", brakes: "brakes", windshield: "windshield", mechanic: "mechanic", license_registration: "licenseRegistration" };
-const SERVICE_KIND_LAST_LABEL: Record<ServiceKind, string> = { oil_change: "Last Oil Change", tires: "Last Tires", brakes: "Last Brakes", windshield: "Last Windshield", mechanic: "Last Mechanic", license_registration: "Last License & Reg." };
+const SERVICE_KIND_LAST_LABEL: Record<ServiceKind, string> = { oil_change: "Last Oil Change", tires: "Last Tires", brakes: "Last Brakes", windshield: "Last Windshield", mechanic: "Last Mechanic", license_registration: "Last License" };
 
 function ServiceCellEditPopover({
   carId,
@@ -97,7 +97,7 @@ function ServiceCellEditPopover({
             className="h-8"
           />
           <p className="text-[11px] text-muted-foreground">
-            Date printed on the receipt. This is {SERVICE_KIND_LAST_LABEL[category]} and the date used to calculate Service Due.
+            {category === "license_registration" ? "Date printed on the receipt. This records the last license service; set or clear its due date separately." : <>Date printed on the receipt. This is {SERVICE_KIND_LAST_LABEL[category]} and the date used to calculate Service Due.</>}
           </p>
         </div>
         <div className="flex items-center justify-between gap-2">
@@ -122,11 +122,13 @@ function ServiceCellEditPopover({
   );
 }
 
-function RegistrationEditPopover({
+function ExpirationEditPopover({
   carId,
   date,
   onSaved,
+  kind = "registration",
 }: {
+  kind?: "registration" | "license";
   carId: number;
   date: string | null;
   onSaved: () => void;
@@ -136,39 +138,41 @@ function RegistrationEditPopover({
   const [saving, setSaving] = useState(false);
   const [value, setValue] = useState(date ? date.slice(0, 10) : "");
 
+  const label = kind === "license" ? "License due date" : "Registration expiration";
   const save = async (next: string) => {
     setSaving(true);
     try {
-      const res = await fetch(buildApiUrl(`/api/cars/${carId}/registration-expiration`), {
+      const res = await fetch(buildApiUrl(kind === "license" ? `/api/service-workspace/cars/${carId}/license-due` : `/api/cars/${carId}/registration-expiration`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ registrationExpiration: next || null }),
+        body: JSON.stringify(kind === "license" ? { dueDate: next || null } : { registrationExpiration: next || null }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.error || "Failed to save registration expiration");
-      toast({ title: next ? "Registration expiration updated" : "Registration expiration cleared" });
+      if (!res.ok) throw new Error(body?.error || `Failed to save ${label.toLowerCase()}`);
+      toast({ title: `${label} ${next ? "updated" : "cleared"}` });
       setOpen(false);
       onSaved();
     } catch (e: any) {
-      toast({ title: "Error", description: e?.message || "Failed to save registration expiration", variant: "destructive" });
+      toast({ title: "Error", description: e?.message || `Failed to save ${label.toLowerCase()}`, variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={next => { setOpen(next); if (next) setValue(date?.slice(0,10) ?? ""); }}>
       <PopoverTrigger asChild>
-        <button type="button" className="text-muted-foreground hover:text-primary" title="Edit registration expiration">
+        <button type="button" className="text-muted-foreground hover:text-primary" title={`Edit ${label.toLowerCase()}`}>
           <Pencil className="h-3 w-3" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-72 space-y-3" align="start">
         <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Registration expiration</label>
+          <label className="text-xs text-muted-foreground">{label}</label>
           <Input
             type="date"
+            aria-label={label}
             value={value}
             disabled={saving}
             onChange={(e) => setValue(e.target.value)}
@@ -179,6 +183,7 @@ function RegistrationEditPopover({
           <Button size="sm" disabled={saving || value === (date ? date.slice(0, 10) : "")} onClick={() => save(value)}>
             {saving ? "Saving…" : "Save"}
           </Button>
+          <Button size="sm" variant="ghost" disabled={saving || !date} onClick={() => save("")}>Clear date</Button>
           <Popover>
             <PopoverTrigger asChild>
               <button type="button" className="text-muted-foreground hover:text-foreground" title="Edit history">
@@ -186,7 +191,7 @@ function RegistrationEditPopover({
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-80 max-h-80 overflow-y-auto">
-              <OperationEditHistoryList entityType="car_registration" entityId={carId} />
+              <OperationEditHistoryList entityType={kind === "license" ? "car_license" : "car_registration"} entityId={carId} />
             </PopoverContent>
           </Popover>
         </div>
@@ -205,5 +210,5 @@ export function ServiceDueTab() {
       entityId={car[`${kind}_service_date_id` as keyof CarServiceDue] as number | null}
       cellYear={car[`${kind}_year` as keyof CarServiceDue] as number | null}
       cellMonth={car[`${kind}_month` as keyof CarServiceDue] as number | null} onSaved={saved} />;
-  }} registrationEditor={(car, saved) => <RegistrationEditPopover carId={car.car_id} date={car.registration_expiration} onSaved={saved} />} />;
+  }} registrationEditor={(car, saved) => <ExpirationEditPopover carId={car.car_id} date={car.registration_expiration} onSaved={saved} />} licenseEditor={(car, service, saved) => <ExpirationEditPopover kind="license" carId={car.car_id} date={service.dueDate} onSaved={saved} />} />;
 }
