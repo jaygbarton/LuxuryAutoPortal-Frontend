@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 const service = (id: string, kind: string, days: number | null) => ({ id, kind, label: kind === 'tires' ? 'Tires' : 'Oil change', lastServiced: days === null ? null : '2026-01-01', dueDate: days === null ? null : '2026-10-18', daysUntil: days, status: days === null ? 'no_data' : days < 0 ? 'overdue' : 'upcoming' });
-const car = (id: number, name: string, days: number | null) => ({ car_id: id, car_name: name, car_plate: `P${id}`, car_vin: `VIN${id}`, car_status: 'ACTIVE', locationTag: 'SLC', car_photo: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', car_fuel_type: 'Gasoline', last_any_service: '2026-01-01', services: [service(`${id}:oil_change`, 'oil_change', days), service(`${id}:tires`, 'tires', days === null ? null : days + 180)], nextService: days === null ? null : service(`${id}:oil_change`, 'oil_change', days) });
+const car = (id: number, name: string, days: number | null) => ({ car_id: id, car_name: name, car_plate: `P${id}`, car_vin: `VIN${id}`, car_status: 'ACTIVE', locationTag: 'SLC', car_photo: '/fixture/service-car.svg', car_fuel_type: 'Gasoline', last_any_service: '2026-01-01', services: [service(`${id}:oil_change`, 'oil_change', days), service(`${id}:tires`, 'tires', days === null ? null : days + 180)], nextService: days === null ? null : service(`${id}:oil_change`, 'oil_change', days) });
 test('shows a safe service failure reference for troubleshooting and retry', async ({ page }) => {
   await fixture(page);
   await page.route('**/api/service-workspace', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false, error: 'Service data could not be loaded. Reference: service_report/INVALID_RANGE/1234abcd' }) }));
@@ -10,6 +10,7 @@ test('shows a safe service failure reference for troubleshooting and retry', asy
 });
 async function fixture(page: Page) {
   const calls: URL[] = [];
+  await page.route('**/fixture/service-car.svg', route => route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100" viewBox="0 0 160 100"><rect width="160" height="100" fill="#f4f0e6"/><path d="M25 65V45h20l15-15h40l18 15h18v20H25z" fill="#b29250"/><circle cx="50" cy="65" r="12" fill="#333"/><circle cx="112" cy="65" r="12" fill="#333"/></svg>' }));
   await page.route(url => url.pathname.startsWith('/api/'), async route => {
     const url = new URL(route.request().url()); calls.push(url);
     let result: any = { success: true, data: [], total: 0, notifications: [], unreadCount: 0 };
@@ -69,10 +70,12 @@ for (const width of [360, 1280]) test(`service category bar, vehicle photos and 
   await expect(cards.first()).toContainText('Urgent Audi');
   await expect(cards.last()).toContainText('No History Acura');
   await expect(cards.first().getByRole('img', { name: 'Urgent Audi' })).toBeVisible();
+  await expect.poll(() => cards.first().getByRole('img', { name: 'Urgent Audi' }).evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
   await expect(cards.first().locator('summary')).toContainText('Tires');
   await expect(workspace).not.toContainText('Inactive Lexus');
   await expect(workspace.getByRole('combobox', { name: 'Vehicle status' })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await cards.first().scrollIntoViewIfNeeded();
   await page.screenshot({ path: `/tmp/gla-service-selector-${width}.png` });
   await workspace.getByText('Legacy service recovery', { exact: false }).click();
   await expect(workspace).toContainText('4 receipts/files copied');
