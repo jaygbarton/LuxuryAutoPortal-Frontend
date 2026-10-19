@@ -27,6 +27,7 @@ import {
   formatFullMonth,
 } from "./utils";
 import { cn } from "@/lib/utils";
+import { useCoHost } from "@/hooks/use-co-host";
 import type {
   IncomeExpenseData,
   IncomeExpenseMonth,
@@ -54,6 +55,7 @@ function getMonthEntry<T extends { month: number }>(arr: T[], month: number): T 
 interface IncomeExpenseMonthWithSplits extends IncomeExpenseMonth {
   mgmtIncome?: number;
   ownerIncome?: number;
+  coHostIncome?: number;
 }
 
 // ── Shimmer loading state ──────────────────────────────────────────────
@@ -344,6 +346,11 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const queryKey = ["/api/income-expense/all-cars", year];
+  // Co-Host Split column is for admins and co-hosts only. This section is
+  // mounted on the admin dashboard, but gate it explicitly so a future reuse
+  // can't leak co-host payouts to other roles.
+  const { isCoHost, user } = useCoHost();
+  const showCoHostSplit = !!user?.isAdmin || isCoHost;
 
   const { data, isLoading, isError } = useQuery<ApiResponse>({
     queryKey,
@@ -403,6 +410,8 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     // a single % cannot be applied to combined income.
     const mgmtInc = Number(ie?.mgmtIncome) || 0;
     const ownerInc = Number(ie?.ownerIncome) || 0;
+    // Backend-summed per-car co-host split (0 for cars with co-hosting off).
+    const coHostInc = Number(ie?.coHostIncome) || 0;
     const mgmtExp = Number(ie?.carManagementTotalExpenses) || 0;
     const ownerExp = Number(ie?.carOwnerTotalExpenses) || 0;
 
@@ -412,6 +421,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
       rentalIncome,
       mgmtIncome: mgmtInc,
       ownerIncome: ownerInc,
+      coHostIncome: coHostInc,
       mgmtExpenses: mgmtExp,
       ownerExpenses: ownerExp,
       // The split IS the profit. Both split formulas already deduct that
@@ -439,6 +449,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
   const totalMgmtExpenses = monthlyComputed.reduce((s, m) => s + m.mgmtExpenses, 0);
   const totalOwnerIncome = monthlyComputed.reduce((s, m) => s + m.ownerIncome, 0);
   const totalOwnerExpenses = monthlyComputed.reduce((s, m) => s + m.ownerExpenses, 0);
+  const totalCoHostIncome = monthlyComputed.reduce((s, m) => s + m.coHostIncome, 0);
   const totalDaysRented = monthlyComputed.reduce((s, m) => s + m.daysRented, 0);
   const totalCarsAvailable = monthlyComputed.reduce((s, m) => s + m.carsAvailable, 0);
   const totalGross = monthlyComputed.reduce((s, m) => s + m.gross, 0);
@@ -455,6 +466,9 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     { key: "mgmtSplit", label: "MGMT Split", align: "right" as const },
     { key: "ownerExpenses", label: "Car Owner Expenses", align: "right" as const },
     { key: "ownerSplit", label: "Car Owner Split", align: "right" as const },
+    ...(showCoHostSplit
+      ? [{ key: "coHostSplit", label: "Co-Host Split", align: "right" as const }]
+      : []),
     { key: "daysRented", label: "Days Rented", align: "right" as const },
     { key: "tripsTaken", label: "Trips Taken", align: "right" as const },
     { key: "availableDays", label: "Available Cars", align: "right" as const },
@@ -482,6 +496,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
       mgmtSplit: formatCurrency(mc.mgmtIncome),
       ownerExpenses: formatCurrency(mc.ownerExpenses),
       ownerSplit: formatCurrency(mc.ownerIncome),
+      coHostSplit: formatCurrency(mc.coHostIncome),
       daysRented: mc.daysRented.toLocaleString(),
       tripsTaken: mc.tripsTaken.toLocaleString(),
       availableDays: editingMonth === mc.month ? (
@@ -585,6 +600,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     mgmtSplit: formatCurrency(totalMgmtIncome),
     ownerExpenses: formatCurrency(totalOwnerExpenses),
     ownerSplit: formatCurrency(totalOwnerIncome),
+    coHostSplit: formatCurrency(totalCoHostIncome),
     daysRented: totalDaysRented.toLocaleString(),
     tripsTaken: totalTripsTakenAll.toLocaleString(),
     availableDays: avgCarsAvailable.toLocaleString(undefined, { maximumFractionDigits: 1 }),
