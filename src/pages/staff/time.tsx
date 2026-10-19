@@ -396,6 +396,7 @@ export default function StaffTime() {
       }
       toast({ title: "Clocked in", description: json.message ?? "Have a great shift!" });
       qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/last"] });
+      qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/dashboard"] });
       qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/sessions"] });
     } finally {
       setActionLoading(false);
@@ -448,6 +449,7 @@ export default function StaffTime() {
       setEndNotes("");
       setLunchMinutes("");
       qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/last"] });
+      qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/dashboard"] });
       qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/sessions"] });
     } finally {
       setActionLoading(false);

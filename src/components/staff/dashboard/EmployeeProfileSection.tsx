@@ -107,16 +107,7 @@ export default function EmployeeProfileSection() {
           <ChevronRight className="h-5 w-5" />
         </Link>
       </div>
-      {(newsSlot1Items.length > 0 || newsSlot2Items.length > 0) && (
-        <details className="mt-3 border-t border-border pt-1 sm:hidden">
-          <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium">Company updates</summary>
-          <div className="space-y-3 pb-1">
-            {newsSlot1Items.length > 0 && <NewsMediaSlot slot={1} items={newsSlot1Items} />}
-            {newsSlot2Items.length > 0 && <NewsMediaSlot slot={2} items={newsSlot2Items} />}
-          </div>
-        </details>
-      )}
-      <div className="hidden grid-cols-1 gap-6 sm:grid lg:grid-cols-3 lg:items-stretch">
+      <div className="hidden grid-cols-1 gap-6 sm:grid lg:items-stretch">
         {/* Column 1 — Info + Photo */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
@@ -197,28 +188,15 @@ export default function EmployeeProfileSection() {
         </div>
         </div>
 
-        {/* News & Media Slot 1 — admin-uploaded media (synced with /admin/dashboard) */}
-        <div>
-          {newsSlot1Items.length > 0 ? (
-            <NewsMediaSlot slot={1} items={newsSlot1Items} />
-          ) : (
-            <div className="flex h-full min-h-[200px] w-full items-center justify-center bg-gray-50 px-4 text-center text-xs text-gray-500">
-              No media uploaded for Slot 1.
-            </div>
-          )}
-        </div>
-
-        {/* News & Media Slot 2 — admin-uploaded media (synced with /admin/dashboard) */}
-        <div>
-          {newsSlot2Items.length > 0 ? (
-            <NewsMediaSlot slot={2} items={newsSlot2Items} />
-          ) : (
-            <div className="flex h-full min-h-[200px] w-full items-center justify-center bg-gray-50 px-4 text-center text-xs text-gray-500">
-              No media uploaded for Slot 2.
-            </div>
-          )}
-        </div>
       </div>
+      <details className="mt-3 border-t border-border">
+        <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">Company updates & newsletters</summary>
+        <div className="grid min-w-0 grid-cols-1 gap-4 pb-3 md:grid-cols-2">
+          {newsSlot1Items.length > 0 && <NewsMediaSlot slot={1} items={newsSlot1Items} />}
+          {newsSlot2Items.length > 0 && <NewsMediaSlot slot={2} items={newsSlot2Items} />}
+          {!newsSlot1Items.length && !newsSlot2Items.length && <p className="text-sm text-muted-foreground">No company updates.</p>}
+        </div>
+      </details>
 
       {(e.employee_job_pay_department_name || e.employee_job_pay_job_title_name) && (
         <div className="mt-4 hidden pt-3 text-xs text-gray-500 sm:block">

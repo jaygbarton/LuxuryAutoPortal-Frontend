@@ -1,3 +1,4 @@
+import { WorkTimeSummary } from "@/components/dashboard/WorkTimeSummary";
 import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
 import { optionKeywords } from "@/lib/select-search";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -226,53 +227,17 @@ export default function AdminDashboard() {
   return (
     <AdminLayout>
       <div className="min-h-screen bg-background">
-        {/* Brand Header */}
-        <div className="mb-8 border-b border-gray-200 bg-white px-6 py-6">
-          <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-3">
-            {/* Left — Logo */}
-            <div className="flex items-center justify-center rounded-lg bg-white p-4">
-              <img
-                src="/logo.png"
-                alt="Golden Luxury Auto"
-                className="h-auto w-full object-contain"
-              />
+        <div className="mb-6 space-y-3 px-3 pt-3 sm:px-6 sm:pt-6">
+          {!isCoHost && <WorkTimeSummary />}
+          <details className="rounded-xl border border-border bg-white">
+            <summary className="min-h-11 cursor-pointer px-4 py-3 text-sm font-medium">Company updates & newsletters</summary>
+            <div className="grid min-w-0 grid-cols-1 gap-4 p-4 md:grid-cols-2">
+              {newsSlot1Items.length > 0 && <NewsMediaSlot slot={1} items={newsSlot1Items} />}
+              {newsSlot2Items.length > 0 && <NewsMediaSlot slot={2} items={newsSlot2Items} />}
+              {!newsSlot1Items.length && !newsSlot2Items.length && <p className="text-sm text-muted-foreground">No company updates.</p>}
             </div>
-
-            {/* Center — News & Media Section 1 (managed in /admin/news-media) */}
-            <div>
-              {newsSlot1Items.length > 0 ? (
-                <NewsMediaSlot slot={1} items={newsSlot1Items} />
-              ) : (
-                <a
-                  href="/admin/news-media"
-                  className="block h-full overflow-hidden rounded-lg border border-dashed border-gray-300 bg-gray-50 shadow-sm transition hover:bg-gray-100"
-                >
-                  <div className="flex h-full min-h-[200px] w-full items-center justify-center px-4 text-center text-xs text-gray-500">
-                    Section 1 — add media in News &amp; Media
-                  </div>
-                </a>
-              )}
-            </div>
-
-            {/* Right — News & Media Section 2 (managed in /admin/news-media) */}
-            <div>
-              {newsSlot2Items.length > 0 ? (
-                <NewsMediaSlot slot={2} items={newsSlot2Items} />
-              ) : (
-                <a
-                  href="/admin/news-media"
-                  className="block h-full overflow-hidden rounded-lg border border-dashed border-gray-300 bg-gray-50 shadow-sm transition hover:bg-gray-100"
-                >
-                  <div className="flex h-full min-h-[200px] w-full items-center justify-center px-4 text-center text-xs text-gray-500">
-                    Section 2 — add media in News &amp; Media
-                  </div>
-                </a>
-              )}
-            </div>
-          </div>
-
+          </details>
         </div>
-
 
         {/* ── Year selector + Section Filter Panel ── */}
         <div className="mb-6 px-6 flex flex-wrap items-center justify-between gap-3">

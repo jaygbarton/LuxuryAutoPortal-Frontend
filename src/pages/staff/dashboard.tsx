@@ -1,3 +1,4 @@
+import { WorkTimeSummary } from "@/components/dashboard/WorkTimeSummary";
 /**
  * Employee Dashboard — modeled after the design in DASHBOARD DESIGN - EMPLOYEES.pdf.
  *
@@ -116,6 +117,7 @@ export default function StaffDashboard() {
       <div className="staff-page min-w-0 bg-background">
         <div className="space-y-3 sm:space-y-4 sm:px-6 sm:pt-6">
           {/* Profile banner — always visible */}
+          <WorkTimeSummary />
           <EmployeeProfileSection />
           <div className="grid grid-cols-2 gap-2 md:hidden">
             <Link href="/admin/operations?tab=day-schedule" className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-sm font-medium text-primary-foreground"><CalendarDays className="h-4 w-4" />Day Schedule</Link>
