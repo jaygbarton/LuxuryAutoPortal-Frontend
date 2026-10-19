@@ -1,0 +1,2 @@
+import { defineConfig } from '@playwright/test';
+export default defineConfig({ testDir: './e2e', testMatch: 'service-workspace.spec.ts', workers: 1, reporter: 'line', timeout: 45_000, use: { baseURL: 'http://127.0.0.1:5344', launchOptions: { executablePath: '/usr/bin/chromium' }, screenshot: 'only-on-failure' }, webServer: { command: 'npm run dev -- --host 127.0.0.1 --port 5344 --strictPort', url: 'http://127.0.0.1:5344' } });

@@ -37,6 +37,9 @@ const SOURCE_COLORS: Record<FleetCalendarSource, string> = {
 };
 
 function eventColor(event: FleetCalendarEvent): string {
+  if (event.serviceEventKind === "receipt") return "border-blue-300 bg-blue-50 text-blue-950";
+  if (event.serviceEventKind === "history") return "border-emerald-300 bg-emerald-50 text-emerald-950";
+  if (event.serviceEventKind === "due") return event.status === "overdue" ? "border-red-300 bg-red-50 text-red-900" : "border-amber-300 bg-amber-50 text-amber-950";
   return isCancelledCalendarEvent(event)
     ? "border-dashed border-slate-400 bg-slate-100 text-slate-700"
     : SOURCE_COLORS[event.source];
@@ -58,14 +61,17 @@ function eventLabel(event: FleetCalendarEvent): string {
 type VehicleRow = FleetCalendarCar & { key: string; events: FleetCalendarEvent[]; unmatched?: boolean };
 
 /** Internal planning calendar. Customer booking views keep their separate feed. */
-export function FleetCalendar() {
+export type CalendarScope = "trips" | "services" | "master";
+export function FleetCalendar({ calendarScope = "trips", embedded = false }: { calendarScope?: CalendarScope; embedded?: boolean }) {
   const params = new URLSearchParams(useSearch());
   const historyMode = params.get("view") === "history";
   // Query-only tab navigation stays on this route; each mode gets its own date defaults.
-  return <FleetCalendarContent key={historyMode ? "history" : "calendar"} historyMode={historyMode} />;
+  return <FleetCalendarContent key={`${calendarScope}:${historyMode ? "history" : "calendar"}`} historyMode={historyMode} calendarScope={calendarScope} embedded={embedded} />;
 }
 
-function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
+function FleetCalendarContent({ historyMode, calendarScope, embedded }: { historyMode: boolean; calendarScope: CalendarScope; embedded: boolean }) {
+  const allowedSources = calendarScope === "services" ? ["maintenance"] as FleetCalendarSource[] : calendarScope === "trips" ? FLEET_CALENDAR_SOURCES.filter(s => s !== "maintenance") : [...FLEET_CALENDAR_SOURCES];
+  const [serviceKind, setServiceKind] = useState("all");
   const queryClient = useQueryClient();
   const activeTimezone = useTimezone();
   const isMobile = useIsMobile();
@@ -78,13 +84,13 @@ function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
     const to = params.get("to");
     return from && to && calendarRangeDays(from, to) !== null ? { from, to } : null;
   };
-  const [from, setFrom] = useState(() => initialRange()?.from ?? utcDateToDayKey(addUtcDays(dayKeyToUtcDate(mtTodayKey(activeTimezone)), historyMode ? -29 : -3)));
+  const [from, setFrom] = useState(() => initialRange()?.from ?? utcDateToDayKey(addUtcDays(dayKeyToUtcDate(mtTodayKey(activeTimezone)), historyMode || calendarScope === "services" ? -29 : -3)));
   const [to, setTo] = useState(() => initialRange()?.to ?? utcDateToDayKey(addUtcDays(dayKeyToUtcDate(mtTodayKey(activeTimezone)), historyMode ? 0 : 20)));
   const [search, setSearch] = useState("");
   const [fleet, setFleet] = useState<"all" | "active" | "inactive">("all");
   const [occupancy, setOccupancy] = useState<"all" | "blocking" | "none">("all");
   const [status, setStatus] = useState("all");
-  const [sources, setSources] = useState<FleetCalendarSource[]>([...FLEET_CALENDAR_SOURCES]);
+  const [sources, setSources] = useState<FleetCalendarSource[]>(allowedSources);
   const [showCancelled, setShowCancelled] = useState(true);
   const [chosenView, setView] = useState<"timeline" | "list" | null>(null);
   const view = chosenView ?? (isMobile || historyMode ? "list" : "timeline");
@@ -108,9 +114,9 @@ function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
   const [recoveryRequestedAt, setRecoveryRequestedAt] = useState<number | null>(null);
 
   const { data, error, isLoading, isFetching, isError, refetch, dataUpdatedAt } = useQuery<FleetCalendarResponse>({
-    queryKey: ["/api/internal-calendar/events", from, to, activeTimezone],
+    queryKey: ["/api/internal-calendar/events", from, to, activeTimezone, calendarScope],
     queryFn: async () => {
-      const response = await fetch(buildApiUrl(`/api/internal-calendar/events?${new URLSearchParams({ from, to, timezone: activeTimezone })}`), { credentials: "include" });
+      const response = await fetch(buildApiUrl(`/api/internal-calendar/events?${new URLSearchParams({ from, to, timezone: activeTimezone, calendar: calendarScope })}`), { credentials: "include" });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.error || `Calendar request failed (${response.status})`);
@@ -172,6 +178,7 @@ function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
       if (!normalized) throw new Error("Google Calendar returned an incomplete status response.");
       return normalized;
     },
+    enabled: calendarScope !== "services",
     retry: 1, staleTime: 10_000,
     refetchInterval: () => syncRequestedAt !== null && Date.now() - syncRequestedAt < 120_000 ? 3_000 : 30_000,
   });
@@ -217,7 +224,7 @@ function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
   const sourceCounts = useMemo(() => Object.fromEntries(FLEET_CALENDAR_SOURCES.map((source) => [source, scopedEvents.filter((event) => event.source === source).length])) as Record<FleetCalendarSource, number>, [scopedEvents]);
   const statuses = useMemo(() => Array.from(new Set(scopedEvents.map((event) => event.status))).sort(), [scopedEvents]);
 
-  const visibleEvents = useMemo(() => scopedEvents.filter((event) => sources.includes(event.source) && (showCancelled || !isCancelledCalendarEvent(event)) && (status === "all" || event.status === status)), [scopedEvents, sources, showCancelled, status]);
+  const visibleEvents = useMemo(() => scopedEvents.filter((event) => (serviceKind === "all" || event.serviceEventKind === serviceKind) && sources.includes(event.source) && (showCancelled || !isCancelledCalendarEvent(event)) && (status === "all" || event.status === status)), [scopedEvents, sources, showCancelled, status, serviceKind]);
   const rows = useMemo(() => {
     const carMap = new Map<number, VehicleRow>();
     for (const car of data?.cars ?? []) carMap.set(car.carId, { ...car, key: `car-${car.carId}`, events: [] });
@@ -268,7 +275,7 @@ function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
   }, [listedEvents, from, timezone, historyMode]);
   const needsReview = listedEvents.filter((event) => calendarInstant(event.start) === null || (event.end !== null && (calendarInstant(event.end) === null || calendarInstant(event.end)! < calendarInstant(event.start)!)));
   const dayList = useMemo(() => days ? Array.from({ length: days }, (_, index) => addUtcDays(dayKeyToUtcDate(from), index)) : [], [from, days]);
-  const hasFilters = search !== "" || fleet !== "all" || occupancy !== "all" || status !== "all" || sources.length !== FLEET_CALENDAR_SOURCES.length || !showCancelled;
+  const hasFilters = search !== "" || fleet !== "all" || occupancy !== "all" || status !== "all" || sources.length !== allowedSources.length || serviceKind !== "all" || !showCancelled;
   const attentionEvents = listedEvents.filter((event) => event.carId === null || event.timeStatus !== "confirmed" || event.googleClassification === "unclassified" || needsReview.includes(event));
 
   useEffect(() => {
@@ -316,7 +323,7 @@ function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
     setTo(utcDateToDayKey(addUtcDays(dayKeyToUtcDate(to), daysToShift)));
   }
   function resetFilters() {
-    setSearch(""); setFleet("all"); setOccupancy("all"); setStatus("all"); setSources([...FLEET_CALENDAR_SOURCES]); setShowCancelled(true);
+    setSearch(""); setFleet("all"); setOccupancy("all"); setStatus("all"); setSources(allowedSources); setServiceKind("all"); setShowCancelled(true);
   }
 
   function jumpToEvent(event: FleetCalendarEvent) {
@@ -346,7 +353,7 @@ function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
 
   function resetDateRange() {
     const today = dayKeyToUtcDate(mtTodayKey(timezone));
-    setFrom(utcDateToDayKey(addUtcDays(today, historyMode ? -29 : -3)));
+    setFrom(utcDateToDayKey(addUtcDays(today, historyMode || calendarScope === "services" ? -29 : -3)));
     setTo(utcDateToDayKey(addUtcDays(today, historyMode ? 0 : 20)));
   }
   const compactRange = days ? `${dayKeyToUtcDate(from).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" })} – ${dayKeyToUtcDate(to).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" })}` : "Choose dates";
@@ -358,8 +365,8 @@ function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
     <Button className="min-h-11 px-2 text-xs md:min-h-9 md:px-3 md:text-sm" variant={view === "list" ? "default" : "ghost"} onClick={() => setView("list")} aria-pressed={view === "list"}>{isMobile ? "Agenda" : "List"}</Button>
     <Button className="min-h-11 px-2 text-xs md:min-h-9 md:px-3 md:text-sm" variant={view === "timeline" ? "default" : "ghost"} onClick={() => setView("timeline")} aria-pressed={view === "timeline"}>Timeline</Button>
   </div>;
-  const refreshButton = <Button variant="outline" aria-label="Refresh" onClick={() => { void refetch(); void refetchSync(); if (pointError) void refetchPoint(); }} disabled={isFetching || !days} className="h-11 w-11 shrink-0 px-0 md:h-auto md:w-auto md:gap-2 md:px-4"><RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} /><span className="hidden md:inline">Refresh</span></Button>;
-  const filterCount = Number(fleet !== "all") + Number(status !== "all") + Number(occupancy !== "all") + FLEET_CALENDAR_SOURCES.length - sources.length + Number(!showCancelled);
+  const refreshButton = <Button variant="outline" aria-label="Refresh" onClick={() => { void refetch(); if (calendarScope !== "services") void refetchSync(); if (pointError) void refetchPoint(); }} disabled={isFetching || !days} className="h-11 w-11 shrink-0 px-0 md:h-auto md:w-auto md:gap-2 md:px-4"><RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} /><span className="hidden md:inline">Refresh</span></Button>;
+  const filterCount = Number(fleet !== "all") + Number(status !== "all") + Number(occupancy !== "all") + allowedSources.length - sources.length + Number(serviceKind !== "all") + Number(!showCancelled);
   const filterControls = <>
     <div className="grid gap-3 md:flex md:flex-wrap md:items-center">
       <Select value={fleet} onValueChange={(value) => setFleet(value as typeof fleet)}><SelectTrigger className="min-h-11 w-full text-base md:min-h-9 md:w-40 md:text-sm" aria-label="Fleet filter"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All vehicles</SelectItem><SelectItem value="active">Active vehicles</SelectItem><SelectItem value="inactive">Inactive vehicles</SelectItem></SelectContent></Select>
@@ -368,21 +375,22 @@ function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
       {hasFilters && !isMobile && <Button variant="ghost" onClick={resetFilters}>Clear filters</Button>}
     </div>
     <div className="mt-3 grid divide-y divide-border md:flex md:flex-wrap md:gap-x-5 md:gap-y-1 md:divide-y-0 md:rounded-lg md:border md:border-border md:px-3 md:py-1">
-      {FLEET_CALENDAR_SOURCES.map((source) => <label key={source} className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+      {allowedSources.map((source) => <label key={source} className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
         <Checkbox checked={sources.includes(source)} onCheckedChange={(checked) => setSources((current) => checked === true ? [...current, source] : current.filter((value) => value !== source))} aria-label={FLEET_SOURCE_LABELS[source]} />
         <span className={cn("h-3 w-3 shrink-0 rounded-full border", SOURCE_COLORS[source])} /> <span>{FLEET_SOURCE_LABELS[source]}</span><span className="ml-auto pl-1 text-xs text-muted-foreground md:ml-0">{sourceCounts[source]}</span>
       </label>)}
       <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm"><Checkbox checked={showCancelled} onCheckedChange={(checked) => setShowCancelled(checked === true)} aria-label="Show cancelled trips" /><span className="h-3 w-3 rounded-full border border-dashed border-slate-400 bg-slate-100" /> Show cancelled trips</label>
     </div>
+    {calendarScope !== "trips" && <select aria-label="Service calendar events" value={serviceKind} onChange={e => setServiceKind(e.target.value)} className="mt-2 h-11 w-full rounded-md border border-input bg-white px-3 text-sm md:w-64"><option value="all">All event types</option><option value="appointment">Scheduled service</option><option value="due">Service due reminders</option><option value="receipt">Service receipts / files</option><option value="history">Service history</option></select>}
   </>;
 
   return (
     <div className="min-w-0 space-y-3 md:space-y-4" data-testid="fleet-calendar">
-      <WorkScheduleNavigation />
+      {!embedded && calendarScope === "trips" && <WorkScheduleNavigation />}
       <div className={cn("flex items-start justify-between gap-3", isMobile && "sr-only")}>
         <div className="min-w-0">
-          <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight"><CalendarDays className="h-5 w-5 text-primary" /> {historyMode ? "History" : "Calendar"}</h1>
-          <p className="mt-1 text-xs text-muted-foreground md:text-sm">{historyMode ? "Trips, blocks and scheduled service that ended in this date range." : "Turo trips, owner rentals, blocked-off dates, and scheduled maintenance."}</p>
+          <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight"><CalendarDays className="h-5 w-5 text-primary" /> {historyMode ? "History" : calendarScope === "services" ? "Service Calendar" : calendarScope === "master" ? "Master Internal Calendar" : "Vehicle Trips Calendar"}</h1>
+          <p className="mt-1 text-xs text-muted-foreground md:text-sm">{historyMode ? "Trips, blocks and scheduled service that ended in this date range." : calendarScope === "services" ? "Past service, receipt records, due reminders and scheduled appointments." : calendarScope === "master" ? "Vehicle trips and service calendars combined." : "Turo trips, owner rentals, direct rentals and blocked-off dates."}</p>
         </div>
         {!isMobile && refreshButton}
       </div>
@@ -416,8 +424,9 @@ function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
       </DialogContent></Dialog>}
 
 
+      {calendarScope !== "trips" && <p className="rounded-lg bg-primary/10 p-3 text-xs text-muted-foreground">Service due reminders and receipt/history markers do not block vehicle availability. Only confirmed service appointments reserve time.</p>}
       {isError && <div role="alert" className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive"><p className="font-medium">Calendar could not be refreshed.</p><p>{error instanceof Error ? error.message : "Please retry."}</p>{data && <p className="mt-1">Previously loaded records remain visible. They may be out of date.</p>}</div>}
-      {data && (data.complete === false || data.availabilityComplete === false || warnings.length > 0 || uncertainHistoryCount > 0) && (
+      {data && (data.complete === false || (calendarScope !== "services" && data.availabilityComplete === false) || warnings.length > 0 || uncertainHistoryCount > 0) && (
         <div role="alert" className="flex gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-sm text-amber-950 md:p-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="min-w-0 flex-1">
@@ -437,6 +446,7 @@ function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
           </div>
         </div>
       )}
+      {calendarScope !== "services" && (
       <section className="space-y-2 rounded-lg border border-border bg-card p-2 text-sm md:p-3" aria-label="Google Calendar status">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
@@ -455,6 +465,7 @@ function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
         {syncNow.isError && <p role="alert" className="text-xs text-destructive">{syncNow.error instanceof Error ? syncNow.error.message : "Google synchronization could not be requested."}</p>}
         {syncRequestedAt !== null && <p role="status" className="text-xs text-muted-foreground">{syncCompleted ? "Google synchronization completed." : syncHealth?.lastError || syncHealth?.import.lastError ? "Sync request accepted. Google still reports an error; review the message above." : "Sync request accepted. Checking Google import and updates…"}</p>}
       </section>
+      )}
       {linkedBooking && pointLoading && <p role="status" className="text-sm text-muted-foreground">Loading linked booking…</p>}
       {linkedBooking && pointError && !windowBooking && <p role="alert" className="rounded-md border border-destructive/40 p-3 text-sm text-destructive">The linked booking could not be loaded: {pointError instanceof Error ? pointError.message : "Please retry."}</p>}
       <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground"><span>{listedEvents.length} of {scopedEvents.length} {historyMode ? "past events" : "events"} shown · {rows.length} vehicles · {timezone}</span><span className="sr-only md:not-sr-only">{isFetching ? "Refreshing…" : dataUpdatedAt ? `Updated ${new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""}</span></div>
@@ -525,10 +536,11 @@ function FleetCalendarContent({ historyMode }: { historyMode: boolean }) {
             </> : <p className="text-xs text-muted-foreground">An administrator can review the vehicle mapping and availability classification.</p>}
           </section>
         )}
+        {selected.files?.length ? <div className="space-y-2"><h3 className="font-semibold">Service receipts / files</h3>{selected.files.filter(url => /^https:\/\//i.test(url) || /^\/(?!\/)/.test(url)).map((url, index) => <a key={`${url}:${index}`} href={url} target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center rounded-md border border-primary/30 px-3">Open receipt / file {index + 1}</a>)}</div> : null}
         <div className="flex flex-wrap gap-2">
           {calendarInstant(selected.start) !== null && <Button variant="outline" onClick={() => jumpToEvent(selected)}>Show event in calendar</Button>}
-          <BookingNavigation bookingKey={selected.bookingKey} currentView="calendar" developerAccess={isDeveloper} date={calendarInstant(selected.start) === null ? undefined : mtDayKey(selected.start!, timezone)} />
-          {selectedSourceUrl?.startsWith("/") && !selectedSourceUrl.startsWith("//") && (!selectedSourceUrl.startsWith("/admin/developer/") || isDeveloper) && (data?.role !== "employee" || selectedSourceUrl.startsWith("/admin/operations")) && <a className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 py-2 text-primary-foreground md:min-h-9" href={selectedSourceUrl}>{selected.source === "maintenance" ? "Open maintenance appointment" : "Open source record"}</a>}
+          {!selected.serviceEventKind || selected.serviceEventKind === "appointment" ? <BookingNavigation bookingKey={selected.bookingKey} currentView="calendar" developerAccess={isDeveloper} date={calendarInstant(selected.start) === null ? undefined : mtDayKey(selected.start!, timezone)} /> : null}
+          {selectedSourceUrl?.startsWith("/") && !selectedSourceUrl.startsWith("//") && (!selectedSourceUrl.startsWith("/admin/developer/") || isDeveloper) && (data?.role !== "employee" || selectedSourceUrl.startsWith("/admin/operations")) && <a className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 py-2 text-primary-foreground md:min-h-9" href={selectedSourceUrl}>{selected.serviceEventKind && selected.serviceEventKind !== "appointment" ? "Open service history & receipts" : selected.source === "maintenance" ? "Open maintenance appointment" : "Open source record"}</a>}
         </div>
       </div>}</DialogContent></Dialog>
     </div>

@@ -30,6 +30,8 @@ export interface FleetCalendarEvent {
   googleSyncStatus?: string;
   destination?: string | null;
   appointmentVersion?: number;
+  serviceEventKind?: "due" | "receipt" | "history" | "appointment";
+  files?: string[];
   maintenanceWorkStatus?: string | null;
 }
 
@@ -65,7 +67,7 @@ export const FLEET_SOURCE_LABELS: Record<FleetCalendarSource, string> = {
   turo: "Turo trips",
   owner_rental: "Owner rentals",
   block_off: "Blocked off",
-  maintenance: "Scheduled maintenance",
+  maintenance: "Services",
   direct_booking: "Direct rentals",
 };
 
@@ -137,6 +139,10 @@ export function normalizeFleetCalendarResponse(value: unknown): FleetCalendarRes
         !(event.start === null || typeof event.start === "string") ||
         !(event.end === null || typeof event.end === "string")) {
       throw new Error("The calendar returned an incomplete event. Please retry.");
+    }
+    if ((event.files !== undefined && (!Array.isArray(event.files) || event.files.some(file => typeof file !== "string"))) ||
+        (event.serviceEventKind !== undefined && !["due", "receipt", "history", "appointment"].includes(String(event.serviceEventKind)))) {
+      throw new Error("The calendar returned invalid service details. Please retry.");
     }
     return { ...event, plateNumber: event.plateNumber ?? event.plate ?? null };
   });

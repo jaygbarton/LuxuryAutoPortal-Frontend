@@ -232,10 +232,15 @@ const allSidebarItems: SidebarItem[] = [
     roles: ["admin"],
   },
   {
-    href: "/admin/trip-calendar",
-    label: "Calendar",
+    href: "/admin/internal-calendar",
+    label: "Master Calendar",
     icon: CalendarDays,
     roles: ["admin"],
+    children: [
+      { href: "/admin/internal-calendar", label: "Master Calendar", icon: CalendarDays, roles: ["admin"] },
+      { href: "/admin/trip-calendar", label: "Vehicle Trips Calendar", icon: CalendarDays, roles: ["admin"] },
+      { href: "/admin/service-calendar", label: "Service Calendar", icon: CalendarDays, roles: ["admin"] },
+    ],
   },
   {
     href: "/admin/bouncie",
@@ -543,10 +548,15 @@ const employeeSidebarItems: SidebarItem[] = [
     children: withRoles(OPERATIONS_TABS, ["employee"]),
   },
   {
-    href: "/admin/trip-calendar",
-    label: "Calendar",
+    href: "/admin/internal-calendar",
+    label: "Master Calendar",
     icon: CalendarDays,
     roles: ["employee"],
+    children: [
+      { href: "/admin/internal-calendar", label: "Master Calendar", icon: CalendarDays, roles: ["employee"] },
+      { href: "/admin/trip-calendar", label: "Vehicle Trips Calendar", icon: CalendarDays, roles: ["employee"] },
+      { href: "/admin/service-calendar", label: "Service Calendar", icon: CalendarDays, roles: ["employee"] },
+    ],
   },
   {
     href: "/admin/bouncie",
