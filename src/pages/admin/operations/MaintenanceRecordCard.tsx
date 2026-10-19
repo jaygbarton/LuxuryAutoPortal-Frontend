@@ -25,6 +25,7 @@ interface MaintenanceRecordCardProps {
   details: { label: string; value: ReactNode }[];
   notes?: string | null;
   photos?: ReactNode;
+  reports?: ReactNode;
   accentBg: string;
   onEdit: () => void;
   onHistory: () => void;
@@ -36,7 +37,7 @@ interface MaintenanceRecordCardProps {
  * linked trip, repair details and attachments only when they are needed. */
 export function MaintenanceRecordCard({
   carName, carLabel, plate, image, service, description, scheduled, due,
-  statusControl, assigneeControl, approval, details, notes, photos, accentBg,
+  statusControl, assigneeControl, approval, details, notes, photos, reports, accentBg,
   onEdit, onHistory, onDelete, onAppointment,
 }: MaintenanceRecordCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -120,6 +121,7 @@ export function MaintenanceRecordCard({
               </dl>
               {notes && <div><p className="mb-1 text-xs text-muted-foreground">Notes</p><p className="whitespace-pre-wrap break-words text-sm leading-5">{notes}</p></div>}
               {photos && <div><p className="mb-2 text-xs text-muted-foreground">Maintenance photos</p>{photos}</div>}
+              {reports}
             </div>
           </CollapsibleContent>
         </div>

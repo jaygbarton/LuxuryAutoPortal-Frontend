@@ -168,3 +168,29 @@ test("appointment editor fits a small screen", async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
 });
+
+for (const width of [360,1280]) test(`one issue exposes all reporting trips and original attachments at ${width}`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 });
+  await fixture(page);
+  let reportReads = 0;
+  await page.route('**/api/service-workspace/maintenance/601/reports', async route => {
+    reportReads++;
+    await route.fulfill({ json: { tripCount: 2, reports: [
+      { id: 601, trip_id: 901, reservation_id: 'TRIP-ONE', reported_at: '2026-10-13T16:00:00Z', task_description: 'Battery', notes: 'First trip report', photos: ['https://example.test/original.jpg'] },
+      { id: 603, trip_id: 902, reservation_id: 'TRIP-TWO', reported_at: '2026-10-15T16:00:00Z', task_description: 'Battery', notes: 'Reported again on another trip', photos: [] },
+    ] } });
+  });
+  await page.goto('/admin/operations?tab=maintenance');
+  const issue = page.getByRole('article', { name: `Maintenance for ${carName}`, exact: true }).first();
+  await expect(issue).toContainText('As needed');
+  expect(reportReads).toBe(0);
+  await issue.getByRole('button', { name: 'View details', exact: true }).click();
+  await issue.getByRole('button', { name: 'Reports of this issue', exact: true }).click();
+  await expect(issue).toContainText('2 reports · 2 trips');
+  await expect(issue).toContainText('TRIP-ONE');
+  await expect(issue).toContainText('TRIP-TWO');
+  await expect(issue).toContainText('Reported again on another trip');
+  await expect(issue.getByRole('link', { name: 'Report file 1' })).toHaveAttribute('href','https://example.test/original.jpg');
+  expect(reportReads).toBe(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

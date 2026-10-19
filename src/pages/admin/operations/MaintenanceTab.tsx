@@ -23,6 +23,7 @@ import {
 import { SectionHeader } from "@/components/admin/dashboard/SectionHeader";
 import { SummaryCard } from "@/components/admin/dashboard/SummaryCard";
 import { MaintenanceRecordCard } from "./MaintenanceRecordCard";
+import { MaintenanceIssueReports } from './MaintenanceIssueReports';
 import { TablePagination } from "@/components/ui/table-pagination";
 import { usePersistentPageSize } from "@/hooks/use-persistent-page-size";
 import { useCarNameWithYear } from "@/hooks/use-car-name-with-year";
@@ -754,11 +755,12 @@ export function MaintenanceTab({
                     service={rec.service_type ? MAINTENANCE_SERVICE_TYPE_LABELS[rec.service_type] : null}
                     description={rec.task_description}
                     scheduled={appointments.error ? <span className="text-amber-800">Status unavailable — open Appointment to verify</span> : appointments.isLoading ? "Checking appointment status…" : appointmentsById.get(rec.id)?.status === "confirmed" ? <><span className="font-medium text-emerald-700">Confirmed</span><br />{formatBookingDate(appointmentsById.get(rec.id)!.startAt, appointmentsById.get(rec.id)!.timezone)}<br /><span className="text-xs text-muted-foreground">Return: {formatBookingDate(appointmentsById.get(rec.id)!.endAt, appointmentsById.get(rec.id)!.timezone)}</span></> : appointmentsById.get(rec.id)?.status === "cancelled" ? "Appointment cancelled — need remains" : "Maintenance needed — not scheduled"}
-                    due={formatDateTime(rec.due_date)}
+                    due={appointments.error ? "Not verified" : appointmentsById.get(rec.id)?.status === "confirmed" ? formatBookingDate(appointmentsById.get(rec.id)!.startAt, appointmentsById.get(rec.id)!.timezone) : "As needed"}
                     statusControl={statusControl}
                     assigneeControl={assigneeEl}
                     approval={(rec.owner_approval_status && rec.owner_approval_status !== "not_sent") || (rec.status === "damage_reported" && !(rec.owner_has_app_access === 1 || rec.owner_has_app_access === true)) ? <OwnerApprovalBadge rec={rec} /> : undefined}
                     photos={photosEl}
+                    reports={<MaintenanceIssueReports maintenanceId={rec.id} />}
                     notes={rec.notes}
                     onEdit={() => { setEditingRecord(rec); setModalOpen(true); }}
                     onAppointment={() => setAppointmentId(rec.id)}

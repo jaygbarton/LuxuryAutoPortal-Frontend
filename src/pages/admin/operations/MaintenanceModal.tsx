@@ -19,6 +19,7 @@ import { PhotoUpload } from "./PhotoUpload";
 import { CarSelectCombobox } from "./CarSelectCombobox";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import type { MaintenanceRecord, MaintenanceServiceType } from "./types";
+import { MaintenanceIssueReports } from './MaintenanceIssueReports';
 import { MAINTENANCE_SERVICE_TYPE_LABELS } from "./types";
 
 interface MaintenanceModalProps {
@@ -312,6 +313,7 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
             />
           </div>
 
+          {record && <MaintenanceIssueReports maintenanceId={record.id} />}
           <div className="sticky -bottom-4 grid grid-cols-2 gap-2 border-t border-border bg-card py-3 sm:-bottom-6 sm:flex sm:justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="bg-card text-foreground border-border">
               Cancel
