@@ -9,6 +9,11 @@ async function fixture(page: Page) {
     if (url.pathname === '/api/auth/me') result = { user: { id: 7, firstName: 'Test', isAdmin: true, isSuperAdmin: true, isEmployee: false, isClient: false, tourCompleted: true } };
     if (url.pathname === '/api/service-workspace') result = { success: true, today: '2026-10-19', cars: [car(2, 'Urgent Audi', -8), car(3, 'Upcoming Buick', 20), car(1, 'No History Acura', null)], rules: [{ kind: 'oil_change', label: 'Oil change', interval: 90 }, { kind: 'tires', label: 'Tires', interval: 180 }] };
     if (url.pathname.endsWith('/history')) result = { history: [{ id: 'receipt:7', carId: 2, kind: 'oil_change', label: 'Oil change', date: '2026-10-18', dateBasis: 'receipt_submission_date', status: 'approved', amount: 65, files: ['https://example.test/receipt.pdf'], notes: 'Verified receipt' }] };
+    if (url.pathname === '/api/service-workspace/legacy') result = { status: 'ready', records: 3, vehicles: 1, canRecover: true, summary: { scanned: 10, skippedVehicle: 7, unresolvedFiles: 0, unsupportedTables: [] } };
+    if (url.pathname === '/api/expense-form-submissions/options') result = { data: { employees: [{ id: 41, name: 'Test Employee' }], cars: [{ id: 2, name: 'Urgent Audi - P2' }], currentEmployeeId: 41, isEmployee: true, isAdmin: false, categoryFields: { cogs: [{ value: 'db_42', label: 'Oil/Lube', serviceKind: 'oil_change' }, { value: 'db_43', label: 'Brakes', serviceKind: 'brakes' }, { value: 'db_44', label: 'Car Insurance', serviceKind: null }], directDelivery: [] } } };
+    if (url.pathname === '/api/expense-form-submissions/receipt/analyze') result = { success: true, extracted: true, localReader: true, amount: 75.55, date: '2026-10-18', serviceOdometer: 50000, nextServiceOdometer: 55000, milesUntilNextService: 5000, nextServiceDate: '2027-01-18', needsManualEntry: false };
+    if (url.pathname === '/api/expense-form-submissions/receipts/upload') result = { fileIds: ['https://example.test/new-service.jpg'] };
+    if (url.pathname === '/api/expense-form-submissions' && route.request().method() === 'POST') result = { success: true, id: 55, slackNotificationSent: true };
     if (url.pathname === '/api/service-workspace/sheets') result = { connected: true, configured: true, canManage: true, url: 'https://docs.google.com/spreadsheets/d/test/edit', lastSuccess: '2026-10-19T18:00:00Z', error: null };
     if (url.pathname === '/api/internal-calendar/events') {
       const base = { carId: 2, carName: 'Urgent Audi', plateNumber: 'P2', start: '2026-10-19T12:00:00Z', end: '2026-10-19T13:00:00Z', status: 'completed', cancelled: false, timeStatus: 'confirmed' };
@@ -35,8 +40,8 @@ for (const width of [360, 1280]) test(`service views, urgency, receipts and mobi
   await expect(workspace.getByText('Overdue · 8 days', { exact: true }).first()).toBeVisible();
   await workspace.getByRole('button', { name: 'By service', exact: true }).click();
   await workspace.getByRole('combobox', { name: 'Service type', exact: true }).selectOption('tires');
-  await expect(workspace.locator('details').first()).toContainText('Tires');
-  await expect(workspace.locator('details').last()).toContainText('No Data');
+  await expect(workspace.locator('details').filter({ has: page.locator('summary strong') }).first()).toContainText('Tires');
+  await expect(workspace.locator('details').filter({ has: page.locator('summary strong') }).last()).toContainText('No Data');
   await expect(workspace.getByRole('link', { name: 'Open Google Sheet', exact: true })).toBeVisible();
   await expect(workspace.getByRole('button', { name: /CSV/i })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -56,4 +61,51 @@ test('service calendar shows receipt markers and files; master combines trip and
   await page.getByRole('link', { name: 'Vehicle trips', exact: true }).click();
   await expect(page.getByText('Turo rental — Guest', { exact: true })).toBeVisible();
   await expect(page.getByText('Receipt · Oil change', { exact: true })).toHaveCount(0);
+});
+
+for (const entry of ['service portal', 'existing Forms'] as const) test(`local receipt fields and one service submission from ${entry}`, async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 844 }); await fixture(page);
+  let submitted: any;
+  page.on('request', request => { if (new URL(request.url()).pathname === '/api/expense-form-submissions' && request.method() === 'POST') submitted = request.postDataJSON(); });
+  if (entry === 'service portal') {
+    await page.goto('/admin/operations?tab=service-due');
+    await page.getByTestId('service-due-workspace').locator('article').first().getByRole('button').click();
+    await page.getByRole('button', { name: 'Add service record', exact: true }).click();
+    await expect(page.getByRole('dialog')).toContainText('Oil/Lube');
+    await expect(page.getByRole('dialog').getByPlaceholder('Type car name, VIN, or plate number...')).toBeDisabled();
+  } else {
+    await page.route('**/api/auth/me', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ user: { id: 7, firstName: 'Test', isAdmin: false, isEmployee: true, isClient: false, tourCompleted: true } }) }));
+    await page.goto('/staff/forms/submit?category=cogs&field=db_42');
+    await page.getByPlaceholder('Type car name, VIN, or plate number...').fill('Audi');
+    await page.getByText('Urgent Audi - P2', { exact: true }).click();
+  }
+  await expect(page.getByText('Service record details', { exact: true })).toBeVisible();
+  await page.locator('input[type=file]').setInputFiles({ name: 'oil.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('receipt') });
+  await expect(page.getByLabel('Service / receipt date', { exact: true })).toHaveValue('2026-10-18');
+  await expect(page.getByLabel('Next service at (odometer miles)', { exact: true })).toHaveValue('55000');
+  await expect(page.getByLabel('Miles until next service', { exact: true })).toHaveValue('5000');
+  await expect(page.getByRole('button', { name: 'Submit', exact: true })).toBeDisabled();
+  await page.getByRole('checkbox', { name: 'I checked the service date, final price and any next-service details against the receipt.' }).check();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button', { name: 'Submit', exact: true }).click();
+  await expect.poll(() => submitted?.field).toBe('db_42');
+  expect(submitted).toMatchObject({ carId: 2, employeeId: 41, category: 'cogs', amount: 75.55, receiptUrls: ['https://example.test/new-service.jpg'], serviceDetails: { valuesConfirmed: true, nextOdometer: 55000, milesUntilNext: 5000, nextDueDate: '2027-01-18' } });
+});
+
+test('mileage overdue is visible with source/time and historical service mileage stays manual', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 844 }); await fixture(page);
+  await page.route('**/api/service-workspace', route => {
+    const vehicle: any = car(2, 'Urgent Audi', null);
+    vehicle.currentMileage = { miles: 55200, source: 'bouncie', observedAt: '2026-10-19T19:59:00Z', state: 'recent', warning: null };
+    const oil = { ...service('2:oil_change','oil_change',null), lastServiced: '2026-10-18', nextServiceOdometer: 55000, odometerAtService: 50000, milesUntilNext: 5000, milesRemaining: -200, mileageOverdue: true, status: 'overdue' };
+    vehicle.services = [oil]; vehicle.nextService = oil;
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ cars: [vehicle], rules: [{ kind: 'oil_change', label: 'Oil change' }] }) });
+  });
+  await page.goto('/admin/operations?tab=service-due');
+  await expect(page.getByText('Overdue · 200 miles', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('55,200 miles · Bouncie', { exact: true })).toBeVisible();
+  await page.getByTestId('service-due-workspace').locator('article').first().getByRole('button').click();
+  await page.getByRole('button', { name: 'Add service record', exact: true }).click();
+  await expect(page.getByRole('dialog').getByText('55,200 miles · Bouncie', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Odometer at service (miles)', { exact: true })).toHaveValue('');
 });

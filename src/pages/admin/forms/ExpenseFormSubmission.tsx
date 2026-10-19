@@ -1,11 +1,14 @@
+import { ServiceMileageReading } from '@/components/shared/ServiceMileageReading';
+import type { ServiceWorkspace } from '@/lib/serviceWorkspace';
+import { ServiceRecordDetailsFields, emptyServiceDetails } from './ServiceRecordDetailsFields';
 import { optionKeywords } from "@/lib/select-search";
 /**
  * Employee Form: Income & Expense Receipt Submission
  * Income, Operating Expenses (Direct Delivery), COGS (Per Vehicle), Reimbursed Bills
- * COGS workflow: Select sub-category → Upload receipt → AI extracts date/cost, optionally VIN/plate
+ * COGS service workflow: select a form, read receipt locally, confirm values and submit for approval.
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, useId } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { api } from "@/lib/api";
@@ -36,15 +39,19 @@ type ExpenseFormSubmissionProps = {
   initialCategory?: string;
   /** Pre-select field (e.g. from staff Forms list link). */
   initialField?: string;
+  initialCarId?: number;
+  initialServiceKind?: string;
+  serviceOnly?: boolean;
+  onSubmitted?: () => void;
 };
 
-export default function ExpenseFormSubmission({ initialCategory, initialField }: ExpenseFormSubmissionProps = {}) {
+export default function ExpenseFormSubmission({ initialCategory, initialField, initialCarId, initialServiceKind, serviceOnly = false, onSubmitted }: ExpenseFormSubmissionProps = {}) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     submissionDate: new Date().toISOString().slice(0, 10),
     employeeId: "",
-    carId: "",
+    carId: initialCarId ? String(initialCarId) : "",
     year: new Date().getFullYear().toString(),
     month: (new Date().getMonth() + 1).toString(),
     category: initialCategory && ["income", "directDelivery", "cogs", "reimbursedBills"].includes(initialCategory) ? initialCategory : "directDelivery",
@@ -61,6 +68,13 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
   const [isDraggingReceipts, setIsDraggingReceipts] = useState(false);
   const [isAnalyzingReceipt, setIsAnalyzingReceipt] = useState(false);
   const [analyzedOnce, setAnalyzedOnce] = useState(false);
+  const [serviceDetails, setServiceDetails] = useState(emptyServiceDetails);
+  const [valuesConfirmed, setValuesConfirmed] = useState(false);
+  const [readerMessage, setReaderMessage] = useState('');
+  const requestId = useRef(crypto.randomUUID());
+  const analysisSequence = useRef(0);
+  const receiptInputId = useId();
+  const uploadedReceipts = useRef<{ files: File[]; urls: string[] } | null>(null);
 
   const { data: optionsData, isLoading: optionsLoading } = useQuery({
     queryKey: ["/api/expense-form-submissions/options"],
@@ -88,9 +102,16 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
     isEmployeeView && currentEmployeeId
       ? (employees.find((e: { id: number }) => e.id === currentEmployeeId)?.name ?? currentUser?.displayName ?? "")
       : (isEmployeeView && currentUser?.displayName) ? currentUser.displayName : "";
-  const categoryFields: Record<string, { value: string; label: string }[]> =
+  const categoryFields: Record<string, { value: string; label: string; serviceKind?: string | null }[]> =
     options.categoryFields || {};
-  const fieldOptions = categoryFields[formData.category] || [];
+  const fieldOptions = (categoryFields[formData.category] || []).filter(f => !serviceOnly || !!f.serviceKind);
+  const serviceKind = formData.category === 'cogs' ? fieldOptions.find(f => f.value === formData.field)?.serviceKind : null;
+  useEffect(() => { setValuesConfirmed(false); }, [formData, serviceDetails, receiptFiles]);
+  useEffect(() => { analysisSequence.current++; setIsAnalyzingReceipt(false); }, [formData.field, formData.category]);
+
+
+  const { data: serviceWorkspace } = useQuery({ queryKey: ['/api/service-workspace'], enabled: !!serviceKind && !!formData.carId, staleTime: 30_000, refetchInterval: serviceKind && formData.carId ? 60_000 : false, queryFn: () => api.get<ServiceWorkspace>('/api/service-workspace') });
+  const currentMileage = serviceWorkspace?.cars.find(car => car.car_id === Number(formData.carId))?.currentMileage;
 
   // Tracks whether the deep-linked initial category/field has been applied yet.
   // Until it has, the "clear field on category change" effect below must NOT run,
@@ -104,10 +125,10 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
   // the Select actually matches an option and shows the right sub-category.
   const resolvedInitialField = useMemo(() => {
     const raw = initialField?.trim();
-    if (!raw) return null;
+    if (!raw) return initialServiceKind ? categoryFields.cogs?.find(f => f.serviceKind === initialServiceKind)?.value ?? null : null;
     const m = raw.match(/(?:^db_|^subcategory-)(\d+)$/);
     return m ? `db_${m[1]}` : raw;
-  }, [initialField]);
+  }, [initialField, initialServiceKind, categoryFields.cogs]);
 
   const resolvedInitialCategory = useMemo(
     () =>
@@ -155,13 +176,9 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
 
   // Derive Year and Month from Date of receipt (single source of truth)
   useEffect(() => {
-    const d = formData.submissionDate ? new Date(formData.submissionDate) : new Date();
-    if (isNaN(d.getTime())) return;
-    setFormData((prev) => ({
-      ...prev,
-      year: d.getFullYear().toString(),
-      month: (d.getMonth() + 1).toString(),
-    }));
+    const parts = /^(\d{4})-(\d{2})-\d{2}$/.exec(formData.submissionDate);
+    if (!parts) return;
+    setFormData(prev => ({ ...prev, year: parts[1], month: String(Number(parts[2])) }));
   }, [formData.submissionDate]);
 
   // Warn when the derived accounting year isn't the current year — catches both a
@@ -216,7 +233,10 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
   }, [receiptFiles]);
 
   const removeReceiptFile = useCallback((index: number) => {
+    analysisSequence.current++;
+    setIsAnalyzingReceipt(false);
     setReceiptFiles((prev) => prev.filter((_, i) => i !== index));
+    setAnalyzedOnce(false);
   }, []);
 
   const openReceiptFile = useCallback(
@@ -234,44 +254,35 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
     [receiptFiles, receiptPreviews]
   );
 
-  // AI receipt extraction: analyze first image when added (COGS workflow - AI reads cost)
-  const addReceiptFiles = useCallback(
-    (newFiles: File[]) => {
-      setReceiptFiles((prev) => {
-        const combined = [...prev, ...newFiles];
-        const firstImage = newFiles.find((f) => f.type.startsWith("image/"));
-        if (firstImage && !analyzedOnce && combined.length >= 1) {
-          setAnalyzedOnce(true);
-          setIsAnalyzingReceipt(true);
-          const fd = new FormData();
-          fd.append("receipt", firstImage);
-          fetch(buildApiUrl("/api/expense-form-submissions/receipt/analyze"), {
-            method: "POST",
-            credentials: "include",
-            body: fd,
-          })
-            .then((r) => r.json())
-            .then((data: { extracted?: boolean; date?: string | null; amount?: number | null; carId?: number | null }) => {
-              if (data.extracted && data) {
-                setFormData((f) => ({
-                  ...f,
-                  ...(data.date && { submissionDate: data.date }),
-                  ...(typeof data.amount === "number" && data.amount >= 0 && { amount: data.amount.toFixed(2) }),
-                  ...(data.carId && { carId: String(data.carId) }),
-                }));
-                if (data.date || data.amount || data.carId) {
-                  toast({ title: "Receipt analyzed", description: "Date, amount, or car pre-filled from receipt. Please verify." });
-                }
-              }
-            })
-            .catch(() => {})
-            .finally(() => setIsAnalyzingReceipt(false));
-        }
-        return combined;
-      });
-    },
-    [analyzedOnce, toast]
-  );
+  async function analyzeReceipt(file: File) {
+    const sequence = ++analysisSequence.current;
+    setIsAnalyzingReceipt(true); setReaderMessage('');
+    if (serviceKind) {
+      setFormData(prev => ({ ...prev, amount: '', submissionDate: '' }));
+      setServiceDetails(emptyServiceDetails);
+    }
+    try {
+      const fd = new FormData(); fd.append('receipt', file); fd.append('category', formData.category); fd.append('field', formData.field);
+      const response = await fetch(buildApiUrl('/api/expense-form-submissions/receipt/analyze'), { method: 'POST', credentials: 'include', body: fd });
+      const data = await response.json();
+      if (sequence !== analysisSequence.current) return;
+      if (!response.ok) throw new Error(data.error || 'Receipt could not be read.');
+      setFormData(prev => ({ ...prev, ...(data.date && { submissionDate: data.date }), ...(typeof data.amount === 'number' && { amount: data.amount.toFixed(2) }), ...(!initialCarId && data.carId && { carId: String(data.carId) }) }));
+      if (serviceKind === 'oil_change') setServiceDetails({ odometer: data.serviceOdometer != null ? String(data.serviceOdometer) : '', milesUntilNext: data.milesUntilNextService != null ? String(data.milesUntilNextService) : '', nextOdometer: data.nextServiceOdometer != null ? String(data.nextServiceOdometer) : '', nextDueDate: data.nextServiceDate || '' });
+      setReaderMessage(data.needsManualEntry || !data.extracted ? 'Some receipt values could not be read reliably. Please fill in missing values manually.' : 'Receipt values suggested. Please double-check them against the receipt.');
+    } catch (error) {
+      if (sequence === analysisSequence.current) setReaderMessage(`${(error as Error).message} Please fill in the values manually.`);
+    } finally { if (sequence === analysisSequence.current) setIsAnalyzingReceipt(false); }
+  }
+  function addReceiptFiles(files: File[]) {
+    const accepted = files.filter(f => f.size <= 10 * 1024 * 1024);
+    if (accepted.length !== files.length) toast({ title: 'Each receipt must be 10 MB or smaller.', variant: 'destructive' });
+    const remaining = Math.max(0, 5 - receiptFiles.length);
+    if (accepted.length > remaining) toast({ title: 'Upload up to five receipts per form.' });
+    const added = accepted.slice(0, remaining);
+    setReceiptFiles(prev => [...prev, ...added]);
+    if (added.length && !analyzedOnce) { setAnalyzedOnce(true); void analyzeReceipt(added[0]); }
+  }
 
   const submitMutation = useMutation({
     mutationFn: async () => {
@@ -290,7 +301,8 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
         });
         if (match) effectiveEmployeeIdForSubmit = String(match.id);
       }
-      if (receiptFiles.length > 0 && effectiveEmployeeIdForSubmit) {
+      if (uploadedReceipts.current?.files === receiptFiles) receiptUrls.push(...uploadedReceipts.current.urls);
+      else if (receiptFiles.length > 0 && effectiveEmployeeIdForSubmit) {
         const fd = new FormData();
         receiptFiles.forEach((file) => fd.append("receipts", file));
         fd.append("employeeId", effectiveEmployeeIdForSubmit);
@@ -306,6 +318,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
         const uploadData = await uploadRes.json();
         if (uploadData.fileIds?.length) {
           receiptUrls.push(...uploadData.fileIds);
+          uploadedReceipts.current = { files: receiptFiles, urls: [...receiptUrls] };
         }
       }
       const res = await fetch(buildApiUrl("/api/expense-form-submissions"), {
@@ -323,6 +336,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
           amount: parseFloat(formData.amount),
           receiptUrls: receiptUrls.length ? receiptUrls : undefined,
           remarks: formData.remarks || undefined,
+          ...(serviceKind ? { serviceDetails: { requestId: requestId.current, valuesConfirmed, odometer: serviceDetails.odometer ? Number(serviceDetails.odometer) : null, milesUntilNext: serviceDetails.milesUntilNext ? Number(serviceDetails.milesUntilNext) : null, nextOdometer: serviceDetails.nextOdometer ? Number(serviceDetails.nextOdometer) : null, nextDueDate: serviceDetails.nextDueDate || null } } : {}),
         }),
       });
       if (!res.ok) {
@@ -345,7 +359,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
           formData.employeeId ||
           (currentEmployeeId != null ? String(currentEmployeeId) : "") ||
           (employees.length === 1 ? String((employees[0] as { id: number }).id) : ""),
-        carId: "",
+        carId: initialCarId ? String(initialCarId) : "",
         year: new Date().getFullYear().toString(),
         month: (new Date().getMonth() + 1).toString(),
         category: "directDelivery",
@@ -354,7 +368,11 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
         remarks: "",
       });
       setReceiptFiles([]);
-      setAnalyzedOnce(false);
+      setAnalyzedOnce(false); setServiceDetails(emptyServiceDetails); setValuesConfirmed(false); setReaderMessage('');
+      requestId.current = crypto.randomUUID(); uploadedReceipts.current = null;
+      queryClient.invalidateQueries({ queryKey: ['/api/service-workspace'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/internal-calendar/events'] });
+      onSubmitted?.();
       queryClient.invalidateQueries({ queryKey: ["/api/expense-form-submissions"] });
     },
     onError: (err: Error) => {
@@ -410,14 +428,15 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
       return;
     }
     const amountNum = parseFloat(formData.amount);
-    if (!formData.amount || Number.isNaN(amountNum) || amountNum <= 0) {
+    if (!formData.amount || !Number.isFinite(amountNum) || amountNum < 0 || (!serviceKind && amountNum === 0)) {
       toast({
         title: "Validation Error",
-        description: "Please enter a valid amount greater than 0.",
+        description: serviceKind ? 'Enter the final service price, including $0 for free or warranty service.' : 'Please enter a valid amount greater than 0.',
         variant: "destructive",
       });
       return;
     }
+    if (serviceKind && !valuesConfirmed) { toast({ title: 'Please double-check and confirm the receipt and service details.', variant: 'destructive' }); return; }
     submitMutation.mutate();
   };
 
@@ -444,16 +463,17 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
           Income & Expense Receipt Submission
         </CardTitle>
         <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-          Income, Operating Expenses (Direct Delivery), COGS (Per Vehicle), or Reimbursed Bills. For COGS, select the expense type then upload a receipt—AI can read the cost.
+          Select a form and upload the receipt. Service forms use our server receipt reader to suggest the service date and final price. Review every value before submitting.
         </p>
       </CardHeader>
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-2">
-            <Label className="text-foreground font-medium text-sm">Date of receipt <span className="text-primary">*</span></Label>
+            <Label className="text-foreground font-medium text-sm">{serviceKind ? 'Service / receipt date' : 'Date of receipt'} <span className="text-primary">*</span></Label>
             <Input
               type="date"
+              aria-label={serviceKind ? "Service / receipt date" : "Date of receipt"}
               value={formData.submissionDate}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, submissionDate: e.target.value }))
@@ -510,7 +530,8 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
 
           <div className="relative space-y-2">
             <Label className="text-foreground font-medium text-sm">Car <span className="text-primary">*</span></Label>
-            <p className="text-xs text-muted-foreground/80">Type car name, VIN, or plate number to search.</p>
+            <p className="text-xs text-muted-foreground/80">{initialCarId ? 'Vehicle selected from Service Due.' : 'Type car name, VIN, or plate number to search.'}</p>
+            {serviceKind && formData.carId && <a href={`/admin/operations?tab=service-due&car=${formData.carId}`} className="inline-flex min-h-11 items-center text-xs underline">View this vehicle’s service history and due dates</a>}
             {carSearch.trim() && !formData.carId && (
               <p className="text-xs text-amber-600 dark:text-amber-400">Select a car from the list above to continue.</p>
             )}
@@ -529,6 +550,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
                 setCarDropdownOpen(true);
                 if (!e.target.value) setFormData((prev) => ({ ...prev, carId: "" }));
               }}
+              disabled={!!initialCarId}
               onFocus={() => setCarDropdownOpen(true)}
               onBlur={() => setTimeout(() => setCarDropdownOpen(false), 150)}
               placeholder="Type car name, VIN, or plate number..."
@@ -623,6 +645,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
           <div className="space-y-2">
             <Label className="text-foreground font-medium text-sm">Form Category <span className="text-primary">*</span></Label>
             <Select
+              disabled={serviceOnly}
               value={formData.category}
               onValueChange={(v) =>
                 setFormData((prev) => ({ ...prev, category: v, field: "" }))
@@ -672,7 +695,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
             <Label className="text-foreground font-medium text-sm">Upload Receipts</Label>
             <p className="text-xs text-muted-foreground/80">
               {formData.category === "cogs"
-                ? "Drag or click to upload. AI will read date and cost from the receipt (if enabled)."
+                ? "Upload a photo or PDF. The server reader suggests the service date and final price; oil forms also read next-service reminders."
                 : "Drag photos here or click to browse."}
             </p>
             <div
@@ -704,15 +727,15 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
                 }
                 addReceiptFiles(accepted);
               }}
-              onClick={() => document.getElementById("expense-receipt-file-input")?.click()}
+              onClick={() => document.getElementById(receiptInputId)?.click()}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => e.key === "Enter" && document.getElementById("expense-receipt-file-input")?.click()}
+              onKeyDown={(e) => e.key === "Enter" && document.getElementById(receiptInputId)?.click()}
             >
               <input
-                id="expense-receipt-file-input"
+                id={receiptInputId}
                 type="file"
-                accept="image/*,.pdf"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,.pdf"
                 multiple
                 className="hidden"
                 onChange={(e) => {
@@ -793,6 +816,11 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
             )}
           </div>
 
+          {(readerMessage || receiptFiles.length > 0) && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"><p role="status">{readerMessage || 'Please double-check all receipt values before submitting.'}</p><p className="mt-1 text-xs">The receipt reader can make mistakes. Check the date and final price, plus any mileage and next-service details. Missing values must be entered manually.</p><Button type="button" variant="outline" size="sm" className="mt-2" disabled={isAnalyzingReceipt || !receiptFiles.length} onClick={() => void analyzeReceipt(receiptFiles[0])}>Read receipt again</Button></div>}
+          {serviceKind && <><ServiceMileageReading reading={currentMileage} /><p className="text-xs text-muted-foreground">Current mileage is a reference. For historical service, enter the odometer from that service receipt; it may differ from today’s reading.</p></>}
+          {serviceKind && <ServiceRecordDetailsFields value={serviceDetails} onChange={setServiceDetails} oil={serviceKind === 'oil_change'} />}
+          {serviceOnly && !fieldOptions.length && <p role="alert" className="text-sm text-destructive">No service forms are available for this account. Ask an administrator to review your form permissions.</p>}
+
           <div className="space-y-2">
             <Label className="text-foreground font-medium text-sm">Remarks</Label>
             <Textarea
@@ -803,11 +831,12 @@ export default function ExpenseFormSubmission({ initialCategory, initialField }:
             />
           </div>
 
+          {serviceKind && <label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" className="mt-1 h-4 w-4 shrink-0" checked={valuesConfirmed} onChange={e => setValuesConfirmed(e.target.checked)} required />I checked the service date, final price and any next-service details against the receipt.</label>}
           <div className="pt-2">
           <Button
             type="submit"
             className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg transition-all font-medium px-8 h-11"
-            disabled={submitMutation.isPending}
+            disabled={submitMutation.isPending || isAnalyzingReceipt || (!!serviceKind && !valuesConfirmed)}
           >
             {submitMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin mr-2" />

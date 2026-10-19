@@ -199,6 +199,7 @@ export function ServiceDueTab() {
   return <ServiceDueWorkspace editor={(car, service, saved) => {
     if (!service.lastServiced || service.status === "not_applicable") return null;
     if (service.lastServicedSource === "maintenance") return <a className="inline-flex min-h-11 items-center text-xs underline" href={`/admin/operations?tab=maintenance&appointment=${service.maintenanceId}`}>Open maintenance record</a>;
+    if (service.lastServicedSource === "record" || service.lastServicedSource === "legacy") return null;
     const kind = service.kind as ServiceKind;
     return <ServiceCellEditPopover carId={car.car_id} date={service.lastServiced} category={kind}
       entityId={car[`${kind}_service_date_id` as keyof CarServiceDue] as number | null}
