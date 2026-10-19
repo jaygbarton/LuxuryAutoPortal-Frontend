@@ -62,14 +62,14 @@ type VehicleRow = FleetCalendarCar & { key: string; events: FleetCalendarEvent[]
 
 /** Internal planning calendar. Customer booking views keep their separate feed. */
 export type CalendarScope = "trips" | "services" | "master";
-export function FleetCalendar({ calendarScope = "trips", embedded = false }: { calendarScope?: CalendarScope; embedded?: boolean }) {
+export function FleetCalendar({ calendarScope = "trips", embedded = false, activeVehiclesOnly = false }: { calendarScope?: CalendarScope; embedded?: boolean; activeVehiclesOnly?: boolean }) {
   const params = new URLSearchParams(useSearch());
   const historyMode = params.get("view") === "history";
   // Query-only tab navigation stays on this route; each mode gets its own date defaults.
-  return <FleetCalendarContent key={`${calendarScope}:${historyMode ? "history" : "calendar"}`} historyMode={historyMode} calendarScope={calendarScope} embedded={embedded} />;
+  return <FleetCalendarContent key={`${calendarScope}:${historyMode ? "history" : "calendar"}`} historyMode={historyMode} calendarScope={calendarScope} embedded={embedded} activeVehiclesOnly={activeVehiclesOnly} />;
 }
 
-function FleetCalendarContent({ historyMode, calendarScope, embedded }: { historyMode: boolean; calendarScope: CalendarScope; embedded: boolean }) {
+function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehiclesOnly }: { historyMode: boolean; calendarScope: CalendarScope; embedded: boolean; activeVehiclesOnly: boolean }) {
   const allowedSources = calendarScope === "services" ? ["maintenance"] as FleetCalendarSource[] : calendarScope === "trips" ? FLEET_CALENDAR_SOURCES.filter(s => s !== "maintenance") : [...FLEET_CALENDAR_SOURCES];
   const [serviceKind, setServiceKind] = useState("all");
   const queryClient = useQueryClient();
@@ -245,6 +245,7 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded }: { histor
     const blockingCars = new Set(scopedEvents.filter(eventBlocksAvailability).map((event) => event.carId));
     const q = search.trim().toLowerCase();
     return [...carMap.values(), ...unmatched.values()].filter((car) => {
+      if (activeVehiclesOnly && !['active', 'available', 'in_use'].includes(String(car.carStatus).toLowerCase())) return false;
       if (q && !`${car.carName} ${car.plateNumber ?? ""}`.toLowerCase().includes(q)) return false;
       if (fleet !== "all" && !car.unmatched) {
         const inactive = car.carStatus === "off_fleet";
@@ -256,7 +257,7 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded }: { histor
       }
       return true;
     });
-  }, [data?.cars, visibleEvents, scopedEvents, search, fleet, occupancy]);
+  }, [data?.cars, visibleEvents, scopedEvents, search, fleet, occupancy, activeVehiclesOnly]);
   const listedEvents = useMemo(() => {
     const events = rows.flatMap((row) => row.events);
     return historyMode ? events.sort((a, b) => calendarInstant(b.end)! - calendarInstant(a.end)! || a.id.localeCompare(b.id)) : events;
@@ -369,7 +370,7 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded }: { histor
   const filterCount = Number(fleet !== "all") + Number(status !== "all") + Number(occupancy !== "all") + allowedSources.length - sources.length + Number(serviceKind !== "all") + Number(!showCancelled);
   const filterControls = <>
     <div className="grid gap-3 md:flex md:flex-wrap md:items-center">
-      <Select value={fleet} onValueChange={(value) => setFleet(value as typeof fleet)}><SelectTrigger className="min-h-11 w-full text-base md:min-h-9 md:w-40 md:text-sm" aria-label="Fleet filter"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All vehicles</SelectItem><SelectItem value="active">Active vehicles</SelectItem><SelectItem value="inactive">Inactive vehicles</SelectItem></SelectContent></Select>
+      {activeVehiclesOnly ? <span className="text-xs text-muted-foreground">Active vehicles only</span> : <Select value={fleet} onValueChange={(value) => setFleet(value as typeof fleet)}><SelectTrigger className="min-h-11 w-full text-base md:min-h-9 md:w-40 md:text-sm" aria-label="Fleet filter"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All vehicles</SelectItem><SelectItem value="active">Active vehicles</SelectItem><SelectItem value="inactive">Inactive vehicles</SelectItem></SelectContent></Select>}
       <Select value={status} onValueChange={setStatus}><SelectTrigger className="min-h-11 w-full text-base md:min-h-9 md:w-40 md:text-sm" aria-label="Event status filter"><SelectValue placeholder="All statuses" /></SelectTrigger><SelectContent><SelectItem value="all">All statuses</SelectItem>{statuses.map((value) => <SelectItem key={value} value={value}>{value.replace(/_/g, " ")}</SelectItem>)}</SelectContent></Select>
       <Select value={occupancy} onValueChange={(value) => setOccupancy(value as typeof occupancy)}><SelectTrigger className="min-h-11 w-full text-base md:min-h-9 md:w-64 md:text-sm" aria-label="Blocking event filter"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All activity</SelectItem><SelectItem value="blocking">Blocking events in view</SelectItem><SelectItem value="none">No blocking events in view</SelectItem></SelectContent></Select>
       {hasFilters && !isMobile && <Button variant="ghost" onClick={resetFilters}>Clear filters</Button>}

@@ -7,7 +7,7 @@ export interface ServiceItem {
 }
 export interface ServiceMileage { miles: number | null; source: 'bouncie' | 'turo_return' | 'turo_start' | null; observedAt: string | null; state: 'recent' | 'last_known' | 'conflict' | 'unavailable'; warning: string | null; }
 export interface ServiceCar extends CarServiceDue { currentMileage?: ServiceMileage; services: ServiceItem[]; nextService: ServiceItem | null; }
-export interface ServiceWorkspace { today: string; generatedAt: string; cars: ServiceCar[]; rules: { kind: string; label: string; interval: number | null }[]; }
+export interface ServiceWorkspace { today: string; generatedAt: string; cars: ServiceCar[]; canOpenCarFiles?: boolean; rules: { kind: string; label: string; interval: number | null }[]; }
 export interface ServiceHistory { id: string; carId: number; kind: string; label: string; date: string | null; dateBasis: string; status: string; amount: number | null; files: string[]; notes: string | null; year?: number; month?: number; }
 export function serviceLabel(service: ServiceItem) {
   if (service.mileageOverdue) return `Overdue · ${Math.abs(service.milesRemaining!).toLocaleString()} miles`;

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 const service = (id: string, kind: string, days: number | null) => ({ id, kind, label: kind === 'tires' ? 'Tires' : 'Oil change', lastServiced: days === null ? null : '2026-01-01', dueDate: days === null ? null : '2026-10-18', daysUntil: days, status: days === null ? 'no_data' : days < 0 ? 'overdue' : 'upcoming' });
-const car = (id: number, name: string, days: number | null) => ({ car_id: id, car_name: name, car_plate: `P${id}`, car_vin: `VIN${id}`, car_status: 'ACTIVE', locationTag: 'SLC', car_photo: null, car_fuel_type: 'Gasoline', last_any_service: '2026-01-01', services: [service(`${id}:oil_change`, 'oil_change', days), service(`${id}:tires`, 'tires', days === null ? null : days + 180)], nextService: days === null ? null : service(`${id}:oil_change`, 'oil_change', days) });
+const car = (id: number, name: string, days: number | null) => ({ car_id: id, car_name: name, car_plate: `P${id}`, car_vin: `VIN${id}`, car_status: 'ACTIVE', locationTag: 'SLC', car_photo: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', car_fuel_type: 'Gasoline', last_any_service: '2026-01-01', services: [service(`${id}:oil_change`, 'oil_change', days), service(`${id}:tires`, 'tires', days === null ? null : days + 180)], nextService: days === null ? null : service(`${id}:oil_change`, 'oil_change', days) });
 test('shows a safe service failure reference for troubleshooting and retry', async ({ page }) => {
   await fixture(page);
   await page.route('**/api/service-workspace', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false, error: 'Service data could not be loaded. Reference: service_report/INVALID_RANGE/1234abcd' }) }));
@@ -14,9 +14,9 @@ async function fixture(page: Page) {
     const url = new URL(route.request().url()); calls.push(url);
     let result: any = { success: true, data: [], total: 0, notifications: [], unreadCount: 0 };
     if (url.pathname === '/api/auth/me') result = { user: { id: 7, firstName: 'Test', isAdmin: true, isSuperAdmin: true, isEmployee: false, isClient: false, tourCompleted: true } };
-    if (url.pathname === '/api/service-workspace') result = { success: true, today: '2026-10-19', cars: [car(2, 'Urgent Audi', -8), car(3, 'Upcoming Buick', 20), car(1, 'No History Acura', null)], rules: [{ kind: 'oil_change', label: 'Oil change', interval: 90 }, { kind: 'tires', label: 'Tires', interval: 180 }] };
+    if (url.pathname === '/api/service-workspace') result = { success: true, today: '2026-10-19', canOpenCarFiles: true, cars: [car(2, 'Urgent Audi', -8), car(3, 'Upcoming Buick', 20), car(1, 'No History Acura', null), { ...car(4, 'Inactive Lexus', -100), car_status: 'INACTIVE' }], rules: [{ kind: 'oil_change', label: 'Oil change', interval: 90 }, { kind: 'tires', label: 'Tires', interval: 180 }] };
     if (url.pathname.endsWith('/history')) result = { history: [{ id: 'receipt:7', carId: 2, kind: 'oil_change', label: 'Oil change', date: '2026-10-18', dateBasis: 'receipt_submission_date', status: 'approved', amount: 65, files: ['https://example.test/receipt.pdf'], notes: 'Verified receipt' }] };
-    if (url.pathname === '/api/service-workspace/legacy') result = { status: 'ready', records: 3, vehicles: 1, canRecover: true, summary: { scanned: 10, skippedVehicle: 7, unresolvedFiles: 0, unsupportedTables: [] } };
+    if (url.pathname === '/api/service-workspace/legacy') result = { status: 'ready', records: 3, vehicles: 1, canRecover: true, carFiles: { records: 3, files: 4, pending: 1, needReview: 0 }, summary: { scanned: 10, skippedVehicle: 7, unresolvedFiles: 0, unsupportedTables: [] } };
     if (url.pathname === '/api/expense-form-submissions/options') result = { data: { employees: [{ id: 41, name: 'Test Employee' }], cars: [{ id: 2, name: 'Urgent Audi - P2' }], currentEmployeeId: 41, isEmployee: true, isAdmin: false, categoryFields: { cogs: [{ value: 'db_42', label: 'Oil/Lube', serviceKind: 'oil_change' }, { value: 'db_43', label: 'Brakes', serviceKind: 'brakes' }, { value: 'db_44', label: 'Car Insurance', serviceKind: null }], directDelivery: [] } } };
     if (url.pathname === '/api/expense-form-submissions/receipt/analyze') result = { success: true, extracted: true, localReader: true, amount: 75.55, date: '2026-10-18', serviceOdometer: 50000, nextServiceOdometer: 55000, milesUntilNextService: 5000, nextServiceDate: '2027-01-18', needsManualEntry: false };
     if (url.pathname === '/api/expense-form-submissions/receipts/upload') result = { fileIds: ['https://example.test/new-service.jpg'] };
@@ -27,7 +27,7 @@ async function fixture(page: Page) {
       const receipt = { ...base, id: 'service_history:receipt:7', bookingKey: 'service_history:receipt:7', source: 'maintenance', sourceId: 7, title: 'Receipt · Oil change', blocksAvailability: false, serviceEventKind: 'receipt', files: ['https://example.test/receipt.pdf'], detailUrl: '/admin/operations?tab=service-due&car=2' };
       const trip = { ...base, id: 'turo:4', bookingKey: 'turo:4', source: 'turo', sourceId: 4, title: 'Turo rental — Guest', blocksAvailability: true };
       const scope = url.searchParams.get('calendar');
-      result = { cars: [{ carId: 2, carName: 'Urgent Audi', plateNumber: 'P2', carStatus: 'available' }], events: scope === 'services' ? [receipt] : scope === 'master' ? [trip, receipt] : [trip], warnings: [], complete: true, availabilityComplete: scope !== 'services', role: 'admin', timezone: 'America/Denver', from: url.searchParams.get('from'), to: url.searchParams.get('to') };
+      result = { cars: [{ carId: 2, carName: 'Urgent Audi', plateNumber: 'P2', carStatus: 'available' }, { carId: 4, carName: 'Inactive Lexus', plateNumber: 'P4', carStatus: 'INACTIVE' }], events: scope === 'services' ? [receipt] : scope === 'master' ? [trip, receipt] : [trip], warnings: [], complete: true, availabilityComplete: scope !== 'services', role: 'admin', timezone: 'America/Denver', from: url.searchParams.get('from'), to: url.searchParams.get('to') };
     }
     if (url.pathname === '/api/internal-calendar/sync') result = { sync: { configured: true, enabled: true, counts: {}, lastSuccess: '2026-10-19T18:00:00Z' }, import: { lastSuccess: '2026-10-19T18:00:00Z' } };
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(result) });
@@ -46,12 +46,42 @@ for (const width of [360, 1280]) test(`service views, urgency, receipts and mobi
   await expect(workspace.getByRole('link', { name: 'Receipt / file 1' })).toHaveAttribute('href', 'https://example.test/receipt.pdf');
   await expect(workspace.getByText('Overdue · 8 days', { exact: true }).first()).toBeVisible();
   await workspace.getByRole('button', { name: 'By service', exact: true }).click();
-  await workspace.getByRole('combobox', { name: 'Service type', exact: true }).selectOption('tires');
-  await expect(workspace.locator('details').filter({ has: page.locator('summary strong') }).first()).toContainText('Tires');
-  await expect(workspace.locator('details').filter({ has: page.locator('summary strong') }).last()).toContainText('No Data');
+  await workspace.getByRole('group', { name: 'Service categories' }).getByRole('button', { name: 'Tires', exact: true }).click();
+  await expect(workspace.locator('details').filter({ has: page.locator('summary img') }).first()).toContainText('Tires');
+  await expect(workspace.locator('details').filter({ has: page.locator('summary img') }).last()).toContainText('No Data');
   await expect(workspace.getByRole('link', { name: 'Open Google Sheet', exact: true })).toBeVisible();
   await expect(workspace.getByRole('button', { name: /CSV/i })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+for (const width of [360, 1280]) test(`service category bar, vehicle photos and active fleet at ${width}`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 }); await fixture(page);
+  await page.goto('/admin/operations?tab=service-due');
+  const workspace = page.getByTestId('service-due-workspace');
+  await expect(workspace).not.toContainText('Inactive Lexus');
+  await workspace.getByRole('button', { name: 'By service', exact: true }).click();
+  await expect(workspace.getByRole('combobox', { name: 'Service type' })).toHaveCount(0);
+  const bar = workspace.getByRole('group', { name: 'Service categories' });
+  await bar.getByRole('button', { name: 'Tires', exact: true }).click();
+  await expect(bar.getByRole('button', { name: 'Tires', exact: true })).toHaveAttribute('aria-pressed','true');
+  const cards = workspace.locator('details').filter({ has: page.locator('summary img') });
+  await expect(cards).toHaveCount(3);
+  await expect(cards.first()).toContainText('Urgent Audi');
+  await expect(cards.last()).toContainText('No History Acura');
+  await expect(cards.first().getByRole('img', { name: 'Urgent Audi' })).toBeVisible();
+  await expect(cards.first().locator('summary')).toContainText('Tires');
+  await expect(workspace).not.toContainText('Inactive Lexus');
+  await expect(workspace.getByRole('combobox', { name: 'Vehicle status' })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: `/tmp/gla-service-selector-${width}.png` });
+  await workspace.getByText('Legacy service recovery', { exact: false }).click();
+  await expect(workspace).toContainText('4 receipts/files copied');
+  await workspace.getByRole('button', { name: 'By car', exact: true }).click();
+  await workspace.locator('article').first().getByRole('button').first().click();
+  await expect(workspace.getByRole('link', { name: 'Open car Records & Files', exact: true })).toHaveAttribute('href','/admin/cars/2/records');
+  await workspace.getByRole('button', { name: 'Service calendar', exact: true }).click();
+  await expect(workspace.getByTestId('fleet-calendar')).toBeVisible();
+  await expect(workspace).not.toContainText('Inactive Lexus');
 });
 test('service calendar shows receipt markers and files; master combines trip and service feeds', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 }); const calls = await fixture(page);
