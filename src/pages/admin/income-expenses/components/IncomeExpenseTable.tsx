@@ -2865,7 +2865,7 @@ lastSavedNote.current = coHostNote;
               ))}
               {/* Orphaned approved receipts whose subcategory was deleted */}
               {getOrphanFormRows("directDelivery").map((o) => (
-                <OrphanFormRow key={o.field} field={o.field} monthly={o.monthly} total={o.total} />
+                <OrphanFormRow key={o.field} category="directDelivery" field={o.field} monthly={o.monthly} total={o.total} />
               ))}
               {/* Add Subcategory + Clean Up Duplicates */}
               {!isReadOnly && (
@@ -3210,7 +3210,7 @@ lastSavedNote.current = coHostNote;
               ))}
               {/* Orphaned approved receipts whose subcategory was deleted */}
               {getOrphanFormRows("cogs").map((o) => (
-                <OrphanFormRow key={o.field} field={o.field} monthly={o.monthly} total={o.total} />
+                <OrphanFormRow key={o.field} category="cogs" field={o.field} monthly={o.monthly} total={o.total} />
               ))}
               {/* Add Subcategory + Clean Up Duplicates */}
               {!isReadOnly && (
@@ -3586,7 +3586,7 @@ lastSavedNote.current = coHostNote;
               ))}
               {/* Orphaned approved receipts whose subcategory was deleted */}
               {getOrphanFormRows("reimbursedBills").map((o) => (
-                <OrphanFormRow key={o.field} field={o.field} monthly={o.monthly} total={o.total} />
+                <OrphanFormRow key={o.field} category="reimbursedBills" field={o.field} monthly={o.monthly} total={o.total} />
               ))}
               {/* Add Subcategory + Clean Up Duplicates */}
               {!isReadOnly && (
@@ -4897,14 +4897,17 @@ const ORPHAN_MONTHS = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 function OrphanFormRow({
+  category,
   field,
   monthly,
   total,
 }: {
+  category: string;
   field: string;
   monthly: number[];
   total: number;
 }) {
+  const { receiptCells, openReceipts } = useIncomeExpense();
   // Label: the metadata name is gone, so show the stable id form + a hint that
   // it came from an approved receipt whose category was removed.
   const idPart = field.replace(/^db_/i, "");
@@ -4919,13 +4922,16 @@ function OrphanFormRow({
       </td>
       {ORPHAN_MONTHS.map((_, i) => {
         const value = monthly[i] || 0;
+        const hasReceipts = (receiptCells[`${i + 1}:${category}:${field}`] ?? 0) > 0;
         return (
           <td key={i} className="border-l border-border px-1 py-1 text-right">
             <span
               title={value > 0 ? `$${value.toFixed(2)} from an approved form submission` : undefined}
+              onClick={hasReceipts ? () => openReceipts(i + 1, category, field, `Approved Receipt #${idPart}`) : undefined}
               className={cn(
                 "px-1 py-0.5 rounded block text-xs text-right",
                 value === 0 ? "text-gray-600" : "text-primary font-medium",
+                hasReceipts && "cursor-pointer underline decoration-dotted underline-offset-2 hover:bg-muted",
               )}
             >
               ${value.toFixed(2)}
@@ -4983,7 +4989,7 @@ function DynamicSubcategoryRow({
     "Nov",
     "Dec",
   ];
-  const { setEditingCell, getFormAmount } = useIncomeExpense();
+  const { setEditingCell, getFormAmount, receiptCells, openReceipts } = useIncomeExpense();
   const { toast } = useToast();
 
   const hasFormLink = FORM_BACKED_CATEGORIES.has(categoryType);
@@ -4996,6 +5002,8 @@ function DynamicSubcategoryRow({
   const formFieldKey = dynamicFieldValue(subcategory.id);
   const formAmountForMonth = (month: number): number =>
     hasFormLink ? getFormAmount(categoryType, formFieldKey, month) : 0;
+  const hasReceiptsForMonth = (month: number): boolean =>
+    (receiptCells[`${month}:${categoryType}:${formFieldKey}`] ?? 0) > 0;
 
   const total = subcategory.values.reduce(
     (sum: number, val: any) => sum + (val.value || 0),
@@ -5019,7 +5027,14 @@ function DynamicSubcategoryRow({
   };
 
   const handleCellClick = (month: number, currentValue: number) => {
-    if (isReadOnly) return;
+    if (isReadOnly) {
+      // Read-only viewers can't open the editor, but can still open the
+      // receipts filed on this cell (keyed `db_<metadataId>`, as on Earnings).
+      if (hasReceiptsForMonth(month)) {
+        openReceipts(month, categoryType, formFieldKey, subcategory.name);
+      }
+      return;
+    }
     setEditingCell({
       category: `dynamic-${categoryType}`,
       field: `subcategory-${subcategory.id}`,
@@ -5088,7 +5103,8 @@ function DynamicSubcategoryRow({
               }
               className={cn(
                 "px-1 py-0.5 rounded block text-xs text-right transition-colors",
-                isReadOnly ? "cursor-default" : "cursor-pointer hover:bg-muted",
+                isReadOnly && !hasReceiptsForMonth(month) ? "cursor-default" : "cursor-pointer hover:bg-muted",
+                hasReceiptsForMonth(month) && "underline decoration-dotted underline-offset-2",
                 displayed === 0
                   ? "text-gray-600"
                   : hasForm

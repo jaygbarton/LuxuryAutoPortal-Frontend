@@ -11,6 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
+import FormReceiptInModal from "../components/FormReceiptInModal";
+import ReceiptUploadZone from "../components/ReceiptUploadZone";
+import { useImageUpload } from "../utils/useImageUpload";
+import { dynamicFieldValue } from "../utils/expenseFormLink";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -33,11 +37,27 @@ export default function ModalEditDynamicSubcategory() {
 
   const isOpen = !!editingCell && editingCell.category?.startsWith("dynamic-");
 
-  if (!isOpen || !editingCell) return null;
-
-  const categoryType = editingCell.category.replace("dynamic-", "");
-  const metadataIdMatch = editingCell.field.match(/subcategory-(\d+)/);
+  const categoryType = isOpen ? editingCell!.category.replace("dynamic-", "") : "";
+  const metadataIdMatch = isOpen ? editingCell!.field.match(/subcategory-(\d+)/) : null;
   const metadataId = metadataIdMatch ? parseInt(metadataIdMatch[1]) : 0;
+  // Receipts for a custom subcategory are keyed (category, `db_<metadataId>`) —
+  // the same key the receipt form stores on its submissions and the Earnings
+  // page reads — not the editor's `dynamic-<type>`/`subcategory-<id>` key.
+  const receiptField = metadataId ? dynamicFieldValue(metadataId) : "";
+  const receiptCell =
+    isOpen && receiptField
+      ? { month: editingCell!.month, category: categoryType, field: receiptField }
+      : null;
+
+  const receipts = useImageUpload(
+    carId,
+    year,
+    receiptCell?.category || "",
+    receiptCell?.field || "",
+    receiptCell?.month || 1
+  );
+
+  if (!isOpen || !editingCell) return null;
 
   // Find the subcategory to get its name
   const subcategory = dynamicSubcategories[categoryType as keyof typeof dynamicSubcategories]?.find(
@@ -51,10 +71,19 @@ export default function ModalEditDynamicSubcategory() {
   const handleClose = () => {
     setEditingCell(null);
     setValue(0);
+    receipts.resetImages();
   };
 
   const handleSave = async () => {
     if (!editingCell) return;
+
+    if (receipts.imageFiles.length > 0) {
+      try {
+        await receipts.uploadImages();
+      } catch {
+        return; // uploadImages already toasted; keep the modal open to retry
+      }
+    }
 
     await updateDynamicSubcategoryValue(
       categoryType,
@@ -112,6 +141,20 @@ export default function ModalEditDynamicSubcategory() {
               className="bg-card border-border text-muted-foreground text-sm mt-1"
             />
           </div>
+
+          <FormReceiptInModal carId={carId} year={year} editingCell={receiptCell} isOpen={isOpen} />
+
+          <ReceiptUploadZone
+            inputId="receipt-upload-dynamic-subcategory"
+            imageFiles={receipts.imageFiles}
+            existingImages={receipts.existingImages}
+            isLoadingImages={receipts.isLoadingImages}
+            fileInputRef={receipts.fileInputRef}
+            onFileChange={receipts.handleFileChange}
+            onFilesDropped={receipts.handleFilesDropped}
+            onRemoveNew={receipts.handleRemoveImage}
+            onRemoveExisting={receipts.handleRemoveExistingImage}
+          />
         </div>
 
         <DialogFooter className="flex gap-2">
@@ -124,9 +167,14 @@ export default function ModalEditDynamicSubcategory() {
           </Button>
           <Button
             onClick={handleSave}
+            disabled={receipts.isUploading}
             className="flex-1 bg-primary text-primary-foreground hover:bg-primary/80"
           >
-            Save
+            {receipts.isUploading
+              ? "Saving..."
+              : receipts.imageFiles.length > 0
+                ? `Save & Upload ${receipts.imageFiles.length} Image${receipts.imageFiles.length > 1 ? "s" : ""}`
+                : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>
