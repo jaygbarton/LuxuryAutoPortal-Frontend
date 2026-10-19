@@ -1,9 +1,10 @@
 import { ServiceMileageReading } from '@/components/shared/ServiceMileageReading';
 import { AddServiceRecordDialog } from './AddServiceRecordDialog';
+import { ServiceReceiptViewer } from './ServiceReceiptViewer';
 import { useEffect, useMemo, useState, Fragment, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSearch, Link } from 'wouter';
-import { CalendarDays, Car, ChevronDown, FileSpreadsheet, Paperclip, RefreshCw, Wrench } from 'lucide-react';
+import { useSearch, useLocation, Link } from 'wouter';
+import { CalendarDays, Car, ChevronDown, Download, FileSpreadsheet, Paperclip, RefreshCw, Wrench } from 'lucide-react';
 import { buildApiUrl } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -86,6 +87,23 @@ function LegacyServiceRecoveryPanel() {
     {isError && <Button variant="outline" className="mt-2" onClick={() => refetch()}>Retry status</Button>}
   </details>;
 }
+function ExportServiceData() {
+  const { toast } = useToast();
+  const [busy,setBusy] = useState(false);
+  const download = async () => {
+    setBusy(true);
+    try {
+      const response = await fetch(buildApiUrl('/api/service-workspace/export'),{ credentials: 'include' });
+      if (!response.ok) { const body = await response.json().catch(() => null); throw new Error(body?.error || 'The service export could not be downloaded.'); }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob), anchor = document.createElement('a');
+      anchor.href = url; anchor.download = response.headers.get('Content-Disposition')?.match(/filename="?([^";]+)/i)?.[1] || 'GLA-Service-Due.xlsx';
+      document.body.append(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url),30_000);
+    } catch (error) { toast({ title: 'Export could not be downloaded',description: error instanceof Error ? error.message : 'Please retry.',variant: 'destructive' }); }
+    finally { setBusy(false); }
+  };
+  return <Button variant="outline" onClick={download} disabled={busy} className="min-h-11" title="Download all active fleet vehicles, services, history and receipt links, regardless of search filters."><Download className="mr-2 h-4 w-4" />{busy ? 'Preparing export…' : 'Export all data'}</Button>;
+}
 function SheetsPanel() {
   const { toast } = useToast(), client = useQueryClient();
   const [busy, setBusy] = useState(false);
@@ -93,13 +111,14 @@ function SheetsPanel() {
   const { data, isError } = useQuery({ queryKey: ['/api/service-workspace/sheets'], queryFn: () => request<{ connected: boolean; configured: boolean; canManage: boolean; url: string | null; lastSuccess: string | null; error: string | null }>('/api/service-workspace/sheets'), refetchInterval: 30_000 });
   const connect = async () => { setBusy(true); try { const result = await request<{ url: string }>('/api/service-workspace/sheets/connect', 'POST'); window.location.assign(result.url); } catch (e) { toast({ title: 'Google connection failed', description: (e as Error).message, variant: 'destructive' }); setBusy(false); } };
   const sync = async () => { setBusy(true); try { const result = await request<{ busy?: boolean }>('/api/service-workspace/sheets/sync', 'POST'); await client.invalidateQueries({ queryKey: ['/api/service-workspace/sheets'] }); toast({ title: result.busy ? 'Google Sheet sync is already running' : 'Google Sheet synchronized' }); } catch (e) { toast({ title: 'Sync needs attention', description: (e as Error).message, variant: 'destructive' }); } finally { setBusy(false); } };
-  return <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm sm:p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div className="min-w-0"><p className="flex items-center gap-2 font-semibold"><FileSpreadsheet className="h-4 w-4" />Service Google Sheet</p><p className="mt-1 break-all text-xs text-muted-foreground">goldenluxuryauto@gmail.com · Software → Sheet</p></div><div className="flex flex-wrap gap-2">{data?.url && <a className="inline-flex min-h-11 items-center rounded-md border bg-white px-3 font-medium" href={data.url} target="_blank" rel="noopener noreferrer">Open Google Sheet</a>}{data?.canManage && <Button disabled={busy || !data.configured} variant="outline" onClick={connect}>{data.connected ? 'Reconnect Google' : 'Connect Google Sheet'}</Button>}{data?.canManage && data.connected && <Button disabled={busy} onClick={sync}><RefreshCw className={`mr-2 h-4 w-4 ${busy ? 'animate-spin' : ''}`} />Sync now</Button>}</div></div>
+  return <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm sm:p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div className="min-w-0"><p className="flex items-center gap-2 font-semibold"><FileSpreadsheet className="h-4 w-4" />Service Google Sheet</p><p className="mt-1 break-all text-xs text-muted-foreground">goldenluxuryauto@gmail.com · Software → Sheet</p></div><div className="flex flex-wrap gap-2"><ExportServiceData />{data?.url && <a className="inline-flex min-h-11 items-center rounded-md border bg-white px-3 font-medium" href={data.url} target="_blank" rel="noopener noreferrer">Open Google Sheet</a>}{data?.canManage && <Button disabled={busy || !data.configured} variant="outline" onClick={connect}>{data.connected ? 'Reconnect Google' : 'Connect Google Sheet'}</Button>}{data?.canManage && data.connected && <Button disabled={busy} onClick={sync}><RefreshCw className={`mr-2 h-4 w-4 ${busy ? 'animate-spin' : ''}`} />Sync now</Button>}</div></div>
     <p className="mt-2 text-xs text-muted-foreground">{isError ? 'Google Sheet status could not be loaded.' : !data ? 'Checking connection…' : !data.configured ? 'Google OAuth credentials must be configured on the server.' : !data.connected ? 'An admin must connect the Google account once.' : data.lastSuccess ? `Last synced: ${new Date(data.lastSuccess).toLocaleString()}. Automatically updates every 5 minutes.` : 'Connected; waiting for the first successful sync.'}</p>
     {(data?.error || new URLSearchParams(search).get('sheets') === 'connection_failed') && <p role="alert" className="mt-2 text-xs text-destructive">{data?.error || 'Google connection failed. Use goldenluxuryauto@gmail.com and grant Sheets access.'}</p>}
   </div>;
 }
 export function ServiceDueWorkspace({ editor, registrationEditor, licenseEditor }: { editor: (car: ServiceCar, service: ServiceItem, saved: () => void) => ReactNode; registrationEditor: (car: ServiceCar, saved: () => void) => ReactNode; licenseEditor: (car: ServiceCar, service: ServiceItem, saved: () => void) => ReactNode }) {
   const client = useQueryClient(), location = useOperationLocationFilter();
+  const [,setLocation] = useLocation();
   const params = new URLSearchParams(useSearch());
   const linkedCar = params.get('car');
   const [view, setView] = useState(() => { if (linkedCar) return 'cars'; try { const saved = localStorage.getItem('gla-service-due-view'); return saved && ['cars', 'services', 'calendar'].includes(saved) ? saved : 'cars'; } catch { return 'cars'; } });
@@ -117,6 +136,9 @@ export function ServiceDueWorkspace({ editor, registrationEditor, licenseEditor 
     <div><h1 className="text-xl font-semibold">Service Due</h1><p className="mt-1 text-sm text-muted-foreground">Overdue first, then the next services due. Missing service dates appear last.</p></div>
     <div className="flex flex-wrap gap-2" aria-label="Service Due views">{[['cars', 'By car', Car], ['services', 'By service', Wrench], ['calendar', 'Service calendar', CalendarDays]].map(([id, label, Icon]) => { const ViewIcon = Icon as typeof Car; return <Button key={String(id)} variant={view === id ? 'default' : 'outline'} aria-pressed={view === id} className="min-h-11" onClick={() => changeView(String(id))}><ViewIcon className="mr-2 h-4 w-4" />{String(label)}</Button>; })}</div>
     <SheetsPanel />
+    {params.get('receipt') && params.get('file') && <ServiceReceiptViewer carId={Number(linkedCar)} recordId={params.get('receipt')!} fileKey={params.get('file')!} onClose={() => {
+      const next = new URLSearchParams(params); next.delete('receipt'); next.delete('file'); setLocation(`${window.location.pathname}?${next}`,{ replace: true });
+    }} />}
     <LegacyServiceRecoveryPanel />
     {view === 'calendar' ? <FleetCalendar calendarScope="services" embedded activeVehiclesOnly /> : <>
       <div className={`grid min-w-0 grid-cols-1 gap-2 ${view === 'cars' ? 'sm:grid-cols-2' : ''}`}>

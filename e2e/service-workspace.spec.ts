@@ -236,3 +236,39 @@ for (const width of [360, 1280]) test(`license deadline can be cleared without l
   await expect(grid).toContainText('Feb 18, 2025');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+for (const width of [360,1280]) test(`export all services works independently of page filters and Google connection at ${width}`, async ({ page }) => {
+  await page.setViewportSize({ width,height: 900 }); await fixture(page);
+  let exportUrl = '';
+  await page.route('**/api/service-workspace/sheets', route => route.fulfill({ json: { connected: false,configured: false,canManage: true,url: null,lastSuccess: null,error: null } }));
+  await page.route('**/api/service-workspace/export', async route => {
+    exportUrl = route.request().url();
+    await route.fulfill({ body: Buffer.from('export-download'),headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Content-Disposition': 'attachment; filename="GLA-Service-Due-2026-10-19.xlsx"' } });
+  });
+  await page.goto('/admin/operations?tab=service-due');
+  await page.getByRole('textbox',{ name: 'Search service vehicles' }).fill('no matching car');
+  const downloaded = page.waitForEvent('download');
+  await page.getByRole('button',{ name: 'Export all data',exact: true }).click();
+  expect((await downloaded).suggestedFilename()).toBe('GLA-Service-Due-2026-10-19.xlsx');
+  expect(new URL(exportUrl).pathname).toBe('/api/service-workspace/export');
+  expect(new URL(exportUrl).search).toBe('');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+for (const width of [360,1280]) test(`spreadsheet receipt link opens a staff receipt viewer at ${width}`, async ({ page }) => {
+  await page.setViewportSize({ width,height: 900 }); await fixture(page);
+  let fileReads = 0;
+  await page.route('**/api/service-workspace/cars/2/receipts/**', async route => {
+    fileReads++;
+    await route.fulfill({ body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6XQAAAABJRU5ErkJggg==','base64'),headers: { 'Content-Type': 'image/png','Content-Disposition': 'inline; filename="service.png"' } });
+  });
+  await page.goto(`/admin/operations?tab=service-due&car=2&receipt=receipt%3A7&file=${'a'.repeat(64)}`);
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading',{ name: 'Service receipt',exact: true })).toBeVisible();
+  await expect(dialog.getByRole('img',{ name: 'Service receipt',exact: true })).toBeVisible();
+  await expect.poll(() => dialog.getByRole('img',{ name: 'Service receipt',exact: true }).evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  await expect(dialog.getByRole('link',{ name: 'Download receipt' })).toHaveAttribute('download','service.png');
+  expect(fileReads).toBe(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await dialog.getByRole('button',{ name: 'Close',exact: true }).click();
+  expect(new URL(page.url()).searchParams.has('receipt')).toBe(false);
+});
