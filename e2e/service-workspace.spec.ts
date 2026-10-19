@@ -1,6 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 const service = (id: string, kind: string, days: number | null) => ({ id, kind, label: kind === 'tires' ? 'Tires' : 'Oil change', lastServiced: days === null ? null : '2026-01-01', dueDate: days === null ? null : '2026-10-18', daysUntil: days, status: days === null ? 'no_data' : days < 0 ? 'overdue' : 'upcoming' });
 const car = (id: number, name: string, days: number | null) => ({ car_id: id, car_name: name, car_plate: `P${id}`, car_vin: `VIN${id}`, car_status: 'ACTIVE', locationTag: 'SLC', car_photo: null, car_fuel_type: 'Gasoline', last_any_service: '2026-01-01', services: [service(`${id}:oil_change`, 'oil_change', days), service(`${id}:tires`, 'tires', days === null ? null : days + 180)], nextService: days === null ? null : service(`${id}:oil_change`, 'oil_change', days) });
+test('shows a safe service failure reference for troubleshooting and retry', async ({ page }) => {
+  await fixture(page);
+  await page.route('**/api/service-workspace', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false, error: 'Service data could not be loaded. Reference: service_report/INVALID_RANGE/1234abcd' }) }));
+  await page.goto('/admin/operations?tab=service-due');
+  await expect(page.getByRole('alert').filter({ hasText: 'Service Due could not be loaded' })).toContainText('service_report/INVALID_RANGE/1234abcd');
+  await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeEnabled();
+});
 async function fixture(page: Page) {
   const calls: URL[] = [];
   await page.route(url => url.pathname.startsWith('/api/'), async route => {
