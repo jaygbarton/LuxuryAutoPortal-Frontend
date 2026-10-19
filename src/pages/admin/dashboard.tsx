@@ -1,4 +1,5 @@
 import { WorkTimeSummary } from "@/components/dashboard/WorkTimeSummary";
+import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
 import { optionKeywords } from "@/lib/select-search";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -228,6 +229,7 @@ export default function AdminDashboard() {
     <AdminLayout>
       <div className="min-h-screen bg-background">
         <div className="mb-6 space-y-3 px-3 pt-3 sm:px-6 sm:pt-6">
+          <DashboardGreeting />
           {!isCoHost && <WorkTimeSummary />}
           <details className="rounded-xl border border-border bg-white">
             <summary className="min-h-11 cursor-pointer px-4 py-3 text-sm font-medium">Company updates & newsletters</summary>

@@ -1,4 +1,5 @@
 import { WorkTimeSummary } from "@/components/dashboard/WorkTimeSummary";
+import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
 /**
  * Employee Dashboard — modeled after the design in DASHBOARD DESIGN - EMPLOYEES.pdf.
  *
@@ -117,6 +118,7 @@ export default function StaffDashboard() {
       <div className="staff-page min-w-0 bg-background">
         <div className="space-y-3 sm:space-y-4 sm:px-6 sm:pt-6">
           {/* Profile banner — always visible */}
+          <DashboardGreeting />
           <WorkTimeSummary />
           <EmployeeProfileSection />
           <div className="grid grid-cols-2 gap-2 md:hidden">

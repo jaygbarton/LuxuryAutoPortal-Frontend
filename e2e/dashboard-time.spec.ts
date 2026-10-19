@@ -5,7 +5,7 @@ for (const role of ['admin', 'employee']) {
     await page.route(url => url.pathname.startsWith('/api/'), async route => {
       const path = new URL(route.request().url()).pathname;
       let data: any = { success: true, data: [], total: 0, notifications: [], unreadCount: 0 };
-      if (path === '/api/auth/me') data = { user: { id: 7, name: 'Test Worker', roleName: role === 'admin' ? 'Admin' : 'Employee', isEmployee: role === 'employee', isAdmin: role === 'admin', isSuperAdmin: role === 'admin', isClient: false, tourCompleted: true } };
+      if (path === '/api/auth/me') data = { user: { id: 7, firstName: 'Test', name: 'Test Worker', roleName: role === 'admin' ? 'Admin' : 'Employee', isEmployee: role === 'employee', isAdmin: role === 'admin', isSuperAdmin: role === 'admin', isClient: false, tourCompleted: true } };
       if (path === '/api/news-media/dashboard') data = { success: true, slot1: [], slot2: [] };
       if (path === '/api/me/employee') data = { success: true, data: { employee_aid: 41, employee_first_name: 'Test', employee_last_name: 'Worker' } };
       if (path === '/api/me/time-sheet/dashboard') data = { success: true, data: { hasEmployee: true, isClockedIn: true, elapsedSeconds: 7200, period: { start: '2026-10-16', end: '2026-10-31' }, workedHours: 32.5, activeHours: 2, periodStatus: 'ready' } };
@@ -13,8 +13,9 @@ for (const role of ['admin', 'employee']) {
     });
     await page.goto(role === 'admin' ? '/dashboard' : '/staff/dashboard');
     const summary = page.getByRole('region', { name: 'Your time summary' });
+    await expect(page.getByRole('heading', { name: 'Hello, Test', exact: true })).toBeVisible();
     await expect(summary.getByText('Clocked in', { exact: true })).toBeVisible();
-    await expect(summary.getByText('2h 0m on the clock')).toBeVisible();
+    await expect(summary.getByText(/2h 0m \d+s on the clock/)).toBeVisible();
     await expect(summary.getByText('32h 30m')).toBeVisible();
     await expect(summary.getByText('Oct 16, 2026 – Oct 31, 2026')).toBeVisible();
     await expect(summary.getByRole('button')).toHaveCount(0);
