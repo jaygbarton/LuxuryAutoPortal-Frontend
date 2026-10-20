@@ -153,6 +153,29 @@ export default async function handler(req, res) {
     return;
   }
 
+  if (req.method === "POST" && getString(req.query.action) === "status") {
+    const applicationId = getNumeric(req.body?.id || req.query.id || req.query.applicationId);
+    if (!applicationId) {
+      res.status(400).json({ success: false, error: "Invalid application ID" });
+      return;
+    }
+
+    const nextStatus = req.body?.status;
+    if (!["new", "reviewed", "archived"].includes(nextStatus)) {
+      res.status(400).json({ success: false, error: "Invalid status" });
+      return;
+    }
+
+    await query(
+      `UPDATE job_applications
+       SET status = ?, is_archived = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE job_application_aid = ?`,
+      [nextStatus, nextStatus === "archived" ? 1 : 0, applicationId],
+    );
+    res.json({ success: true, message: "Status updated" });
+    return;
+  }
+
   if (req.method === "POST" && getString(req.query.action) === "delete") {
     const applicationId = getNumeric(req.body?.id || req.query.id || req.query.applicationId);
     if (!applicationId) {

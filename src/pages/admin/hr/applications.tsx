@@ -120,6 +120,21 @@ export default function HrApplicationsPage() {
     },
   });
 
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: JobApplication["status"] }) => {
+      return api.post(`/api/admin/hr/job-applications?action=status&id=${id}`, { id, status }, {
+        fallbackMessage: "Failed to update status",
+      });
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/hr/job-applications"] });
+      toast({ title: "Status updated", description: `Marked as ${vars.status}.` });
+    },
+    onError: (error: any) => {
+      toast({ title: "Update failed", description: error?.message || "Try again.", variant: "destructive" });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       return api.post(`/api/admin/hr/job-applications?action=delete&id=${id}`, { id }, {
@@ -276,7 +291,28 @@ export default function HrApplicationsPage() {
                     <Info label="Date Of Birth" value={selected.date_of_birth} />
                     <Info label="Submitted" value={formatDate(selected.submitted_at)} />
                     <Info label="LinkedIn" value={selected.linkedin || "Not provided"} link={selected.linkedin || undefined} />
-                    <Info label="Status" value={selected.status} />
+                    <div className="min-w-0 rounded-md border border-border bg-background p-3">
+                      <div className="text-xs uppercase tracking-wider text-muted-foreground">Status</div>
+                      <Select
+                        value={selected.status}
+                        onValueChange={(value) =>
+                          statusMutation.mutate({
+                            id: selected.job_application_aid,
+                            status: value as JobApplication["status"],
+                          })
+                        }
+                        disabled={statusMutation.isPending}
+                      >
+                        <SelectTrigger className="mt-1 h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="new">New</SelectItem>
+                          <SelectItem value="reviewed">Reviewed</SelectItem>
+                          <SelectItem value="archived">Archived</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   {selected.notes ? (
