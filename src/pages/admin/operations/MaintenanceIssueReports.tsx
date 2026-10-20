@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { buildApiUrl } from '@/lib/queryClient';
+import { buildApiUrl, getProxiedImageUrl } from '@/lib/queryClient';
 import { safeServiceFile } from '@/lib/serviceWorkspace';
 import { Button } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
@@ -23,7 +23,7 @@ export function MaintenanceIssueReports({ maintenanceId }: { maintenanceId: numb
       <p className="font-semibold">{report.trip_id ? `Trip ${report.reservation_id || `#${report.trip_id}`}` : 'Manual report'} · Report #{report.id}</p>
       <p className="mt-1 text-muted-foreground">Reported: {report.reported_at && Number.isFinite(Date.parse(report.reported_at)) ? new Date(report.reported_at).toLocaleString('en-US',{ timeZone: 'America/Denver', month: 'short', day: 'numeric', year: 'numeric' }) : 'Date not recorded'}{report.assigned_to ? ` · ${report.assigned_to}` : ''}</p>
       {report.task_description && <p className="mt-2 break-words">{report.task_description}</p>}{report.notes && <p className="mt-2 whitespace-pre-wrap break-words">{report.notes}</p>}
-      <div className="flex flex-wrap gap-2">{attachments(report.photos).map((file,index) => <a key={`${file}:${index}`} className="inline-flex min-h-11 items-center underline" href={file} target="_blank" rel="noopener noreferrer">Report file {index+1}</a>)}</div>
+      <div className="flex flex-wrap gap-2">{attachments(report.photos).map((file,index) => <a key={`${file}:${index}`} className="inline-flex min-h-11 items-center underline" href={getProxiedImageUrl(file)} target="_blank" rel="noopener noreferrer">Report file {index+1}</a>)}</div>
     </article>)}</div>}
   </section>;
 }

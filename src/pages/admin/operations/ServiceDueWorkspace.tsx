@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { CarPhotoCell } from '@/components/admin/dashboard/CarPhotoCell';
 import { FleetCalendar } from '@/components/shared/FleetCalendar';
 import { operationLocationMatches, useOperationLocationFilter } from './OperationLocationFilter';
+import { getProxiedImageUrl } from '@/lib/queryClient';
 import { compareServiceUrgency, serviceLabel, serviceDate, safeServiceFile, type ServiceItem, type ServiceCar, type ServiceHistory, type ServiceWorkspace } from '@/lib/serviceWorkspace';
 
 async function request<T>(path: string, method = 'GET'): Promise<T> {
@@ -33,7 +34,7 @@ function History({ carId, filter }: { carId: number; filter?: string }) {
     <div className="flex flex-wrap justify-between gap-2"><p className="font-medium">{h.label}</p><p>{serviceDate(h.date)}</p></div>
     <p className="mt-1 text-xs text-muted-foreground">{h.status.replace(/_/g, ' ')} · {h.dateBasis.replace(/_/g, ' ')}{h.amount !== null ? ` · $${h.amount.toFixed(2)}` : ''}</p>
     {h.notes && <p className="mt-2 whitespace-pre-wrap break-words">{h.notes}</p>}
-    <div className="mt-2 flex flex-wrap gap-2">{h.files.filter(safeServiceFile).map((url, index) => <a key={`${url}:${index}`} href={url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-primary/30 px-3 text-xs font-medium"><Paperclip className="h-4 w-4" />Receipt / file {index + 1}</a>)}</div>
+    <div className="mt-2 flex flex-wrap gap-2">{h.files.filter(safeServiceFile).map((url, index) => <a key={`${url}:${index}`} href={getProxiedImageUrl(url)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-primary/30 px-3 text-xs font-medium"><Paperclip className="h-4 w-4" />Receipt / file {index + 1}</a>)}</div>
     {/^receipt:\d+$/.test(h.id) && <Link className="mt-2 mr-3 inline-flex min-h-11 items-center text-xs underline" href={`/admin/forms?section=employee-forms&category=cogs`}>Open service forms</Link>}
     {h.year && <Link href={`/admin/cars/${carId}/income-expense?year=${h.year}`} className="mt-2 inline-flex min-h-11 items-center text-xs underline">Open income & expenses</Link>}
   </article>)}</div>;

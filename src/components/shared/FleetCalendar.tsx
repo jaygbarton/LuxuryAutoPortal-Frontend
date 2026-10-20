@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
 import { AlertTriangle, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock3, Loader2, RefreshCw, SlidersHorizontal, X } from "lucide-react";
-import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { useTimezone } from "@/hooks/use-timezone";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -559,7 +559,7 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehi
             </> : <p className="text-xs text-muted-foreground">An administrator can review the vehicle mapping and availability classification.</p>}
           </section>
         )}
-        {selected.files?.length ? <div className="space-y-2"><h3 className="font-semibold">Service receipts / files</h3>{selected.files.filter(url => /^https:\/\//i.test(url) || /^\/(?!\/)/.test(url)).map((url, index) => <a key={`${url}:${index}`} href={url} target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center rounded-md border border-primary/30 px-3">Open receipt / file {index + 1}</a>)}</div> : null}
+        {selected.files?.length ? <div className="space-y-2"><h3 className="font-semibold">Service receipts / files</h3>{selected.files.filter(url => /^https:\/\//i.test(url) || /^\/(?!\/)/.test(url)).map((url, index) => <a key={`${url}:${index}`} href={getProxiedImageUrl(url)} target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center rounded-md border border-primary/30 px-3">Open receipt / file {index + 1}</a>)}</div> : null}
         <div className="flex flex-wrap gap-2">
           {calendarInstant(selected.start) !== null && <Button variant="outline" onClick={() => jumpToEvent(selected)}>Show event in calendar</Button>}
           {!selected.serviceEventKind || selected.serviceEventKind === "appointment" ? <BookingNavigation bookingKey={selected.bookingKey} currentView="calendar" developerAccess={isDeveloper} date={calendarInstant(selected.start) === null ? undefined : mtDayKey(selected.start!, timezone)} /> : null}

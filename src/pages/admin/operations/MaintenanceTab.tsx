@@ -751,6 +751,7 @@ export function MaintenanceTab({
                     carLabel={carDisplayName}
                     carName={rec.car_id ? <Link href={`/admin/cars/${rec.car_id}/maintenance`} className="hover:underline">{carDisplayName}</Link> : carDisplayName}
                     plate={plateNumber}
+                    reservation={reservationId}
                     image={carPhotoEl}
                     service={rec.service_type ? MAINTENANCE_SERVICE_TYPE_LABELS[rec.service_type] : null}
                     description={rec.task_description}

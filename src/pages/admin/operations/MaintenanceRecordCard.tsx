@@ -14,6 +14,7 @@ interface MaintenanceRecordCardProps {
   carName: ReactNode;
   carLabel: string;
   plate?: string | null;
+  reservation?: string | null;
   image?: ReactNode;
   service?: string | null;
   description: string;
@@ -36,7 +37,7 @@ interface MaintenanceRecordCardProps {
 /** Keep the maintenance task and its working controls in view; reveal the
  * linked trip, repair details and attachments only when they are needed. */
 export function MaintenanceRecordCard({
-  carName, carLabel, plate, image, service, description, scheduled, due,
+  carName, carLabel, plate, reservation, image, service, description, scheduled, due,
   statusControl, assigneeControl, approval, details, notes, photos, reports, accentBg,
   onEdit, onHistory, onDelete, onAppointment,
 }: MaintenanceRecordCardProps) {
@@ -52,6 +53,7 @@ export function MaintenanceRecordCard({
             <div className="min-w-0 flex-1">
               <h3 className="break-words text-[15px] font-semibold leading-5 text-foreground">{carName}</h3>
               {plate && <p className="mt-1 break-words text-xs text-muted-foreground">{plate}</p>}
+              {reservation && <p className="mt-1 break-words text-xs font-medium text-muted-foreground">Reservation # {reservation}</p>}
               {service && <p className="mt-1 text-xs font-medium text-muted-foreground">{service}</p>}
             </div>
             <DropdownMenu>
