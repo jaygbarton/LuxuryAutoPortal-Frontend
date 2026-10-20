@@ -2044,6 +2044,12 @@ lastSavedNote.current = coHostNote;
   // (For 'none'/'other' there is no per-month toggle, so it stays active.)
   const isMgmtOwnerActive = (month: number): boolean =>
     !isGlaOwned || getSplitType(month) === "mgmtOwner";
+  // Owned by another person: the co-host manages the car, so the whole
+  // Car Management Split is shown through the Co-Host/GLA rows above. The
+  // Car Management Split row itself displays $0 (display only — the Co-Host
+  // and GLA splits are still derived from the real management amount).
+  const isMgmtRowShown = (month: number): boolean =>
+    ownership !== "other" && isMgmtOwnerActive(month);
 
   // Co-Host Split amount for a month.
   //  • GLA-owned car: SAME formula as the CAR MANAGEMENT Split, driven by the
@@ -2462,14 +2468,14 @@ lastSavedNote.current = coHostNote;
                 values={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
                   // GLA-owned month set to Co-Host → this row is unused ($0).
-                  if (!isMgmtOwnerActive(monthNum)) return 0;
+                  if (!isMgmtRowShown(monthNum)) return 0;
                   return isAllCarsView
                     ? getMonthValue(data.incomeExpenses, monthNum, "mgmtIncome")
                     : getComputedMgmtSplitFromApi(monthNum) ?? null;
                 })}
                 percentageValues={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
-                  if (!isMgmtOwnerActive(monthNum)) return 0;
+                  if (!isMgmtRowShown(monthNum)) return 0;
                   return getMonthValue(
                     data.incomeExpenses,
                     monthNum,
@@ -2490,7 +2496,7 @@ lastSavedNote.current = coHostNote;
                     ? undefined
                     : computeAnnualSplitPercent(
                         MONTHS.map((_, i) =>
-                          isMgmtOwnerActive(i + 1)
+                          isMgmtRowShown(i + 1)
                             ? getComputedMgmtSplitFromApi(i + 1)
                             : 0,
                         ),
