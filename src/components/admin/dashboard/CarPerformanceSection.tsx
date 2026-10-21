@@ -54,7 +54,11 @@ export default function CarPerformanceSection({ year }: Props) {
       if (!res.ok) throw new Error("Failed to fetch car performance");
       return res.json();
     },
-    staleTime: 5 * 60 * 1000,
+    // Splits are edited on the I&E page, often in another tab (admin editing
+    // while viewing as co-host). A 5-minute cache kept showing the old
+    // figures, so refetch on mount and whenever this tab regains focus.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const rows = data?.data ?? [];

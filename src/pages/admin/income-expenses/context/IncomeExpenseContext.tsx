@@ -235,6 +235,8 @@ export function IncomeExpenseProvider({
       queryClient.invalidateQueries({ queryKey: ["/api/payments/car", carId] });
 
     }
+    // Dashboard Car Performance Ranking reads the same splits/expenses.
+    queryClient.invalidateQueries({ queryKey: ["/api/income-expense/car-performance", year] });
   };
 
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
