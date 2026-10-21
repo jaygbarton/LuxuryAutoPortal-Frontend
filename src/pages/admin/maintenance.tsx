@@ -1,3 +1,4 @@
+import { MaintenanceIssueReports } from "./operations/MaintenanceIssueReports";
 import React, { useMemo, useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -94,7 +95,8 @@ export default function MaintenancePage() {
       return response.json();
     },
     enabled: !!carId,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const car = data?.data;
@@ -132,11 +134,11 @@ export default function MaintenancePage() {
   // hooks between renders and crashed the page with React error #310.
   const maintenanceRecords = useMemo(() => {
     let f = allRecords;
-    if (statusFilter !== "all") f = f.filter((r) => r.status === statusFilter);
+    if (statusFilter !== "all") f = f.filter((r) => r.status === statusFilter || r.report_statuses?.includes(statusFilter));
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       f = f.filter((r) =>
-        [r.task_description, r.assigned_to, r.repair_shop, r.notes, r.car_name, r.service_type]
+        [r.task_description, r.reported_issues?.join(" "), r.reported_reservations?.join(" "), r.assigned_to, r.repair_shop, r.notes, r.car_name, r.service_type]
           .some((v) => v && String(v).toLowerCase().includes(q))
       );
     }
@@ -381,13 +383,14 @@ export default function MaintenancePage() {
                     </tr>
                   ) : (
                     maintenanceRecords.map((record, index) => (
-                      <tr key={record.id ?? index} className="border-b border-border hover:bg-muted/20 transition-colors">
+                      <React.Fragment key={record.id ?? index}><tr className="border-b border-border hover:bg-muted/20 transition-colors">
                         <td className="px-4 py-3 text-muted-foreground">{index + 1}</td>
                         <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                           {record.service_type ? MAINTENANCE_SERVICE_TYPE_LABELS[record.service_type as keyof typeof MAINTENANCE_SERVICE_TYPE_LABELS] : "—"}
                         </td>
                         <td className="px-4 py-3 text-foreground max-w-[220px] whitespace-pre-wrap break-words">
-                          {record.task_description || "—"}
+                          {record.reported_issues?.join(" · ") || record.task_description || "—"}
+                          {record.report_count > 1 && <p className="mt-1 text-xs text-muted-foreground">{record.report_count} reports · {record.report_trip_count} trips</p>}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                           {record.assigned_to || "—"}
@@ -419,6 +422,8 @@ export default function MaintenancePage() {
                           </span>
                         </td>
                       </tr>
+                      {record.report_count > 1 && (user?.isAdmin || user?.isEmployee) && <tr><td colSpan={10} className="p-3"><MaintenanceIssueReports maintenanceId={record.id} reportCount={record.report_count} tripCount={record.report_trip_count} /></td></tr>}
+                      </React.Fragment>
                     ))
                   )}
                 </tbody>

@@ -27,6 +27,7 @@ interface MaintenanceRecordCardProps {
   notes?: string | null;
   photos?: ReactNode;
   reports?: ReactNode;
+  reportSummary?: ReactNode;
   accentBg: string;
   onEdit: () => void;
   onHistory: () => void;
@@ -38,7 +39,7 @@ interface MaintenanceRecordCardProps {
  * linked trip, repair details and attachments only when they are needed. */
 export function MaintenanceRecordCard({
   carName, carLabel, plate, reservation, image, service, description, scheduled, due,
-  statusControl, assigneeControl, approval, details, notes, photos, reports, accentBg,
+  statusControl, assigneeControl, approval, details, notes, photos, reports, reportSummary, accentBg,
   onEdit, onHistory, onDelete, onAppointment,
 }: MaintenanceRecordCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -76,6 +77,7 @@ export function MaintenanceRecordCard({
 
           <p className="line-clamp-2 break-words text-sm leading-5 text-foreground">{description || "No maintenance description"}</p>
 
+          {reportSummary}
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div className="min-w-0">
               <dt className="text-xs text-muted-foreground">Appointment</dt>

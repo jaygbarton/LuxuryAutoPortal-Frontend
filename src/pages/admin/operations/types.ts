@@ -228,6 +228,12 @@ export interface CarServiceDue {
 }
 
 export interface MaintenanceRecord {
+  report_count?: number;
+  report_trip_count?: number;
+  report_ids?: number[];
+  reported_reservations?: string[];
+  reported_issues?: string[];
+  report_statuses?: string[];
   id: number;
   inspection_id: number | null;
   /** The ONE car issue this record covers. An inspection reporting three
@@ -321,6 +327,6 @@ export function movedToMaintenanceMessage(body: unknown): string {
   const data = (body as { data?: unknown })?.data;
   const count = Array.isArray(data) ? data.length : 0;
   return count > 1
-    ? `Moved to Maintenance — ${count} records, one per car issue`
+    ? `Moved to Maintenance — ${count} issue reports saved together`
     : "Moved to Maintenance";
 }

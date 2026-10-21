@@ -1,3 +1,4 @@
+import { MaintenanceIssueReports } from './MaintenanceIssueReports';
 import { ServiceMileageReading } from '@/components/shared/ServiceMileageReading';
 import { AddServiceRecordDialog } from './AddServiceRecordDialog';
 import { ServiceReceiptViewer } from './ServiceReceiptViewer';
@@ -33,7 +34,7 @@ function History({ carId, filter }: { carId: number; filter?: string }) {
   return <div className="space-y-2"><h4 className="text-sm font-semibold">Service history & receipts/files</h4>{!rows.length && <p className="text-sm text-muted-foreground">No service history recorded.</p>}{rows.map(h => <article key={h.id} className="min-w-0 rounded-lg border border-border bg-white p-3 text-sm">
     <div className="flex flex-wrap justify-between gap-2"><p className="font-medium">{h.label}</p><p>{serviceDate(h.date)}</p></div>
     <p className="mt-1 text-xs text-muted-foreground">{h.status.replace(/_/g, ' ')} · {h.dateBasis.replace(/_/g, ' ')}{h.amount !== null ? ` · $${h.amount.toFixed(2)}` : ''}</p>
-    {h.notes && <p className="mt-2 whitespace-pre-wrap break-words">{h.notes}</p>}
+    {h.maintenanceId && (h.reportCount ?? 0) > 1 ? <MaintenanceIssueReports maintenanceId={h.maintenanceId} reportCount={h.reportCount} tripCount={h.reportTripCount} /> : h.notes && <p className="mt-2 whitespace-pre-wrap break-words">{h.notes}</p>}
     <div className="mt-2 flex flex-wrap gap-2">{h.files.filter(safeServiceFile).map((url, index) => <a key={`${url}:${index}`} href={getProxiedImageUrl(url)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-md border border-primary/30 px-3 text-xs font-medium"><Paperclip className="h-4 w-4" />Receipt / file {index + 1}</a>)}</div>
     {/^receipt:\d+$/.test(h.id) && <Link className="mt-2 mr-3 inline-flex min-h-11 items-center text-xs underline" href={`/admin/forms?section=employee-forms&category=cogs`}>Open service forms</Link>}
     {h.year && <Link href={`/admin/cars/${carId}/income-expense?year=${h.year}`} className="mt-2 inline-flex min-h-11 items-center text-xs underline">Open income & expenses</Link>}

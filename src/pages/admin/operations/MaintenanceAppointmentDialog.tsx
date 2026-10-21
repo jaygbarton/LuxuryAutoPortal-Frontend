@@ -1,3 +1,4 @@
+import { invalidateMaintenanceReports } from "@/lib/maintenanceReports";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CalendarCheck, CheckCircle2, Loader2, MapPin } from "lucide-react";
@@ -54,6 +55,7 @@ function AppointmentEditor({ details, suggestedDate, onReload, onDone }: { detai
   const canConfirm = !!payload && validDestination && details.task.carId !== null && !vehicleChanged && !closedWithoutAppointment && verifiedClear && reviewed;
   useEffect(() => { setReviewed(false); }, [signature]);
   const invalidate = () => {
+    void invalidateMaintenanceReports(qc);
     for (const key of [ROOT, "/api/operations/maintenance", "/api/internal-calendar/events", "/api/internal-calendar/bookings", "/api/operations/day-schedule", "operations-day-schedule"]) qc.invalidateQueries({ queryKey: [key] });
   };
   const check = useMutation({ mutationFn: async () => {

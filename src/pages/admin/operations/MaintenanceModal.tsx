@@ -1,3 +1,4 @@
+import { invalidateMaintenanceReports } from "@/lib/maintenanceReports";
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -114,7 +115,7 @@ export function MaintenanceModal({ open, onOpenChange, record, prefill }: Mainte
       return response.json();
     },
     onSuccess: async (resp) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/operations/maintenance"] });
+      void invalidateMaintenanceReports(queryClient);
 
       // If this save was launched via maintenance approval from the Pending
       // Car Issues queue, flip that pending issue to approved and link it to

@@ -1,3 +1,4 @@
+import { invalidateMaintenanceReports } from "@/lib/maintenanceReports";
 import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useSearch } from "wouter";
@@ -222,6 +223,8 @@ export function MaintenanceTab({
       return { ...payload, data: payload.data.map((record: MaintenanceRecord) => ({ ...record, id: Number(record.id) })) };
     },
     retry: false,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   // Fetch inspections so we can resolve inspection_id → turo_trip_id
@@ -279,6 +282,8 @@ export function MaintenanceTab({
           rec.car_vin,
           rec.service_type ? MAINTENANCE_SERVICE_TYPE_LABELS[rec.service_type] : null,
           rec.task_description,
+          rec.reported_issues?.join(" "),
+          rec.reported_reservations?.join(" "),
           rec.assigned_to,
           rec.repair_shop,
           rec.repair_shop_license,
@@ -386,9 +391,7 @@ export function MaintenanceTab({
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["/api/operations/maintenance"],
-      });
+      void invalidateMaintenanceReports(queryClient);
       toast({ title: "Success", description: "Maintenance status updated" });
     },
     onError: (error: Error) => {
@@ -423,9 +426,7 @@ export function MaintenanceTab({
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["/api/operations/maintenance"],
-      });
+      void invalidateMaintenanceReports(queryClient);
       toast({ title: "Assigned employee updated" });
     },
     onError: (error: Error) => {
@@ -450,9 +451,7 @@ export function MaintenanceTab({
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["/api/operations/maintenance"],
-      });
+      void invalidateMaintenanceReports(queryClient);
       toast({ title: "Success", description: "Maintenance record deleted" });
       setDeleteModalOpen(false);
       setDeletingRecord(null);
@@ -754,14 +753,21 @@ export function MaintenanceTab({
                     reservation={reservationId}
                     image={carPhotoEl}
                     service={rec.service_type ? MAINTENANCE_SERVICE_TYPE_LABELS[rec.service_type] : null}
-                    description={rec.task_description}
+                    description={rec.reported_issues?.join(" · ") || rec.task_description}
                     scheduled={appointments.error ? <span className="text-amber-800">Status unavailable — open Appointment to verify</span> : appointments.isLoading ? "Checking appointment status…" : appointmentsById.get(rec.id)?.status === "confirmed" ? <><span className="font-medium text-emerald-700">Confirmed</span><br />{formatBookingDate(appointmentsById.get(rec.id)!.startAt, appointmentsById.get(rec.id)!.timezone)}<br /><span className="text-xs text-muted-foreground">Return: {formatBookingDate(appointmentsById.get(rec.id)!.endAt, appointmentsById.get(rec.id)!.timezone)}</span></> : appointmentsById.get(rec.id)?.status === "cancelled" ? "Appointment cancelled — need remains" : "Maintenance needed — not scheduled"}
                     due={appointments.error ? "Not verified" : appointmentsById.get(rec.id)?.status === "confirmed" ? formatBookingDate(appointmentsById.get(rec.id)!.startAt, appointmentsById.get(rec.id)!.timezone) : "As needed"}
                     statusControl={statusControl}
                     assigneeControl={assigneeEl}
                     approval={(rec.owner_approval_status && rec.owner_approval_status !== "not_sent") || (rec.status === "damage_reported" && !(rec.owner_has_app_access === 1 || rec.owner_has_app_access === true)) ? <OwnerApprovalBadge rec={rec} /> : undefined}
                     photos={photosEl}
-                    reports={<MaintenanceIssueReports maintenanceId={rec.id} />}
+                    reportSummary={(rec.report_count ?? 0) > 1 ? <div className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-xs">
+                      <p className="font-semibold">{rec.report_count} reports · {rec.report_trip_count} trips</p>
+                      <p className="mt-1 text-muted-foreground">Controls below apply to report #{rec.id}. Expand details to manage each reported issue.</p>
+                    </div> : undefined}
+                    reports={<MaintenanceIssueReports maintenanceId={rec.id} reportCount={rec.report_count} tripCount={rec.report_trip_count}
+                      onEdit={report => { setEditingRecord({ ...rec, ...report }); setModalOpen(true); }}
+                      onAppointment={setAppointmentId}
+                      onHistory={report => { setHistoryRecord({ ...rec, ...report }); setHistoryModalOpen(true); }} /> }
                     notes={rec.notes}
                     onEdit={() => { setEditingRecord(rec); setModalOpen(true); }}
                     onAppointment={() => setAppointmentId(rec.id)}
