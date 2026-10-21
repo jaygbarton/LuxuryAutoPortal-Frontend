@@ -24,6 +24,7 @@ interface CarRow {
   ownerExpenses: number;
   ownerSplit: number;
   coHostSplit: number;
+  glaSplit: number;
   daysRented: number | null;
   tripsTaken: number | null;
   availableDays: number;
@@ -70,6 +71,7 @@ export default function CarPerformanceSection({ year }: Props) {
     ownerExpenses: rows.reduce((s, r) => s + r.ownerExpenses, 0),
     ownerSplit: rows.reduce((s, r) => s + r.ownerSplit, 0),
     coHostSplit: rows.reduce((s, r) => s + r.coHostSplit, 0),
+    glaSplit: rows.reduce((s, r) => s + r.glaSplit, 0),
     daysRented: rentalMetricTotal(rows.map(r=>r.daysRented)),
     tripsTaken: rentalMetricTotal(rows.map(r=>r.tripsTaken)),
     // Now a real sum: the column is per-vehicle, so car-days across the fleet.
@@ -137,6 +139,7 @@ export default function CarPerformanceSection({ year }: Props) {
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Car Owner Expenses</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Car Owner Split</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Co-Host Split</th>
+                <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">GLA Split</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Days Rented</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Trips Taken</th>
                 <th className="px-3 py-2 text-right font-semibold whitespace-nowrap">Available Days</th>
@@ -163,6 +166,7 @@ export default function CarPerformanceSection({ year }: Props) {
                   <td className="px-3 py-1.5 text-right">{fmt(r.ownerExpenses)}</td>
                   <td className="px-3 py-1.5 text-right">{fmt(r.ownerSplit)}</td>
                   <td className="px-3 py-1.5 text-right">{fmt(r.coHostSplit)}</td>
+                  <td className="px-3 py-1.5 text-right">{fmt(r.glaSplit)}</td>
                   <td className="px-3 py-1.5 text-right">{rentalMetricText(r.daysRented)}</td>
                   <td className="px-3 py-1.5 text-right">{rentalMetricText(r.tripsTaken)}</td>
                   <td className="px-3 py-1.5 text-right">{r.availableDays.toLocaleString()}</td>
@@ -181,6 +185,7 @@ export default function CarPerformanceSection({ year }: Props) {
                 <td className="px-3 py-2 text-right text-black">{fmt(totals.ownerExpenses)}</td>
                 <td className="px-3 py-2 text-right text-black">{fmt(totals.ownerSplit)}</td>
                 <td className="px-3 py-2 text-right text-black">{fmt(totals.coHostSplit)}</td>
+                <td className="px-3 py-2 text-right text-black">{fmt(totals.glaSplit)}</td>
                 <td className="px-3 py-2 text-right text-black">{rentalMetricText(totals.daysRented)}</td>
                 <td className="px-3 py-2 text-right text-black">{rentalMetricText(totals.tripsTaken)}</td>
                 <td className="px-3 py-2 text-right text-black">{totals.availableDays.toLocaleString()}</td>
