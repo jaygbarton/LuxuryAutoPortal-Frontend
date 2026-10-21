@@ -1,6 +1,6 @@
 import { optionKeywords } from "@/lib/select-search";
 import React, { useState, useRef, useEffect } from "react";
-import { useRoute, useLocation } from "wouter";
+import { useRoute, useLocation, useSearch } from "wouter";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
@@ -315,14 +315,21 @@ export default function TotalsPage() {
   const nowMonth = now.getMonth() + 1;
   const nowQuarter = Math.ceil(nowMonth / 3);
 
-  const [filterType, setFilterType] = useState<string>("Year");
+  // Preserve the report period when opening a source citation from AI Hub.
+  const reportQuery = new URLSearchParams(useSearch());
+  const linkYear = Number(reportQuery.get("from"));
+  const linkFrom = Number(reportQuery.get("fromMonth")), linkTo = Number(reportQuery.get("toMonth"));
+  const linkedMonthRange = reportQuery.get("filter") === "Month" && reportQuery.get("from") === reportQuery.get("to")
+    && Number.isInteger(linkYear) && linkYear >= 2000 && linkYear <= nowYear
+    && Number.isInteger(linkFrom) && Number.isInteger(linkTo) && linkFrom >= 1 && linkTo <= 12 && linkFrom <= linkTo;
+  const [filterType, setFilterType] = useState<string>(linkedMonthRange ? "Month" : "Year");
   const [fromYear, setFromYear] = useState<string>(nowYear.toString());
   const [toYear, setToYear] = useState<string>(nowYear.toString());
   // Month mode: "from" month → "to" month (defaults to now)
-  const [pickedMonth, setPickedMonth] = useState<number>(nowMonth);
-  const [pickedMonthYear, setPickedMonthYear] = useState<number>(nowYear);
-  const [pickedToMonth, setPickedToMonth] = useState<number>(nowMonth);
-  const [pickedToMonthYear, setPickedToMonthYear] = useState<number>(nowYear);
+  const [pickedMonth, setPickedMonth] = useState<number>(linkedMonthRange ? linkFrom : nowMonth);
+  const [pickedMonthYear, setPickedMonthYear] = useState<number>(linkedMonthRange ? linkYear : nowYear);
+  const [pickedToMonth, setPickedToMonth] = useState<number>(linkedMonthRange ? linkTo : nowMonth);
+  const [pickedToMonthYear, setPickedToMonthYear] = useState<number>(linkedMonthRange ? linkYear : nowYear);
   // Quarter mode: "from" quarter → "to" quarter (defaults to now)
   const [pickedQuarter, setPickedQuarter] = useState<number>(nowQuarter);
   const [pickedQuarterYear, setPickedQuarterYear] = useState<number>(nowYear);

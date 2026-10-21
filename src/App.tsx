@@ -61,6 +61,7 @@ const ViewRecordFilesPage = lazy(() => import("@/pages/admin/view-record-files")
 const PaymentsPage = lazy(() => import("@/pages/admin/payments"));
 const PaymentsMainPage = lazy(() => import("@/pages/admin/payments-main"));
 const PaymentStatusPage = lazy(() => import("@/pages/admin/payment-status"));
+const AiHubPage = lazy(() => import("@/pages/admin/ai-hub"));
 const TotalsPage = lazy(() => import("@/pages/admin/totals"));
 const IncomeExpensesPage = lazy(() => import("@/pages/admin/income-expenses/index"));
 const CarIncomeExpensePage = lazy(() => import("@/pages/admin/car-income-expense"));
@@ -521,6 +522,9 @@ function Router() {
             </Route>
             <Route path="/admin/cars/:id/totals">
               <RequireRole roles={["isAdmin", "isClient"]}><TotalsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/ai-hub">
+              <RequireRole roles={["isAdmin", "isEmployee"]}><AiHubPage /></RequireRole>
             </Route>
             <Route path="/admin/totals/all">
               <RequireRole roles={["isAdmin"]}><TotalsPage /></RequireRole>

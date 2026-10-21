@@ -9,7 +9,7 @@ Recorded from the owner's instructions on October 21, 2026.
 - AI should help with useful parts of the business, including opportunities involving GoHighLevel and other integrations.
 - The long-term goal is a version that other rental companies can buy or access.
 - **Do not build that commercial or multi-company version yet.** Keep this goal in mind when discussing future decisions, without treating it as authorization to implement it.
-- The present request is to retain this direction and propose AI ideas, not to start implementing the ideas.
+- The original vision request was to retain this direction and propose AI ideas. In a subsequent October 21, 2026 request, the owner authorized code-based automation and an AI Hub that prepares compact vehicle maintenance/history and financial reports for a future assistant, without spending AI credits. This does not authorize all other proposed AI integrations or the commercial version.
 
 This file is persistent repository context, not a claim that a chat system's separate memory feature has been enabled. A matching copy is maintained in the frontend and backend repositories.
 

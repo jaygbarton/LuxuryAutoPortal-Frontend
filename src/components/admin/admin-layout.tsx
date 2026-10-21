@@ -219,6 +219,7 @@ const allSidebarItems: SidebarItem[] = [
       },
     ],
   },
+  { href: "/admin/ai-hub", label: "AI Hub", icon: Cpu, roles: ["admin"] },
   {
     href: "/admin/totals",
     label: "Totals",
@@ -540,6 +541,7 @@ const employeeSidebarItems: SidebarItem[] = [
     icon: Briefcase,
     roles: ["employee"],
   },
+  { href: "/admin/ai-hub", label: "AI Hub", icon: Cpu, roles: ["employee"] },
   {
     href: "/admin/operations",
     label: "Operations",
