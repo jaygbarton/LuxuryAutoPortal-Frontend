@@ -40,11 +40,14 @@ function buildRows(
 ) {
   let totalExpenses = 0;
   let totalTrips = 0;
+  let allTripsKnown = true;
 
   const rows = MONTH_LABELS.map((label, idx) => {
     const month = idx + 1;
     const expense = expensesByMonth(month);
-    const trips = getMonthEntry(history, month)?.tripsTaken ?? 0;
+    const knownTrips = getMonthEntry(history, month)?.tripsTaken;
+    if (knownTrips == null) allTripsKnown = false;
+    const trips = knownTrips ?? 0;
     totalExpenses += expense;
     totalTrips += trips;
 
@@ -57,8 +60,8 @@ function buildRows(
         </span>
       ),
       parkingExpenses: formatCurrency(expense),
-      tripsTaken: trips.toLocaleString(),
-      avePerTrip: formatCurrency(avePerTrip),
+      tripsTaken: knownTrips == null ? "—" : trips.toLocaleString(),
+      avePerTrip: knownTrips == null ? "—" : formatCurrency(avePerTrip),
     };
   });
 
@@ -66,8 +69,8 @@ function buildRows(
   const totalsRow = {
     month: "TOTAL",
     parkingExpenses: formatCurrency(totalExpenses),
-    tripsTaken: totalTrips.toLocaleString(),
-    avePerTrip: formatCurrency(totalAve),
+    tripsTaken: allTripsKnown ? totalTrips.toLocaleString() : "—",
+    avePerTrip: allTripsKnown ? formatCurrency(totalAve) : "—",
   };
 
   return { rows, totalsRow };

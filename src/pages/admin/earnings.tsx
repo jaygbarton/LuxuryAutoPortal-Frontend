@@ -5,6 +5,7 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { cn } from "@/lib/utils";
+import { rentalMetric } from "@/lib/rentalReportMetrics";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, ExternalLink, Plus, Image as ImageIcon, ChevronDown, ChevronRight, Upload, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -1980,7 +1981,7 @@ export default function EarningsPage() {
                 >
                   <TableRow
                     label="Days Rented"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "daysRented"))}
+                    values={MONTHS.map((_, i) => rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === i + 1)?.daysRented))}
                     isInteger
                   />
                   {/* Cars Available - was made client-visible per Cathy (2026-07-02),
@@ -1991,13 +1992,13 @@ export default function EarningsPage() {
                   {!isClient && (
                   <TableRow
                     label="Cars Available"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "carsAvailableForRent"))}
+                    values={MONTHS.map((_, i) => rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === i + 1)?.carsAvailableForRent))}
                     isInteger
                   />
                   )}
                   <TableRow
                     label="Trips Taken"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "tripsTaken"))}
+                    values={MONTHS.map((_, i) => rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === i + 1)?.tripsTaken))}
                     isInteger
                   />
                 </CategorySection>
@@ -2014,7 +2015,7 @@ export default function EarningsPage() {
                   />
                   <TableRow
                     label="Trips Taken"
-                    values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "tripsTaken"))}
+                    values={MONTHS.map((_, i) => rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === i + 1)?.tripsTaken))}
                     isInteger
                   />
                   <TableRow
@@ -2022,8 +2023,8 @@ export default function EarningsPage() {
                     values={MONTHS.map((_, i) => {
                       const monthNum = i + 1;
                       const rental = getMonthValue(incomeExpenseDataValue?.incomeExpenses || [], monthNum, "rentalIncome");
-                      const trips = getMonthValue(incomeExpenseDataValue?.history || [], monthNum, "tripsTaken");
-                      return trips > 0 ? rental / trips : 0;
+                      const trips = rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === monthNum)?.tripsTaken);
+                      return trips === null ? null : trips > 0 ? rental / trips : 0;
                     })}
                   />
                 </CategorySection>
@@ -2040,7 +2041,7 @@ export default function EarningsPage() {
                   >
                     <TableRow
                       label="Total Trips Taken"
-                      values={MONTHS.map((_, i) => getMonthValue(incomeExpenseDataValue?.history || [], i + 1, "tripsTaken"))}
+                      values={MONTHS.map((_, i) => rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === i + 1)?.tripsTaken))}
                       isInteger
                     />
                     <TableRow
@@ -2052,8 +2053,8 @@ export default function EarningsPage() {
                       values={MONTHS.map((_, i) => {
                         const monthNum = i + 1;
                         const parking = getMonthValue(incomeExpenseDataValue?.parkingAirportQB || [], monthNum, "totalParkingAirport");
-                        const trips = getMonthValue(incomeExpenseDataValue?.history || [], monthNum, "tripsTaken");
-                        return trips > 0 ? parking / trips : 0;
+                        const trips = rentalMetric(incomeExpenseDataValue?.history?.find(row => row.month === monthNum)?.tripsTaken);
+                        return trips === null ? null : trips > 0 ? parking / trips : 0;
                       })}
                     />
                   </CategorySection>
@@ -2388,7 +2389,7 @@ function CategorySection({ title, isExpanded, onToggle, children, hideZeroSubcat
 interface TableRowProps {
   label: string;
   splitLabel?: string;
-  values: number[];
+  values: (number | null)[];
   isInteger?: boolean;
   isTotal?: boolean;
   // Receipt linking: when category+field are set, any month cell that has
@@ -2432,7 +2433,7 @@ function TableRow({
   const displayValues = (!isInteger && category && field && getFormAmount)
     ? values.map((v, i) => (typeof v === "number" && !isNaN(v) ? v : 0) + getFormAmount(category, field, i + 1))
     : values;
-  const total = calculateTotal(displayValues);
+  const total = displayValues.some(value => value === null) ? null : calculateTotal(displayValues as number[]);
 
   if (hideIfZero && !isTotal && displayValues.every((v) => Math.abs(Number(v) || 0) < 0.005)) {
     return null;
@@ -2469,7 +2470,9 @@ function TableRow({
         // For Negative Balance Carry Over, display in parentheses format for negative values
         // e.g., -3 => (3), -100 => (100), 0 => $0.00
         let displayText: string;
-        if (isNegativeBalance && cellValue < 0) {
+        if (value === null) {
+          displayText = "—";
+        } else if (isNegativeBalance && cellValue < 0) {
           displayText = `(${Math.abs(cellValue).toFixed(2)})`;
         } else if (isInteger) {
           displayText = cellValue.toString();
@@ -2525,6 +2528,7 @@ function TableRow({
       )}>
         {hideTotal
           ? null
+          : total === null ? "—"
           : isNegativeBalance && total < 0
             ? `(${Math.abs(total).toFixed(2)})`
             : isInteger

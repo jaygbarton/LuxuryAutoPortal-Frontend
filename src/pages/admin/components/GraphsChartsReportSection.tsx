@@ -1,3 +1,4 @@
+import { rentalMetric, rentalMetricText, rentalMetricTotal } from "@/lib/rentalReportMetrics";
 import React, { useMemo } from "react";
 import {
   BarChart,
@@ -54,12 +55,12 @@ export function GraphsChartsReportSection({
       const carOwnerSplit = calculateCarOwnerSplit(monthNum);
       const carManagementTotalExpenses = calculateCarManagementTotalExpenses(monthNum);
       const carOwnerTotalExpenses = calculateCarOwnerTotalExpenses(monthNum);
-      const daysRented = getMonthValue(incomeExpenseData.history || [], monthNum, "daysRented");
-      const tripsTaken = getMonthValue(incomeExpenseData.history || [], monthNum, "tripsTaken");
+      const daysRented = rentalMetric(incomeExpenseData.history?.find(row=>row.month===monthNum)?.daysRented);
+      const tripsTaken = rentalMetric(incomeExpenseData.history?.find(row=>row.month===monthNum)?.tripsTaken);
       // Profit should equal the split values (not split minus expenses)
       const carManagementProfit = carManagementSplit;
       const carOwnerProfit = carOwnerSplit;
-      const avePerRental = tripsTaken > 0 ? rentalIncome / tripsTaken : 0;
+      const avePerRental = tripsTaken === null ? null : tripsTaken > 0 ? rentalIncome / tripsTaken : 0;
 
       return {
         month: month,
@@ -84,8 +85,8 @@ export function GraphsChartsReportSection({
         "Car Owner Profit": acc["Car Owner Profit"] + data["Car Owner Profit"],
         "Car Management Total Expenses": acc["Car Management Total Expenses"] + data["Car Management Total Expenses"],
         "Car Owner Total Expenses": acc["Car Owner Total Expenses"] + data["Car Owner Total Expenses"],
-        "Days Rented": acc["Days Rented"] + data["Days Rented"],
-        "Trips Taken": acc["Trips Taken"] + data["Trips Taken"],
+        "Days Rented": (acc["Days Rented"] ?? 0) + (data["Days Rented"] ?? 0),
+        "Trips Taken": (acc["Trips Taken"] ?? 0) + (data["Trips Taken"] ?? 0),
         "Ave Per Rental": acc["Trips Taken"] > 0 ? acc["Rental Income"] / acc["Trips Taken"] : 0,
       }),
       {
@@ -99,10 +100,13 @@ export function GraphsChartsReportSection({
         "Ave Per Rental": 0,
       }
     );
-    return totals;
+    const days = rentalMetricTotal(monthlyData.map(row=>row['Days Rented']));
+    const trips = rentalMetricTotal(monthlyData.map(row=>row['Trips Taken']));
+    return {...totals,'Days Rented':days,'Trips Taken':trips,'Ave Per Rental':trips===null ? null : trips>0 ? totals['Rental Income']/trips : 0};
   }, [monthlyData]);
 
-  const formatCurrency = (value: number): string => {
+  const formatCurrency = (value: number | null): string => {
+    if (value===null) return "—";
     return `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
@@ -250,8 +254,8 @@ export function GraphsChartsReportSection({
       <div className="bg-card border border-border rounded-lg p-6 mb-6">
         <h2 className="text-lg font-semibold text-muted-foreground mb-4">History</h2>
         <div className="mb-4 text-sm text-muted-foreground">
-          <div>Days Rented - Yearly Total: {yearlyTotals["Days Rented"]}</div>
-          <div>Trips Taken - Yearly Total: {yearlyTotals["Trips Taken"]}</div>
+          <div>Days Rented - Yearly Total: {rentalMetricText(yearlyTotals["Days Rented"]) }</div>
+          <div>Trips Taken - Yearly Total: {rentalMetricText(yearlyTotals["Trips Taken"]) }</div>
         </div>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={monthlyData}>
@@ -277,7 +281,7 @@ export function GraphsChartsReportSection({
         <h2 className="text-lg font-semibold text-muted-foreground mb-4">CAR RENTAL VALUE PER MONTH</h2>
         <div className="mb-4 text-sm text-muted-foreground">
           <div>Total Car Rental Income - Yearly Total: {formatCurrency(yearlyTotals["Rental Income"])}</div>
-          <div>Trips Taken - Yearly Total: {yearlyTotals["Trips Taken"]}</div>
+          <div>Trips Taken - Yearly Total: {rentalMetricText(yearlyTotals["Trips Taken"]) }</div>
           <div>Ave Per Rental Per Trips Taken - Yearly Average: {formatCurrency(yearlyTotals["Ave Per Rental"])}</div>
         </div>
         <ResponsiveContainer width="100%" height={300}>

@@ -1,3 +1,4 @@
+import { rentalMetric } from "@/lib/rentalReportMetrics";
 import React, { useState } from "react";
 import {
   ChevronDown,
@@ -4380,6 +4381,7 @@ lastSavedNote.current = coHostNote;
             )}
 
             {/* HISTORY */}
+            <tr><td colSpan={14} className="px-2 py-3 text-xs text-muted-foreground">Days Rented counts nights in each month; Trips Taken counts reservations that started in that month. Both use Mountain time and exclude cancellations and future trips. Blank values need review; click a vehicle’s cell to enter a manual value. Cars Available uses the shared dashboard entry. <a className="underline text-primary" href="/admin/turo-trips">Review Turo trips</a></td></tr>
             <CategorySection
               title="HISTORY"
               isExpanded={expandedSections.history}
@@ -5294,7 +5296,13 @@ function CategoryRow({
   // to the manual value for DISPLAY. This is needed in the read-only cell branch
   // below too — otherwise approved submissions never appear on the (read-only)
   // /admin/income-expenses grid, only in the editable modal path.
-  const { getFormAmount, receiptCells, openReceipts } = useIncomeExpense();
+  const { getFormAmount, receiptCells, openReceipts, data } = useIncomeExpense();
+  const rentalFields = category === 'history' && field ? [field] : /Trips Taken|Average per trip/i.test(label) ? ['tripsTaken'] : [];
+  if (rentalFields.length) values = values.map((value,index) => {
+    const row = data.history.find(row => row.month === index+1);
+    if (rentalFields.some(key => rentalMetric((row as any)?.[key]) === null)) return null;
+    return category === 'history' ? rentalMetric((row as any)?.[field!]) : value;
+  });
   // Hidden standard rows are removed entirely from this car's table. They are
   // also excluded from section totals by the caller (see isRowHidden).
   // (Placed after hooks to respect the rules of hooks.)
@@ -5520,6 +5528,8 @@ function CategoryRow({
               ) : (
                 <EditableCell
                   value={cellValue}
+                  unavailable={isUnavailable}
+                  description={category === 'history' ? data.history.find(row=>row.month===month)?.rentalMetricsWarning || (field === 'carsAvailableForRent' ? 'Shared fleet count entered on the dashboard.' : `${(data.history.find(row=>row.month===month) as any)?.[`${field}Source`] === 'manual' ? 'Reviewed manual entry' : 'Calculated from imported Turo reservations'}.`) : undefined}
                   month={month}
                   category={category}
                   field={field}
@@ -5566,7 +5576,7 @@ function CategoryRow({
                     }
                     title={
                       isUnavailable
-                        ? "This month's split could not be computed — the figure is unavailable, not zero."
+                        ? category === "history" ? data.history.find(row=>row.month===month)?.rentalMetricsWarning || "Enter a reviewed value; automatic data is unavailable." : "This month's figure could not be computed."
                         : hasForm
                         ? `Manual $${cellValue.toFixed(2)} + Form $${cellFormAmount.toFixed(2)} = Total $${(displayedCellValue as number).toFixed(2)}`
                         : onPercentCellClick && !isReadOnly

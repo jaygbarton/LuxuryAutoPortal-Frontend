@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 
 interface EditableCellProps {
   value: number;
+  unavailable?: boolean;
+  description?: string;
   month: number;
   category: string;
   field: string;
@@ -25,6 +27,8 @@ export const FORM_AWARE_CATEGORIES = new Set([
 
 export default function EditableCell({
   value,
+  unavailable = false,
+  description,
   month,
   category,
   field,
@@ -58,7 +62,7 @@ export default function EditableCell({
     setEditingCell({ category, field, month, value });
   };
 
-  const displayValue = isPercentage
+  const displayValue = unavailable ? "—" : isPercentage
     ? `${value.toFixed(0)}%`
     : isInteger
     ? value.toString()
@@ -72,7 +76,7 @@ export default function EditableCell({
           displayedTotal === 0 && "text-gray-600",
           hasFormContribution && "text-primary"
         )}
-        title={hasFormContribution ? `Includes $${formAmount.toFixed(2)} from approved form submissions` : undefined}
+        title={description || (hasFormContribution ? `Includes $${formAmount.toFixed(2)} from approved form submissions` : undefined)}
       >
         {displayValue}
       </span>
@@ -89,9 +93,9 @@ export default function EditableCell({
         isCurrentlyEditing && "bg-muted ring-1 ring-[#D3BC8D]"
       )}
       title={
-        hasFormContribution
+        description || (hasFormContribution
           ? `Manual $${value.toFixed(2)} + Form $${formAmount.toFixed(2)} = Total $${displayedTotal.toFixed(2)}`
-          : undefined
+          : undefined)
       }
     >
       {displayValue}

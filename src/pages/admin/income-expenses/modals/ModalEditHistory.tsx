@@ -1,5 +1,5 @@
 // Modal for HISTORY category
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,8 +16,16 @@ import { useIncomeExpense } from "../context/IncomeExpenseContext";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export default function ModalEditHistory() {
-  const { editingCell, setEditingCell, updateCell, saveChanges, isSaving, year } = useIncomeExpense();
+  const { editingCell, setEditingCell, saveChanges, isSaving, year, data } = useIncomeExpense();
 
+  const [quantity,setQuantity] = useState('');
+  useEffect(() => {
+    if (editingCell?.category === 'history') {
+      const stored = (data.history.find(row=>row.month===editingCell.month) as any)?.[editingCell.field];
+      setQuantity(stored == null ? '' : String(editingCell.value));
+    }
+  },[editingCell?.category,editingCell?.field,editingCell?.month]);
+  const validQuantity = /^\d+$/.test(quantity) && Number.isSafeInteger(Number(quantity));
   const monthName = editingCell ? MONTHS[editingCell.month - 1] : "";
   const isOpen = !!editingCell && editingCell.category === "history";
 
@@ -26,14 +34,14 @@ export default function ModalEditHistory() {
   };
 
   const handleSave = () => {
-    if (!editingCell) return;
+    if (!editingCell || !validQuantity) return;
     
     // Save the change immediately, passing it directly to saveChanges
     saveChanges({
       category: editingCell.category,
       field: editingCell.field,
       month: editingCell.month,
-      value: editingCell.value,
+      value: Number(quantity),
     });
   };
 
@@ -55,7 +63,7 @@ export default function ModalEditHistory() {
             Update Car History
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Enter rental history data for {monthName} {year}
+            Enter a reviewed value for {monthName} {year}. This manual entry takes priority over automatic Turo calculations.
           </DialogDescription>
         </DialogHeader>
 
@@ -76,13 +84,10 @@ export default function ModalEditHistory() {
             <Label className="text-muted-foreground text-xs">Quantity</Label>
             <Input
               type="number"
-              value={Math.round(editingCell.value)}
-              onChange={(e) =>
-                setEditingCell({
-                  ...editingCell,
-                  value: parseInt(e.target.value) || 0,
-                })
-              }
+              value={quantity}
+              onChange={e=>setQuantity(e.target.value)}
+              min={0}
+              placeholder="Enter reviewed quantity"
               className="bg-card border-border text-foreground text-sm mt-1"
               step="1"
               autoFocus
@@ -100,7 +105,7 @@ export default function ModalEditHistory() {
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || !validQuantity}
             className="flex-1 bg-primary text-primary-foreground hover:bg-primary/80"
           >
             {isSaving ? "Saving..." : "Save"}

@@ -1,3 +1,4 @@
+import { rentalMetricText, rentalMetricTotal } from "@/lib/rentalReportMetrics";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
@@ -22,17 +23,17 @@ interface CarRow {
   mgmtSplit: number;
   ownerExpenses: number;
   ownerSplit: number;
-  daysRented: number;
-  tripsTaken: number;
+  daysRented: number | null;
+  tripsTaken: number | null;
   availableDays: number;
-  carsAvailable: number;
-  fleetUtilization: number;
-  aveEarnings: number;
-  avgDaysRented: number;
+  carsAvailable: number | null;
+  fleetUtilization: number | null;
+  aveEarnings: number | null;
+  avgDaysRented: number | null;
 }
 
-const fmt = (v: number) =>
-  v.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
+const fmt = (v: number | null) =>
+  v === null ? "—" : v.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
 
 interface Props {
   year: string;
@@ -63,17 +64,17 @@ export default function CarPerformanceSection({ year }: Props) {
     mgmtSplit: rows.reduce((s, r) => s + r.mgmtSplit, 0),
     ownerExpenses: rows.reduce((s, r) => s + r.ownerExpenses, 0),
     ownerSplit: rows.reduce((s, r) => s + r.ownerSplit, 0),
-    daysRented: rows.reduce((s, r) => s + r.daysRented, 0),
-    tripsTaken: rows.reduce((s, r) => s + r.tripsTaken, 0),
+    daysRented: rentalMetricTotal(rows.map(r=>r.daysRented)),
+    tripsTaken: rentalMetricTotal(rows.map(r=>r.tripsTaken)),
     // Now a real sum: the column is per-vehicle, so car-days across the fleet.
     availableDays: rows.reduce((s, r) => s + r.availableDays, 0),
     // Fleet-wide snapshot for the period — identical on every row, so do not sum.
-    carsAvailable: rows[0]?.carsAvailable ?? 0,
-    aveEarnings: rows.length > 0
-      ? rows.reduce((s, r) => s + r.aveEarnings, 0) / rows.length
+    carsAvailable: rows[0]?.carsAvailable ?? null,
+    aveEarnings: rows.some(r=>r.aveEarnings==null) ? null : rows.length > 0
+      ? rows.reduce((s, r) => s + r.aveEarnings!, 0) / rows.length
       : 0,
-    avgDaysRented: rows.length > 0
-      ? rows.reduce((s, r) => s + r.avgDaysRented, 0) / rows.length
+    avgDaysRented: rows.some(r=>r.avgDaysRented==null) ? null : rows.length > 0
+      ? rows.reduce((s, r) => s + r.avgDaysRented!, 0) / rows.length
       : 0,
   }), [rows]);
 
@@ -84,8 +85,8 @@ export default function CarPerformanceSection({ year }: Props) {
       <SectionHeader
         title={`CAR PERFORMANCE RANKING ${monthLabel.toUpperCase()} ALL CARS`}
         subtitle={
-          totals.carsAvailable > 0
-            ? `Filter by month and arranged from highest to lowest rental income · ${totals.carsAvailable.toLocaleString()} cars available${selectedMonth === 0 ? " (monthly average)" : ""}`
+          (totals.carsAvailable ?? 0) > 0
+            ? `Filter by month and arranged from highest to lowest rental income · ${totals.carsAvailable?.toLocaleString()} cars available${selectedMonth === 0 ? " (monthly average)" : ""}`
             : "Filter by month and arranged from highest to lowest rental income"
         }
       />
@@ -154,12 +155,12 @@ export default function CarPerformanceSection({ year }: Props) {
                   <td className="px-3 py-1.5 text-right">{fmt(r.mgmtSplit)}</td>
                   <td className="px-3 py-1.5 text-right">{fmt(r.ownerExpenses)}</td>
                   <td className="px-3 py-1.5 text-right">{fmt(r.ownerSplit)}</td>
-                  <td className="px-3 py-1.5 text-right">{r.daysRented}</td>
-                  <td className="px-3 py-1.5 text-right">{r.tripsTaken}</td>
+                  <td className="px-3 py-1.5 text-right">{rentalMetricText(r.daysRented)}</td>
+                  <td className="px-3 py-1.5 text-right">{rentalMetricText(r.tripsTaken)}</td>
                   <td className="px-3 py-1.5 text-right">{r.availableDays.toLocaleString()}</td>
-                  <td className="px-3 py-1.5 text-right">{r.fleetUtilization.toFixed(2)}%</td>
+                  <td className="px-3 py-1.5 text-right">{r.fleetUtilization == null ? "—" : `${r.fleetUtilization.toFixed(2)}%`}</td>
                   <td className="px-3 py-1.5 text-right">{fmt(r.aveEarnings)}</td>
-                  <td className="px-3 py-1.5 text-right">{r.avgDaysRented.toFixed(2)}</td>
+                  <td className="px-3 py-1.5 text-right">{r.avgDaysRented?.toFixed(2) ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -171,16 +172,16 @@ export default function CarPerformanceSection({ year }: Props) {
                 <td className="px-3 py-2 text-right text-black">{fmt(totals.mgmtSplit)}</td>
                 <td className="px-3 py-2 text-right text-black">{fmt(totals.ownerExpenses)}</td>
                 <td className="px-3 py-2 text-right text-black">{fmt(totals.ownerSplit)}</td>
-                <td className="px-3 py-2 text-right text-black">{totals.daysRented}</td>
-                <td className="px-3 py-2 text-right text-black">{totals.tripsTaken}</td>
+                <td className="px-3 py-2 text-right text-black">{rentalMetricText(totals.daysRented)}</td>
+                <td className="px-3 py-2 text-right text-black">{rentalMetricText(totals.tripsTaken)}</td>
                 <td className="px-3 py-2 text-right text-black">{totals.availableDays.toLocaleString()}</td>
                 <td className="px-3 py-2 text-right text-black">
-                  {totals.availableDays > 0
+                  {totals.daysRented == null ? "—" : totals.availableDays > 0
                     ? ((totals.daysRented / totals.availableDays) * 100).toFixed(2) + "%"
                     : "—"}
                 </td>
                 <td className="px-3 py-2 text-right text-black">{fmt(totals.aveEarnings)}</td>
-                <td className="px-3 py-2 text-right text-black">{totals.avgDaysRented.toFixed(2)}</td>
+                <td className="px-3 py-2 text-right text-black">{totals.avgDaysRented?.toFixed(2) ?? "—"}</td>
               </tr>
             </tfoot>
           </table>

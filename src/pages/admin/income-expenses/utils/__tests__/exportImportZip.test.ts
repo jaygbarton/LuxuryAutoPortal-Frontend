@@ -101,7 +101,7 @@ function makeData(overrides: Partial<IncomeExpenseData> = {}): IncomeExpenseData
         parkingAirport: 0, uberLyftLimeNotReimbursed: 0, uberLyftLimeReimbursed: 0,
       },
     ],
-    history: [{ month: 1, daysRented: 15, carsAvailableForRent: 1, tripsTaken: 8 }],
+    history: Array.from({length:12},(_,index)=>({ month:index+1,daysRented:index===0 ? 15 : 0,carsAvailableForRent:index===0 ? 1 : 0,tripsTaken:index===0 ? 8 : 0 })),
     officeSupport: [],
     parkingAirportQB: [],
     formulaSetting: { carManagementSplitPercent: 50, carOwnerSplitPercent: 50 },
@@ -336,6 +336,18 @@ describe("buildIncomeExpenseCSV", () => {
     const histIdx = csv.indexOf("SECTION,HISTORY");
     const row = csv.indexOf("Days Rented,15", histIdx);
     expect(row).toBeGreaterThan(histIdx);
+  });
+
+  it('keeps unknown history and per-trip values blank through export and import',()=>{
+    const unknown=makeData({history:[{month:1,daysRented:0,tripsTaken:0,carsAvailableForRent:77},{month:2,daysRented:null,tripsTaken:null,carsAvailableForRent:77}]});
+    const output=buildIncomeExpenseCSV(unknown,CAR_INFO,'2024',EMPTY_MONTH_MODES);
+    const days=output.split('\n').find(line=>line.startsWith('Days Rented,'))!.split(',');
+    expect(days[1]).toBe('0');expect(days[2]).toBe('');expect(days.at(-1)).toBe('');
+    for(const line of output.split('\n').filter(line=>/^(Trips Taken|Total Trips Taken|Average per trip),/.test(line))) {
+      expect(line.split(',')[2]).toBe('');expect(line.split(',').at(-1)).toBe('');
+    }
+    const parsed=parseImportedCSV(output);
+    expect(parsed.sections?.history?.find(row=>row.category==='Days Rented')).toMatchObject({month1:0,month2:null});
   });
 
   it("uses correct year in month headers", () => {

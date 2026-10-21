@@ -46,6 +46,7 @@ const formatCurrency = (value: unknown): string => {
 };
 
 const formatNumber = (value: unknown): string => {
+  if (value === null || value === undefined) return "—";
   const num = typeof value === "string" ? parseFloat(value) : Number(value);
   if (!isFinite(num)) return "0";
   return num.toLocaleString("en-US");

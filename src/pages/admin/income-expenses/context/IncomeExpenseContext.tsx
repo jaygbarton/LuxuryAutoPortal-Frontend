@@ -226,16 +226,14 @@ export function IncomeExpenseProvider({
   // too, an I&E edit doesn't show up on the Payment History page until the
   // user navigates away and back (React Query keeps serving the stale cache).
   const invalidateIncomeExpenseAndPayments = () => {
+    // Shared Cars Available changes must refresh every cached car, plus the dashboard.
     queryClient.invalidateQueries({
-      queryKey: isAllCars ? ["/api/income-expense/all-cars", year] : ["/api/income-expense", carId, year],
+      queryKey: ["/api/income-expense"],
     });
+    queryClient.invalidateQueries({ queryKey: ["/api/income-expense/all-cars", year] });
     if (!isAllCars) {
       queryClient.invalidateQueries({ queryKey: ["/api/payments/car", carId] });
-      // HISTORY > Cars Available is a FLEET-WIDE number: the backend mirrors it
-      // onto the car_id=0 sentinel row that the dashboard and every other car's
-      // page read from. So an edit here changes what those views show too, and
-      // invalidating only this car's key would leave them stale.
-      queryClient.invalidateQueries({ queryKey: ["/api/income-expense/all-cars", year] });
+
     }
   };
 

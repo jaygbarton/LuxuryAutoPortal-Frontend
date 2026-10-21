@@ -1,3 +1,4 @@
+import { rentalMetricText } from "@/lib/rentalReportMetrics";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -168,7 +169,7 @@ function DonutChart({ data, formatValue = formatCurrency }: DonutChartProps) {
 
 interface BarChartCardProps {
   title: string;
-  data: Record<string, string | number>[];
+  data: Record<string, string | number | null>[];
   bars: { dataKey: string; fill: string }[];
   yAxisPrefix?: string;
 }
@@ -219,7 +220,7 @@ function BarChartCard({ title, data, bars, yAxisPrefix = "$" }: BarChartCardProp
 
 interface LineChartCardProps {
   title: string;
-  data: Record<string, string | number>[];
+  data: Record<string, string | number | null>[];
   lines: { dataKey: string; stroke: string }[];
   yAxisPrefix?: string;
 }
@@ -277,11 +278,11 @@ function LineChartCard({ title, data, lines, yAxisPrefix = "$" }: LineChartCardP
 // ── Horizontal bar chart with x-axis scale ────────────────────────────
 
 interface HorizontalBarChartProps {
-  items: { label: string; value: number }[];
+  items: { label: string; value: number | null }[];
 }
 
 function HorizontalBarChart({ items }: HorizontalBarChartProps) {
-  const maxValue = Math.max(...items.map((i) => i.value), 1);
+  const maxValue = Math.max(...items.map((i) => i.value ?? 0), 1);
   // Round up max to next nice tick for axis
   const niceMax = (() => {
     const order = Math.pow(10, Math.floor(Math.log10(maxValue)));
@@ -312,7 +313,7 @@ function HorizontalBarChart({ items }: HorizontalBarChartProps) {
               <div
                 className="h-full bg-[#D3BC8D] rounded-r-md"
                 style={{
-                  width: `${niceMax > 0 ? (item.value / niceMax) * 100 : 0}%`,
+                  width: `${niceMax > 0 ? ((item.value ?? 0) / niceMax) * 100 : 0}%`,
                 }}
               />
             </div>
@@ -320,7 +321,7 @@ function HorizontalBarChart({ items }: HorizontalBarChartProps) {
               className="shrink-0 text-right text-xs text-black"
               style={{ width: valueColWidth }}
             >
-              {item.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {item.value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "—"}
             </div>
           </div>
         ))}
@@ -434,6 +435,10 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
       netMgmt: mgmtInc,
       netOwner: ownerInc,
       negativeBalance: ie?.negativeBalanceCarryOver ?? 0,
+      daysKnown: hist?.daysRented != null,
+      tripsKnown: hist?.tripsTaken != null,
+      carsKnown: hist?.carsAvailableForRent != null,
+      rentalWarning: hist?.rentalMetricsWarning || null,
       daysRented: hist?.daysRented ?? 0,
       tripsTaken: hist?.tripsTaken ?? 0,
       carsAvailable: hist?.carsAvailableForRent ?? 0,
@@ -450,6 +455,9 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
   const totalOwnerIncome = monthlyComputed.reduce((s, m) => s + m.ownerIncome, 0);
   const totalOwnerExpenses = monthlyComputed.reduce((s, m) => s + m.ownerExpenses, 0);
   const totalCoHostIncome = monthlyComputed.reduce((s, m) => s + m.coHostIncome, 0);
+  const allDaysKnown = monthlyComputed.every(month=>month.daysKnown);
+  const allTripsKnown = monthlyComputed.every(month=>month.tripsKnown);
+  const allCarsKnown = monthlyComputed.every(month=>month.carsKnown);
   const totalDaysRented = monthlyComputed.reduce((s, m) => s + m.daysRented, 0);
   const totalCarsAvailable = monthlyComputed.reduce((s, m) => s + m.carsAvailable, 0);
   const totalGross = monthlyComputed.reduce((s, m) => s + m.gross, 0);
@@ -497,8 +505,8 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
       ownerExpenses: formatCurrency(mc.ownerExpenses),
       ownerSplit: formatCurrency(mc.ownerIncome),
       coHostSplit: formatCurrency(mc.coHostIncome),
-      daysRented: mc.daysRented.toLocaleString(),
-      tripsTaken: mc.tripsTaken.toLocaleString(),
+      daysRented: rentalMetricText(mc.daysKnown ? mc.daysRented : null),
+      tripsTaken: rentalMetricText(mc.tripsKnown ? mc.tripsTaken : null),
       availableDays: editingMonth === mc.month ? (
         <span className="inline-flex items-center justify-end gap-1">
           <Input
@@ -538,12 +546,12 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
         </span>
       ) : (
         <span className="inline-flex items-center justify-end gap-1.5">
-          {mc.carsAvailable.toLocaleString()}
+          {rentalMetricText(mc.carsKnown ? mc.carsAvailable : null)}
           <button
             type="button"
             onClick={() => {
               setEditingMonth(mc.month);
-              setEditValue(String(mc.carsAvailable));
+              setEditValue(mc.carsKnown ? String(mc.carsAvailable) : "");
             }}
             className="text-gray-400 hover:text-gray-600"
             title="Edit Available Cars"
@@ -554,8 +562,8 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
         </span>
       ),
       totalMiles: mc.totalMiles.toLocaleString(),
-      fleetUtilization: `${utilizationPct.toFixed(2)}%`,
-      avgEarningsPerTrip: formatCurrency(mc.tripsTaken > 0 ? avgPerTrip : 0),
+      fleetUtilization: mc.daysKnown && mc.carsKnown ? `${utilizationPct.toFixed(2)}%` : "—",
+      avgEarningsPerTrip: mc.tripsKnown ? formatCurrency(mc.tripsTaken > 0 ? avgPerTrip : 0) : "—",
       avgLeadTime: (mc.avgLeadTimeDays > 0 ? mc.avgLeadTimeDays : 0).toFixed(2),
       avgEarningsPerMile: formatCurrency(mc.totalMiles > 0 ? avgPerMile : 0),
     };
@@ -601,14 +609,12 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     ownerExpenses: formatCurrency(totalOwnerExpenses),
     ownerSplit: formatCurrency(totalOwnerIncome),
     coHostSplit: formatCurrency(totalCoHostIncome),
-    daysRented: totalDaysRented.toLocaleString(),
-    tripsTaken: totalTripsTakenAll.toLocaleString(),
-    availableDays: avgCarsAvailable.toLocaleString(undefined, { maximumFractionDigits: 1 }),
+    daysRented: rentalMetricText(allDaysKnown ? totalDaysRented : null),
+    tripsTaken: rentalMetricText(allTripsKnown ? totalTripsTakenAll : null),
+    availableDays: allCarsKnown ? avgCarsAvailable.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "—",
     totalMiles: totalMilesAll.toLocaleString(),
-    fleetUtilization: `${yearUtilization.toFixed(2)}%`,
-    avgEarningsPerTrip: formatCurrency(
-      totalTripsTakenAll > 0 ? yearAvgPerTrip : 0,
-    ),
+    fleetUtilization: allDaysKnown && allCarsKnown ? `${yearUtilization.toFixed(2)}%` : "—",
+    avgEarningsPerTrip: allTripsKnown ? formatCurrency(totalTripsTakenAll > 0 ? yearAvgPerTrip : 0) : "—",
     avgLeadTime: (yearAvgLeadTime > 0 ? yearAvgLeadTime : 0).toFixed(2),
     avgEarningsPerMile: formatCurrency(totalMilesAll > 0 ? yearAvgPerMile : 0),
   };
@@ -629,8 +635,8 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
 
   const activityBarData = monthlyComputed.map((mc) => ({
     month: `${formatShortMonth(mc.month)} ${year}`,
-    "Days Rented": mc.daysRented,
-    "Trips Taken": mc.tripsTaken,
+    "Days Rented": mc.daysKnown ? mc.daysRented : null,
+    "Trips Taken": mc.tripsKnown ? mc.tripsTaken : null,
   }));
 
   const parkingBarData = monthlyComputed.map((mc) => ({
@@ -650,12 +656,12 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     { name: "Car Owner Expenses", value: totalOwnerExpenses, color: "#111111" },
   ];
 
-  const totalAvailableDays = totalCarsAvailable * 30;
+  const totalAvailableDays = totalAvailableDaysAccurate;
   const unusedDays = Math.max(0, totalAvailableDays - totalDaysRented);
-  const activityDonut = [
+  const activityDonut = allDaysKnown && allCarsKnown ? [
     { name: "Days Rented", value: totalDaysRented, color: "#D3BC8D" },
     { name: "Days Unused", value: unusedDays, color: "#666666" },
-  ];
+  ] : [];
   const totalGrossIncome = monthlyComputed.reduce((s, m) => s + m.gross, 0);
   const totalTripsTaken = monthlyComputed.reduce((s, m) => s + m.tripsTaken, 0);
   const managementProfit = totalMgmtIncome;
@@ -663,7 +669,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
   const utilizationRate = totalAvailableDays > 0 ? (totalDaysRented / totalAvailableDays) * 100 : 0;
   const chartTrendData = monthlyComputed.map((mc) => ({
     month: formatShortMonth(mc.month),
-    "Fleet Utilization %": mc.carsAvailable > 0 ? (mc.daysRented / (mc.carsAvailable * 30)) * 100 : 0,
+    "Fleet Utilization %": !mc.daysKnown || !mc.carsKnown ? null : mc.carsAvailable > 0 ? (mc.daysRented / (mc.carsAvailable * daysInMonth(mc.month))) * 100 : 0,
   }));
 
   // ── Render helpers ───────────────────────────────────────────────────
@@ -716,6 +722,7 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
   return (
     <div className="mb-8 px-4">
       <SectionHeader title="INCOME AND EXPENSES" />
+      {ieData && (!allDaysKnown || !allTripsKnown || !allCarsKnown) && <p role="status" className="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs">Some rental figures need review and appear as —. Days Rented and Trips Taken use imported Turo reservations; incomplete data is left blank. Enter reviewed values on the vehicle’s Income &amp; Expenses page. Available Cars is a shared manual entry. <a href="/admin/turo-trips" className="underline">Review Turo trips</a></p>}
 
 
       {isLoading && <LoadingSkeleton />}
@@ -884,8 +891,8 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
             <div className="xl:col-span-1">
               <HorizontalBarChart
                 items={[
-                  { label: "Total Trips Taken", value: totalTripsTaken },
-                  { label: "Total Days Rented", value: totalDaysRented },
+                  { label: "Total Trips Taken", value: allTripsKnown ? totalTripsTaken : null },
+                  { label: "Total Days Rented", value: allDaysKnown ? totalDaysRented : null },
                 ]}
               />
             </div>

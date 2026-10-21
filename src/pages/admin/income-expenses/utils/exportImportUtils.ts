@@ -1,3 +1,4 @@
+import { rentalMetric, rentalMetricTotal } from "@/lib/rentalReportMetrics";
 // Consolidated Export/Import utility functions for Income and Expenses
 import JSZip from "jszip";
 import type { IncomeExpenseData } from "../types";
@@ -1227,38 +1228,12 @@ export function buildIncomeExpenseCSV(
   });
   csvContent += `YER,YER SPLIT,TOTAL\n`;
   
-  // Days Rented (manual entry)
-  csvContent += `Days Rented,`;
-  let daysRentedTotal = 0;
-  MONTHS.forEach((_, idx) => {
-    const monthNum = idx + 1;
-    const value = Number(getMonthValue(data.history, monthNum, "daysRented")) || 0;
-    csvContent += `${Number(value)},`;
-    daysRentedTotal += Number(value);
-  });
-  csvContent += `0,0,${daysRentedTotal}\n`;
-  
-  // Cars Available For Rent (manual entry)
-  csvContent += `Cars Available For Rent,`;
-  let carsAvailableTotal = 0;
-  MONTHS.forEach((_, idx) => {
-    const monthNum = idx + 1;
-    const value = Number(getMonthValue(data.history, monthNum, "carsAvailableForRent")) || 0;
-    csvContent += `${Number(value)},`;
-    carsAvailableTotal += Number(value);
-  });
-  csvContent += `0,0,${carsAvailableTotal}\n`;
-  
-  // Trips Taken (still from history)
-  csvContent += `Trips Taken,`;
-  let tripsTakenTotal = 0;
-    MONTHS.forEach((_, idx) => {
-    const value = (data.history[idx] as any)?.tripsTaken || 0;
-      csvContent += `${Number(value)},`;
-    tripsTakenTotal += Number(value);
-    });
-  csvContent += `0,0,${tripsTakenTotal}\n`;
-  
+  // Unknown rental figures export as empty cells, never invented zeros or partial totals.
+  for (const [label,field] of [['Days Rented','daysRented'],['Cars Available For Rent','carsAvailableForRent'],['Trips Taken','tripsTaken']]) {
+    const values = MONTHS.map((_,index)=>rentalMetric((data.history.find(row=>Number(row.month)===index+1) as any)?.[field]));
+    csvContent += `${label},${values.map(value=>value ?? '').join(',')},0,0,${rentalMetricTotal(values) ?? ''}\n`;
+  }
+
   csvContent += `\n`;
   
   // ========================================
@@ -1356,6 +1331,15 @@ export function buildIncomeExpenseCSV(
   });
   csvContent += `$0.00,$0.00,$${aveParkingGLATotal.toFixed(2)}\n`;
 
+  // The repeated trip-count and per-trip analysis sections must agree with HISTORY.
+  const tripValues = MONTHS.map((_,index)=>rentalMetric(data.history.find(row=>row.month===index+1)?.tripsTaken));
+  csvContent = csvContent.split('\n').map(line => {
+    if (!/^(Trips Taken|Total Trips Taken|Ave Rental Per Trips Taken|Average per trip),/.test(line)) return line;
+    const cells = line.split(',');
+    tripValues.forEach((value,index)=>{ if (value === null) cells[index+1]=''; });
+    if (tripValues.some(value=>value === null)) cells[cells.length-1]='';
+    return cells.join(',');
+  }).join('\n');
   return csvContent;
 }
 
@@ -1955,6 +1939,11 @@ export function parseImportedCSV(
         
         // Parse 12 month values (columns 1-12)
         for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
+          // Missing rental quantities are unknown, not an instruction to save zero.
+          if (currentSection === 'HISTORY' && !cells[monthIdx + 1]?.trim()) {
+            rowData[`month${monthIdx + 1}`] = null;
+            continue;
+          }
           const cellValue = cells[monthIdx + 1] || '$0.00';
           // Remove quotes, dollar signs, commas, and parentheses, then parse
           const cleanedValue = cellValue.replace(/["$,()]/g, '').trim();

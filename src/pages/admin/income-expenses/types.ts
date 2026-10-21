@@ -163,9 +163,12 @@ export interface OfficeSupportMonth {
 
 export interface HistoryMonth {
   month: number;
-  daysRented: number;
-  carsAvailableForRent: number;
-  tripsTaken: number;
+  daysRented: number | null;
+  carsAvailableForRent: number | null;
+  tripsTaken: number | null;
+  daysRentedSource?: string;
+  tripsTakenSource?: string;
+  rentalMetricsWarning?: string | null;
   /** Sum of trips' driven distance (miles) for trips that STARTED in this
    *  month. Sourced from turo_trips.miles_driven with total_distance as
    *  fallback. May be 0 when no Turo data is available. */
