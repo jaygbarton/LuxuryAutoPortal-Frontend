@@ -4381,7 +4381,7 @@ lastSavedNote.current = coHostNote;
             )}
 
             {/* HISTORY */}
-            <tr><td colSpan={14} className="px-2 py-3 text-xs text-muted-foreground">Days Rented counts nights in each month; Trips Taken counts reservations that started in that month. Both use Mountain time and exclude cancellations and future trips. Blank values need review; click a vehicle’s cell to enter a manual value. Cars Available uses the shared dashboard entry. <a className="underline text-primary" href="/admin/turo-trips">Review Turo trips</a></td></tr>
+            <tr><td colSpan={14} className="px-2 py-3 text-xs text-muted-foreground">Days Rented counts nights in each month; Trips Taken counts reservations that started in that month. Both use Mountain time and exclude cancellations and future trips. Blank values need review; click a vehicle’s cell to enter a manual value. All Cars totals count every recorded reservation; hover a month to see vehicles that need review. Cars Available uses the shared dashboard entry. <a className="underline text-primary" href="/admin/turo-trips">Review Turo trips</a></td></tr>
             <CategorySection
               title="HISTORY"
               isExpanded={expandedSections.history}
@@ -5579,6 +5579,8 @@ function CategoryRow({
                         ? category === "history" ? data.history.find(row=>row.month===month)?.rentalMetricsWarning || "Enter a reviewed value; automatic data is unavailable." : "This month's figure could not be computed."
                         : hasForm
                         ? `Manual $${cellValue.toFixed(2)} + Form $${cellFormAmount.toFixed(2)} = Total $${(displayedCellValue as number).toFixed(2)}`
+                        : category === "history" && data.history.find(row=>row.month===month)?.rentalMetricsWarning
+                          ? data.history.find(row=>row.month===month)?.rentalMetricsWarning ?? undefined
                         : onPercentCellClick && !isReadOnly
                           ? "Click to edit Co-Host %"
                           : canViewReceipt
