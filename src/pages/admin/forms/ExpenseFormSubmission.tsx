@@ -4,7 +4,8 @@ import { ServiceRecordDetailsFields, emptyServiceDetails } from './ServiceRecord
 import { optionKeywords } from "@/lib/select-search";
 /**
  * Employee Form: Income & Expense Receipt Submission
- * Income, Operating Expenses (Direct Delivery), COGS (Per Vehicle), Reimbursed Bills
+ * Income, Operating Expenses (Direct Delivery), COGS (Per Vehicle), Reimbursed Bills,
+ * Operating Expenses (Office Support — fleet-wide, no car)
  * COGS service workflow: select a form, read receipt locally, confirm values and submit for approval.
  */
 
@@ -32,7 +33,10 @@ const CATEGORY_LABELS: Record<string, string> = {
   directDelivery: "Operating Expenses (Direct Delivery)",
   cogs: "Operating Expenses (COGS - Per Vehicle)",
   reimbursedBills: "Reimbursed and Non-Reimbursed Bills",
+  officeSupport: "Operating Expenses (Office Support)",
 };
+
+const FORM_CATEGORIES = ["income", "directDelivery", "cogs", "reimbursedBills", "officeSupport"] as const;
 
 type ExpenseFormSubmissionProps = {
   /** Pre-select category (e.g. from staff Forms list link). */
@@ -54,7 +58,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField, i
     carId: initialCarId ? String(initialCarId) : "",
     year: new Date().getFullYear().toString(),
     month: (new Date().getMonth() + 1).toString(),
-    category: initialCategory && ["income", "directDelivery", "cogs", "reimbursedBills"].includes(initialCategory) ? initialCategory : "directDelivery",
+    category: initialCategory && (FORM_CATEGORIES as readonly string[]).includes(initialCategory) ? initialCategory : "directDelivery",
     field: initialField ?? "",
     amount: "",
     remarks: "",
@@ -106,6 +110,9 @@ export default function ExpenseFormSubmission({ initialCategory, initialField, i
     options.categoryFields || {};
   const fieldOptions = (categoryFields[formData.category] || []).filter(f => !serviceOnly || !!f.serviceKind);
   const serviceKind = formData.category === 'cogs' ? fieldOptions.find(f => f.value === formData.field)?.serviceKind : null;
+  // Office Support is fleet-wide overhead: it files to the All Cars view, so
+  // there is no car to pick (the server stores it under car_id 0).
+  const isOfficeSupport = formData.category === "officeSupport";
   useEffect(() => { setValuesConfirmed(false); }, [formData, serviceDetails, receiptFiles]);
   useEffect(() => { analysisSequence.current++; setIsAnalyzingReceipt(false); }, [formData.field, formData.category]);
 
@@ -132,7 +139,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField, i
 
   const resolvedInitialCategory = useMemo(
     () =>
-      initialCategory && ["income", "directDelivery", "cogs", "reimbursedBills"].includes(initialCategory)
+      initialCategory && (FORM_CATEGORIES as readonly string[]).includes(initialCategory)
         ? initialCategory
         : null,
     [initialCategory],
@@ -328,7 +335,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField, i
         body: JSON.stringify({
           submissionDate: formData.submissionDate,
           employeeId: parseInt(effectiveEmployeeIdForSubmit, 10),
-          carId: parseInt(formData.carId),
+          carId: isOfficeSupport ? 0 : parseInt(formData.carId),
           year: parseInt(formData.year),
           month: parseInt(formData.month),
           category: formData.category,
@@ -411,7 +418,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField, i
       });
       return;
     }
-    if (!formData.carId) {
+    if (!isOfficeSupport && !formData.carId) {
       toast({
         title: "Validation Error",
         description: "Please select a car from the dropdown list (type to search, then click a result).",
@@ -528,6 +535,12 @@ export default function ExpenseFormSubmission({ initialCategory, initialField, i
             </div>
           </div>
 
+          {isOfficeSupport ? (
+          <div className="space-y-2">
+            <Label className="text-foreground font-medium text-sm">Car</Label>
+            <p className="text-xs text-muted-foreground/80">Office Support is a fleet-wide expense. No car is needed; approved receipts appear under Operating Expenses (Office Support) on the All Cars Income &amp; Expenses view.</p>
+          </div>
+          ) : (
           <div className="relative space-y-2">
             <Label className="text-foreground font-medium text-sm">Car <span className="text-primary">*</span></Label>
             <p className="text-xs text-muted-foreground/80">{initialCarId ? 'Vehicle selected from Service Due.' : 'Type car name, VIN, or plate number to search.'}</p>
@@ -597,6 +610,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField, i
               </div>
             )}
           </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div className="space-y-2">
@@ -656,10 +670,10 @@ export default function ExpenseFormSubmission({ initialCategory, initialField, i
               </SelectTrigger>
               <SelectContent>
                 {/* Only offer categories the server actually returned options
-                    for. Admins get all four; employees get the restricted set
-                    (income omitted), so the dropdown never shows a category
-                    that would have an empty Expense Type list. */}
-                {(["income", "directDelivery", "cogs", "reimbursedBills"] as const)
+                    for. Admins get all five; employees get the restricted set
+                    (income and office support omitted), so the dropdown never
+                    shows a category that would have an empty Expense Type list. */}
+                {FORM_CATEGORIES
                   .filter((cat) => (categoryFields[cat]?.length ?? 0) > 0)
                   .map((cat) => (
                     <SelectItem searchKeywords={optionKeywords(cat)} key={cat} value={cat}>

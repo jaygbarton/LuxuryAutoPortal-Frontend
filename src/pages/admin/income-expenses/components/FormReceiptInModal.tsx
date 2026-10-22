@@ -49,7 +49,8 @@ export default function FormReceiptInModal({ carId, year, editingCell, isOpen }:
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
     },
-    enabled: isOpen && !!carId && !!year,
+    // carId 0 = All Cars view (fleet-wide Office Support submissions).
+    enabled: isOpen && carId >= 0 && !!year,
   });
 
   const approvedList = Array.isArray(approvedData?.data) ? approvedData.data : [];

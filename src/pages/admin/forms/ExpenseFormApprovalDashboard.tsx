@@ -68,6 +68,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   cogs: "COGS",
   reimbursedBills: "Reimbursed Bills",
   income: "Income & Expenses",
+  officeSupport: "Office Support",
 };
 
 const APPROVAL_DASHBOARD_LIMIT = 5000;
@@ -1205,6 +1206,7 @@ export default function ExpenseFormApprovalDashboard({
               <SelectItem value="cogs">COGS</SelectItem>
               <SelectItem value="reimbursedBills">Reimbursed Bills</SelectItem>
               <SelectItem value="income">Income & Expenses</SelectItem>
+              <SelectItem value="officeSupport">Office Support</SelectItem>
             </SelectContent>
           </Select>
 
@@ -1942,14 +1944,21 @@ export default function ExpenseFormApprovalDashboard({
                 <Select
                   value={editForm.category || ""}
                   onValueChange={(v) =>
-                    setEditForm((p) => ({ ...p, category: v, field: "" }))
+                    // Office Support is fleet-wide (car_id 0); moving a
+                    // submission out of it needs a real car picked below.
+                    setEditForm((p) => ({
+                      ...p,
+                      category: v,
+                      field: "",
+                      carId: v === "officeSupport" ? 0 : p.carId === 0 ? undefined : p.carId,
+                    }))
                   }
                 >
                   <SelectTrigger className="bg-card border-border text-foreground mt-1">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(["income", "directDelivery", "cogs", "reimbursedBills"] as const)
+                    {(["income", "directDelivery", "cogs", "reimbursedBills", "officeSupport"] as const)
                       .filter((cat) => (liveCategoryFields[cat]?.length ?? 0) > 0)
                       .map((cat) => (
                         <SelectItem searchKeywords={optionKeywords(cat)} key={cat} value={cat}>
@@ -2009,11 +2018,15 @@ export default function ExpenseFormApprovalDashboard({
             </div>
             <div>
               <label className="text-sm text-muted-foreground">Car</label>
-              <CarComboboxById
-                value={editForm.carId}
-                onChange={(id) => setEditForm((p) => ({ ...p, carId: id }))}
-                cars={cars}
-              />
+              {editForm.category === "officeSupport" ? (
+                <p className="text-sm text-muted-foreground mt-1">No car (fleet-wide Office Support)</p>
+              ) : (
+                <CarComboboxById
+                  value={editForm.carId}
+                  onChange={(id) => setEditForm((p) => ({ ...p, carId: id }))}
+                  cars={cars}
+                />
+              )}
             </div>
             <div>
               <label className="text-sm text-muted-foreground">

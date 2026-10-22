@@ -17,7 +17,7 @@
 /** Forms-page section id that contains the Income & Expense Receipt form. */
 export const EXPENSE_FORM_SECTION_ID = "employee-forms";
 
-export type ExpenseFormCategory = "income" | "directDelivery" | "cogs" | "reimbursedBills";
+export type ExpenseFormCategory = "income" | "directDelivery" | "cogs" | "reimbursedBills" | "officeSupport";
 
 /**
  * The expense form identifies dynamic sub-categories by a `db_<metadataId>`

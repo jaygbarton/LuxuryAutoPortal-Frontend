@@ -69,6 +69,7 @@ const CATEGORY_LABELS: Record<ExpenseFormCategory, string> = {
   directDelivery: "Operating Expenses (Direct Delivery)",
   cogs: "Operating Expenses (COGS - Per Vehicle)",
   reimbursedBills: "Reimburse & Non-Reimburse Bills",
+  officeSupport: "Operating Expenses (Office Support)",
 };
 
 /** Short labels for the tab strip (full labels are long). */
@@ -77,9 +78,10 @@ const TAB_LABELS: Record<ExpenseFormCategory, string> = {
   directDelivery: "Direct Delivery",
   cogs: "COGS - Per Vehicle",
   reimbursedBills: "Reimburse / Non-Reimburse",
+  officeSupport: "Office Support",
 };
 
-const ORDER: ExpenseFormCategory[] = ["directDelivery", "cogs", "reimbursedBills", "income"];
+const ORDER: ExpenseFormCategory[] = ["directDelivery", "cogs", "reimbursedBills", "officeSupport", "income"];
 
 type FieldOption = { value: string; label: string };
 

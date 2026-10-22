@@ -36,7 +36,9 @@ export function formAmountKey(category: string, field: string, month: number) {
 }
 
 export function useFormAmounts(carId: number | null | undefined, year: string) {
-  const enabled = !!carId && !!year;
+  // carId 0 is the All Cars view: it reads the fleet-wide Office Support
+  // submissions (the only ones filed under car_id 0).
+  const enabled = carId != null && Number.isInteger(carId) && carId >= 0 && !!year;
 
   const { data, isLoading } = useQuery({
     // Query key is structured under the "/api/expense-form-submissions"

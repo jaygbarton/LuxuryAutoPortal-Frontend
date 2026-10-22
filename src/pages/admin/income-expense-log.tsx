@@ -114,6 +114,7 @@ export default function IncomeExpenseLogPage() {
       cogs: "COGS",
       parkingFeeLabor: "Parking Fee & Labor",
       reimbursedBills: "Reimbursed Bills",
+      officeSupport: "Office Support",
       history: "History",
       managementSplit: "Management Split",
     };

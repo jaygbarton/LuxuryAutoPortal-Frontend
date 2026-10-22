@@ -15,14 +15,16 @@ interface EditableCellProps {
 }
 
 // The only I&E categories whose fields are also tracked by expense form
-// submissions. Every other category (parkingFeeLabor, officeSupport, etc.)
-// cannot receive a "form amount", so we skip the lookup entirely. This keeps
-// split %/history/etc. cells untouched by form-amount math.
+// submissions. Every other category (parkingFeeLabor, history, etc.) cannot
+// receive a "form amount", so we skip the lookup entirely. This keeps
+// split %/history/etc. cells untouched by form-amount math. officeSupport
+// submissions are fleet-wide (car_id 0) and only show on the All Cars view.
 export const FORM_AWARE_CATEGORIES = new Set([
   "income",
   "directDelivery",
   "cogs",
   "reimbursedBills",
+  "officeSupport",
 ]);
 
 export default function EditableCell({

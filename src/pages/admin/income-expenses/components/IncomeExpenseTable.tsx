@@ -863,7 +863,10 @@ lastSavedNote.current = coHostNote;
       getMonthValue(data.officeSupport, month, "suppliesMaterials") +
       getMonthValue(data.officeSupport, month, "taxesLicense") +
       getMonthValue(data.officeSupport, month, "telephone") +
-      getMonthValue(data.officeSupport, month, "travel")
+      getMonthValue(data.officeSupport, month, "travel") +
+      // Approved Office Support receipts (car_id 0), shown on top of the
+      // manual value in each row above.
+      getCategoryMonthFormTotal("officeSupport", month)
       // NOTE: EBITDA-only fields (vehicleLoanInterestExpense, depreciationExpense,
       // vehicleDepreciationExpense, amortizationExpense, ebitdaTaxes) are
       // intentionally excluded here. They are manual entries on the EBITDA

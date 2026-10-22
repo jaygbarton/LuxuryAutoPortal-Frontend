@@ -15,6 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
 import ReceiptUploadZone from "../components/ReceiptUploadZone";
+import AmountBreakdown from "../components/AmountBreakdown";
+import FormReceiptInModal from "../components/FormReceiptInModal";
 import { useImageUpload } from "../utils/useImageUpload";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -65,7 +67,7 @@ const FIELD_LABELS: { [key: string]: string } = {
 };
 
 export default function ModalEditOfficeSupport() {
-  const { editingCell, setEditingCell, saveChanges, isSaving, year, carId } = useIncomeExpense();
+  const { editingCell, setEditingCell, saveChanges, isSaving, year, carId, getFormAmount } = useIncomeExpense();
 
   const monthName = editingCell ? MONTHS[editingCell.month - 1] : "";
   const isOpen = !!editingCell && editingCell.category === "officeSupport";
@@ -122,7 +124,7 @@ export default function ModalEditOfficeSupport() {
           </div>
 
           <div>
-            <Label className="text-muted-foreground text-xs">Amount</Label>
+            <Label className="text-muted-foreground text-xs">Manual Amount</Label>
             <Input
               type="number"
               value={editingCell.value}
@@ -136,7 +138,17 @@ export default function ModalEditOfficeSupport() {
               step="0.01"
               autoFocus
             />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Manually-entered amount. Set to 0 to remove it; the Form Amount is unaffected.
+            </p>
           </div>
+
+          <AmountBreakdown
+            formAmount={getFormAmount(editingCell.category, editingCell.field, editingCell.month)}
+            manualAmount={editingCell.value}
+          />
+
+          <FormReceiptInModal carId={carId} year={year} editingCell={editingCell} isOpen={isOpen} />
 
           <ReceiptUploadZone
             inputId="receipt-upload-officesupport"

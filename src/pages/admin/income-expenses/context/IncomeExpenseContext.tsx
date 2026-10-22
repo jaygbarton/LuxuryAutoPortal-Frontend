@@ -317,9 +317,11 @@ export function IncomeExpenseProvider({
 
   // Form Amount lookup: pulls approved expense form submissions for this
   // car/year and exposes a per-(category,field,month) sum. The "All Cars"
-  // aggregate view does not have a single carId so we skip this lookup.
+  // view reads car_id 0, which holds only the fleet-wide Office Support
+  // submissions; every per-car category there is already aggregated (form
+  // amounts included) by the backend.
   const { formAmounts, getFormAmount, getCategoryMonthFormTotal } = useFormAmounts(
-    !isAllCars && carId ? carId : null,
+    isAllCars ? 0 : carId || null,
     year
   );
 
