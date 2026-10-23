@@ -4384,7 +4384,7 @@ lastSavedNote.current = coHostNote;
             )}
 
             {/* HISTORY */}
-            <tr><td colSpan={14} className="px-2 py-3 text-xs text-muted-foreground">Days Rented counts nights in each month; Trips Taken counts reservations that started in that month. Both use Mountain time and exclude cancellations and future trips. Blank values need review; click a vehicle’s cell to enter a manual value. All Cars totals count every recorded reservation; hover a month to see vehicles that need review. Cars Available uses the shared dashboard entry. <a className="underline text-primary" href="/admin/turo-trips">Review Turo trips</a></td></tr>
+            <tr><td colSpan={14} className="px-2 py-3 text-xs text-muted-foreground">Days Rented and Trips Taken follow Turo’s trip history: each trip, and all of its days (return date minus pickup date), counts in the month it ended. Both use Mountain time and exclude cancellations and trips not yet ended. Blank values need review; click a vehicle’s cell to enter a manual value. All Cars totals count every recorded reservation; hover a month to see vehicles that need review. Cars Available uses the shared dashboard entry. <a className="underline text-primary" href="/admin/turo-trips">Review Turo trips</a></td></tr>
             <CategorySection
               title="HISTORY"
               isExpanded={expandedSections.history}
