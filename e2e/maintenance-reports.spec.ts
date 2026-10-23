@@ -43,3 +43,36 @@ for (const width of [390,1280]) test(`one reservation card preserves all nine re
   await expect(page.getByRole('region',{name:'Reports of this maintenance issue'}).locator('article')).toHaveCount(9);
   expect(errors).toEqual([]);
 });
+
+for (const width of [390,1280]) test(`moving a report opens its older reservation card with the new trip visible at ${width}px`, async ({page}) => {
+  await page.setViewportSize({width,height:900});
+  let moved=false;
+  const base={id:1,car_id:7,car_name:'Toyota Sienna',car_make:'Toyota',car_model:'Sienna',car_year:2020,car_plate:'ABC123',inspection_id:10,status:'new',photos:[],service_type:'other',task_description:'Car issue: Battery',trip_reservation_id:'older-trip'};
+  const original={...base,id:99,inspection_id:20,reservation_id:'62113257',task_description:'Car issue: Battery',notes:'New report from the returning trip',trip_id:30};
+  const card={...base,report_count:2,report_ids:[1,99],report_inspection_ids:[10,20],report_trip_count:2,reported_issues:['Car issue: Battery'],reported_reservations:['older-trip','62113257'],report_statuses:['new']};
+  const requests:string[]=[];
+  await page.route(url=>url.pathname.startsWith('/api/'),async route=>{
+    const url=new URL(route.request().url()), path=url.pathname;requests.push(path+url.search);
+    let json:any={success:true,data:[],total:0,appointments:[],notifications:[],unreadCount:0};
+    if(path==='/api/auth/me')json={user:{id:41,fullname:'Andy Zhang',roleName:'Admin',isAdmin:true,isSuperAdmin:true,tourCompleted:true,effectiveTimezone:'America/Denver'}};
+    if(path==='/api/operations/inspections')json={success:true,total:moved?0:1,data:moved?[]:[{id:20,turo_trip_id:30,car_name:'Toyota Sienna',reservation_id:'62113257',status:'new',source:'manual',car_issue_types:['Battery'],photos:[]}]};
+    if(path.endsWith('/move-to-maintenance')){moved=true;json={success:true,data:[original]};}
+    if(path==='/api/operations/maintenance')json={success:true,total:1,data:[moved?card:base]};
+    if(path==='/api/service-workspace/maintenance/1/reports')json={reports:[base,original],tripCount:2};
+    if(path==='/api/cars')json={success:true,data:[{id:7,makeModel:'Toyota Sienna',year:2020,plateNumber:'ABC123'}]};
+    await route.fulfill({json});
+  });
+  await page.goto('/admin/operations?tab=inspections');
+  await page.getByTitle('Move to Maintenance',{exact:true}).click();
+  const link=page.getByRole('link',{name:'View in Maintenance',exact:true});
+  await expect(link).toHaveAttribute('href','/admin/operations?tab=maintenance&report=99');
+  await link.click();
+  const article=page.getByRole('article',{name:/Maintenance for/});
+  await expect(article).toHaveCount(1);
+  await expect(article).toContainText('62113257');
+  await expect(page.getByRole('region',{name:'Reports of this maintenance issue'})).toContainText('New report from the returning trip');
+  expect(requests.some(url=>url.includes('/api/operations/maintenance?reportId=99'))).toBe(true);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
+  await page.reload();
+  await expect(page.getByRole('region',{name:'Reports of this maintenance issue'})).toContainText('New report from the returning trip');
+});

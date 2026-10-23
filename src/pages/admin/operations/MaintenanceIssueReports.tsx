@@ -11,11 +11,11 @@ interface Report extends Omit<MaintenanceRecord, "photos" | "trip_id" | "task_de
 function attachments(value: Report['photos']): string[] {
   try { const files = typeof value === 'string' ? JSON.parse(value) : value; return Array.isArray(files) ? files.filter((file): file is string => typeof file === 'string' && safeServiceFile(file)) : []; } catch { return []; }
 }
-export function MaintenanceIssueReports({ maintenanceId, reportCount, tripCount, onEdit, onAppointment, onHistory }: {
-  maintenanceId: number; reportCount?: number; tripCount?: number;
+export function MaintenanceIssueReports({ defaultExpanded = false, maintenanceId, reportCount, tripCount, onEdit, onAppointment, onHistory }: {
+  defaultExpanded?: boolean; maintenanceId: number; reportCount?: number; tripCount?: number;
   onEdit?: (report: MaintenanceRecord) => void; onAppointment?: (id: number) => void; onHistory?: (report: MaintenanceRecord) => void;
 }) {
-  const [open,setOpen] = useState(false);
+  const [open,setOpen] = useState(defaultExpanded);
   const { data,isPending,isError,refetch } = useQuery<{ reports: Report[]; tripCount: number }>({
     queryKey: ['/api/service-workspace/maintenance',maintenanceId,'reports'], enabled: open, staleTime: 0, refetchOnMount: 'always',
     queryFn: async () => { const response = await fetch(buildApiUrl(`/api/service-workspace/maintenance/${maintenanceId}/reports`),{ credentials: 'include' }); if (!response.ok) throw new Error('Reports could not be loaded.'); const result = await response.json(); if (!Array.isArray(result.reports)) throw new Error('Reports are incomplete.'); return result; },

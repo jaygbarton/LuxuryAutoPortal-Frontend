@@ -1,3 +1,5 @@
+import { Link } from "wouter";
+import { fetchMaintenanceRecords, invalidateMaintenanceReports, maintenanceMoveUrl } from "@/lib/maintenanceReports";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -157,11 +159,7 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
 
   const { data: maintenanceData, isLoading: isMaintLoading } = useQuery<{ data: MaintenanceRecord[] }>({
     queryKey: ["/api/operations/maintenance", "all"],
-    queryFn: async () => {
-      return api.get("/api/operations/maintenance?limit=5000", {
-        fallbackMessage: "Failed to fetch maintenance",
-      });
-    },
+    queryFn: ({ signal }) => fetchMaintenanceRecords(new URLSearchParams(), signal),
     staleTime: 2 * 60 * 1000,
   });
 
@@ -179,7 +177,7 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
   const maintenanceRecords = maintenanceData?.data || [];
 
   const isMovedToMaintenance = (inspectionId: number): boolean => {
-    return maintenanceRecords.some(m => m.inspection_id === inspectionId);
+    return maintenanceRecords.some(m => m.inspection_id === inspectionId || m.report_inspection_ids?.includes(inspectionId));
   };
 
   // Convert a UTC ISO string to its YYYY-MM-DD calendar day in Mountain Time so
@@ -337,13 +335,19 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
     },
   });
 
+  const [movedMaintenanceUrl, setMovedMaintenanceUrl] = useState<string | null>(null);
+
   const moveToMaintenanceMutation = useMutation({
     mutationFn: async (id: number) => {
-      return api.post(`/api/operations/inspections/${id}/move-to-maintenance`, undefined, {
+      const body = await api.post(`/api/operations/inspections/${id}/move-to-maintenance`, undefined, {
         fallbackMessage: "Failed to move to maintenance",
       });
+      maintenanceMoveUrl(body);
+      return body;
     },
     onSuccess: (body) => {
+      setMovedMaintenanceUrl(maintenanceMoveUrl(body));
+      invalidateMaintenanceReports(queryClient);
       queryClient.invalidateQueries({ queryKey: ["/api/operations/inspections"] });
       queryClient.invalidateQueries({ queryKey: ["/api/operations/maintenance"] });
       toast({ title: "Success", description: movedToMaintenanceMessage(body) });
@@ -388,6 +392,10 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
 
   return (
     <div className="space-y-6">
+      {movedMaintenanceUrl && <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+        <span>Issue reports saved. Repeated reports appear together under the vehicle.</span>
+        <Link href={movedMaintenanceUrl} className="inline-flex min-h-11 items-center font-semibold underline">View in Maintenance</Link>
+      </div>}
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <SectionHeader title="Car Inspections" variant="plain" className="mb-0 min-w-0" />
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">

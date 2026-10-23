@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface MaintenanceRecordCardProps {
+  defaultExpanded?: boolean;
   carName: ReactNode;
   carLabel: string;
   plate?: string | null;
@@ -38,11 +39,11 @@ interface MaintenanceRecordCardProps {
 /** Keep the maintenance task and its working controls in view; reveal the
  * linked trip, repair details and attachments only when they are needed. */
 export function MaintenanceRecordCard({
-  carName, carLabel, plate, reservation, image, service, description, scheduled, due,
+  defaultExpanded = false, carName, carLabel, plate, reservation, image, service, description, scheduled, due,
   statusControl, assigneeControl, approval, details, notes, photos, reports, reportSummary, accentBg,
   onEdit, onHistory, onDelete, onAppointment,
 }: MaintenanceRecordCardProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
 
   return (
     <Collapsible open={expanded} onOpenChange={setExpanded} asChild>

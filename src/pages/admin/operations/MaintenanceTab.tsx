@@ -1,4 +1,4 @@
-import { invalidateMaintenanceReports } from "@/lib/maintenanceReports";
+import { fetchMaintenanceRecords, invalidateMaintenanceReports } from "@/lib/maintenanceReports";
 import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useSearch } from "wouter";
@@ -179,13 +179,14 @@ export function MaintenanceTab({
   lockedStatus = false,
 }: MaintenanceTabProps = {}) {
   const searchParams = useSearch(), [, navigate] = useLocation();
+  const linkedReport = new URLSearchParams(searchParams).get("report");
   const linkedAppointment = new URLSearchParams(searchParams).get("appointment");
   const [appointmentId, setAppointmentId] = useState<number | null>(null);
   const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>(defaultStatus);
-  const [search, setSearch] = useState<string>("");
+  const [search, setSearch] = useState<string>(() => new URLSearchParams(searchParams).get("search") ?? "");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState<string>("");
@@ -208,19 +209,12 @@ export function MaintenanceTab({
   const carNameWithYear = useCarNameWithYear();
 
   const { data, isLoading, error: maintenanceError, refetch: reloadMaintenance } = useQuery<{ data: MaintenanceRecord[]; total: number }>({
-    queryKey: ["/api/operations/maintenance", filterStatus],
-    queryFn: async () => {
+    queryKey: ["/api/operations/maintenance", filterStatus, linkedReport],
+    queryFn: async ({ signal }) => {
       const params = new URLSearchParams();
-      if (filterStatus !== "all") params.append("status", filterStatus);
-      params.append("limit", "5000");
-      const response = await fetch(
-        buildApiUrl(`/api/operations/maintenance?${params.toString()}`),
-        { credentials: "include" },
-      );
-      if (!response.ok) throw new Error("Failed to fetch maintenance records");
-      const payload = await response.json();
-      if (!Array.isArray(payload.data) || payload.data.some((record: MaintenanceRecord) => !Number.isSafeInteger(Number(record?.id)) || Number(record.id) <= 0)) throw new Error("The maintenance response is incomplete. Please retry.");
-      return { ...payload, data: payload.data.map((record: MaintenanceRecord) => ({ ...record, id: Number(record.id) })) };
+      if (linkedReport) params.set("reportId", linkedReport);
+      else if (filterStatus !== "all") params.append("status", filterStatus);
+      return fetchMaintenanceRecords<MaintenanceRecord>(params, signal);
     },
     retry: false,
     staleTime: 0,
@@ -259,9 +253,12 @@ export function MaintenanceTab({
   const records = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rawRecords.filter((rec) => {
+      // A direct link must not disappear behind stale location/date/status filters.
+      if (linkedReport) return rec.report_ids?.includes(Number(linkedReport)) || rec.id === Number(linkedReport);
       const insp = rec.inspection_id != null ? inspectionsById.get(rec.inspection_id) : undefined;
       const trip = insp?.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;
       if (!operationLocationMatches(locationFilter, [
+        ...(rec.report_trip_contexts ?? []).flatMap(trip => [trip.pickup_location, trip.delivery_location, trip.return_location]),
         rec.trip_pickup_location,
         rec.trip_delivery_location,
         rec.trip_return_location,
@@ -329,11 +326,11 @@ export function MaintenanceTab({
           day != null && (!dateFrom || day >= dateFrom) && (!dateTo || day <= dateTo);
         const startDay = toMtDate(rec.trip_start ?? null);
         const endDay = toMtDate(rec.trip_end ?? null);
-        if (!inRange(startDay) && !inRange(endDay)) return false;
+        if (!inRange(startDay) && !inRange(endDay) && !(rec.report_trip_contexts ?? []).some(trip => inRange(toMtDate(trip.trip_start)) || inRange(toMtDate(trip.trip_end)))) return false;
       }
       return true;
     });
-  }, [rawRecords, inspectionsById, tripsById, search, dateFrom, dateTo, locationFilter]);
+  }, [rawRecords, inspectionsById, tripsById, search, dateFrom, dateTo, locationFilter, linkedReport]);
 
   const hasActiveFilters =
     filterStatus !== (defaultStatus ?? "all") ||
@@ -343,7 +340,7 @@ export function MaintenanceTab({
 
   useEffect(() => {
     setPage(1);
-  }, [filterStatus, search, dateFrom, dateTo, pageSize]);
+  }, [filterStatus, search, dateFrom, dateTo, pageSize, linkedReport]);
 
   const pagedRecords = useMemo(
     () => records.slice((page - 1) * pageSize, page * pageSize),
@@ -475,6 +472,10 @@ export function MaintenanceTab({
 
   return (
     <div className="min-w-0 space-y-4">
+      {linkedReport && <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+        <span>Showing the reservation card containing report #{linkedReport}. All original issues and trips are below.</span>
+        <Button variant="outline" onClick={() => navigate('/admin/operations?tab=maintenance')}>Show all maintenance</Button>
+      </div>}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <SectionHeader title="Maintenance" variant="plain" className="mb-0" />
         <div className="flex shrink-0 items-center gap-1">
@@ -745,12 +746,13 @@ export function MaintenanceTab({
 
                 return (
                   <MaintenanceRecordCard
+                    defaultExpanded={Boolean(linkedReport)}
                     key={rec.id}
                     accentBg={statusAccent.bg}
                     carLabel={carDisplayName}
                     carName={rec.car_id ? <Link href={`/admin/cars/${rec.car_id}/maintenance`} className="hover:underline">{carDisplayName}</Link> : carDisplayName}
                     plate={plateNumber}
-                    reservation={reservationId}
+                    reservation={rec.reported_reservations?.length ? rec.reported_reservations.join(", ") : reservationId}
                     image={carPhotoEl}
                     service={rec.service_type ? MAINTENANCE_SERVICE_TYPE_LABELS[rec.service_type] : null}
                     description={rec.reported_issues?.join(" · ") || rec.task_description}
@@ -762,9 +764,10 @@ export function MaintenanceTab({
                     photos={photosEl}
                     reportSummary={(rec.report_count ?? 0) > 1 ? <div className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-xs">
                       <p className="font-semibold">{rec.report_count} reports · {rec.report_trip_count} trips</p>
+                      <p>Report statuses: {rec.report_statuses?.map(status => status.replace(/_/g, " ")).join(", ")}</p>
                       <p className="mt-1 text-muted-foreground">Controls below apply to report #{rec.id}. Expand details to manage each reported issue.</p>
                     </div> : undefined}
-                    reports={<MaintenanceIssueReports maintenanceId={rec.id} reportCount={rec.report_count} tripCount={rec.report_trip_count}
+                    reports={<MaintenanceIssueReports defaultExpanded={Boolean(linkedReport)} maintenanceId={rec.id} reportCount={rec.report_count} tripCount={rec.report_trip_count}
                       onEdit={report => { setEditingRecord({ ...rec, ...report }); setModalOpen(true); }}
                       onAppointment={setAppointmentId}
                       onHistory={report => { setHistoryRecord({ ...rec, ...report }); setHistoryModalOpen(true); }} /> }

@@ -1,3 +1,5 @@
+import { Link } from "wouter";
+import { fetchMaintenanceRecords, invalidateMaintenanceReports, maintenanceMoveUrl } from "@/lib/maintenanceReports";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -388,17 +390,13 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
     },
   });
 
-  const { data: maintenanceData } = useQuery<{ data: { inspection_id: number | null }[] }>({
+  const { data: maintenanceData } = useQuery<{ data: { id: number; inspection_id: number | null; report_inspection_ids?: number[] }[] }>({
     queryKey: ["/api/operations/maintenance", "all"],
-    queryFn: async () => {
-      return api.get("/api/operations/maintenance?limit=500", {
-        fallbackMessage: "Failed to fetch maintenance",
-      });
-    },
+    queryFn: ({ signal }) => fetchMaintenanceRecords(new URLSearchParams(), signal),
     staleTime: 2 * 60 * 1000,
   });
   const maintenanceInspectionIds = new Set(
-    (maintenanceData?.data ?? []).map(m => m.inspection_id).filter((id): id is number => id != null)
+    (maintenanceData?.data ?? []).flatMap(m => m.report_inspection_ids ?? [m.inspection_id]).filter((id): id is number => id != null)
   );
 
   // Fetch trips that overlap the active date filter window so the client-side
@@ -653,6 +651,8 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
     },
   });
 
+  const [movedMaintenanceUrl, setMovedMaintenanceUrl] = useState<string | null>(null);
+
   const moveToMaintenanceMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await fetch(
@@ -663,9 +663,13 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
         },
       );
       if (!response.ok) throw new Error("Failed to move to maintenance");
-      return response.json();
+      const body = await response.json();
+      maintenanceMoveUrl(body);
+      return body;
     },
     onSuccess: (body) => {
+      setMovedMaintenanceUrl(maintenanceMoveUrl(body));
+      invalidateMaintenanceReports(queryClient);
       queryClient.invalidateQueries({
         queryKey: ["/api/operations/inspections"],
       });
@@ -786,6 +790,10 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
 
   return (
     <div className="space-y-6">
+      {movedMaintenanceUrl && <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+        <span>Issue reports saved. Repeated reports appear together under the vehicle.</span>
+        <Link href={movedMaintenanceUrl} className="inline-flex min-h-11 items-center font-semibold underline">View in Maintenance</Link>
+      </div>}
       <div className="flex items-start justify-between">
         <SectionHeader
           title="Turo Messages"

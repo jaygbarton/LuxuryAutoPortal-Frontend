@@ -233,7 +233,9 @@ export interface MaintenanceRecord {
   report_ids?: number[];
   reported_reservations?: string[];
   reported_issues?: string[];
+  report_inspection_ids?: number[];
   report_statuses?: string[];
+  report_trip_contexts?: { reservation_id: string; trip_start: string | null; trip_end: string | null; pickup_location: string | null; delivery_location: string | null; return_location: string | null }[];
   id: number;
   inspection_id: number | null;
   /** The ONE car issue this record covers. An inspection reporting three
