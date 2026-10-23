@@ -18,6 +18,7 @@ import {
 } from "recharts";
 import { Pencil, Check, X, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
+import { notifyIncomeExpenseChanged, useInvalidateOnIncomeExpenseChange } from "@/lib/incomeExpenseSync";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { SectionHeader, SummaryCard } from "@/components/admin/dashboard";
@@ -362,6 +363,9 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     },
   });
 
+  // staleTime is Infinity app-wide; pick up I&E edits made in another window.
+  useInvalidateOnIncomeExpenseChange([queryKey]);
+
   const ieData = data?.data;
 
   const [editingMonth, setEditingMonth] = useState<number | null>(null);
@@ -381,6 +385,9 @@ export default function IncomeExpensesSection({ year, onYearChange }: IncomeExpe
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       queryClient.invalidateQueries({ queryKey: ["/api/income-expense"] });
+      // Cars Available also feeds the Car Performance Ranking subtitle.
+      queryClient.invalidateQueries({ queryKey: ["/api/income-expense/car-performance", year] });
+      notifyIncomeExpenseChanged();
       setEditingMonth(null);
     },
     onError: () => {

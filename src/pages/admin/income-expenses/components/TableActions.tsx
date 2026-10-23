@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
 import { exportAllAsZip, importFromFileWithReceipts } from "../utils/exportImportUtils";
 import { buildApiUrl } from "@/lib/queryClient";
+import { notifyIncomeExpenseChanged } from "@/lib/incomeExpenseSync";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import type { IncomeExpenseData } from "../types";
@@ -190,6 +191,9 @@ export default function TableActions({
       queryClient.invalidateQueries({ queryKey: ["/api/income-expense", carId, selectedYear] });
       queryClient.invalidateQueries({ queryKey: ["/api/income-expense/dynamic-subcategories", carId, selectedYear] });
       queryClient.invalidateQueries({ queryKey: ["/api/expense-form-submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/income-expense/all-cars", selectedYear] });
+      queryClient.invalidateQueries({ queryKey: ["/api/income-expense/car-performance", selectedYear] });
+      notifyIncomeExpenseChanged();
 
       const receiptMsg = result.receiptCount > 0
         ? ` + ${result.receiptCount} receipt${result.receiptCount === 1 ? "" : "s"} imported`

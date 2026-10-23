@@ -3,6 +3,7 @@ import { buildApiUrl } from "@/lib/queryClient";
 import { DashboardTable } from "@/components/admin/dashboard";
 import { formatCurrency, MONTH_LABELS } from "./utils";
 import { useCoHost } from "@/hooks/use-co-host";
+import { useInvalidateOnIncomeExpenseChange } from "@/lib/incomeExpenseSync";
 import type {
   IncomeExpenseData,
   ParkingAirportQBMonth,
@@ -89,6 +90,8 @@ export default function AirportParkingSection({ year }: AirportParkingSectionPro
       return res.json();
     },
   });
+  // staleTime is Infinity app-wide; pick up I&E edits made in another window.
+  useInvalidateOnIncomeExpenseChange([["/api/income-expense/all-cars", year]]);
 
   return (
     <div className="mb-8">

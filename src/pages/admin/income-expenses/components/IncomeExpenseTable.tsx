@@ -10,6 +10,7 @@ import {
   Link2,
 } from "lucide-react";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
+import { notifyIncomeExpenseChanged } from "@/lib/incomeExpenseSync";
 import EditableCell, { FORM_AWARE_CATEGORIES } from "./EditableCell";
 import ReceiptViewerModal from "./ReceiptViewerModal";
 import { cn } from "@/lib/utils";
@@ -246,6 +247,10 @@ lastSavedNote.current = coHostNote;
       await api.post("/api/income-expense/gla-owned", { carId, ownership: next }, {
         fallbackMessage: "save failed",
       });
+      // Ownership gates the MGMT / Owner / Co-Host splits the dashboard shows.
+      queryClient.invalidateQueries({ queryKey: ["/api/income-expense/all-cars", year] });
+      queryClient.invalidateQueries({ queryKey: ["/api/income-expense/car-performance", year] });
+      notifyIncomeExpenseChanged();
 } catch {
       setOwnership(prev); // revert on failure
     } finally {

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { api } from "@/lib/api";
+import { notifyIncomeExpenseChanged } from "@/lib/incomeExpenseSync";
 import { useToast } from "@/hooks/use-toast";
 import type { IncomeExpenseData, EditingCell } from "../types";
 import { useFormAmounts, type FormAmountsMap } from "../utils/useFormAmounts";
@@ -237,6 +238,7 @@ export function IncomeExpenseProvider({
     }
     // Dashboard Car Performance Ranking reads the same splits/expenses.
     queryClient.invalidateQueries({ queryKey: ["/api/income-expense/car-performance", year] });
+    notifyIncomeExpenseChanged();
   };
 
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);

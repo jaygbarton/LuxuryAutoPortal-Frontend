@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader } from "./SectionHeader";
 import { useCoHost } from "@/hooks/use-co-host";
+import { useInvalidateOnIncomeExpenseChange } from "@/lib/incomeExpenseSync";
 
 const MONTHS = [
   "All", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -61,6 +62,8 @@ export default function CarPerformanceSection({ year }: Props) {
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
+  // ...and when the I&E page is open in a separate window beside this one.
+  useInvalidateOnIncomeExpenseChange([["/api/income-expense/car-performance"]]);
 
   const rows = data?.data ?? [];
 
