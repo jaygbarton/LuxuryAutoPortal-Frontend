@@ -214,19 +214,46 @@ export default function HrApplicationsPage() {
                   {applications.map((application) => {
                     const active = selected?.job_application_aid === application.job_application_aid;
                     return (
-                      <button
+                      <div
                         key={application.job_application_aid}
-                        type="button"
-                        className={`grid w-full gap-2 p-4 text-left transition-colors hover:bg-muted/60 ${active ? "bg-muted" : ""}`}
+                        role="button"
+                        tabIndex={0}
+                        className={`grid w-full cursor-pointer gap-2 p-4 text-left transition-colors hover:bg-muted/60 ${active ? "bg-muted" : ""}`}
                         onClick={() => setSelectedId(application.job_application_aid)}
+                        onKeyDown={(event) => {
+                          if (event.target !== event.currentTarget) return;
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setSelectedId(application.job_application_aid);
+                          }
+                        }}
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="font-semibold text-foreground">
                             {application.first_name} {application.last_name}
                           </div>
-                          <Badge variant={application.is_archived ? "secondary" : "outline"}>
-                            {application.status}
-                          </Badge>
+                          {/* Quick status change from the list; stopPropagation keeps the click from selecting the row. */}
+                          <div onClick={(event) => event.stopPropagation()}>
+                            <Select
+                              value={application.status}
+                              onValueChange={(value) =>
+                                statusMutation.mutate({
+                                  id: application.job_application_aid,
+                                  status: value as JobApplication["status"],
+                                })
+                              }
+                              disabled={statusMutation.isPending}
+                            >
+                              <SelectTrigger className="h-7 w-[120px] text-xs" aria-label="Change status">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="new">New</SelectItem>
+                                <SelectItem value="reviewed">Reviewed</SelectItem>
+                                <SelectItem value="archived">Archived</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                         <div className="text-sm text-muted-foreground">{application.position}</div>
                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -234,7 +261,7 @@ export default function HrApplicationsPage() {
                           <span>{formatDate(application.submitted_at)}</span>
                           <span>{application.document_count} document(s)</span>
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
