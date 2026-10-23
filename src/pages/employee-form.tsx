@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, Loader2, X, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
+import { ContractorPolicyAgreementFields, CONTRACTOR_POLICY_TITLE, useContractorPolicy } from "@/components/staff/ContractorPolicy";
 
 const schema = z.object({
   firstName: z.string().min(1, "Required"),
@@ -39,6 +40,8 @@ const schema = z.object({
   emergencyNumber: z.string().min(1, "Required"),
   ssnEin: z.string().min(1, "Required"),
   shirtSize: z.string().min(1, "Required"),
+  contractorPolicyAgreed: z.boolean().refine((v) => v === true, "You must confirm your agreement"),
+  contractorPolicySignature: z.string().trim().min(1, "Required"),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -79,8 +82,11 @@ export default function EmployeeFormPage() {
       emergencyNumber: "",
       ssnEin: "",
       shirtSize: "",
+      contractorPolicyAgreed: false,
+      contractorPolicySignature: "",
     },
   });
+  const policyQuery = useContractorPolicy();
 
   const mutation = useMutation({
     mutationFn: async (values: FormData) => {
@@ -142,7 +148,7 @@ export default function EmployeeFormPage() {
             <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
             <h1 className="text-xl font-semibold text-primary">Success!</h1>
             <p className="text-muted-foreground text-sm">
-              Your employee onboarding form has been submitted.
+              Your employee onboarding form has been submitted. A copy of your signed {CONTRACTOR_POLICY_TITLE} has been emailed to you.
             </p>
             <Button
               type="button"
@@ -413,6 +419,21 @@ export default function EmployeeFormPage() {
                     </div>
                   </div>
                 </div>
+              </section>
+
+              <section className="space-y-4">
+                <h2 className="text-lg font-semibold text-primary border-b border-primary/30 pb-2">{CONTRACTOR_POLICY_TITLE}</h2>
+                <ContractorPolicyAgreementFields
+                  policy={policyQuery.data}
+                  policyLoading={policyQuery.isLoading}
+                  checked={watch("contractorPolicyAgreed")}
+                  onCheckedChange={(v) => setValue("contractorPolicyAgreed", v, { shouldValidate: true })}
+                  signature={watch("contractorPolicySignature")}
+                  onSignatureChange={(v) => setValue("contractorPolicySignature", v, { shouldValidate: true })}
+                  checkedError={errors.contractorPolicyAgreed?.message}
+                  signatureError={errors.contractorPolicySignature?.message}
+                  disabled={mutation.isPending}
+                />
               </section>
 
               <div className="flex justify-end">

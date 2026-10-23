@@ -26,6 +26,7 @@ import {
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
 import { ClockOutPropertyCheck } from "@/components/staff/ClockOutPropertyCheck";
+import { useContractorPolicyGate } from "@/components/staff/ContractorPolicy";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -328,6 +329,9 @@ export default function StaffTime() {
   const me = meQuery.data?.user;
   const canViewTimesheet = !!(me?.isEmployee || me?.isAdmin);
 
+  // GLA Contractor Policy 1099 must be agreed before the first clock-in.
+  const policyGate = useContractorPolicyGate(canViewTimesheet);
+
   const lastQuery = useQuery<LastResponse>({
     queryKey: ["/api/me/time-sheet/last"],
     queryFn: async () => {
@@ -376,7 +380,8 @@ export default function StaffTime() {
   const totalPay = (totals.workedSec / 3600) * hourlyRate;
 
   // ── Actions ──
-  const clockIn = async () => {
+  const clockIn = async (policyAgreed = false) => {
+    if (policyGate.interceptClockIn(policyAgreed)) return;
     setActionLoading(true);
     try {
       const r = await fetch(buildApiUrl("/api/me/time-sheet/clock-in"), {
@@ -386,6 +391,7 @@ export default function StaffTime() {
         body: JSON.stringify({}),
       });
       const json = await r.json().catch(() => ({}));
+      if (policyGate.interceptRefusal(json)) return;
       if (!r.ok) {
         toast({
           title: "Error",
@@ -603,6 +609,8 @@ export default function StaffTime() {
             {isClockedIn ? "Clock out" : "Clock in"}
           </Button>
         </div>
+
+        {policyGate.gate(() => void clockIn(true))}
 
         {lastQuery.error && (
           <Card className="bg-destructive/10 border-destructive/30">

@@ -289,9 +289,9 @@ export function EmployeeContract1099Content() {
           <div className="space-y-2">
             <h3 className="font-semibold text-foreground">GLA Contractor Policy 1099</h3>
             <p className="text-sm text-muted-foreground">
-              Use this contract for 1099 contractors. After an employee completes the Employee Onboarding Form and you
-              approve them, you can send the GLA Contractor Policy 1099 for signature from the employee profile, or
-              manage contract templates in Settings.
+              Employees agree to this policy on the Employee Onboarding Form. Employees who joined before it was
+              added are asked to agree before they can clock in. Each signed copy is emailed to the employee and the
+              admins, and shown on the employee profile (Contractor Policy 1099). Edit the policy text in Settings.
             </p>
             <div className="flex gap-2 pt-2">
               <Button variant="outline" size="sm" asChild>

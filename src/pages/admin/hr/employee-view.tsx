@@ -34,16 +34,19 @@ import { EditEmergencyModal } from "./components/EditEmergencyModal";
 import { EditOtherInfoModal } from "./components/EditOtherInfoModal";
 import { EditJobInfoModal } from "./components/EditJobInfoModal";
 import { EditPayInfoModal } from "./components/EditPayInfoModal";
+import { ContractorPolicyAgreementCard } from "./components/ContractorPolicyAgreementCard";
 import { useCoHost } from "@/hooks/use-co-host";
 
 type ProfileSection =
   | "personal-information"
   | "job-and-pay"
+  | "contractor-policy"
   | "rate-history";
 
 const PROFILE_SECTIONS: { id: ProfileSection; label: string }[] = [
   { id: "personal-information", label: "Personal Information" },
   { id: "job-and-pay", label: "Job and Pay" },
+  { id: "contractor-policy", label: "Contractor Policy 1099" },
   { id: "rate-history", label: "Rate History" },
 ];
 
@@ -873,6 +876,12 @@ toast({ title: "Deleted", description: "Employee deleted successfully." });
                     </ul>
                   </CardContent>
                 </Card>
+              </div>
+            )}
+
+            {activeSection === "contractor-policy" && (
+              <div className="max-w-[50rem]">
+                <ContractorPolicyAgreementCard employeeId={employee.employee_aid} />
               </div>
             )}
 
