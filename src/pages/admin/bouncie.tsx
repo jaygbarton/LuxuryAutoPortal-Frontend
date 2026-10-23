@@ -954,6 +954,7 @@ export default function BouncieFleetPage() {
       (v) =>
         vehicleDisplayName(v).toLowerCase().includes(q) ||
         (v.license_plate || "").toLowerCase().includes(q) ||
+        (v.vin || "").toLowerCase().includes(q) ||
         (v.imei || "").includes(q),
     );
   }, [allVehicles, search]);
