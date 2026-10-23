@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Loader2, LogOut } from "lucide-react";
@@ -27,6 +28,9 @@ import {
 } from "@/components/ui/select";
 import { mtLocalInputToUtcIso, mtDayStartToUtcIso } from "@/lib/mt-datetime";
 
+const DEFAULT_PICKUP_LOCATION = "50 South Redwood Road, Salt Lake City, Utah 84116";
+const OTHER_PICKUP_LOCATION = "__other__";
+
 const carOffboardingSchema = z.object({
   date: z.string().min(1, "Date is required"),
   name: z.string().min(1, "Name is required").max(255),
@@ -36,7 +40,9 @@ const carOffboardingSchema = z.object({
   pickUpDate: z.string().min(1, "Pick-up date is required"),
   pickUpTime: z.string().min(1, "Pick-up time is required"),
   pickUpLocation: z.string().min(1, "Pick-up location is required"),
-  dealershipAddress: z.string().optional(),
+  agreeToTerms: z.boolean().refine((val) => val === true, {
+    message: "You must agree to the pick-up terms before submitting",
+  }),
 });
 
 type CarOffboardingFormData = z.infer<typeof carOffboardingSchema>;
@@ -56,6 +62,7 @@ export default function CarOffboardingForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const [selectedCarId, setSelectedCarId] = useState<string>("");
+  const [useCustomPickUpLocation, setUseCustomPickUpLocation] = useState(false);
 
   // Get current user data
   const { data: userData } = useQuery<{ user?: { firstName?: string; lastName?: string; id?: number } }>({
@@ -99,8 +106,8 @@ export default function CarOffboardingForm() {
       plateNumber: "",
       pickUpDate: new Date().toISOString().split('T')[0],
       pickUpTime: "09:00",
-      pickUpLocation: "",
-      dealershipAddress: "",
+      pickUpLocation: DEFAULT_PICKUP_LOCATION,
+      agreeToTerms: false,
     },
   });
 
@@ -147,7 +154,6 @@ export default function CarOffboardingForm() {
         pickUpDate: pickUpDateTime,
         pickUpLocation: data.pickUpLocation,
         carId: data.carId, // Include carId to update car status
-        dealershipAddress: data.dealershipAddress || "",
       };
 
       const response = await fetch(buildApiUrl("/api/car-offboarding/submit"), {
@@ -182,10 +188,11 @@ export default function CarOffboardingForm() {
         plateNumber: "",
         pickUpDate: now.toISOString().split('T')[0],
         pickUpTime: "09:00",
-        pickUpLocation: "",
-        dealershipAddress: "",
+        pickUpLocation: DEFAULT_PICKUP_LOCATION,
+        agreeToTerms: false,
       });
       setSelectedCarId("");
+      setUseCustomPickUpLocation(false);
     } catch (error: any) {
       console.error("Submission error:", error);
       toast({
@@ -304,8 +311,8 @@ export default function CarOffboardingForm() {
               )}
             />
 
-            {/* Car Details Row: Make/Model/Year, Plate Number, Dealership Address */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Car Details Row: Make/Model/Year, Plate Number */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="carMakeModelYear"
@@ -337,24 +344,6 @@ export default function CarOffboardingForm() {
                         placeholder="Enter plate number or auto-filled from car"
                         className="bg-card border-border text-foreground focus:border-primary uppercase"
                         style={{ textTransform: "uppercase" }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="dealershipAddress"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-muted-foreground">Address of Dealership</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Enter dealership address (if applicable)"
-                        className="bg-card border-border text-foreground focus:border-primary"
                       />
                     </FormControl>
                     <FormMessage />
@@ -409,13 +398,64 @@ export default function CarOffboardingForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-muted-foreground">Pick Up Location *</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Address or description"
-                      className="bg-card border-border text-foreground focus:border-primary"
-                    />
-                  </FormControl>
+                  <Select
+                    onValueChange={(value) => {
+                      if (value === OTHER_PICKUP_LOCATION) {
+                        setUseCustomPickUpLocation(true);
+                        field.onChange("");
+                      } else {
+                        setUseCustomPickUpLocation(false);
+                        field.onChange(value);
+                      }
+                    }}
+                    value={useCustomPickUpLocation ? OTHER_PICKUP_LOCATION : field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="bg-card border-border text-foreground focus:border-primary">
+                        <SelectValue placeholder="Select a pick-up location" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-card border-border text-foreground">
+                      <SelectItem value={DEFAULT_PICKUP_LOCATION}>
+                        {DEFAULT_PICKUP_LOCATION}
+                      </SelectItem>
+                      <SelectItem value={OTHER_PICKUP_LOCATION}>Other (enter address)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {useCustomPickUpLocation && (
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Enter pick-up address or description"
+                        className="bg-card border-border text-foreground focus:border-primary mt-2"
+                      />
+                    </FormControl>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Pick-up Agreement */}
+            <FormField
+              control={form.control}
+              name="agreeToTerms"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-start space-x-2">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <label className="text-sm text-muted-foreground leading-snug cursor-pointer" onClick={() => field.onChange(!field.value)}>
+                      By submitting this form, I agree to pick up the car on the date and time
+                      listed above and will inspect the car at that time. If any concerns arise, I
+                      agree to send them in writing or via email within 3 hours of picking up the
+                      car, or the car will be considered returned and the contract ended.
+                    </label>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
