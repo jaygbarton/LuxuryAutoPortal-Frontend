@@ -393,6 +393,7 @@ export function ClaimsTab() {
                       { label: "Deadline", value: formatDate(claim.deadline) },
                       { label: "Assigned To", value: assigneeEl },
                       { label: "Source", value: claim.source === "email" ? "Turo Email" : "Manual" },
+                      { label: "Added to System", value: formatDateTime(claim.createdAt) },
                       { label: "Actions", value: actionsEl },
                     ]}
                   />
