@@ -1,3 +1,4 @@
+import { employeePasswordEmailFeedback } from "@/lib/employeePasswordEmailFeedback";
 import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
@@ -352,9 +353,9 @@ export default function EmployeesPage() {
       
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
-      toast({ title: "Success", description: "Employee created successfully." });
+      toast(employeePasswordEmailFeedback("Created", result.passwordEmail));
       setIsAddModalOpen(false);
       addForm.reset();
       setCarInsurancePhotos([]);
@@ -379,9 +380,9 @@ export default function EmployeesPage() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
-      toast({ title: "Approved", description: "Employee approved successfully." });
+      toast(employeePasswordEmailFeedback("Approved", result.passwordEmail));
       setEmployeeToApprove(null);
     },
     onError: (e: any) => {

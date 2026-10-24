@@ -60,7 +60,7 @@ export default function ResetPasswordPage() {
           "Content-Type": "application/json",
         },
         credentials: "omit",
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: email.trim() }),
       });
       const data = await parsePasswordResetResponse(response);
       if (!response.ok) {
@@ -71,8 +71,8 @@ export default function ResetPasswordPage() {
     onSuccess: () => {
       setResetRequestSent(true);
       toast({
-        title: "Email Sent",
-        description: "If an account exists with this email, a password reset link has been sent.",
+        title: "Request received",
+        description: "If your account is active, we will attempt to send a reset link. This message does not confirm email delivery.",
       });
     },
     onError: (error: any) => {
@@ -317,7 +317,7 @@ export default function ResetPasswordPage() {
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold text-foreground">Check Your Email</h3>
                 <p className="text-muted-foreground">
-                  If an account exists with <strong>{email}</strong>, we've sent a password reset link.
+                  If an active account exists for <strong>{email}</strong>, we will attempt to send a password reset link. This message does not confirm delivery. If it does not arrive, ask an administrator to check your account and resend from your employee record.
                 </p>
                 <p className="text-sm text-muted-foreground">
                   The link will expire in 1 hour.

@@ -1,3 +1,4 @@
+import { employeePasswordEmailFeedback, type EmployeePasswordEmailResult } from "@/lib/employeePasswordEmailFeedback";
 import { optionKeywords } from "@/lib/select-search";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -293,6 +294,18 @@ export default function EmployeeViewPage() {
   });
 
   const employee = data?.data;
+  const passwordEmailMutation = useMutation({
+    mutationFn: async () => {
+      if (!employee) throw new Error("Employee not found");
+      return api.post<{ message: string; passwordEmail: EmployeePasswordEmailResult }>(
+        `/api/employees/${employee.employee_aid}/password-email`, {},
+        { fallbackMessage: "Password email could not be sent" },
+      );
+    },
+    onSuccess: (result) => toast({ title: "Password email requested", description: result.message }),
+    onError: (error: Error) => toast({ title: "Password email not sent", description: error.message, variant: "destructive" }),
+  });
+
 
   // Who the employee works under: GLA Utah (null) or an approved co-host.
   const { isCoHost } = useCoHost();
@@ -402,10 +415,10 @@ export default function EmployeeViewPage() {
   const handleApprove = async () => {
     if (!employee) return;
     try {
-      await api.patch(`/api/employees/${employee.employee_aid}/status`, { status: "" }, {
+      const result = await api.patch<{ passwordEmail?: EmployeePasswordEmailResult }>(`/api/employees/${employee.employee_aid}/status`, { status: "" }, {
         fallbackMessage: "Failed to approve",
       });
-toast({ title: "Approved", description: "Employee approved successfully." });
+toast(employeePasswordEmailFeedback("Approved", result.passwordEmail));
       refetch();
     } catch (e: any) {
       toast({ title: "Error", description: e.message || "Failed to approve", variant: "destructive" });
@@ -494,7 +507,7 @@ toast({ title: "Deleted", description: "Employee deleted successfully." });
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -504,6 +517,12 @@ toast({ title: "Deleted", description: "Employee deleted successfully." });
               <History className="w-4 h-4 mr-2" />
               Edit History
             </Button>
+            {isActive && (
+              <Button size="sm" variant="outline" onClick={() => passwordEmailMutation.mutate()} disabled={passwordEmailMutation.isPending}>
+                {passwordEmailMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Send password email
+              </Button>
+            )}
             {isActive && (
               <Button
                 size="sm"
