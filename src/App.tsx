@@ -1,3 +1,4 @@
+import { CustomerHelpWidget } from "@/components/customer-help/CustomerHelpWidget";
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { Switch, Route, Redirect, useLocation } from "wouter";
@@ -738,6 +739,7 @@ function App() {
             <Toaster />
             <ScrollToTopOnRouteChange />
             <Router />
+            <CustomerHelpWidget />
           </TutorialProvider>
         </TooltipProvider>
       </QueryClientProvider>
