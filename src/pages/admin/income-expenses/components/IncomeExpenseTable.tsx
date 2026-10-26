@@ -165,7 +165,6 @@ export default function IncomeExpenseTable({
     updateDynamicSubcategoryName,
     deleteDynamicSubcategory,
     updateDynamicSubcategoryValue,
-    refreshDynamicSubcategories,
     clearCategoryRow,
     isStandardRowHidden,
     hideStandardRow,
@@ -396,30 +395,6 @@ lastSavedNote.current = coHostNote;
       [section]: !prev[section as keyof typeof prev],
     }));
   };
-
-  // ---- Auto-cleanup: silently remove dynamic subcategories that duplicate
-  //      a standard/fixed row (runs once on mount, only on the per-car page).
-  React.useEffect(() => {
-    if (isReadOnly) return; // read-only All Cars view — skip
-    fetch(
-      buildApiUrl("/api/income-expense/dynamic-subcategories/auto-cleanup"),
-      {
-        method: "POST",
-        credentials: "include",
-      },
-    )
-      .then((r) => r.json())
-      .then((body) => {
-        if (body?.deleted > 0) {
-          // Refresh the UI so the cleaned-up rows disappear immediately
-          refreshDynamicSubcategories();
-        }
-      })
-      .catch(() => {
-        /* non-fatal — ignore */
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // run once on mount
 
   // ---- Edit / clear handlers for standard (fixed) category rows ----
   // Called by the ✏️ icon → focuses the first month's cell for editing.
