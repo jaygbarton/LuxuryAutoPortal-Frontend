@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { CUSTOMER_HELP_PUBLIC_PATHS, CUSTOMER_HELP_OPERATIONS_TABS, customerHelpAllowed } from './customerHelpRoutes';
+import { CUSTOMER_HELP_PUBLIC_PATHS, CUSTOMER_HELP_OPERATIONS_TABS, customerHelpAllowed, customerHelpTeaserAllowed } from './customerHelpRoutes';
 import { GHL_NATIVE_WIDGET_CONFIG, GHL_LOCAL_PREVIEW_CONFIG, GHL_PUBLIC_EMBED, getGhlWidgetConfig, localChatPreviewAllowed } from './ghlNativeWidget';
 const owner = { isClient: true };
 const cohost = { isCoHost: true, isAdmin: true };
 describe('customer help visibility does not grant access', () => {
+  it('offers a teaser only on known public marketing pages, not accounts or sensitive forms', () => {
+    for (const path of ['/', '/contact', '/fleet/?location=slc', '/salt-lake-city', '/wilmington-nc/fleet']) expect(customerHelpTeaserAllowed(path), path).toBe(true);
+    for (const path of ['/dashboard', '/client/dashboard', '/admin/profile', '/admin/operations', '/admin/cars/7/records', '/login', '/admin/login', '/signup', '/reset-password?token=secret', '/sign-contract/secret', '/maintenance-approval/secret', '/employee-form', '/co-host-form', '/onboarding', '/salt-lake-city/onboarding', '/wilmington-nc/onboarding', '/unknown']) expect(customerHelpTeaserAllowed(path), path).toBe(false);
+  });
   it('enables exactly the verified public config without a preview opt-in', () => {
     expect(GHL_NATIVE_WIDGET_CONFIG).toBe(GHL_LOCAL_PREVIEW_CONFIG);
     expect(GHL_NATIVE_WIDGET_CONFIG).toEqual(GHL_PUBLIC_EMBED);

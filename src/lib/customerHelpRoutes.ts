@@ -90,6 +90,15 @@ export interface CustomerHelpUser {
   viewAsClient?: { clientId?: number }; viewAsCoHost?: { coHostId?: number }; viewAsEmployee?: { employeeId?: number };
 }
 
+/** Proactive invitations belong on public marketing pages only. Keep the native
+ * help circle available on its existing account/token routes without prompting. */
+export function customerHelpTeaserAllowed(location: string): boolean {
+  const path = location.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+  return (CUSTOMER_HELP_PUBLIC_PATHS as readonly string[]).includes(path)
+    && !['/login', '/admin/login', '/signup', '/reset-password', '/employee-form', '/co-host-form'].includes(path)
+    && !path.endsWith('/onboarding');
+}
+
 // Existing vehicle workflows, matching OperationsPage's TAB_IDS. Unknown/future
 // tabs fail closed for chat until their customer scope has been reviewed.
 export const CUSTOMER_HELP_OPERATIONS_TABS = [

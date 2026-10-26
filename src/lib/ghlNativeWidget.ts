@@ -1,3 +1,5 @@
+import { updateCustomerHelpTeaser } from './customerHelpTeaser';
+
 /** Public native-embed settings only. No API key, access token or account data. */
 export interface GhlNativeWidgetConfig {
   scriptUrl: string;
@@ -40,20 +42,23 @@ export function getGhlWidgetConfig(): GhlNativeWidgetConfig | null {
 }
 
 const FRAME_ID = 'gla-ghl-native-chat-frame';
-type State = { configKey: string; frame: HTMLIFrameElement; visible: boolean; expanded: boolean; loaded: boolean; failed: boolean };
+type State = { configKey: string; frame: HTMLIFrameElement; visible: boolean; expanded: boolean; loaded: boolean; failed: boolean; teaserEligible: boolean };
 const documents = new WeakMap<Document, State>();
 function render(state: State) {
   state.frame.hidden = !state.visible || !state.loaded || state.failed;
   state.frame.style.width = state.expanded ? 'min(420px, 100vw)' : '100px';
   state.frame.style.height = state.expanded ? 'min(800px, 100dvh)' : '100px';
   if (state.frame.hidden && state.frame.ownerDocument.activeElement === state.frame) state.frame.blur();
+  updateCustomerHelpTeaser(state.frame.ownerDocument,
+    !state.frame.hidden && state.teaserEligible,
+    !state.frame.hidden && state.expanded);
 }
 
 /** One native frame per document, surviving SPA navigation and StrictMode.
  * Only public embed settings cross the bridge; no parent URL or account data.
  * This same-origin frame prevents automatic page-URL attribution. It is not a
  * security sandbox against a malicious third-party script. */
-export function updateGhlNativeWidget(document: Document, config: GhlNativeWidgetConfig | null, visible: boolean): void {
+export function updateGhlNativeWidget(document: Document, config: GhlNativeWidgetConfig | null, visible: boolean, teaserEligible = false): void {
   const existing = documents.get(document);
   if (!visible || !config) { if (existing) { existing.visible = false; render(existing); } return; }
   const valid = config.scriptUrl === GHL_PUBLIC_EMBED.scriptUrl
@@ -64,6 +69,7 @@ export function updateGhlNativeWidget(document: Document, config: GhlNativeWidge
   const configKey = JSON.stringify([config.scriptUrl, config.attributes]);
   if (existing) {
     existing.visible = existing.configKey === configKey;
+    existing.teaserEligible = teaserEligible;
     render(existing);
     return;
   }
@@ -74,7 +80,7 @@ export function updateGhlNativeWidget(document: Document, config: GhlNativeWidge
   frame.referrerPolicy = 'no-referrer';
   frame.sandbox.add('allow-scripts', 'allow-same-origin', 'allow-forms', 'allow-popups', 'allow-downloads');
   frame.style.cssText = 'position:fixed;right:0;bottom:0;border:0;background:transparent;z-index:2147483000;color-scheme:normal;';
-  const state: State = { configKey, frame, visible, expanded: false, loaded: false, failed: false };
+  const state: State = { configKey, frame, visible, expanded: false, loaded: false, failed: false, teaserEligible };
   documents.set(document, state);
   document.defaultView?.addEventListener('message', event => {
     if (event.source !== frame.contentWindow || event.origin !== document.location.origin) return;

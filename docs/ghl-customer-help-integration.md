@@ -195,11 +195,46 @@ numeric height setting adapts to shorter mobile viewports; no fake bot UI or
 custom conversation transport is introduced.
 
 The GHL widget's separate promotional chat prompt is disabled so the collapsed
-frame contains only the native circle. Opening the chat still shows:
+frame contains only the native circle. Keep that provider prompt disabled: the
+October 26 website teaser below controls its own delay and session behavior.
+Opening the chat still shows:
 1. Book a car
 2. List your car
 3. Site help / find something
 4. Other
+
+## Public-page invitation — October 26, 2026
+
+The owner approved the exact text **“Have questions? I can answer them.”** A small
+light/gold, dismissible invitation appears above the existing native circle after
+five seconds of an eligible, foreground public page with the provider ready. It
+does not automatically open the conversation, send a chat, call a phone number or
+create another launcher. Visitors open chat with the existing GHL circle.
+
+The invitation is local website UI, not GHL's promotional prompt or a replacement
+chatbot. No new provider API or cross-frame message was introduced. Both public
+frame files, the no-referrer configuration, checked bridge and height fitting are
+unchanged. The native opening menu and all account/staff visibility rules remain.
+
+`customerHelpTeaserAllowed` is narrower than chat visibility: known public
+marketing pages only. Account/owner/co-host pages, login/signup/reset,
+contract/approval links, employee/co-host forms and onboarding forms have no
+proactive invitation. Their existing help-circle availability is unchanged.
+
+The invitation is shown at most once per tab's browser session using
+`sessionStorage` (`gla-help-teaser-seen-v1`). Showing it or manually opening native
+chat consumes the invitation; dismissal, refreshes and subsequent navigation do
+not bring it back. A separate/new tab can have its own session. Storage-denied
+browsers fall back to once per document. Leaving an eligible page or backgrounding
+the tab cancels the pending timer/removes the prompt; an unused timer restarts on
+the next eligible foreground page. No teaser appears before provider readiness
+or after a provider-load failure. It never takes keyboard focus automatically.
+
+Targeted checks cover route exclusions, delay, no automatic chat open, mobile
+bounds, dismissal/reload persistence, route cancellation, one provider load per
+SPA session, and suppressing the teaser when chat is opened first. Provider
+behavior is exercised with the existing fixture; this does not claim new live
+GHL conversation testing.
 
 ## Configuration and preview
 

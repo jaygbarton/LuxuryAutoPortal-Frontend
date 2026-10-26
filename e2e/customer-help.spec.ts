@@ -129,6 +129,82 @@ test('untrusted bridge messages cannot open or inject the widget',async({page})=
   await expect(nativeFrame(page).locator('script[src="https://evil.example/test.js"]')).toHaveCount(0);
 });
 
+test('public teaser waits five seconds, fits mobile, dismisses and stays gone after reload (fixture)',async({page})=>{
+  await page.setViewportSize({width:390,height:400});
+  const count=await fixtureProvider(page);
+  await mockPublicApi(page);
+  // Record actual provider-readiness and invitation times without changing timers.
+  await page.addInitScript(()=>{
+    const times=(window as any).teaserTimes={ready:0,shown:0};
+    addEventListener('message',e=>{
+      const frame=document.querySelector<HTMLIFrameElement>('#gla-ghl-native-chat-frame');
+      if(e.source===frame?.contentWindow&&e.origin===location.origin&&e.data?.type==='gla:help:state'&&!times.ready)times.ready=performance.now();
+    });
+    new MutationObserver(()=>{
+      if(document.querySelector('#gla-customer-help-teaser')&&!times.shown)times.shown=performance.now();
+    }).observe(document,{childList:true,subtree:true});
+  });
+  await page.goto('/contact');
+  await expect(launcher(page)).toBeVisible();
+  const teaser=page.getByRole('complementary',{name:'GLA help suggestion'});
+  await expect(teaser).toHaveCount(0);
+  await expect(teaser).toBeVisible({timeout:8000});
+  await expect(teaser).toContainText('Have questions? I can answer them.');
+  const delay=await page.evaluate(()=>{
+    const t=(window as any).teaserTimes;return t.shown-t.ready;
+  });
+  expect(delay).toBeGreaterThanOrEqual(4900); // Allow browser measurement rounding.
+  await expect(page.locator(frameId)).toHaveCSS('height','100px'); // No auto-open.
+  const box=(await teaser.boundingBox())!;
+  const button=(await launcher(page).boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.x+box.width).toBeLessThanOrEqual(390);
+  expect(box.y+box.height).toBeLessThanOrEqual(button.y);
+  await page.screenshot({path:test.info().outputPath('teaser-mobile.png')});
+  await page.getByRole('button',{name:'Dismiss help message'}).click();
+  await expect(teaser).toHaveCount(0);
+  await page.reload();
+  await expect(launcher(page)).toBeVisible();
+  await page.waitForTimeout(5500);
+  await expect(teaser).toHaveCount(0);
+  expect(count()).toBe(2); // Exactly one load per full page, none from dismissal.
+});
+
+test('teaser cancels on account routes, never prompts sensitive pages and disappears on native open (fixture)',async({page})=>{
+  const count=await fixtureProvider(page);
+  await mountRouteHarness(page);
+  await navigateAs(page,'/contact',null);
+  await expect(launcher(page)).toBeVisible();
+  await navigateAs(page,'/admin/cars/7/records',{isClient:true});
+  await page.waitForTimeout(5500);
+  await expect(page.locator('#gla-customer-help-teaser')).toHaveCount(0);
+  // A forbidden page must not consume the session's invitation.
+  expect(await page.evaluate(()=>sessionStorage.getItem('gla-help-teaser-seen-v1'))).toBeNull();
+  await navigateAs(page,'/fleet',null);
+  await expect(page.locator('#gla-customer-help-teaser')).toBeVisible({timeout:8000});
+  await launcher(page).click();
+  await expect(page.locator('#gla-customer-help-teaser')).toHaveCount(0);
+  await launcher(page).click();
+  await navigateAs(page,'/contact',null);
+  await page.waitForTimeout(5500);
+  await expect(page.locator('#gla-customer-help-teaser')).toHaveCount(0);
+  expect(count()).toBe(1);
+});
+
+test('opening chat before the delay suppresses the teaser for this session (fixture)',async({page})=>{
+  await fixtureProvider(page);
+  await mountRouteHarness(page);
+  await navigateAs(page,'/contact',null);
+  await expect(launcher(page)).toBeVisible();
+  await launcher(page).click();
+  await expect(nativeFrame(page).getByText('Provider fixture panel')).toBeVisible();
+  await launcher(page).click();
+  await page.waitForTimeout(5500);
+  await expect(page.locator('#gla-customer-help-teaser')).toHaveCount(0);
+  expect(await page.evaluate(()=>sessionStorage.getItem('gla-help-teaser-seen-v1'))).toBe('1');
+});
+
 test('real native widget: menu, one load, hiding and desktop/mobile placement',async({page})=>{
   test.skip(process.env.GHL_REAL_WIDGET_TEST!=='1','Opt-in real provider; never substitute the fixture.');
   test.setTimeout(60000);
