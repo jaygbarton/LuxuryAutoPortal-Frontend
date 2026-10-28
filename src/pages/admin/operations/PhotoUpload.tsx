@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { Upload, X, Image as ImageIcon, FileText } from "lucide-react";
 import { buildUploadApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,8 +23,53 @@ function isImageFile(file: File): boolean {
   return ["jpg", "jpeg", "png", "webp", "heic", "heif", "gif"].includes(ext);
 }
 
+function isPdfFile(file: File): boolean {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
+
+function isPdfUrl(url: string): boolean {
+  return url.split("?")[0].toLowerCase().endsWith(".pdf");
+}
+
+// Claim receipts may be PDFs, which an <img> can't render.
+function PhotoThumb({ url, alt, className }: { url: string; alt: string; className: string }) {
+  if (isPdfUrl(url)) {
+    return (
+      <div className={`${className} flex flex-col items-center justify-center bg-muted text-muted-foreground`}>
+        <FileText className="w-6 h-6" />
+        <span className="text-[8px] mt-0.5">PDF</span>
+      </div>
+    );
+  }
+  return <img src={getProxiedImageUrl(url)} alt={alt} className={className} />;
+}
+
+function SelectedPreview({ url }: { url: string }) {
+  if (isPdfUrl(url)) {
+    return (
+      <div className="flex justify-center mb-3">
+        <a
+          href={getProxiedImageUrl(url)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-primary underline"
+        >
+          <FileText className="w-5 h-5" />
+          Open PDF
+        </a>
+      </div>
+    );
+  }
+  return (
+    <div className="flex justify-center mb-3">
+      <img src={getProxiedImageUrl(url)} alt="Selected" className="max-h-[50vh] rounded object-contain" />
+    </div>
+  );
+}
+
 export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disabled, compact }: PhotoUploadProps) {
   const { toast } = useToast();
+  const allowPdf = entityType === "claim";
   const [uploading, setUploading] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
@@ -33,8 +78,15 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
   const dragCounter = useRef(0);
 
   const processFiles = useCallback(async (files: FileList | File[]) => {
-    const fileArray = Array.from(files).filter(isImageFile);
-    if (fileArray.length === 0) return;
+    const fileArray = Array.from(files).filter((f) => isImageFile(f) || (allowPdf && isPdfFile(f)));
+    if (fileArray.length === 0) {
+      toast({
+        title: "Unsupported file",
+        description: allowPdf ? "Only images or PDF files can be uploaded." : "Only image files can be uploaded.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!entityId) {
       toast({ title: "Error", description: "Save the record first before uploading photos.", variant: "destructive" });
       return;
@@ -80,7 +132,7 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
     } finally {
       setUploading(false);
     }
-  }, [photos, onPhotosChange, entityType, entityId, toast]);
+  }, [photos, onPhotosChange, entityType, entityId, allowPdf, toast]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -140,7 +192,7 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
           className="w-14 h-14 rounded border border-border overflow-hidden cursor-pointer shrink-0"
           onClick={() => openGallery(photos[0])}
         >
-          <img src={getProxiedImageUrl(photos[0])} alt="Photo 1" className="w-full h-full object-cover" />
+          <PhotoThumb url={photos[0]} alt="Photo 1" className="w-full h-full object-cover" />
         </div>
         <Button
           variant="ghost"
@@ -157,9 +209,7 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
               <DialogTitle>Photos ({photos.length})</DialogTitle>
             </DialogHeader>
             {selectedPhoto && (
-              <div className="flex justify-center mb-3">
-                <img src={getProxiedImageUrl(selectedPhoto)} alt="Selected" className="max-h-[50vh] rounded object-contain" />
-              </div>
+              <SelectedPreview url={selectedPhoto} />
             )}
             {photos.length > 1 && (
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-[20vh] overflow-y-auto">
@@ -169,7 +219,7 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
                     className={`relative rounded border overflow-hidden cursor-pointer ${selectedPhoto === url ? "border-primary border-2" : "border-border"}`}
                     onClick={() => setSelectedPhoto(url)}
                   >
-                    <img src={getProxiedImageUrl(url)} alt={`Photo ${index + 1}`} className="w-full aspect-square object-cover" />
+                    <PhotoThumb url={url} alt={`Photo ${index + 1}`} className="w-full aspect-square object-cover" />
                   </div>
                 ))}
               </div>
@@ -202,7 +252,7 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
             className="relative w-16 h-16 rounded border border-border overflow-hidden group cursor-pointer"
             onClick={() => { setSelectedPhoto(url); setGalleryOpen(true); }}
           >
-            <img src={getProxiedImageUrl(url)} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
+            <PhotoThumb url={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
             {!disabled && (
               <button
                 onClick={(e) => { e.stopPropagation(); removePhoto(index); }}
@@ -226,7 +276,7 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
             <input
               type="file"
               multiple
-              accept="image/*"
+              accept={allowPdf ? "image/*,application/pdf,.pdf" : "image/*"}
               onChange={handleUpload}
               className="hidden"
               disabled={uploading}
@@ -236,13 +286,13 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
         {!disabled && photos.length === 0 && !isDragging && (
           <div className="flex items-center justify-center flex-1 min-w-[120px]">
             <p className="text-[10px] text-muted-foreground text-center">
-              Drag & drop photos here
+              {allowPdf ? "Drag & drop photos or PDF here" : "Drag & drop photos here"}
             </p>
           </div>
         )}
         {isDragging && (
           <div className="flex items-center justify-center flex-1 min-w-[120px]">
-            <p className="text-xs text-primary font-medium">Drop photos here</p>
+            <p className="text-xs text-primary font-medium">{allowPdf ? "Drop files here" : "Drop photos here"}</p>
           </div>
         )}
       </div>
@@ -265,9 +315,7 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
             <DialogTitle>Photos ({photos.length})</DialogTitle>
           </DialogHeader>
           {selectedPhoto && (
-            <div className="flex justify-center mb-3">
-              <img src={getProxiedImageUrl(selectedPhoto)} alt="Selected" className="max-h-[50vh] rounded object-contain" />
-            </div>
+            <SelectedPreview url={selectedPhoto} />
           )}
           {photos.length > 1 && (
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-[20vh] overflow-y-auto">
@@ -277,7 +325,7 @@ export function PhotoUpload({ photos, onPhotosChange, entityType, entityId, disa
                   className={`relative rounded border overflow-hidden cursor-pointer ${selectedPhoto === url ? "border-primary border-2" : "border-border"}`}
                   onClick={() => setSelectedPhoto(url)}
                 >
-                  <img src={getProxiedImageUrl(url)} alt={`Photo ${index + 1}`} className="w-full aspect-square object-cover" />
+                  <PhotoThumb url={url} alt={`Photo ${index + 1}`} className="w-full aspect-square object-cover" />
                 </div>
               ))}
             </div>

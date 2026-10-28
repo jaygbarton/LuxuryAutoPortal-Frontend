@@ -248,7 +248,7 @@ export function ClaimModal({
               />
             ) : (
               <p className="text-xs text-muted-foreground mt-1">
-                Save the claim first, then re-open it to upload receipt images.
+                Save the claim first, then re-open it to upload receipt images or PDFs.
               </p>
             )}
           </div>
