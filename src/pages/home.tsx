@@ -64,7 +64,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
       primaryHref: location.fleetPath,
       secondary: "Book on Turo",
       secondaryHref: location.turoFleetUrl || TURO_VEHICLES_URL,
-      tertiary: "Detail Shop",
+      tertiary: location.availablePages.detailShop ? "Detail Shop" : undefined,
       tertiaryHref: `${location.path}/detail-shop`,
       testId: "button-rental-fleet",
       externalSecondary: true,

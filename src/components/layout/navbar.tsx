@@ -33,6 +33,7 @@ export function Navbar() {
     if (link.href === "/deals") return publicLocation.availablePages.deals;
     if (link.href === "/jobs") return publicLocation.availablePages.jobs;
     if (link.href === "/suggested-cars") return publicLocation.availablePages.suggestedCars;
+    if (link.href === "/pick-up-and-drop-off") return publicLocation.availablePages.pickupDropoff;
     return true;
   });
   const primaryLinks = links.filter((link) =>

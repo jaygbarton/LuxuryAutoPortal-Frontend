@@ -12,7 +12,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [hasAuthenticated, setHasAuthenticated] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
-  const { data, isLoading, isError, error, isFetching } = useQuery<{ user?: { id?: number; email?: string; isAdmin?: boolean; isClient?: boolean; isEmployee?: boolean } }>({
+  const { data, isLoading, isError, error, isFetching, refetch } = useQuery<{ user?: { id?: number; email?: string; isAdmin?: boolean; isClient?: boolean; isEmployee?: boolean } }>({
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
       const { buildApiUrl } = await import("@/lib/queryClient");
@@ -46,7 +46,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
   useEffect(() => {
     // Handle initial authentication check
     // Add a delay to allow session cookie to be fully set after login redirect
-    if (!isLoading && !initialLoadComplete) {
+    // A non-401 failure with nothing cached is not "logged out" — the error
+    // screen below handles it, and the check resumes once a retry succeeds.
+    if (!isLoading && !initialLoadComplete && !(isError && !data)) {
       // Wait for session to stabilize after login redirect
       // This prevents false negatives when the cookie hasn't been set yet
       const timer = setTimeout(() => {
@@ -108,6 +110,33 @@ export function AuthGuard({ children }: AuthGuardProps) {
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-muted-foreground text-sm">Verifying authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // The very first check failed with a non-401 (429 rate limit, 502/503
+  // during a deploy) so there is no user to render for. Do NOT fall through
+  // to children: AdminLayoutContent, RequireRole and the header widgets
+  // observe this same query, and mounting an observer on an errored query
+  // with no data refetches it — which flips it back to loading, unmounts the
+  // children behind the spinner, fails again, remounts them, and loops
+  // forever, hammering /api/auth/me and /api/notifications.
+  if (isError && !data) {
+    return (
+      <div className="min-h-screen bg-card flex items-center justify-center px-6">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <p className="text-foreground font-medium">We couldn't verify your session.</p>
+          <p className="text-muted-foreground text-sm">
+            {error instanceof Error ? error.message : "The server is temporarily unavailable."}
+          </p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            Try again
+          </button>
         </div>
       </div>
     );

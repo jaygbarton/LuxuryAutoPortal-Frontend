@@ -146,7 +146,9 @@ export default function Onboarding() {
   const { salesReps } = useSalesReps();
   const [currentPath] = useLocation();
   const publicLocation = getPreferredPublicLocation(currentPath);
-  const suggestedCarsHref = withLocationPath("/suggested-cars", publicLocation);
+  const suggestedCarsHref = publicLocation?.availablePages.suggestedCars === false
+    ? null
+    : withLocationPath("/suggested-cars", publicLocation);
 
   const form = useForm<OnboardingFormData, any, OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
@@ -410,10 +412,12 @@ export default function Onboarding() {
                       <p className="text-sm font-semibold leading-6 text-foreground">
                         Don't have a qualifying car? Trade in or finance a new one and we'll help you pay it off.
                       </p>
-                      <Link href={suggestedCarsHref} className="mt-3 inline-flex items-center text-sm font-semibold text-primary">
-                        View Suggested Cars
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
+                      {suggestedCarsHref && (
+                        <Link href={suggestedCarsHref} className="mt-3 inline-flex items-center text-sm font-semibold text-primary">
+                          View Suggested Cars
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      )}
                     </div>
                     <div className="grid gap-3">
                       {[

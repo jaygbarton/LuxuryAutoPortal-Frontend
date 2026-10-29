@@ -17,6 +17,7 @@ export type PublicLocation = {
     deals: boolean;
     jobs: boolean;
     suggestedCars: boolean;
+    pickupDropoff: boolean;
   };
 };
 
@@ -37,6 +38,7 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
       deals: true,
       jobs: true,
       suggestedCars: true,
+      pickupDropoff: true,
     },
   },
   wilmington: {
@@ -55,6 +57,7 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
       deals: false,
       jobs: false,
       suggestedCars: false,
+      pickupDropoff: false,
     },
   },
   myrtle: {
@@ -74,6 +77,7 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
       deals: false,
       jobs: false,
       suggestedCars: false,
+      pickupDropoff: false,
     },
   },
   charleston: {
@@ -93,6 +97,7 @@ export const PUBLIC_LOCATIONS: Record<Exclude<PublicLocationId, "hub">, PublicLo
       deals: false,
       jobs: false,
       suggestedCars: false,
+      pickupDropoff: false,
     },
   },
 };
