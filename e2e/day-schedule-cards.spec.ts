@@ -65,6 +65,10 @@ for (const viewport of [{ width: 1280, height: 1000 }, { width: 390, height: 844
     await page.screenshot({ path: `/workspace/artifacts/day-schedule-timeline-${viewport.width}.png`, fullPage: true, animations: "disabled" });
     await turo.click();
     const controls = page.locator('[data-day-schedule-controls]');
+    await expect(controls.getByLabel('Estimated duration in minutes')).toHaveCount(0);
+    await expect(controls.getByRole('link',{name:'Car rental preview',exact:true})).toHaveCount(0);
+    await expect(controls.locator('[aria-label="Trip receipt actions"]').getByRole('button',{name:'Refuel',exact:true})).toBeVisible();
+    await expect(controls.locator('[aria-label="Trip receipt actions"]').getByRole('button',{name:'Airport parking receipt',exact:true})).toBeVisible();
     await expect(controls.getByRole('combobox', { name: 'Task status' })).toBeVisible();
     await expect(controls.getByRole('button', { name: 'Refuel', exact: true })).toBeVisible();
     await expect(controls.getByRole('button', { name: 'Airport parking receipt' })).toBeVisible();

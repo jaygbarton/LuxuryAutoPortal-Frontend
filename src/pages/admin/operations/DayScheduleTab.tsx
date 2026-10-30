@@ -95,12 +95,6 @@ const BLOCK_OFF_STATUSES = ["new", "car_blocked_off", "car_not_available"];
 const OPERATION_TASK_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup", "refuel", "custom", "mechanic", "windshield", "license_plate", "airport"];
 const DAY_SCHEDULE_REFRESH_MS = 10 * 60 * 1000;
 
-// Event types that carry an editable estimated_duration_minutes column on the
-// backend (see setEventDuration in dayScheduleService.ts). Confirmed maintenance
-// appointments are rescheduled in their maintenance record; an old report
-// work estimate must not look like an editable vehicle booking span.
-const DURATION_EDITABLE_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup", "refuel", "custom"];
-
 // Event types assignable via the on-card employee picker / drag-and-drop.
 // Matches ASSIGNABLE_TYPES in routes/operations.ts.
 const ASSIGNEE_EDITABLE_TYPES: DayEventType[] = [
@@ -341,15 +335,15 @@ function DetailLine({ icon, label, value, className = "" }: {
   );
 }
 
-const ScheduleBookingContext = createContext<{ selectedBooking: string | null; developerAccess: boolean; date: string; openAirportReceipt?: (event: DayEvent) => void; openFuelReceipt?: (event: DayEvent) => void }>({
-  selectedBooking: null, developerAccess: false, date: "",
+const ScheduleBookingContext = createContext<{ selectedBooking: string | null; date: string; openAirportReceipt?: (event: DayEvent) => void; openFuelReceipt?: (event: DayEvent) => void }>({
+  selectedBooking: null, date: "",
 });
 
 function ScheduleBookingLinks({ event }: { event: DayEvent }) {
   const context = useContext(ScheduleBookingContext);
   if (!event.bookingKey) return null;
   return <div className="pt-1" onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
-    <BookingNavigation bookingKey={event.bookingKey} currentView="day-schedule" developerAccess={context.developerAccess} date={context.date} />
+    <BookingNavigation bookingKey={event.bookingKey} currentView="day-schedule" date={context.date} />
     {(event.type === "maintenance" || event.type === "maintenance_driver") && <Button className="mt-2" size="sm" variant="outline" asChild>
       <Link href={`/admin/operations?tab=maintenance&appointment=${event.id}`}>Maintenance record</Link>
     </Button>}
@@ -416,6 +410,10 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
           <DialogClose asChild><Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" aria-label="Close task details"><X className="h-4 w-4" /></Button></DialogClose>
         </DialogHeader>
         <ScheduleBookingContext.Provider value={popupContext}>
+          {(canRefuel(event) || event.airport_parking_required) && <div className="flex flex-wrap gap-2" aria-label="Trip receipt actions">
+            {event.airport_parking_required && <Button type="button" variant="outline" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" onClick={()=>popupContext.openAirportReceipt(event)}>Airport parking receipt</Button>}
+            {canRefuel(event) && <Button type="button" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" title="Upload a Gas Reimbursed receipt" onClick={()=>popupContext.openFuelReceipt(event)}>Refuel</Button>}
+          </div>}
           <EventControls {...props} onStatusChange={(type, id, status, completedDate) => {
             if (event.airport_parking_required && status === "completed") setOpen(false);
             props.onStatusChange(type, id, status, completedDate);
@@ -432,7 +430,6 @@ function EventControls({
   onStatusChange,
   onAssign,
   onUnassign,
-  onDurationChange,
   onDriverChange,
   onDelete,
   isAdmin,
@@ -452,7 +449,6 @@ function EventControls({
   quickAssign?: boolean;
   onAssign: (event: DayEvent, employeeId: number, fullname: string) => void;
   onUnassign: (event: DayEvent) => void;
-  onDurationChange: (event: DayEvent, minutes: number | null) => void;
   onDriverChange: (
     event: DayEvent,
     assignmentType: "employee" | "uber" | "na" | null,
@@ -462,13 +458,11 @@ function EventControls({
   onDelete: (event: DayEvent) => void;
   isAdmin: boolean;
 }) {
-  const bookingContext = useContext(ScheduleBookingContext);
   const c = colorFor(event.category);
   const displayDay = event.appointment_start_local ? date : event.scheduled_day ?? date;
   const badgeClass = STATUS_BADGE[event.status ?? ""] ?? "bg-gray-100 text-gray-700 border-gray-300";
   const statusOptions = statusOptionsFor(event.type);
   const canEditAssignee = ASSIGNEE_EDITABLE_TYPES.includes(event.type);
-  const canEditDuration = DURATION_EDITABLE_TYPES.includes(event.type);
   const canEditDriver = DRIVER_EDITABLE_TYPES.includes(event.type);
   const [driverModeDraft, setDriverModeDraft] = useState<"employee" | "uber" | "na" | "">("");
   const [showAlreadyCleanBy, setShowAlreadyCleanBy] = useState(false);
@@ -625,10 +619,6 @@ function EventControls({
           <span className="text-xs font-medium text-amber-800 sm:hidden">Carried over from {formatDateCompact(displayDay)}</span>
         )}
 
-        {(canRefuel(event) || event.airport_parking_required) && <div className="flex flex-wrap gap-2" onDragStart={(e) => e.stopPropagation()}>
-          {canRefuel(event) && <Button type="button" variant="outline" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" onClick={() => bookingContext.openFuelReceipt?.(event)}>Refuel</Button>}
-          {event.airport_parking_required && <Button type="button" variant="outline" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" onClick={() => bookingContext.openAirportReceipt?.(event)}>Airport parking receipt</Button>}
-        </div>}
         {quickAssign && canEditAssignee && <div onDragStart={(e) => e.stopPropagation()}>
           <EmployeeSelectCombobox value="" onChange={() => {}} placeholder="Assign to employee" ariaLabel={`Assign ${event.car_name || event.category}`} touchFriendly
             onSelectEmployee={(employee) => { if (employee) onAssign(event, employee.employee_aid, [employee.employee_first_name, employee.employee_last_name].filter(Boolean).join(" ")); }} />
@@ -741,7 +731,7 @@ function EventControls({
           )}
 
           {/* Controls footer — every editable field on one separated row */}
-          {(canEditAssignee || canEditDuration || canEditDriver) && (
+          {(canEditAssignee || canEditDriver) && (
             <div
               className="mt-auto grid min-w-0 grid-cols-1 gap-3 border-t border-border/60 pt-3 sm:flex sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2 sm:pt-2"
               onClick={(e) => e.stopPropagation()}
@@ -761,25 +751,6 @@ function EventControls({
                       placeholder="Unassigned"
                     />
                   </div>
-                </label>
-              )}
-              {canEditDuration && (
-                <label className="flex items-center gap-2 text-xs text-muted-foreground md:text-xs">
-                  <Clock className="h-3 w-3 flex-shrink-0" />
-                  <input
-                    type="number"
-                    min={0}
-                    step={5}
-                    value={event.duration_minutes ?? ""}
-                    placeholder="mins"
-                    onChange={(e) => {
-                      const raw = e.target.value.trim();
-                      onDurationChange(event, raw === "" ? null : Math.max(0, Number(raw)));
-                    }}
-                    aria-label="Estimated duration in minutes"
-                    className="h-11 w-20 rounded-md border border-border bg-background px-2 text-base text-foreground md:h-8 md:w-16 md:text-xs"
-                  />
-                  <span>min</span>
                 </label>
               )}
               {canEditDriver && (
@@ -879,7 +850,6 @@ function EmployeeSection({
   onStatusChange,
   onAssignEvent,
   onUnassignEvent,
-  onDurationChange,
   onDriverChange,
   onDelete,
   isAdmin,
@@ -892,7 +862,6 @@ function EmployeeSection({
   onStatusChange: (type: DayEventType, id: number, status: string, completedDate?: string) => void;
   onAssignEvent: (event: DayEvent, employeeId: number, fullname: string) => void;
   onUnassignEvent: (event: DayEvent) => void;
-  onDurationChange: (event: DayEvent, minutes: number | null) => void;
   onDriverChange: (
     event: DayEvent,
     assignmentType: "employee" | "uber" | "na" | null,
@@ -969,7 +938,6 @@ function EmployeeSection({
               onStatusChange={onStatusChange}
               onAssign={onAssignEvent}
               onUnassign={onUnassignEvent}
-              onDurationChange={onDurationChange}
               onDriverChange={onDriverChange}
               onDelete={onDelete}
               isAdmin={isAdmin}
@@ -1057,7 +1025,6 @@ export function DayScheduleTab() {
   });
   const myTasksFirst = saveSchedulePreference.isPending ? saveSchedulePreference.variables : schedulePreference.data?.myTasksFirst ?? true;
 
-  const developerAccess = authData?.user?.isSuperAdmin === true;
   const bookingContextQuery = useQuery<{ event: FleetCalendarEvent; timezone: string }>({
     queryKey: ["/api/internal-calendar/bookings", selectedBooking, activeTz],
     enabled: Boolean(selectedBooking),
@@ -1167,44 +1134,6 @@ export function DayScheduleTab() {
   }
   function unassignEvent(event: DayEvent) {
     assignMutation.mutate({ type: event.type, eventId: event.id, employeeId: null, fullname: null });
-  }
-
-  const durationMutation = useMutation({
-    mutationFn: async (body: { type: DayEventType; eventId: number; minutes: number | null }) => {
-      const res = await fetch(buildApiUrl(`/api/operations/day-schedule/duration`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update duration");
-      }
-      return res.json();
-    },
-    onMutate: async (vars) => {
-      await queryClient.cancelQueries({ queryKey: dayScheduleQueryKey });
-      const previous = queryClient.getQueryData<DayScheduleResult>(dayScheduleQueryKey);
-      queryClient.setQueryData<DayScheduleResult>(dayScheduleQueryKey, (current) =>
-        updateDayScheduleEvent(current, vars.type, vars.eventId, (event) => ({
-          ...event,
-          duration_minutes: vars.minutes,
-        })),
-      );
-      return { previous };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: dayScheduleQueryKey, exact: true, refetchType: "active" });
-    },
-    onError: (e: Error, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(dayScheduleQueryKey, context.previous);
-      toast({ variant: "destructive", title: "Couldn't update duration", description: e.message });
-    },
-  });
-
-  function handleDurationChange(event: DayEvent, minutes: number | null) {
-    durationMutation.mutate({ type: event.type, eventId: event.id, minutes });
   }
 
   const driverMutation = useMutation({
@@ -1551,7 +1480,7 @@ export function DayScheduleTab() {
   }, {});
 
   return (
-    <ScheduleBookingContext.Provider value={{ selectedBooking, developerAccess, date, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
+    <ScheduleBookingContext.Provider value={{ selectedBooking, date, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
     <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
     <div className="min-w-0 space-y-3 sm:space-y-4">
       {fuelReturn?.bookingKey && <TripReceiptDialog key={fuelReturn.bookingKey} kind="gas" bookingKey={fuelReturn.bookingKey} onClose={() => setFuelReturn(null)} onComplete={async () => {
@@ -1576,7 +1505,7 @@ export function DayScheduleTab() {
               {matchingBookingEvents.length > visibleBookingEvents.length && <p className="text-sm">Some linked tasks are hidden by the current task-type or location filters.</p>}
             </>
           ) : null}
-          <BookingNavigation bookingKey={selectedBooking} currentView="day-schedule" developerAccess={developerAccess} date={date} />
+          <BookingNavigation bookingKey={selectedBooking} currentView="day-schedule" date={date} />
         </section>
       )}
       {/* Date nav */}
@@ -1754,7 +1683,7 @@ export function DayScheduleTab() {
           <h3 className="text-sm font-semibold">My tasks</h3>
           <EmployeeSection empKey={myEmployeeKey} emp={empById.get(myEmployeeKey)!} events={myEvents} date={date}
             onAssign={assignTo} onStatusChange={handleStatusChange} onAssignEvent={assignEventTo} onUnassignEvent={unassignEvent}
-            onDurationChange={handleDurationChange} onDriverChange={handleDriverChange} onDelete={handleDelete} isAdmin={isAdmin} />
+            onDriverChange={handleDriverChange} onDelete={handleDelete} isAdmin={isAdmin} />
         </section>}
         <div className={`flex gap-4 flex-col ${showAllUnassigned || unassignedFirst ? "" : "lg:flex-row"} items-start`}>
 
@@ -1777,7 +1706,6 @@ export function DayScheduleTab() {
                   onStatusChange={handleStatusChange}
                   onAssignEvent={assignEventTo}
                   onUnassignEvent={unassignEvent}
-                  onDurationChange={handleDurationChange}
                   onDriverChange={handleDriverChange}
                   onDelete={handleDelete}
                   isAdmin={isAdmin}
@@ -1794,8 +1722,7 @@ export function DayScheduleTab() {
                     onStatusChange={handleStatusChange}
                     onAssign={assignEventTo}
                     onUnassign={unassignEvent}
-                    onDurationChange={handleDurationChange}
-                    onDriverChange={handleDriverChange}
+                      onDriverChange={handleDriverChange}
                     onDelete={handleDelete}
                     isAdmin={isAdmin}
                   />
@@ -1881,8 +1808,7 @@ export function DayScheduleTab() {
                           onStatusChange={handleStatusChange}
                           onAssign={assignEventTo}
                           onUnassign={unassignEvent}
-                          onDurationChange={handleDurationChange}
-                          onDriverChange={handleDriverChange}
+                                  onDriverChange={handleDriverChange}
                           onDelete={handleDelete}
                           isAdmin={isAdmin}
                         />

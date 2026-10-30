@@ -59,14 +59,15 @@ test("same-booking links retain the explicit day, hide rental previews from ordi
   expect(result.errors).toEqual([]);
 });
 
-test("lookup resolves the viewer day; failed lookup can retry and developer previews remain private", async ({ page }) => {
+test("lookup resolves the viewer day, retries failures and keeps rental-preview buttons out of Day Schedule even for developers", async ({ page }) => {
   const result = await mock(page, { developer: true, failedFirst: true });
   await page.goto("/admin/operations?tab=day-schedule&booking=turo:208");
   await expect(page.getByRole("alert").filter({ hasText: "Booking not found" })).toBeVisible();
   await page.getByRole("button", { name: "Retry booking details", exact: true }).click();
   await expect(page.getByLabel("Schedule date")).toHaveValue("2026-10-06");
   const strip = page.getByRole("region", { name: "Selected booking" });
-  await expect(strip.getByRole("link", { name: "Car rental preview", exact: true })).toHaveAttribute("href", /^\/admin\/developer\/car-rentals\?booking=turo%3A208&date=2026-10-06$/);
+  await expect(strip.getByRole("link", { name: "Car rental preview", exact: true })).toHaveCount(0);
+  await expect(strip.getByRole('link',{name:'Internal calendar',exact:true})).toHaveAttribute('href',/booking=turo%3A208.*date=2026-10-06/);
   if (await page.locator("[data-day-schedule-controls]").isVisible()) await page.locator("[data-day-schedule-controls]").getByRole("button", { name: "Close task details", exact: true }).click();
   await page.getByRole("button", { name: "Next day", exact: true }).click();
   await expect(page.getByLabel("Schedule date")).toHaveValue("2026-10-07");

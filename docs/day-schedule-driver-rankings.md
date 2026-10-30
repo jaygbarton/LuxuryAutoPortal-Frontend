@@ -20,6 +20,13 @@ with a larger bold plate immediately to their left. TV Timeline has been removed
 from Operations navigation and its unused screen deleted. Existing TV Timeline
 URLs replace themselves with Day Schedule, preserving date and booking parameters.
 
+Task popups no longer show the estimated-minutes input or offer rental-preview
+navigation, including for super-admins. Duration writes and unused callback wiring
+were removed from this screen; stored duration data and backend APIs are preserved.
+For eligible return tasks, Airport parking receipt and Refuel (Gas Reimbursed)
+actions appear directly below the popup header. Opening a receipt still replaces
+the task popup and uses the existing linked vehicle/employee receipt workflow.
+
 Unassigned opens expanded, with search and all cards available. Existing receipt
 submission assigns only its explicitly linked unassigned task to the employee
 selected on the form; the task then appears under that employee. Existing

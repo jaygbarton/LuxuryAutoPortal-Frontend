@@ -161,7 +161,7 @@ for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }
       await expect(card.getByRole("combobox", { name: "Task status" })).not.toBeVisible();
       await activate(card);
       const controls = page.locator("[data-day-schedule-controls]");
-      await expect(controls.getByLabel("Estimated duration in minutes")).toBeVisible();
+      await expect(controls.getByLabel("Estimated duration in minutes")).toHaveCount(0);
       await expect(controls.getByRole("combobox", { name: "Driver type" })).toHaveText("Employee");
       await expectFitsScreen(page, controls);
       await activate(controls.getByRole("combobox", { name: "Task status" }));
