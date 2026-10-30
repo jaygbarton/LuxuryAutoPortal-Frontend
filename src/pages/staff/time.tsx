@@ -49,6 +49,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { api } from "@/lib/api";
+import { prepareClockInPayload } from "@/lib/clockInLocation";
 import { getActiveTimezone } from "@/hooks/use-timezone";
 
 // utahToday() below stays pinned to Utah, unlike the display helpers above:
@@ -380,30 +381,33 @@ export default function StaffTime() {
   const totalPay = (totals.workedSec / 3600) * hourlyRate;
 
   // ── Actions ──
+  const [locating, setLocating] = useState(false);
+  const [clockInError, setClockInError] = useState<string | null>(null);
   const clockIn = async (policyAgreed = false) => {
     if (policyGate.interceptClockIn(policyAgreed)) return;
     setActionLoading(true);
+    setClockInError(null);
     try {
+      const payload = await prepareClockInPayload(setLocating);
       const r = await fetch(buildApiUrl("/api/me/time-sheet/clock-in"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(payload),
       });
       const json = await r.json().catch(() => ({}));
       if (policyGate.interceptRefusal(json)) return;
       if (!r.ok) {
-        toast({
-          title: "Error",
-          description: json.error || "Could not clock in",
-          variant: "destructive",
-        });
-        return;
+        throw new Error(json.error || "Could not clock in");
       }
       toast({ title: "Clocked in", description: json.message ?? "Have a great shift!" });
       qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/last"] });
       qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/dashboard"] });
       qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/sessions"] });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not clock in";
+      setClockInError(message);
+      toast({ title: "Could not clock in", description: message, variant: "destructive" });
     } finally {
       setActionLoading(false);
     }
@@ -606,11 +610,15 @@ export default function StaffTime() {
             ) : (
               <LogIn className="w-4 h-4" />
             )}
-            {isClockedIn ? "Clock out" : "Clock in"}
+            {locating ? "Checking location…" : isClockedIn ? "Clock out" : "Clock in"}
           </Button>
         </div>
 
         {policyGate.gate(() => void clockIn(true))}
+
+        {clockInError && !isClockedIn && (
+          <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{clockInError}</p>
+        )}
 
         {lastQuery.error && (
           <Card className="bg-destructive/10 border-destructive/30">

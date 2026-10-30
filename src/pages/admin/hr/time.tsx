@@ -11,6 +11,7 @@ import { optionKeywords } from "@/lib/select-search";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { ClockOutPropertyCheck } from "@/components/staff/ClockOutPropertyCheck";
 import { useContractorPolicyGate } from "@/components/staff/ContractorPolicy";
+import { prepareClockInPayload } from "@/lib/clockInLocation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -388,6 +389,8 @@ export default function AdminHrTime() {
     });
 
   const [clockActionLoading, setClockActionLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [clockInError, setClockInError] = useState<string | null>(null);
   const [clockOutOpen, setClockOutOpen] = useState(false);
   const [clockOutMode, setClockOutMode] = useState<"choose" | "shift_end">("choose");
   const [clockOutNotes, setClockOutNotes] = useState("");
@@ -434,12 +437,14 @@ export default function AdminHrTime() {
   const clockIn = async (policyAgreed = false) => {
     if (policyGate.interceptClockIn(policyAgreed)) return;
     setClockActionLoading(true);
+    setClockInError(null);
     try {
+      const payload = await prepareClockInPayload(setLocating);
       const res = await fetch(buildApiUrl("/api/me/time-sheet/clock-in"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(payload),
       });
       const json = await res.json().catch(() => ({}));
       if (policyGate.interceptRefusal(json)) return;
@@ -447,6 +452,7 @@ export default function AdminHrTime() {
       toast({ title: "Clocked in", description: json.message ?? "Timer started." });
       invalidateOwnClock();
     } catch (err) {
+      setClockInError(err instanceof Error ? err.message : "Could not clock in");
       toast({
         title: "Error",
         description: err instanceof Error ? err.message : "Could not clock in",
@@ -707,12 +713,15 @@ return true;
                 ) : (
                   <LogIn className="h-4 w-4" />
                 )}
-                {isClockedIn ? "Clock out" : "Clock in"}
+                {locating ? "Checking location…" : isClockedIn ? "Clock out" : "Clock in"}
               </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {policyGate.gate(() => void clockIn(true))}
+            {clockInError && !isClockedIn && (
+              <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-destructive">{clockInError}</p>
+            )}
             {lastClockQuery.isLoading ? (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
