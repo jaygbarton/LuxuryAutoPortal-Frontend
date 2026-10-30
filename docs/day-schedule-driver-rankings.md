@@ -47,7 +47,10 @@ employees. Edits record actor, old list and new list in profile edit history.
   a submitted gas amount is not represented as a confirmed payroll payment.
 - Airport parking: sum amounts ÷ distinct linked trips, lowest average first.
   Multiple parking forms on one linked trip count as one trip. Only verified
-  airport-return trips count. Unlinked forms do not count as trips or cost.
+  airport-return trips count by default. Missing links are matched automatically
+  using the vehicle and receipt date against airport-return pickup tasks. A Manager
+  can Force include an unresolved entry with a reason; each unlinked forced entry
+  counts once, labeled in review and rankings.
   Tickets of $40 or more are excluded from both numerator and denominator unless
   a Manager explicitly includes them after review. Lowering an adjustment below
   $40 does not remove the original ticket's review requirement.

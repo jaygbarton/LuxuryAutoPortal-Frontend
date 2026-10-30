@@ -14,9 +14,13 @@ grant access. An admin assigns roles under HR → Employees → employee → Job
 Charts default to the current month in the viewer's timezone. Parking includes only
 receipt-bearing pending/approved forms linked to verified airport-return trips.
 Unverified, declined, missing-receipt, invalid and $40+ parking entries are excluded
-from both cost and trip count. Managers can explicitly include an expensive ticket,
-but cannot bypass airport-return verification. Multiple forms for one trip count
-as one trip. Gas Reimbursed ranks total submitted amounts, not payroll payments.
+from both cost and trip count by default. Normal Include after review can include
+an expensive ticket once its airport-return link is verified. Force include, added
+by explicit owner request, overrides the price/link rules with a required manager
+reason. A selected active Car Driver, valid amount, eligible receipt status and
+workspace access are still required. Multiple linked forms for one trip count as
+one trip. Each forced entry without a verified link counts once, labeled in both
+review and rankings; repeated loading does not duplicate it. Gas Reimbursed ranks total submitted amounts, not payroll payments.
 
 The review page flags $40+ source tickets red even after a lower adjustment. Managers
 can change attribution, date, amount or inclusion; choose No one to exclude; and add
@@ -94,3 +98,43 @@ refs do not establish production availability. After automatic deployment, verif
 with an actual Manager and a non-Manager, one Utah GLA employee and one Wilmington
 co-host employee: home defaults, own-team pickers/assignments, chart exclusion and
 a reviewed entry. Do not create artificial accounting receipts for that check.
+
+## Chart-only override and receipt review update
+
+Managers choose Employee (charts only) and Force include to attribute a receipt to
+a different driver. Only driver_chart_adjustments/history are written. The source
+form's employee, uploader, amount, attachments, accounting and payroll stay intact.
+The card and edit dialog distinguish the chart employee from the form employee.
+Force include is labeled, and an unverified entry's one-trip counting is disclosed.
+It does not bypass team access, Car Driver eligibility, invalid amounts, missing
+receipts or declined status. No one remains excluded.
+
+When a parking receipt lacks a task/reference link, the chart now matches its car
+and receipt date against existing Turo airport-return pickup tasks. Vehicle VIN/plate
+identity is confirmed through the canonical calendar matcher, not model names.
+Only noncancelled trips/tasks and airport returns qualify. Date matching uses the
+car location's timezone (Utah Mountain; Wilmington Eastern), handles DST, and checks
+scheduled and actual completion dates for carryovers. Repeated tasks for the same
+trip collapse to one candidate; multiple different matching trips remain for review.
+This derives chart linkage without rewriting the original form. Normal manager
+inclusion also tries this match before requiring a manually entered reference.
+
+View receipts is available on cards and inside the edit dialog. Original images/PDFs
+open in the existing authenticated in-app viewer. The new manager-only list and file
+endpoints check chart source/current ownership and use database-held references:
+GET /api/operations/chart-management/:key/receipts
+GET /api/operations/chart-management/:key/receipts/:index/file
+They return no raw storage URLs and cannot fetch arbitrary caller-provided URLs.
+Manual entries with no source form show no attachments; missing original files show
+a readable error. File responses are private/no-store and use the existing browser
+safe receipt conversion.
+
+Focused update checks: 29 backend tests across the chart policy/review/rankings and
+manager-route files passed (including scoped receipt delivery, force reassignment,
+missing/ambiguous trips and Mountain/Eastern DST dates). Eight browser scenarios
+passed across the focused runs: mobile/desktop review and force attribution,
+non-Manager denial, original image/PDF previews, authenticated file fetches and
+missing-file errors. Frontend TypeScript, both production builds, duplication
+thresholds and diff whitespace checks passed. These checks use fixtures, not
+production receipt/accounting writes. Live rollout remains subject to the existing
+proxy limitation described above.

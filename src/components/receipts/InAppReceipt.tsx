@@ -36,6 +36,7 @@ function isOurReceiptApi(url: string): boolean {
     /\/api\/income-expense\/images\/\d+\/file(?:\?|$)/.test(url) ||
     url.includes("/api/income-expense/receipt-image") ||
     url.includes("/api/expense-form-submissions/receipt/file") ||
+    /\/api\/operations\/chart-management\/[^/]+\/receipts\/\d+\/file(?:\?|$)/.test(url) ||
     url.includes("/api/payments/receipt/file-content") ||
     url.includes("/api/gcs-image-proxy")
   );
@@ -50,6 +51,7 @@ function needsCredentials(url: string): boolean {
     /\/api\/income-expense\/images\/\d+\/file(?:\?|$)/.test(url) ||
     url.includes("/api/income-expense/receipt-image") ||
     url.includes("/api/expense-form-submissions/receipt/file") ||
+    /\/api\/operations\/chart-management\/[^/]+\/receipts\/\d+\/file(?:\?|$)/.test(url) ||
     url.includes("/api/payments/receipt/file-content")
   );
 }

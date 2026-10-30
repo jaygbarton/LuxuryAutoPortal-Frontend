@@ -1,4 +1,5 @@
 import{test,expect,type Page}from'@playwright/test';
+import { PDFDocument } from 'pdf-lib';
 async function fixture(page:Page,options:{manager?:boolean;home?:'slc'|'wilmington';cohost?:boolean}={}){
  const writes:any[]=[],reads:string[]=[],errors:string[]=[];
  const entry:any={key:'receipt:1',sourceId:1,adjustmentId:null,version:0,kind:'parking',date:'2026-10-01',employeeId:41,carId:101,amount:50,sourceAmount:50,name:'Own Driver',sourceEmployeeName:'Own Driver',carName:'Own vehicle',returnReference:'turo:9',decision:'auto',reason:'',exclusion:'$40+ ticket awaiting manager review',anomaly:true,reservation:'RES-9'};
@@ -12,6 +13,8 @@ async function fixture(page:Page,options:{manager?:boolean;home?:'slc'|'wilmingt
   else if(path==='/api/operations/chart-management'&&req.method()==='GET')body={entries:[entry],drivers:[{employeeId:41,name:'Own Driver'},{employeeId:42,name:'Second Driver'}],cars:[{carId:101,name:'Own vehicle'}]};
   else if(path.startsWith('/api/operations/chart-management/')&&req.method()==='PUT'){Object.assign(entry,req.postDataJSON());entry.name=entry.employeeId===42?'Second Driver':entry.employeeId?'Own Driver':'No one';entry.exclusion=entry.decision==='exclude'?'Excluded by manager':null;entry.version++;body={key:entry.key,version:entry.version};}
   else if(path==='/api/operations/chart-management'&&req.method()==='POST')body={key:'manual:2',version:1};
+  else if(path==='/api/operations/chart-management/receipt:1/receipts')body={files:[{name:'Receipt 1',url:'/api/operations/chart-management/receipt%3A1/receipts/0/file'}]};
+  else if(path==='/api/operations/chart-management/receipt:1/receipts/0/file'){await route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jE1sAAAAASUVORK5CYII=','base64')});return;}
   else if(path.endsWith('/history'))body={history:[{version:1,actor_id:7,created_at:'2026-10-30',after_json:{decision:'exclude',reason:'Special case'}}]};
   else if(path==='/api/me/preferences/day-schedule')body={myTasksFirst:true,employeeId:41};
   else if(path==='/api/operations/day-schedule')body={date:url.searchParams.get('date'),events:[],work_shifts:[]};
@@ -63,4 +66,57 @@ test('direct-booking preview uses the saved home city without changing its isola
  await expect(page.getByLabel('Pickup city',{exact:true})).toHaveValue('Wilmington, NC');
  await expect(page.getByText('Wilmington preview vehicle',{exact:true})).toBeVisible();await expect(page.getByText('Utah preview vehicle',{exact:true})).toHaveCount(0);
  await page.getByLabel('Pickup city',{exact:true}).selectOption('');await expect(page.getByText('Utah preview vehicle',{exact:true})).toBeVisible();expect(state.writes).toEqual([]);expect(state.errors).toEqual([]);
+});
+
+for(const width of[390,1440])test(`force inclusion reassigns only the chart and preserves form attribution at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:844});
+ const state=await fixture(page,{manager:true});await page.goto('/admin/operations?tab=chart-management');
+ const row=page.getByRole('article',{name:'Chart entry receipt:1'});await row.getByRole('button',{name:'Edit',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'Edit chart entry'});
+ await dialog.getByLabel('Chart employee',{exact:true}).selectOption('42');
+ await dialog.getByLabel('Airport-return trip reference').fill('');
+ await dialog.getByLabel('Chart inclusion').selectOption('force');
+ await expect(dialog).toContainText('Form employee: Own Driver (unchanged)');
+ await expect(dialog).toContainText('An unverified parking entry counts once as a trip');
+ await dialog.getByLabel('Reason for chart change').fill('Reviewed receipt: Second Driver completed airport pickup');
+ await dialog.getByRole('button',{name:'Save chart entry'}).click();await expect(dialog).toHaveCount(0);
+ expect(state.writes).toHaveLength(1);expect(state.writes[0]).toMatchObject({path:'/api/operations/chart-management/receipt:1',body:{employeeId:42,decision:'force',returnReference:'',amount:50}});
+ await expect(row).toContainText('Chart employee: Second Driver');await expect(row).toContainText('Form employee: Own Driver');await expect(row).toContainText('Force included by manager');
+ await page.screenshot({path:`/workspace/artifacts/chart-force-${width}.png`,fullPage:true,animations:'disabled'});
+ expect(state.errors).toEqual([]);
+});
+
+test('receipt review loads the original file in the app from both the entry and its edit dialog',async({page})=>{
+ await page.addInitScript(()=>{
+  const original=window.fetch.bind(window);(window as any).chartReceiptFetches=[];
+  window.fetch=(input,init)=>{if(String(input).includes('/receipts/0/file'))(window as any).chartReceiptFetches.push({credentials:init?.credentials});return original(input,init);};
+ });
+ const state=await fixture(page,{manager:true});await page.goto('/admin/operations?tab=chart-management');
+ const row=page.getByRole('article',{name:'Chart entry receipt:1'});await row.getByRole('button',{name:'View receipts'}).click();
+ const viewer=page.getByRole('dialog',{name:'Entry receipts'});await expect(viewer.getByRole('img',{name:'Receipt 1'})).toBeVisible();
+ await expect.poll(()=>viewer.getByRole('img',{name:'Receipt 1'}).evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBe(1);
+ expect(state.reads.some(url=>url.includes('/receipts/0/file'))).toBe(true);
+ expect(await page.evaluate(()=>(window as any).chartReceiptFetches)).toEqual([{credentials:'include'}]);
+ await viewer.getByRole('button',{name:'Close receipts'}).click();await row.getByRole('button',{name:'Edit',exact:true}).click();
+ const edit=page.getByRole('dialog',{name:'Edit chart entry'});await edit.getByRole('button',{name:'View receipts'}).click();
+ await expect(viewer.getByRole('img',{name:'Receipt 1'})).toBeVisible();await viewer.getByRole('button',{name:'Close receipts'}).click();await expect(edit).toBeVisible();
+ expect(state.writes).toEqual([]);expect(state.errors).toEqual([]);
+});
+
+test('receipt review supports original PDF attachments on a short mobile screen',async({page})=>{
+ await page.setViewportSize({width:390,height:667});const state=await fixture(page,{manager:true});
+ const pdf=await PDFDocument.create();pdf.addPage().drawText('Airport parking receipt - $50.00');const bytes=Buffer.from(await pdf.save());
+ await page.route(url=>decodeURIComponent(url.pathname).endsWith('/chart-management/receipt:1/receipts/0/file'),route=>route.fulfill({contentType:'application/pdf',body:bytes}));
+ await page.goto('/admin/operations?tab=chart-management');await page.getByRole('button',{name:'View receipts',exact:true}).click();
+ const viewer=page.getByRole('dialog',{name:'Entry receipts'});await expect(viewer.locator('iframe[title="Receipt 1"]')).toBeVisible();await expect(viewer).not.toContainText('Couldn’t load receipt');
+ const panel=await viewer.boundingBox();expect(panel!.width).toBeLessThanOrEqual(390);expect(panel!.height).toBeLessThanOrEqual(667*.91);
+ await viewer.getByRole('button',{name:'Close receipts'}).click();expect(state.writes).toEqual([]);expect(state.errors).toEqual([]);
+});
+
+test('receipt review displays missing-file errors without opening raw storage links',async({page})=>{
+ const state=await fixture(page,{manager:true});
+ await page.route(url=>decodeURIComponent(url.pathname).endsWith('/chart-management/receipt:1/receipts/0/file'),route=>route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({error:'Original receipt file could not be found.'})}));
+ await page.goto('/admin/operations?tab=chart-management');await page.getByRole('button',{name:'View receipts',exact:true}).click();
+ const viewer=page.getByRole('dialog',{name:'Entry receipts'});await expect(viewer).toContainText('Original receipt file could not be found.');
+ await expect(viewer.locator('a[href*="storage.googleapis.com"]')).toHaveCount(0);expect(state.writes).toEqual([]);expect(state.errors).toEqual([]);
 });

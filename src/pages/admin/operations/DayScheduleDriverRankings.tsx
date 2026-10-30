@@ -38,7 +38,7 @@ export function DayScheduleDriverRankings() {
     {query.isPending ? <p role="status" className="p-3 text-sm text-muted-foreground">Loading driver charts…</p> : query.isError ? <div role="alert" className="rounded-xl border p-4 text-sm">Driver charts could not be loaded. <Button variant="outline" className="mt-2 h-11" onClick={() => query.refetch()}>Retry driver charts</Button></div> : <>
       <Ranking title="Airport parking average" caption="Lowest average first · airport-return trips only" rows={query.data.parking} parking />
       <Ranking title="Gas reimbursed" caption="Highest submitted reimbursement total first" rows={query.data.gas} />
-      <p className="px-1 text-xs text-muted-foreground">$40+ parking tickets are excluded unless a manager reviews and includes them. Only verified airport returns count.</p>
+      <p className="px-1 text-xs text-muted-foreground">$40+ parking tickets are excluded unless a manager includes them. Airport-return links are required unless a manager force includes the entry; those overrides are labeled below.</p>
     </>}
   </aside>;
 }
@@ -51,6 +51,7 @@ function Ranking({ title, caption, rows, parking = false }: { title: string; cap
       {row.receipts > 0 && <>
         <div className="my-1.5 h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(1, (parking ? row.average ?? 0 : row.total) / largest * 100)}%` }} /></div>
         <p className="text-[11px] text-muted-foreground">{parking ? `${money(row.total)} ÷ ${row.trips} ${row.trips === 1 ? 'trip' : 'trips'}` : `${row.receipts} ${row.receipts === 1 ? 'receipt' : 'receipts'}`}{row.pending ? ` · ${row.pending} pending` : ''}</p>
+        {parking&&!!row.unlinked&&<p className="text-[11px] text-amber-800">Includes {row.unlinked} force-included {row.unlinked===1?'entry':'entries'} without verified trip links, each counted once.</p>}
       </>}
     </li>)}</ol>}
   </section>;
