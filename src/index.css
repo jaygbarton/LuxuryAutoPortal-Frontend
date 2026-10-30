@@ -565,3 +565,11 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Trip extras stay prominent on the compact Day Schedule summaries. */
+@keyframes gla-trip-extras-flash {
+  0%, 100% { background-color: #fef3c7; }
+  50% { background-color: #fde047; }
+}
+.gla-trip-extras { background-color: #fde047; animation: gla-trip-extras-flash 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .gla-trip-extras { animation: none; } }

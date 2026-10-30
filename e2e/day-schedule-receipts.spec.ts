@@ -61,7 +61,7 @@ for (const { width, height } of [{ width: 360, height: 844 }, { width: 390, heig
     const card = page.locator('[data-day-schedule-card][data-booking-key="turo:119"]');
     await expect(card).toBeVisible();
     expect((await card.boundingBox())!.height).toBeLessThan(240);
-    const summary = card.getByRole("button", { name: "Task details for Test Vehicle 19", exact: true });
+    const summary = card;
     await expect(summary).toHaveAttribute("aria-expanded", "false");
     await expect(card.getByRole("combobox", { name: "Task status" })).not.toBeVisible();
     await expect(card.getByRole("button", { name: "Airport parking receipt", exact: true })).not.toBeVisible();
@@ -70,15 +70,14 @@ for (const { width, height } of [{ width: 360, height: 844 }, { width: 390, heig
     await expect(summary).toHaveAttribute("aria-expanded", "true");
     const bounds = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, width: document.documentElement.clientWidth }));
     expect(bounds.scroll).toBeLessThanOrEqual(bounds.width);
-    for (const button of [card.getByRole("combobox", { name: "Task status" }), card.getByRole("button", { name: "Refuel", exact: true }), card.getByRole("button", { name: "Airport parking receipt", exact: true })]) {
+    const controls = page.locator("[data-day-schedule-controls]");
+    await controls.evaluate(async element => { await Promise.all(element.getAnimations().map(animation => animation.finished)); });
+    for (const button of [controls.getByRole("combobox", { name: "Task status" }), controls.getByRole("button", { name: "Refuel", exact: true }), controls.getByRole("button", { name: "Airport parking receipt", exact: true })]) {
       expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     }
-    await expect(card.getByRole("navigation", { name: "Booking views" })).not.toBeVisible();
-    await card.getByRole("button", { name: "Details & edit", exact: true }).tap();
-    await expect(card.getByRole("navigation", { name: "Booking views" })).toBeVisible();
-    await card.getByRole("button", { name: "Hide details", exact: true }).tap();
+    await expect(controls.getByRole("navigation", { name: "Booking views" })).toBeVisible();
     await page.screenshot({ path: `/tmp/gla-mobile-day-expanded-${screenshotSize}.png`, fullPage: true });
-    await card.getByRole("combobox", { name: "Task status" }).tap();
+    await controls.getByRole("combobox", { name: "Task status" }).tap();
     await page.getByRole("option", { name: "completed", exact: true }).tap();
     const dialog = page.getByRole("dialog", { name: "Airport parking receipt" });
     await expect(dialog).toBeVisible();
@@ -107,7 +106,8 @@ for (const { width, height } of [{ width: 360, height: 844 }, { width: 390, heig
 test("airport Completed opens receipt before any status write and preserves expense category, vehicle, and assignee", async ({ page }) => {
   const state = await mock(page);
   const card = page.locator('[data-day-schedule-card][data-booking-key="turo:119"]');
-  await card.getByRole("combobox", { name: "Task status" }).click();
+  await card.click();
+  await page.locator("[data-day-schedule-controls]").getByRole("combobox", { name: "Task status" }).click();
   await page.getByRole("option", { name: "completed", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Airport parking receipt" });
   await expect(dialog).toBeVisible(); expect(state.calls).toHaveLength(0);
@@ -126,6 +126,7 @@ test("airport Completed opens receipt before any status write and preserves expe
 
 test("failed completion retries the saved expense without double submission", async ({ page }) => {
   const state = await mock(page, { failStatus: true });
+  await page.locator("[data-day-schedule-card]").first().click();
   await page.getByRole("button", { name: "Airport parking receipt", exact: true }).click(); await upload(page);
   await page.getByRole("button", { name: "Submit receipt & complete pickup" }).click();
   await expect(page.getByRole("dialog").getByText(/receipt is saved for approval/)).toBeVisible();
@@ -137,6 +138,7 @@ test("failed completion retries the saved expense without double submission", as
 
 test("upload failure or cancellation does not complete the task", async ({ page }) => {
   const state = await mock(page, { failUpload: true });
+  await page.locator("[data-day-schedule-card]").first().click();
   await page.getByRole("button", { name: "Airport parking receipt", exact: true }).click(); await upload(page);
   await expect(page.getByRole("dialog").getByRole("alert")).toContainText("Receipt upload failed");
   await expect(page.getByRole("button", { name: "Submit receipt & complete pickup" })).toBeDisabled();
@@ -146,6 +148,7 @@ test("upload failure or cancellation does not complete the task", async ({ page 
 
 for (const owner of [false, true]) test(`gas return form supports manual fallback for ${owner ? "owner rental" : "non-airport Turo"} without completing the return`, async ({ page }) => {
   const state = await mock(page, { unreadable: true, owner, nonAirport: !owner });
+  await page.locator("[data-day-schedule-card]").first().click();
   await page.getByRole("button", { name: "Refuel", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Gas reimbursed receipt" })).toBeVisible(); await upload(page);
   await expect(page.getByRole("dialog").getByText(/Please manually enter/)).toBeVisible();
@@ -162,6 +165,7 @@ for (const owner of [false, true]) test(`gas return form supports manual fallbac
 
 test("a lost gas submission response recovers the saved receipt and refuel without a duplicate POST", async ({ page }) => {
   const state = await mock(page, { nonAirport: true, dropGasResponse: true });
+  await page.locator("[data-day-schedule-card]").first().click();
   await page.getByRole("button", { name: "Refuel", exact: true }).click(); await upload(page);
   await page.getByRole("button", { name: "Submit gas receipt", exact: true }).click();
   await expect(page.getByRole("dialog").getByText(/completed Refuel Run are already saved/)).toBeVisible();
@@ -181,8 +185,8 @@ for (const mobile of [false, true]) test.describe(mobile ? "phone" : "desktop", 
     await region.getByLabel("Search unassigned tasks").fill("TEST4");
     await expect(region.getByText("1 of 5 unassigned tasks", { exact: false })).toBeVisible();
     await expect(region.locator("[data-day-schedule-card]")).toHaveCount(1);
-    if (mobile) await region.getByRole("button", { name: "Task details for Test Vehicle 4", exact: true }).tap();
-    await region.getByRole("combobox", { name: "Assign Test Vehicle 4", exact: true }).click();
+    await region.getByRole("button", { name: "Task details for Test Vehicle 4", exact: true }).click();
+    await page.locator("[data-day-schedule-controls]").getByRole("combobox", { name: "Assign Test Vehicle 4", exact: true }).click();
     await page.getByPlaceholder("Search employees...").fill("Second");
     await page.getByRole("option", { name: "Second Worker", exact: true }).click();
     await expect.poll(() => state.calls.some(c => c.path.endsWith("/assign") && c.body.eventId === 4 && c.body.employeeId === 42)).toBe(true);
@@ -200,7 +204,8 @@ for (const gas of [false, true]) test(`successful ${gas ? "gas" : "parking"} for
   const region = page.getByRole("region", { name: "Unassigned tasks", exact: true });
   await region.getByRole("button", { name: "Expand", exact: true }).click();
   const source = region.locator('[data-booking-key="turo:101"]');
-  await source.getByRole("button", { name: gas ? "Refuel" : "Airport parking receipt", exact: true }).click();
+  await source.click();
+  await page.locator("[data-day-schedule-controls]").getByRole("button", { name: gas ? "Refuel" : "Airport parking receipt", exact: true }).click();
   await expect(page.getByRole("dialog").getByText(/Submitting assigns this unassigned task/)).toBeVisible();
   await page.getByLabel("Employee", { exact: true }).selectOption("42");
   await upload(page);
@@ -219,7 +224,8 @@ test("failed form save leaves the source task unassigned", async ({ page }) => {
   const region = page.getByRole("region", { name: "Unassigned tasks", exact: true });
   await region.getByRole("button", { name: "Expand", exact: true }).click();
   const source = region.locator('[data-booking-key="turo:101"]');
-  await source.getByRole("button", { name: "Airport parking receipt", exact: true }).click();
+  await source.click();
+  await page.locator("[data-day-schedule-controls]").getByRole("button", { name: "Airport parking receipt", exact: true }).click();
   await page.getByLabel("Employee", { exact: true }).selectOption("42"); await upload(page);
   await page.getByRole("button", { name: "Submit receipt & complete pickup" }).click();
   await expect(page.getByRole("dialog").getByRole("alert")).toContainText("Could not save receipt");

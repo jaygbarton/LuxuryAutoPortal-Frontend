@@ -156,37 +156,33 @@ for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }
       await expect.poll(() => thumbnail.evaluate((element) => (element as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
       await expectFitsScreen(page);
       await page.screenshot({ path: screenshotPath(`operations-day-${viewport.width}.png`), fullPage: true });
-      if (mobile) {
-        expect((await card.boundingBox())!.height).toBeLessThan(260);
-        await expect(card.getByRole("combobox", { name: "Task status" })).not.toBeVisible();
-        await activate(card.getByRole("button", { name: "Task details for Mercedes-Benz GLS 450 2025", exact: true }));
-        await expect(card.getByLabel("Estimated duration in minutes")).not.toBeVisible();
-        await activate(card.getByRole("button", { name: "Details & edit" }));
-      }
-      await expect(card.getByLabel("Estimated duration in minutes")).toBeVisible();
-      await expect(card.getByRole("combobox", { name: "Driver type" })).toHaveText("Employee");
-      await expectFitsScreen(page, card);
-      await activate(card.getByRole("combobox", { name: "Task status" }));
+      if (mobile) expect((await card.boundingBox())!.height).toBeLessThan(260);
+      await expect(card.getByRole("combobox", { name: "Task status" })).not.toBeVisible();
+      await activate(card);
+      const controls = page.locator("[data-day-schedule-controls]");
+      await expect(controls.getByLabel("Estimated duration in minutes")).toBeVisible();
+      await expect(controls.getByRole("combobox", { name: "Driver type" })).toHaveText("Employee");
+      await expectFitsScreen(page, controls);
+      await activate(controls.getByRole("combobox", { name: "Task status" }));
       await activate(page.getByRole("option", { name: "in progress", exact: true }));
       await expect.poll(() => mutations.find((item) => item.path === "/api/operations/tasks/501/status")?.body).toMatchObject({ status: "in_progress" });
-      await activate(card.getByRole("button", { name: /^More actions/ }));
+      await activate(controls.getByRole("button", { name: /^More actions/ }));
       await expect(page.getByRole("menuitem", { name: "Delete task", exact: true })).toBeVisible();
       await expect(page.getByRole("menuitem", { name: "Already clean?", exact: true })).toBeVisible();
       page.once("dialog", (dialog) => dialog.dismiss());
       await activate(page.getByRole("menuitem", { name: "Delete task", exact: true }));
       expect(mutations.some((item) => item.method === "DELETE")).toBe(false);
-      await activate(card.getByRole("combobox", { name: "Assignee", exact: true }));
+      await activate(controls.getByRole("combobox", { name: "Assignee", exact: true }));
       await page.getByPlaceholder("Search employees...").fill("jordan");
       await activate(page.getByRole("option", { name: "Jordan Lee", exact: true }));
       await expect.poll(() => mutations.find((item) => item.path === "/api/operations/day-schedule/assign")?.body).toMatchObject({ type: "cleaning", eventId: 501, employeeId: 42, fullname: "Jordan Lee" });
       const carryover = page.locator("[data-day-schedule-card]:visible").filter({ hasText: "Carryover car task" }).first();
-      if (mobile) {
-        await activate(carryover.getByRole("button", { name: "Task details for Carryover car task", exact: true }));
-        await activate(carryover.getByRole("button", { name: "Details & edit" }));
-      }
-      await carryover.getByLabel("Actual completion date").fill(fixtureDate);
-      await activate(carryover.getByRole("button", { name: "Complete", exact: true }));
+      if (await controls.isVisible()) await activate(controls.getByRole("button", { name: "Close task details", exact: true }));
+      await activate(carryover);
+      await controls.getByLabel("Actual completion date").fill(fixtureDate);
+      await activate(controls.getByRole("button", { name: "Complete", exact: true }));
       await expect.poll(() => mutations.find((item) => item.path === "/api/operations/tasks/504/status")?.body).toMatchObject({ status: "completed", completedDate: fixtureDate });
+      if (await controls.isVisible()) await activate(controls.getByRole("button", { name: "Close task details", exact: true }));
       await activate(page.getByRole("button", { name: "Next day", exact: true }));
       await expect(page.getByLabel("Schedule date")).toHaveValue("2026-10-08");
       await activate(page.getByRole("button", { name: "Previous day", exact: true }));

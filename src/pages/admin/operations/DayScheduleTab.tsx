@@ -1,5 +1,5 @@
 import { optionKeywords } from "@/lib/select-search";
-import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearch } from "wouter";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical, LayoutList, Rows3, Plus, Trash2, CheckCircle, MoreHorizontal } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical, LayoutList, Rows3, Plus, Trash2, CheckCircle, MoreHorizontal, X } from "lucide-react";
 import { PhotoUpload } from "./PhotoUpload";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarScheduleImage } from "./CarScheduleImage";
@@ -18,6 +18,7 @@ import { useTimezone } from "@/hooks/use-timezone";
 import { BookingNavigation } from "@/components/shared/BookingNavigation";
 import { dayScheduleBookingKey, linkedScheduleDate, validScheduleDate } from "@/lib/dayScheduleBooking";
 import type { FleetCalendarEvent } from "@/lib/fleetCalendar";
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { TripReceiptDialog } from "./TripReceiptDialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -354,7 +355,75 @@ function ScheduleBookingLinks({ event }: { event: DayEvent }) {
   </div>;
 }
 
-function EventCard({
+function taskSource(event: DayEvent): { label: string; color: string } | null {
+  if (event.bookingKey?.startsWith("turo:")) return { label: "Turo", color: "bg-purple-600 text-white" };
+  if (event.bookingKey?.startsWith("owner_rental:")) return { label: "Owner rental", color: "bg-[#D3BC8D] text-black" };
+  if (event.bookingKey?.startsWith("direct_booking:")) return { label: "Direct booking", color: "bg-[#D3BC8D] text-black" };
+  return null;
+}
+
+function scheduleTaskLabel(event: DayEvent): string {
+  // Owner pickup/dropoff names describe the owner's movement; employees deliver
+  // at the start and retrieve at the end, just as on a Turo rental.
+  if (event.type === "owner_pickup" || event.type === "trip_start") return "Drop Off";
+  if (event.type === "owner_dropoff" || event.type === "trip_end") return "Pick Up";
+  if (event.type === "owner_cleaning") return "Cleaning";
+  return event.category;
+}
+
+function EventCard(props: ComponentProps<typeof EventControls>) {
+  const { event } = props;
+  const [open, setOpen] = useState(false);
+  const context = useContext(ScheduleBookingContext);
+  const source = taskSource(event);
+  const label = scheduleTaskLabel(event);
+  const colors = colorFor(label);
+  const selected = Boolean(event.bookingKey && event.bookingKey === context.selectedBooking);
+  const popupContext = { ...context,
+    openAirportReceipt: (task: DayEvent) => { setOpen(false); context.openAirportReceipt?.(task); },
+    openFuelReceipt: (task: DayEvent) => { setOpen(false); context.openFuelReceipt?.(task); },
+  };
+  return <>
+    <button type="button" draggable onDragStart={(e) => setDragData(e, event)}
+      data-day-schedule-card data-booking-key={event.bookingKey} data-task-type={event.type}
+      data-booking-selected={selected || undefined}
+      aria-label={`Task details for ${event.car_name || label}`} aria-haspopup="dialog" aria-expanded={open}
+      onClick={() => setOpen(true)}
+      className={`relative flex w-full min-w-0 items-start gap-3 overflow-hidden rounded-xl border bg-white p-4 text-left text-foreground transition-colors hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selected ? "ring-2 ring-primary" : "border-border"}`}>
+      <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 ${colors.bg}`} />
+      <span className="min-w-0 flex-1 space-y-2">
+        <span className="block text-xs font-medium">{event.start_time ? fmt12(event.start_time) : "Time not set"}</span>
+        <span className="block break-words text-sm font-semibold sm:text-base">{event.car_name || label}</span>
+        <span className="flex flex-wrap gap-1.5">
+          <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${colors.bg} ${colors.text}`}>{label}</span>
+          {source && <span data-booking-source={source.label} className={`rounded px-2 py-0.5 text-[11px] font-semibold ${source.color}`}>{source.label}</span>}
+        </span>
+        {event.extras && <span data-trip-extras className="gla-trip-extras block w-fit max-w-full break-words rounded px-2 py-1 text-xs font-semibold text-amber-950"><span>Extras: </span>{event.extras}</span>}
+      </span>
+      <span className="w-20 shrink-0 text-center sm:w-24">
+        <CarScheduleImage carPhoto={event.car_photo} carName={event.car_name} className="h-14 w-full rounded-lg bg-muted/30 sm:h-16" size={192} hideBelowMd={false} fallback={<span className="flex h-full items-center justify-center text-muted-foreground" role="img" aria-label="Vehicle photo unavailable"><Car className="h-6 w-6" /></span>} />
+        <span className="mt-1 block break-words text-[11px] text-muted-foreground">{event.plate || "Plate not set"}</span>
+      </span>
+    </button>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="max-w-3xl" data-day-schedule-controls>
+        <DialogHeader className="flex-row items-start justify-between gap-2 space-y-0 text-left">
+          <div className="min-w-0"><DialogTitle>{label} · {event.car_name || "Task"}</DialogTitle>
+          <DialogDescription>{formatDisplayDate(props.date)} · {event.start_time ? fmt12(event.start_time) : "Time not set"}{event.plate ? ` · ${event.plate}` : ""}</DialogDescription></div>
+          <DialogClose asChild><Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" aria-label="Close task details"><X className="h-4 w-4" /></Button></DialogClose>
+        </DialogHeader>
+        <ScheduleBookingContext.Provider value={popupContext}>
+          <EventControls {...props} onStatusChange={(type, id, status, completedDate) => {
+            if (event.airport_parking_required && status === "completed") setOpen(false);
+            props.onStatusChange(type, id, status, completedDate);
+          }} />
+        </ScheduleBookingContext.Provider>
+      </DialogContent>
+    </Dialog>
+  </>;
+}
+
+function EventControls({
   event,
   date,
   onStatusChange,
@@ -391,7 +460,6 @@ function EventCard({
   isAdmin: boolean;
 }) {
   const bookingContext = useContext(ScheduleBookingContext);
-  const selectedBooking = Boolean(event.bookingKey && event.bookingKey === bookingContext.selectedBooking);
   const c = colorFor(event.category);
   const displayDay = event.appointment_start_local ? date : event.scheduled_day ?? date;
   const badgeClass = STATUS_BADGE[event.status ?? ""] ?? "bg-gray-100 text-gray-700 border-gray-300";
@@ -401,57 +469,15 @@ function EventCard({
   const canEditDriver = DRIVER_EDITABLE_TYPES.includes(event.type);
   const [driverModeDraft, setDriverModeDraft] = useState<"employee" | "uber" | "na" | "">("");
   const [showAlreadyCleanBy, setShowAlreadyCleanBy] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [mobileExpanded, setMobileExpanded] = useState(false);
   const detailsId = useId();
   const mobileContentId = useId();
   const [completionDate, setCompletionDate] = useState(event.completed_day || date);
   const driverMode = driverModeDraft || event.driver_assignment_type || "";
   const showCompletionDatePicker = !!event.is_carryover && statusOptions && event.status !== "completed";
   const showActualCompletedDate = !event.appointment_start_local && !!event.completed_day && event.completed_day !== (event.scheduled_day ?? date);
-  const hasDetails = canEditAssignee || canEditDuration || canEditDriver || Boolean(
-    event.trip_start_mt || event.trip_end_mt || event.pickup_location || event.dropoff_location ||
-    event.location || event.detail || event.notes || event.is_carryover || showActualCompletedDate || event.photos?.length || event.bookingKey,
-  );
-  const summaryLocation = event.location || (
-    event.type === "delivery" || event.type === "trip_end" || event.type === "owner_dropoff"
-      ? event.dropoff_location || event.pickup_location
-      : event.pickup_location || event.dropoff_location
-  );
 
   return (
-    <div
-      draggable
-      onDragStart={(e) => setDragData(e, event)}
-      data-day-schedule-card
-      data-booking-key={event.bookingKey}
-      data-booking-selected={selectedBooking || undefined}
-      className={`group/event flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card sm:cursor-grab sm:flex-row sm:items-stretch sm:rounded-xl sm:active:cursor-grabbing ${selectedBooking ? "ring-2 ring-primary ring-offset-2" : ""}`}
-    >
-      <button type="button" className="w-full min-w-0 rounded-2xl p-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:hidden"
-        aria-label={`Task details for ${event.car_name || event.category}`} aria-expanded={mobileExpanded} aria-controls={mobileContentId}
-        onClick={(e) => { e.stopPropagation(); setMobileExpanded((open) => !open); }}>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <span className="text-xs font-semibold">{event.start_time ? fmt12(event.start_time) : "Time not set"}{event.end_time && ` – ${fmt12(event.end_time)}`}</span>
-          <span className="text-xs text-muted-foreground">{formatDisplayDate(displayDay)}</span>
-        </div>
-        <div className="flex min-w-0 items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold leading-snug text-foreground">{event.car_name || event.category}</p>
-            {event.plate && <p className="mt-0.5 text-xs text-muted-foreground">{event.plate}</p>}
-            {(event.guest_name || event.reservation_id) && <p className="mt-1 text-xs text-muted-foreground">{event.guest_name}{event.guest_name && event.reservation_id ? " · " : ""}{event.reservation_id && `#${event.reservation_id}`}</p>}
-          </div>
-          <CarScheduleImage carPhoto={event.car_photo} carName={event.car_name} className="h-16 w-24 shrink-0 rounded-xl bg-muted/30" size={160} hideBelowMd={false} fit="contain" />
-        </div>
-        {summaryLocation && <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="line-clamp-2 break-words">{summaryLocation}</span></p>}
-        <div className="mt-2 flex min-w-0 items-center gap-2">
-          <span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-medium">{event.category}</span>
-          {event.status && <span className={`rounded-md px-2 py-1 text-xs ${badgeClass}`}>{event.status.replace(/_/g, " ")}</span>}
-          <ChevronDown className={`ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform ${mobileExpanded ? "rotate-180" : ""}`} />
-        </div>
-        {showAssignee && <p className="mt-2 text-xs text-muted-foreground">{event.assigned_to || "Unassigned"}</p>}
-        {event.is_carryover && <p className="mt-1 text-xs font-medium text-amber-800">Carried over from {formatDateCompact(displayDay)}</p>}
-      </button>
+    <div className="flex min-w-0 flex-col sm:flex-row">
       {/* Color bar */}
       <div className={`hidden flex-shrink-0 ${c.bg} sm:block sm:w-1.5`} />
 
@@ -469,7 +495,7 @@ function EventCard({
       </div>
 
       {/* Content — one vertical rhythm: header → vehicle → where/when → notes → controls */}
-      <div id={mobileContentId} className={`${mobileExpanded ? "flex" : "hidden"} min-w-0 flex-1 flex-col gap-2 border-t border-border/60 px-3 py-2 sm:flex sm:border-t-0 sm:py-2.5`}>
+      <div id={mobileContentId} className="flex min-w-0 flex-1 flex-col gap-3 px-1 py-2 sm:px-3">
         {/* Header: task type, status, quick actions, delete */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
@@ -527,7 +553,6 @@ function EventCard({
               <DropdownMenuContent align="end">
                 {event.type === "cleaning" && event.status !== "completed" && (
                   <DropdownMenuItem className="min-h-11" onSelect={() => {
-                    setDetailsOpen(true);
                     setShowAlreadyCleanBy((v) => !v);
                   }}>
                     <CheckCircle className="h-4 w-4" /> Already clean?
@@ -606,20 +631,7 @@ function EventCard({
             onSelectEmployee={(employee) => { if (employee) onAssign(event, employee.employee_aid, [employee.employee_first_name, employee.employee_last_name].filter(Boolean).join(" ")); }} />
         </div>}
 
-        {hasDetails && <Button
-          type="button"
-          variant="ghost"
-          className="-mb-1 h-11 w-full justify-between border-t border-border/60 px-0 text-xs sm:hidden"
-          aria-expanded={detailsOpen}
-          aria-controls={detailsId}
-          onClick={(e) => { e.stopPropagation(); setDetailsOpen((open) => !open); }}
-          onDragStart={(e) => e.stopPropagation()}
-        >
-          {detailsOpen ? "Hide details" : canEditAssignee || canEditDuration || canEditDriver ? "Details & edit" : "Details"}
-          <ChevronDown className={`h-4 w-4 transition-transform ${detailsOpen ? "rotate-180" : ""}`} />
-        </Button>}
-
-        <div id={detailsId} className={`${detailsOpen ? "flex" : "hidden"} min-w-0 flex-col gap-3 sm:flex sm:gap-2`}>
+        <div id={detailsId} className="flex min-w-0 flex-col gap-3">
           {(event.reservation_id || event.guest_name) && <p className="text-xs text-muted-foreground sm:hidden">
             {event.guest_name}{event.guest_name && event.reservation_id ? " · " : ""}{event.reservation_id && `Reservation ${event.reservation_id}`}
           </p>}
@@ -965,119 +977,6 @@ function EmployeeSection({
     </div>
   );
 }
-
-// ─── Unassigned card (sidebar) ────────────────────────────────────────────────
-
-function UnassignedCard({
-  event,
-  onDelete,
-  isAdmin,
-  onAssign,
-}: {
-  event: DayEvent;
-  onDelete: (event: DayEvent) => void;
-  isAdmin: boolean;
-  onAssign: (event: DayEvent, employeeId: number, fullname: string) => void;
-}) {
-  const bookingContext = useContext(ScheduleBookingContext);
-  const selectedBooking = Boolean(event.bookingKey && event.bookingKey === bookingContext.selectedBooking);
-  const c = colorFor(event.category);
-  const displayDay = event.appointment_start_local ? bookingContext.date : event.scheduled_day ?? "";
-  return (
-    <div
-      draggable
-      onDragStart={(e) => setDragData(e, event)}
-      data-booking-key={event.bookingKey}
-      data-booking-selected={selectedBooking || undefined}
-      className={`relative flex items-stretch rounded overflow-hidden border ${c.border} text-xs cursor-grab active:cursor-grabbing ${selectedBooking ? "ring-2 ring-primary ring-offset-2" : ""}`}
-    >
-      <div className={`w-1 flex-shrink-0 ${c.bg}`} />
-      <div className="flex-1 min-w-0 px-2 py-1.5 space-y-0.5">
-        <div className="flex items-start justify-between gap-1">
-          <span className="font-semibold">{event.category}</span>
-          {isAdmin && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={`More actions for ${event.category}${event.car_name ? `, ${event.car_name}` : ""}`} onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem className="min-h-11 text-destructive focus:text-destructive" data-day-schedule-delete onSelect={() => onDelete(event)}>
-                  <Trash2 className="h-4 w-4" /> Delete task
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-        {event.start_time && (
-          <div className="text-muted-foreground flex items-center gap-1">
-            <Clock className="w-3 h-3" />{displayDay ? `${formatDateCompact(displayDay)} ` : ""}{fmt12(event.start_time)}
-          </div>
-        )}
-        {event.appointment_start_local && event.appointment_end_local && <div className="text-red-950" data-maintenance-appointment>
-          <span className="font-medium">Confirmed maintenance:</span> {fmtTripDateTime(event.appointment_start_local)} — {fmtTripDateTime(event.appointment_end_local)}
-        </div>}
-        {event.car_name && (
-          <div className="text-muted-foreground flex items-start gap-1">
-            <Car className="w-3 h-3 flex-shrink-0 mt-0.5" />
-            <span className="break-words">{event.car_name}{event.plate ? ` (${event.plate})` : ""}</span>
-          </div>
-        )}
-        {event.reservation_id && (
-          <div className="text-muted-foreground">
-            <span className="font-medium text-foreground">Res:</span> {event.reservation_id}
-          </div>
-        )}
-        {event.extras && (
-          <div className="animate-pulse inline-flex items-center gap-1 font-medium text-amber-900 bg-amber-300 rounded px-1.5 py-0.5 w-fit">
-            <span className="font-semibold">Extras:</span> {event.extras}
-          </div>
-        )}
-        {(event.is_carryover || (!event.appointment_start_local && event.completed_day && event.completed_day !== (event.scheduled_day ?? ""))) && (
-          <div className="rounded border border-amber-200 bg-amber-50 px-1.5 py-1 text-[11px] text-amber-950">
-            <span className="font-medium">Supposed:</span> {formatDateCompact(event.scheduled_day ?? "")}
-            {event.completed_day && (
-              <>
-                <span className="mx-1">·</span>
-                <span className="font-medium">Done:</span> {formatDateCompact(event.completed_day)}
-              </>
-            )}
-          </div>
-        )}
-        {(event.trip_start_mt || event.trip_end_mt) && (
-          <div className="text-muted-foreground flex items-center gap-1 flex-wrap">
-            <span className="font-medium text-foreground">{fmtTripDateTime(event.trip_start_mt)}</span>
-            <ArrowRight className="w-3 h-3 flex-shrink-0" />
-            <span className="font-medium text-foreground">{fmtTripDateTime(event.trip_end_mt)}</span>
-          </div>
-        )}
-        {event.pickup_location && (
-          <div className="text-muted-foreground flex items-start gap-1">
-            <ArrowUpFromLine className="w-3 h-3 flex-shrink-0 mt-0.5 text-emerald-600" />
-            <span className="break-words">{event.pickup_location}</span>
-          </div>
-        )}
-        {event.dropoff_location && (
-          <div className="text-muted-foreground flex items-start gap-1">
-            <ArrowDownToLine className="w-3 h-3 flex-shrink-0 mt-0.5 text-rose-600" />
-            <span className="break-words">{event.dropoff_location}</span>
-          </div>
-        )}
-        {event.detail && <div className="text-muted-foreground italic break-words">{event.detail}</div>}
-        <ScheduleBookingLinks event={event} />
-        {ASSIGNEE_EDITABLE_TYPES.includes(event.type) && <div className="pt-2" onDragStart={(e) => e.stopPropagation()}>
-          <EmployeeSelectCombobox value="" onChange={() => {}} placeholder="Assign to employee" ariaLabel={`Assign ${event.car_name || event.category}`} touchFriendly
-            onSelectEmployee={(employee) => { if (employee) onAssign(event, employee.employee_aid, [employee.employee_first_name, employee.employee_last_name].filter(Boolean).join(" ")); }} />
-        </div>}
-        {canRefuel(event) && <Button type="button" variant="outline" className="h-11 w-fit max-w-full" onClick={() => bookingContext.openFuelReceipt?.(event)}>Refuel</Button>}
-        {event.airport_parking_required && <Button type="button" variant="outline" className="mt-2 h-11 w-full" onClick={() => bookingContext.openAirportReceipt?.(event)}>Airport parking receipt</Button>}
-      </div>
-    </div>
-  );
-}
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function DayScheduleTab() {
   const activeTz = useTimezone();
@@ -1596,8 +1495,8 @@ export function DayScheduleTab() {
   // Employee IDs come from the staff record, never the unrelated login user ID.
   const myEmployeeKey = schedulePreference.data?.employeeId ? `id:${schedulePreference.data.employeeId}` : null;
   const myEvents = myTasksFirst && myEmployeeKey ? assignedMap.get(myEmployeeKey) ?? [] : [];
-  const pinMyTasks = myEvents.length > 0;
-  const unassignedFirst = myTasksFirst && !pinMyTasks;
+  const pinMyTasks = viewMode === "employee" && myEvents.length > 0;
+  const unassignedFirst = viewMode === "employee" && myTasksFirst && !pinMyTasks;
 
   // Flat, time-sorted list for the Timeline view — every task across every
   // employee in one list, instead of grouped by employee section.
@@ -1881,7 +1780,7 @@ export function DayScheduleTab() {
                 />
               ))
             ) : (
-              <div className="space-y-1.5">
+              <div className="space-y-3">
                 {timelineEvents.map((e) => (
                   <EventCard
                     key={`${e.type}-${e.id}`}
@@ -1901,8 +1800,8 @@ export function DayScheduleTab() {
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className={unassignedFirst ? "contents" : `order-first w-full min-w-0 space-y-4 flex-shrink-0 ${showAllUnassigned ? "" : "lg:order-last lg:w-72"}`}>
+          {/* Employee assignment sidebar; Timeline already includes unassigned work. */}
+          {viewMode === "employee" && <div className={unassignedFirst ? "contents" : `order-first w-full min-w-0 space-y-4 flex-shrink-0 ${showAllUnassigned ? "" : "lg:order-last lg:w-72"}`}>
 
             {/* Needs assignment — drop here to unassign */}
             <div
@@ -1960,7 +1859,7 @@ export function DayScheduleTab() {
                 <div className="flex gap-2"><input id="unassigned-search" type="search" value={unassignedSearch} onChange={(e) => setUnassignedSearch(e.target.value)} placeholder="Vehicle, plate, reservation, location…" className="h-11 min-w-0 flex-1 rounded-md border bg-background px-3 text-base" />
                   {unassignedSearch && <Button variant="outline" className="h-11" onClick={() => setUnassignedSearch("")}>Clear</Button>}
                 </div>
-                <p className="text-xs text-muted-foreground">{searchedUnassigned.length} of {unassigned.length} unassigned tasks · Select an employee on a task to assign it.</p>
+                <p className="text-xs text-muted-foreground">{searchedUnassigned.length} of {unassigned.length} unassigned tasks · Open a task to assign it to an employee.</p>
               </div>}
               <div id="unassigned-task-list" className={showAllUnassigned ? "grid gap-3 p-3 xl:grid-cols-2" : "p-2 space-y-2 lg:max-h-80 lg:overflow-y-auto"}>
                 {unassigned.length === 0 ? (
@@ -1970,7 +1869,7 @@ export function DayScheduleTab() {
                 ) : (
                   searchedUnassigned.map((e, index) => (
                     <div key={`${e.type}-${e.id}`} className={index >= 3 && !showAllUnassigned && e.bookingKey !== selectedBooking ? "hidden lg:block" : ""}>
-                      <div className={showAllUnassigned ? "" : "lg:hidden"}>
+                      <div>
                         <EventCard
                           event={e}
                           date={date}
@@ -1984,7 +1883,6 @@ export function DayScheduleTab() {
                           isAdmin={isAdmin}
                         />
                       </div>
-                      {!showAllUnassigned && <div className="hidden lg:block"><UnassignedCard event={e} onDelete={handleDelete} isAdmin={isAdmin} onAssign={assignEventTo} /></div>}
                     </div>
                   ))
                 )}
@@ -2043,7 +1941,7 @@ export function DayScheduleTab() {
                 </div>
               </div>
             )}
-          </div>
+          </div>}
         </div>
         </>
       )}
