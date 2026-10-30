@@ -1006,10 +1006,8 @@ export function DayScheduleTab() {
   const [unassignedSearch, setUnassignedSearch] = useState("");
   const [fuelReturn, setFuelReturn] = useState<DayEvent | null>(null);
   const [parkingTask, setParkingTask] = useState<{ event: DayEvent; status: string; completedDate?: string } | null>(null);
-  // Clicking a category badge/legend entry toggles it into this set to filter
-  // the task list down to just that category; click again to clear. Empty
-  // set = no filter (show everything), matching today's default behavior.
-  const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set());
+  // Start with handoffs selected. Badges toggle categories; an empty set shows all.
+  const [activeCategories, setActiveCategories] = useState<Set<string>>(() => new Set(['Pick Up', 'Drop Off']));
   const [viewMode, setViewMode] = useState<"employee" | "timeline">("timeline");
   const [showAddEntry, setShowAddEntry] = useState(false);
   const [entryType, setEntryType] = useState<"refuel" | "custom">("refuel");
@@ -1438,7 +1436,7 @@ export function DayScheduleTab() {
   // category's total even while other categories are filtered out.
   const events = activeCategories.size === 0
     ? allEvents
-    : allEvents.filter((e) => activeCategories.has(e.category));
+    : allEvents.filter((e) => activeCategories.has(scheduleTaskLabel(e)));
   const shifts = data?.work_shifts ?? [];
   const matchingBookingEvents = (data?.events ?? []).filter((event) => event.bookingKey === selectedBooking);
   const visibleBookingEvents = events.filter((event) => event.bookingKey === selectedBooking);
@@ -1547,7 +1545,8 @@ export function DayScheduleTab() {
 
   // Category totals for summary bar — always from the full unfiltered list.
   const categoryCounts = allEvents.reduce<Record<string, number>>((acc, e) => {
-    acc[e.category] = (acc[e.category] ?? 0) + 1;
+    const category = scheduleTaskLabel(e);
+    acc[category] = (acc[category] ?? 0) + 1;
     return acc;
   }, {});
 

@@ -34,6 +34,14 @@ for (const viewport of [{ width: 1280, height: 1000 }, { width: 390, height: 844
     const state = await fixture(page);
     await expect(page.getByRole('button', { name: 'Timeline', exact: true })).toHaveAttribute('aria-pressed','true',{timeout:15000});
     const cards = page.locator('[data-day-schedule-card]');
+    const filters=page.locator('[aria-label="Filter schedule by task type"]');
+    await expect(filters.getByRole('button',{name:/^Pick Up/})).toHaveAttribute('aria-pressed','true');
+    await expect(filters.getByRole('button',{name:/^Drop Off/})).toHaveAttribute('aria-pressed','true');
+    await expect(filters.getByRole('button',{name:/^Cleaning/})).toHaveAttribute('aria-pressed','false');
+    await expect(cards).toHaveCount(4);
+    await filters.getByRole('button',{name:/^Cleaning/}).click();
+    await expect(cards).toHaveCount(5);
+    await filters.getByRole('button',{name:'Clear filter',exact:true}).click();
     await expect(cards).toHaveCount(5);
     await expect(cards.nth(0)).toContainText('8:30 AM');
     await expect(cards.nth(1)).toContainText('9:00 AM');

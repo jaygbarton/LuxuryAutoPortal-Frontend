@@ -39,6 +39,7 @@ async function mock(page: Page, options: { developer?: boolean; cancelled?: bool
 test("same-booking links retain the explicit day, hide rental previews from ordinary admins, and preserve editing", async ({ page }) => {
   const result = await mock(page);
   await page.goto("/admin/operations?tab=day-schedule&date=2026-10-07&booking=turo:208");
+  await page.locator('[aria-label="Filter schedule by task type"]').getByRole('button',{name:'Clear filter',exact:true}).click();
   await expect(page.getByLabel("Schedule date")).toHaveValue("2026-10-07");
   const strip = page.getByRole("region", { name: "Selected booking" });
   await expect(strip.getByText("Turo reservation · Test vehicle")).toBeVisible();
@@ -97,6 +98,7 @@ test.describe("mobile booking selection", () => {
   test("selected fourth unassigned task stays visible without hiding or dropping it", async ({ page }) => {
     const result = await mock(page, { unassigned: true });
     await page.goto("/admin/operations?tab=day-schedule&date=2026-10-07&booking=turo:208");
+    await page.locator('[aria-label="Filter schedule by task type"]').getByRole('button',{name:'Clear filter',exact:true}).click();
     await expect(page.locator('[data-day-schedule-card][data-booking-key="turo:208"]')).toBeVisible();
     expect(result.mutations).toEqual([]);
     expect(result.errors).toEqual([]);
@@ -107,6 +109,7 @@ test.describe("mobile booking selection", () => {
 test("confirmed maintenance shows the full multi-day appointment and keeps scheduling changes in its record", async ({ page }) => {
   const result = await mock(page, { maintenance: true });
   await page.goto("/admin/operations?tab=day-schedule&date=2026-10-08&booking=maintenance:12");
+  await page.locator('[aria-label="Filter schedule by task type"]').getByRole('button',{name:'Clear filter',exact:true}).click();
   const card = page.locator('[data-day-schedule-card][data-booking-key="maintenance:12"]');
   await expect(card).toHaveAttribute("data-booking-selected", "true");
   await card.click();

@@ -186,6 +186,7 @@ for (const owner of [false, true]) test(`gas return form supports manual fallbac
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(state.calls.find(c => c.path === "/api/expense-form-submissions")?.body).toMatchObject({ fuelReturnKey: owner ? "owner_rental:19" : "turo:119", category: "reimbursedBills", field: "gasReimbursed", amount: 60, month: 9, year: 2026 });
   expect(state.calls.filter(c => c.path.endsWith("/status"))).toHaveLength(0);
+  await page.locator('[aria-label="Filter schedule by task type"]').getByRole('button',{name:/^Refuel Run/}).click();
   await expect(page.getByText("Refuel Run", { exact: true }).first()).toBeVisible();
   expect(state.errors).toEqual([]);
 });
@@ -198,6 +199,7 @@ test("a lost gas submission response recovers the saved receipt and refuel witho
   await expect(page.getByRole("dialog").getByText(/completed Refuel Run are already saved/)).toBeVisible();
   await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.locator('[aria-label="Filter schedule by task type"]').getByRole('button',{name:/^Refuel Run/}).click();
   await expect(page.getByText("Refuel Run", { exact: true }).first()).toBeVisible();
   expect(state.calls.filter(c => c.path === "/api/expense-form-submissions")).toHaveLength(1);
   expect(state.calls.filter(c => c.path.endsWith("/status"))).toHaveLength(0);

@@ -8,6 +8,9 @@ backend base `75806c7ad867cb1d55dfdc17b01f8c8b600a64f5`.
 
 Day Schedule opens in Timeline by default. By Employee remains selectable; its
 saved employee-priority and expanded Unassigned behavior still apply in that view.
+Pick Up and Drop Off start selected in both views. Other categories can be toggled
+on, and Clear filter shows all task types. Filters and counts use the same task
+labels as the cards, including owner/direct return and departure aliases.
 Collapsed cards in both views show the task's own location beneath the car name,
 wrapping long addresses on mobile. Missing locations say Location not set. No
 additional inline actions or location guesses from the opposite trip leg are added.

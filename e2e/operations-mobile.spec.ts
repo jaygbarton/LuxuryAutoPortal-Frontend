@@ -147,6 +147,7 @@ for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }
     test("Day Schedule keeps compact cards, editing, status updates and date navigation usable", async ({ page }) => {
       const { errors, mutations } = await mockOperations(page);
       await page.goto(`/admin/operations?tab=day-schedule&date=${fixtureDate}`);
+      await page.locator('[aria-label="Filter schedule by task type"]').getByRole('button',{name:'Clear filter',exact:true}).click();
       if (mobile) await expect(page.getByRole("navigation", { name: "Work schedule views" })).toBeVisible({ timeout: 25_000 });
       else await expect(page.getByRole("heading", { name: "Operations", exact: true, level: 1 })).toBeVisible({ timeout: 25_000 });
       const card = page.locator("[data-day-schedule-card]:visible").filter({ hasText: "Mercedes-Benz GLS 450 2025" }).first();
