@@ -1,3 +1,4 @@
+import { HomeLocationPreferenceCard } from "@/components/shared/HomeLocationPreferenceCard";
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -134,6 +135,7 @@ export default function AdminProfilePage() {
         </Card>
 
         <TimezonePreferenceCard />
+            <HomeLocationPreferenceCard />
 
         <Card className="bg-card border-primary/20">
           <CardHeader>

@@ -46,8 +46,11 @@ employees. Edits record actor, old list and new list in profile edit history.
   amounts and forms without receipts are excluded. Pending counts are displayed;
   a submitted gas amount is not represented as a confirmed payroll payment.
 - Airport parking: sum amounts ÷ distinct linked trips, lowest average first.
-  Multiple parking forms on one linked trip count as one trip. If no trip linkage
-  exists, each form counts as one trip; the chart discloses that fallback.
+  Multiple parking forms on one linked trip count as one trip. Only verified
+  airport-return trips count. Unlinked forms do not count as trips or cost.
+  Tickets of $40 or more are excluded from both numerator and denominator unless
+  a Manager explicitly includes them after review. Lowering an adjustment below
+  $40 does not remove the original ticket's review requirement.
 - Gas Reimbursed: sum submitted amounts, highest first. Gas Not Reimbursed and Gas
   Service Run are not included. Stable standard field values and dynamic field
   labels resolve the existing form types.

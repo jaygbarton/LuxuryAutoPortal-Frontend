@@ -36,9 +36,9 @@ export function DayScheduleDriverRankings() {
       <p className="mt-1 text-xs text-muted-foreground">Car Drivers only. Submitted receipts, including pending approval; declined forms excluded.</p>
     </div>
     {query.isPending ? <p role="status" className="p-3 text-sm text-muted-foreground">Loading driver charts…</p> : query.isError ? <div role="alert" className="rounded-xl border p-4 text-sm">Driver charts could not be loaded. <Button variant="outline" className="mt-2 h-11" onClick={() => query.refetch()}>Retry driver charts</Button></div> : <>
-      <Ranking title="Airport parking average" caption="Lowest average first · total parking cost ÷ trips" rows={query.data.parking} parking />
+      <Ranking title="Airport parking average" caption="Lowest average first · airport-return trips only" rows={query.data.parking} parking />
       <Ranking title="Gas reimbursed" caption="Highest submitted reimbursement total first" rows={query.data.gas} />
-      {query.data.parking.some(row => row.unlinked) && <p className="px-1 text-xs text-muted-foreground">Forms without a linked trip count as one trip each.</p>}
+      <p className="px-1 text-xs text-muted-foreground">$40+ parking tickets are excluded unless a manager reviews and includes them. Only verified airport returns count.</p>
     </>}
   </aside>;
 }

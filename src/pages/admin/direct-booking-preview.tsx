@@ -1,3 +1,5 @@
+import { useHomeDefaultFilter } from "@/hooks/use-workspace-location";
+import { operationLocationMatches } from "./operations/OperationLocationFilter";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearch, Link } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -74,7 +76,6 @@ function CustomerPreview({ vehicles, onCreated }: { vehicles: PreviewVehicle[]; 
   const initialTimezone = useTimezone();
   const [timezone, setTimezone] = useState(initialTimezone);
   const [search, setSearch] = useState("");
-  const [city, setCity] = useState("");
   const [carId, setCarId] = useState<number | null>(null);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -94,6 +95,7 @@ function CustomerPreview({ vehicles, onCreated }: { vehicles: PreviewVehicle[]; 
   const dates = previewDateRange(start, end, timezone);
   const selected = vehicles.find(vehicle => vehicle.carId === carId);
   const cities = [...new Set(vehicles.map(vehicle => [vehicle.city, vehicle.state].filter(Boolean).join(", ")).filter(Boolean))].sort();
+  const [city,setCity]=useHomeDefaultFilter<string>(home=>cities.find(value=>operationLocationMatches(home,[value]))??"","");
   const filtered = vehicles.filter(vehicle => (!city || [vehicle.city, vehicle.state].filter(Boolean).join(", ") === city) && `${vehicle.name} ${vehicle.make ?? ""} ${vehicle.specs ?? ""}`.toLowerCase().includes(search.trim().toLowerCase()));
   const details = useQuery<{ vehicle: PreviewVehicleDetails }>({ queryKey: [ROOT, "vehicles", carId], queryFn: () => api.get(`${ROOT}/vehicles/${carId}`), enabled: carId !== null, retry: false });
   const availability = useQuery<{ availability: PreviewAvailability }>({

@@ -1,3 +1,6 @@
+import { useHomeDefaultFilter, useWorkspaceContext } from "@/hooks/use-workspace-location";
+import { DriverChartManagementTab } from "./operations/DriverChartManagementTab";
+import { useChartManagementAccess } from "@/hooks/use-chart-management-access";
 import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
@@ -27,14 +30,14 @@ import {
 import { useCoHostLocationTags } from "@/hooks/use-co-host";
 import { WorkScheduleNavigation } from "@/components/shared/WorkScheduleNavigation";
 
-const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "towing-impound", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "day-schedule", "tv-timeline"] as const;
+const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "towing-impound", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "day-schedule", "tv-timeline", "chart-management"] as const;
 type TabId = typeof TAB_IDS[number];
 const TAB_LABELS: Record<TabId, string> = {
   trips: "Trips Overview", "turo-inspection": "Turo Messages", inspections: "Car Issues",
   claims: "Claims", "ticket-violation": "Ticket Violation", "towing-impound": "Towing & Impound",
   maintenance: "Maintenance", "service-due": "Service Due", completed: "No Car Issues",
   "car-repaired": "Car Repaired", "car-block-off": "Car Block Off",
-  "day-schedule": "Day Schedule", "tv-timeline": "TV Timeline",
+  "day-schedule": "Day Schedule", "tv-timeline": "TV Timeline", "chart-management": "Chart Management",
 };
 
 // Renders a tab's content only after it has been activated for the first time,
@@ -59,6 +62,7 @@ function tabFromSearch(search: string): TabId {
 }
 
 export default function OperationsPage() {
+  const chartAccess = useChartManagementAccess();
   // The URL is the single source of truth for which tab is open. The tabs are
   // now sidebar sub-items (see OPERATIONS_TABS in admin-layout), and wouter's
   // <Link> pushes history WITHOUT firing popstate — so the old
@@ -68,18 +72,17 @@ export default function OperationsPage() {
   const [, setLocation] = useLocation();
   const activeTab = tabFromSearch(search);
   const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set(["trips", tabFromSearch(search)]));
-  const [locationFilter, setLocationFilter] = useState<OperationLocationFilter>("all");
+  const [locationFilter, setLocationFilter] = useHomeDefaultFilter<OperationLocationFilter>(home => home, "all");
+  const workspace = useWorkspaceContext();
 
   // A co-host may only filter by the locations their OWN cars sit in. Offering
   // the full list tells them which other cities GLA operates in, and lets them
   // select a location where they have no vehicles at all.
   const coHostLocationTags = useCoHostLocationTags();
-  const locationOptions =
-    coHostLocationTags === null || coHostLocationTags.length === 0
-      ? OPERATION_LOCATION_OPTIONS
-      : OPERATION_LOCATION_OPTIONS.filter(
-          (o) => o.value !== "all" && coHostLocationTags.includes(o.value),
-        );
+  const locationOptions = workspace.data?.coHostScoped
+    ? OPERATION_LOCATION_OPTIONS.filter(o => o.value !== 'all' && workspace.data!.allowedLocations.includes(o.value))
+    : coHostLocationTags === null ? OPERATION_LOCATION_OPTIONS
+      : OPERATION_LOCATION_OPTIONS.filter(o => o.value !== 'all' && coHostLocationTags.includes(o.value));
 
   // If the co-host's fleet doesn't cover the selected location (e.g. the
   // default "all"), snap to the first one they can actually see.
@@ -129,7 +132,7 @@ export default function OperationsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {TAB_IDS.map((tab) => (
+                  {TAB_IDS.filter(tab => tab !== "chart-management" || chartAccess.data?.canManage).map((tab) => (
                     <SelectItem key={tab} value={tab}>{TAB_LABELS[tab]}</SelectItem>
                   ))}
                 </SelectContent>
@@ -193,6 +196,7 @@ export default function OperationsPage() {
           <LazyTab value="day-schedule" activeTab={activeTab} mountedTabs={mountedTabs}>
             <DayScheduleTab />
           </LazyTab>
+          <LazyTab value="chart-management" activeTab={activeTab} mountedTabs={mountedTabs}><DriverChartManagementTab /></LazyTab>
           <LazyTab value="tv-timeline" activeTab={activeTab} mountedTabs={mountedTabs}>
             <TvTimelineTab />
           </LazyTab>

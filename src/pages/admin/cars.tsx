@@ -1,3 +1,4 @@
+import { useHomeDefaultFilter } from "@/hooks/use-workspace-location";
 import { optionKeywords } from "@/lib/select-search";
 import React, { useState, useEffect } from "react";
 import {
@@ -148,7 +149,7 @@ export default function CarsPage() {
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [stateFilter, setStateFilter] = useState<string>("all");
+  const [stateFilter, setStateFilter] = useHomeDefaultFilter<string>(home => home === "slc" ? "UT" : "NC", "all");
   const [page, setPage] = useState(1);
   const [isLastActiveCarDialogOpen, setIsLastActiveCarDialogOpen] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<"ACTIVE" | "INACTIVE" | null>(null);

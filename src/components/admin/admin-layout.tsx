@@ -1,3 +1,4 @@
+import { useChartManagementAccess } from "@/hooks/use-chart-management-access";
 import React, {
   useState,
   useMemo,
@@ -108,6 +109,7 @@ const OPERATIONS_TABS: { href: string; label: string; icon: any }[] = [
   { href: "/admin/operations?tab=completed", label: "No Car Issues", icon: ClipboardList },
   { href: "/admin/operations?tab=car-repaired", label: "Car Repaired", icon: Key },
   { href: "/admin/operations?tab=car-block-off", label: "Car Block Off", icon: CalendarOff },
+  { href: "/admin/operations?tab=chart-management", label: "Chart Management", icon: BarChart3 },
   { href: "/admin/operations?tab=day-schedule", label: "Day Schedule", icon: CalendarDays },
   { href: "/admin/operations?tab=tv-timeline", label: "TV Timeline", icon: BarChart3 },
 ];
@@ -921,12 +923,14 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       (user?.isEmployee === true || user?.isAdmin === true));
 
   // Filter sidebar items based on user role and path (employees see staff nav; on /staff path admins also see staff nav)
+  const chartAccess = useChartManagementAccess();
+  const chartVisible = (item: { href: string }) => item.href !== "/admin/operations?tab=chart-management" || chartAccess.data?.canManage === true;
   const sidebarItems = useMemo(() => {
     if (!user) return [];
 
     // Co-host sidebar — scoped view, no GLA admin data
     if (showCoHostSidebar) {
-      return coHostSidebarItems;
+      return coHostSidebarItems.map(item => item.children ? { ...item, children: item.children.filter(chartVisible) } : item);
     }
 
     // Resolve the user's effective role for sidebar filtering.
@@ -975,7 +979,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
           if (item.superAdminOnly && !user.isSuperAdmin) return false;
           if (!visible) return false;
           if (item.children && item.children.length > 0) {
-            const filteredChildren = item.children.filter(
+            const filteredChildren = item.children.filter(chartVisible).filter(
               (c) =>
                 !c.roles ||
                 c.roles.length === 0 ||
@@ -987,7 +991,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         })
         .map((item) => {
           if (item.children && item.children.length > 0) {
-            const filteredChildren = item.children.filter(
+            const filteredChildren = item.children.filter(chartVisible).filter(
               (c) =>
                 !c.roles ||
                 c.roles.length === 0 ||
@@ -1009,7 +1013,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         if (!visible) return null;
 
         if (item.children && item.children.length > 0) {
-          const filteredChildren = item.children.filter(
+          const filteredChildren = item.children.filter(chartVisible).filter(
             (c) =>
               !c.roles ||
               c.roles.length === 0 ||
@@ -1021,7 +1025,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         return item;
       })
       .filter(Boolean) as SidebarItem[];
-  }, [user, location, showStaffSidebar, showCoHostSidebar]);
+  }, [user, location, showStaffSidebar, showCoHostSidebar, chartAccess.data?.canManage]);
 
   // Derive shortcuts from the same authorized menu as desktop, including
   // impersonation. A client must never gain employee links through mobile UI.

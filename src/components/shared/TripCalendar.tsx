@@ -1,3 +1,6 @@
+import { useHomeDefaultFilter } from "@/hooks/use-workspace-location";
+import { WorkspaceLocationSelect } from "./WorkspaceLocationSelect";
+import { operationLocationMatches,type OperationLocationFilter } from "@/pages/admin/operations/OperationLocationFilter";
 import { SearchableNativeSelect, SearchableOption } from "@/components/ui/searchable-native-select";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +25,7 @@ interface CalendarCar {
   plateNumber: string | null;
   carStatus: string | null;
   hasActivity?: boolean;
+  locationTag?: string | null;
 }
 interface CalendarPrice {
   carId: number;
@@ -204,6 +208,7 @@ export function TripCalendar({ title }: { title?: string }) {
   const [edgeEnds, setEdgeEnds] = useState(false);
   // 227 of ~327 cars are off-fleet, so default to active or the timeline opens
   // as mostly blank rows.
+  const [workspaceLocation,setWorkspaceLocation]=useHomeDefaultFilter<OperationLocationFilter>(home=>home,"all");
   const [fleetFilter, setFleetFilter] = useState<"active" | "inactive" | "all">("active");
   const [selected, setSelected] = useState<
     | { kind: "trip"; trip: CalendarTrip; car: CalendarCar }
@@ -314,7 +319,7 @@ export function TripCalendar({ title }: { title?: string }) {
   };
 
   const cars = useMemo(() => {
-    let list = data?.cars ?? [];
+    let list = (data?.cars ?? []).filter(car => operationLocationMatches(workspaceLocation,[car.locationTag]));
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter(
@@ -371,7 +376,7 @@ export function TripCalendar({ title }: { title?: string }) {
     }
     return list;
   }, [
-    data?.cars, data?.trips, search, statusFilter, fleetFilter,
+    data?.cars, data?.trips, search, statusFilter, fleetFilter, workspaceLocation,
     edgeStarts, edgeEnds, from, to,
   ]);
 
@@ -440,6 +445,7 @@ export function TripCalendar({ title }: { title?: string }) {
 
   return (
     <div className="space-y-4">
+      <WorkspaceLocationSelect value={workspaceLocation} onChange={setWorkspaceLocation} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-foreground">
           {title ?? "Trips Calendar"}

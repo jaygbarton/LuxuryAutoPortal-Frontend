@@ -29,7 +29,7 @@ export function operationLocationMatches(
 
   if (!haystack) return false;
   if (filter === "slc") {
-    return /\bslc\b/.test(haystack) || haystack.includes("salt lake") || /\but\b/.test(haystack);
+    return haystack.includes("utah") || /\bslc\b/.test(haystack) || haystack.includes("salt lake") || /\but\b/.test(haystack);
   }
   return haystack.includes("wilmington") || haystack.includes("leland") || /\bnc\b/.test(haystack);
 }

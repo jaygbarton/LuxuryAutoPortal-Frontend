@@ -26,6 +26,7 @@ export function EmployeeOperationalRoles({ employeeId }: { employeeId: number })
   }, onSuccess: result => {
     qc.setQueryData(key, result);
     void qc.invalidateQueries({ queryKey: ['/api/operations/day-schedule/driver-rankings'] });
+    void qc.invalidateQueries({ queryKey: ['/api/operations/chart-management/access'] });
     void qc.invalidateQueries({ queryKey: ['/api/employees', employeeId, 'profile-edit-history'] });
     toast({ title: 'Employee roles saved' });
   }, onError: (error: Error) => toast({ title: 'Could not save roles', description: error.message, variant: 'destructive' }) });

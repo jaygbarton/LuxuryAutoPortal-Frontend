@@ -1,3 +1,6 @@
+import { useHomeDefaultFilter } from "@/hooks/use-workspace-location";
+import { WorkspaceLocationSelect } from "./WorkspaceLocationSelect";
+import { operationLocationMatches, type OperationLocationFilter } from "@/pages/admin/operations/OperationLocationFilter";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
@@ -89,6 +92,7 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehi
   const [from, setFrom] = useState(() => initialRange()?.from ?? utcDateToDayKey(addUtcDays(dayKeyToUtcDate(mtTodayKey(activeTimezone)), historyMode || calendarScope === "services" ? -29 : -3)));
   const [to, setTo] = useState(() => initialRange()?.to ?? utcDateToDayKey(addUtcDays(dayKeyToUtcDate(mtTodayKey(activeTimezone)), historyMode ? 0 : 20)));
   const [search, setSearch] = useState("");
+  const [workspaceLocation,setWorkspaceLocation] = useHomeDefaultFilter<OperationLocationFilter>(home => home, "all");
   const [fleet, setFleet] = useState<"all" | "active" | "inactive">("all");
   const [occupancy, setOccupancy] = useState<"all" | "blocking" | "none">("all");
   const [status, setStatus] = useState("all");
@@ -257,6 +261,7 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehi
     const blockingCars = new Set(scopedEvents.filter(eventBlocksAvailability).map((event) => event.carId));
     const q = search.trim().toLowerCase();
     return [...carMap.values(), ...unmatched.values()].filter((car) => {
+      if (!operationLocationMatches(workspaceLocation, [car.locationTag]) && !car.events.some(event => event.bookingKey === selected?.bookingKey)) return false;
       if (activeVehiclesOnly && !['active', 'available', 'in_use'].includes(String(car.carStatus).toLowerCase())) return false;
       if (q && !`${car.carName} ${car.plateNumber ?? ""}`.toLowerCase().includes(q)) return false;
       if (fleet !== "all" && !car.unmatched) {
@@ -269,7 +274,7 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehi
       }
       return true;
     });
-  }, [data?.cars, visibleEvents, scopedEvents, search, fleet, occupancy, activeVehiclesOnly]);
+  }, [data?.cars, visibleEvents, scopedEvents, search, fleet, occupancy, activeVehiclesOnly, workspaceLocation, selected?.bookingKey]);
   const listedEvents = useMemo(() => {
     const events = rows.flatMap((row) => row.events);
     return historyMode ? events.sort((a, b) => calendarInstant(b.end)! - calendarInstant(a.end)! || a.id.localeCompare(b.id)) : events;
@@ -399,6 +404,7 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehi
 
   return (
     <div className="min-w-0 space-y-3 md:space-y-4" data-testid="fleet-calendar">
+      <WorkspaceLocationSelect value={workspaceLocation} onChange={setWorkspaceLocation} />
       {!embedded && calendarScope === "trips" && <WorkScheduleNavigation />}
       <div className={cn("flex items-start justify-between gap-3", isMobile && "sr-only")}>
         <div className="min-w-0">

@@ -1,3 +1,4 @@
+import { HomeLocationPreferenceCard } from "@/components/shared/HomeLocationPreferenceCard";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -382,6 +383,7 @@ export default function SettingsPage() {
 
         {/* Timezone preference */}
         <TimezonePreferenceCard />
+            <HomeLocationPreferenceCard />
 
         {/* Account Security - Password Change */}
         <Card className="bg-card border-primary/20">

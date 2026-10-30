@@ -6,6 +6,7 @@ export interface FleetCalendarCar {
   carName: string;
   plateNumber: string | null;
   carStatus: string | null;
+  locationTag?: string | null;
 }
 
 export interface FleetCalendarEvent {
