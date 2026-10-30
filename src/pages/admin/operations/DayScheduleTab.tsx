@@ -1,3 +1,4 @@
+import { DayScheduleDriverRankings } from "./DayScheduleDriverRankings";
 import { optionKeywords } from "@/lib/select-search";
 import { createContext, useContext, useEffect, useId, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -397,6 +398,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
         <span className="flex flex-wrap gap-1.5">
           <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${colors.bg} ${colors.text}`}>{label}</span>
           {source && <span data-booking-source={source.label} className={`rounded px-2 py-0.5 text-[11px] font-semibold ${source.color}`}>{source.label}</span>}
+          {(event.is_carryover || event.scheduled_day && event.scheduled_day < props.date) && !event.completed_day && !["completed", "delivered", "no_issues", "cancelled", "canceled"].includes((event.status || "").toLowerCase()) && <span data-task-carryover className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-semibold text-white">Carried over</span>}
         </span>
         {event.extras && <span data-trip-extras className="gla-trip-extras block w-fit max-w-full break-words rounded px-2 py-1 text-xs font-semibold text-amber-950"><span>Extras: </span>{event.extras}</span>}
       </span>
@@ -999,7 +1001,7 @@ export function DayScheduleTab() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [unassignOver, setUnassignOver] = useState(false);
-  const [showAllUnassigned, setShowAllUnassigned] = useState(false);
+  const [showAllUnassigned, setShowAllUnassigned] = useState(true);
   const [unassignedSearch, setUnassignedSearch] = useState("");
   const [fuelReturn, setFuelReturn] = useState<DayEvent | null>(null);
   const [parkingTask, setParkingTask] = useState<{ event: DayEvent; status: string; completedDate?: string } | null>(null);
@@ -1550,13 +1552,16 @@ export function DayScheduleTab() {
 
   return (
     <ScheduleBookingContext.Provider value={{ selectedBooking, developerAccess, date, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
     <div className="min-w-0 space-y-3 sm:space-y-4">
       {fuelReturn?.bookingKey && <TripReceiptDialog key={fuelReturn.bookingKey} kind="gas" bookingKey={fuelReturn.bookingKey} onClose={() => setFuelReturn(null)} onComplete={async () => {
         await queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule"] });
+        await queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule/driver-rankings"] });
         toast({ title: "Gas receipt submitted", description: "Refuel Run completed. Receipt saved for expense approval." });
       }} />}
       {parkingTask && <TripReceiptDialog key={parkingTask.event.id} taskId={parkingTask.event.id} onClose={() => setParkingTask(null)} onComplete={async (submissionId) => {
         await statusMutation.mutateAsync({ type: parkingTask.event.type, id: parkingTask.event.id, status: parkingTask.status, completedDate: parkingTask.completedDate, airportParkingSubmissionId: submissionId });
+        await queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule/driver-rankings"] });
         toast({ title: "Pickup completed", description: "Parking receipt saved for expense approval." });
       }} />}
       {selectedBooking && (
@@ -1945,6 +1950,8 @@ export function DayScheduleTab() {
         </div>
         </>
       )}
+    </div>
+    <DayScheduleDriverRankings />
     </div>
     </ScheduleBookingContext.Provider>
   );

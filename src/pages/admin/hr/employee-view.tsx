@@ -1,3 +1,4 @@
+import { EmployeeOperationalRoles } from "./components/EmployeeOperationalRoles";
 import { employeePasswordEmailFeedback, type EmployeePasswordEmailResult } from "@/lib/employeePasswordEmailFeedback";
 import { optionKeywords } from "@/lib/select-search";
 import { useMemo, useState } from "react";
@@ -872,6 +873,7 @@ toast({ title: "Deleted", description: "Employee deleted successfully." });
                       <li className="font-bold text-muted-foreground">Comment:</li>
                       <li>{unspecified(employee.employee_job_pay_comment)}</li>
                     </ul>
+                    <div className="mt-4"><EmployeeOperationalRoles employeeId={employee.employee_aid} /></div>
                   </CardContent>
                 </Card>
                 <Card className="bg-card border-border">

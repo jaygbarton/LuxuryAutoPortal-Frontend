@@ -181,7 +181,7 @@ for (const mobile of [false, true]) test.describe(mobile ? "phone" : "desktop", 
   test("expand/search/assign unassigned tasks without dragging", async ({ page }) => {
     const state = await mock(page, { unassigned: true });
     const region = page.getByRole("region", { name: "Unassigned tasks", exact: true });
-    await region.getByRole("button", { name: "Expand", exact: true }).click();
+    if (await region.getByRole("button", { name: "Expand", exact: true }).isVisible()) await region.getByRole("button", { name: "Expand", exact: true }).click();
     await region.getByLabel("Search unassigned tasks").fill("TEST4");
     await expect(region.getByText("1 of 5 unassigned tasks", { exact: false })).toBeVisible();
     await expect(region.locator("[data-day-schedule-card]")).toHaveCount(1);
@@ -202,7 +202,7 @@ for (const mobile of [false, true]) test.describe(mobile ? "phone" : "desktop", 
 for (const gas of [false, true]) test(`successful ${gas ? "gas" : "parking"} form assigns only its source task to the chosen employee`, async ({ page }) => {
   const state = await mock(page, { unassigned: true });
   const region = page.getByRole("region", { name: "Unassigned tasks", exact: true });
-  await region.getByRole("button", { name: "Expand", exact: true }).click();
+  if (await region.getByRole("button", { name: "Expand", exact: true }).isVisible()) await region.getByRole("button", { name: "Expand", exact: true }).click();
   const source = region.locator('[data-booking-key="turo:101"]');
   await source.click();
   await page.locator("[data-day-schedule-controls]").getByRole("button", { name: gas ? "Refuel" : "Airport parking receipt", exact: true }).click();
@@ -222,7 +222,7 @@ for (const gas of [false, true]) test(`successful ${gas ? "gas" : "parking"} for
 test("failed form save leaves the source task unassigned", async ({ page }) => {
   await mock(page, { unassigned: true, failSubmit: true });
   const region = page.getByRole("region", { name: "Unassigned tasks", exact: true });
-  await region.getByRole("button", { name: "Expand", exact: true }).click();
+  if (await region.getByRole("button", { name: "Expand", exact: true }).isVisible()) await region.getByRole("button", { name: "Expand", exact: true }).click();
   const source = region.locator('[data-booking-key="turo:101"]');
   await source.click();
   await page.locator("[data-day-schedule-controls]").getByRole("button", { name: "Airport parking receipt", exact: true }).click();
