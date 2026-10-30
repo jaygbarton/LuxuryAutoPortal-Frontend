@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button';
 type DriverRow = { employeeId: number; name: string; total: number; receipts: number; pending: number; trips?: number; average?: number | null; unlinked?: number };
 type Rankings = { parking: DriverRow[]; gas: DriverRow[] };
 const money = (value: number) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-export function DayScheduleDriverRankings() {
+export function DayScheduleDriverRankings({ selectedMonth, wide = false }: { selectedMonth?: string; wide?: boolean } = {}) {
   const timezone = useTimezone(), location = useOperationLocationFilter();
   const currentMonth = mtTodayKey(timezone).slice(0,7);
-  const [month, setMonth] = useState(currentMonth);
+  const [localMonth, setMonth] = useState(currentMonth);
+  const month = selectedMonth ?? localMonth;
   const from = `${month}-01`, [year, monthNumber] = month.split('-').map(Number);
   const to = new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0,10);
   const query = useQuery<Rankings>({ queryKey: ['/api/operations/day-schedule/driver-rankings', month, location],
@@ -24,21 +25,21 @@ export function DayScheduleDriverRankings() {
     }, refetchInterval: 60_000, retry: false,
   });
   const label = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${from}T12:00:00Z`));
-  return <aside className="min-w-0 space-y-3" aria-label="Driver receipt charts">
-    <div className="rounded-xl border bg-card p-4">
+  return <aside className={wide ? 'grid min-w-0 gap-3 lg:grid-cols-2' : 'min-w-0 space-y-3'} aria-label="Driver receipt charts">
+    <div className={`rounded-xl border bg-card p-4 ${wide ? 'lg:col-span-2' : ''}`}>
       <h3 className="text-sm font-semibold">Driver receipt charts</h3>
-      <label className="mt-3 block text-xs font-medium" htmlFor="driver-chart-month">Month</label>
+      {!selectedMonth&&<><label className="mt-3 block text-xs font-medium" htmlFor="driver-chart-month">Month</label>
       <input id="driver-chart-month" type="month" value={month} min="2000-01" max="2100-12"
         onChange={event => { if (/^(20\d{2}|2100)-(0[1-9]|1[0-2])$/.test(event.target.value)) setMonth(event.target.value); }}
         className="mt-1 h-11 w-full min-w-0 rounded-md border bg-background px-3 text-base sm:text-sm" />
-      {month !== currentMonth && <Button variant="ghost" className="mt-1 h-11 w-full text-xs" onClick={() => setMonth(currentMonth)}>Current month</Button>}
+      {month !== currentMonth && <Button variant="ghost" className="mt-1 h-11 w-full text-xs" onClick={() => setMonth(currentMonth)}>Current month</Button>}</>}
       <p className="mt-2 text-xs text-muted-foreground">{label} · {location === 'all' ? 'All locations' : location === 'slc' ? 'SLC' : 'Wilmington'}</p>
       <p className="mt-1 text-xs text-muted-foreground">Car Drivers only. Submitted receipts, including pending approval; declined forms excluded.</p>
     </div>
     {query.isPending ? <p role="status" className="p-3 text-sm text-muted-foreground">Loading driver charts…</p> : query.isError ? <div role="alert" className="rounded-xl border p-4 text-sm">Driver charts could not be loaded. <Button variant="outline" className="mt-2 h-11" onClick={() => query.refetch()}>Retry driver charts</Button></div> : <>
       <Ranking title="Airport parking average" caption="Lowest average first · airport-return trips only" rows={query.data.parking} parking />
       <Ranking title="Gas reimbursed" caption="Highest submitted reimbursement total first" rows={query.data.gas} />
-      <p className="px-1 text-xs text-muted-foreground">$40+ parking tickets are excluded unless a manager includes them. Airport-return links are required unless a manager force includes the entry; those overrides are labeled below.</p>
+      <p className={`px-1 text-xs text-muted-foreground ${wide ? 'lg:col-span-2' : ''}`}>$40+ parking tickets are excluded unless a manager includes them. Airport-return links are required unless a manager force includes the entry; those overrides are labeled below.</p>
     </>}
   </aside>;
 }

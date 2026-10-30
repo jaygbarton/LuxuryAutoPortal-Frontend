@@ -1,8 +1,10 @@
 import{test,expect,type Page}from'@playwright/test';
 import { PDFDocument } from 'pdf-lib';
-async function fixture(page:Page,options:{manager?:boolean;home?:'slc'|'wilmington';cohost?:boolean}={}){
+async function fixture(page:Page,options:{manager?:boolean;home?:'slc'|'wilmington';cohost?:boolean;reviewRequests?:boolean}={}){
  const writes:any[]=[],reads:string[]=[],errors:string[]=[];
  const entry:any={key:'receipt:1',sourceId:1,adjustmentId:null,version:0,kind:'parking',date:'2026-10-01',employeeId:41,carId:101,amount:50,sourceAmount:50,name:'Own Driver',sourceEmployeeName:'Own Driver',carName:'Own vehicle',returnReference:'turo:9',decision:'auto',reason:'',exclusion:'$40+ ticket awaiting manager review',anomaly:true,reservation:'RES-9'};
+ Object.assign(entry,{reviewed:false,reviewVersion:0,reviewRequested:false,reviewRequestReason:null});
+ const entries=options.reviewRequests?[entry,{...entry,key:'receipt:2',sourceId:2,date:'2026-10-02',reviewRequested:true,reviewRequestReason:'Guest returned late; parking charge needs manager review'},{...entry,key:'receipt:3',sourceId:3,date:'2026-10-03',kind:'gas',amount:25,sourceAmount:25,anomaly:false,reviewed:true,reviewVersion:1,exclusion:null}]:[entry];
  page.on('pageerror',e=>errors.push(e.message));
  await page.route(url=>url.pathname.startsWith('/api/'),async route=>{
   const req=route.request(),url=new URL(req.url()),path=decodeURIComponent(url.pathname);let body:any={success:true,data:[],total:0,events:[],notifications:[],unreadCount:0};
@@ -10,15 +12,16 @@ async function fixture(page:Page,options:{manager?:boolean;home?:'slc'|'wilmingt
   if(path==='/api/auth/me')body={user:{id:7,name:'Own Employee',roleName:'Admin',isAdmin:true,isEmployee:false,isSuperAdmin:true,isClient:false,tourCompleted:true,effectiveTimezone:'America/Denver'}};
   else if(path==='/api/me/workspace-context')body={homeLocation:options.home??'slc',allowedLocations:options.cohost?['wilmington']:['slc','wilmington'],coHostScoped:!!options.cohost,impersonating:false};
   else if(path==='/api/operations/chart-management/access')body={canManage:!!options.manager};
-  else if(path==='/api/operations/chart-management'&&req.method()==='GET')body={entries:[entry],drivers:[{employeeId:41,name:'Own Driver'},{employeeId:42,name:'Second Driver'}],cars:[{carId:101,name:'Own vehicle'}]};
-  else if(path.startsWith('/api/operations/chart-management/')&&req.method()==='PUT'){Object.assign(entry,req.postDataJSON());entry.name=entry.employeeId===42?'Second Driver':entry.employeeId?'Own Driver':'No one';entry.exclusion=entry.decision==='exclude'?'Excluded by manager':null;entry.version++;body={key:entry.key,version:entry.version};}
+  else if(path==='/api/operations/chart-management'&&req.method()==='GET')body={entries,drivers:[{employeeId:41,name:'Own Driver'},{employeeId:42,name:'Second Driver'}],cars:[{carId:101,name:'Own vehicle'}]};
+  else if(path.startsWith('/api/operations/chart-management/')&&req.method()==='PUT'){const target=entries.find(e=>path.endsWith('/'+e.key))!;Object.assign(target,req.postDataJSON());target.name=target.employeeId===42?'Second Driver':target.employeeId?'Own Driver':'No one';target.exclusion=target.decision==='exclude'?'Excluded by manager':null;target.version++;target.reviewed=true;target.reviewVersion++;body={key:target.key,version:target.version};}
+  else if(path.endsWith('/review')&&req.method()==='PATCH'){const target=entries.find(e=>path.endsWith('/'+e.key+'/review'))!;target.reviewed=req.postDataJSON().reviewed;target.reviewVersion++;body={reviewed:target.reviewed,reviewVersion:target.reviewVersion};}
   else if(path==='/api/operations/chart-management'&&req.method()==='POST')body={key:'manual:2',version:1};
   else if(path==='/api/operations/chart-management/receipt:1/receipts')body={files:[{name:'Receipt 1',url:'/api/operations/chart-management/receipt%3A1/receipts/0/file'}]};
   else if(path==='/api/operations/chart-management/receipt:1/receipts/0/file'){await route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jE1sAAAAASUVORK5CYII=','base64')});return;}
   else if(path.endsWith('/history'))body={history:[{version:1,actor_id:7,created_at:'2026-10-30',after_json:{decision:'exclude',reason:'Special case'}}]};
   else if(path==='/api/me/preferences/day-schedule')body={myTasksFirst:true,employeeId:41};
   else if(path==='/api/operations/day-schedule')body={date:url.searchParams.get('date'),events:[],work_shifts:[]};
-  else if(path==='/api/operations/day-schedule/driver-rankings')body={parking:[],gas:[]};
+  else if(path==='/api/operations/day-schedule/driver-rankings')body={parking:[{employeeId:41,name:'Own Driver',total:12,trips:2,receipts:2,average:6,pending:0}],gas:[{employeeId:41,name:'Own Driver',total:125,receipts:3,pending:0}]};
   else if(path==='/api/developer/direct-booking-preview/vehicles')body={vehicles:[{carId:101,name:'Utah preview vehicle',city:'Salt Lake City',state:'UT',photo:null,baseDailyRate:100,isListed:true},{carId:202,name:'Wilmington preview vehicle',city:'Wilmington',state:'NC',photo:null,baseDailyRate:100,isListed:true}]};
   else if(path==='/api/developer/direct-booking-preview/drafts')body={drafts:[]};
   else if(path==='/api/cars')body={success:true,data:[],pagination:{total:0,page:1,limit:10,totalPages:0}};
@@ -119,4 +122,21 @@ test('receipt review displays missing-file errors without opening raw storage li
  await page.goto('/admin/operations?tab=chart-management');await page.getByRole('button',{name:'View receipts',exact:true}).click();
  const viewer=page.getByRole('dialog',{name:'Entry receipts'});await expect(viewer).toContainText('Original receipt file could not be found.');
  await expect(viewer.locator('a[href*="storage.googleapis.com"]')).toHaveCount(0);expect(state.writes).toEqual([]);expect(state.errors).toEqual([]);
+});
+
+for(const width of[390,1440])test(`review filters, yellow employee requests and the actual monthly charts work at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:844});const state=await fixture(page,{manager:true,reviewRequests:true});await page.goto('/admin/operations?tab=chart-management');
+ const charts=page.getByRole('complementary',{name:'Driver receipt charts'});await expect(charts.getByRole('region',{name:'Airport parking average'})).toBeVisible();await expect(charts).toContainText('$12.00 ÷ 2 trips');await expect(charts).toContainText('$125.00');
+ const rows=page.getByRole('article');await expect(rows).toHaveCount(3);await expect(rows.first()).toHaveAttribute('aria-label','Chart entry receipt:2');
+ const requested=page.getByRole('article',{name:'Chart entry receipt:2'});await expect(requested).toHaveClass(/bg-amber-50/);await expect(requested).toContainText('Guest returned late');
+ await requested.screenshot({path:`/workspace/artifacts/chart-review-request-card-${width}.png`,animations:'disabled'});
+ await page.getByRole('button',{name:'Reviewed (1)',exact:true}).click();await expect(rows).toHaveCount(1);await expect(rows.first()).toHaveAttribute('aria-label','Chart entry receipt:3');await expect(charts).toContainText('$12.00 ÷ 2 trips');
+ await page.getByRole('button',{name:'Unreviewed (2)',exact:true}).click();await expect(rows).toHaveCount(2);
+ await requested.getByRole('button',{name:'Mark reviewed',exact:true}).click();await expect(rows).toHaveCount(1);await expect(page.getByRole('button',{name:'Reviewed (2)',exact:true})).toBeVisible();
+ expect(state.writes[0]).toMatchObject({path:'/api/operations/chart-management/receipt:2/review',body:{reviewed:true,version:0}});
+ await page.getByRole('button',{name:'Reviewed (2)',exact:true}).click();await expect(requested).toBeVisible();await expect(requested).not.toHaveClass(/bg-amber-50/);await expect(requested).toContainText('Excluded: $40+');
+ await requested.getByRole('button',{name:'Mark unreviewed',exact:true}).click();await page.getByRole('button',{name:'All entries (3)',exact:true}).click();await expect(requested).toHaveClass(/bg-amber-50/);
+ await page.getByLabel('Sort chart entries').selectOption('newest');await expect(rows.first()).toHaveAttribute('aria-label','Chart entry receipt:3');await page.getByLabel('Sort chart entries').selectOption('oldest');await expect(rows.first()).toHaveAttribute('aria-label','Chart entry receipt:1');
+ await page.getByLabel('Sort chart entries').selectOption('priority');await page.screenshot({path:`/workspace/artifacts/chart-review-requests-${width}.png`,fullPage:true,animations:'disabled'});
+ expect(state.writes.some(w=>w.path.includes('expense-form'))).toBe(false);expect(state.errors).toEqual([]);
 });

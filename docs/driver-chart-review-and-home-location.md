@@ -138,3 +138,46 @@ missing-file errors. Frontend TypeScript, both production builds, duplication
 thresholds and diff whitespace checks passed. These checks use fixtures, not
 production receipt/accounting writes. Live rollout remains subject to the existing
 proxy limitation described above.
+
+## Monthly charts, review queues and employee requests
+
+Chart Management now includes the same live Airport parking average and Gas
+Reimbursed charts as Day Schedule, using the manager page's selected month and
+location. Entry review filters (All entries, Reviewed, Unreviewed) show counts and
+do not change the monthly chart totals. Sort choices are review requests first
+(default), newest date, oldest date and highest amount.
+
+Existing chart adjustments count as reviewed unless explicitly reopened. New
+unedited source receipts start unreviewed. Saving a chart edit marks it reviewed;
+managers can also Mark reviewed or Mark unreviewed independently, using a scoped
+PATCH /api/operations/chart-management/:key/review endpoint with an optimistic
+review version. Review status is not expense approval and never changes inclusion,
+attribution, reimbursement or accounting. Status changes retain actor, time, version
+and history. Reopening a requested entry makes it yellow again.
+
+The Day Schedule airport receipt dialog adds an optional Request manager review
+checkbox with a required reason when selected. An information icon opens help on
+mouse hover or touch/keyboard activation. It explains special circumstances and
+that this request does not automatically include a ticket or approve reimbursement.
+It is not shown on gas forms. The submitted vehicle, employee, amount and linked
+airport pickup task are preserved. Ordinary unchecked submissions stay unchanged.
+
+A request is saved in the same MySQL transaction as the original receipt and task
+assignment. A failed request insert rolls back the expense so retry cannot lose
+the request. Existing airport-task uniqueness and retry recovery remain in place.
+Managers see a yellow requested-review card with the employee's reason while it is
+unreviewed; $40+ anomaly text remains red. Requests are not an exemption from the
+existing chart rules or a grant of manager access.
+
+New additive tables follow the existing ensure-table pattern:
+driver_chart_review_requests, driver_chart_review_status and
+driver_chart_review_status_history. These are separate from the accounting form
+and chart adjustment data. Review status history appears beside chart edit history.
+The manager page refreshes on focus and every minute; a successful inline receipt
+submission also invalidates chart/review queries.
+
+Focused checks cover atomic receipt/request commit and rollback, malformed or
+unlinked request rejection, manager-only review updates, stale review versions,
+employer scoping, unchanged chart inclusion after marking reviewed, monthly charts
+and filters, yellow request priority, desktop hover, mobile tap and optional/required
+form behavior. Fixture browser checks submit no real receipts or notifications.

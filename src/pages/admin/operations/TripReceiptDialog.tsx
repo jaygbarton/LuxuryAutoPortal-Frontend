@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { buildApiUrl, buildUploadApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera, Loader2, Info } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 type Option = { id: number; name: string };
 type Context = {
@@ -40,6 +41,9 @@ export function TripReceiptDialog({ taskId, bookingKey, kind = "parking", onClos
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [remarks, setRemarks] = useState("");
+  const [managerReviewRequested, setManagerReviewRequested] = useState(false);
+  const [managerReviewReason, setManagerReviewReason] = useState('');
+  const [reviewInfoOpen, setReviewInfoOpen] = useState(false);
   const [reading, setReading] = useState<Reading | null>(null);
   const [busy, setBusy] = useState<"upload" | "submit" | null>(null);
   const [error, setError] = useState("");
@@ -89,15 +93,18 @@ export function TripReceiptDialog({ taskId, bookingKey, kind = "parking", onClos
       let id = submissionId;
       if (!id) {
         if (!reading?.receiptUrl || !parkingField || !carId || !employeeId || !date || !amount || Number(amount) <= 0) throw new Error("Upload the receipt and check the vehicle, employee, date, and amount.");
+        if (!isFuel && managerReviewRequested && !managerReviewReason.trim()) throw new Error('Enter a reason for manager review.');
         const detail = [reading.vendor, reading.receiptNumber && `Receipt ${reading.receiptNumber}`, reading.enteredAt && `Entry: ${reading.enteredAt}`, reading.exitedAt && `Exit: ${reading.exitedAt}`, reading.gallons && `Gallons: ${reading.gallons}`, reading.pricePerGallon && `Price per gallon: $${reading.pricePerGallon}`, remarks].filter(Boolean).join("\n");
         const data = await responseJson<{ id: number }>(await fetch(buildApiUrl("/api/expense-form-submissions"), {
           method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...(isFuel ? { fuelReturnKey: bookingKey } : { airportPickupTaskId: taskId }), submissionDate: date, employeeId: Number(employeeId), carId: Number(carId), year: Number(date.slice(0,4)), month: Number(date.slice(5,7)), category: "reimbursedBills", field: parkingField, amount: Number(amount), receiptUrls: [reading.receiptUrl], remarks: detail }),
+          body: JSON.stringify({ ...(isFuel ? { fuelReturnKey: bookingKey } : { airportPickupTaskId: taskId, ...(managerReviewRequested ? { managerReviewRequested: true, managerReviewReason: managerReviewReason.trim() } : {}) }), submissionDate: date, employeeId: Number(employeeId), carId: Number(carId), year: Number(date.slice(0,4)), month: Number(date.slice(5,7)), category: "reimbursedBills", field: parkingField, amount: Number(amount), receiptUrls: [reading.receiptUrl], remarks: detail }),
         }));
         if (!Number.isSafeInteger(data.id)) throw new Error("Could not confirm that the receipt was saved. Please reopen this form.");
         id = data.id;
         setSavedId(id);
         queryClient.invalidateQueries({ queryKey: ["/api/expense-form-submissions"] });
+        queryClient.invalidateQueries({ queryKey: ['/api/operations/chart-management'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/operations/day-schedule/driver-rankings'] });
       }
       // Assignment is saved with the expense, even if completing the pickup
       // subsequently fails. Refresh it before the separate status mutation.
@@ -148,6 +155,13 @@ export function TripReceiptDialog({ taskId, bookingKey, kind = "parking", onClos
             <div className="min-w-0"><Label htmlFor="parking-amount" className="text-xs">Amount ($)</Label><Input id="parking-amount" className="mt-1 h-11 min-w-0 text-base sm:text-sm" type="number" inputMode="decimal" min="0.01" max="1000" step="0.01" required value={amount} onChange={(e) => setAmount(e.target.value)} disabled={!!busy} /></div>
           </div>
           <div><Label htmlFor="parking-notes" className="text-xs">Notes (optional)</Label><Input id="parking-notes" className="mt-1 h-11 text-base sm:text-sm" maxLength={1500} value={remarks} onChange={(e) => setRemarks(e.target.value)} disabled={!!busy} /></div>
+          {!isFuel&&<section className="rounded-lg border border-amber-200 bg-amber-50/60 p-3" aria-label="Airport manager review request">
+            <div className="flex min-h-11 items-center gap-2">
+              <label className="flex min-h-11 flex-1 cursor-pointer items-center gap-3 text-sm font-medium"><input type="checkbox" className="h-5 w-5 accent-primary" checked={managerReviewRequested} onChange={e=>setManagerReviewRequested(e.target.checked)} disabled={!!busy}/>Request manager review</label>
+              <Popover open={reviewInfoOpen} onOpenChange={setReviewInfoOpen}><PopoverTrigger asChild><Button type="button" variant="ghost" className="h-11 w-11 shrink-0 p-0" aria-label="About manager review requests" onPointerEnter={e=>{if(e.pointerType==='mouse')setReviewInfoOpen(true);}}><Info className="h-5 w-5"/></Button></PopoverTrigger><PopoverContent side="top" className="text-sm" role="note">Use this for a special circumstance, such as a delayed return, an unusual parking charge, or a ticket that should count under another driver. Explain the reason below. The ticket appears yellow in Chart Management until a manager reviews it. This does not automatically include it in the charts or approve reimbursement.</PopoverContent></Popover>
+            </div>
+            {managerReviewRequested&&<div className="mt-2"><Label htmlFor="parking-manager-review-reason" className="text-xs">Reason for manager review</Label><textarea id="parking-manager-review-reason" required maxLength={1000} minLength={1} value={managerReviewReason} onChange={e=>setManagerReviewReason(e.target.value)} disabled={!!busy} className="mt-1 min-h-20 w-full rounded-lg border bg-background p-3 text-base sm:text-sm" placeholder="Explain what happened so the manager can review this ticket."/></div>}
+          </section>}
           {!parkingField && <p role="alert" className="text-sm text-destructive">{isFuel ? "Gas Reimbursed" : "Parking Airport"} is unavailable in your expense options. Contact an administrator.</p>}
         </>}
         {previewDone && <p role="status" className="text-sm text-emerald-800">Receipt preview checked. No expense was created.</p>}

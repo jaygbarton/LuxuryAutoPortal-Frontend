@@ -53,6 +53,32 @@ async function mock(page: Page, options: { unreadable?: boolean; failStatus?: bo
 }
 const upload = async (page: Page) => page.getByLabel("Receipt photo", { exact: true }).setInputFiles({ name: "receipt.png", mimeType: "image/png", buffer: image });
 
+test.describe('airport employee manager-review requests on mobile',()=>{
+ test.use({viewport:{width:390,height:667},isMobile:true,hasTouch:true});
+ test('explains the optional flag on tap and submits a reason with the unchanged airport receipt',async({page})=>{
+  const state=await mock(page);await page.locator('[data-day-schedule-card][data-booking-key="turo:119"]').tap();
+  await page.locator('[data-day-schedule-controls]').getByRole('button',{name:'Airport parking receipt',exact:true}).tap();
+  const dialog=page.getByRole('dialog',{name:'Airport parking receipt'});
+  const flag=dialog.getByRole('checkbox',{name:'Request manager review',exact:true});await expect(flag).not.toBeChecked();
+  await dialog.getByRole('button',{name:'About manager review requests'}).tap();await expect(page.getByRole('note')).toContainText('ticket appears yellow');await page.keyboard.press('Escape');await expect(dialog).toBeVisible();
+  await flag.check();await expect(dialog.getByLabel('Reason for manager review')).toBeVisible();
+  await upload(page);await dialog.getByRole('button',{name:'Submit receipt & complete pickup'}).tap();
+  expect(state.calls.filter(c=>c.path==='/api/expense-form-submissions')).toHaveLength(0);
+  await dialog.getByLabel('Reason for manager review').fill('Guest returned late; parking cost needs review');
+  await page.screenshot({path:'/workspace/artifacts/airport-review-request-390.png',fullPage:true,animations:'disabled'});
+  await dialog.getByRole('button',{name:'Submit receipt & complete pickup'}).tap();await expect(dialog).toHaveCount(0);
+  const submission=state.calls.find(c=>c.path==='/api/expense-form-submissions');expect(submission?.body).toMatchObject({managerReviewRequested:true,managerReviewReason:'Guest returned late; parking cost needs review',airportPickupTaskId:19,employeeId:41,carId:101,amount:5,submissionDate:'2026-10-16'});
+  expect(state.calls.at(-1)).toMatchObject({path:'/api/operations/tasks/19/status',body:{status:'completed',airportParkingSubmissionId:55}});expect(state.errors).toEqual([]);
+ });
+});
+
+test('airport review-request explanation works on mouse hover and an unchecked form sends no request',async({page})=>{
+ const state=await mock(page);await page.locator('[data-day-schedule-card][data-booking-key="turo:119"]').click();await page.locator('[data-day-schedule-controls]').getByRole('button',{name:'Airport parking receipt',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'Airport parking receipt'});await dialog.getByRole('button',{name:'About manager review requests'}).hover();await expect(page.getByRole('note')).toContainText('special circumstance');await page.keyboard.press('Escape');
+ await upload(page);await dialog.getByRole('button',{name:'Submit receipt & complete pickup'}).click();await expect(dialog).toHaveCount(0);
+ expect(state.calls.find(c=>c.path==='/api/expense-form-submissions')?.body).not.toHaveProperty('managerReviewRequested');expect(state.errors).toEqual([]);
+});
+
 for (const { width, height } of [{ width: 360, height: 844 }, { width: 390, height: 844 }, { width: 430, height: 844 }, { width: 390, height: 500 }]) test.describe(`compact mobile receipt flow at ${width}×${height}px`, () => {
   const screenshotSize = height < 600 ? `${width}-short` : width;
   test.use({ viewport: { width, height }, isMobile: true, hasTouch: true });
