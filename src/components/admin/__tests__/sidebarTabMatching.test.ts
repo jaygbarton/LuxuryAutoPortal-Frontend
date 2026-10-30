@@ -85,10 +85,10 @@ describe("co-host sidebar sub-categories", () => {
     }
   });
 
-  it("reaches Day Schedule and TV Timeline", () => {
+  it("reaches Day Schedule without the retired TV Timeline tab", () => {
     const hrefs = (find("Operations")!.children ?? []).map((c) => c.href);
     expect(hrefs).toContain("/admin/operations?tab=day-schedule");
-    expect(hrefs).toContain("/admin/operations?tab=tv-timeline");
+    expect(hrefs).not.toContain("/admin/operations?tab=tv-timeline");
   });
 
   it("lights exactly one sub-category per URL", () => {

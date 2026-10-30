@@ -6,6 +6,17 @@ backend base `75806c7ad867cb1d55dfdc17b01f8c8b600a64f5`.
 
 ## Workflow and layout
 
+Day Schedule opens in Timeline by default. By Employee remains selectable; its
+saved employee-priority and expanded Unassigned behavior still apply in that view.
+Collapsed cards in both views show the task's own location beneath the car name,
+wrapping long addresses on mobile. Missing locations say Location not set. No
+additional inline actions or location guesses from the opposite trip leg are added.
+
+Vehicle photos are larger (96×64 on phones, 112×80 from the small breakpoint),
+with a larger bold plate immediately to their left. TV Timeline has been removed
+from Operations navigation and its unused screen deleted. Existing TV Timeline
+URLs replace themselves with Day Schedule, preserving date and booking parameters.
+
 Unassigned opens expanded, with search and all cards available. Existing receipt
 submission assigns only its explicitly linked unassigned task to the employee
 selected on the form; the task then appears under that employee. Existing

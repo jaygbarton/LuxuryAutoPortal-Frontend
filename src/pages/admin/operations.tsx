@@ -21,7 +21,6 @@ import { NoCarIssuesTab } from "./operations/NoCarIssuesTab";
 import { CarRepairedTab } from "./operations/CarRepairedTab";
 import { CarBlockOffTab } from "./operations/CarBlockOffTab";
 import { DayScheduleTab } from "./operations/DayScheduleTab";
-import { TvTimelineTab } from "./operations/TvTimelineTab";
 import {
   OPERATION_LOCATION_OPTIONS,
   OperationLocationFilter,
@@ -30,14 +29,14 @@ import {
 import { useCoHostLocationTags } from "@/hooks/use-co-host";
 import { WorkScheduleNavigation } from "@/components/shared/WorkScheduleNavigation";
 
-const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "towing-impound", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "day-schedule", "tv-timeline", "chart-management"] as const;
+const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "towing-impound", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "day-schedule", "chart-management"] as const;
 type TabId = typeof TAB_IDS[number];
 const TAB_LABELS: Record<TabId, string> = {
   trips: "Trips Overview", "turo-inspection": "Turo Messages", inspections: "Car Issues",
   claims: "Claims", "ticket-violation": "Ticket Violation", "towing-impound": "Towing & Impound",
   maintenance: "Maintenance", "service-due": "Service Due", completed: "No Car Issues",
   "car-repaired": "Car Repaired", "car-block-off": "Car Block Off",
-  "day-schedule": "Day Schedule", "tv-timeline": "TV Timeline", "chart-management": "Chart Management",
+  "day-schedule": "Day Schedule", "chart-management": "Chart Management",
 };
 
 // Renders a tab's content only after it has been activated for the first time,
@@ -58,6 +57,7 @@ function LazyTab({ value, activeTab, mountedTabs, children }: {
 
 function tabFromSearch(search: string): TabId {
   const t = new URLSearchParams(search).get("tab");
+  if (t === 'tv-timeline') return 'day-schedule';
   return t && (TAB_IDS as readonly string[]).includes(t) ? (t as TabId) : "trips";
 }
 
@@ -70,6 +70,12 @@ export default function OperationsPage() {
   // wouter's own search hook makes those navigations drive the page.
   const search = useSearch();
   const [, setLocation] = useLocation();
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    if (params.get('tab') !== 'tv-timeline') return;
+    params.set('tab', 'day-schedule');
+    setLocation(`/admin/operations?${params.toString()}`, { replace: true });
+  }, [search, setLocation]);
   const activeTab = tabFromSearch(search);
   const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set(["trips", tabFromSearch(search)]));
   const [locationFilter, setLocationFilter] = useHomeDefaultFilter<OperationLocationFilter>(home => home, "all");
@@ -197,9 +203,6 @@ export default function OperationsPage() {
             <DayScheduleTab />
           </LazyTab>
           <LazyTab value="chart-management" activeTab={activeTab} mountedTabs={mountedTabs}><DriverChartManagementTab /></LazyTab>
-          <LazyTab value="tv-timeline" activeTab={activeTab} mountedTabs={mountedTabs}>
-            <TvTimelineTab />
-          </LazyTab>
         </Tabs>
         </OperationLocationFilterProvider>
       </div>

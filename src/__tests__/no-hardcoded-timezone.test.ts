@@ -52,13 +52,6 @@ const ALLOWED_FILES = new Set([
   // or two admins would silently disagree on what they saved.
   "src/pages/admin/hr/time.tsx",
 
-  // Reverses an already-Mountain-Time-collapsed string from the Day Schedule
-  // API back into a UTC instant. The string has no timezone marker of its
-  // own and genuinely IS Mountain Time regardless of viewer — needs the
-  // backend to emit raw UTC fields first (Phase 5's "Day Schedule payload"
-  // step) before this can honor a per-viewer zone.
-  "src/pages/admin/operations/TvTimelineTab.tsx",
-
   // Cross-references Turo's own fixed Mountain-Time display (booking emails,
   // the Turo app). Showing a viewer's own local projection instead would
   // make this LESS useful for that comparison, not more correct.

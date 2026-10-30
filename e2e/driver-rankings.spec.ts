@@ -25,6 +25,7 @@ for(const width of [390,1440])test.describe(`${width}px monthly charts`,()=>{
   test('defaults to current month, expands unassigned, places carryover after source and loads both employee rankings',async({page})=>{
     const state=await fixture(page);
     await page.goto('/admin/operations?tab=day-schedule&date=2026-10-30');
+    await page.getByRole('button',{name:/^(By Employee|Employees)$/}).click();
     const unassigned=page.getByRole('region',{name:'Unassigned tasks'});
     await expect(unassigned.getByRole('button',{name:'Collapse',exact:true})).toHaveAttribute('aria-expanded','true');
     await expect(unassigned.getByLabel('Search unassigned tasks')).toBeVisible();

@@ -111,7 +111,6 @@ const OPERATIONS_TABS: { href: string; label: string; icon: any }[] = [
   { href: "/admin/operations?tab=car-block-off", label: "Car Block Off", icon: CalendarOff },
   { href: "/admin/operations?tab=chart-management", label: "Chart Management", icon: BarChart3 },
   { href: "/admin/operations?tab=day-schedule", label: "Day Schedule", icon: CalendarDays },
-  { href: "/admin/operations?tab=tv-timeline", label: "TV Timeline", icon: BarChart3 },
 ];
 
 /** Same idea for the admin Forms page's tabs, via its ?section= param. */

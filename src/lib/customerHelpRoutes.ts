@@ -99,8 +99,8 @@ export function customerHelpTeaserAllowed(location: string): boolean {
     && !path.endsWith('/onboarding');
 }
 
-// Existing vehicle workflows, matching OperationsPage's TAB_IDS. Unknown/future
-// tabs fail closed for chat until their customer scope has been reviewed.
+// Existing vehicle workflows plus the legacy TV Timeline alias to Day Schedule.
+// Unknown/future tabs fail closed until their customer scope has been reviewed.
 export const CUSTOMER_HELP_OPERATIONS_TABS = [
   'trips', 'turo-inspection', 'inspections', 'claims', 'ticket-violation',
   'towing-impound', 'maintenance', 'service-due', 'completed', 'car-repaired',

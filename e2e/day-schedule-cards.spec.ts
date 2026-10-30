@@ -32,7 +32,7 @@ for (const viewport of [{ width: 1280, height: 1000 }, { width: 390, height: 844
   test.use({ viewport });
   test('timeline is chronological, has no inline controls or booking names, and opens all controls in a popup', async ({ page }) => {
     const state = await fixture(page);
-    await page.getByRole('button', { name: 'Timeline', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Timeline', exact: true })).toHaveAttribute('aria-pressed','true',{timeout:15000});
     const cards = page.locator('[data-day-schedule-card]');
     await expect(cards).toHaveCount(5);
     await expect(cards.nth(0)).toContainText('8:30 AM');
@@ -46,6 +46,7 @@ for (const viewport of [{ width: 1280, height: 1000 }, { width: 390, height: 844
       await expect(card).not.toContainText('Test Guest');
       await expect(card).not.toContainText('RES-208');
       await expect(card).toContainText('TEST123');
+      await expect(card.locator('[data-task-location]')).toHaveText('Test airport');
     }
     const turo = cards.filter({ hasText: 'Kia Rio 2019' });
     await expect(turo.locator('[data-booking-source="Turo"]')).toHaveClass(/bg-purple-600/);
@@ -71,6 +72,7 @@ for (const viewport of [{ width: 1280, height: 1000 }, { width: 390, height: 844
 });
 test('employee view keeps employee grouping and unassigned assignment inside the task popup', async ({ page }) => {
   const state = await fixture(page);
+  await page.getByRole('button',{name:/^(By Employee|Employees)$/}).click();
   const unassigned = page.getByRole('region', { name: 'Unassigned tasks' });
   await expect(unassigned.locator('[data-day-schedule-card]')).toHaveCount(1);
   const card = unassigned.locator('[data-day-schedule-card]');
@@ -79,5 +81,10 @@ test('employee view keeps employee grouping and unassigned assignment inside the
   await expect(page.locator('[data-day-schedule-controls]').getByRole('combobox').first()).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('region', { name: 'My tasks' })).toContainText('Test Worker');
+  await expect(page.getByRole('link',{name:'TV Timeline',exact:true})).toHaveCount(0);
+  await page.goto('/admin/operations?tab=tv-timeline&date=2026-10-07&booking=turo:208');
+  await expect(page).toHaveURL(/tab=day-schedule&date=2026-10-07&booking=turo%3A208/);
+  await expect(page.getByRole('button',{name:'Timeline',exact:true})).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByLabel('Schedule date')).toHaveValue('2026-10-07');
   expect(state.errors).toEqual([]);
 });

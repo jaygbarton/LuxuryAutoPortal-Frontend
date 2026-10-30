@@ -49,6 +49,7 @@ async function mock(page: Page, options: { unreadable?: boolean; failStatus?: bo
     await route.fulfill({ status, contentType: "application/json", headers: { "Access-Control-Allow-Origin": new URL(page.url()).origin, "Access-Control-Allow-Credentials": "true" }, body: JSON.stringify(result) });
   });
   await page.goto("/admin/operations?tab=day-schedule&date=2026-10-17");
+  if(options.unassigned||options.myEmployeeId!==undefined)await page.getByRole('button',{name:/^(By Employee|Employees)$/}).click();
   return { calls, errors };
 }
 const upload = async (page: Page) => page.getByLabel("Receipt photo", { exact: true }).setInputFiles({ name: "receipt.png", mimeType: "image/png", buffer: image });
@@ -263,6 +264,7 @@ for (const mobile of [false, true]) test.describe(`saved priority ${mobile ? "ph
   test.use({ viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 } });
   test("automatically shows my tasks first and remembers disabling after a refresh", async ({ page }) => {
     const state = await mock(page);
+    await page.getByRole('button',{name:/^(By Employee|Employees)$/}).click();
     const checkbox = page.getByRole("checkbox", { name: "My tasks first", exact: true });
     await expect(checkbox).toBeChecked();
     const mine = page.getByRole("region", { name: "My tasks", exact: true });
@@ -272,6 +274,7 @@ for (const mobile of [false, true]) test.describe(`saved priority ${mobile ? "ph
     await checkbox.click(); await expect(checkbox).not.toBeChecked(); await expect(mine).toHaveCount(0);
     expect(state.calls.find(c => c.path === "/api/me/preferences/day-schedule")?.body).toEqual({ myTasksFirst: false });
     await page.reload();
+    await page.getByRole('button',{name:/^(By Employee|Employees)$/}).click();
     await expect(checkbox).not.toBeChecked();
     await expect(mine).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);

@@ -395,6 +395,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
       <span className="min-w-0 flex-1 space-y-2">
         <span className="block text-xs font-medium">{event.start_time ? fmt12(event.start_time) : "Time not set"}</span>
         <span className="block break-words text-sm font-semibold sm:text-base">{event.car_name || label}</span>
+        <span data-task-location className="flex items-start gap-1.5 text-xs text-muted-foreground"><MapPin aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0"/><span className="min-w-0 break-words [overflow-wrap:anywhere]">{event.location?.trim() || 'Location not set'}</span></span>
         <span className="flex flex-wrap gap-1.5">
           <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${colors.bg} ${colors.text}`}>{label}</span>
           {source && <span data-booking-source={source.label} className={`rounded px-2 py-0.5 text-[11px] font-semibold ${source.color}`}>{source.label}</span>}
@@ -402,9 +403,9 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
         </span>
         {event.extras && <span data-trip-extras className="gla-trip-extras block w-fit max-w-full break-words rounded px-2 py-1 text-xs font-semibold text-amber-950"><span>Extras: </span>{event.extras}</span>}
       </span>
-      <span className="w-20 shrink-0 text-center sm:w-24">
-        <CarScheduleImage carPhoto={event.car_photo} carName={event.car_name} className="h-14 w-full rounded-lg bg-muted/30 sm:h-16" size={192} hideBelowMd={false} fallback={<span className="flex h-full items-center justify-center text-muted-foreground" role="img" aria-label="Vehicle photo unavailable"><Car className="h-6 w-6" /></span>} />
-        <span className="mt-1 block break-words text-[11px] text-muted-foreground">{event.plate || "Plate not set"}</span>
+      <span className="flex shrink-0 items-center gap-2">
+        <span data-task-plate className="w-16 break-words text-center text-sm font-semibold text-foreground sm:w-20 sm:text-base">{event.plate || "Plate not set"}</span>
+        <CarScheduleImage carPhoto={event.car_photo} carName={event.car_name} className="h-16 w-24 rounded-lg bg-muted/30 sm:h-20 sm:w-28" size={256} hideBelowMd={false} fallback={<span className="flex h-full items-center justify-center text-muted-foreground" role="img" aria-label="Vehicle photo unavailable"><Car className="h-7 w-7" /></span>} />
       </span>
     </button>
     <Dialog open={open} onOpenChange={setOpen}>
@@ -1009,7 +1010,7 @@ export function DayScheduleTab() {
   // the task list down to just that category; click again to clear. Empty
   // set = no filter (show everything), matching today's default behavior.
   const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<"employee" | "timeline">("employee");
+  const [viewMode, setViewMode] = useState<"employee" | "timeline">("timeline");
   const [showAddEntry, setShowAddEntry] = useState(false);
   const [entryType, setEntryType] = useState<"refuel" | "custom">("refuel");
   const [entryCarName, setEntryCarName] = useState("");
@@ -1611,8 +1612,7 @@ export function DayScheduleTab() {
         </Button>
         </div>
 
-        {/* View toggle: group by employee (default), or a single flat list
-            sorted by time across everyone. */}
+        {/* Timeline opens by default; employees can switch to grouped tasks. */}
         <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-border bg-muted/40 sm:ml-auto sm:inline-flex" aria-label="Schedule view">
           <button
             type="button"
