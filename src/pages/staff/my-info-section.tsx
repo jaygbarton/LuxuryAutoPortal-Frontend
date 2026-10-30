@@ -1,3 +1,4 @@
+import { EmployeeJobClassification, EMPLOYEE_DEPARTMENTS, EMPLOYEE_JOB_TITLES } from '@/components/shared/EmployeeJobClassification';
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
@@ -247,7 +248,7 @@ export default function StaffMyInfoSection() {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, employee_job_pay_department_name: form.employee_job_pay_department_name.trim() || null, employee_job_pay_job_title_name: form.employee_job_pay_job_title_name.trim() || null }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -626,12 +627,15 @@ export default function StaffMyInfoSection() {
       const jobField = (key: keyof JobInfoForm, type: string = "text", displayValue?: string) =>
         isEditingJobInfo && jForm ? (
           <li>
-            <Input
+            {key==='employee_job_pay_department_name'||key==='employee_job_pay_job_title_name'?<EmployeeJobClassification
+              label={key==='employee_job_pay_department_name'?'Department':'Job title'} hideLabel
+              options={key==='employee_job_pay_department_name'?EMPLOYEE_DEPARTMENTS:EMPLOYEE_JOB_TITLES}
+              value={jForm[key]} onChange={value=>setJobField(key,value)} disabled={updateJobInfoMutation.isPending}/>:<Input
               type={type}
               value={jForm[key]}
               onChange={(e) => setJobField(key, e.target.value)}
               className="h-8 text-sm"
-            />
+            />}
           </li>
         ) : (
           <li>{displayValue ?? unspecified(employee[key as keyof Employee] as string)}</li>

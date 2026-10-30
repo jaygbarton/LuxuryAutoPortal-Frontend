@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { EmployeeJobClassification, EMPLOYEE_DEPARTMENTS, EMPLOYEE_JOB_TITLES } from '@/components/shared/EmployeeJobClassification';
 
 interface Employee {
   employee_aid: number;
@@ -70,8 +71,8 @@ export function EditJobInfoModal({ open, onOpenChange, employee }: EditJobInfoMo
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          employee_job_pay_department_name: values.employee_job_pay_department_name || null,
-          employee_job_pay_job_title_name: values.employee_job_pay_job_title_name || null,
+          employee_job_pay_department_name: values.employee_job_pay_department_name.trim() || null,
+          employee_job_pay_job_title_name: values.employee_job_pay_job_title_name.trim() || null,
           employee_job_pay_work_email: values.employee_job_pay_work_email || null,
           employee_job_pay_hired: values.employee_job_pay_hired || null,
           employee_job_pay_regular_on: values.employee_job_pay_regular_on || null,
@@ -127,24 +128,11 @@ export function EditJobInfoModal({ open, onOpenChange, employee }: EditJobInfoMo
               disabled
             />
           </div>
-          <div>
-            <Label className="text-muted-foreground">Department</Label>
-            <Input
-              value={form.employee_job_pay_department_name}
-              onChange={(e) => setForm((p) => ({ ...p, employee_job_pay_department_name: e.target.value }))}
-              className="bg-background border-border"
-              placeholder="e.g. Sales"
-            />
-          </div>
-          <div>
-            <Label className="text-muted-foreground">Job Title</Label>
-            <Input
-              value={form.employee_job_pay_job_title_name}
-              onChange={(e) => setForm((p) => ({ ...p, employee_job_pay_job_title_name: e.target.value }))}
-              className="bg-background border-border"
-              placeholder="e.g. Sales Associate"
-            />
-          </div>
+          <EmployeeJobClassification label="Department" options={EMPLOYEE_DEPARTMENTS} value={form.employee_job_pay_department_name}
+            onChange={value=>setForm(previous=>({...previous,employee_job_pay_department_name:value}))} disabled={mutation.isPending}/>
+          <EmployeeJobClassification label="Job title" options={EMPLOYEE_JOB_TITLES} value={form.employee_job_pay_job_title_name}
+            onChange={value=>setForm(previous=>({...previous,employee_job_pay_job_title_name:value}))} disabled={mutation.isPending}/>
+          <p className="text-xs text-muted-foreground">Department and job title describe this employee's position. Employee roles are managed separately and control chart eligibility and Manager access.</p>
           <div>
             <Label className="text-muted-foreground">Work Email</Label>
             <Input

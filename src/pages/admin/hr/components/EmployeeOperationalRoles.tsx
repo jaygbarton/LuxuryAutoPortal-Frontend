@@ -33,7 +33,7 @@ export function EmployeeOperationalRoles({ employeeId }: { employeeId: number })
   const options = [...new Set([...(query.data?.options ?? []), ...(query.data?.roles ?? []), ...selected])];
   return <section className="rounded-lg border border-border bg-card p-4" aria-label="Employee operational roles">
     <h3 className="font-semibold text-primary">Employee roles</h3>
-    <p className="mt-1 text-xs text-muted-foreground">Choose all the work this employee does. Car Drivers appear in the Day Schedule receipt charts.</p>
+    <p className="mt-1 text-xs text-muted-foreground">Roles are separate from department and job title. Choose all the work this employee does. The Car Driver role controls receipt charts; the Manager role allows Chart Management.</p>
     {query.isPending ? <p className="py-2 text-sm">Loading roles…</p> : query.isError ? <div role="alert" className="py-2 text-sm text-destructive">Roles could not be loaded. <Button variant="outline" onClick={() => query.refetch()}>Retry roles</Button></div> : <>
       <div className="my-3 flex flex-wrap gap-x-4 gap-y-1">{options.map((role, index) => <label key={role} htmlFor={`${id}-${index}`} className="flex min-h-11 items-center gap-2 text-sm">
         <input id={`${id}-${index}`} type="checkbox" checked={selected.includes(role)} disabled={save.isPending}

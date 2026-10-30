@@ -1,3 +1,4 @@
+import { EmployeeJobClassification, EMPLOYEE_DEPARTMENTS, EMPLOYEE_JOB_TITLES } from '@/components/shared/EmployeeJobClassification';
 import { employeePasswordEmailFeedback } from "@/lib/employeePasswordEmailFeedback";
 import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -111,6 +112,8 @@ interface Employee {
 }
 
 const employeeSchema = z.object({
+  departmentName: z.string().trim().max(200).optional(),
+  jobTitleName: z.string().trim().max(200).optional(),
   firstName: z.string().min(1, "First name is required"),
   middleName: z.string().optional(),
   lastName: z.string().min(1, "Last name is required"),
@@ -279,6 +282,8 @@ export default function EmployeesPage() {
       middleName: "",
       lastName: "",
       workEmail: "",
+      departmentName: "",
+      jobTitleName: "",
       phoneNumber: "",
       telephone: "",
       birthday: "",
@@ -317,6 +322,8 @@ export default function EmployeesPage() {
           // Map to adminCreateSchema fields
           personalEmail: payload.workEmail,
           workEmail: payload.workEmail,
+          departmentName: payload.departmentName?.trim() || undefined,
+          jobTitleName: payload.jobTitleName?.trim() || undefined,
           mobileNumber: payload.phoneNumber,
           telephone: payload.telephone || "",
           birthday: payload.birthday || "",
@@ -1646,6 +1653,11 @@ export default function EmployeesPage() {
                   </FormItem>
                 </div>
 
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <EmployeeJobClassification label="Department" options={EMPLOYEE_DEPARTMENTS} value={addForm.watch('departmentName')||''} onChange={value=>addForm.setValue('departmentName',value,{shouldDirty:true})} disabled={createMutation.isPending}/>
+                  <EmployeeJobClassification label="Job title" options={EMPLOYEE_JOB_TITLES} value={addForm.watch('jobTitleName')||''} onChange={value=>addForm.setValue('jobTitleName',value,{shouldDirty:true})} disabled={createMutation.isPending}/>
+                </div>
+                <p className="text-xs text-muted-foreground">Job title and department describe the position. Assign employee roles separately under Job and Pay.</p>
                 <div className="flex justify-end gap-3 pt-4">
                   <Button
                     type="button"
