@@ -1,10 +1,8 @@
 /**
- * GLA Contractor Policy 1099 – shared by the Employee Onboarding Form, the
- * staff/admin Time Sheet (clock-in is blocked until the employee agrees) and
- * the employee profile. The backend refuses clock-in with
- * `code: "CONTRACTOR_POLICY_REQUIRED"` until an agreement is on file.
+ * GLA Contractor Policy 1099 – shared by the Employee Onboarding Form and
+ * employee profile. Agreement records and onboarding are independent of clock-in.
  */
-import { useId, useState, type ReactNode } from "react";
+import { useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, FileText, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
@@ -17,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const CONTRACTOR_POLICY_TITLE = "GLA Contractor Policy 1099";
-export const CONTRACTOR_POLICY_REQUIRED = "CONTRACTOR_POLICY_REQUIRED";
 
 export interface ContractorPolicy {
   title: string;
@@ -42,11 +39,6 @@ interface MyContractorPolicy {
   agreed: boolean;
   agreement: ContractorPolicyAgreement | null;
   policy: ContractorPolicy;
-}
-
-/** True when a clock-in response was refused for a missing agreement. */
-export function isContractorPolicyRequired(json: unknown): boolean {
-  return (json as { code?: unknown } | null)?.code === CONTRACTOR_POLICY_REQUIRED;
 }
 
 export function formatAgreedAt(iso: string): string {
@@ -185,7 +177,7 @@ export function ContractorPolicyAgreementFields({
 interface ContractorPolicyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Runs after the agreement is saved (e.g. to continue the clock-in). */
+  /** Runs after the agreement is saved. */
   onAgreed?: () => void;
 }
 
@@ -258,55 +250,4 @@ export function ContractorPolicyDialog({ open, onOpenChange, onAgreed }: Contrac
       </DialogContent>
     </Dialog>
   );
-}
-
-/** Banner on the Time Sheet while the agreement is outstanding. */
-export function ContractorPolicyRequiredNotice({ onOpen }: { onOpen: () => void }) {
-  return (
-    <div className="flex flex-col gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-sm leading-relaxed">
-        <strong>Action required:</strong> Please agree to the {CONTRACTOR_POLICY_TITLE} before you clock in.
-      </p>
-      <Button size="sm" onClick={onOpen} className="min-h-11 sm:min-h-9">
-        Review and agree
-      </Button>
-    </div>
-  );
-}
-
-/**
- * Clock-in gate for a Time Sheet page. Call `interceptClockIn` first in the
- * clock-in handler and `interceptRefusal` on its response; each returns true
- * when it opened the agreement instead. Render `gate(continueClockIn)` once.
- */
-export function useContractorPolicyGate(enabled: boolean) {
-  const query = useMyContractorPolicy(enabled);
-  // "clock-in": opened by a clock-in attempt, so agreeing continues it.
-  const [mode, setMode] = useState<null | "review" | "clock-in">(null);
-  const needsPolicy = query.data?.hasEmployee === true && !query.data.agreed;
-
-  // `policyAgreed` is passed on the continued clock-in, which runs before
-  // this render's `needsPolicy` has refreshed.
-  const interceptClockIn = (policyAgreed: boolean) => {
-    if (!needsPolicy || policyAgreed) return false;
-    setMode("clock-in");
-    return true;
-  };
-  const interceptRefusal = (json: unknown) => {
-    if (!isContractorPolicyRequired(json)) return false;
-    void query.refetch();
-    setMode("clock-in");
-    return true;
-  };
-  const gate = (continueClockIn: () => void): ReactNode => (
-    <>
-      {needsPolicy && <ContractorPolicyRequiredNotice onOpen={() => setMode("review")} />}
-      <ContractorPolicyDialog
-        open={mode !== null}
-        onOpenChange={(o) => !o && setMode(null)}
-        onAgreed={mode === "clock-in" ? continueClockIn : undefined}
-      />
-    </>
-  );
-  return { needsPolicy, interceptClockIn, interceptRefusal, gate };
 }

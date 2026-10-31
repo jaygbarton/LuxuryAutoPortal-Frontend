@@ -13,8 +13,8 @@ Diamond Parking & Storage, 50 S Redwood Road, Salt Lake City.
 
 Admins and super admins are exempt, including accounts that also have an employee
 role and admins using View as Employee. Exemption uses authenticated server session
-roles, never flags supplied by the client. Existing authorization and contractor
-policy requirements are preserved. Clock-out has no location requirement.
+roles, never flags supplied by the client. Clock-in does not require a 1099
+agreement. Clock-out has no location requirement.
 
 ## Implementation
 
@@ -99,3 +99,17 @@ Release verification limitation (October 30): the coding environment returned
 proxy `403 Forbidden` for the public Golden site and GitHub deployment-status
 API. Public runtime verification requires an allowed browser/network connection.
 No production clock entries are made by these checks.
+
+## Clock-in agreement requirement removed
+
+At the owner's request, clock-in is independent of the GLA Contractor Policy 1099
+agreement. Both the staff and admin clock pages no longer fetch agreement status,
+show a required-agreement banner/modal, or intercept clock-in for a signature.
+Both the normal clock-in endpoint and the clock-in branch of the legacy action
+endpoint no longer call the agreement service. Existing onboarding, policy settings,
+signed agreement records and the agreement API are retained. The 300-meter employee
+geofence, admin exemptions, authentication and clock-out workflow remain in force.
+
+Focused tests exercise unsigned employee clock-ins, invalid-location refusal,
+admin exemptions, the legacy route, clock-out and the existing agreement API.
+Browser checks use an unsigned fixture and mock all time entries and GPS calls.

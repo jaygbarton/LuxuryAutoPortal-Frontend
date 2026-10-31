@@ -10,7 +10,6 @@ import { optionKeywords } from "@/lib/select-search";
 
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { ClockOutPropertyCheck } from "@/components/staff/ClockOutPropertyCheck";
-import { useContractorPolicyGate } from "@/components/staff/ContractorPolicy";
 import { prepareClockInPayload } from "@/lib/clockInLocation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -396,9 +395,6 @@ export default function AdminHrTime() {
   const [clockOutNotes, setClockOutNotes] = useState("");
   const [clockOutLunchMinutes, setClockOutLunchMinutes] = useState("");
   const [propertyCheckConfirmed, setPropertyCheckConfirmed] = useState(false);
-  // GLA Contractor Policy 1099 must be agreed before the first clock-in.
-  const policyGate = useContractorPolicyGate(canUseOwnClock);
-
   useEffect(() => {
     if (!clockOutOpen || clockOutMode !== "shift_end") setPropertyCheckConfirmed(false);
   }, [clockOutOpen, clockOutMode]);
@@ -434,8 +430,7 @@ export default function AdminHrTime() {
     invalidate();
   };
 
-  const clockIn = async (policyAgreed = false) => {
-    if (policyGate.interceptClockIn(policyAgreed)) return;
+  const clockIn = async () => {
     setClockActionLoading(true);
     setClockInError(null);
     try {
@@ -447,7 +442,6 @@ export default function AdminHrTime() {
         body: JSON.stringify(payload),
       });
       const json = await res.json().catch(() => ({}));
-      if (policyGate.interceptRefusal(json)) return;
       if (!res.ok || !json.success) throw new Error(json.error || "Could not clock in");
       toast({ title: "Clocked in", description: json.message ?? "Timer started." });
       invalidateOwnClock();
@@ -718,7 +712,6 @@ return true;
             </div>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            {policyGate.gate(() => void clockIn(true))}
             {clockInError && !isClockedIn && (
               <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-destructive">{clockInError}</p>
             )}

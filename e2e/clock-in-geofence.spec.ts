@@ -8,7 +8,7 @@ async function fixture(page: Page, role: 'employee' | 'admin' | 'super-admin') {
     let data: any = { success: true, data: [], notifications: [], unreadCount: 0, total: 0 };
     if (path === '/api/auth/me') data = { user: { id: 7, name: 'Test Worker', firstName: 'Test', isEmployee: true, isAdmin: role !== 'employee', isSuperAdmin: role === 'super-admin', isClient: false, tourCompleted: true } };
     if (path === '/api/me/employee') data.data = { employee_aid: 41, employee_first_name: 'Test', employee_last_name: 'Worker' };
-    if (path === '/api/me/contractor-policy') data.data = { hasEmployee: true, agreed: true, agreement: null, policy: { title: 'GLA Contractor Policy 1099', policyText: '', documentUrl: '' } };
+    if (path === '/api/me/contractor-policy') data.data = { hasEmployee: true, agreed: false, agreement: null, policy: { title: 'GLA Contractor Policy 1099', policyText: '', documentUrl: '' } };
     if (path === '/api/me/time-sheet/last') data.data = { isClockedIn: false, openSession: null, lastSession: null };
     if (path === '/api/me/time-sheet/sessions') data.data = { sessions: [], hourlyRate: 0 };
     if (path === '/api/me/time-sheet/clock-in-policy') data.data = { required: role === 'employee', configured: true, radiusMeters: 300 };
@@ -34,6 +34,7 @@ test('mobile employee denied location cannot submit; retry obtains fresh locatio
   const posts = await fixture(page, 'employee');
   await page.goto('/staff/time');
   const clockIn = page.getByRole('button', { name: 'Clock in', exact: true });
+  await expect(page.getByText('Review and agree',{exact:true})).toHaveCount(0);
   await clockIn.click();
   await expect(page.getByRole('alert').filter({ hasText: 'site settings' }).first()).toBeVisible();
   expect(posts).toHaveLength(0);
@@ -42,6 +43,7 @@ test('mobile employee denied location cannot submit; retry obtains fresh locatio
   await expect.poll(() => posts.length).toBe(1);
   expect(posts[0].location).toMatchObject({ latitude: 40.76904610555129, longitude: -111.94181788921198, accuracy: 10 });
   expect(await page.evaluate(() => (window as any).gpsCalls)).toBe(2);
+  await expect(page.getByRole('dialog',{name:/GLA Contractor Policy/})).toHaveCount(0);
 });
 
 for (const role of ['admin', 'super-admin'] as const) {
