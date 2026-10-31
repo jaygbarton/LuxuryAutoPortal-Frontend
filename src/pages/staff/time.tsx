@@ -73,7 +73,7 @@ const ENERGY_OPTIONS = ["Very low", "Low", "Okay", "Good", "Great"];
 // aggregates `time.time_form_details` by these exact keys.
 const SHIFT_QUESTIONS: ShiftQuestion[] = [
   { id: "how_many_car_picked_up_from_airport_returning", label: "How Many Cars Picked Up From Airport Returning?", type: "numeric" },
-  { id: "how_many_cleaning_going_out", label: "How Many Cleaning Going Out?", type: "numeric" },
+  { id: "how_many_cleaning_going_out", label: "How many vehicles cleaned after return?", type: "numeric" },
   { id: "how_many_cars_re_parked", label: "How Many Cars Re-Parked?", type: "numeric" },
   { id: "how_many_gas_station_trip", label: "How Many Gas Station Trips?", type: "numeric" },
   { id: "how_many_trip_swaps_client_location", label: "How Many Trip Swaps – Client?", type: "numeric" },

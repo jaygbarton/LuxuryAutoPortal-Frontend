@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { employeeActivityLabel } from "@/lib/employeeActivityLabel";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
 
@@ -150,7 +151,7 @@ export default function MonthlyEmployeeStatsSection({
                           idx % 2 === 0 ? "white" : "rgb(249 250 251)",
                       }}
                     >
-                      {row.category}
+                      {employeeActivityLabel(row.category)}
                     </td>
                     {row.monthly.map((val, mIdx) => (
                       <td

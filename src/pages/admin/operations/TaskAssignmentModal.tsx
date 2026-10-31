@@ -51,12 +51,12 @@ function computeDefaults(
     const d = toMtLocalInput(tripStart);
     return { scheduledDate: d, dueDate: d };
   }
-  if (taskType === "pickup") {
-    // Pick Up: both default to trip end
+  if (taskType === "pickup" || taskType === "cleaning") {
+    // Retrieve and clean the vehicle when it returns, ready for its next trip.
     const d = toMtLocalInput(tripEnd);
     return { scheduledDate: d, dueDate: d };
   }
-  // Cleaning is for the outgoing drop-off, so it follows trip start.
+  // Preserve the existing defaults for other manually assigned task types.
   return {
     scheduledDate: toMtLocalInput(tripStart),
     dueDate: toMtLocalInput(tripStart),
@@ -117,11 +117,9 @@ export function TaskAssignmentModal({
       );
 
       let defaultLocation = "";
-      if (taskType === "pickup") {
+      if (taskType === "pickup" || taskType === "cleaning") {
         defaultLocation = prefill.return_location || prefill.delivery_location || prefill.pickup_location || "";
       } else if (taskType === "delivery") {
-        defaultLocation = prefill.pickup_location || prefill.delivery_location || "";
-      } else if (taskType === "cleaning") {
         defaultLocation = prefill.pickup_location || prefill.delivery_location || "";
       }
 
@@ -166,11 +164,9 @@ export function TaskAssignmentModal({
         prefill.trip_end,
       );
       let defaultLocation = formData.scheduled_location;
-      if (formData.task_type === "pickup") {
+      if (formData.task_type === "pickup" || formData.task_type === "cleaning") {
         defaultLocation = prefill.return_location || prefill.delivery_location || prefill.pickup_location || "";
       } else if (formData.task_type === "delivery") {
-        defaultLocation = prefill.pickup_location || prefill.delivery_location || "";
-      } else if (formData.task_type === "cleaning") {
         defaultLocation = prefill.pickup_location || prefill.delivery_location || "";
       }
       setFormData((prev) => ({
@@ -248,15 +244,14 @@ export function TaskAssignmentModal({
       });
       return;
     }
-    // Block creating a second task of the same type on the same trip.
-    // One trip should have exactly one cleaning, one delivery, and one pickup
-    // task — duplicates cause confusion (e.g. "Cathy / Cathy" in the Assigned
-    // column) and double-bill operations.
+    // Keep one active-workflow task per type/trip. Completed departure cleaning
+    // remains historical evidence and must not block the new return clean.
     if (!isEdit && formData.turo_trip_id) {
       const existsForSameTrip = existingTasks.some(
         (t) =>
           t.turo_trip_id === formData.turo_trip_id &&
-          t.task_type === formData.task_type,
+          t.task_type === formData.task_type &&
+          !(t.task_type === "cleaning" && t.task_phase === "departure"),
       );
       if (existsForSameTrip) {
         toast({
@@ -303,7 +298,7 @@ export function TaskAssignmentModal({
                 setFormData({ ...formData, task_type: v as TaskType })
               }
             >
-              <SelectTrigger className="bg-card border-border text-foreground mt-1">
+              <SelectTrigger aria-label="Task type" className="bg-card border-border text-foreground mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-card border-border text-foreground">
@@ -316,6 +311,7 @@ export function TaskAssignmentModal({
                 <SelectItem value="license_plate">License Plate Run</SelectItem>
               </SelectContent>
             </Select>
+            {formData.task_type === "cleaning" && <p className="mt-1 text-xs text-muted-foreground">Clean after this trip returns so the vehicle is ready for its next booking.</p>}
           </div>
 
           <div>
@@ -353,6 +349,7 @@ export function TaskAssignmentModal({
             </label>
             <Input
               type="datetime-local"
+              aria-label="Scheduled Date/Time"
               value={formData.scheduled_date}
               onChange={(e) =>
                 setFormData({ ...formData, scheduled_date: e.target.value })
@@ -370,6 +367,7 @@ export function TaskAssignmentModal({
             <label className="text-sm text-muted-foreground">Due Date</label>
             <Input
               type="datetime-local"
+              aria-label="Due Date"
               value={formData.due_date}
               onChange={(e) =>
                 setFormData({ ...formData, due_date: e.target.value })

@@ -40,6 +40,8 @@ export interface OperationTask {
   car_name: string;
   guest_name: string | null;
   task_type: "cleaning" | "delivery" | "pickup" | "refuel";
+  /** Departure cleaning is retained history from the previous workflow. */
+  task_phase?: "standard" | "departure";
   assigned_to: string;
   assigned_to_id: number | null;
   scheduled_date: string | null;

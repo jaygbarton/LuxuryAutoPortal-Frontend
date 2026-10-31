@@ -3,6 +3,7 @@
  * Tries /api/me/employee-stats/monthly first; falls back to empty grid.
  */
 import { useQuery } from "@tanstack/react-query";
+import { employeeActivityLabel } from "@/lib/employeeActivityLabel";
 import { buildApiUrl } from "@/lib/queryClient";
 import { SectionHeader } from "@/components/admin/dashboard";
 
@@ -106,7 +107,7 @@ export default function MyMonthlyStatsSection() {
               {displayData.map((row, idx) => (
                 <tr key={idx} className="bg-white border-y border-[#D3BC8D]">
                   <td className="sticky left-0 z-10 min-w-[220px] bg-white px-3 py-1.5 text-left text-xs font-medium text-black">
-                    {row.category}
+                    {employeeActivityLabel(row.category)}
                   </td>
                   {row.monthly.map((val, mIdx) => (
                     <td key={mIdx} className="px-2 py-1.5 text-center text-black">

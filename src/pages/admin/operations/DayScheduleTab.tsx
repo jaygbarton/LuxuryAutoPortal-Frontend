@@ -393,7 +393,9 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
         <span className="flex flex-wrap gap-1.5">
           <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${colors.bg} ${colors.text}`}>{label}</span>
           {source && <span data-booking-source={source.label} className={`rounded px-2 py-0.5 text-[11px] font-semibold ${source.color}`}>{source.label}</span>}
-          {(event.is_carryover || event.scheduled_day && event.scheduled_day < props.date) && !event.completed_day && !["completed", "delivered", "no_issues", "cancelled", "canceled"].includes((event.status || "").toLowerCase()) && <span data-task-carryover className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-semibold text-white">Carried over</span>}
+          {/* The server checks the actual deadline against now. Browsing a later
+              date must never turn an upcoming task into an overdue one. */}
+          {event.is_carryover && !event.completed_day && !["completed", "delivered", "no_issues", "cancelled", "canceled"].includes((event.status || "").toLowerCase()) && <span data-task-carryover className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-semibold text-white">Carried over</span>}
         </span>
         {event.extras && <span data-trip-extras className="gla-trip-extras block w-fit max-w-full break-words rounded px-2 py-1 text-xs font-semibold text-amber-950"><span>Extras: </span>{event.extras}</span>}
       </span>

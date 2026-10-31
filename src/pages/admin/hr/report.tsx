@@ -1,4 +1,5 @@
 import { optionKeywords } from "@/lib/select-search";
+import { employeeActivityLabel } from "@/lib/employeeActivityLabel";
 /**
  * Admin HR – Employee Stats Report.
  *
@@ -8,7 +9,7 @@ import { optionKeywords } from "@/lib/select-search";
  *
  * Categories reported:
  *   - Cars picked up from the airport for return
- *   - Cleaning trips going out
+ *   - Vehicles cleaned (legacy cleaning field retained for history)
  *   - Cars re-parked
  *   - Gas station trips
  *   - Trip swaps – client location
@@ -298,7 +299,7 @@ export default function AdminHrReport() {
     const lines: string[] = [header.map(csvCell).join(",")];
     for (const row of stats.rows) {
       lines.push(
-        [row.label, ...row.counts.map((n) => String(n)), String(row.total)]
+        [employeeActivityLabel(row.label), ...row.counts.map((n) => String(n)), String(row.total)]
           .map(csvCell)
           .join(",")
       );
@@ -527,7 +528,7 @@ function StatsTable(props: { stats: StatsReport }) {
                   backgroundColor: idx % 2 === 0 ? "white" : "rgb(249 250 251)",
                 }}
               >
-                {row.label}
+                {employeeActivityLabel(row.label)}
               </td>
               {row.counts.map((v, i) => (
                 <td

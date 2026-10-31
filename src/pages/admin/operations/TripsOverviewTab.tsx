@@ -596,7 +596,8 @@ export function TripsOverviewTab() {
 
   const hasTaskType = (tripId: number, taskType: TaskType) => {
     return allTasks.some(
-      (t) => t.turo_trip_id === tripId && t.task_type === taskType,
+      (t) => t.turo_trip_id === tripId && t.task_type === taskType &&
+        !(t.task_type === "cleaning" && t.task_phase === "departure"),
     );
   };
 
@@ -796,7 +797,7 @@ export function TripsOverviewTab() {
                 ) : (
                   pagedTrips.map((trip) => {
                     const tripTasks = getTasksForTrip(trip.id);
-                    const cleaningTask = tripTasks.find((t) => t.task_type === "cleaning");
+                    const cleaningTask = tripTasks.find((t) => t.task_type === "cleaning" && t.task_phase !== "departure");
                     const deliveryTask = tripTasks.find((t) => t.task_type === "delivery");
                     const pickupTask = tripTasks.find((t) => t.task_type === "pickup");
                     const refuelTask = tripTasks.find((t) => t.task_type === "refuel");
@@ -942,7 +943,8 @@ export function TripsOverviewTab() {
                       <div className="flex flex-col gap-1 text-xs">
                         {tripTasks.map((t) => {
                           const { Icon, color } = taskTypeIcon(t.task_type);
-                          const typeLabel = t.task_type.replace(/_/g, " ");
+                          const typeLabel = t.task_type === "cleaning" && t.task_phase === "departure"
+                            ? "Departure cleaning (history)" : t.task_type.replace(/_/g, " ");
                           return (
                             <div key={t.id} className="flex flex-col gap-0.5">
                               <div className="flex items-center gap-1.5">
