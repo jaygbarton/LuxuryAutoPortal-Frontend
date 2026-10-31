@@ -2,6 +2,24 @@ import { expect, test, type Page } from "@playwright/test";
 
 const calendarUrl = "/admin/trip-calendar?from=2026-10-10&to=2026-10-17";
 
+test("sorts internal calendar vehicle rows alphabetically rather than by the leading year", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await mockCalendar(page);
+  await page.route('**/api/internal-calendar/events?*', route => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ ...response(), events: [], warnings: [], cars: [
+      { ...cars[0], carName: '2018 Toyota Sienna' },
+      { ...cars[1], carName: '2020 BMW X5' },
+      { ...cars[2], carName: '2026 Acura MDX' },
+      { ...cars[3], carName: 'Audi Q5' },
+    ] }),
+  }));
+  await page.goto('/admin/internal-calendar?from=2026-10-10&to=2026-10-17');
+  await expect(page.getByTestId('fleet-calendar-timeline').locator('p.truncate.font-medium')).toHaveText([
+    '2026 Acura MDX', 'Audi Q5', '2020 BMW X5', '2018 Toyota Sienna',
+  ], { timeout: 15000 });
+});
+
 test('offers confirmed-email recovery and a reservation-specific review link without hiding unresolved dates', async ({page}) => {
   await mockCalendar(page);
   await page.route('**/api/internal-calendar/events?*', route => route.fulfill({contentType:'application/json',body:JSON.stringify({...response(),warnings:['1 turo records have an unknown end time.']})}));

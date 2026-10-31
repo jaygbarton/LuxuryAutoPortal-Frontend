@@ -21,7 +21,7 @@ import { addUtcDays, dayKeyToUtcDate, mtDayKey, mtTodayKey, utcDateToDayKey } fr
 import { calendarBarPosition, calendarInstant, calendarRangeDays, MAX_CALENDAR_DAYS } from "@/lib/fleetCalendarDates";
 import { laneCountOf, packLanes } from "@/lib/lanePack";
 import {
-  eventBlocksAvailability, FLEET_CALENDAR_SOURCES, FLEET_SOURCE_LABELS,
+  compareCalendarVehicles, eventBlocksAvailability, FLEET_CALENDAR_SOURCES, FLEET_SOURCE_LABELS,
   isCancelledCalendarEvent, normalizeFleetCalendarResponse, normalizeFleetCalendarSync, type FleetCalendarCar, type FleetCalendarEvent,
   type FleetCalendarSyncHealth,
   type FleetCalendarResponse, type FleetCalendarSource,
@@ -273,7 +273,7 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehi
         if ((occupancy === "blocking" && !hasBlocking) || (occupancy === "none" && hasBlocking)) return false;
       }
       return true;
-    });
+    }).sort(compareCalendarVehicles);
   }, [data?.cars, visibleEvents, scopedEvents, search, fleet, occupancy, activeVehiclesOnly, workspaceLocation, selected?.bookingKey]);
   const listedEvents = useMemo(() => {
     const events = rows.flatMap((row) => row.events);

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, AlertTriangle, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { packLanes, laneCountOf } from "@/lib/lanePack";
+import { compareCalendarVehicles } from "@/lib/fleetCalendar";
 import {
   addUtcDays,
   dayKeyToUtcDate,
@@ -374,7 +375,7 @@ export function TripCalendar({ title }: { title?: string }) {
       }
       list = list.filter((c) => keep.has(Number(c.carId)));
     }
-    return list;
+    return list.sort(compareCalendarVehicles);
   }, [
     data?.cars, data?.trips, search, statusFilter, fleetFilter, workspaceLocation,
     edgeStarts, edgeEnds, from, to,

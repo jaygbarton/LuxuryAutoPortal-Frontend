@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eventBlocksAvailability, normalizeFleetCalendarResponse, normalizeFleetCalendarSync } from "../fleetCalendar";
+import { compareCalendarVehicles, eventBlocksAvailability, normalizeFleetCalendarResponse, normalizeFleetCalendarSync } from "../fleetCalendar";
 
 function fixture() {
   return {
@@ -15,6 +15,24 @@ function fixture() {
 }
 
 describe("internal calendar response and booking impact", () => {
+  it("orders year-prefixed and plain vehicle names by make/model while keeping model numbers meaningful", () => {
+    const names = ["2018 Toyota Sienna", "2024 BMW X10", "2026 Acura MDX", "Audi Q5", "2020 BMW X2", "1999 Volvo V70"];
+    const vehicles = names.map((carName, carId) => ({ carName, carId, plateNumber: null }));
+    expect([...vehicles].sort(compareCalendarVehicles).map(car => car.carName)).toEqual([
+      "2026 Acura MDX", "Audi Q5", "2020 BMW X2", "2024 BMW X10", "2018 Toyota Sienna", "1999 Volvo V70",
+    ]);
+    expect(vehicles.map(car => car.carName)).toEqual(names);
+  });
+
+  it("keeps identical models adjacent and breaks equal-name ties by year, plate and stable identity", () => {
+    const vehicles = [
+      { carId: 3, carName: "2024 Toyota Sienna", plateNumber: "BBB" },
+      { carId: 2, carName: "2020 Toyota Sienna", plateNumber: "ZZZ" },
+      { carId: 5, carName: "2024 Toyota Sienna", plateNumber: "AAA" },
+      { carId: 4, carName: "2024 Toyota Sienna", plateNumber: "AAA" },
+    ];
+    expect(vehicles.sort(compareCalendarVehicles).map(car => car.carId)).toEqual([2, 4, 5, 3]);
+  });
   it("reads the actual API plate/status aliases without losing a vehicle or event", () => {
     const result = normalizeFleetCalendarResponse(fixture());
     expect(result.cars[0].plateNumber).toBe("TEST101");

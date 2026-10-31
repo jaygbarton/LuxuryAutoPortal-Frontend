@@ -9,6 +9,17 @@ export interface FleetCalendarCar {
   locationTag?: string | null;
 }
 
+const vehicleNameCollator = new Intl.Collator("en", { sensitivity: "base", numeric: true });
+
+/** Vehicle rows are alphabetical by make/model, even when labels start with a year. */
+export function compareCalendarVehicles(a: Pick<FleetCalendarCar, "carName" | "plateNumber" | "carId">, b: Pick<FleetCalendarCar, "carName" | "plateNumber" | "carId">): number {
+  const name = (value: string) => value.trim().replace(/^(?:19|20)\d{2}\s+/, "");
+  return vehicleNameCollator.compare(name(a.carName), name(b.carName))
+    || vehicleNameCollator.compare(a.carName.trim(), b.carName.trim())
+    || vehicleNameCollator.compare(a.plateNumber ?? "", b.plateNumber ?? "")
+    || a.carId - b.carId;
+}
+
 export interface FleetCalendarEvent {
   id: string;
   bookingKey: string;
