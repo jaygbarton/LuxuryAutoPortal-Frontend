@@ -333,6 +333,35 @@ function QRCodeSection() {
   );
 }
 
+const DEFAULT_FORMS_DESCRIPTION =
+  "Access and submit important forms for client onboarding, referrals, and document updates. This section allows you to add new vehicle, request vehicle block-offs, submit referrals, upload updated licenses, registrations, or insurance documents, and track the status of your submissions.";
+
+// Page description shown under the "Forms" heading, keyed by the active section id.
+const FORM_SECTION_DESCRIPTIONS: Record<string, string> = {
+  "employee-onboarding-process":
+    "Onboard new employees and contractors: submit their details, complete the contractor agreement, and process offboarding when they leave. This section allows you to track each employee's onboarding progress and required documents.",
+  "employee-forms":
+    "Submit income and expense receipts for business purchases and costs. This section allows you to upload receipts, categorize expenses by car and type, and track the approval status of your submissions.",
+  "commissions-forms":
+    "Submit commissions, report earned commissions, and upload supporting documents for commission payments. This section allows you to track commission submissions, review payment status, and monitor pending, approved, or paid commissions.",
+  "referral-forms":
+    "Submit referrals for new clients or vehicles and track their progress. This section allows you to review your referral submissions and monitor whether each referral is pending, approved, or rejected.",
+  "document-updates":
+    "Upload updated licenses, registrations, or insurance documents for a vehicle or driver. This section allows you to track your document submissions and monitor their review and approval status.",
+  "car-issue-forms":
+    "Report a mechanical, cosmetic, or safety problem found on a vehicle. This section allows you to describe the issue, attach photos, and send it to operations for review and follow-up.",
+  "car-block-off-forms":
+    "Request a vehicle block-off when the car owner needs the car for personal use, maintenance, or other reasons. This section allows you to schedule pick-up and drop-off, and track the status of each block-off request.",
+  "car-repaired-forms":
+    "Report that a vehicle issue has been repaired. This section allows you to record the repair details, attach supporting documents, and mark the car as ready to return to service.",
+  "parking-ticket-forms":
+    "Submit parking tickets received by clients for a vehicle. This section allows you to upload the ticket, record the details, and track its approval and payment status.",
+  "ticket-violation-forms":
+    "Submit traffic or other violation tickets issued for a vehicle. This section allows you to upload the ticket, record the details, and track the status of each violation.",
+  "towing-impound-forms":
+    "Report a vehicle that has been towed or impounded. This section allows you to record the towing and impound details, attach supporting documents, and track the status of each case.",
+};
+
 export default function FormsPage() {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   // Which top-level form category tab is active (sections are rendered as tabs,
@@ -1562,7 +1591,7 @@ export default function FormsPage() {
         <div className="mb-4">
           <h1 className="text-2xl font-semibold text-primary">Forms</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Access and submit important forms for client onboarding, referrals, and document updates. This section allows you to add new vehicle, request vehicle block-offs, submit referrals, upload updated licenses, registrations, or insurance documents, and track the status of your submissions.
+            {FORM_SECTION_DESCRIPTIONS[selectedSection?.id ?? ""] ?? DEFAULT_FORMS_DESCRIPTION}
           </p>
         </div>
         {/* No section tab strip: every section the current role can see is
