@@ -57,7 +57,12 @@ test("admin shortcuts retain admin home/forms; desktop keeps the sidebar", async
   await page.goto("/admin/operations?tab=day-schedule");
   const quick = page.getByRole("navigation", { name: "Quick navigation" });
   await expect(quick.getByRole("link", { name: "Home", exact: true })).toHaveAttribute("href", "/dashboard");
-  await expect(quick.getByRole("link", { name: "Forms", exact: true })).toHaveAttribute("href", "/admin/forms");
+  await expect(quick.getByRole("link", { name: "Forms", exact: true })).toHaveAttribute("href", "/admin/forms?section=employee-forms");
+  await quick.getByRole('link',{name:'Forms',exact:true}).click();
+  await expect(page).toHaveURL(/\/admin\/forms\?section=employee-forms$/);
+  await expect(quick.getByRole('link',{name:'Forms',exact:true})).toHaveAttribute('aria-current','page');
+  await page.goto('/admin/forms?section=car-issue-forms');
+  await expect(quick.getByRole('link',{name:'Forms',exact:true})).toHaveAttribute('aria-current','page');
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(quick).not.toBeVisible();
   await expect(page.getByRole("complementary", { name: "Workspace navigation" })).toBeVisible();

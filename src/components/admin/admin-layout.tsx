@@ -1035,13 +1035,16 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     const timeClock = sidebarItems.flatMap(item => [item, ...(item.children ?? [])])
       .find(item => item.href === "/staff/time" || item.href === "/admin/hr/time");
     const forms = sidebarItems.find(item => item.href === "/staff/forms" || item.href === "/admin/forms");
+    const expenseForm = forms?.children?.find(item => item.href === '/admin/forms?section=employee-forms' || item.href === '/staff/forms');
     return [
       home && { ...home, label: "Home", icon: LayoutDashboard },
       schedule && { ...schedule, label: "Schedule", icon: ClipboardList },
       timeClock && { ...timeClock, label: "Time Clock", icon: Clock },
-      forms && { ...forms, label: "Forms", icon: FileText },
+      forms && { ...forms, href: expenseForm?.href ?? forms.href, label: "Forms", icon: FileText },
     ].filter(Boolean) as SidebarItem[];
   }, [sidebarItems]);
+  const mobileDestinationActive = (item: SidebarItem) =>
+    isPathActive(location, item.label === 'Forms' ? item.href.split('?')[0] : item.href, search);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 1023px)");
@@ -1454,7 +1457,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
           <nav aria-label="Quick navigation" className="workspace-bottom-nav flex shrink-0 items-stretch border-t border-border bg-background px-1 lg:hidden">
             {mobileDestinations.map(item => {
               const Icon = item.icon;
-              const active = !mobileMenuOpen && isPathActive(location, item.href, search);
+              const active = !mobileMenuOpen && mobileDestinationActive(item);
               return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}
                 className={cn("workspace-bottom-link flex min-h-[60px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-medium leading-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", active ? "text-foreground" : "text-muted-foreground")}
                 onClick={() => setMobileMenuOpen(false)}>
@@ -1465,7 +1468,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
             <button type="button" aria-label="More navigation" aria-expanded={mobileMenuOpen} aria-controls="workspace-navigation"
               onClick={() => { setSidebarOpen(true); setMobileMenuOpen(true); }}
               className="workspace-bottom-link flex min-h-[60px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-medium leading-3 text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <span className={cn("flex h-7 w-11 items-center justify-center rounded-full", !mobileDestinations.some(item => isPathActive(location, item.href, search)) && "bg-primary/30 text-foreground")}><Ellipsis className="h-5 w-5" aria-hidden="true" /></span>
+              <span className={cn("flex h-7 w-11 items-center justify-center rounded-full", !mobileDestinations.some(mobileDestinationActive) && "bg-primary/30 text-foreground")}><Ellipsis className="h-5 w-5" aria-hidden="true" /></span>
               More
             </button>
           </nav>
