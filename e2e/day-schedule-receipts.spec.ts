@@ -4,9 +4,9 @@ const image = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQ
 function event(id: number, extra: Record<string, unknown> = {}) {
   return { id, type: "pickup", bookingKey: `turo:${id + 100}`, category: "Pick Up", car_name: `Test Vehicle ${id}`, plate: `TEST${id}`, guest_name: "Test Guest", assigned_to: "Test Worker", assigned_to_id: 41, start_time: "09:00", end_time: null, location: "SLC Airport", status: "new", notes: null, detail: null, reservation_id: `R${id}`, extras: null, trip_start: "09:00", trip_end: "10:00", trip_start_mt: "2026-10-16 09:00", trip_end_mt: "2026-10-17 10:00", pickup_location: "SLC Airport", dropoff_location: "Office", location_tag: "slc", photos: null, car_photo: null, duration_minutes: null, scheduled_day: "2026-10-17", airport_parking_required: true, ...extra };
 }
-async function mock(page: Page, options: { unreadable?: boolean; failStatus?: boolean; unassigned?: boolean; owner?: boolean; nonAirport?: boolean; failUpload?: boolean; dropGasResponse?: boolean; myEmployeeId?: number; failSubmit?: boolean } = {}) {
+async function mock(page: Page, options: { unreadable?: boolean; failStatus?: boolean; unassigned?: boolean; owner?: boolean; nonAirport?: boolean; failUpload?: boolean; dropGasResponse?: boolean; myEmployeeId?: number; failSubmit?: boolean; missingDriver?: boolean } = {}) {
   const calls: { path: string; body: any }[] = [], errors: string[] = [];
-  let saved = false, failed = false, myTasksFirst = true;
+  let saved = false, failed = false, myTasksFirst = true, driverId = options.missingDriver ? null : 41;
   const events = options.unassigned ? [1,2,3,4,5].map(id => event(id, { assigned_to: null, assigned_to_id: null })) : [event(19, options.owner ? { type: "owner_dropoff", bookingKey: "owner_rental:19", category: "Drop Off", airport_parking_required: false } : options.nonAirport ? { location: "Office", airport_parking_required: false } : {})];
   page.on("pageerror", e => errors.push(e.message));
   await page.route((url) => url.pathname.startsWith("/api/"), async route => {
@@ -28,7 +28,7 @@ async function mock(page: Page, options: { unreadable?: boolean; failStatus?: bo
     else if (path.endsWith("/receipt")) {
       if (options.failUpload) { status = 500; result = { error: "Receipt upload failed. Please retry." }; }
       else result = { receiptUrl: "https://storage.googleapis.com/test-bucket/receipts/airport-task-19-00000000-0000-4000-8000-000000000001.jpg", amount: options.unreadable ? null : 5, date: options.unreadable ? null : "2026-10-16", vendor: "SLC International Airport", receiptNumber: "A209", enteredAt: null, exitedAt: null, needsManualEntry: !!options.unreadable };
-    } else if (path.includes("/airport-parking") || path.includes("/return-receipts/")) result = { carId: 101, carName: "Test Vehicle", employeeId: options.unassigned ? null : 41, employeeName: options.unassigned ? null : "Test Worker", reservationId: "R19", submission: saved ? { id: 55, status: "pending", carId: 101 } : null };
+    } else if (path.includes("/airport-parking") || path.includes("/return-receipts/")) result = { requiresDriver: true, driverId, carId: 101, carName: "Test Vehicle", employeeId: options.unassigned ? null : 41, employeeName: options.unassigned ? null : "Test Worker", reservationId: "R19", submission: saved ? { id: 55, status: "pending", carId: 101 } : null };
     else if (path === "/api/expense-form-submissions" && isWrite) {
       if (options.failSubmit) return route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "Could not save receipt." }) });
       saved = true; result = { success: true, id: 55 };
@@ -40,6 +40,7 @@ async function mock(page: Page, options: { unreadable?: boolean; failStatus?: bo
       if (body.fuelReturnKey) events.push(event(301, { type: "refuel", category: "Refuel Run", status: "completed", bookingKey: body.fuelReturnKey, airport_parking_required: false }));
       if (options.dropGasResponse && body.fuelReturnKey) return route.abort("failed");
     }
+    else if (path.endsWith('/day-schedule/driver') && isWrite) { driverId = body.employeeId; result = { success: true }; }
     else if (path.endsWith("/status") && isWrite) {
       if (options.failStatus && !failed) { failed = true; status = 500; result = { error: "Connection interrupted. Please retry." }; }
       else { events[0].status = body.status; result = { success: true }; }
@@ -292,4 +293,30 @@ for (const mobile of [false, true]) test.describe(`saved priority ${mobile ? "ph
     const otherTask = page.locator('[data-day-schedule-card][data-booking-key="turo:119"]');
     expect((await unassigned.boundingBox())!.y).toBeLessThan((await otherTask.boundingBox())!.y);
   });
+});
+
+for (const height of [844, 500]) test(`airport receipt requires a driver popup before any expense or completion write at 390x${height}`, async ({ page }) => {
+  await page.setViewportSize({ width: 390, height });
+  const state = await mock(page, { missingDriver: true });
+  await page.locator('[data-day-schedule-card]').click();
+  await page.getByRole('button', { name: 'Airport parking receipt', exact: true }).click();
+  await upload(page);
+  await page.getByRole('button', { name: 'Submit receipt & complete pickup', exact: true }).click();
+  const driverDialog = page.getByRole('dialog', { name: 'Select a driver', exact: true });
+  await expect(driverDialog).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  expect(state.calls.filter(call => call.path === '/api/expense-form-submissions' || call.path.endsWith('/status'))).toHaveLength(0);
+  await expect(driverDialog.getByRole('alert')).toContainText('Select a driver before completing');
+  await expect(driverDialog.getByRole('button', { name: 'Save driver & submit', exact: true })).toBeDisabled();
+  await driverDialog.getByRole('button', { name: 'Back to receipt', exact: true }).click();
+  await expect(page.getByLabel('Amount ($)', { exact: true })).toHaveValue('5.00');
+  await page.getByRole('button', { name: 'Submit receipt & complete pickup', exact: true }).click();
+  await driverDialog.getByRole('combobox', { name: 'Task driver', exact: true }).selectOption('41');
+  await driverDialog.getByRole('button', { name: 'Save driver & submit', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const writes = state.calls.filter(call => ['/api/operations/day-schedule/driver', '/api/expense-form-submissions', '/api/operations/tasks/19/status'].includes(call.path));
+  expect(writes.map(write => write.path)).toEqual(['/api/operations/day-schedule/driver', '/api/expense-form-submissions', '/api/operations/tasks/19/status']);
+  expect(writes[0].body).toMatchObject({ employeeId: 41, date: '2026-10-17' });
+  expect(writes[2].body).toMatchObject({ status: 'completed', airportParkingSubmissionId: 55 });
+  expect(state.errors).toEqual([]);
 });

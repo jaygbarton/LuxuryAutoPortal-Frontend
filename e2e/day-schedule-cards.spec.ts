@@ -18,7 +18,22 @@ async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType
   await page.route(url => url.pathname.startsWith('/api/'), async route => {
     const path = new URL(route.request().url()).pathname;
     let body: any = { success: true, data: [], total: 0, notifications: [], unreadCount: 0 };
-    if (route.request().method() !== 'GET') { writes.push({ path, body: route.request().postDataJSON() }); }
+    if (route.request().method() !== 'GET') {
+      const input = route.request().postDataJSON(); writes.push({ path, body: input });
+      if (path.endsWith('/carryover-note')) {
+        const row = rows.find(row => row.id === input.eventId && row.type === input.type);
+        if (row) row.carryover_note = input.note || null;
+        body = { success: true, note: input.note || null };
+      }
+      if (/\/tasks\/\d+\/status$/.test(path)) {
+        const row = rows.find(row => row.id === Number(path.split('/').at(-2)));
+        if (row) row.status = input.status;
+      }
+      if (path.endsWith('/day-schedule/driver')) {
+        const row = rows.find(row => row.id === input.eventId);
+        if (row) Object.assign(row, { driver_assignment_type: input.assignmentType, driver_assigned_to_id: input.employeeId, driver_assigned_to: input.fullname });
+      }
+    }
     else if (path === '/api/auth/me') body = { user: { id: 1, name: 'Admin', isAdmin: true, isEmployee: false, isSuperAdmin: true, effectiveTimezone: 'America/Denver', tourCompleted: true, ...overrides.user } };
     else if (path === '/api/operations/chart-management/access') body = { canManage: overrides.manager === true };
     else if (path === '/api/me/employee') {
@@ -310,5 +325,78 @@ test('Day Schedule exposes only New and Completed and preserves owner booking av
   await page.getByRole('option', { name: 'Completed', exact: true }).click();
   await expect.poll(() => state.writes.find(w => w.path === '/api/operations/day-schedule/owner-task-status')?.body).toMatchObject({ type: 'owner_dropoff', eventId: 204, status: 'completed' });
   expect(state.writes.some(w => w.path.includes('/car-block-off'))).toBe(false);
+  expect(state.errors).toEqual([]);
+});
+
+for (const width of [1280, 390]) test(`pending carryovers precede daily work in timeline, employee and unassigned lists at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 844 });
+  const pickup = (id: number, overrides: Record<string, unknown>) => task(id, `turo:${id}`, { type: 'pickup', category: 'Pick Up', ...overrides });
+  const unassigned = { assigned_to: null, assigned_to_id: null };
+  const state = await fixture(page, { rows: [
+    pickup(301, { start_time: '07:00' }),
+    pickup(302, { start_time: '20:00', scheduled_day: '2026-10-06', is_carryover: true }),
+    pickup(303, { ...unassigned, start_time: '08:00' }),
+    pickup(304, { ...unassigned, start_time: '21:00', scheduled_day: '2026-10-06', is_carryover: true }),
+    pickup(305, { start_time: '07:30', scheduled_day: '2026-10-06', is_carryover: true, status: 'completed', completed_day: '2026-10-07', assigned_to_id: 42, assigned_to: 'Second Worker' }),
+    pickup(306, { ...unassigned, start_time: '23:00', scheduled_day: '2026-10-05', is_carryover: true }),
+    // An earlier date alone must not promote work that the server did not mark overdue.
+    pickup(307, { start_time: '06:00', scheduled_day: '2026-10-06', is_carryover: false }),
+  ] });
+  await expect(page.locator('[data-day-schedule-card]')).toHaveText([306, 302, 304, 307, 301, 305, 303].map(id => new RegExp(`Vehicle task ${id}`)), { timeout: 15000 });
+  await page.getByRole('button', { name: /^(By Employee|Employees)$/ }).click();
+  await expect(page.getByRole('region', { name: 'My tasks', exact: true }).locator('[data-day-schedule-card]')).toHaveText([302, 307, 301].map(id => new RegExp(`Vehicle task ${id}`)));
+  const unassignedRegion = page.getByRole('region', { name: 'Unassigned tasks', exact: true });
+  await expect(unassignedRegion.locator('[data-day-schedule-card]')).toHaveText([306, 304, 303].map(id => new RegExp(`Vehicle task ${id}`)));
+  await unassignedRegion.getByLabel('Search unassigned tasks').fill('Vehicle task 30');
+  await expect(unassignedRegion.locator('[data-day-schedule-card]')).toHaveText([306, 304, 303].map(id => new RegExp(`Vehicle task ${id}`)));
+  expect(state.writes).toEqual([]);
+  expect(state.errors).toEqual([]);
+});
+
+for (const access of ['admin', 'manager', 'employee'] as const) test(`carryover notes are visible on the card and editable only by admin or manager: ${access}`, async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const state = await fixture(page, { manager: access === 'manager', user: { isAdmin: access === 'admin', isSuperAdmin: access === 'admin', isEmployee: access !== 'admin' }, rows: [
+    task(401, 'turo:401', { type: 'pickup', category: 'Pick Up', location: '50 South Redwood Road', scheduled_day: '2026-10-06', is_carryover: true, carryover_note: 'Check the key envelope before pickup.' }),
+  ] });
+  const card = page.locator('[data-day-schedule-card]');
+  await expect(card.locator('[data-carryover-note]')).toContainText('Check the key envelope before pickup.');
+  await expect(card.locator('[data-carryover-note]')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await card.click();
+  const popup = page.locator('[data-day-schedule-controls]');
+  const editor = popup.getByRole('textbox', { name: 'Carryover note', exact: true });
+  if (access === 'employee') {
+    await expect(editor).toHaveCount(0);
+    expect(state.writes).toEqual([]);
+    return;
+  }
+  await editor.fill('Please take the spare key from the office.');
+  await popup.getByRole('button', { name: 'Save carryover note', exact: true }).click();
+  await expect.poll(() => state.writes.find(write => write.path.endsWith('/carryover-note'))?.body).toMatchObject({ eventId: 401, type: 'pickup', date: '2026-10-07', note: 'Please take the spare key from the office.' });
+  await expect(editor).toHaveValue('Please take the spare key from the office.');
+  await popup.getByRole('button', { name: 'Close task details', exact: true }).click();
+  await expect(card.locator('[data-carryover-note]')).toContainText('Please take the spare key from the office.');
+  await card.click();
+  await expect(popup.getByRole('combobox', { name: 'Task driver' })).toHaveCount(0);
+  await popup.getByRole('combobox', { name: 'Task status', exact: true }).click();
+  await page.getByRole('option', { name: 'Completed', exact: true }).click();
+  await expect(card.locator('[data-carryover-note]')).toHaveCount(0);
+  await expect(editor).toHaveCount(0);
+  expect(state.errors).toEqual([]);
+});
+
+for (const type of ['custom', 'delivery']) test(`manual ${type} task completion shows a driver-required error and sends no status change until a driver is selected`, async ({ page }) => {
+  const state = await fixture(page, { rows: [task(402, 'turo:402', { type, category: type === 'custom' ? 'Custom Entry' : 'Drop Off', location: 'Airport rental office' })] });
+  await page.locator('[aria-label="Filter schedule by task type"]').getByRole('button', { name: 'Clear filter', exact: true }).click();
+  await page.locator('[data-day-schedule-card]').click();
+  const popup = page.locator('[data-day-schedule-controls]');
+  await popup.getByRole('combobox', { name: 'Task status', exact: true }).click();
+  await page.getByRole('option', { name: 'Completed', exact: true }).click();
+  await expect(page.getByText('Select a driver before completing this task.', { exact: true })).toBeVisible();
+  expect(state.writes.filter(write => write.path.endsWith('/status'))).toEqual([]);
+  await popup.getByRole('combobox', { name: 'Task driver', exact: true }).selectOption('41');
+  await expect.poll(() => state.writes.find(write => write.path.endsWith('/driver'))?.body).toMatchObject({ eventId: 402, employeeId: 41, assignmentType: 'employee', date: '2026-10-07' });
+  await popup.getByRole('combobox', { name: 'Task status', exact: true }).click();
+  await page.getByRole('option', { name: 'Completed', exact: true }).click();
+  await expect.poll(() => state.writes.filter(write => write.path.endsWith('/status')).length).toBe(1);
   expect(state.errors).toEqual([]);
 });

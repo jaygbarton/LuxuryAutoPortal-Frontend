@@ -1,4 +1,8 @@
 import { scheduleTaskStatus } from "@/lib/dayScheduleStatus";
+import { compareScheduleTasks, pendingCarryover } from "@/lib/dayScheduleOrder";
+import { useChartManagementAccess } from "@/hooks/use-chart-management-access";
+import { needsTaskDriver, hasTaskDriver } from "@/lib/dayScheduleDriver";
+import { TaskDriverSelect } from "./TaskDriverSelect";
 import { taskDeadlineHasPassed } from "@/lib/dayScheduleDeadline";
 import { useOperationFleetRows } from "./OperationsFleetFilter";
 import { DayScheduleDriverRankings } from "./DayScheduleDriverRankings";
@@ -36,6 +40,8 @@ type DayEventType =
   | "trip_start" | "trip_end" | "task_timer";
 
 interface DayEvent {
+  requires_driver?: boolean;
+  carryover_note?: string | null;
   airport_parking_required?: boolean;
   id: number;
   type: DayEventType;
@@ -107,7 +113,6 @@ const ASSIGNEE_EDITABLE_TYPES: DayEventType[] = [
   "inspection", "block_off", "owner_pickup", "owner_cleaning", "owner_dropoff", "trip_start", "trip_end",
 ];
 
-const DRIVER_EDITABLE_TYPES: DayEventType[] = [...OPERATION_TASK_TYPES, "maintenance"];
 
 function statusOptionsFor(type: DayEventType): string[] | null {
   if (OPERATION_TASK_TYPES.includes(type)) return TASK_STATUSES;
@@ -225,11 +230,6 @@ function fmt12(t: string | null): string {
   return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
-/** Sort key: "HH:MM" strings; events with no time go to end */
-function timeKey(t: string | null): string {
-  return t ?? "99:99";
-}
-
 /**
  * Format a full MT datetime "YYYY-MM-DD HH:MM" for display.
  * Shows "Mon Jun 30, 10:00 AM" — used when the trip spans across days so
@@ -332,9 +332,32 @@ function DetailLine({ icon, label, value, className = "" }: {
   );
 }
 
-const ScheduleBookingContext = createContext<{ selectedBooking: string | null; date: string; now?: number; openAirportReceipt?: (event: DayEvent) => void; openFuelReceipt?: (event: DayEvent) => void }>({
+const ScheduleBookingContext = createContext<{ selectedBooking: string | null; date: string; now?: number; openAirportReceipt?: (event: DayEvent) => void; openFuelReceipt?: (event: DayEvent) => void; canEditCarryoverNotes?: boolean; saveCarryoverNote?: (event: DayEvent, note: string) => Promise<void> }>({
   selectedBooking: null, date: "",
 });
+
+function CarryoverNoteEditor({ event }: { event: DayEvent }) {
+  const context = useContext(ScheduleBookingContext);
+  const [draft, setDraft] = useState(event.carryover_note || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const inputId = useId();
+  useEffect(() => { setDraft(event.carryover_note || ""); }, [event.carryover_note]);
+  if (!context.canEditCarryoverNotes || !pendingCarryover(event)) return null;
+  return <div className="space-y-2 rounded-lg border border-primary/30 bg-white p-3">
+    <label htmlFor={inputId} className="block text-sm font-semibold">Carryover note</label>
+    <textarea id={inputId} value={draft} onChange={e => setDraft(e.target.value)} maxLength={2000} rows={3}
+      placeholder="Instructions for the employee completing this task…" className="w-full rounded-md border bg-white p-2 text-base sm:text-sm" />
+    <p className="text-xs text-muted-foreground">Visible on the task card to employees. Hidden when the task is completed. Clear the text to remove the note.</p>
+    {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+    <Button type="button" className="h-11 sm:h-9" disabled={saving || draft.trim() === (event.carryover_note || "")} onClick={async () => {
+      setSaving(true); setError("");
+      try { await context.saveCarryoverNote?.(event, draft.trim()); }
+      catch (error) { setError(error instanceof Error ? error.message : "The note could not be saved."); }
+      finally { setSaving(false); }
+    }}>{saving ? "Saving…" : "Save carryover note"}</Button>
+  </div>;
+}
 
 function ScheduleBookingLinks({ event }: { event: DayEvent }) {
   const context = useContext(ScheduleBookingContext);
@@ -397,9 +420,10 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
           {source && <span data-booking-source={source.label} className={`rounded px-2 py-0.5 text-[11px] font-semibold ${source.color}`}>{source.label}</span>}
           {/* The server checks the actual deadline against now. Browsing a later
               date must never turn an upcoming task into an overdue one. */}
-          {event.is_carryover && !event.completed_day && !["completed", "delivered", "no_issues", "cancelled", "canceled"].includes((event.status || "").toLowerCase()) && <span data-task-carryover className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-semibold text-white">Carried over</span>}
+          {pendingCarryover(event) && <span data-task-carryover className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-semibold text-white">Carried over</span>}
         </span>
         {event.extras && <span data-trip-extras className="gla-trip-extras block w-fit max-w-full break-words rounded px-2 py-1 text-xs font-semibold text-amber-950"><span>Extras: </span>{event.extras}</span>}
+        {pendingCarryover(event) && event.carryover_note && <span data-carryover-note className="block whitespace-pre-wrap break-words rounded-lg border border-primary/30 bg-white p-2 text-sm text-foreground [overflow-wrap:anywhere]"><span className="font-semibold">Note: </span>{event.carryover_note}</span>}
       </span>
       <span className="flex shrink-0 items-center gap-2">
         <span data-task-plate className="w-16 break-words text-center text-sm font-semibold text-foreground sm:w-20 sm:text-base">{event.plate || "Plate not set"}</span>
@@ -422,6 +446,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
             if (event.airport_parking_required && status === "completed") setOpen(false);
             props.onStatusChange(type, id, status, completedDate);
           }} />
+          <CarryoverNoteEditor event={event} />
         </ScheduleBookingContext.Provider>
       </DialogContent>
     </Dialog>
@@ -468,13 +493,11 @@ function EventControls({
   const statusOptions = event.airport_parking_required ? null : statusOptionsFor(event.type);
   const displayStatus = scheduleTaskStatus(event);
   const canEditAssignee = ASSIGNEE_EDITABLE_TYPES.includes(event.type);
-  const canEditDriver = DRIVER_EDITABLE_TYPES.includes(event.type);
-  const [driverModeDraft, setDriverModeDraft] = useState<"employee" | "uber" | "na" | "">("");
+  const canEditDriver = needsTaskDriver(event);
   const [showAlreadyCleanBy, setShowAlreadyCleanBy] = useState(false);
   const detailsId = useId();
   const mobileContentId = useId();
   const [completionDate, setCompletionDate] = useState(event.completed_day || date);
-  const driverMode = driverModeDraft || event.driver_assignment_type || "";
   const showCompletionDatePicker = !!event.is_carryover && !!statusOptions && displayStatus !== "completed";
   const showActualCompletedDate = !event.appointment_start_local && !!event.completed_day && event.completed_day !== (event.scheduled_day ?? date);
 
@@ -759,49 +782,7 @@ function EventControls({
                   </div>
                 </label>
               )}
-              {canEditDriver && (
-                <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
-                  <span className="w-full text-xs text-muted-foreground sm:w-auto md:text-xs">Driver</span>
-                  <Select
-                    value={driverMode}
-                    onValueChange={(val) => {
-                      if (val === "employee") {
-                        setDriverModeDraft("employee");
-                        return;
-                      }
-                      setDriverModeDraft("");
-                      onDriverChange(event, val === "clear" ? null : (val as "uber" | "na"));
-                    }}
-                  >
-                    <SelectTrigger aria-label="Driver type" className="h-11 w-28 px-2 text-sm md:h-8 md:w-24 md:text-xs">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="clear">Clear</SelectItem>
-                      <SelectItem value="employee">Employee</SelectItem>
-                      <SelectItem value="uber">Uber</SelectItem>
-                      <SelectItem value="na">N/A</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {driverMode === "employee" && (
-                    <div className="min-w-0 flex-1 sm:w-36 sm:flex-none">
-                      <EmployeeSelectCombobox
-                        value={event.driver_assigned_to ?? ""}
-                        onChange={() => {}}
-                        onSelectEmployee={(emp) => {
-                          if (emp) {
-                            const fullname = [emp.employee_first_name, emp.employee_last_name].filter(Boolean).join(" ").trim() || `Employee #${emp.employee_aid}`;
-                            onDriverChange(event, "employee", emp.employee_aid, fullname);
-                          } else {
-                            onDriverChange(event, null);
-                          }
-                        }}
-                        placeholder="Driver"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
+              {canEditDriver && <TaskDriverSelect value={event.driver_assigned_to_id} onChange={(id, name) => onDriverChange(event, id ? 'employee' : null, id, name)} />}
               {event.type === "cleaning" && event.status !== "completed" && showAlreadyCleanBy && (
                 <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5">
                   <span className="w-full text-xs text-muted-foreground sm:w-auto md:text-xs">Completed by:</span>
@@ -877,7 +858,7 @@ function EmployeeSection({
   onDelete: (event: DayEvent) => void;
   isAdmin: boolean;
 }) {
-  const sorted = [...events].sort((a, b) => timeKey(a.start_time).localeCompare(timeKey(b.start_time)));
+  const sorted = [...events].sort(compareScheduleTasks);
   const [dragOver, setDragOver] = useState(false);
 
   // Only employees identified by a real employee_id can receive assignments.
@@ -1008,6 +989,8 @@ export function DayScheduleTab() {
     refetchOnMount: "always",
   });
   const canBulkCompleteOldTasks = authData?.user?.isAdmin === true && !authData?.user?.viewAsEmployee && !authData?.user?.viewAsCoHost && !authData?.user?.viewAsClient;
+  const managerAccess = useChartManagementAccess();
+  const canEditCarryoverNotes = !authData?.user?.viewAsClient && !authData?.user?.viewAsCoHost && (canBulkCompleteOldTasks || managerAccess.data?.canManage === true);
   const isAdmin = authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true || authData?.user?.isEmployee === true;
   const preferenceKey = ["/api/me/preferences/day-schedule", authData?.user?.id, authData?.user?.viewAsEmployee?.employeeId];
   const schedulePreference = useQuery<{ myTasksFirst: boolean; employeeId: number | null }>({
@@ -1156,7 +1139,7 @@ export function DayScheduleTab() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, date }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -1314,11 +1297,29 @@ export function DayScheduleTab() {
 
   function handleStatusChange(type: DayEventType, id: number, status: string, completedDate?: string) {
     const event = data?.events.find((e) => e.id === id && e.type === type);
+    if (event && status === "completed" && !event.airport_parking_required && needsTaskDriver(event) && !hasTaskDriver(event)) {
+      toast({ variant: "destructive", title: "Driver required", description: "Select a driver before completing this task." });
+      return;
+    }
     if (event?.airport_parking_required && status === "completed") {
       setParkingTask({ event, status, completedDate });
       return;
     }
     statusMutation.mutate({ type, id, status, completedDate });
+  }
+
+  async function saveCarryoverNote(event: DayEvent, note: string) {
+    const response = await fetch(buildApiUrl('/api/operations/day-schedule/carryover-note'), {
+      method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: event.type, eventId: event.id, date, note }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'The carryover note could not be saved.');
+    queryClient.setQueryData<DayScheduleResult>(dayScheduleQueryKey, current => current ? {
+      ...current, events: current.events.map(row => row.id === event.id && (row.type === event.type || row.type === 'task_driver' || event.type === 'task_driver' && OPERATION_TASK_TYPES.includes(row.type))
+        ? { ...row, carryover_note: result.note } : row),
+    } : current);
+    await queryClient.invalidateQueries({ queryKey: dayScheduleQueryKey, exact: true });
   }
 
   const deleteMutation = useMutation({
@@ -1417,6 +1418,7 @@ export function DayScheduleTab() {
       empById.set(key, { fullname: e.assigned_to ?? key, shifts: [] });
     }
   }
+  unassigned.sort(compareScheduleTasks);
 
   // Employees with a shift but no events still appear
   for (const s of shifts) {
@@ -1437,16 +1439,15 @@ export function DayScheduleTab() {
   const pinMyTasks = viewMode === "employee" && myEvents.length > 0;
   const unassignedFirst = viewMode === "employee" && myTasksFirst && !pinMyTasks;
 
-  // Flat, time-sorted list for the Timeline view — every task across every
-  // employee in one list, instead of grouped by employee section.
+  // Carryovers precede the day's time-sorted work in every task list.
   const timelineEvents = events.filter(e => !pinMyTasks || assigneeKey(e) !== myEmployeeKey)
-    .sort((a, b) => timeKey(a.start_time).localeCompare(timeKey(b.start_time)));
+    .sort(compareScheduleTasks);
   const searchedUnassigned = showAllUnassigned && unassignedSearch.trim()
     ? unassigned.filter((event) => [event.car_name, event.plate, event.guest_name, event.reservation_id, event.category, event.location, event.notes, event.scheduled_day].filter(Boolean).join(" ").toLowerCase().includes(unassignedSearch.trim().toLowerCase()))
     : unassigned;
   const oldNormalUnassignedCount = unassigned.filter((event) =>
     (event.type === "pickup" || event.type === "delivery" || event.type === "cleaning") &&
-    !event.airport_parking_required &&
+    !event.airport_parking_required && !needsTaskDriver(event) &&
     (event.type !== "pickup" || !!event.location?.trim()) &&
     event.scheduled_day != null &&
     event.scheduled_day < date &&
@@ -1491,7 +1492,7 @@ export function DayScheduleTab() {
   }, {});
 
   return (
-    <ScheduleBookingContext.Provider value={{ selectedBooking, date, now: clockNow, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
+    <ScheduleBookingContext.Provider value={{ selectedBooking, date, now: clockNow, canEditCarryoverNotes, saveCarryoverNote, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
     <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
     <div className="min-w-0 space-y-3 sm:space-y-4">
       {fuelReturn?.bookingKey && <TripReceiptDialog key={fuelReturn.bookingKey} kind="gas" bookingKey={fuelReturn.bookingKey} onClose={() => setFuelReturn(null)} onComplete={async () => {
@@ -1499,7 +1500,7 @@ export function DayScheduleTab() {
         await queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule/driver-rankings"] });
         toast({ title: "Gas receipt submitted", description: "Refuel Run completed. Receipt saved for expense approval." });
       }} />}
-      {parkingTask && <TripReceiptDialog key={parkingTask.event.id} taskId={parkingTask.event.id} onClose={() => setParkingTask(null)} onComplete={async (submissionId) => {
+      {parkingTask && <TripReceiptDialog key={parkingTask.event.id} taskId={parkingTask.event.id} scheduleDate={date} onClose={() => setParkingTask(null)} onComplete={async (submissionId) => {
         await statusMutation.mutateAsync({ type: parkingTask.event.type, id: parkingTask.event.id, status: parkingTask.status, completedDate: parkingTask.completedDate, airportParkingSubmissionId: submissionId });
         await queryClient.invalidateQueries({ queryKey: ["/api/operations/day-schedule/driver-rankings"] });
         toast({ title: "Pickup completed", description: "Parking receipt saved for expense approval." });

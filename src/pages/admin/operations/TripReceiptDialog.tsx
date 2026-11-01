@@ -7,11 +7,13 @@ import { Label } from "@/components/ui/label";
 import { buildApiUrl, buildUploadApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { Camera, Loader2, Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { TaskDriverSelect } from './TaskDriverSelect';
 
 type Option = { id: number; name: string };
 type Context = {
   carId: number | null; carName: string; employeeId: number | null; employeeName: string | null;
   reservationId: string | null;
+  requiresDriver?: boolean; driverId?: number | null;
   submission: { id: number; status: string; carId: number } | null; preview?: boolean;
 };
 type Options = { data: { employees: Option[]; cars: Option[]; categoryFields: Record<string, { value: string; label: string }[]> } };
@@ -23,9 +25,10 @@ async function responseJson<T>(response: Response): Promise<T> {
   return body;
 }
 
-export function TripReceiptDialog({ taskId, bookingKey, kind = "parking", onClose, onComplete }: {
+export function TripReceiptDialog({ taskId, bookingKey, scheduleDate, kind = "parking", onClose, onComplete }: {
   taskId?: number;
   bookingKey?: string;
+  scheduleDate?: string;
   kind?: "parking" | "gas";
   onClose: () => void;
   onComplete?: (submissionId: number) => Promise<void>;
@@ -45,7 +48,9 @@ export function TripReceiptDialog({ taskId, bookingKey, kind = "parking", onClos
   const [managerReviewReason, setManagerReviewReason] = useState('');
   const [reviewInfoOpen, setReviewInfoOpen] = useState(false);
   const [reading, setReading] = useState<Reading | null>(null);
-  const [busy, setBusy] = useState<"upload" | "submit" | null>(null);
+  const [busy, setBusy] = useState<"upload" | "submit" | "driver" | null>(null);
+  const [driverOpen, setDriverOpen] = useState(false);
+  const [driver, setDriver] = useState<{ id: number | null; name: string | null }>({ id: null, name: null });
   const [error, setError] = useState("");
   const [savedId, setSavedId] = useState<number | null>(null);
   const initialized = useRef(false);
@@ -87,6 +92,15 @@ export function TripReceiptDialog({ taskId, bookingKey, kind = "parking", onClos
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (busy) return;
+    if (!isFuel && !context.data?.preview && context.data?.requiresDriver !== false && !context.data?.driverId) {
+      setError('Select a driver before completing this task.');
+      setDriverOpen(true);
+      return;
+    }
+    await finishSubmit();
+  }
+
+  async function finishSubmit() {
     setBusy("submit"); setError("");
     try {
       if (context.data?.preview) { setPreviewDone(true); return; }
@@ -122,7 +136,7 @@ export function TripReceiptDialog({ taskId, bookingKey, kind = "parking", onClos
   }
 
   const loadError = context.error || options.error;
-  return <Dialog open onOpenChange={(open) => { if (!open && !busy) onClose(); }}>
+  return <><Dialog open={!driverOpen} onOpenChange={(open) => { if (!open && !busy) onClose(); }}>
     <DialogContent className="top-auto bottom-0 max-h-[94dvh] w-full translate-y-0 gap-3 overflow-y-auto rounded-b-none rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:bottom-auto sm:top-[50%] sm:max-h-[92dvh] sm:max-w-xl sm:translate-y-[-50%] sm:rounded-xl sm:p-6" onInteractOutside={(event) => event.preventDefault()}>
       <DialogHeader className="text-left"><DialogTitle className="text-base sm:text-lg">{title}</DialogTitle><DialogDescription className="text-xs leading-relaxed sm:text-sm">{context.data?.preview ? "Try the receipt reader. No real expense or Refuel Run will be created." : isFuel ? "Upload your receipt to submit Gas Reimbursed and complete a Refuel Run. The expense stays pending approval." : "Upload your parking receipt, check the details, and complete this airport pickup."}</DialogDescription></DialogHeader>
       {context.isLoading || options.isLoading ? <p role="status">Loading pickup details…</p> : loadError ? <div role="alert"><p>{loadError.message}</p><Button onClick={() => { void context.refetch(); void options.refetch(); }}>Retry</Button></div> : <form onSubmit={submit} className="space-y-4">
@@ -174,5 +188,29 @@ export function TripReceiptDialog({ taskId, bookingKey, kind = "parking", onClos
         </div>
       </form>}
     </DialogContent>
-  </Dialog>;
+  </Dialog>
+  <Dialog open={driverOpen} onOpenChange={open => { if (!busy) { setDriverOpen(open); setError(''); } }}>
+    <DialogContent className="max-w-md">
+      <DialogHeader><DialogTitle>Select a driver</DialogTitle><DialogDescription>A driver is required before this airport receipt can be submitted and the task completed. Your receipt details are kept.</DialogDescription></DialogHeader>
+      <TaskDriverSelect value={driver.id} onChange={(id, name) => setDriver({ id, name })} />
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <Button type="button" variant="outline" className="h-11" disabled={!!busy} onClick={() => { setDriverOpen(false); setError(''); }}>Back to receipt</Button>
+        <Button type="button" className="h-11" disabled={!!busy || !driver.id} onClick={async () => {
+          if (!driver.id) { setError('Select a driver before completing this task.'); return; }
+          setBusy('driver'); setError('');
+          try {
+            await responseJson(await fetch(buildApiUrl('/api/operations/day-schedule/driver'), {
+              method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ type: 'pickup', eventId: taskId, date: scheduleDate, assignmentType: 'employee', employeeId: driver.id, fullname: driver.name }),
+            }));
+            await context.refetch();
+            setDriverOpen(false);
+            await finishSubmit();
+          } catch (error) { setError(error instanceof Error ? error.message : 'The driver could not be saved.'); }
+          finally { setBusy(null); }
+        }}>{busy ? 'Saving…' : 'Save driver & submit'}</Button>
+      </div>
+    </DialogContent>
+  </Dialog></>;
 }
