@@ -76,7 +76,7 @@ for (const viewport of [{ width: 1280, height: 1000 }, { width: 390, height: 844
     await expect(controls.getByRole('link',{name:'Car rental preview',exact:true})).toHaveCount(0);
     await expect(controls.locator('[aria-label="Trip receipt actions"]').getByRole('button',{name:'Refuel',exact:true})).toBeVisible();
     await expect(controls.locator('[aria-label="Trip receipt actions"]').getByRole('button',{name:'Airport parking receipt',exact:true})).toBeVisible();
-    await expect(controls.getByRole('combobox', { name: 'Task status' })).toBeVisible();
+    await expect(controls.getByRole('combobox', { name: 'Task status' })).toHaveCount(0);
     await expect(controls.getByRole('button', { name: 'Refuel', exact: true })).toBeVisible();
     await expect(controls.getByRole('button', { name: 'Airport parking receipt' })).toBeVisible();
     await expect(controls.getByRole('navigation', { name: 'Booking views' })).toBeVisible();
@@ -271,5 +271,44 @@ test('employee claims an unassigned Day Schedule task using the self button', as
   await expect.poll(() => state.writes.find(write => write.path === '/api/operations/day-schedule/assign')?.body).toMatchObject({
     type: 'pickup', eventId: 19, employeeId: 41, fullname: 'Test Worker',
   });
+  expect(state.errors).toEqual([]);
+});
+
+for (const impersonated of [false, true]) test(`employees cannot use Complete Old (view as employee=${impersonated})`, async ({ page }) => {
+  const state = await fixture(page, {
+    user: { id: 7, isEmployee: true, isAdmin: impersonated, isSuperAdmin: impersonated,
+      ...(impersonated ? { viewAsEmployee: { employeeId: 41 }, impersonatorIsAdmin: true } : {}) },
+    rows: [task(200, 'turo:200', { type: 'pickup', category: 'Pick Up', location: 'Office', scheduled_day: '2026-10-06', is_carryover: true, assigned_to: null, assigned_to_id: null })],
+  });
+  await page.getByRole('button', { name: /^(By Employee|Employees)$/ }).click();
+  await expect(page.getByRole('region', { name: 'Unassigned tasks' }).locator('[data-day-schedule-card]')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Unassigned task actions' })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: 'Complete Old' })).toHaveCount(0);
+  expect(state.writes).toEqual([]);
+});
+
+test('admin bulk action remains available only for eligible old normal tasks', async ({ page }) => {
+  await fixture(page, { rows: [task(201, 'turo:201', { type: 'pickup', category: 'Pick Up', location: 'Office', scheduled_day: '2026-10-06', is_carryover: true, assigned_to: null, assigned_to_id: null })] });
+  await page.getByRole('button', { name: /^(By Employee|Employees)$/ }).click();
+  await page.getByRole('button', { name: 'Unassigned task actions' }).click();
+  await expect(page.getByRole('menuitem', { name: /Complete Old/ })).toBeEnabled();
+});
+
+test('Day Schedule exposes only New and Completed and preserves owner booking availability', async ({ page }) => {
+  const state = await fixture(page, { rows: [
+    task(202, 'turo:202', { type: 'pickup', category: 'Pick Up', status: 'in_progress' }),
+    task(203, 'turo:203', { type: 'pickup', category: 'Pick Up', status: 'delivered' }),
+    task(204, 'owner_rental:204', { type: 'owner_dropoff', category: 'Pick Up', status: 'car_blocked_off' }),
+  ] });
+  const cards = page.locator('[data-day-schedule-card]');
+  await expect(cards).toHaveCount(3, { timeout: 15000 });
+  await expect(cards.filter({ hasText: 'Vehicle task 202' }).locator('[data-task-status]')).toHaveText('new');
+  await expect(cards.filter({ hasText: 'Vehicle task 203' }).locator('[data-task-status]')).toHaveText('completed');
+  await cards.filter({ hasText: 'Vehicle task 204' }).click();
+  await page.locator('[data-day-schedule-controls]').getByRole('combobox', { name: 'Task status' }).click();
+  await expect(page.getByRole('option')).toHaveText(['New', 'Completed']);
+  await page.getByRole('option', { name: 'Completed', exact: true }).click();
+  await expect.poll(() => state.writes.find(w => w.path === '/api/operations/day-schedule/owner-task-status')?.body).toMatchObject({ type: 'owner_dropoff', eventId: 204, status: 'completed' });
+  expect(state.writes.some(w => w.path.includes('/car-block-off'))).toBe(false);
   expect(state.errors).toEqual([]);
 });

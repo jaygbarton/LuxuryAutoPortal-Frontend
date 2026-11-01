@@ -21,6 +21,7 @@ async function mock(page: Page, options: { unreadable?: boolean; failStatus?: bo
       if (isWrite) myTasksFirst = body.myTasksFirst;
       result = { myTasksFirst, employeeId: options.myEmployeeId ?? 41 };
     }
+    else if (path === "/api/operations/fleet-vehicles") result = { data: events.map(e => ({ carId: e.id + 100, carName: e.car_name, plateNumber: e.plate, carStatus: "available" })) };
     else if (path === "/api/operations/day-schedule") result = { date: "2026-10-17", events, work_shifts: [{ employee_id: 41, fullname: "Test Worker", start_time: "08:00", end_time: "17:00", shift_label: "Operations" }] };
     else if (path === "/api/employees") result = { success: true, data: [{ employee_aid: 41, employee_first_name: "Test", employee_last_name: "Worker", employee_is_active: 1 }, { employee_aid: 42, employee_first_name: "Second", employee_last_name: "Worker", employee_is_active: 1 }] };
     else if (path === "/api/expense-form-submissions/options") result = { data: { currentEmployeeId: 7, isAdmin: true, employees: [{ id: 41, name: "Test Worker" }, { id: 42, name: "Second Worker" }], cars: [{ id: 101, name: "Test Vehicle" }], categoryFields: { reimbursedBills: [{ value: "db_42", label: "Parking Airport" }, { value: "gasReimbursed", label: "Gas Reimbursed" }] } } };
@@ -99,13 +100,13 @@ for (const { width, height } of [{ width: 360, height: 844 }, { width: 390, heig
     expect(bounds.scroll).toBeLessThanOrEqual(bounds.width);
     const controls = page.locator("[data-day-schedule-controls]");
     await controls.evaluate(async element => { await Promise.all(element.getAnimations().map(animation => animation.finished)); });
-    for (const button of [controls.getByRole("combobox", { name: "Task status" }), controls.getByRole("button", { name: "Refuel", exact: true }), controls.getByRole("button", { name: "Airport parking receipt", exact: true })]) {
+    await expect(controls.getByRole("combobox", { name: "Task status" })).toHaveCount(0);
+    for (const button of [controls.getByRole("button", { name: "Refuel", exact: true }), controls.getByRole("button", { name: "Airport parking receipt", exact: true })]) {
       expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     }
     await expect(controls.getByRole("navigation", { name: "Booking views" })).toBeVisible();
     await page.screenshot({ path: `/tmp/gla-mobile-day-expanded-${screenshotSize}.png`, fullPage: true });
-    await controls.getByRole("combobox", { name: "Task status" }).tap();
-    await page.getByRole("option", { name: "completed", exact: true }).tap();
+    await controls.getByRole("button", { name: "Airport parking receipt", exact: true }).tap();
     const dialog = page.getByRole("dialog", { name: "Airport parking receipt" });
     await expect(dialog).toBeVisible();
     expect(state.calls).toHaveLength(0);
@@ -130,12 +131,14 @@ for (const { width, height } of [{ width: 360, height: 844 }, { width: 390, heig
   });
 });
 
-test("airport Completed opens receipt before any status write and preserves expense category, vehicle, and assignee", async ({ page }) => {
+test("airport receipt is the only completion action and preserves zero status writes before submission and preserves expense category, vehicle, and assignee", async ({ page }) => {
   const state = await mock(page);
   const card = page.locator('[data-day-schedule-card][data-booking-key="turo:119"]');
   await card.click();
-  await page.locator("[data-day-schedule-controls]").getByRole("combobox", { name: "Task status" }).click();
-  await page.getByRole("option", { name: "completed", exact: true }).click();
+  const controls = page.locator("[data-day-schedule-controls]");
+  await expect(controls.getByRole("combobox", { name: "Task status" })).toHaveCount(0);
+  await expect(controls.getByRole("button", { name: "Complete", exact: true })).toHaveCount(0);
+  await controls.getByRole("button", { name: "Airport parking receipt", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Airport parking receipt" });
   await expect(dialog).toBeVisible(); expect(state.calls).toHaveLength(0);
   await expect(dialog.getByLabel("Vehicle", { exact: true })).toHaveValue("101");

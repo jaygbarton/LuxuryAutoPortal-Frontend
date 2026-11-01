@@ -16,6 +16,7 @@ async function mock(page: Page, options: { developer?: boolean; cancelled?: bool
       mutations.push({ method, path, body: route.request().postDataJSON() });
       body = { success: true };
     } else if (path === "/api/auth/me") body = { user: { id: 1, name: "Test Admin", fullname: "Test Admin", roleName: "Admin", isAdmin: true, isSuperAdmin: options.developer === true, isEmployee: false, isClient: false, effectiveTimezone: "America/Denver" } };
+    else if (path === "/api/operations/fleet-vehicles") body = { data: [{ carId: 101, carName: "Test vehicle", plateNumber: "TEST123", carStatus: "available" }] };
     else if (path.startsWith("/api/internal-calendar/bookings/")) {
       lookupCount++;
       if (options.failedFirst && lookupCount === 1) return route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "Not found" }) });
@@ -51,8 +52,8 @@ test("same-booking links retain the explicit day, hide rental previews from ordi
   await expect(controls.getByRole("link", { name: "Internal calendar", exact: true })).toHaveAttribute("href", /booking=turo%3A208.*date=2026-10-07/);
   await expect(page.getByRole("link", { name: "Car rental preview", exact: true })).toHaveCount(0);
   await page.locator("[data-day-schedule-controls]").getByRole("combobox", { name: "Task status" }).click();
-  await page.getByRole("option", { name: "in progress", exact: true }).click();
-  await expect.poll(() => result.mutations).toContainEqual({ method: "PATCH", path: "/api/operations/tasks/19/status", body: { status: "in_progress" } });
+  await page.getByRole("option", { name: "Completed", exact: true }).click();
+  await expect.poll(() => result.mutations).toContainEqual({ method: "PATCH", path: "/api/operations/tasks/19/status", body: { status: "completed", completedDate: "2026-10-07" } });
   if (await page.locator("[data-day-schedule-controls]").isVisible()) await page.locator("[data-day-schedule-controls]").getByRole("button", { name: "Close task details", exact: true }).click();
   await page.getByRole("button", { name: "Next day", exact: true }).click();
   await expect(page.getByLabel("Schedule date")).toHaveValue("2026-10-08");
@@ -127,7 +128,7 @@ test("confirmed maintenance shows the full multi-day appointment and keeps sched
   await expect(controls.getByRole("link", { name: "Maintenance record", exact: true })).toHaveAttribute("href", "/admin/operations?tab=maintenance&appointment=12");
   await expect(controls.getByRole("link", { name: "Internal calendar", exact: true })).toHaveAttribute("href", /booking=maintenance%3A12.*date=2026-10-08/);
   await page.locator("[data-day-schedule-controls]").getByRole("combobox", { name: "Task status" }).click();
-  await page.getByRole("option", { name: "completed", exact: true }).click();
+  await page.getByRole("option", { name: "Completed", exact: true }).click();
   await expect.poll(() => result.mutations).toContainEqual({ method: "PUT", path: "/api/operations/maintenance/12", body: { status: "completed", completedDate: "2026-10-08" } });
   expect(result.errors).toEqual([]);
 });

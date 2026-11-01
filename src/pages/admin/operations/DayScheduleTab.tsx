@@ -1,3 +1,4 @@
+import { scheduleTaskStatus } from "@/lib/dayScheduleStatus";
 import { taskDeadlineHasPassed } from "@/lib/dayScheduleDeadline";
 import { useOperationFleetRows } from "./OperationsFleetFilter";
 import { DayScheduleDriverRankings } from "./DayScheduleDriverRankings";
@@ -90,10 +91,10 @@ interface DayScheduleResult {
 
 // ─── Status options per event type ───────────────────────────────────────────
 
-const TASK_STATUSES = ["new", "in_progress", "completed", "delivered"];
-const INSPECTION_STATUSES = ["new", "in_progress", "completed", "no_issues"];
-const MAINTENANCE_STATUSES = ["new", "in_progress", "completed"];
-const BLOCK_OFF_STATUSES = ["new", "car_blocked_off", "car_not_available"];
+const TASK_STATUSES = ["new", "completed"];
+const INSPECTION_STATUSES = ["new", "completed"];
+const MAINTENANCE_STATUSES = ["new", "completed"];
+const BLOCK_OFF_STATUSES = ["new", "completed"];
 
 const OPERATION_TASK_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup", "refuel", "custom", "mechanic", "windshield", "license_plate", "airport"];
 const DAY_SCHEDULE_REFRESH_MS = 10 * 60 * 1000;
@@ -127,7 +128,7 @@ function statusEndpointFor(type: DayEventType, id: number): { url: string; metho
     return { url: `/api/operations/maintenance/${id}`, method: "PUT" };
   }
   if (type === "block_off" || type === "owner_pickup" || type === "owner_cleaning" || type === "owner_dropoff") {
-    return { url: `/api/operations/block-off/${id}/status`, method: "PATCH" };
+    return { url: `/api/operations/day-schedule/owner-task-status`, method: "PATCH" };
   }
   return null;
 }
@@ -156,15 +157,8 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  pending:           "bg-yellow-100 text-yellow-800 border-yellow-300",
-  in_progress:       "bg-blue-100 text-blue-800 border-blue-300",
-  completed:         "bg-green-100 text-green-800 border-green-300",
-  new:               "bg-gray-100 text-gray-700 border-gray-300",
-  car_blocked_off:   "bg-amber-100 text-amber-800 border-amber-300",
-  car_not_available: "bg-red-100 text-red-800 border-red-300",
-  // Legacy statuses (pre-merge) still colored for any historical rows.
-  block_off_started: "bg-amber-100 text-amber-800 border-amber-300",
-  blocked_off_ended: "bg-amber-100 text-amber-800 border-amber-300",
+  completed: "bg-green-100 text-green-800 border-green-300",
+  new: "bg-gray-100 text-gray-700 border-gray-300",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -375,7 +369,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
   const context = useContext(ScheduleBookingContext);
   const timezone = useTimezone();
   const past = taskDeadlineHasPassed(event, props.date, timezone, context.now ?? Date.now());
-  const taskStatus = String(event.status || "new").replace(/_/g, " ");
+  const taskStatus = scheduleTaskStatus(event);
   const source = taskSource(event);
   const label = scheduleTaskLabel(event);
   const colors = colorFor(label);
@@ -399,7 +393,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
         <span data-task-location className="flex items-start gap-1.5 text-xs text-muted-foreground"><MapPin aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0"/><span className="min-w-0 break-words [overflow-wrap:anywhere]">{event.location?.trim() || 'Location not set'}</span></span>
         <span className="flex flex-wrap gap-1.5">
           <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${colors.bg} ${colors.text}`}>{label}</span>
-          <span data-task-status className={`rounded border px-2 py-0.5 text-[11px] font-semibold capitalize ${["completed", "delivered", "no_issues"].includes(event.status || "") ? "border-green-200 bg-green-50 text-green-800" : "border-slate-300 bg-white text-slate-700"}`}>{taskStatus}</span>
+          <span data-task-status className={`rounded border px-2 py-0.5 text-[11px] font-semibold capitalize ${taskStatus === "completed" ? "border-green-200 bg-green-50 text-green-800" : "border-slate-300 bg-white text-slate-700"}`}>{taskStatus}</span>
           {source && <span data-booking-source={source.label} className={`rounded px-2 py-0.5 text-[11px] font-semibold ${source.color}`}>{source.label}</span>}
           {/* The server checks the actual deadline against now. Browsing a later
               date must never turn an upcoming task into an overdue one. */}
@@ -470,8 +464,9 @@ function EventControls({
 }) {
   const c = colorFor(event.category);
   const displayDay = event.appointment_start_local ? date : event.scheduled_day ?? date;
-  const badgeClass = STATUS_BADGE[event.status ?? ""] ?? "bg-gray-100 text-gray-700 border-gray-300";
-  const statusOptions = statusOptionsFor(event.type);
+  const badgeClass = STATUS_BADGE[scheduleTaskStatus(event)];
+  const statusOptions = event.airport_parking_required ? null : statusOptionsFor(event.type);
+  const displayStatus = scheduleTaskStatus(event);
   const canEditAssignee = ASSIGNEE_EDITABLE_TYPES.includes(event.type);
   const canEditDriver = DRIVER_EDITABLE_TYPES.includes(event.type);
   const [driverModeDraft, setDriverModeDraft] = useState<"employee" | "uber" | "na" | "">("");
@@ -480,7 +475,7 @@ function EventControls({
   const mobileContentId = useId();
   const [completionDate, setCompletionDate] = useState(event.completed_day || date);
   const driverMode = driverModeDraft || event.driver_assignment_type || "";
-  const showCompletionDatePicker = !!event.is_carryover && statusOptions && event.status !== "completed";
+  const showCompletionDatePicker = !!event.is_carryover && !!statusOptions && displayStatus !== "completed";
   const showActualCompletedDate = !event.appointment_start_local && !!event.completed_day && event.completed_day !== (event.scheduled_day ?? date);
 
   return (
@@ -513,7 +508,7 @@ function EventControls({
             {statusOptions ? (
               <span onClick={(e) => e.stopPropagation()} onDragStart={(e) => e.stopPropagation()}>
                 <Select
-                  value={event.status ?? "new"}
+                  value={displayStatus}
                   onValueChange={(val) => onStatusChange(event.type, event.id, val, val === "completed" ? completionDate : undefined)}
                 >
                   <SelectTrigger aria-label="Task status" className={`h-11 w-auto min-w-0 cursor-pointer gap-1 rounded-lg border-0 px-2 py-0 text-xs sm:h-8 sm:border sm:px-1.5 ${badgeClass}`}>
@@ -522,7 +517,7 @@ function EventControls({
                   <SelectContent>
                     {statusOptions.map((s) => (
                       <SelectItem searchKeywords={optionKeywords(s)} key={s} value={s} className="text-xs">
-                        {s.replace(/_/g, " ")}
+                        {s === "completed" ? "Completed" : "New"}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -530,7 +525,7 @@ function EventControls({
               </span>
             ) : event.status ? (
               <span className={`rounded border px-2 py-1 text-[11px] sm:px-1.5 sm:py-0.5 sm:text-xs ${badgeClass}`}>
-                {event.status.replace(/_/g, " ")}
+                {displayStatus === "completed" ? "Completed" : "New"}
               </span>
             ) : null}
             {showAssignee && (
@@ -625,6 +620,7 @@ function EventControls({
           <span className="font-medium">Confirmed maintenance:</span> {fmtTripDateTime(event.appointment_start_local)} — {fmtTripDateTime(event.appointment_end_local)}
         </div>}
 
+        {event.airport_parking_required && displayStatus !== "completed" && <p className="text-xs font-medium text-amber-800">Submit an airport parking receipt to complete this pickup.</p>}
         {event.is_carryover && (
           <span className="text-xs font-medium text-amber-800 sm:hidden">Carried over from {formatDateCompact(displayDay)}</span>
         )}
@@ -1006,12 +1002,12 @@ export function DayScheduleTab() {
   );
   const [entryNotes, setEntryNotes] = useState("");
   const [entryEmployee, setEntryEmployee] = useState<{ id: number | null; name: string }>({ id: null, name: "" });
-  const { data: authData } = useQuery<{ user?: { id?: number; viewAsEmployee?: { employeeId: number }; isAdmin?: boolean; isEmployee?: boolean; isSuperAdmin?: boolean; impersonatorIsAdmin?: boolean } }>({
+  const { data: authData } = useQuery<{ user?: { id?: number; viewAsEmployee?: { employeeId: number }; viewAsCoHost?: { coHostId: number }; viewAsClient?: { clientId: number }; isAdmin?: boolean; isEmployee?: boolean; isSuperAdmin?: boolean; impersonatorIsAdmin?: boolean } }>({
     queryKey: ["/api/auth/me"],
     queryFn: authMeQueryFn,
     refetchOnMount: "always",
   });
-  const canBulkCompleteOldTasks = authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true;
+  const canBulkCompleteOldTasks = authData?.user?.isAdmin === true && !authData?.user?.viewAsEmployee && !authData?.user?.viewAsCoHost && !authData?.user?.viewAsClient;
   const isAdmin = authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true || authData?.user?.isEmployee === true;
   const preferenceKey = ["/api/me/preferences/day-schedule", authData?.user?.id, authData?.user?.viewAsEmployee?.employeeId];
   const schedulePreference = useQuery<{ myTasksFirst: boolean; employeeId: number | null }>({
@@ -1284,7 +1280,7 @@ export function DayScheduleTab() {
         method: endpoint.method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ status, ...(completedDate ? { completedDate } : {}), ...(airportParkingSubmissionId ? { airportParkingSubmissionId } : {}) }),
+        body: JSON.stringify({ status, ...(["owner_pickup", "owner_dropoff", "owner_cleaning", "block_off"].includes(type) ? { type, eventId: id } : {}), ...(completedDate ? { completedDate } : {}), ...(airportParkingSubmissionId ? { airportParkingSubmissionId } : {}) }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -1299,7 +1295,7 @@ export function DayScheduleTab() {
         updateDayScheduleEvent(current, vars.type, vars.id, (event) => ({
           ...event,
           status: vars.status,
-          completed_day: vars.completedDate ?? event.completed_day,
+          completed_day: vars.status === "new" ? null : vars.completedDate ?? event.completed_day,
         })),
       );
       return { previous };
@@ -1318,7 +1314,7 @@ export function DayScheduleTab() {
 
   function handleStatusChange(type: DayEventType, id: number, status: string, completedDate?: string) {
     const event = data?.events.find((e) => e.id === id && e.type === type);
-    if (event?.airport_parking_required && (status === "completed" || status === "delivered")) {
+    if (event?.airport_parking_required && status === "completed") {
       setParkingTask({ event, status, completedDate });
       return;
     }
@@ -1450,6 +1446,8 @@ export function DayScheduleTab() {
     : unassigned;
   const oldNormalUnassignedCount = unassigned.filter((event) =>
     (event.type === "pickup" || event.type === "delivery" || event.type === "cleaning") &&
+    !event.airport_parking_required &&
+    (event.type !== "pickup" || !!event.location?.trim()) &&
     event.scheduled_day != null &&
     event.scheduled_day < date &&
     event.status !== "completed" &&
