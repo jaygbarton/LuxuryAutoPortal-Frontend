@@ -1,3 +1,5 @@
+import { taskDeadlineHasPassed } from "@/lib/dayScheduleDeadline";
+import { useOperationFleetRows } from "./OperationsFleetFilter";
 import { DayScheduleDriverRankings } from "./DayScheduleDriverRankings";
 import { optionKeywords } from "@/lib/select-search";
 import { createContext, useContext, useEffect, useId, useRef, useState, type ComponentProps, type ReactNode } from "react";
@@ -66,6 +68,7 @@ interface DayEvent {
   appointment_end_local?: string | null;
   completed_day?: string | null;
   is_carryover?: boolean;
+  due_at?: string | null;
   driver_assignment_type?: "employee" | "uber" | "na" | null;
   driver_assigned_to?: string | null;
   driver_assigned_to_id?: number | null;
@@ -335,7 +338,7 @@ function DetailLine({ icon, label, value, className = "" }: {
   );
 }
 
-const ScheduleBookingContext = createContext<{ selectedBooking: string | null; date: string; openAirportReceipt?: (event: DayEvent) => void; openFuelReceipt?: (event: DayEvent) => void }>({
+const ScheduleBookingContext = createContext<{ selectedBooking: string | null; date: string; now?: number; openAirportReceipt?: (event: DayEvent) => void; openFuelReceipt?: (event: DayEvent) => void }>({
   selectedBooking: null, date: "",
 });
 
@@ -370,6 +373,9 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
   const { event } = props;
   const [open, setOpen] = useState(false);
   const context = useContext(ScheduleBookingContext);
+  const timezone = useTimezone();
+  const past = taskDeadlineHasPassed(event, props.date, timezone, context.now ?? Date.now());
+  const taskStatus = String(event.status || "new").replace(/_/g, " ");
   const source = taskSource(event);
   const label = scheduleTaskLabel(event);
   const colors = colorFor(label);
@@ -382,9 +388,10 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
     <button type="button" draggable onDragStart={(e) => setDragData(e, event)}
       data-day-schedule-card data-booking-key={event.bookingKey} data-task-type={event.type}
       data-booking-selected={selected || undefined}
+      data-task-past={past || undefined}
       aria-label={`Task details for ${event.car_name || label}`} aria-haspopup="dialog" aria-expanded={open}
       onClick={() => setOpen(true)}
-      className={`relative flex w-full min-w-0 items-start gap-3 overflow-hidden rounded-xl border bg-white p-4 text-left text-foreground transition-colors hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selected ? "ring-2 ring-primary" : "border-border"}`}>
+      className={`relative flex w-full min-w-0 items-start gap-3 overflow-hidden rounded-xl border ${past ? "bg-slate-100" : "bg-white"} p-4 text-left text-foreground transition-colors ${past ? "hover:bg-slate-200" : "hover:bg-muted/20"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selected ? "ring-2 ring-primary" : "border-border"}`}>
       <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 ${colors.bg}`} />
       <span className="min-w-0 flex-1 space-y-2">
         <span className="block text-xs font-medium">{event.start_time ? fmt12(event.start_time) : "Time not set"}</span>
@@ -392,6 +399,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
         <span data-task-location className="flex items-start gap-1.5 text-xs text-muted-foreground"><MapPin aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0"/><span className="min-w-0 break-words [overflow-wrap:anywhere]">{event.location?.trim() || 'Location not set'}</span></span>
         <span className="flex flex-wrap gap-1.5">
           <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${colors.bg} ${colors.text}`}>{label}</span>
+          <span data-task-status className={`rounded border px-2 py-0.5 text-[11px] font-semibold capitalize ${["completed", "delivered", "no_issues"].includes(event.status || "") ? "border-green-200 bg-green-50 text-green-800" : "border-slate-300 bg-white text-slate-700"}`}>{taskStatus}</span>
           {source && <span data-booking-source={source.label} className={`rounded px-2 py-0.5 text-[11px] font-semibold ${source.color}`}>{source.label}</span>}
           {/* The server checks the actual deadline against now. Browsing a later
               date must never turn an upcoming task into an overdue one. */}
@@ -953,6 +961,8 @@ function EmployeeSection({
 
 export function DayScheduleTab() {
   const activeTz = useTimezone();
+  const [clockNow, setClockNow] = useState(Date.now);
+  useEffect(() => { const timer = window.setInterval(() => setClockNow(Date.now()), 30_000); return () => window.clearInterval(timer); }, []);
   const search = useSearch();
   const selectedBooking = dayScheduleBookingKey(search);
   const requestedDate = validScheduleDate(new URLSearchParams(search).get("date"));
@@ -1352,7 +1362,8 @@ export function DayScheduleTab() {
     deleteMutation.mutate(event);
   }
 
-  const allEvents = (data?.events ?? []).filter((event) =>
+  const fleetEvents = useOperationFleetRows(data?.events ?? []);
+  const allEvents = fleetEvents.filter((event) =>
     operationLocationMatches(locationFilter, [
       event.location_tag,
       event.pickup_location,
@@ -1482,7 +1493,7 @@ export function DayScheduleTab() {
   }, {});
 
   return (
-    <ScheduleBookingContext.Provider value={{ selectedBooking, date, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
+    <ScheduleBookingContext.Provider value={{ selectedBooking, date, now: clockNow, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
     <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
     <div className="min-w-0 space-y-3 sm:space-y-4">
       {fuelReturn?.bookingKey && <TripReceiptDialog key={fuelReturn.bookingKey} kind="gas" bookingKey={fuelReturn.bookingKey} onClose={() => setFuelReturn(null)} onComplete={async () => {

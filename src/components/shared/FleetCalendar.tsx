@@ -1,3 +1,4 @@
+import { isActiveFleetStatus } from "@/lib/operationsFleet";
 import { useHomeDefaultFilter } from "@/hooks/use-workspace-location";
 import { WorkspaceLocationSelect } from "./WorkspaceLocationSelect";
 import { operationLocationMatches, type OperationLocationFilter } from "@/pages/admin/operations/OperationLocationFilter";
@@ -93,7 +94,7 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehi
   const [to, setTo] = useState(() => initialRange()?.to ?? utcDateToDayKey(addUtcDays(dayKeyToUtcDate(mtTodayKey(activeTimezone)), historyMode ? 0 : 20)));
   const [search, setSearch] = useState("");
   const [workspaceLocation,setWorkspaceLocation] = useHomeDefaultFilter<OperationLocationFilter>(home => home, "all");
-  const [fleet, setFleet] = useState<"all" | "active" | "inactive">("all");
+  const [fleet, setFleet] = useState<"all" | "active" | "inactive">("active");
   const [occupancy, setOccupancy] = useState<"all" | "blocking" | "none">("all");
   const [status, setStatus] = useState("all");
   const [sources, setSources] = useState<FleetCalendarSource[]>(allowedSources);
@@ -262,10 +263,11 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehi
     const q = search.trim().toLowerCase();
     return [...carMap.values(), ...unmatched.values()].filter((car) => {
       if (!operationLocationMatches(workspaceLocation, [car.locationTag]) && !car.events.some(event => event.bookingKey === selected?.bookingKey)) return false;
-      if (activeVehiclesOnly && !['active', 'available', 'in_use'].includes(String(car.carStatus).toLowerCase())) return false;
+      if (activeVehiclesOnly && (car.unmatched || !isActiveFleetStatus(car.carStatus))) return false;
       if (q && !`${car.carName} ${car.plateNumber ?? ""}`.toLowerCase().includes(q)) return false;
-      if (fleet !== "all" && !car.unmatched) {
-        const inactive = car.carStatus === "off_fleet";
+      if (fleet !== "all") {
+        if (car.unmatched) return false;
+        const inactive = !isActiveFleetStatus(car.carStatus);
         if ((fleet === "active" && inactive) || (fleet === "inactive" && !inactive)) return false;
       }
       if (occupancy !== "all") {
@@ -293,7 +295,7 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehi
   }, [listedEvents, from, timezone, historyMode]);
   const needsReview = listedEvents.filter((event) => calendarInstant(event.start) === null || (event.end !== null && (calendarInstant(event.end) === null || calendarInstant(event.end)! < calendarInstant(event.start)!)));
   const dayList = useMemo(() => days ? Array.from({ length: days }, (_, index) => addUtcDays(dayKeyToUtcDate(from), index)) : [], [from, days]);
-  const hasFilters = search !== "" || fleet !== "all" || occupancy !== "all" || status !== "all" || sources.length !== allowedSources.length || serviceKind !== "all" || !showCancelled;
+  const hasFilters = search !== "" || fleet !== "active" || occupancy !== "all" || status !== "all" || sources.length !== allowedSources.length || serviceKind !== "all" || !showCancelled;
   const attentionEvents = listedEvents.filter((event) => event.carId === null || event.timeStatus !== "confirmed" || event.googleClassification === "unclassified" || needsReview.includes(event));
 
   useEffect(() => {
@@ -341,7 +343,7 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehi
     setTo(utcDateToDayKey(addUtcDays(dayKeyToUtcDate(to), daysToShift)));
   }
   function resetFilters() {
-    setSearch(""); setFleet("all"); setOccupancy("all"); setStatus("all"); setSources(allowedSources); setServiceKind("all"); setShowCancelled(true);
+    setSearch(""); setFleet("active"); setOccupancy("all"); setStatus("all"); setSources(allowedSources); setServiceKind("all"); setShowCancelled(true);
   }
 
   function jumpToEvent(event: FleetCalendarEvent) {

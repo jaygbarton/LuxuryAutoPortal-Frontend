@@ -1,3 +1,4 @@
+import { useOperationFleetRows } from "./OperationsFleetFilter";
 import { Link } from "wouter";
 import { fetchMaintenanceRecords, invalidateMaintenanceReports, maintenanceMoveUrl } from "@/lib/maintenanceReports";
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -423,7 +424,7 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
   });
   const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
 
-  const inspections = data?.data || [];
+  const inspections = useOperationFleetRows(data?.data || [], row => ({ ...tripsById.get(row.turo_trip_id ?? -1), ...row }));
 
   // Convert a UTC ISO string to a YYYY-MM-DD date in Mountain Time so date
   // comparisons match what the admin sees in the Trip Start / Trip Ends columns.

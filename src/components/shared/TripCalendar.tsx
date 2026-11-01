@@ -1,3 +1,4 @@
+import { isActiveFleetStatus } from "@/lib/operationsFleet";
 import { useHomeDefaultFilter } from "@/hooks/use-workspace-location";
 import { WorkspaceLocationSelect } from "./WorkspaceLocationSelect";
 import { operationLocationMatches,type OperationLocationFilter } from "@/pages/admin/operations/OperationLocationFilter";
@@ -331,10 +332,9 @@ export function TripCalendar({ title }: { title?: string }) {
     }
     if (fleetFilter !== "all") {
       list = list.filter((c) => {
-        const isActive = c.carStatus !== "off_fleet";
-        // An off-fleet car that still has a booking in view stays visible under
-        // "Active" — it is demonstrably in use, and hiding it reads as data loss.
-        if (fleetFilter === "active") return isActive || c.hasActivity;
+        const isActive = isActiveFleetStatus(c.carStatus);
+        // Historical bookings do not reactivate a retired vehicle.
+        if (fleetFilter === "active") return isActive;
         return !isActive;
       });
     }

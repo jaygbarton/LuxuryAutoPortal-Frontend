@@ -1,3 +1,4 @@
+import { useOperationsFleet } from "./OperationsFleetFilter";
 import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -221,6 +222,7 @@ function TaskChip({
 }
 
 export function TripsOverviewTab() {
+  const { fleet } = useOperationsFleet();
   const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -257,6 +259,7 @@ export function TripsOverviewTab() {
   const [rangeFrom, setRangeFrom] = useState<string>("");
   const [rangeTo, setRangeTo] = useState<string>("");
   const [page, setPage] = useState(1);
+  useEffect(() => setPage(1), [fleet]);
   const [pageSize, setPageSize] = usePersistentPageSize(
     "operations.tripsOverview",
   );
@@ -483,7 +486,7 @@ export function TripsOverviewTab() {
   const { data, isLoading } = useQuery<{ data: TuroTrip[]; total: number }>({
     queryKey: [
       "/api/turo-trips",
-      "operations-tab",
+      "operations-tab", fleet,
       debouncedSearch,
       filterStatus,
       rangeFrom,
@@ -493,7 +496,7 @@ export function TripsOverviewTab() {
     ],
     queryFn: async () => {
       const offset = (page - 1) * pageSize;
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({ fleet });
       params.set("limit", String(pageSize));
       params.set("offset", String(offset));
       if (debouncedSearch.trim()) params.set("q", debouncedSearch.trim());
@@ -532,9 +535,9 @@ export function TripsOverviewTab() {
   const { data: summaryData } = useQuery<{
     data: { totalTrips: number; bookedTrips: number; completedTrips: number; cancelledTrips: number };
   }>({
-    queryKey: ["/api/turo-trips/summary", "operations-tab-cards", rangeFrom, rangeTo],
+    queryKey: ["/api/turo-trips/summary", "operations-tab-cards", fleet, rangeFrom, rangeTo],
     queryFn: async () => {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({ fleet });
       // Same single-range OR logic as the table so the count cards stay in sync:
       // trips whose Trip Start OR Trip End falls in [rangeFrom, rangeTo].
       if (rangeFrom || rangeTo) {

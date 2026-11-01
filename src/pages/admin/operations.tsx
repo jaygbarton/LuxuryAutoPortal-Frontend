@@ -1,3 +1,4 @@
+import { OperationsFleetProvider } from "./operations/OperationsFleetFilter";
 import { useHomeDefaultFilter, useWorkspaceContext } from "@/hooks/use-workspace-location";
 import { DriverChartManagementTab } from "./operations/DriverChartManagementTab";
 import { useChartManagementAccess } from "@/hooks/use-chart-management-access";
@@ -128,6 +129,7 @@ export default function OperationsPage() {
         </div>
 
         <OperationLocationFilterProvider value={locationFilter}>
+        <OperationsFleetProvider activeOnly={activeTab === "service-due"} showFilter={activeTab !== "chart-management"}>
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           {activeTab === "day-schedule" && <WorkScheduleNavigation className="mb-3" />}
           <div className={`mb-3 gap-2 sm:mb-4 sm:flex sm:items-center sm:justify-between ${activeTab === "day-schedule" ? "flex justify-end" : "grid grid-cols-2"}`}>
@@ -204,6 +206,7 @@ export default function OperationsPage() {
           </LazyTab>
           <LazyTab value="chart-management" activeTab={activeTab} mountedTabs={mountedTabs}><DriverChartManagementTab /></LazyTab>
         </Tabs>
+        </OperationsFleetProvider>
         </OperationLocationFilterProvider>
       </div>
       <ClientPageLinks />

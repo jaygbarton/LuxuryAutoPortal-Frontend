@@ -1,3 +1,4 @@
+import { useOperationFleetRows } from "./OperationsFleetFilter";
 import { Link } from "wouter";
 import { fetchMaintenanceRecords, invalidateMaintenanceReports, maintenanceMoveUrl } from "@/lib/maintenanceReports";
 import { useState, useEffect, useMemo } from "react";
@@ -173,7 +174,7 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
   });
   const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
 
-  const rawInspections = data?.data || [];
+  const rawInspections = useOperationFleetRows(data?.data || [], row => ({ ...tripsById.get(row.turo_trip_id ?? -1), ...row }));
   const maintenanceRecords = maintenanceData?.data || [];
 
   const isMovedToMaintenance = (inspectionId: number): boolean => {

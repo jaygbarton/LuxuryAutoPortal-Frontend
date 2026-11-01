@@ -1,3 +1,4 @@
+import { OperationsFleetProvider, useOperationsFleet, useOperationFleetRows } from "./operations/OperationsFleetFilter";
 import { optionKeywords } from "@/lib/select-search";
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -149,7 +150,7 @@ function CarSelect({ value, onChange, isAdmin: _isAdmin }: { value: string; onCh
     staleTime: 1000 * 60 * 5,
   });
 
-  const cars = data?.data ?? [];
+  const cars = useOperationFleetRows(data?.data ?? [], car => ({ carId: car.id }));
 
   return (
     <Select
@@ -219,6 +220,7 @@ function BlockOffSelect({ value, onChange }: { value: string; onChange: (v: stri
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export function CarBlockOffContent({ includePageLinks = false }: { includePageLinks?: boolean }) {
+  const { fleet } = useOperationsFleet();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -282,6 +284,7 @@ export function CarBlockOffContent({ includePageLinks = false }: { includePageLi
   const [endFrom, setEndFrom] = useState("");
   const [endTo, setEndTo] = useState("");
   const [page, setPage] = useState(1);
+  useEffect(() => setPage(1), [fleet]);
   const limit = 20;
   const [showAll, setShowAll] = useState<boolean>(() => {
     try { return localStorage.getItem("carBlockOff.showAll") === "true"; } catch { return false; }
@@ -322,7 +325,7 @@ export function CarBlockOffContent({ includePageLinks = false }: { includePageLi
   // Submissions list query
   const { data: submissionsData, isLoading } = useQuery<SubmissionsResponse>({
     queryKey: [
-      "/api/car-block-off/submissions",
+      "/api/car-block-off/submissions", fleet,
       search,
       statusFilter,
       pickupFrom,
@@ -335,7 +338,7 @@ export function CarBlockOffContent({ includePageLinks = false }: { includePageLi
     ],
     queryFn: async () => {
       const params = new URLSearchParams({
-        search,
+        fleet, search,
         status: statusFilter,
         page: String(page),
         limit: String(limit),
@@ -1048,7 +1051,7 @@ export function CarBlockOffContent({ includePageLinks = false }: { includePageLi
 export default function CarBlockOffPage() {
   return (
     <AdminLayout>
-      <CarBlockOffContent includePageLinks />
+      <OperationsFleetProvider><CarBlockOffContent includePageLinks /></OperationsFleetProvider>
     </AdminLayout>
   );
 }

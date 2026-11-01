@@ -20,6 +20,7 @@ async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType
     let body: any = { success: true, data: [], total: 0, notifications: [], unreadCount: 0 };
     if (route.request().method() !== 'GET') { writes.push({ path, body: route.request().postDataJSON() }); }
     else if (path === '/api/auth/me') body = { user: { id: 1, name: 'Admin', isAdmin: true, isEmployee: false, isSuperAdmin: true, effectiveTimezone: 'America/Denver', tourCompleted: true } };
+    else if (path === '/api/operations/fleet-vehicles') body = { data: [{ carId: 101, carName: 'Test vehicle', plateNumber: 'TEST123', vinNumber: null, carStatus: 'available' }, { carId: 102, carName: 'Retired vehicle', plateNumber: 'RETIRED', vinNumber: null, carStatus: 'off_fleet' }] };
     else if (path === '/api/me/preferences/day-schedule') body = { myTasksFirst: true, employeeId: 41 };
     else if (path === '/api/operations/day-schedule') body = { date, events: rows, work_shifts: [] };
     else if (path === '/api/employees') body = { success: true, data: [{ employee_aid: 41, employee_first_name: 'Test', employee_last_name: 'Worker', employee_is_active: 1 }] };
@@ -179,4 +180,35 @@ for (const phase of ['standard', undefined] as const) test(`existing ${phase || 
   await expect(page.getByText('A cleaning task already exists for this trip. Edit the existing one instead.', { exact: true })).toBeVisible();
   expect(state.writes.filter(write => write.path === '/api/operations/tasks')).toEqual([]);
   expect(state.errors).toEqual([]);
+});
+
+ test('active fleet is selected by default and inactive vehicle records remain available explicitly', async ({ page }) => {
+  const rows = [task(81, 'turo:81', { type: 'pickup', category: 'Pick Up', car_name: 'Active vehicle' }), task(82, 'turo:82', { type: 'pickup', category: 'Pick Up', car_name: 'Retired vehicle', plate: 'RETIRED' })];
+  await fixture(page, { rows });
+  await expect(page.getByLabel('Operations fleet')).toHaveValue('active');
+  await expect(page.locator('[data-day-schedule-card]')).toHaveCount(1, { timeout: 15000 });
+  await expect(page.locator('[data-day-schedule-card]')).toContainText('Active vehicle');
+  await page.getByLabel('Operations fleet').selectOption('all');
+  await expect(page.locator('[data-day-schedule-card]')).toHaveCount(2);
+  await page.getByLabel('Operations fleet').selectOption('inactive');
+  await expect(page.locator('[data-day-schedule-card]')).toHaveCount(1);
+  await expect(page.locator('[data-day-schedule-card]')).toContainText('Retired vehicle');
+});
+
+test('past deadlines tint cards grey while recorded new and completed statuses stay distinct', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-10-31T18:00:00Z'));
+  const rows = [
+    task(91, 'turo:91', { type: 'pickup', category: 'Pick Up', car_name: 'Past but new', status: 'new', due_at: '2026-10-31T17:00:00Z' }),
+    task(92, 'turo:92', { type: 'pickup', category: 'Pick Up', car_name: 'Past and completed', status: 'completed', due_at: '2026-10-31T16:00:00Z' }),
+    task(93, 'turo:93', { type: 'pickup', category: 'Pick Up', car_name: 'Upcoming', status: 'new', due_at: '2026-11-01T17:00:00Z' }),
+  ];
+  const state = await fixture(page, { date: '2026-11-03', rows });
+  const cards = page.locator('[data-day-schedule-card]');
+  await expect(cards).toHaveCount(3, { timeout: 15000 });
+  await expect(cards.filter({ hasText: 'Past but new' })).toHaveAttribute('data-task-past', 'true');
+  await expect(cards.filter({ hasText: 'Past but new' })).toHaveClass(/bg-slate-100/);
+  await expect(cards.filter({ hasText: 'Past but new' }).locator('[data-task-status]')).toHaveText('new');
+  await expect(cards.filter({ hasText: 'Past and completed' }).locator('[data-task-status]')).toHaveText('completed');
+  await expect(cards.filter({ hasText: 'Upcoming' })).not.toHaveAttribute('data-task-past');
+  expect(state.writes).toEqual([]);
 });

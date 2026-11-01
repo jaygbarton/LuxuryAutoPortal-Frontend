@@ -1,3 +1,4 @@
+import { useOperationFleetRows } from "./OperationsFleetFilter";
 import { fetchMaintenanceRecords, invalidateMaintenanceReports } from "@/lib/maintenanceReports";
 import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect, useMemo } from "react";
@@ -245,7 +246,7 @@ export function MaintenanceTab({
   const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
 
   // Independent issues from one inspection remain independent maintenance needs.
-  const rawRecords = [...new Map((data?.data ?? []).map(record => [record.id, record])).values()];
+  const rawRecords = useOperationFleetRows([...new Map((data?.data ?? []).map(record => [record.id, record])).values()]);
 
   const toMtDate = (iso: string | null | undefined): string | null =>
     mtDayKeyOrNull(iso, getActiveTimezone());

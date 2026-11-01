@@ -1,3 +1,4 @@
+import { useOperationFleetRows } from "./OperationsFleetFilter";
 import { optionKeywords } from "@/lib/select-search";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -392,9 +393,9 @@ export function TowingImpoundTab() {
       });
     },
   });
-  const cars = carsData?.data || [];
+  const cars = useOperationFleetRows(carsData?.data || [], car => ({ carId: car.id }));
 
-  const rawRows = data?.data || [];
+  const rawRows = useOperationFleetRows(data?.data || []);
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();

@@ -1,5 +1,6 @@
+import { useOperationsFleet } from "./OperationsFleetFilter";
 import { optionKeywords } from "@/lib/select-search";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -111,6 +112,7 @@ const SHOW_ALL_KEY = "operations.carBlockOff.showAll";
 // ── Tab component ─────────────────────────────────────────────────────────────
 
 export function CarBlockOffTab() {
+  const { fleet } = useOperationsFleet();
   const locationFilter = useOperationLocationFilter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -122,6 +124,7 @@ export function CarBlockOffTab() {
   const [endFrom, setEndFrom] = useState("");
   const [endTo, setEndTo] = useState("");
   const [page, setPage] = useState(1);
+  useEffect(() => setPage(1), [fleet]);
   const [showAll, setShowAll] = useState<boolean>(() => {
     try { return localStorage.getItem(SHOW_ALL_KEY) === "true"; } catch { return false; }
   });
@@ -133,7 +136,7 @@ export function CarBlockOffTab() {
 
   const { data, isLoading } = useQuery<SubmissionsResponse>({
     queryKey: [
-      "/api/car-block-off/submissions",
+      "/api/car-block-off/submissions", fleet,
       search,
       statusFilter,
       pickupFrom,
@@ -146,7 +149,7 @@ export function CarBlockOffTab() {
     ],
     queryFn: async () => {
       const params = new URLSearchParams({
-        search,
+        fleet, search,
         status: statusFilter,
         page: String(page),
         limit: String(limit),

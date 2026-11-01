@@ -1,3 +1,4 @@
+import { useOperationFleetRows } from "./OperationsFleetFilter";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -102,7 +103,7 @@ export function NoCarIssuesTab() {
   });
   const tripsById = new Map((tripsData?.data || []).map((t) => [t.id, t]));
 
-  const rawInspections = data?.data || [];
+  const rawInspections = useOperationFleetRows(data?.data || [], row => ({ ...tripsById.get(row.turo_trip_id ?? -1), ...row }));
 
   // UTC ISO → YYYY-MM-DD calendar day in Mountain Time, so the Trip Start
   // filter buckets a trip into the same day the Trip Start column shows.

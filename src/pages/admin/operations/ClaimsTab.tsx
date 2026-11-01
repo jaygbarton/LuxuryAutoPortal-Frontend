@@ -1,3 +1,4 @@
+import { useOperationFleetRows } from "./OperationsFleetFilter";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
@@ -104,7 +105,7 @@ export function ClaimsTab() {
     },
   });
 
-  const rawClaims = data?.data || [];
+  const rawClaims = useOperationFleetRows(data?.data || []);
 
   const claims = useMemo(() => {
     const q = search.trim().toLowerCase();

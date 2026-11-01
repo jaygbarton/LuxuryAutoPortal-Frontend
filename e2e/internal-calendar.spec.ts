@@ -9,7 +9,7 @@ test("sorts internal calendar vehicle rows alphabetically rather than by the lea
     contentType: 'application/json',
     body: JSON.stringify({ ...response(), events: [], warnings: [], cars: [
       { ...cars[0], carName: '2018 Toyota Sienna' },
-      { ...cars[1], carName: '2020 BMW X5' },
+      { ...cars[1], carName: '2020 BMW X5', status: 'available' },
       { ...cars[2], carName: '2026 Acura MDX' },
       { ...cars[3], carName: 'Audi Q5' },
     ] }),
@@ -147,8 +147,10 @@ async function mockCalendar(page: Page, options: { developer?: boolean; employee
 
 test("shows every source, cancellations, overlapping events, and attention records", async ({ page }) => {
   const mock = await mockCalendar(page, { developer: true });
-  await page.goto(calendarUrl);
+  await page.goto("/admin/internal-calendar?from=2026-10-10&to=2026-10-17");
   const calendar = page.getByTestId("fleet-calendar");
+  await calendar.getByRole('combobox', { name: 'Fleet filter' }).click();
+  await page.getByRole('option', { name: 'All vehicles', exact: true }).click();
   await expect(calendar.getByText("9 of 9 events shown", { exact: false })).toBeVisible();
   for (const name of ["Active Turo trip", "Owner personal use", "Google blocked period", "Oil change appointment", "Confirmed direct rental"]) {
     await expect(calendar.getByRole("button", { name: `${name} · Mercedes-Benz GLS`, exact: true })).toBeVisible();
@@ -478,4 +480,16 @@ test("mobile Calendar and History tabs reset their own date windows on query-onl
   await page.getByLabel("To", { exact: true }).fill("2026-10-15");
   await page.getByRole("dialog").getByRole("button", { name: "Show 7 events", exact: true }).click();
   await expect(calendar.getByTestId("fleet-calendar-agenda").getByRole("button")).toHaveCount(7);
+});
+
+test('internal calendar defaults to active cars even when retired cars have bookings', async ({ page }) => {
+  await mockCalendar(page);
+  await page.goto(calendarUrl);
+  const timeline = page.getByTestId('fleet-calendar-timeline');
+  await expect(page.getByRole('combobox', { name: 'Fleet filter' })).toContainText('Active vehicles');
+  await expect(timeline.getByText('Mercedes-Benz GLS', { exact: true })).toBeVisible({ timeout: 15000 });
+  await expect(timeline.getByText('BMW X5', { exact: true })).toHaveCount(0);
+  await page.getByRole('combobox', { name: 'Fleet filter' }).click();
+  await page.getByRole('option', { name: 'All vehicles', exact: true }).click();
+  await expect(timeline.getByText('BMW X5', { exact: true })).toBeVisible();
 });
