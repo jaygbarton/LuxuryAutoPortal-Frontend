@@ -20,6 +20,8 @@ import {
 import { api } from "@/lib/api";
 import { ChevronsUpDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { authMeQueryFn } from "@/lib/queryClient";
+import { useChartManagementAccess } from "@/hooks/use-chart-management-access";
 
 interface EmployeeOption {
   employee_aid: number;
@@ -63,6 +65,24 @@ export function EmployeeSelectCombobox({
   touchFriendly,
 }: EmployeeSelectComboboxProps) {
   const [open, setOpen] = useState(false);
+  const auth = useQuery({ queryKey: ["/api/auth/me"], queryFn: authMeQueryFn, staleTime: 60_000 });
+  const user = auth.data?.user;
+  const employeeView = !!user?.viewAsEmployee?.employeeId || user?.isEmployee === true;
+  const administrator = !user?.viewAsEmployee?.employeeId && (user?.isAdmin === true || user?.isSuperAdmin === true);
+  const manager = useChartManagementAccess();
+  // Original admin flags must not escape an effective View as Employee session.
+  const canChooseEmployee = !!user && (administrator || !employeeView || manager.data?.canManage === true);
+  const self = useQuery<{ data: EmployeeOption }>({
+    queryKey: ["/api/me/employee", "assignment", user?.id, user?.viewAsEmployee?.employeeId],
+    enabled: !!user && employeeView && !canChooseEmployee,
+    retry: false, staleTime: 60_000,
+    queryFn: async () => {
+      const result = await api.get<{ data: EmployeeOption }>("/api/me/employee", { fallbackMessage: "Your employee profile could not be loaded." });
+      const employeeId = Number(result.data?.employee_aid);
+      if (!Number.isSafeInteger(employeeId) || employeeId <= 0 || Number(result.data.employee_is_active ?? 1) !== 1) throw new Error("Your active employee profile could not be verified.");
+      return { ...result, data: { ...result.data, employee_aid: employeeId } };
+    },
+  });
 
   const { data } = useQuery<{ success: boolean; data: EmployeeOption[] }>({
     queryKey: ["/api/employees", "active-list"],
@@ -72,6 +92,7 @@ export function EmployeeSelectCombobox({
       });
     },
     staleTime: 1000 * 60 * 5,
+    enabled: canChooseEmployee,
   });
 
   const employees = (data?.data ?? []).filter(
@@ -84,6 +105,18 @@ export function EmployeeSelectCombobox({
   );
 
   const matchedByName = sorted.find((e) => displayName(e) === value);
+
+  if (!canChooseEmployee) return <div className="min-w-0 space-y-1">
+    <Button type="button" variant="outline" aria-label="Assign to self" className={cn("w-full min-h-11", touchFriendly && "min-h-11")}
+      disabled={disabled || !self.data?.data} onClick={() => {
+        const employee = self.data?.data;
+        if (!employee) return;
+        onChange(displayName(employee));
+        onSelectEmployee?.(employee);
+      }}>Assign to self</Button>
+    {value && <p className="break-words text-xs text-muted-foreground">Selected: {value}</p>}
+    {self.isError && <p role="alert" className="text-xs text-destructive">Your employee profile could not be loaded. <button type="button" className="underline" onClick={() => void self.refetch()}>Retry</button></p>}
+  </div>;
 
   return (
     <Popover modal open={open} onOpenChange={setOpen}>

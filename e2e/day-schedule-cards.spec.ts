@@ -4,7 +4,7 @@ function task(id: number, bookingKey: string, overrides: Record<string, unknown>
   return { id, bookingKey, type: "cleaning", category: "Cleaning", car_name: `Vehicle task ${id}`, plate: "TEST123", guest_name: "Test Guest", assigned_to: "Test Worker", assigned_to_id: 41, start_time: "09:00", end_time: null, location: "Test airport", status: "new", notes: null, detail: null, reservation_id: "RES-208", extras: null, trip_start: "09:00", trip_end: "10:00", trip_start_mt: "2026-10-07 09:00", trip_end_mt: "2026-10-08 10:00", pickup_location: "Test airport", dropoff_location: "Test airport", location_tag: "slc", photos: null, car_photo: null, duration_minutes: 60, scheduled_day: "2026-10-07", ...overrides };
 }
 
-async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType<typeof task>[] } = {}) {
+async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType<typeof task>[]; user?: Record<string, unknown>; manager?: boolean; missingEmployee?: boolean } = {}) {
   const writes: any[] = [], errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   const date = overrides.date || '2026-10-07';
@@ -19,7 +19,12 @@ async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType
     const path = new URL(route.request().url()).pathname;
     let body: any = { success: true, data: [], total: 0, notifications: [], unreadCount: 0 };
     if (route.request().method() !== 'GET') { writes.push({ path, body: route.request().postDataJSON() }); }
-    else if (path === '/api/auth/me') body = { user: { id: 1, name: 'Admin', isAdmin: true, isEmployee: false, isSuperAdmin: true, effectiveTimezone: 'America/Denver', tourCompleted: true } };
+    else if (path === '/api/auth/me') body = { user: { id: 1, name: 'Admin', isAdmin: true, isEmployee: false, isSuperAdmin: true, effectiveTimezone: 'America/Denver', tourCompleted: true, ...overrides.user } };
+    else if (path === '/api/operations/chart-management/access') body = { canManage: overrides.manager === true };
+    else if (path === '/api/me/employee') {
+      if (overrides.missingEmployee) return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'No employee record' }) });
+      body = { success: true, data: { employee_aid: 41, employee_first_name: 'Test', employee_last_name: 'Worker', employee_is_active: 1 } };
+    }
     else if (path === '/api/operations/fleet-vehicles') body = { data: [{ carId: 101, carName: 'Test vehicle', plateNumber: 'TEST123', vinNumber: null, carStatus: 'available' }, { carId: 102, carName: 'Retired vehicle', plateNumber: 'RETIRED', vinNumber: null, carStatus: 'off_fleet' }] };
     else if (path === '/api/me/preferences/day-schedule') body = { myTasksFirst: true, employeeId: 41 };
     else if (path === '/api/operations/day-schedule') body = { date, events: rows, work_shifts: [] };
@@ -211,4 +216,60 @@ test('past deadlines tint cards grey while recorded new and completed statuses s
   await expect(cards.filter({ hasText: 'Past and completed' }).locator('[data-task-status]')).toHaveText('completed');
   await expect(cards.filter({ hasText: 'Upcoming' })).not.toHaveAttribute('data-task-past');
   expect(state.writes).toEqual([]);
+});
+
+for (const impersonated of [false, true]) test(`employee task form assigns self with effective employee identity (impersonated=${impersonated})`, async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const state = await fixture(page, { user: { id: 7, isAdmin: impersonated, isSuperAdmin: impersonated, isEmployee: true,
+    ...(impersonated ? { viewAsEmployee: { employeeId: 41 }, impersonatorIsAdmin: true } : {}) } });
+  await mockTripForCleaning(page, 'departure');
+  await page.goto('/admin/operations');
+  await page.getByRole('button', { name: 'Assign Cleaning', exact: true }).click();
+  const modal = page.getByRole('dialog', { name: 'Assign Task', exact: true });
+  await expect(modal.getByRole('combobox').filter({ hasText: 'Select an employee...' })).toHaveCount(0);
+  const self = modal.getByRole('button', { name: 'Assign to self', exact: true });
+  await expect(self).toBeEnabled();
+  await self.click();
+  await expect(modal.getByText('Selected: Test Worker', { exact: true })).toBeVisible();
+  await modal.getByRole('button', { name: 'Create Task', exact: true }).click();
+  await expect.poll(() => state.writes.find(write => write.path === '/api/operations/tasks')?.body).toMatchObject({ assigned_to_id: 41, assigned_to: 'Test Worker' });
+  expect(state.errors).toEqual([]);
+});
+
+test('manager retains the employee picker on task forms', async ({ page }) => {
+  await fixture(page, { user: { id: 7, isAdmin: false, isSuperAdmin: false, isEmployee: true }, manager: true });
+  await mockTripForCleaning(page, 'departure');
+  await page.goto('/admin/operations');
+  await page.getByRole('button', { name: 'Assign Cleaning', exact: true }).click();
+  const modal = page.getByRole('dialog', { name: 'Assign Task', exact: true });
+  await expect(modal.getByRole('combobox').filter({ hasText: 'Select an employee...' })).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Assign to self', exact: true })).toHaveCount(0);
+});
+
+test('missing employee profile never falls back to an account ID or roster dropdown', async ({ page }) => {
+  const state = await fixture(page, { user: { id: 7, isAdmin: false, isSuperAdmin: false, isEmployee: true }, missingEmployee: true });
+  await mockTripForCleaning(page, 'departure');
+  await page.goto('/admin/operations');
+  await page.getByRole('button', { name: 'Assign Cleaning', exact: true }).click();
+  const modal = page.getByRole('dialog', { name: 'Assign Task', exact: true });
+  await expect(modal.getByRole('button', { name: 'Assign to self', exact: true })).toBeDisabled();
+  await expect(modal.getByRole('alert')).toContainText('employee profile could not be loaded');
+  await expect(modal.getByRole('combobox').filter({ hasText: 'Select an employee...' })).toHaveCount(0);
+  expect(state.writes).toEqual([]);
+});
+
+test('employee claims an unassigned Day Schedule task using the self button', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const state = await fixture(page, {
+    user: { id: 7, isAdmin: false, isSuperAdmin: false, isEmployee: true },
+    rows: [task(19, 'turo:208', { type: 'pickup', category: 'Pick Up', assigned_to: null, assigned_to_id: null })],
+  });
+  await page.locator('[data-day-schedule-card]').click();
+  const popup = page.locator('[data-day-schedule-controls]');
+  await expect(popup.getByRole('combobox').filter({ hasText: 'Unassigned' })).toHaveCount(0);
+  await popup.getByRole('button', { name: 'Assign to self', exact: true }).first().click();
+  await expect.poll(() => state.writes.find(write => write.path === '/api/operations/day-schedule/assign')?.body).toMatchObject({
+    type: 'pickup', eventId: 19, employeeId: 41, fullname: 'Test Worker',
+  });
+  expect(state.errors).toEqual([]);
 });
