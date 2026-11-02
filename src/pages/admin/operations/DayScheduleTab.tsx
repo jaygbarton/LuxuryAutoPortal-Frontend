@@ -148,8 +148,8 @@ function canRefuel(event: DayEvent): boolean {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  "Pick Up":               { bg: "bg-emerald-600", text: "text-white", border: "border-emerald-700" },
-  "Drop Off":              { bg: "bg-rose-600",    text: "text-white", border: "border-rose-700" },
+  "Pick Up":               { bg: "bg-rose-600", text: "text-white", border: "border-rose-700" },
+  "Drop Off":              { bg: "bg-emerald-600", text: "text-white", border: "border-emerald-700" },
   "Cleaning":              { bg: "bg-teal-500",    text: "text-white", border: "border-teal-600" },
   "Refuel Run":            { bg: "bg-orange-500",  text: "text-white", border: "border-orange-600" },
   "Custom Entry":          { bg: "bg-stone-700",   text: "text-white", border: "border-stone-800" },
@@ -677,14 +677,14 @@ function EventControls({
               )}
               {event.pickup_location && (
                 <DetailLine
-                  icon={<ArrowUpFromLine className="mt-0.5 h-3 w-3 flex-shrink-0 text-emerald-600" />}
+                  icon={<ArrowUpFromLine className="mt-0.5 h-3 w-3 flex-shrink-0 text-rose-600" />}
                   label="Pick Up"
                   value={event.pickup_location}
                 />
               )}
               {event.dropoff_location && (
                 <DetailLine
-                  icon={<ArrowDownToLine className="mt-0.5 h-3 w-3 flex-shrink-0 text-rose-600" />}
+                  icon={<ArrowDownToLine className="mt-0.5 h-3 w-3 flex-shrink-0 text-emerald-600" />}
                   label="Drop Off"
                   value={event.dropoff_location}
                 />
@@ -782,7 +782,7 @@ function EventControls({
                   </div>
                 </label>
               )}
-              {canEditDriver && <TaskDriverSelect value={event.driver_assigned_to_id} onChange={(id, name) => onDriverChange(event, id ? 'employee' : null, id, name)} />}
+              {canEditDriver && <TaskDriverSelect value={event.driver_assigned_to_id} assignmentType={event.driver_assignment_type} onChange={(mode, id, name) => onDriverChange(event, mode, id, name)} />}
               {event.type === "cleaning" && event.status !== "completed" && showAlreadyCleanBy && (
                 <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5">
                   <span className="w-full text-xs text-muted-foreground sm:w-auto md:text-xs">Completed by:</span>

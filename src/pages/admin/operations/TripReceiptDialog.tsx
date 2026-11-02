@@ -7,13 +7,13 @@ import { Label } from "@/components/ui/label";
 import { buildApiUrl, buildUploadApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { Camera, Loader2, Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { TaskDriverSelect } from './TaskDriverSelect';
+import { TaskDriverSelect, type TaskDriverMode } from './TaskDriverSelect';
 
 type Option = { id: number; name: string };
 type Context = {
   carId: number | null; carName: string; employeeId: number | null; employeeName: string | null;
   reservationId: string | null;
-  requiresDriver?: boolean; driverId?: number | null;
+  requiresDriver?: boolean; driverId?: number | null; driverAssignmentType?: string | null;
   submission: { id: number; status: string; carId: number } | null; preview?: boolean;
 };
 type Options = { data: { employees: Option[]; cars: Option[]; categoryFields: Record<string, { value: string; label: string }[]> } };
@@ -50,7 +50,7 @@ export function TripReceiptDialog({ taskId, bookingKey, scheduleDate, kind = "pa
   const [reading, setReading] = useState<Reading | null>(null);
   const [busy, setBusy] = useState<"upload" | "submit" | "driver" | null>(null);
   const [driverOpen, setDriverOpen] = useState(false);
-  const [driver, setDriver] = useState<{ id: number | null; name: string | null }>({ id: null, name: null });
+  const [driver, setDriver] = useState<{ mode: TaskDriverMode; id: number | null; name: string | null }>({ mode: null, id: null, name: null });
   const [error, setError] = useState("");
   const [savedId, setSavedId] = useState<number | null>(null);
   const initialized = useRef(false);
@@ -92,7 +92,7 @@ export function TripReceiptDialog({ taskId, bookingKey, scheduleDate, kind = "pa
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (busy) return;
-    if (!isFuel && !context.data?.preview && context.data?.requiresDriver !== false && !context.data?.driverId) {
+    if (!isFuel && !context.data?.preview && context.data?.requiresDriver !== false && !context.data?.driverId && !['uber', 'na'].includes(context.data?.driverAssignmentType || '')) {
       setError('Select a driver before completing this task.');
       setDriverOpen(true);
       return;
@@ -192,17 +192,17 @@ export function TripReceiptDialog({ taskId, bookingKey, scheduleDate, kind = "pa
   <Dialog open={driverOpen} onOpenChange={open => { if (!busy) { setDriverOpen(open); setError(''); } }}>
     <DialogContent className="max-w-md">
       <DialogHeader><DialogTitle>Select a driver</DialogTitle><DialogDescription>A driver is required before this airport receipt can be submitted and the task completed. Your receipt details are kept.</DialogDescription></DialogHeader>
-      <TaskDriverSelect value={driver.id} onChange={(id, name) => setDriver({ id, name })} />
+      <TaskDriverSelect value={driver.id} assignmentType={driver.mode} disabled={!!busy} onChange={(mode, id, name) => setDriver({ mode, id, name })} />
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
         <Button type="button" variant="outline" className="h-11" disabled={!!busy} onClick={() => { setDriverOpen(false); setError(''); }}>Back to receipt</Button>
-        <Button type="button" className="h-11" disabled={!!busy || !driver.id} onClick={async () => {
-          if (!driver.id) { setError('Select a driver before completing this task.'); return; }
+        <Button type="button" className="h-11" disabled={!!busy || !driver.mode || driver.mode === 'employee' && !driver.id} onClick={async () => {
+          if (!driver.mode || driver.mode === 'employee' && !driver.id) { setError('Select a driver before completing this task.'); return; }
           setBusy('driver'); setError('');
           try {
             await responseJson(await fetch(buildApiUrl('/api/operations/day-schedule/driver'), {
               method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ type: 'pickup', eventId: taskId, date: scheduleDate, assignmentType: 'employee', employeeId: driver.id, fullname: driver.name }),
+              body: JSON.stringify({ type: 'pickup', eventId: taskId, date: scheduleDate, assignmentType: driver.mode, employeeId: driver.id, fullname: driver.name }),
             }));
             await context.refetch();
             setDriverOpen(false);

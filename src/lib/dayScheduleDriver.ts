@@ -8,5 +8,6 @@ export function needsTaskDriver(event: DriverTask): boolean {
 }
 
 export function hasTaskDriver(event: DriverTask): boolean {
+  if (event.driver_assignment_type === 'uber' || event.driver_assignment_type === 'na') return true;
   return event.driver_assignment_type === 'employee' && Number.isSafeInteger(event.driver_assigned_to_id) && Number(event.driver_assigned_to_id) > 0;
 }

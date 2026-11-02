@@ -4,8 +4,9 @@ function task(id: number, bookingKey: string, overrides: Record<string, unknown>
   return { id, bookingKey, type: "cleaning", category: "Cleaning", car_name: `Vehicle task ${id}`, plate: "TEST123", guest_name: "Test Guest", assigned_to: "Test Worker", assigned_to_id: 41, start_time: "09:00", end_time: null, location: "Test airport", status: "new", notes: null, detail: null, reservation_id: "RES-208", extras: null, trip_start: "09:00", trip_end: "10:00", trip_start_mt: "2026-10-07 09:00", trip_end_mt: "2026-10-08 10:00", pickup_location: "Test airport", dropoff_location: "Test airport", location_tag: "slc", photos: null, car_photo: null, duration_minutes: 60, scheduled_day: "2026-10-07", ...overrides };
 }
 
-async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType<typeof task>[]; user?: Record<string, unknown>; manager?: boolean; missingEmployee?: boolean } = {}) {
+async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType<typeof task>[]; user?: Record<string, unknown>; manager?: boolean; missingEmployee?: boolean; pickerFailOnce?: boolean } = {}) {
   const writes: any[] = [], errors: string[] = [];
+  let pickerRequests = 0;
   page.on('pageerror', error => errors.push(error.message));
   const date = overrides.date || '2026-10-07';
   const rows = overrides.rows || [
@@ -43,6 +44,11 @@ async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType
     else if (path === '/api/operations/fleet-vehicles') body = { data: [{ carId: 101, carName: 'Test vehicle', plateNumber: 'TEST123', vinNumber: null, carStatus: 'available' }, { carId: 102, carName: 'Retired vehicle', plateNumber: 'RETIRED', vinNumber: null, carStatus: 'off_fleet' }] };
     else if (path === '/api/me/preferences/day-schedule') body = { myTasksFirst: true, employeeId: 41 };
     else if (path === '/api/operations/day-schedule') body = { date, events: rows, work_shifts: [] };
+    else if (path === '/api/employees/picker') {
+      if (overrides.pickerFailOnce && ++pickerRequests === 1) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporarily unavailable' }) });
+      body = { success: true, data: [{ employee_aid: 43, fullname: 'Zoe Driver' }, { employee_aid: 41, fullname: 'Test Worker' }, { employee_aid: 42, fullname: 'Amy Driver' }] };
+    }
+    else if (path === '/api/employees' && overrides.user?.isAdmin === false) return route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ error: 'Admin access required' }) });
     else if (path === '/api/employees') body = { success: true, data: [{ employee_aid: 41, employee_first_name: 'Test', employee_last_name: 'Worker', employee_is_active: 1 }] };
     else if (path.includes('/airport-parking') || path.includes('/return-receipts/')) body = { carId: 101, carName: 'Kia Rio 2019', employeeId: 41, employeeName: 'Test Worker', reservationId: 'RES-208', submission: null };
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
@@ -399,4 +405,46 @@ for (const type of ['custom', 'delivery']) test(`manual ${type} task completion 
   await page.getByRole('option', { name: 'Completed', exact: true }).click();
   await expect.poll(() => state.writes.filter(write => write.path.endsWith('/status')).length).toBe(1);
   expect(state.errors).toEqual([]);
+});
+
+for (const choice of ['41', 'uber', 'na']) test(`employees load the staff driver picker and complete an airport drop-off with ${choice}`, async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const reads: string[] = [];
+  page.on('request', request => { if (request.url().includes('/api/employees')) reads.push(new URL(request.url()).pathname); });
+  const state = await fixture(page, { user: { id: 7, isAdmin: false, isEmployee: true, isSuperAdmin: false }, rows: [task(501, 'turo:501', { type: 'delivery', category: 'Drop Off', location: 'SLC Airport' })] });
+  const card = page.locator('[data-day-schedule-card]');
+  await expect(card.locator('span').filter({ hasText: /^Drop Off$/ })).toHaveClass(/bg-emerald-600/);
+  await card.click();
+  const popup = page.locator('[data-day-schedule-controls]');
+  const driver = popup.getByRole('combobox', { name: 'Task driver', exact: true });
+  await expect(driver.locator('option[value="41"]')).toHaveText('Test Worker');
+  await expect(driver.locator('option[value="uber"]')).toHaveText('Uber');
+  await expect(driver.locator('option[value="na"]')).toHaveText('N/A');
+  await expect(driver.locator('option')).toHaveText(['Select driver', 'Uber', 'N/A', 'Amy Driver', 'Test Worker', 'Zoe Driver']);
+  await driver.selectOption(choice);
+  const mode = choice === '41' ? 'employee' : choice;
+  await expect.poll(() => state.writes.find(write => write.path.endsWith('/driver'))?.body).toMatchObject({ assignmentType: mode, employeeId: choice === '41' ? 41 : null });
+  await expect(driver).toHaveValue(choice);
+  await popup.getByRole('combobox', { name: 'Task status', exact: true }).click();
+  await page.getByRole('option', { name: 'Completed', exact: true }).click();
+  await expect.poll(() => state.writes.filter(write => write.path.endsWith('/status')).length).toBe(1);
+  expect(reads).toContain('/api/employees/picker');
+  expect(reads).not.toContain('/api/employees');
+  expect(state.errors).toEqual([]);
+});
+
+test('driver lookup failure keeps Uber and N/A selectable and supports retry without reopening', async ({ page }) => {
+  await fixture(page, { pickerFailOnce: true, user: { id: 7, isAdmin: false, isEmployee: true, isSuperAdmin: false }, rows: [task(502, 'turo:502', { type: 'pickup', category: 'Pick Up', location: 'SLC Airport', airport_parking_required: true })] });
+  const card = page.locator('[data-day-schedule-card]');
+  await expect(card.locator('span').filter({ hasText: /^Pick Up$/ })).toHaveClass(/bg-rose-600/);
+  await card.click();
+  const popup = page.locator('[data-day-schedule-controls]');
+  const driver = popup.getByRole('combobox', { name: 'Task driver', exact: true });
+  await expect(popup.getByRole('alert')).toContainText('Employee drivers could not be loaded');
+  await expect(driver).toBeEnabled();
+  await driver.selectOption('na');
+  await expect(driver).toHaveValue('na');
+  await popup.getByRole('button', { name: 'Retry drivers', exact: true }).click();
+  await expect(driver.locator('option[value="41"]')).toHaveText('Test Worker');
+  await expect(popup.getByRole('button', { name: 'Retry drivers', exact: true })).toHaveCount(0);
 });
