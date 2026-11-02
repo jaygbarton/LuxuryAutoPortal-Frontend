@@ -961,7 +961,7 @@ return true;
                   value={clockOutNotes}
                   onChange={(e) => setClockOutNotes(e.target.value)}
                   rows={3}
-                  placeholder="What did you work on?"
+                  placeholder="Optional note or exception"
                 />
               </div>
               <div className="grid gap-2 sm:grid-cols-2">

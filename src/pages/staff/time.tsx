@@ -1,4 +1,3 @@
-import { optionKeywords } from "@/lib/select-search";
 /**
  * Staff Time Sheet (Hubstaff-style).
  *
@@ -16,13 +15,6 @@ import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Clock, Loader2, LogIn, LogOut, Coffee, ArrowLeft, ClipboardList, BarChart2 } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { EmployeePageLinks } from "@/components/staff/EmployeePageLinks";
 import { ClockOutPropertyCheck } from "@/components/staff/ClockOutPropertyCheck";
@@ -57,54 +49,6 @@ import { getActiveTimezone } from "@/hooks/use-timezone";
 // server buckets by is Phase 5 (backend SQL day-bucketing) territory, not a
 // display fix.
 const UTAH_TZ = "America/Denver";
-
-// ── End-of-shift questionnaire ─────────────────────────────────────────
-type QType = "numeric" | "text" | "energy";
-interface ShiftQuestion {
-  id: string;
-  label: string;
-  type: QType;
-}
-
-const ENERGY_OPTIONS = ["Very low", "Low", "Okay", "Good", "Great"];
-
-// NOTE: numeric `id`s MUST match the canonical keys in the backend's
-// STATS_CATEGORIES (adminTimeSheetService.ts). The Employee Stats Report
-// aggregates `time.time_form_details` by these exact keys.
-const SHIFT_QUESTIONS: ShiftQuestion[] = [
-  { id: "how_many_car_picked_up_from_airport_returning", label: "How Many Cars Picked Up From Airport Returning?", type: "numeric" },
-  { id: "how_many_cleaning_going_out", label: "How many vehicles cleaned after return?", type: "numeric" },
-  { id: "how_many_cars_re_parked", label: "How Many Cars Re-Parked?", type: "numeric" },
-  { id: "how_many_gas_station_trip", label: "How Many Gas Station Trips?", type: "numeric" },
-  { id: "how_many_trip_swaps_client_location", label: "How Many Trip Swaps – Client?", type: "numeric" },
-  { id: "how_many_uber_ride", label: "How Many Uber Ride?", type: "numeric" },
-  { id: "how_many_last_minute_booking", label: "How Many Last Minute Booking?", type: "numeric" },
-  { id: "how_many_auto_body_pick_up_or_drop_off", label: "How Many Auto Body Pick Up?", type: "numeric" },
-  { id: "how_many_mechanic_pick_up_or_drop_off", label: "How Many Mechanic Pick Up?", type: "numeric" },
-  { id: "how_many_oil_lube_pick_up_or_drop_off", label: "How Many Oil & Lube Pick Up?", type: "numeric" },
-  { id: "how_many_tire_pick_up_or_drop_off", label: "How Many Tire Pick Up or Drop Off?", type: "numeric" },
-  { id: "how_many_windshield_pick_up_or_drop_off", label: "How Many Windshield Pick Up?", type: "numeric" },
-  { id: "how_many_off_boarding_owner_removal", label: "How Many Off Boarding Owners?", type: "numeric" },
-  { id: "how_many_on_boarding_new_car_received", label: "How Many On Boarding New?", type: "numeric" },
-  { id: "how_many_picture_of_new_car", label: "How Many Pictures of New Cars?", type: "numeric" },
-  { id: "how_many_battery", label: "How Many Battery?", type: "numeric" },
-  { id: "how_many_license_emissions", label: "How Many License & Emissions?", type: "numeric" },
-  { id: "how_many_towing_yard_impounded", label: "How Many Towing Yard – Impound?", type: "numeric" },
-  { id: "how_many_supply_trips_wiper_blades_fluids_oil", label: "How Many Supply Trips – Wipes/etc.?", type: "numeric" },
-  { id: "how_many_cleaning_extras_car_seats_coolers_ski_racks", label: "How Many Cleaning Extras (Roof Racks, etc.)?", type: "numeric" },
-  { id: "energy_today", label: "How was my energy today?", type: "energy" },
-  { id: "grateful_for", label: "I am grateful for…", type: "text" },
-  { id: "additional_comments", label: "Additional Comments on Day", type: "text" },
-];
-
-const NUMERIC_OPTIONS = Array.from({ length: 21 }, (_, i) => String(i)); // 0..20
-
-function buildEmptyAnswers(): Record<string, string> {
-  return SHIFT_QUESTIONS.reduce<Record<string, string>>((acc, q) => {
-    acc[q.id] = "";
-    return acc;
-  }, {});
-}
 
 interface SessionRow {
   time_aid: number;
@@ -296,13 +240,12 @@ export default function StaffTime() {
   const [clockOutOpen, setClockOutOpen] = useState(false);
   const [endNotes, setEndNotes] = useState("");
   const [lunchMinutes, setLunchMinutes] = useState("");
-  const [shiftStep, setShiftStep] = useState<"choose" | "questionnaire">("choose");
+  const [shiftStep, setShiftStep] = useState<"choose" | "confirm">("choose");
   const [propertyCheckConfirmed, setPropertyCheckConfirmed] = useState(false);
-  const [answers, setAnswers] = useState<Record<string, string>>(buildEmptyAnswers);
   const [statsSession, setStatsSession] = useState<SessionRow | null>(null);
 
   useEffect(() => {
-    if (!clockOutOpen || shiftStep !== "questionnaire") setPropertyCheckConfirmed(false);
+    if (!clockOutOpen || shiftStep !== "confirm") setPropertyCheckConfirmed(false);
   }, [clockOutOpen, shiftStep]);
 
   const today = utahToday();
@@ -449,7 +392,6 @@ export default function StaffTime() {
       });
       setClockOutOpen(false);
       setShiftStep("choose");
-      setAnswers(buildEmptyAnswers());
       setEndNotes("");
       setLunchMinutes("");
       qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/last"] });
@@ -468,29 +410,13 @@ export default function StaffTime() {
     void submitClockOut("break", details);
   };
 
-  const onProceedToQuestionnaire = () => {
-    setShiftStep("questionnaire");
+  const onProceedToClockOut = () => {
+    setShiftStep("confirm");
   };
 
   const onSubmitShiftEnd = () => {
-    // Build entries that the backend's stats report can aggregate by `key`.
-    // For numeric questions we coerce the chosen value to a number so the
-    // server's parseFormDetails treats it as a count.
-    const details = SHIFT_QUESTIONS.map((q) => {
-      const raw = answers[q.id]?.trim() ?? "";
-      const value =
-        q.type === "numeric"
-          ? raw === ""
-            ? 0
-            : Number(raw) || 0
-          : raw;
-      return {
-        key: q.id,
-        name: q.label,
-        value,
-        description: raw,
-      };
-    });
+    // Operational activity is recorded in Day Schedule, not counted again at clock-out.
+    const details: FormDetail[] = [];
     const notes = endNotes.trim();
     if (notes) {
       details.push({ key: "notes", name: "Notes", value: notes, description: notes });
@@ -507,9 +433,7 @@ export default function StaffTime() {
     void submitClockOut("shift_end", details, lunchMin);
   };
 
-  const setAnswer = (id: string, value: string) => {
-    setAnswers((prev) => ({ ...prev, [id]: value }));
-  };
+
 
   const onMainButton = () => {
     if (actionLoading) return;
@@ -878,7 +802,7 @@ export default function StaffTime() {
         <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {shiftStep === "questionnaire" && (
+              {shiftStep === "confirm" && (
                 <button
                   type="button"
                   onClick={() => setShiftStep("choose")}
@@ -888,10 +812,10 @@ export default function StaffTime() {
                   <ArrowLeft className="w-4 h-4" />
                 </button>
               )}
-              {shiftStep === "questionnaire" ? (
+              {shiftStep === "confirm" ? (
                 <>
                   <ClipboardList className="w-5 h-5 text-primary" />
-                  End-of-shift report
+                  End of shift
                 </>
               ) : (
                 "Clock out"
@@ -912,7 +836,7 @@ export default function StaffTime() {
                   className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={endNotes}
                   onChange={(e) => setEndNotes(e.target.value)}
-                  placeholder="What did you work on?"
+                  placeholder="Optional note or exception"
                 />
               </div>
 
@@ -933,7 +857,7 @@ export default function StaffTime() {
                 <Button
                   variant="destructive"
                   disabled={actionLoading}
-                  onClick={onProceedToQuestionnaire}
+                  onClick={onProceedToClockOut}
                   className="gap-2"
                 >
                   <LogOut className="w-4 h-4" />
@@ -942,70 +866,17 @@ export default function StaffTime() {
               </div>
               <p className="text-xs text-muted-foreground pt-1">
                 "Break" pauses your timer — you'll need to click Clock in again when you return,
-                and break time is not counted as worked time. "End of shift" requires a quick
-                report before you clock out.
+                and break time is not counted as worked time. "End of shift" opens the final
+                clock-out confirmation.
               </p>
             </>
           ) : (
             <>
               <p className="text-sm text-muted-foreground">
-                Answer any questions that apply to your shift before clocking out. All fields are optional.
+                Review any unrecorded lunch time and confirm the property check to clock out.
               </p>
 
               <div className="space-y-3">
-                {SHIFT_QUESTIONS.map((q) => {
-                  return (
-                    <div key={q.id} className="space-y-1">
-                      <Label htmlFor={`q-${q.id}`}>
-                        {q.label}
-                      </Label>
-                      {q.type === "numeric" && (
-                        <Select
-                          value={answers[q.id] || undefined}
-                          onValueChange={(v) => setAnswer(q.id, v)}
-                        >
-                          <SelectTrigger id={`q-${q.id}`}>
-                            <SelectValue placeholder="Select number" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {NUMERIC_OPTIONS.map((n) => (
-                              <SelectItem searchKeywords={optionKeywords(n)} key={n} value={n}>
-                                {n}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                      {q.type === "energy" && (
-                        <Select
-                          value={answers[q.id] || undefined}
-                          onValueChange={(v) => setAnswer(q.id, v)}
-                        >
-                          <SelectTrigger id={`q-${q.id}`}>
-                            <SelectValue placeholder="Select energy level" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ENERGY_OPTIONS.map((e) => (
-                              <SelectItem searchKeywords={optionKeywords(e)} key={e} value={e}>
-                                {e}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                      {q.type === "text" && (
-                        <textarea
-                          id={`q-${q.id}`}
-                          className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-                          value={answers[q.id] ?? ""}
-                          onChange={(e) => setAnswer(q.id, e.target.value)}
-                          placeholder="Type your answer…"
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-
                 <div className="space-y-1">
                   <Label htmlFor="lunch-minutes">Lunch break (minutes)</Label>
                   <input
@@ -1050,7 +921,7 @@ export default function StaffTime() {
                   ) : (
                     <LogOut className="w-4 h-4" />
                   )}
-                  Submit & Clock out
+                  Clock out
                 </Button>
               </div>
             </>
