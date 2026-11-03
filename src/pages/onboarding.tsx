@@ -329,9 +329,10 @@ function OnboardingApplication() {
   };
   const continueStep = async () => {
     if(currentStep===1&&answers.hasVehicle===null){setStepError('Please choose whether you already have a vehicle. You can add its details later.');return;}
+    if(currentStep===1&&answers.hasVehicle===false&&!vehiclePlanReady()){setStepError('Choose your plan, say whether you know the car, and confirm the vehicle requirement.');return;}
     const fields=currentStep===1&&answers.hasVehicle!==true?[]:currentStep===2&&answers.hasVehicle!==true?wizardSteps[currentStep].fields.filter(key=>!["carManufacturerWebsite","carManufacturerUsername","password"].includes(key)):wizardSteps[currentStep].fields;
     const valid = await form.trigger(fields as (keyof OnboardingFormData)[], { shouldFocus: true });
-    if (valid) {await saveAndGo(currentStep===1&&answers.hasVehicle===false?3:currentStep + 1);}
+    if (valid) {await saveAndGo(currentStep + 1);}
     else setStepError("Please complete the highlighted fields before continuing.");
   };
   const showErrors = (errors: typeof form.formState.errors) => {
@@ -340,8 +341,16 @@ function OnboardingApplication() {
     setStepError("Please review the highlighted fields. Your information has not been submitted.");
   };
 
+  const vehiclePlanReady=()=>['purchase','finance','unsure'].includes(answers.acquisitionPlan)&&['yes','no'].includes(answers.knowsPlannedCar)&&answers.requirementsAcknowledged==='yes';
   const submitPending = async () => {
     if(answers.hasVehicle!==false){goToStep(1);setStepError('Please choose whether you already have a vehicle. You can add its details later.');return;}
+    const required=[...wizardSteps[0].fields,...wizardSteps[2].fields] as (keyof OnboardingFormData)[];
+    if(!await form.trigger(required)) {
+      goToStep(wizardSteps[0].fields.some(key=>form.getFieldState(key as keyof OnboardingFormData).error)?0:2);
+      setStepError('Complete the highlighted details before submitting. Only car information can wait.');return;
+    }
+    if(!driversLicenseFile&&!draft?.documents?.driversLicenseUrls?.length){goToStep(0);setStepError('Please upload your driver’s license before submitting your pending application.');return;}
+    if(!vehiclePlanReady()){goToStep(1);setStepError('Choose your plan, say whether you know the car, and confirm the vehicle requirement.');return;}
     if(!form.getValues('confirmAgreement')){form.setError('confirmAgreement',{message:'Please confirm before submitting your pending application.'});return;}
     form.clearErrors('confirmAgreement');
     setIsSubmitting(true);setStepError('');
@@ -460,15 +469,15 @@ function OnboardingApplication() {
               <div className="mb-5">
                 <h2 className="text-2xl font-semibold text-foreground">Your LYC onboarding steps</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Complete these steps in any order. No car yet? Submit a pending application so our team can follow up, then add your vehicle details later.
+                  Complete each step. Save and return at any time.
                 </p>
               </div>
 
           <div className="mb-4 flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={saving||isSubmitting} onClick={async()=>{try{await saveProgress();setLocation('/lyc/status');}catch(e:any){setStepError(e.message);}}}>Save & exit</Button></div>
-          {reusedBank&&<p className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">Your saved payment and tax details are included. You only need to add this vehicle’s information; use the other steps if anything has changed.</p>}
+          {reusedBank&&currentStep===2&&<p className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">Your saved payment and tax details are included. Please check they’re current.</p>}
           {savedMessage&&<p role="status" className="mb-4 text-sm text-green-800">{savedMessage}</p>}
-          {!!draft?.documents?.driversLicenseUrls?.length&&<p className="mb-2 text-sm">Driver’s license saved with this application.</p>}
-          {!!draft?.documents?.insuranceCardUrl&&<p className="mb-2 text-sm">Insurance document saved with this application.</p>}
+          {currentStep===0&&!!draft?.documents?.driversLicenseUrls?.length&&<p className="mb-2 text-sm">Driver’s license saved with this application.</p>}
+          {currentStep===1&&!!draft?.documents?.insuranceCardUrl&&<p className="mb-2 text-sm">Insurance document saved with this application.</p>}
           <Form {...form}>
             <form noValidate onSubmit={event => {
               if (currentStep < wizardSteps.length - 1) { event.preventDefault(); void continueStep(); }
@@ -2086,16 +2095,15 @@ function OnboardingApplication() {
               ))}
 
               {currentStep === 3 && <div className="space-y-4 rounded-lg border p-4" aria-label="Review your onboarding">
-                {[{title: "Personal information", value: `${form.getValues("firstNameOwner")} ${form.getValues("lastNameOwner")} · ${form.getValues("emailOwner")}`, detail: driversLicenseFile ? `License: ${driversLicenseFile.name}` : "Driver’s license not attached"},
+                {[{title: "Personal information", value: `${form.getValues("firstNameOwner")} ${form.getValues("lastNameOwner")} · ${form.getValues("emailOwner")}`, detail: driversLicenseFile ? `License: ${driversLicenseFile.name}` : draft?.documents?.driversLicenseUrls?.length?"Driver’s license saved":"Driver’s license not attached"},
                   {title: "Vehicle information", value: answers.hasVehicle===true?`${form.getValues("vehicleMake")} ${form.getValues("vehicleModel")} ${form.getValues("vehicleYear")}`:answers.hasVehicle===false?'Vehicle details to follow':'Vehicle plan not selected', detail: answers.hasVehicle===true?`VIN: ${form.getValues("vinNumber")} · Plate: ${form.getValues("licensePlate")}`:[answers.acquisitionPlan,...['plannedVehicleYear','plannedVehicleMake','plannedVehicleModel'].map(key=>answers[key])].filter(Boolean).join(' ')},
                   {title: "Secure information", value: `Bank: ${form.getValues("bankName")}`, detail: "Bank account and tax numbers are hidden in this summary."}].map((section, index) => <div key={section.title} className="flex items-start justify-between gap-3 border-b pb-3">
                     <div className="min-w-0 break-words"><h4 className="font-medium">{section.title}</h4><p className="text-sm">{section.value}</p><p className="text-xs text-muted-foreground">{section.detail}</p></div>
                     <Button type="button" variant="outline" size="sm" onClick={() => goToStep(index)}>Edit<span className="sr-only"> {section.title}</span></Button>
                   </div>)}
-                <p className="text-sm text-muted-foreground">Keep using the email and password you chose for this account. Client access begins after your completed application is approved and your contract is signed.</p>
                           <div className="bg-background border border-border rounded p-4">
                             <p className="text-sm text-muted-foreground mb-4">
-                              {answers.hasVehicle===false?'Submit your pending application for GLA follow-up. You can return to add your vehicle, personal and secure details before requesting approval.':'After GLA reviews and approves your completed application, we will email your contract. Sign it before completing the vehicle drop-off form.'}
+                              {answers.hasVehicle===false?'Submit your personal and secure information now. Your application stays pending until you return and add the car details for approval.':'After GLA approves your application, we will email your contract. Sign it before completing the vehicle drop-off form.'}
                             </p>
                             <FormField
                               control={form.control}

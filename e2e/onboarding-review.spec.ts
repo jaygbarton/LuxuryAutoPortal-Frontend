@@ -216,7 +216,7 @@ test('existing client personal details are reused and multiple vehicle plans rem
  await expect(page.getByRole('heading',{name:'Honda Accord'})).toBeVisible();await expect(page.getByRole('heading',{name:'Toyota Sienna'})).toBeVisible();
 });
 
-for(const width of [390,1280]) test(`pending application is submitted without car/secure details and completed later on the same plan at ${width}px`,async({page})=>{
+for(const width of [390,1280]) test(`pending intake requires personal, license and secure details before submission, then completes the same plan at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:844});const {drafts,writes}=await fixture(page);
  await page.goto('/onboarding?start=1');
  const form=page.locator('form');
@@ -230,15 +230,31 @@ for(const width of [390,1280]) test(`pending application is submitted without ca
  await form.getByRole('button',{name:'Continue',exact:true}).click();
  await expect(form.getByRole('alert')).toContainText('Please choose whether');
  await plan.getByRole('button',{name:'Not yet',exact:true}).click();
- await expect(plan).toContainText('You can submit a pending application now without a car.');
- await expect(plan).toContainText('sign back in to this same application');
- await plan.screenshot({path:test.info().outputPath('vehicle-questionnaire.png')});
- await choose(page,plan.getByRole('combobox',{name:/Do you plan to buy or finance/}),'Finance a vehicle');
+ await expect(plan).toContainText('Pending means we’re waiting for your car details.');
+ await expect(plan).toContainText('Complete your personal and secure information, then submit.');
  await form.getByRole('button',{name:'Continue',exact:true}).click();
- await expect(page.locator('#onboarding-step-title')).toHaveText('Review & submit');
- await expect(plan).toHaveCount(0);await expect(form).toContainText('Vehicle details to follow');
+ await expect(form.getByRole('alert')).toContainText('Choose your plan');
+ await choose(page,plan.getByRole('combobox',{name:/Do you plan to buy or finance/}),'Finance a vehicle');
+ await choose(page,plan.getByRole('combobox',{name:/Do you know which vehicle/}),'Not yet — that’s okay');
+ await plan.getByRole('checkbox',{name:'I understand GLA must approve the vehicle.'}).check();
+ await plan.screenshot({path:test.info().outputPath('vehicle-questionnaire.png')});
+ await form.getByRole('button',{name:'Continue',exact:true}).click();
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Secure information');await expect(plan).toHaveCount(0);
+ await form.getByRole('button',{name:'Continue',exact:true}).click();await expect(form.getByRole('alert')).toContainText('highlighted');
+ await fillStep(page);await form.getByRole('button',{name:'Continue',exact:true}).click();
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Review & submit');await expect(form).toContainText('Vehicle details to follow');
+ await form.getByRole('checkbox',{name:'Confirm and submit pending application',exact:true}).check();
  await form.getByRole('button',{name:'Submit pending application',exact:true}).click();
- await expect(form).toContainText('Please confirm before submitting');
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Personal information');await expect(form.getByRole('alert')).toContainText('Only car information can wait.');
+ expect(writes.some(w=>w.path.endsWith('/submit-pending'))).toBe(false);await fillStep(page);
+ await form.getByRole('button',{name:'4. Review & submit',exact:true}).click();await expect(page.locator('#onboarding-step-title')).toHaveText('Review & submit');
+ await form.getByRole('button',{name:'Submit pending application',exact:true}).click();await expect(page.locator('#onboarding-step-title')).toHaveText('Personal information');
+ await expect(form.getByRole('alert')).toContainText('upload your driver’s license');
+ await form.locator('input[type=file]').setInputFiles({name:'fixture-license.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64')});
+ await form.getByRole('button',{name:'4. Review & submit',exact:true}).click();await expect(page.locator('#onboarding-step-title')).toHaveText('Review & submit');
+ await expect(form).toContainText('Driver’s license saved');
+ await form.getByRole('checkbox',{name:'Confirm and submit pending application',exact:true}).uncheck();
+ await form.getByRole('button',{name:'Submit pending application',exact:true}).click();await expect(form).toContainText('Please confirm before submitting');
  expect(writes.some(w=>w.path.endsWith('/submit-pending'))).toBe(false);
  await form.getByRole('checkbox',{name:'Confirm and submit pending application',exact:true}).check();
  let failOnce=width===390;
@@ -250,22 +266,18 @@ for(const width of [390,1280]) test(`pending application is submitted without ca
  if(width===390){await expect(form.getByRole('alert')).toContainText('Please retry');await expect(page.locator('#onboarding-step-title')).toHaveText('Review & submit');await form.getByRole('button',{name:'Submit pending application',exact:true}).click();}
  await expect(page.getByText('Pending application submitted — GLA can view it and contact you.')).toBeVisible();
  expect(drafts).toHaveLength(1);expect(drafts[0]).toMatchObject({id:1,hasVehicle:false});expect(drafts[0].pendingSubmittedAt).toBeTruthy();
+ expect(drafts[0].fields.accountNumber).toBe(values.accountNumber);expect(drafts[0].documents.driversLicenseUrls).toHaveLength(1);
  expect(drafts[0].fields.vinNumber).toBe('');expect(writes.some(w=>w.path==='/api/onboarding/submit')).toBe(false);
  await page.getByRole('link',{name:'Add vehicle details',exact:true}).click();
  await expect(plan.getByRole('button',{name:'Not yet',exact:true})).toHaveAttribute('aria-pressed','true');
- await plan.getByRole('button',{name:'Yes, I have a vehicle',exact:true}).click();
- await form.getByRole('button',{name:'1. Personal information',exact:true}).click();
- await expect(page.locator('#onboarding-step-title')).toHaveText('Personal information');await expect(plan).toHaveCount(0);await fillStep(page);
- await form.getByRole('button',{name:'Continue',exact:true}).click();await expect(page.locator('#onboarding-step-title')).toHaveText('Vehicle information');await fillStep(page);await form.getByRole('checkbox').first().check();
- await form.getByRole('button',{name:'Continue',exact:true}).click();await expect(page.locator('#onboarding-step-title')).toHaveText('Secure information');await expect(plan).toHaveCount(0);await fillStep(page);
- await form.getByRole('button',{name:'Continue',exact:true}).click();
- await expect(page.locator('#onboarding-step-title')).toHaveText('Review & submit');
- await form.getByRole('checkbox',{name:'Confirm and submit for review',exact:true}).check();
- await form.getByRole('button',{name:'Submit for review',exact:true}).click();
+ await plan.getByRole('button',{name:'Yes, I have a vehicle',exact:true}).click();await fillStep(page);await form.getByRole('checkbox').first().check();
+ await form.getByRole('button',{name:'Continue',exact:true}).click();await expect(page.locator('#onboarding-step-title')).toHaveText('Secure information');await expect(plan).toHaveCount(0);
+ await expect(form.locator('input[name=accountNumber]')).toHaveValue(values.accountNumber);
+ await form.getByRole('button',{name:'Continue',exact:true}).click();await expect(page.locator('#onboarding-step-title')).toHaveText('Review & submit');
+ await form.getByRole('checkbox',{name:'Confirm and submit for review',exact:true}).check();await form.getByRole('button',{name:'Submit for review',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Your LYC applications'})).toBeVisible();
  expect(drafts).toHaveLength(1);expect(drafts[0]).toMatchObject({id:1,submissionId:7});
- expect(writes.filter(w=>w.path==='/api/onboarding/submit')).toHaveLength(1);
- expect(writes.find(w=>w.path==='/api/onboarding/submit')?.body.draftId).toBe(1);
+ expect(writes.filter(w=>w.path==='/api/onboarding/submit')).toHaveLength(1);expect(writes.find(w=>w.path==='/api/onboarding/submit')?.body.draftId).toBe(1);
 });
 
 test('admin can filter pending no-car applications and contact the applicant without client conversion',async({page})=>{
