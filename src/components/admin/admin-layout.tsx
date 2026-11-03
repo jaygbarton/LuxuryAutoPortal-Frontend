@@ -133,6 +133,7 @@ const ADMIN_FORM_TABS: { href: string; label: string; icon: any }[] = [
  *  horizontal strip. Each child uses ?section= so a sidebar click lands on
  *  that form without a new route. */
 const CLIENT_FORM_TABS: { href: string; label: string; icon: any }[] = [
+  { href: "/lyc/status", label: "My LYC applications", icon: ClipboardList },
   { href: "/admin/forms?section=client-onboarding&item=lyc", label: "Client Onboarding Form", icon: ClipboardList },
   { href: "/admin/forms?section=client-onboarding&item=car-on", label: "Car On-boarding", icon: Car },
   { href: "/admin/forms?section=client-onboarding&item=car-off", label: "Car Off-boarding", icon: LogOut },
@@ -185,6 +186,7 @@ const allSidebarItems: SidebarItem[] = [
   { href: "/admin/admins", label: "Admins", icon: Users, roles: ["admin"] },
   { href: "/admin/co-hosts", label: "Co-Hosts", icon: Users, roles: ["admin"] },
   { href: "/admin/my-co-host-cars", label: "My Co-Host Cars", icon: Car, roles: ["admin"] },
+  { href: "/admin/applicants", label: "Applicants", icon: Users, roles: ["admin"] },
   { href: "/admin/clients", label: "Clients", icon: Users, roles: ["admin"] },
   { href: "/cars", label: "Cars", icon: Car, roles: ["admin", "client"] },
   { href: "/admin/car-block-off", label: "Car Block Off", icon: CalendarOff, roles: ["client"] },

@@ -1,55 +1,80 @@
-# Reviewed owner onboarding
+# LYC accounts, applications and reviewed onboarding
 
-## User flow
+## Agreed sequence
 
-1. Submit the public application at `/onboarding`, `/salt-lake-city/onboarding` or `/wilmington-nc/onboarding`.
-2. GLA reviews and edits it at `/admin/forms?section=client-onboarding&item=lyc`, then approves it. Approval creates or links the exact-email owner profile/account, requests its existing account email, sends the initial contract, and retains the configured LYC Slack/admin notifications.
-3. Admin chooses **Create vehicle record**. The reviewed fields populate the existing `car` schema and a car-specific banking record, under the real `client.client_aid`. The vehicle remains `off_fleet` while awaiting the contract/drop-off. Existing same-owner VIN records are linked without overwriting them.
-4. Owner signs the contract. Signing is separate from approval and does not create or activate a car.
-5. Owner signs in and opens `/admin/forms?section=client-onboarding&item=car-on`. Only off-fleet vehicles with an approved, signed contract linked to that owner account are eligible. The existing physical drop-off submission activates an eligible vehicle and keeps its existing notification pathway.
+**Create applicant account → complete and submit vehicle application → GLA approval → contract sent and signed → client access → create off-fleet vehicle record → vehicle drop-off.**
 
-A vehicle record is allowed to exist before signature. The drop-off form is not available for that vehicle until signing. Vehicle creation is explicit; creating a login alone does not create/activate vehicles. Company inventory without an assigned customer owner is not given a fictitious customer contract requirement.
+Approval alone creates neither a new Client Database profile nor client permissions. A restricted applicant stays in Applicants until an approved application has a signed status, signature timestamp and stored signed contract. Signing creates or links the client profile and promotes the applicant login without changing the password. Existing clients retain their established access while adding another vehicle.
 
-## Review behavior
+The signature is saved before conversion. If conversion fails, it is preserved, the response explains that account setup needs review, and admins can retry **Complete signed client setup** / **Move account to Clients**. These recovery actions enforce the same signed-proof requirement. New manual client creation and new client-role grants cannot bypass that requirement. Established legacy clients are not retrospectively revoked because their historical contract is stored elsewhere.
 
-- Account matching is exact normalized email, never a name-only match. Duplicate accounts/profiles/VINs and conflicting owners produce actionable errors.
-- Existing passwords, account roles and owner profile/default banking values are preserved. New owner roles use the existing client role. An inactive/blocked login requires separate account review.
-- An approved application must return to Pending before editing. Owner identity/VIN cannot be changed through this editor once linked to an account or signed contract. After vehicle creation, use the existing Cars editor; historical onboarding is not silently rewritten.
-- Only changed fields are submitted. Masked sensitive values cannot overwrite stored values. The audit records field names and actor IDs, not sensitive values.
-- A version check rejects stale reviews. Creation is transactional and retry-safe. Vehicle insert, banking insert and workflow link roll back together on failure.
-- Approval, signing and vehicle status are separate. Already-active legacy vehicles are not retroactively disabled by unrelated edits. Activation or ownership changes on the guarded car services require the correct signed owner contract.
-- Pending applications no longer receive signing links at intake. Approval requests the initial contract email. Existing unsigned sent/opened links are preserved; reminders run only for approved applications. **Resend contract** uses the existing provider/endpoint and cannot replace a signed contract.
-- Application submission, approval and physical drop-off keep their existing Slack channels. Tests exercise the configured `lyc` lookup; no real Slack message or email was sent during testing. Provider acceptance does not prove delivery to an inbox.
+Vehicle creation is explicit and requires the signed application and linked client profile. It uses `client.client_aid`, not a guessed login ID. New vehicles remain `off_fleet`; creating a record does not activate it. Physical drop-off only offers eligible vehicles with approved, signed proof belonging to that owner, and its backend rechecks these conditions before activation. Company inventory without a customer owner is not given a fictitious customer contract.
 
-## Backend endpoints and schema
+## Applicant and returning-client experience
 
-Existing: public `/api/onboarding/submit`, contract sign/validate endpoints, admin approve/status/reject, and authenticated `/api/car-onboarding/submit`.
+- Sign-in offers account creation for future booking or List Your Car. Signup uses a chosen email/password and `LYC Applicant`, with no client, employee, admin or owner privileges. Matching an email never claims legacy records or resets an existing password.
+- Existing `/onboarding`, `/salt-lake-city/onboarding` and `/wilmington-nc/onboarding` entry links take a guest through signup/sign-in and then continue the application. Existing List Your Car Get started links use these entry routes.
+- Applicants use their own `/lyc/status`, `/lyc/profile`, application steps and contract link. The staff/client shell is not mounted. An API allowlist enforces the restriction independently of the UI.
+- Personal information is saved first. The full introductory questionnaire appears once, after those details, when an account has not completed a prior application/questionnaire.
+- Each later vehicle can still answer the relevant short question: **Do you have this vehicle yet?** A purchase/finance plan and an unknown planned model are supported. No fabricated VIN is used.
+- Personal/license, vehicle and banking/tax steps can be saved separately and resumed. A vehicle-free plan stays a draft; all required actual information must be supplied before final submission and approval.
+- Own personal details, saved license and complete banking/tax defaults are reused. Existing clients use their established profile and designated default bank record. A second vehicle does not overwrite the account default with car-specific banking. Explicit license uploads replace the reusable license; reopening an old draft does not.
+- `/lyc/status` shows multiple saved plans and submitted applications, with application/approval/contract/drop-off progress. Clients can add another vehicle without another account or full questionnaire.
+- Account created on and Client since are distinct. Conversion records Client since once. Established clients use their recorded legacy client date, not today's migration or login; missing dates remain unknown.
+- Mobile retains the current light/gold style. Drafts are saved on the server, not in sensitive browser-local-storage copies.
 
-New admin-scoped endpoints:
+## Admin experience
 
-- `GET /api/onboarding/submissions/:id/review`
-- `PATCH /api/onboarding/submissions/:id/review` with `{version,changes}`
-- `POST /api/onboarding/submissions/:id/create-vehicle` with `{version}`
+- `/admin/applicants` is a separate account directory beside Clients and Co-Hosts. It includes not-started accounts, saved plans and submissions, sorted closest to client access first. Search and status/name/newest/activity sorting are available.
+- Accounts expand into their vehicle applications. Review links open `/admin/forms?section=client-onboarding&item=lyc&submission=ID`.
+- Vehicle applications, physical car onboarding/drop-off and car offboarding stay under Forms. Accounts and vehicle workflows remain separate.
+- Reviews retain explicit editing, version checks and changed-field/actor audit history. Masked values cannot overwrite sensitive fields. Approved applications return to Pending before editing; linked/signed identity fields are protected. Created vehicles use the existing Cars editor.
+- Approval, conversion and vehicle creation use transactions and an advisory lock. Duplicate emails/VINs or conflicting owners produce errors, not guessed matches. Same-owner vehicles are linked without overwriting existing data.
+- Intake does not send a signing link. Approval requests the initial contract email. Resend cannot replace a signed agreement; reminders require approval.
+- Existing intake, approval, signing and drop-off notification pathways are preserved, including configured LYC Slack alerts. Tests use mocks; no actual Slack message or email was sent here.
 
-The review middleware excludes actual co-host workspaces and impersonated client/employee/co-host views, even if the underlying account has an admin role. The physical drop-off path uses existing authentication and owner/co-host scope, followed by signed-contract proof.
+## Retention
 
-Two additive InnoDB tables are initialized on first review use: `onboarding_review_workflow` and `onboarding_review_history`. No bulk migration or existing-record deletion occurs. The database user needs CREATE TABLE, normal read/write and advisory-lock support. New vehicle creation expects the existing `client_banking_info` table.
+### Never-client applicants
 
-## Source worktrees
+The daily six-month job uses the latest account creation, login and LYC activity. It can expire abandoned unsigned applications, including approved-but-unsigned ones. Signed proof, a prior client date/profile, additional roles, linked vehicles/client records or conflicting references prevent automatic removal. Approval/signing races are rechecked under locks. Unknown foreign keys roll back removal rather than being bypassed.
 
-- Frontend: `/workspace/LuxuryAutoPortal-Frontend-onboarding`, branch `onboarding-review-workflow`, starting base `f48e6933f0bca699ddadd3193a6ec16715415ff7`.
-- Backend: `/workspace/LuxuryAutoPortal-Replit-onboarding`, same branch name, starting base `c670ee1c61fe8eb8f65fc2c40ea0b62daab2ec0f`.
+Only this flow's dedicated `lyc-UUID` uploads qualify for automated file cleanup. Imported/shared/unknown storage references remain in an encrypted cleanup queue for review. This does not erase archival backups or external-system copies.
 
-These are coding-workspace Git worktrees, not a claim to have edited a live Replit editor. Other worktrees are left intact.
+### Former clients
 
-## Focused verification
+`/admin/client-retention`, linked from Clients, is a manual two-year review queue. Clients are never automatically deleted. Admins can keep an exception, remove eligible software records, or remove personal details while retaining financial history and signed agreements. Removal requires a current dependency preview, a reason and typed client ID. Unknown links, mixed/unclassified files, shared staff roles and active vehicles block removal.
 
-Backend: 74 focused/regression tests passed across seven files, including existing signup ownership and co-host write-scope checks. The initial concurrent regression run timed out during module imports while both builds ran; the serial rerun passed all tests.
+Notice is scheduled three days before the two-year anniversary. Provider acceptance and at least three days are required before removal; acceptance does not prove inbox delivery. `/lyc/records` lets a client request information. An open request pauses removal; fulfillment grants another three-day grace period.
 
-Commands: `npm run lint`, `npm run build`, and Vitest files `onboardingReview`, `onboardingNotifications`, `onboardingSlackChannel`, `onboardingAccess`, `vehicleContractPolicy` under `backend/src/services/__tests__/`, plus `signupAccountOwnership` and `coHostPaymentsAndCarWrites`. Use `--maxWorkers=1 --hookTimeout=30000 --testTimeout=30000` when checking these alongside builds in this workspace.
+Guarded vehicle status/ownership/removal services track inactivity transactionally, including reactivation between daily scans. Unknown statuses conservatively count as active. **Historical inactivity dates are not invented:** absent a reliable baseline, tracking starts with the first verified observation. Older cases need a reviewed historical-date backfill to count prior inactive years.
 
-Frontend: `npm run lint`, `npm run build`, `npx playwright test --config playwright.onboarding.config.ts`. Browser fixtures cover the public wizard at 390px/1280px, validation/back navigation, multipart license retention, sensitive summary, explicit admin editing/approval/creation, and drop-off eligibility. External requests and real submission endpoints are mocked. Local Chromium is selected by `CHROMIUM_PATH` or `/usr/bin/chromium`.
+Selective removal archives only executed-contract proof, not raw onboarding SSN/bank credentials. It retains financial/vehicle references, removes supported personal records, anonymizes/disables the login, and queues dedicated-file cleanup. Unknown schema relationships, required personal columns or legacy files can block removal. The preview explicitly excludes archived backups and external systems. Validate against the deployed schema before any real removal.
 
-Before a live rollout: reconcile current remote main; deploy the backend first, verify table initialization and endpoint access, then the frontend. With an authorized test owner, verify account email, approval-triggered contract email, signed PDF persistence, off-fleet record, drop-off eligibility and actual Slack delivery. No production database or provider delivery was exercised in this coding workspace. Local tests do not replace these deployment checks.
+## Source and configuration
 
-The current remote main branches were re-fetched before handoff and still matched the starting bases. No unrelated files, main branches or other worktrees were replaced. No push or production deployment is included in this source handoff.
+- Frontend: `/workspace/LuxuryAutoPortal-Frontend-onboarding`, branch `onboarding-review-workflow`; remote base `f48e6933f0bca699ddadd3193a6ec16715415ff7`.
+- Backend: `/workspace/LuxuryAutoPortal-Replit-onboarding`, same branch; remote base `c670ee1c61fe8eb8f65fc2c40ea0b62daab2ec0f`.
+- Earlier local onboarding commits: frontend `7501834eb8ed9f86e5d682366dc9ed8d4580f98a`, backend `3f7dae0936f0a9f909caf4d478cec9ae94d3229d`. This continuation builds on them. These are coding-workspace Git worktrees, not the live Replit editor.
+- Both remote main branches were fetched during final validation and still matched these bases. Other worktrees and unrelated work were preserved. No push, deployment, production database change or actual provider message was performed.
+- Additive InnoDB tables: `onboarding_review_workflow`, `onboarding_review_history`, `lyc_applicant_profiles`, `lyc_application_drafts`, `lyc_draft_secure`, `lyc_account_defaults`, `lyc_account_questionnaire`, `lyc_account_lifecycle`, `lyc_expired_document_cleanup`, `client_record_retention`, `client_retained_contracts`. Initialization is on first use; source import performs no bulk migration. DB access needs CREATE TABLE, read/write, transactions and advisory locks.
+- New draft private values/defaults and retained proof use AES-256-GCM with stable `LYC_DRAFT_ENCRYPTION_KEY` or existing `SESSION_SECRET` (at least 16 characters). Preserve that key across restarts and plan rotation. This does not encrypt/migrate every existing submitted-form/client column.
+- Jobs use the existing environment gate: disabled outside production unless explicitly enabled. Applicant expiry/file cleanup runs 04:25 and client review/notices 04:45, America/Denver. Keep `ENABLE_CRON=0` on staging copies containing real contacts.
+
+## Main API changes
+
+- `/api/onboarding/submit` now requires a signed-in, non-View-As account; identity is server-bound. Owned draft/version checks and transactional submission prevent retry duplicates.
+- Own account: `GET/PATCH /api/lyc/profile`, `GET /api/lyc/reusable`, `POST /api/lyc/questionnaire`, `GET /api/lyc/applications`, `POST /api/lyc/drafts`, `GET/PATCH /api/lyc/drafts/:id`, `POST /api/lyc/drafts/:id/documents`.
+- GLA admins: `/api/onboarding/applicants`, `/api/onboarding/applicant-progress`, submission `review`, `activate-client`, `create-vehicle`. Actual co-host workspaces and View As are excluded.
+- Retention: own `GET /api/lyc/retention`, `POST /api/lyc/retention/request`; GLA admin `/api/admin/client-retention` and per-client `preview`, `decision`, `fulfilled`, `contracts`.
+- Removed/anonymized clients cannot keep using an already-open private API/file session.
+
+## Verification and rollout limits
+
+147 backend tests passed (130 workflow tests plus 17 cron-gate checks) across onboarding review/notifications/Slack/access, contract policy, signup ownership, co-host write scope, applicant access/encryption/races, reusable details, signed client access and retention. These use fixture databases/mocks, not live MySQL or real provider delivery.
+
+13 frontend route-policy tests passed. Eleven browser scenarios passed overall: mobile/desktop onboarding, admin review/signed creation, drop-off eligibility, signup, applicant staff-shell exclusion, resume without a car, returning-client reuse, applicant sorting/conversion and retention review. Ten passed in the combined run; retention passed separately after correcting its ambiguous accessibility selector. External requests/submissions were mocked; previews listened on loopback only.
+
+Commands: backend `npm run build` and targeted Vitest files in `src/services/__tests__/` with `--maxWorkers=1 --hookTimeout=30000 --testTimeout=30000`; frontend `npm run lint`, `npm run build`, `npx vitest run src/lib/customerHelpRoutes.test.ts`, `npx playwright test --config playwright.onboarding.config.ts`. Run `git diff --check` before handoff. No claim of zero possible bugs is made.
+
+Before rollout, reconcile main again and validate additive schema, encryption key and actual ownership joins in staging with cron disabled. Deploy backend before frontend only when authorized. Use an authorized test owner to verify approval email/Slack, signed PDF persistence/conversion, off-fleet creation and drop-off. Check storage across a deploy: existing onboarding/contract uploaders still have local-disk fallbacks. Inspect retention previews against real schema/storage dependencies and supply verified historical dates where needed. Local builds do not establish production behavior or delivery.

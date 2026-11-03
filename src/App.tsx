@@ -1,3 +1,8 @@
+import ClientRetention from '@/pages/admin/client-retention';
+import ClientRecordsRequest from '@/pages/client-records-request';
+import Applicants from '@/pages/admin/applicants';
+import { ApplicantBoundary } from '@/components/onboarding/ApplicantBoundary';
+import LycWorkspace from '@/pages/lyc-workspace';
 import { CustomerHelpWidget } from "@/components/customer-help/CustomerHelpWidget";
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
@@ -289,6 +294,10 @@ function Router() {
       <Route path="/sign-contract/:token" component={SignContract} />
       <Route path="/maintenance-approval/:token" component={MaintenanceApproval} />
       <Route path="/signup" component={Signup} />
+      <Route path="/lyc/status"><LycWorkspace /></Route>
+      <Route path="/lyc/records" component={ClientRecordsRequest} />
+      <Route path="/lyc/profile"><LycWorkspace /></Route>
+      <Route path="/admin/lyc-progress"><LycWorkspace admin /></Route>
       <Route path="/login" component={AdminLogin} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/reset-password" component={ResetPasswordPage} />
@@ -303,8 +312,10 @@ function Router() {
         themselves in <AdminLayout> become a no-op via AdminLayoutMountedContext.
       */}
       <Route>
-        <AdminLayout>
+        <ApplicantBoundary><AdminLayout>
           <Switch>
+            <Route path="/admin/client-retention"><RequireRole roles={["isAdmin"]}><ClientRetention /></RequireRole></Route>
+            <Route path="/admin/applicants"><RequireRole roles={["isAdmin"]}><Applicants /></RequireRole></Route>
             {/* Staff-only routes */}
             <Route path="/staff/dashboard">
               <RequireRole roles={["isEmployee"]}><StaffDashboard /></RequireRole>
@@ -700,7 +711,7 @@ function Router() {
             </Route>
             <Route component={NotFound} />
           </Switch>
-        </AdminLayout>
+        </AdminLayout></ApplicantBoundary>
       </Route>
     </Switch>
     </Suspense>

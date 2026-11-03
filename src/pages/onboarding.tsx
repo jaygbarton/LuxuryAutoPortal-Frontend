@@ -1,5 +1,9 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Redirect } from 'wouter';
+import { LycQuestionnaire, VehiclePlanFields } from '@/components/onboarding/LycQuestionnaire';
+import { lycRequest,personalFields,questionnaireFields } from '@/lib/lyc';
 import { optionKeywords } from "@/lib/select-search";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -133,6 +137,7 @@ const sections = [
 
 
 export default function Onboarding() {
+  const queryClient=useQueryClient();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -143,7 +148,17 @@ export default function Onboarding() {
   const [isDraggingLicense, setIsDraggingLicense] = useState(false);
   const { toast } = useToast();
   const { salesReps } = useSalesReps();
-  const [currentPath] = useLocation();
+  const [currentPath, setLocation] = useLocation();
+  const auth=useQuery({queryKey:['/api/auth/me'],queryFn:()=>lycRequest('/api/auth/me')});
+  const [loaded,setLoaded]=useState(false),[loadError,setLoadError]=useState('');
+  const savingRef=useRef(false);
+  const [saving,setSaving]=useState(false),[savedMessage,setSavedMessage]=useState('');
+  const [draft,setDraft]=useState<any>(null);
+  const [showPlan,setShowPlan]=useState(false);
+  const [questionnaireDone,setQuestionnaireDone]=useState(false);
+  const [reusedBank,setReusedBank]=useState(false);
+  const [answers,setAnswers]=useState<any>({hasVehicle:null});
+  const [initialDraftId]=useState(()=>new URLSearchParams(window.location.search).get('draft'));
   const publicLocation = getPreferredPublicLocation(currentPath);
   const suggestedCarsHref = publicLocation?.availablePages.suggestedCars === false
     ? null
@@ -214,6 +229,60 @@ export default function Onboarding() {
     },
   });
 
+  useEffect(()=>{
+    if(!auth.data?.user || loaded) return;
+    let active=true;
+    (async()=>{
+      try {
+        const [reusable,saved]=await Promise.all([lycRequest('/api/lyc/reusable'),initialDraftId?lycRequest(`/api/lyc/drafts/${initialDraftId}`):Promise.resolve(null)]);
+        if(!active) return;
+        if(saved?.draft.submissionId){setLocation('/lyc/status');return;}
+        const {profile,banking,questionnaireCompleted}=reusable;
+        setQuestionnaireDone(questionnaireCompleted);setReusedBank(!!banking?.accountNumber);
+        const values={...form.getValues(),...profile,...banking,...(saved?.draft.fields || {}),date:new Date().toLocaleDateString('en-CA')};
+        // The displayed account identity is authoritative; draft fields cannot replace it.
+        values.emailOwner=profile.emailOwner;values.firstNameOwner=profile.firstNameOwner;values.lastNameOwner=profile.lastNameOwner;
+        form.reset(values);setDraft(saved?.draft || null);
+        setAnswers({hasVehicle:saved?.draft.hasVehicle ?? (questionnaireCompleted?true:null),...Object.fromEntries(questionnaireFields.map(key=>[key,saved?.draft.fields[key] || '']))});
+        const personalReady=wizardSteps[0].fields.every(key=>!!values[key as keyof typeof values]);
+        setShowPlan(!questionnaireCompleted&&personalReady);
+        if(new URLSearchParams(window.location.search).get('step')==='vehicle') setCurrentStep(1);
+        else if(wizardSteps[0].fields.every(key=>!!values[key as keyof typeof values])) setCurrentStep(1);
+        setLoaded(true);setLoadError('');
+      }catch(e:any){if(active)setLoadError(e.message);}
+    })();
+    return ()=>{active=false;};
+  },[auth.data?.user?.id,loaded,initialDraftId]);
+
+  const saveProgress=async()=>{
+    if(savingRef.current) throw new Error('A save is already in progress.');
+    savingRef.current=true;setSaving(true);setSavedMessage('');
+    try {
+      const values=form.getValues();
+      await lycRequest('/api/lyc/profile','PATCH',Object.fromEntries(personalFields.map(key=>[key,values[key as keyof OnboardingFormData] || ''])));
+      const fields=Object.fromEntries([...wizardSteps[1].fields,...wizardSteps[2].fields].filter(key=>values[key as keyof OnboardingFormData]!==undefined).map(key=>[key,values[key as keyof OnboardingFormData]]));
+      for(const key of questionnaireFields) if(answers[key]) fields[key]=answers[key];
+      let result=await lycRequest(draft?`/api/lyc/drafts/${draft.id}`:'/api/lyc/drafts',draft?'PATCH':'POST',{hasVehicle:answers.hasVehicle,fields,...(draft?{version:draft.version}:{})});
+      // Keep the new version even if document upload fails so Retry is safe.
+      setDraft(result.draft);
+      window.history.replaceState(null,'',`${currentPath}?draft=${result.draft.id}`);
+      if(insuranceCardFile||driversLicenseFile){
+        const body=new FormData();if(insuranceCardFile)body.append('insuranceCard',insuranceCardFile);if(driversLicenseFile)body.append('driversLicense',driversLicenseFile);
+        const response=await fetch(buildUploadApiUrl(`/api/lyc/drafts/${result.draft.id}/documents`),{method:'POST',credentials:'include',body});
+        const uploaded=await response.json();if(!response.ok)throw new Error(uploaded.error || 'Documents could not be saved. Please retry.');
+        result=uploaded;setDraft(result.draft);setInsuranceCardFile(null);setDriversLicenseFile(null);
+      }
+      await queryClient.invalidateQueries({queryKey:['/api/lyc/applications']});
+      await queryClient.invalidateQueries({queryKey:['/api/lyc/profile']});
+      setSavedMessage('Progress saved. You can safely return later.');
+      return result.draft;
+    }finally{savingRef.current=false;setSaving(false);}
+  };
+  const saveAndGo=async(step?:number)=>{
+    try{await saveProgress();if(step!==undefined){setShowPlan(false);goToStep(step);}}
+    catch(e:any){setStepError(e.message);}
+  };
+
   const freeOilChanges = form.watch("freeDealershipOilChanges");
 
   // Keep dependent field clean when "No" is selected
@@ -229,8 +298,9 @@ export default function Onboarding() {
     requestAnimationFrame(() => document.getElementById("onboarding-step-title")?.focus());
   };
   const continueStep = async () => {
-    const valid = await form.trigger(wizardSteps[currentStep].fields as (keyof OnboardingFormData)[], { shouldFocus: true });
-    if (valid) goToStep(currentStep + 1);
+    const fields=currentStep===1&&answers.hasVehicle!==true?[]:currentStep===2&&answers.hasVehicle!==true?wizardSteps[currentStep].fields.filter(key=>!["carManufacturerWebsite","carManufacturerUsername","password"].includes(key)):wizardSteps[currentStep].fields;
+    const valid = await form.trigger(fields as (keyof OnboardingFormData)[], { shouldFocus: true });
+    if (valid) {await saveAndGo(currentStep + 1);if(currentStep===0&&!questionnaireDone)setShowPlan(true);}
     else setStepError("Please complete the highlighted fields before continuing.");
   };
   const showErrors = (errors: typeof form.formState.errors) => {
@@ -242,46 +312,13 @@ export default function Onboarding() {
   const onSubmit = async (data: OnboardingFormData) => {
     setIsSubmitting(true);
     try {
-      // Use upload URL when sending FormData so multipart body is forwarded correctly in dev
-      const endpoint =
-        insuranceCardFile || driversLicenseFile
-          ? buildUploadApiUrl("/api/onboarding/submit")
-          : buildApiUrl("/api/onboarding/submit");
-      
-      // Use FormData if there are files, otherwise use JSON
-      let requestBody: FormData | string;
-      let headers: HeadersInit;
-      
-      if (insuranceCardFile || driversLicenseFile) {
-        const formData = new FormData();
-        // Append all form fields
-        Object.entries(data).forEach(([key, value]) => {
-          if (value !== null && value !== undefined) {
-            if (typeof value === "boolean") {
-              formData.append(key, value.toString());
-            } else if (Array.isArray(value)) {
-              // Stringify arrays (e.g., vehicleFeatures)
-              formData.append(key, JSON.stringify(value));
-            } else {
-              formData.append(key, String(value));
-            }
-          }
-        });
-        // Append the insurance card file if present
-        if (insuranceCardFile) {
-          formData.append("insuranceCard", insuranceCardFile);
-        }
-        // Append drivers license file
-        if (driversLicenseFile) {
-          formData.append("driversLicense", driversLicenseFile);
-        }
-        requestBody = formData;
-        // Don't set Content-Type header for FormData - browser will set it with boundary
-        headers = {};
-      } else {
-        requestBody = JSON.stringify(data);
-        headers = { "Content-Type": "application/json" };
-      }
+      if(answers.hasVehicle!==true) throw new Error('Save your progress and add your actual vehicle details when ready. All required steps must be complete before review.');
+      const saved=await saveProgress();
+      const submittedData={...data,draftId:saved.id,draftVersion:saved.version};
+      // Documents were persisted with this owned draft by Save progress.
+      const endpoint=buildApiUrl('/api/onboarding/submit');
+      const headers={'Content-Type':'application/json'};
+      const requestBody=JSON.stringify(submittedData);
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -303,12 +340,14 @@ export default function Onboarding() {
           if (fieldStep >= 0) goToStep(fieldStep);
         }
         
-        throw new Error(error.message || "Submission failed");
+        throw new Error(error.error || error.message || "Submission failed");
       }
 
       await response.json();
 
+      await queryClient.invalidateQueries({queryKey:["/api/lyc/applications"]});
       setIsSubmitted(true);
+      setLocation("/lyc/status");
     } catch (error: any) {
       toast({
         title: "Submission Failed",
@@ -320,6 +359,11 @@ export default function Onboarding() {
     }
   };
 
+  if(auth.isLoading) return <p className="p-6" role="status">Loading your account…</p>;
+  if(auth.error) return <p role="alert" className="p-6">Unable to check your account. <button onClick={()=>void auth.refetch()}>Retry</button></p>;
+  if(!auth.data?.user) return <Redirect to={`/signup?next=${encodeURIComponent(currentPath+window.location.search)}`}/>;
+  if(loadError) return <div className="p-6" role="alert">{loadError} <Button variant="outline" onClick={()=>window.location.reload()}>Retry</Button></div>;
+  if(!loaded) return <p className="p-6" role="status">Loading your saved details…</p>;
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-background">
@@ -446,12 +490,18 @@ export default function Onboarding() {
 
             <section className="order-1 min-w-0 lg:order-2">
               <div className="mb-5">
-                <h2 className="text-2xl font-semibold text-foreground">Onboarding Form</h2>
+                <h2 className="text-2xl font-semibold text-foreground">Your LYC onboarding steps</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Four steps to apply. Your entries stay in this page while you move between steps; submit before closing it.
+                  Complete these steps in any order. Save and return later; we review your application after all required steps are complete.
                 </p>
               </div>
 
+          <div className="mb-4 flex flex-wrap gap-2">{!questionnaireDone&&<Button type="button" variant="outline" disabled={saving} onClick={()=>setShowPlan(!showPlan)}>{showPlan?'Hide vehicle questionnaire':'First application questionnaire'}</Button>}<Button type="button" variant="outline" disabled={saving} onClick={async()=>{try{await saveProgress();setLocation('/lyc/status');}catch(e:any){setStepError(e.message);}}}>Save & exit</Button></div>
+          {showPlan&&!questionnaireDone&&<div className="mb-5"><LycQuestionnaire answers={answers} onChange={setAnswers} busy={saving} suggestedCarsHref={suggestedCarsHref} onContinue={async()=>{try{await saveProgress();await lycRequest('/api/lyc/questionnaire','POST',answers);setQuestionnaireDone(true);setShowPlan(false);goToStep(1);}catch(e:any){setStepError(e.message);}}}/></div>}
+          {reusedBank&&<p className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">Your saved payment and tax details are included. You only need to add this vehicle’s information; use the other steps if anything has changed.</p>}
+          {savedMessage&&<p role="status" className="mb-4 text-sm text-green-800">{savedMessage}</p>}
+          {!!draft?.documents?.driversLicenseUrls?.length&&<p className="mb-2 text-sm">Driver’s license saved with this application.</p>}
+          {!!draft?.documents?.insuranceCardUrl&&<p className="mb-2 text-sm">Insurance document saved with this application.</p>}
           <Form {...form}>
             <form noValidate onSubmit={event => {
               if (currentStep < wizardSteps.length - 1) { event.preventDefault(); void continueStep(); }
@@ -459,7 +509,7 @@ export default function Onboarding() {
             }} className="space-y-4">
               <ol aria-label="Onboarding progress" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {wizardSteps.map((step, index) => <li key={step.title} aria-current={currentStep === index ? "step" : undefined} className={`rounded-lg border p-3 text-sm ${currentStep === index ? "border-primary bg-primary/10 font-semibold" : "text-muted-foreground"}`}>
-                  {index + 1}. {step.title}
+                  <button type="button" className="w-full text-left" disabled={saving||isSubmitting} onClick={()=>void saveAndGo(index)}>{index + 1}. {step.title}</button>
                 </li>)}
               </ol>
               <div>
@@ -467,7 +517,9 @@ export default function Onboarding() {
                 <p className="mt-1 text-sm text-muted-foreground">{wizardSteps[currentStep].description}</p>
               </div>
               {stepError && <p role="alert" className="text-sm text-destructive">{stepError}</p>}
-              {sections.filter(section => wizardSteps[currentStep].sections.includes(section.id)).map((step) => (
+              {currentStep===1&&questionnaireDone&&answers.hasVehicle===true&&<Button type="button" variant="outline" onClick={()=>setAnswers({...answers,hasVehicle:false})}>I’m still planning this vehicle — save its details for later</Button>}
+              {currentStep===1&&answers.hasVehicle!==true&&<div className="space-y-3 rounded-lg border bg-primary/5 p-4"><h4 className="font-semibold">Add your vehicle when you’re ready</h4><p className="text-sm">You can complete personal and payment/tax details now. No VIN or insurance information is required to save your progress.</p>{questionnaireDone&&<VehiclePlanFields answers={answers} onChange={setAnswers} suggestedCarsHref={suggestedCarsHref}/>}<Button type="button" onClick={()=>{setAnswers({...answers,hasVehicle:true});setShowPlan(false);}}>I now have a vehicle — add its details</Button></div>}
+              {sections.filter(section => wizardSteps[currentStep].sections.includes(section.id) && !(answers.hasVehicle!==true&&[3,4,5,7].includes(section.id))).map((step) => (
                 <Card key={step.id} className="bg-card border-primary/20 overflow-hidden">
                   <h4 className="p-4 text-base font-semibold">{step.title}</h4>
                   <CardContent className="p-4 space-y-4 border-t border-primary/20">
@@ -2098,9 +2150,11 @@ export default function Onboarding() {
                           </div>
                 <FormMessage>{form.formState.errors.confirmAgreement?.message}</FormMessage>
               </div>}
-              <div className="flex gap-3 pt-4 border-t border-primary/20">
-                {currentStep > 0 && <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => goToStep(currentStep - 1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>}
-                <Button type="submit" className="ml-auto min-h-11" disabled={isSubmitting}>
+              {currentStep===3&&answers.hasVehicle!==true&&<p className="rounded border border-primary/30 bg-primary/5 p-3 text-sm">Your plan is saved as an application in progress. Return to add your vehicle details before submitting for approval.</p>}
+              <div className="flex flex-wrap gap-3 pt-4 border-t border-primary/20">
+                <Button type="button" variant="outline" disabled={saving||isSubmitting} onClick={()=>void saveAndGo()}>Save this step</Button>
+                {currentStep > 0 && <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => void saveAndGo(currentStep - 1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>}
+                <Button type="submit" className="ml-auto min-h-11" disabled={isSubmitting||saving||(currentStep===3&&answers.hasVehicle!==true)}>
                   {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting…</> : currentStep === 3 ? "Submit for review" : <>Continue<ArrowRight className="ml-2 h-4 w-4" /></>}
                 </Button>
               </div>

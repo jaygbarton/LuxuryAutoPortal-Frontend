@@ -1,3 +1,4 @@
+import {applicantUser,lycNext} from '@/lib/lyc';
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -24,7 +25,7 @@ export default function AdminLogin() {
 
   useEffect(() => {
     if (authData?.user) {
-      setLocation("/dashboard");
+      setLocation(lycNext(new URLSearchParams(window.location.search).get("next"), applicantUser(authData.user) ? "/lyc/status" : "/dashboard"));
     }
   }, [authData, setLocation]);
 
@@ -67,7 +68,7 @@ export default function AdminLogin() {
         description: `Logged in as ${data.user.firstName}`,
       });
 
-      setLocation("/dashboard");
+      setLocation(lycNext(new URLSearchParams(window.location.search).get("next"), applicantUser(data.user) ? "/lyc/status" : "/dashboard"));
     },
     onError: (error: any) => {
       toast({
@@ -106,7 +107,7 @@ export default function AdminLogin() {
             alt="Golden Luxury Auto" 
             className="h-28 sm:h-40 md:h-[200px] w-auto mx-auto object-contain mb-4 drop-shadow-[0_0_15px_rgba(234,235,128,0.5)]"
           />
-          <p className="text-muted-foreground text-sm">Admin Portal Login</p>
+          <p className="text-muted-foreground text-sm">Sign in to Golden Luxury Auto</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -118,7 +119,7 @@ export default function AdminLogin() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="bg-card border-border text-foreground focus:border-primary focus:ring-[#D3BC8D] h-11"
-              placeholder="admin@goldenluxuryauto.com"
+              placeholder="you@example.com"
               required
               data-testid="input-email"
             />
@@ -156,6 +157,7 @@ export default function AdminLogin() {
           </Button>
         </form>
 
+        <p className="mt-6 text-center text-sm"><a className="underline" href={`/signup?next=${encodeURIComponent(lycNext(new URLSearchParams(window.location.search).get("next")))}`}>Create account for future bookings or the LYC program</a></p>
         <p className="text-center text-muted-foreground text-xs mt-6">
           Premium vehicle management portal
         </p>

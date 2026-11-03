@@ -86,7 +86,7 @@ export const CUSTOMER_HELP_COHOST_PATTERNS = [
 ] as const;
 
 export interface CustomerHelpUser {
-  isAdmin?: boolean; isEmployee?: boolean; isClient?: boolean; isCoHost?: boolean; isSuperAdmin?: boolean;
+  isApplicant?: boolean; roleName?: string; isAdmin?: boolean; isEmployee?: boolean; isClient?: boolean; isCoHost?: boolean; isSuperAdmin?: boolean;
   viewAsClient?: { clientId?: number }; viewAsCoHost?: { coHostId?: number }; viewAsEmployee?: { employeeId?: number };
 }
 
@@ -111,6 +111,7 @@ export function customerHelpAllowed(location: string, user?: CustomerHelpUser | 
   const path = location.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
   if ((CUSTOMER_HELP_PUBLIC_PATHS as readonly string[]).includes(path) || /^\/(sign-contract|maintenance-approval)\/[^/]+$/.test(path)) return true;
   if (!user || user.viewAsEmployee?.employeeId) return false;
+  if (['/lyc/status','/lyc/profile','/lyc/records'].includes(path)) return !user.isAdmin && !user.isEmployee && !!(user.isApplicant || user.roleName==='LYC Applicant' || user.isClient);
   if (path === '/admin/profile' || path === '/admin/operations') {
     const customerContext = !!(user.isCoHost || user.isClient || user.viewAsClient?.clientId || user.viewAsCoHost?.coHostId);
     // Both routes already admit admin-flagged customers/co-hosts. Client-only

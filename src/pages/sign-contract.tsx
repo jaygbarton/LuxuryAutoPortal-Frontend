@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, X, Check } from "lucide-react";
@@ -49,7 +49,9 @@ export default function SignContract() {
     "/contracts/GoldenLuxuryAuto_Contract_Template.pdf"
   );
   const { toast } = useToast();
+  const authCache=useQueryClient();
   const [signedComplete, setSignedComplete] = useState(false);
+  const [clientAccessPending,setClientAccessPending]=useState(false);
   const signPdfFnRef = useRef<(() => Promise<Blob>) | null>(null);
 
   // Validate token
@@ -141,7 +143,9 @@ export default function SignContract() {
           title: "Contract signed successfully!",
           description: "Your contract has been saved. Next, sign in to complete the vehicle drop-off form.",
         });
+        setClientAccessPending(!!result.clientAccessPending);
         setSignedComplete(true);
+        void authCache.invalidateQueries({queryKey:['/api/auth/me']});
       } else {
         toast({
           title: "Contract declined",
@@ -174,7 +178,7 @@ export default function SignContract() {
     }
   };
 
-  if (signedComplete) return <div className="min-h-screen bg-background px-4 py-16"><div className="mx-auto max-w-xl space-y-5 rounded-xl border border-primary/30 bg-card p-6 text-center"><h1 className="text-2xl font-semibold">Contract signed</h1><p className="text-muted-foreground">Next, sign in to complete the vehicle drop-off form when you bring your vehicle to the GLA lot. If your vehicle is not listed yet, GLA still needs to finish creating its record.</p><Button onClick={()=>setLocation('/admin/forms?section=client-onboarding&item=car-on')}>Continue to vehicle drop-off</Button><p className="text-sm text-muted-foreground">Use the password setup email from your application approval if you have not created your GLA password yet.</p></div></div>;
+  if (signedComplete) return <div className="min-h-screen bg-background px-4 py-16"><div className="mx-auto max-w-xl space-y-5 rounded-xl border border-primary/30 bg-card p-6 text-center"><h1 className="text-2xl font-semibold">Contract signed</h1>{clientAccessPending&&<p role="status">Your signature is saved. GLA needs to finish enabling your client access before vehicle drop-off. You can follow your application status in the meantime.</p>}<p className="text-muted-foreground">Next, sign in to complete the vehicle drop-off form when you bring your vehicle to the GLA lot. If your vehicle is not listed yet, GLA still needs to finish creating its record.</p><Button onClick={()=>setLocation(clientAccessPending?'/lyc/status':'/admin/forms?section=client-onboarding&item=car-on')}>{clientAccessPending?'View application status':'Continue to vehicle drop-off'}</Button><p className="text-sm text-muted-foreground">Use the password setup email from your application approval if you have not created your GLA password yet.</p></div></div>;
 
   // Loading state
   if (isValidating) {

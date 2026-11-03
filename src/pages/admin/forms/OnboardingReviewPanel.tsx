@@ -1,3 +1,4 @@
+import { LycProgress } from '@/components/onboarding/LycProgress';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'wouter';
@@ -43,7 +44,7 @@ export function OnboardingReviewPanel({submission}:{submission:Record<string,any
       queryClient.invalidateQueries({queryKey:['sidebar-badges']}),
     ]);
   };
-  const action = async (kind:'save'|'approve'|'pending'|'create'|'contract') => {
+  const action = async (kind:'save'|'approve'|'pending'|'create'|'contract'|'activate') => {
     setBusy(true); setError(''); setMessage('');
     try {
       let result:any;
@@ -54,10 +55,12 @@ export function OnboardingReviewPanel({submission}:{submission:Record<string,any
         setEditing(false); setChanges({}); setMessage('Review changes saved.');
       } else if (kind === 'approve') {
         result = await request(`${root}/${id}/approve`,{version});
-        setMessage(result.data?.notificationWarnings?.length ? `Approved. Delivery needs checking: ${result.data.notificationWarnings.join(', ')}.` : 'Approved. Owner account/profile setup and existing email/Slack notifications have been requested.');
+        setMessage(result.data?.notificationWarnings?.length ? `Approved. Delivery needs checking: ${result.data.notificationWarnings.join(', ')}.` : 'Approved. The contract email and existing Slack alerts have been requested. Applicants remain applicants until signing.');
       } else if (kind === 'pending') {
         result = await request(`${root}/${id}/status`,{status:'pending',version},'PATCH');
         setMessage('Returned to Pending. Review and approve again after making changes.');
+      } else if(kind==='activate'){
+        result=await request(`${root}/${id}/activate-client`,{});setMessage('Signed client account setup completed.');
       } else if (kind === 'contract') {
         result = await request(`/api/contracts/lyc/${id}/resend`,{});
         setMessage('Contract email requested. Confirm delivery in the email provider if needed.');
@@ -70,10 +73,11 @@ export function OnboardingReviewPanel({submission}:{submission:Record<string,any
     finally {setBusy(false);}
   };
   return <section aria-label="Onboarding review workflow" className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-4">
-    <div><h3 className="font-semibold">Review → approve → sign contract → vehicle drop-off</h3><p className="mt-1 text-sm text-muted-foreground">One application supplies the owner profile, account setup and vehicle details. Creating the vehicle does not activate it for rental. Approval sends the contract. Signing unlocks the vehicle drop-off form; the signed contract must be linked to the owner account before activation.</p></div>
+    <div><h3 className="font-semibold">Review → approve → sign contract → vehicle drop-off</h3><p className="mt-1 text-sm text-muted-foreground">Approval sends the contract and leaves new accounts as applicants. Signing creates or links the client record. Staff can then create the vehicle from this application; it remains off fleet until the signed owner completes the drop-off form.</p></div>
+    {workflow?.progress&&<LycProgress steps={workflow.progress.steps}/>}
     <div className="flex flex-wrap gap-2 text-sm"><span className="rounded border bg-background px-2 py-1">Application: {submission.status}</span><span className="rounded border bg-background px-2 py-1">Contract: {submission.contractStatus || 'pending'}</span><span className="rounded border bg-background px-2 py-1">{workflow?.carId ? `Vehicle #${workflow.carId} in system` : 'Vehicle record not yet linked'}</span></div>
     {(state.error || error) && <p role="alert" className="text-sm text-destructive">{error || state.error?.message} <Button type="button" variant="ghost" disabled={busy} onClick={()=>void refresh()}>Refresh review</Button></p>}
-    {submission.contractStatus !== 'signed' && <p className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Awaiting contract signature. The vehicle may be recorded off fleet, but it cannot be activated until its owner-linked contract is signed.</p>}
+    {submission.contractStatus !== 'signed' && <p className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Awaiting contract signature. This applicant will not move to Clients or create a new vehicle record until the contract is signed.</p>}
     {submission.status === 'approved' && submission.contractStatus !== 'signed' && <Button type="button" variant="outline" disabled={busy} onClick={()=>void action('contract')}>Resend contract</Button>}
     {submission.status === 'approved' && submission.contractStatus === 'signed' && <p className="text-sm text-muted-foreground">Contract signed. {workflow?.carId ? 'The owner can now complete the vehicle drop-off form.' : 'Create the vehicle record to make it available in the owner’s drop-off form.'}</p>}
     {message && <p role="status" className="text-sm">{message}</p>}
@@ -83,8 +87,8 @@ export function OnboardingReviewPanel({submission}:{submission:Record<string,any
         <Button type="button" variant="outline" disabled={busy || submission.status === 'approved'} onClick={()=>{setChanges({});setEditing(true);setError('');}}>Edit application</Button>
         {submission.status === 'approved' ? <>
           <Button type="button" variant="outline" disabled={busy} onClick={()=>void action('pending')}>Return to Pending to edit</Button>
-          <Button type="button" disabled={busy || !version || !workflow.clientId} onClick={()=>setConfirmCreate(true)}>Create vehicle record</Button>
-          {!workflow.clientId && <Button type="button" disabled={busy || !version} onClick={()=>void action('approve')}>Complete owner account setup</Button>}
+          <Button type="button" disabled={busy || !version || !workflow.clientId || submission.contractStatus!=='signed'} onClick={()=>setConfirmCreate(true)}>Create vehicle record</Button>
+          {!workflow.clientId && submission.contractStatus==='signed' && <Button type="button" disabled={busy} onClick={()=>void action('activate')}>Complete signed client setup</Button>}
         </> : <Button type="button" disabled={busy || !version} onClick={()=>void action('approve')}>Approve application</Button>}
       </>}
     </div>}

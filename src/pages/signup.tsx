@@ -1,195 +1,42 @@
-import { useLocation } from "wouter";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-
-const signupSchema = z
-  .object({
-    firstName: z.string().min(1, "First name is required"),
-    lastName: z.string().min(1, "Last name is required"),
-    email: z.string().email("Invalid email address"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    confirmPassword: z.string().min(8, "Please confirm your password"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-type SignupFormData = z.infer<typeof signupSchema>;
+import {useState} from 'react';
+import {useQuery,useQueryClient} from '@tanstack/react-query';
+import {Link,Redirect,useLocation} from 'wouter';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {lycNext,lycRequest} from '@/lib/lyc';
 
 export default function Signup() {
-  const [, setLocation] = useLocation();
-  const { toast } = useToast();
-
-  // Get email, firstName, and lastName from URL query parameters if present
-  const urlParams = new URLSearchParams(window.location.search);
-  const emailFromUrl = urlParams.get('email') || '';
-  const firstNameFromUrl = urlParams.get('firstName') || '';
-  const lastNameFromUrl = urlParams.get('lastName') || '';
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-  } = useForm<SignupFormData>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      email: emailFromUrl,
-      firstName: firstNameFromUrl,
-      lastName: lastNameFromUrl,
-    },
-  });
-
-  // Pre-fill form fields if provided in URL
-  useEffect(() => {
-    if (emailFromUrl) {
-      setValue('email', emailFromUrl);
-    }
-    if (firstNameFromUrl) {
-      setValue('firstName', firstNameFromUrl);
-    }
-    if (lastNameFromUrl) {
-      setValue('lastName', lastNameFromUrl);
-    }
-  }, [emailFromUrl, firstNameFromUrl, lastNameFromUrl, setValue]);
-
-  const signupMutation = useMutation({
-    mutationFn: async (data: Omit<SignupFormData, "confirmPassword">) => {
-      const response = await apiRequest("POST", "/api/auth/signup", data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Signup failed");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      // Mark that this is a new signup so tutorial can be shown after login
-      localStorage.setItem("gla_new_signup", "true");
-      toast({
-        title: "Account created successfully!",
-        description: "Please log in with your credentials.",
-      });
-      setLocation("/admin/login");
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Signup failed",
-        description: error.message || "Failed to create account. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const onSubmit = (data: SignupFormData) => {
-    const { confirmPassword, ...signupData } = data;
-    signupMutation.mutate(signupData);
+  const [,setLocation]=useLocation(),client=useQueryClient();
+  const next=lycNext(new URLSearchParams(window.location.search).get('next'));
+  const auth=useQuery({queryKey:['/api/auth/me'],queryFn:()=>lycRequest('/api/auth/me')});
+  const [values,setValues]=useState({firstName:'',lastName:'',email:'',phoneOwner:'',password:'',confirmPassword:''});
+  const [busy,setBusy]=useState(false),[error,setError]=useState('');
+  if(auth.data?.user) return <Redirect to={next}/>;
+  const submit=async(event:React.FormEvent)=>{
+    event.preventDefault();setError('');
+    if(values.password!==values.confirmPassword){setError('Passwords do not match.');return;}
+    setBusy(true);
+    let created=false;
+    try {
+      await lycRequest('/api/auth/signup','POST',{firstName:values.firstName.trim(),lastName:values.lastName.trim(),email:values.email.trim(),password:values.password});
+      created=true;
+      const login=await lycRequest('/api/auth/login','POST',{email:values.email.trim(),password:values.password});
+      client.clear();client.setQueryData(['/api/auth/me'],{user:login.user});
+      if(values.phoneOwner) await lycRequest('/api/lyc/profile','PATCH',{phoneOwner:values.phoneOwner});
+      setLocation(next);
+    } catch(e:any) {setError(created?'Your account was created. Sign in below to continue; do not create a second account.':e.message);}
+    finally{setBusy(false);}
   };
-
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <img
-            src="/logo.png"
-            alt="Golden Luxury Auto"
-            className="h-[200px] w-auto mx-auto object-contain mb-6 drop-shadow-[0_0_15px_rgba(234,235,128,0.5)]"
-          />
-          <h1 className="text-2xl font-semibold text-foreground mb-2">Create Your Account</h1>
-          <p className="text-muted-foreground text-sm">
-            {emailFromUrl ? "Welcome! Set your password to complete your registration" : "Sign up to access your account"}
-          </p>
-          {emailFromUrl && (
-            <p className="text-primary text-sm mt-2">
-              ✓ Your information has been pre-filled from your onboarding
-            </p>
-          )}
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* Hidden fields for firstName and lastName - pre-filled from URL params */}
-          <input type="hidden" {...register("firstName")} />
-          <input type="hidden" {...register("lastName")} />
-
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-muted-foreground text-sm">
-              Email {emailFromUrl && <span className="text-primary text-xs">(pre-filled)</span>}
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              {...register("email")}
-              className={`bg-card border-border222222] text-foreground focus:border-primary focus:ring-[#D3BC8D] h-11 ${
-                emailFromUrl ? 'cursor-not-allowed opacity-75' : ''
-              }`}
-              placeholder="john.doe@example.com"
-              readOnly={!!emailFromUrl}
-            />
-            {errors.email && (
-              <p className="text-red-700 text-xs">{errors.email.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-muted-foreground text-sm">
-              Password
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              {...register("password")}
-              className="bg-card border-border222222] text-foreground focus:border-primary focus:ring-[#D3BC8D] h-11"
-              placeholder="••••••••"
-            />
-            {errors.password && (
-              <p className="text-red-700 text-xs">{errors.password.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className="text-muted-foreground text-sm">
-              Confirm Password
-            </Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              {...register("confirmPassword")}
-              className="bg-card border-border222222] text-foreground focus:border-primary focus:ring-[#D3BC8D] h-11"
-              placeholder="••••••••"
-            />
-            {errors.confirmPassword && (
-              <p className="text-red-700 text-xs">{errors.confirmPassword.message}</p>
-            )}
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/80 font-medium h-11"
-            disabled={signupMutation.isPending}
-          >
-            {signupMutation.isPending ? "Creating account..." : "Sign Up"}
-          </Button>
-        </form>
-
-        <p className="text-center text-muted-foreground text-sm mt-6">
-          Already have an account?{" "}
-          <button
-            onClick={() => setLocation("/admin/login")}
-            className="text-blue-700 hover:underline"
-          >
-            Sign in
-          </button>
-        </p>
-      </div>
-    </div>
-  );
+  return <main className="mx-auto min-h-screen max-w-lg px-4 py-8 sm:py-12">
+    <Link href="/"><img src="/logo.png" alt="Golden Luxury Auto" className="mx-auto mb-6 h-20 w-60 object-contain"/></Link>
+    <h1 className="text-2xl font-semibold">Create your account</h1>
+    <p className="mb-6 mt-2 text-muted-foreground">For future bookings or the List Your Car program. Save your details now and complete your LYC steps whenever you’re ready.</p>
+    <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
+      {([{key:'firstName',label:'First name',type:'text',auto:'given-name'},{key:'lastName',label:'Last name',type:'text',auto:'family-name'},{key:'email',label:'Email',type:'email',auto:'email'},{key:'phoneOwner',label:'Phone (optional)',type:'tel',auto:'tel'},{key:'password',label:'Choose a password',type:'password',auto:'new-password'},{key:'confirmPassword',label:'Confirm password',type:'password',auto:'new-password'}] as const).map(field=><label key={field.key} className="text-sm">{field.label}<Input className="mt-1" type={field.type} autoComplete={field.auto} required={field.key!=='phoneOwner'} minLength={field.type==='password'?8:undefined} maxLength={field.type==='password'?128:254} value={values[field.key]} onChange={e=>setValues({...values,[field.key]:e.target.value})}/></label>)}
+      <p className="text-sm text-muted-foreground sm:col-span-2">Use at least 8 characters for your password. Your initial workspace contains your profile and LYC progress; client access follows application approval and contract signing.</p>
+      {error&&<p role="alert" className="text-destructive sm:col-span-2">{error}</p>}
+      <Button className="sm:col-span-2" disabled={busy||auth.isLoading}>{busy?'Creating your account…':'Create account & continue'}</Button>
+    </form>
+    <p className="mt-6 text-sm">Already have an account? <Link className="underline" href={`/admin/login?next=${encodeURIComponent(next)}`}>Sign in to continue</Link></p>
+  </main>;
 }
-

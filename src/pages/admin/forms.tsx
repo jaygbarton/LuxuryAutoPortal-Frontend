@@ -862,6 +862,11 @@ export default function FormsPage() {
   });
 
   // Fetch full submission details for viewing
+  useEffect(()=>{
+    const id=Number(new URLSearchParams(window.location.search).get('submission'));
+    if(Number.isSafeInteger(id)&&id>0){setSelectedSubmission({id} as any);setIsDetailsOpen(true);}
+  },[]);
+
   const { data: submissionDetails } = useQuery<{
     success: boolean;
     data: OnboardingSubmission;
@@ -2018,6 +2023,7 @@ export default function FormsPage() {
                               <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">
                                 {/* QR Code Section */}
                                 <QRCodeSection />
+                                <a href="/admin/lyc-progress" className="inline-flex min-h-11 items-center rounded-md border px-4 text-sm font-medium">Applicant progress & saved plans</a>
 
                                 <div className="mb-4">
                                   <h3 className="text-sm font-medium text-foreground mb-3">

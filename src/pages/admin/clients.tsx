@@ -731,6 +731,7 @@ export default function ClientsPage() {
   return (
     <AdminLayout>
       <div className="space-y-4 sm:space-y-6">
+        {!isCoHost&&<nav aria-label="Client directories" className="flex flex-wrap gap-2"><Button asChild variant="outline"><a href="/admin/applicants">Applicants</a></Button><Button asChild><a href="/admin/clients">Clients</a></Button><Button asChild variant="outline"><a href="/admin/co-hosts">Co-Hosts</a></Button><Button asChild variant="outline"><a href="/admin/client-retention">Records retention</a></Button></nav>}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div>
             <h1 className="text-2xl font-bold text-primary mb-1 sm:mb-2">Clients</h1>
@@ -819,13 +820,13 @@ export default function ClientsPage() {
               <span className="hidden sm:inline">Download</span>
               <span className="sm:hidden">Download</span>
             </Button>
-            <Button
-              onClick={() => setIsAddModalOpen(true)}
+            {!isCoHost&&<Button
+              onClick={() => window.location.assign('/admin/applicants')}
               className="bg-primary text-primary-foreground hover:bg-primary/80 w-full sm:w-auto"
             >
               <Plus className="w-4 h-4 sm:mr-2" />
-              Add
-            </Button>
+              Review applicants
+            </Button>}
           </div>
         </div>
 

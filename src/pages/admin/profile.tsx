@@ -280,6 +280,7 @@ export default function ClientProfilePage() {
           </Button>
         </div>
 
+        <dl className="mb-4 grid gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:grid-cols-2"><div><dt className="text-sm text-muted-foreground">Account created on</dt><dd className="font-medium">{profile.accountDates?.accountCreatedAt?new Date(profile.accountDates.accountCreatedAt).toLocaleDateString():'Date not recorded'}</dd></div><div><dt className="text-sm text-muted-foreground">Client since</dt><dd className="font-medium">{profile.accountDates?.clientSince?new Date(profile.accountDates.clientSince).toLocaleDateString():'Date not recorded'}</dd></div></dl>
         {/* Profile Details */}
         <Card className="bg-background border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">

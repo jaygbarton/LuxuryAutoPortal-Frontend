@@ -78,3 +78,10 @@ describe('customer help visibility does not grant access', () => {
     expect(customerHelpAllowed('/admin/co-host-profile',{isAdmin:true,viewAsCoHost:{coHostId:2}})).toBe(true);
   });
 });
+
+it('provides help on the limited applicant workspace without enabling staff pages',()=>{
+ const applicant={isApplicant:true,roleName:'LYC Applicant'};
+ for(const page of ['/lyc/status','/lyc/profile'])expect(customerHelpAllowed(page,applicant)).toBe(true);
+ for(const page of ['/lyc/status','/lyc/profile'])expect(customerHelpAllowed(page,{isAdmin:true})).toBe(false);
+ for(const page of ['/admin/applicants','/admin/client-retention','/admin/hr/time'])expect(customerHelpAllowed(page,applicant)).toBe(false);
+});
