@@ -1,0 +1,55 @@
+# GLA software depth review — November 3, 2026
+
+## What was reviewed
+
+This is a source and local-preview review, not a claim that every production record, customer account or integration was tested. The starting revisions were frontend `f48e6933f0bca699ddadd3193a6ec16715415ff7` and backend `c670ee1c61fe8eb8f65fc2c40ea0b62daab2ec0f`. Separate `onboarding-review-workflow` worktrees preserve other developers’ changes.
+
+Legacy references: the available `gla-v3` source at `42f33ef5`, the locally available legacy archive inventory, and the current Developer archive viewer (`src/components/developer/LegacyArchivePortal.tsx`). Archived code was read, not executed. No signed-in production archive browser was available. File/route inventory counts do not prove that all old data or receipts have been recovered.
+
+The legacy client vehicle pages had explicit destinations for financial history, COGS, direct delivery, office support, owner split, purchase/finance information and records/files. Useful examples are under `gla-v3/src/component/pages/client-page/cars/view-cars/`, especially `car-totals/car-all-totals-item/`, `car-purchase-details/` and `car-records-and-files/`. The old admin onboarding detail component also grouped the submitted owner and vehicle details for review.
+
+## Assessment
+
+There are real working systems in the new software: accounting reports, maintenance approvals/history, service records and receipts, trip operations, owner reports and forms. The stronger explanation for a customer perceiving “less” is a mix of fragmented journeys, lost report-specific navigation, incomplete edge cases and a few explicitly unfinished implementations. A page existing or a route being restored is not evidence of a complete workflow. This review does not establish which problems were caused by AI-assisted coding.
+
+## Work implemented in this change
+
+The owner’s clarified sequence is **application → GLA approval → contract sent and signed → vehicle drop-off**. Account and vehicle records reuse the reviewed application, but approval never creates a signature or automatically activates a vehicle.
+
+- Public application now has Personal information/license, Vehicle information, Secure information, and Review & submit steps. Back navigation preserves form state and selected files while the page remains open. No sensitive local-storage draft was introduced. Mobile uses single-column fields; the new light/gold design remains.
+- The existing LYC review screen is extended rather than replaced: review/edit, approve with owner account/profile setup, and an explicit Create vehicle record action. New records remain `off_fleet`. Existing same-owner VINs are linked without overwriting mileage, status or ownership. Ambiguous/conflicting identities are rejected.
+- Review changes have version checks and field-name-only audit history. Approval/creation use a transaction and advisory lock; a retry does not create another vehicle. Existing accounts retain their passwords and roles; existing owner profiles/default banking information are not overwritten by a second application.
+- Intake keeps its existing admin/LYC Slack alert. Initial contract email moves to approval. Signing does not approve an application or create a vehicle. Resending cannot replace a signed agreement. Contract reminders require an approved application.
+- The owner’s drop-off picker requires approval, signed proof, matching VIN, matching owner profile/email and the linked active login account. With no eligible vehicle, it explains the prerequisite rather than offering an unusable form. Backend drop-off checks ownership/co-host scope and the contract, so a direct request cannot bypass the picker. It retains the existing drop-off activation and notification path.
+- Car status services block activating an owner-linked vehicle without the signed contract. Existing already-active vehicles are not retrospectively deactivated by unrelated saves. Unassigned company inventory remains separate from customer-owned onboarding.
+- Signing success now points to the existing owner drop-off form, with account-setup guidance, instead of immediately returning to the public home page.
+
+See [onboarding-review-workflow.md](onboarding-review-workflow.md) for routes, behavior, checks and rollout limits.
+
+## Recommended next work — not implemented here
+
+| Priority | Verified finding | Why it matters | Recommended completion and acceptance check |
+| --- | --- | --- | --- |
+| 1 | **Employee creation accepts document selections without uploading them.** `src/pages/admin/hr/employees.tsx` has an explicit upload TODO after the JSON request and clears both file states on success. | A user can believe a driver’s license/insurance document was saved when only the employee fields were saved. This is a concrete unfinished flow, separate from public employee onboarding. | Wire the existing document upload/storage path into creation with saved/upload-failed feedback and retry. Reopen a created employee and verify every uploaded file as the intended authorized role. |
+| 1 | **Owner maintenance history is a task view, not the whole service record.** `src/pages/client/maintenance-history.tsx` calls `/api/client/maintenance-history`; backend `getMaintenanceHistoryForOwner` in `maintenanceApprovalService.ts` reads `maintenance_tasks` plus inspection/trip context. It does not itself unify all service receipts and recovered vehicle-file history. | Staff may see service evidence that an owner cannot discover from Maintenance History. | Provide a per-vehicle timeline linking tasks, service records, dates, approvals and authorized receipts. Keep provenance and avoid counting the same repair twice. Test a vehicle with a receipt-only record, a completed task and imported history. |
+| 1 | **Maintenance fetch failure looks like an empty history.** That client page uses `data?.data ?? []` and renders an empty-state message after loading, without an error branch. | “No records” can be mistaken for lost data when the API failed. | Distinguish no records, unavailable data and filtered results; provide Retry. Verify 403/500 and genuinely empty datasets produce different messages. |
+| 1 | **Document persistence still has a weak fallback.** `backend/src/controllers/onboardingController.ts` `saveOnboardingDoc` prefers GCS but falls back to local disk; the source itself documents prior losses on ephemeral-host redeploys. Contract save also retains local fallbacks. | A form can be accepted with an attachment that is not durably stored. | Make durable storage success explicit; retain a retryable upload job or fail the attachment save with clear feedback. Test storage failure and a subsequent deploy. Keep authorized file proxy access; do not make sensitive buckets public. |
+| 1 | **Account IDs, owner profile IDs and activity flags remain inconsistent in older code.** New onboarding now writes `car_client_id = client.client_aid`. Older helpers such as `clientStatusService.ts` try `user.id` before `client.client_aid`, and some “active” queries still use `car_is_active` while operations use `car_status`. | Numeric ID collisions and different meanings of “active” can produce wrong ownership/status reports even with a polished UI. | Audit all write paths and standardize types/joins and activity definitions. Preserve suspended/blocked accounts. Use collision fixtures where a user and unrelated client have the same numeric ID. This change avoids guessing IDs in the new creation path but is not a global migration. |
+| 2 | **Legacy report destinations collapse into a general income view.** `src/App.tsx` redirects legacy history, COGS, direct delivery, office support, owner split, P&L and rental-value routes to `legacyCarRoute('income')`. Current Totals/Earnings and ClientPageLinks do exist. | Familiar detailed links can appear to have disappeared even when some underlying data exists. | Preserve vehicle and period context, open the relevant report/section and show totals with source drill-downs. Compare representative legacy reports to the new result; do not restore extra menu entries without real data. |
+| 2 | **Some earnings chart inputs are explicitly unfinished.** `src/pages/admin/earnings.tsx` sets `upcomingEarnings` and `missedEarnings` to zero with TODOs, and omits those series unless positive. | Forecast/missed revenue is not implemented by those variables. This is not evidence that all earnings charts are fake or that users see those zeros. | Define the business meaning and data source first. Calculate deterministically where possible, label estimates/unknowns and reconcile against real periods. The Days Rented definition also needs final business agreement before changing calculations. |
+| 2 | **Sensitive onboarding collection needs a separate policy pass.** Existing schemas require an SSN and a vehicle-account password, with optional EIN. The application storage code shown here does not demonstrate application-level encryption of those values. This is not a finding about database/storage provider encryption. | A step called “Secure information” is not itself a storage/access control guarantee; business owners and non-connected cars may not fit current requirements. | Decide SSN versus EIN rules and whether a manufacturer password should be collected at all. Review retention, least-privilege access, audit logging, encryption and deletion. Do not silently change required fields or staff access without an agreed policy. |
+| 3 | **Direct booking is intentionally a private preview.** `docs/DIRECT-BOOKING-PREVIEW.md` documents developer-only drafts, no live reservation/payment and unfinished final-price policy. | It should not be presented as a production-ready customer booking system. | Treat pricing/taxes/deposit/protection, real availability holds, confirmation and refunds as a separate release with clear acceptance checks. It was not enabled in this change. |
+
+## Suggested order after review
+
+1. Finish employee document persistence and document-storage failure handling.
+2. Consolidate the owner vehicle history/report journey and make failed data loads explicit.
+3. Normalize owner IDs and fleet/account state semantics with reconciliation fixtures.
+4. Review the financial definitions and report-specific navigation with a real customer statement.
+5. Finish the broader sensitive-data policy and, separately, the direct-booking production release.
+
+The practical completion standard should be: **submit → review → save → reopen → view as the intended customer/employee → verify evidence and failure recovery**. A screenshot of the first page is not enough.
+
+## Recording review limitation
+
+The attached audio is 58 minutes 32 seconds. It downloaded, but no transcription model was preinstalled; the network proxy rejected the model download with HTTP 403. Both MP4 uploads exceeded the workspace’s 32 MiB transfer limit. Their spoken/visual content was not reviewed, and no findings above are attributed to the recording. A transcript and video clips below the transfer limit are needed to incorporate that evidence.

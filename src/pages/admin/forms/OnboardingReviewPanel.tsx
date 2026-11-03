@@ -1,0 +1,108 @@
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'wouter';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { buildApiUrl } from '@/lib/queryClient';
+import { wizardSteps } from '@/lib/onboardingSteps';
+
+const labels: Record<string,string> = { firstNameOwner:'Owner first name',lastNameOwner:'Owner last name',phoneOwner:'Owner phone',emailOwner:'Owner email',vinNumber:'VIN',ssn:'SSN',ein:'EIN',tshirtSize:'T-shirt size',carManufacturerWebsite:'Vehicle account website',carManufacturerUsername:'Vehicle account username',password:'Vehicle account password',vehicleFeatures:'Vehicle features (comma separated)',date:'Application date' };
+const dates = new Set(['date','birthday','registrationExpiration','lastOilChange','insuranceExpiration']);
+const secrets = new Set(['routingNumber','accountNumber','ssn','ein','password']);
+const label = (field:string) => labels[field] || field.replace(/([A-Z])/g,' $1').replace(/^./,letter=>letter.toUpperCase());
+const display = (field:string,value:any) => secrets.has(field) ? '' : Array.isArray(value) ? value.join(', ') : dates.has(field) && value ? String(value).slice(0,10) : String(value ?? '');
+const root = '/api/onboarding/submissions';
+async function request(path:string,body?:any,method='POST') {
+  const response = await fetch(buildApiUrl(path),{credentials:'include',method,headers:{'Content-Type':'application/json'},...(body ? {body:JSON.stringify(body)} : {})});
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || result.message || 'The onboarding update could not be saved.');
+  return result;
+}
+
+/** Uses the existing admin-only review dialog and signed document viewer below it. */
+export function OnboardingReviewPanel({submission}:{submission:Record<string,any>}) {
+  const id = submission.id;
+  const queryClient = useQueryClient();
+  const [editing,setEditing] = useState(false);
+  const [changes,setChanges] = useState<Record<string,string>>({});
+  const [busy,setBusy] = useState(false);
+  const [error,setError] = useState('');
+  const [message,setMessage] = useState('');
+  const [confirmCreate,setConfirmCreate] = useState(false);
+  const state = useQuery({queryKey:['onboarding-review',id],queryFn:()=>request(`${root}/${id}/review`,undefined,'GET'),retry:false});
+  const workflow = state.data?.data;
+  const version = submission.reviewVersion;
+  const identityLocked = submission.contractStatus === 'signed' || submission.userId || workflow?.clientId;
+  const refresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({queryKey:['onboarding-submission',id]}),
+      queryClient.invalidateQueries({queryKey:['onboarding-submissions']}),
+      queryClient.invalidateQueries({queryKey:['onboarding-review',id]}),
+      queryClient.invalidateQueries({queryKey:['/api/cars']}),
+      queryClient.invalidateQueries({queryKey:['cars-onboarding']}),
+      queryClient.invalidateQueries({queryKey:['sidebar-badges']}),
+    ]);
+  };
+  const action = async (kind:'save'|'approve'|'pending'|'create'|'contract') => {
+    setBusy(true); setError(''); setMessage('');
+    try {
+      let result:any;
+      if (kind === 'save') {
+        const payload:Record<string,unknown> = {...changes};
+        if ('vehicleFeatures' in payload) payload.vehicleFeatures = JSON.stringify(String(payload.vehicleFeatures).split(',').map(item=>item.trim()).filter(Boolean));
+        result = await request(`${root}/${id}/review`,{version,changes:payload},'PATCH');
+        setEditing(false); setChanges({}); setMessage('Review changes saved.');
+      } else if (kind === 'approve') {
+        result = await request(`${root}/${id}/approve`,{version});
+        setMessage(result.data?.notificationWarnings?.length ? `Approved. Delivery needs checking: ${result.data.notificationWarnings.join(', ')}.` : 'Approved. Owner account/profile setup and existing email/Slack notifications have been requested.');
+      } else if (kind === 'pending') {
+        result = await request(`${root}/${id}/status`,{status:'pending',version},'PATCH');
+        setMessage('Returned to Pending. Review and approve again after making changes.');
+      } else if (kind === 'contract') {
+        result = await request(`/api/contracts/lyc/${id}/resend`,{});
+        setMessage('Contract email requested. Confirm delivery in the email provider if needed.');
+      } else {
+        result = await request(`${root}/${id}/create-vehicle`,{version});
+        setConfirmCreate(false); setMessage(result.message);
+      }
+      await refresh();
+    } catch(err) { setError(err instanceof Error ? err.message : 'Please retry.'); }
+    finally {setBusy(false);}
+  };
+  return <section aria-label="Onboarding review workflow" className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-4">
+    <div><h3 className="font-semibold">Review → approve → sign contract → vehicle drop-off</h3><p className="mt-1 text-sm text-muted-foreground">One application supplies the owner profile, account setup and vehicle details. Creating the vehicle does not activate it for rental. Approval sends the contract. Signing unlocks the vehicle drop-off form; the signed contract must be linked to the owner account before activation.</p></div>
+    <div className="flex flex-wrap gap-2 text-sm"><span className="rounded border bg-background px-2 py-1">Application: {submission.status}</span><span className="rounded border bg-background px-2 py-1">Contract: {submission.contractStatus || 'pending'}</span><span className="rounded border bg-background px-2 py-1">{workflow?.carId ? `Vehicle #${workflow.carId} in system` : 'Vehicle record not yet linked'}</span></div>
+    {(state.error || error) && <p role="alert" className="text-sm text-destructive">{error || state.error?.message} <Button type="button" variant="ghost" disabled={busy} onClick={()=>void refresh()}>Refresh review</Button></p>}
+    {submission.contractStatus !== 'signed' && <p className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Awaiting contract signature. The vehicle may be recorded off fleet, but it cannot be activated until its owner-linked contract is signed.</p>}
+    {submission.status === 'approved' && submission.contractStatus !== 'signed' && <Button type="button" variant="outline" disabled={busy} onClick={()=>void action('contract')}>Resend contract</Button>}
+    {submission.status === 'approved' && submission.contractStatus === 'signed' && <p className="text-sm text-muted-foreground">Contract signed. {workflow?.carId ? 'The owner can now complete the vehicle drop-off form.' : 'Create the vehicle record to make it available in the owner’s drop-off form.'}</p>}
+    {message && <p role="status" className="text-sm">{message}</p>}
+    {state.isLoading && <p className="text-sm">Loading review status…</p>}
+    {workflow && !editing && <div className="flex flex-wrap gap-2">
+      {workflow.carId ? <Button asChild variant="outline"><Link href={`/admin/cars/${workflow.carId}`}>Open vehicle record</Link></Button> : <>
+        <Button type="button" variant="outline" disabled={busy || submission.status === 'approved'} onClick={()=>{setChanges({});setEditing(true);setError('');}}>Edit application</Button>
+        {submission.status === 'approved' ? <>
+          <Button type="button" variant="outline" disabled={busy} onClick={()=>void action('pending')}>Return to Pending to edit</Button>
+          <Button type="button" disabled={busy || !version || !workflow.clientId} onClick={()=>setConfirmCreate(true)}>Create vehicle record</Button>
+          {!workflow.clientId && <Button type="button" disabled={busy || !version} onClick={()=>void action('approve')}>Complete owner account setup</Button>}
+        </> : <Button type="button" disabled={busy || !version} onClick={()=>void action('approve')}>Approve application</Button>}
+      </>}
+    </div>}
+    {confirmCreate && !workflow?.carId && <div className="rounded border bg-background p-3 space-y-3" aria-label="Confirm vehicle record creation">
+      <p className="text-sm">Create a record for <strong>{submission.vehicleMake} {submission.vehicleModel} {submission.vehicleYear}</strong>, VIN {submission.vinNumber}, under {submission.firstNameOwner} {submission.lastNameOwner}? It will remain off fleet. A matching existing vehicle will be linked without overwriting its data.</p>
+      <div className="flex flex-wrap gap-2"><Button type="button" disabled={busy} onClick={()=>void action('create')}>{busy ? 'Saving…' : 'Confirm create vehicle record'}</Button><Button type="button" variant="outline" disabled={busy} onClick={()=>setConfirmCreate(false)}>Cancel</Button></div>
+    </div>}
+    {editing && <div className="space-y-4" aria-label="Edit onboarding application">
+      <p className="text-sm text-muted-foreground">Only changed fields are saved. Leave secure fields blank to keep their stored values. Documents can be reviewed and updated below. {identityLocked && 'Owner identity and VIN are locked because they are linked to an account or signed contract.'}</p>
+      {wizardSteps.slice(0,3).map(step=><fieldset key={step.title} className="space-y-3 rounded border bg-background p-3" disabled={busy}>
+        <legend className="px-1 font-medium">{step.title}</legend><div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {step.fields.map(field=><label key={field} className="block min-w-0 space-y-1 text-sm"><span>{label(field)}</span>
+            <Input aria-label={`Edit ${label(field)}`} type={secrets.has(field)?'password':dates.has(field)?'date':field==='emailOwner'?'email':'text'} autoComplete={secrets.has(field)?'new-password':'off'} disabled={identityLocked && ['emailOwner','firstNameOwner','lastNameOwner','vinNumber'].includes(field)} value={changes[field] ?? display(field,submission[field])} placeholder={secrets.has(field)?'Leave blank to keep existing value':undefined} onChange={event=>setChanges(previous=>{const next={...previous};if(event.target.value===display(field,submission[field])) delete next[field];else next[field]=event.target.value;return next;})} />
+          </label>)}
+        </div>
+      </fieldset>)}
+      <div className="flex flex-wrap gap-2"><Button type="button" disabled={busy || !Object.keys(changes).length || !version} onClick={()=>void action('save')}>Save review changes</Button><Button type="button" variant="outline" disabled={busy} onClick={()=>{setEditing(false);setChanges({});}}>Cancel editing</Button></div>
+    </div>}
+    {!!workflow?.history?.length && <details><summary className="cursor-pointer text-sm">Review history ({workflow.history.length})</summary><ul className="mt-2 space-y-1 text-xs text-muted-foreground">{workflow.history.map((entry:any,index:number)=><li key={index}>{String(entry.created_at).slice(0,19).replace('T',' ')} · {String(entry.action).replaceAll('_',' ')}{entry.actor_id ? ` · Admin #${entry.actor_id}` : ''}</li>)}</ul></details>}
+  </section>;
+}

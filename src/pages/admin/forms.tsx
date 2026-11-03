@@ -1,3 +1,4 @@
+import { OnboardingReviewPanel } from "./forms/OnboardingReviewPanel";
 import { useState, useEffect, useRef } from "react";
 import { useSearch } from "wouter";
 import {
@@ -698,12 +699,12 @@ export default function FormsPage() {
       if (variables.action === "approve") {
         toast({
           title: "✅ Submission Approved",
-          description: "Email and Slack notifications sent. Status updated.",
+          description: data.data?.notificationWarnings?.length ? `Approved. Check delivery: ${data.data.notificationWarnings.join(", ")}.` : "Status updated. Existing email and Slack notifications requested.",
         });
       } else {
         toast({
           title: "Submission Declined",
-          description: "Email and Slack notifications sent. Status updated.",
+          description: data.data?.notificationWarnings?.length ? `Approved. Check delivery: ${data.data.notificationWarnings.join(", ")}.` : "Status updated. Existing email and Slack notifications requested.",
         });
       }
       // Close decline modal if open
@@ -733,7 +734,9 @@ export default function FormsPage() {
           };
         },
       );
-      // Invalidate cars list so cars page updates (car status changes when approved)
+      queryClient.invalidateQueries({ queryKey: ["onboarding-submission", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["onboarding-review", variables.id] });
+      // Refresh related records after account setup.
       queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
       // Invalidate sidebar badges (car counts may change)
       queryClient.invalidateQueries({ queryKey: ["sidebar-badges"] });
@@ -2380,7 +2383,7 @@ export default function FormsPage() {
                                                           submission,
                                                         )
                                                       }
-                                                      title="View Details"
+                                                      title="Review & edit application" aria-label="Review & edit application"
                                                     >
                                                       <Eye className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                                                     </Button>
@@ -2632,6 +2635,7 @@ export default function FormsPage() {
 
           {submissionDetails?.data ? (
             <div className="space-y-6 mt-4">
+              <OnboardingReviewPanel key={submissionDetails.data.id} submission={submissionDetails.data} />
               {/* Helper function to display value or "Not provided" */}
               {(() => {
                 const formatValue = (value: any): string => {

@@ -49,6 +49,7 @@ export default function SignContract() {
     "/contracts/GoldenLuxuryAuto_Contract_Template.pdf"
   );
   const { toast } = useToast();
+  const [signedComplete, setSignedComplete] = useState(false);
   const signPdfFnRef = useRef<(() => Promise<Blob>) | null>(null);
 
   // Validate token
@@ -138,27 +139,16 @@ export default function SignContract() {
       if (data.action === "sign") {
         toast({
           title: "Contract signed successfully!",
-          description: result.signedPdfUrl
-            ? `Your signed contract is available. You will receive a confirmation email shortly.`
-            : "Thank you for signing. You will receive a confirmation email shortly.",
+          description: "Your contract has been saved. Next, sign in to complete the vehicle drop-off form.",
         });
-        // Optionally open the signed PDF in a new tab
-        if (result.signedPdfUrl) {
-          setTimeout(() => {
-            // signedPdfUrl is already a full URL from backend, don't wrap with buildApiUrl
-            window.open(result.signedPdfUrl, "_blank");
-          }, 1000);
-        }
+        setSignedComplete(true);
       } else {
         toast({
           title: "Contract declined",
           description: "The contract has been declined.",
         });
       }
-      // Redirect after a short delay
-      setTimeout(() => {
-        setLocation("/");
-      }, 3000);
+      if (data.action !== "sign") setLocation("/");
     },
     onError: (error: Error) => {
       toast({
@@ -184,13 +174,15 @@ export default function SignContract() {
     }
   };
 
+  if (signedComplete) return <div className="min-h-screen bg-background px-4 py-16"><div className="mx-auto max-w-xl space-y-5 rounded-xl border border-primary/30 bg-card p-6 text-center"><h1 className="text-2xl font-semibold">Contract signed</h1><p className="text-muted-foreground">Next, sign in to complete the vehicle drop-off form when you bring your vehicle to the GLA lot. If your vehicle is not listed yet, GLA still needs to finish creating its record.</p><Button onClick={()=>setLocation('/admin/forms?section=client-onboarding&item=car-on')}>Continue to vehicle drop-off</Button><p className="text-sm text-muted-foreground">Use the password setup email from your application approval if you have not created your GLA password yet.</p></div></div>;
+
   // Loading state
   if (isValidating) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#1a1a1a] via-[#2d2d2d] to-[#1a1a1a] flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-[#d4af37] mx-auto mb-4" />
-          <p className="text-[#d4af37] text-lg">Validating contract link...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-primary text-lg">Validating contract link...</p>
         </div>
       </div>
     );
@@ -199,10 +191,10 @@ export default function SignContract() {
   // Error state
   if (validationError || !contractData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#1a1a1a] via-[#2d2d2d] to-[#1a1a1a] flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-[#2d2d2d] border-2 border-borderd4af37] rounded-lg p-8 text-center">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-card border border-primary/30 rounded-lg p-8 text-center">
           <X className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-[#d4af37] mb-4">
+          <h1 className="text-2xl font-bold text-primary mb-4">
             Link Expired or Invalid
           </h1>
           <p className="text-muted-foreground mb-6">
@@ -212,7 +204,7 @@ export default function SignContract() {
           </p>
           <Button
             onClick={() => setLocation("/")}
-            className="bg-[#d4af37] text-[#1a1a1a] hover:bg-muted/50f4d03f] font-semibold"
+            className="bg-[#d4af37] text-[#1a1a1a] hover:bg-primary/90 font-semibold"
           >
             Return to Home
           </Button>
@@ -222,7 +214,7 @@ export default function SignContract() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a1a1a] via-[#2d2d2d] to-[#1a1a1a] py-8 px-4 md:px-8">
+    <div className="min-h-screen bg-background py-8 px-4 md:px-8">
       {/* Container - Centered with max width */}
       <div className="max-w-[1600px] w-full mx-auto">
         {/* Header */}
@@ -232,7 +224,7 @@ export default function SignContract() {
             alt="Golden Luxury Auto" 
             className="h-20 md:h-24 w-auto mx-auto object-contain mb-3 drop-shadow-[0_0_12px_rgba(234,235,128,0.4)]"
           />
-          <p className="text-muted-foreground text-lg text-[white]">
+          <p className="text-foreground text-lg">
             Contract Agreement - {contractData.firstNameOwner} {contractData.lastNameOwner}
           </p>
         </div>

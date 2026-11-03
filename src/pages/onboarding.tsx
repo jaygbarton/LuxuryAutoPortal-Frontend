@@ -31,11 +31,11 @@ import { useSalesReps } from "@/hooks/use-sales-reps";
 import {
   Check,
   ArrowRight,
-  ChevronUp,
-  ChevronDown,
+  ArrowLeft,
   Loader2,
 } from "lucide-react";
 import { buildApiUrl, buildUploadApiUrl } from "@/lib/queryClient";
+import { wizardSteps } from "@/lib/onboardingSteps";
 import { getPreferredPublicLocation, withLocationPath } from "@/lib/location-config";
 
 const onboardingSchema = z
@@ -121,23 +121,22 @@ const onboardingSchema = z
 
 type OnboardingFormData = z.infer<typeof onboardingSchema>;
 
-const steps = [
-  { id: 1, title: "LIST YOUR CAR STARTER INFO" },
-  { id: 2, title: "OWNER INFORMATION" },
-  { id: 3, title: "VEHICLE INFORMATION" },
-  { id: 4, title: "VEHICLE INSURANCE INFO" },
-  { id: 5, title: "VEHICLE PURCHASE INFO" },
-  { id: 6, title: "ACH DIRECT DEPOSIT PAYMENT INFORMATION" },
-  { id: 7, title: "CAR LOGIN INFORMATION" },
+const sections = [
+  { id: 1, title: "Getting started" },
+  { id: 2, title: "Owner details & driver’s license" },
+  { id: 3, title: "Vehicle details" },
+  { id: 4, title: "Insurance" },
+  { id: 5, title: "Purchase details & goals" },
+  { id: 6, title: "Payment & tax information" },
+  { id: 7, title: "Vehicle account access" },
 ];
 
 
 export default function Onboarding() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [expandedSteps, setExpandedSteps] = useState<number[]>([
-    1, 2, 3, 4, 5, 6, 7,
-  ]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [stepError, setStepError] = useState("");
   const [insuranceCardFile, setInsuranceCardFile] = useState<File | null>(null);
   const [driversLicenseFile, setDriversLicenseFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -224,12 +223,20 @@ export default function Onboarding() {
     }
   }, [freeOilChanges, form]);
 
-  const toggleStep = (stepId: number) => {
-    setExpandedSteps((prev) =>
-      prev.includes(stepId)
-        ? prev.filter((s) => s !== stepId)
-        : [...prev, stepId]
-    );
+  const goToStep = (step: number) => {
+    setCurrentStep(step);
+    setStepError("");
+    requestAnimationFrame(() => document.getElementById("onboarding-step-title")?.focus());
+  };
+  const continueStep = async () => {
+    const valid = await form.trigger(wizardSteps[currentStep].fields as (keyof OnboardingFormData)[], { shouldFocus: true });
+    if (valid) goToStep(currentStep + 1);
+    else setStepError("Please complete the highlighted fields before continuing.");
+  };
+  const showErrors = (errors: typeof form.formState.errors) => {
+    const firstStep = wizardSteps.findIndex(step => step.fields.some(field => field in errors));
+    if (firstStep >= 0) goToStep(firstStep);
+    setStepError("Please review the highlighted fields. Your information has not been submitted.");
   };
 
   const onSubmit = async (data: OnboardingFormData) => {
@@ -292,6 +299,8 @@ export default function Onboarding() {
             type: "manual",
             message: error.message,
           });
+          const fieldStep = wizardSteps.findIndex(step => step.fields.includes(error.field));
+          if (fieldStep >= 0) goToStep(fieldStep);
         }
         
         throw new Error(error.message || "Submission failed");
@@ -326,8 +335,7 @@ export default function Onboarding() {
                   Thank You!
                 </h2>
                 <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Your information has been submitted successfully. One of our
-                  team members will follow up as soon as possible.
+                  Your application is saved for GLA review. After approval, we will email your contract and account instructions. Once the contract is signed, you can complete the vehicle drop-off form.
                 </p>
                 <Button
                   onClick={() => (window.location.href = "/fleet")}
@@ -366,7 +374,7 @@ export default function Onboarding() {
               }}
             />
           </div>
-          <div className="relative mx-auto grid min-h-[440px] max-w-7xl content-end px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+          <div className="relative mx-auto grid min-h-[240px] lg:min-h-[360px] max-w-7xl content-end px-4 py-8 sm:px-6 lg:px-8 lg:py-20">
             <div className="max-w-3xl">
               <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">List Your Car</p>
               <h1 className="font-serif text-4xl font-light leading-tight text-white sm:text-5xl lg:text-6xl">
@@ -379,9 +387,9 @@ export default function Onboarding() {
           </div>
         </section>
 
-        <div className="max-w-7xl mx-auto px-4 pt-12 sm:px-6 lg:px-8 lg:pt-16">
+        <div className="max-w-7xl mx-auto px-4 pt-6 sm:px-6 lg:px-8 lg:pt-16">
           <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-            <aside className="lg:sticky lg:top-24">
+            <aside className="order-2 lg:order-1 lg:sticky lg:top-24">
               <Card className="overflow-hidden border-border bg-card">
                 <CardContent className="p-0">
                   <div className="aspect-video bg-black">
@@ -436,41 +444,36 @@ export default function Onboarding() {
               </Card>
             </aside>
 
-            <section>
+            <section className="order-1 min-w-0 lg:order-2">
               <div className="mb-5">
                 <h2 className="text-2xl font-semibold text-foreground">Onboarding Form</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Share the details our team needs to review your vehicle.
+                  Four steps to apply. Your entries stay in this page while you move between steps; submit before closing it.
                 </p>
               </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {steps.map((step) => (
-                <Card
-                  key={step.id}
-                  className="bg-card border-primary/20 overflow-hidden"
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleStep(step.id)}
-                    className="w-full flex items-center justify-between p-4 hover:bg-card transition-colors"
-                  >
-                    <span className="text-base font-semibold text-primary">
-                      {step.id}. {step.title}
-                    </span>
-                    {expandedSteps.includes(step.id) ? (
-                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                    )}
-                  </button>
-
-                  {expandedSteps.includes(step.id) && (
-                    <CardContent className="p-4 space-y-4 border-t border-primary/20">
+            <form noValidate onSubmit={event => {
+              if (currentStep < wizardSteps.length - 1) { event.preventDefault(); void continueStep(); }
+              else void form.handleSubmit(onSubmit, showErrors)(event);
+            }} className="space-y-4">
+              <ol aria-label="Onboarding progress" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {wizardSteps.map((step, index) => <li key={step.title} aria-current={currentStep === index ? "step" : undefined} className={`rounded-lg border p-3 text-sm ${currentStep === index ? "border-primary bg-primary/10 font-semibold" : "text-muted-foreground"}`}>
+                  {index + 1}. {step.title}
+                </li>)}
+              </ol>
+              <div>
+                <h3 id="onboarding-step-title" tabIndex={-1} className="text-xl font-semibold outline-none">{wizardSteps[currentStep].title}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{wizardSteps[currentStep].description}</p>
+              </div>
+              {stepError && <p role="alert" className="text-sm text-destructive">{stepError}</p>}
+              {sections.filter(section => wizardSteps[currentStep].sections.includes(section.id)).map((step) => (
+                <Card key={step.id} className="bg-card border-primary/20 overflow-hidden">
+                  <h4 className="p-4 text-base font-semibold">{step.title}</h4>
+                  <CardContent className="p-4 space-y-4 border-t border-primary/20">
                       {step.id === 1 && (
                         <>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="date"
@@ -522,7 +525,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="firstNameOwner"
@@ -560,7 +563,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="phoneOwner"
@@ -599,7 +602,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="representative"
@@ -685,7 +688,7 @@ export default function Onboarding() {
                               </FormItem>
                             )}
                           />
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="city"
@@ -723,7 +726,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="zipCode"
@@ -762,7 +765,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="emergencyContactName"
@@ -800,11 +803,100 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
+                          <FormItem>
+                            <FormLabel className="text-muted-foreground">
+                              Drivers License Upload
+                            </FormLabel>
+                            <div
+                              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                                isDraggingLicense
+                                  ? "border-primary bg-[#D3BC8D]/10"
+                                  : "border-primary/30"
+                              }`}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                setIsDraggingLicense(true);
+                              }}
+                              onDragLeave={() => setIsDraggingLicense(false)}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                setIsDraggingLicense(false);
+                                const file = e.dataTransfer.files[0];
+                                if (file) {
+                                  if (
+                                    file.type.startsWith("image/") ||
+                                    file.type === "application/pdf"
+                                  ) {
+                                    setDriversLicenseFile(file);
+                                  } else {
+                                    toast({
+                                      title: "Invalid file type",
+                                      description:
+                                        "Please upload an image or PDF file",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }
+                              }}
+                            >
+                              <input
+                                type="file"
+                                id="drivers-license-upload"
+                                accept="image/*,.pdf"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    if (
+                                      file.type.startsWith("image/") ||
+                                      file.type === "application/pdf"
+                                    ) {
+                                      setDriversLicenseFile(file);
+                                    } else {
+                                      toast({
+                                        title: "Invalid file type",
+                                        description:
+                                          "Please upload an image or PDF file",
+                                        variant: "destructive",
+                                      });
+                                      // Reset the input
+                                      e.target.value = "";
+                                    }
+                                  }
+                                }}
+                              />
+                              <label
+                                htmlFor="drivers-license-upload"
+                                className="cursor-pointer"
+                              >
+                                <p className="text-primary text-sm">
+                                  Drag & drop files here or click to browse
+                                </p>
+                                <p className="text-muted-foreground text-xs mt-1">
+                                  Supports images and PDF files
+                                </p>
+                              </label>
+                              {driversLicenseFile && (
+                                <div className="mt-4 p-3 bg-card rounded border border-primary/20">
+                                  <p className="text-foreground text-sm">
+                                    Selected: {driversLicenseFile.name}
+                                  </p>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDriversLicenseFile(null)}
+                                    className="text-red-700 text-xs mt-2 hover:underline"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </FormItem>
                         </>
                       )}
                       {step.id === 3 && (
                         <>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="vehicleYear"
@@ -843,7 +935,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="vehicleModel"
@@ -881,7 +973,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="vehicleMiles"
@@ -919,7 +1011,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="interiorColor"
@@ -978,7 +1070,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="vinNumber"
@@ -1016,7 +1108,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="registrationExpiration"
@@ -1078,7 +1170,7 @@ export default function Onboarding() {
                               National Highway Traffic Safety Administration (NHTSA)
                             </a>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="numberOfSeats"
@@ -1122,7 +1214,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="skiRacks"
@@ -1176,7 +1268,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="roofRails"
@@ -1223,7 +1315,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="oilType"
@@ -1326,7 +1418,7 @@ export default function Onboarding() {
                             />
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="fuelType"
@@ -1452,100 +1544,12 @@ export default function Onboarding() {
                               </FormItem>
                             )}
                           />
-                          <FormItem>
-                            <FormLabel className="text-muted-foreground">
-                              Drivers License Upload
-                            </FormLabel>
-                            <div
-                              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                                isDraggingLicense
-                                  ? "border-primary bg-[#D3BC8D]/10"
-                                  : "border-primary/30"
-                              }`}
-                              onDragOver={(e) => {
-                                e.preventDefault();
-                                setIsDraggingLicense(true);
-                              }}
-                              onDragLeave={() => setIsDraggingLicense(false)}
-                              onDrop={(e) => {
-                                e.preventDefault();
-                                setIsDraggingLicense(false);
-                                const file = e.dataTransfer.files[0];
-                                if (file) {
-                                  if (
-                                    file.type.startsWith("image/") ||
-                                    file.type === "application/pdf"
-                                  ) {
-                                    setDriversLicenseFile(file);
-                                  } else {
-                                    toast({
-                                      title: "Invalid file type",
-                                      description:
-                                        "Please upload an image or PDF file",
-                                      variant: "destructive",
-                                    });
-                                  }
-                                }
-                              }}
-                            >
-                              <input
-                                type="file"
-                                id="drivers-license-upload"
-                                accept="image/*,.pdf"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    if (
-                                      file.type.startsWith("image/") ||
-                                      file.type === "application/pdf"
-                                    ) {
-                                      setDriversLicenseFile(file);
-                                    } else {
-                                      toast({
-                                        title: "Invalid file type",
-                                        description:
-                                          "Please upload an image or PDF file",
-                                        variant: "destructive",
-                                      });
-                                      // Reset the input
-                                      e.target.value = "";
-                                    }
-                                  }
-                                }}
-                              />
-                              <label
-                                htmlFor="drivers-license-upload"
-                                className="cursor-pointer"
-                              >
-                                <p className="text-primary text-sm">
-                                  Drag & drop files here or click to browse
-                                </p>
-                                <p className="text-muted-foreground text-xs mt-1">
-                                  Supports images and PDF files
-                                </p>
-                              </label>
-                              {driversLicenseFile && (
-                                <div className="mt-4 p-3 bg-card rounded border border-primary/20">
-                                  <p className="text-foreground text-sm">
-                                    Selected: {driversLicenseFile.name}
-                                  </p>
-                                  <button
-                                    type="button"
-                                    onClick={() => setDriversLicenseFile(null)}
-                                    className="text-red-700 text-xs mt-2 hover:underline"
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </FormItem>
+
                         </>
                       )}
                       {step.id === 4 && (
                         <>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="insuranceProvider"
@@ -1583,7 +1587,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="policyNumber"
@@ -1715,7 +1719,7 @@ export default function Onboarding() {
                       )}
                       {step.id === 5 && (
                         <>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="purchasePrice"
@@ -1755,7 +1759,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="monthlyPayment"
@@ -1845,7 +1849,7 @@ export default function Onboarding() {
                       )}
                       {step.id === 6 && (
                         <>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="bankName"
@@ -1895,7 +1899,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="routingNumber"
@@ -1905,7 +1909,7 @@ export default function Onboarding() {
                                     Routing Number *
                                   </FormLabel>
                                   <FormControl>
-                                    <Input
+                                    <Input type="password" autoComplete="off"
                                       {...field}
                                       placeholder="9 digits"
                                       maxLength={9}
@@ -1925,7 +1929,7 @@ export default function Onboarding() {
                                     Account Number *
                                   </FormLabel>
                                   <FormControl>
-                                    <Input
+                                    <Input type="password" autoComplete="off"
                                       {...field}
                                       className="bg-background border-border"
                                     />
@@ -1935,7 +1939,7 @@ export default function Onboarding() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="businessName"
@@ -1963,7 +1967,7 @@ export default function Onboarding() {
                                     EIN
                                   </FormLabel>
                                   <FormControl>
-                                    <Input
+                                    <Input type="password" autoComplete="off"
                                       {...field}
                                       placeholder="XX-XXXXXXX"
                                       className="bg-background border-border"
@@ -1983,7 +1987,7 @@ export default function Onboarding() {
                                   SSN *
                                 </FormLabel>
                                 <FormControl>
-                                  <Input
+                                  <Input type="password" autoComplete="off"
                                     {...field}
                                     placeholder="XXX-XX-XXXX"
                                     className="bg-background border-border"
@@ -1997,7 +2001,7 @@ export default function Onboarding() {
                       )}
                       {step.id === 7 && (
                         <>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="carManufacturerWebsite"
@@ -2055,10 +2059,24 @@ export default function Onboarding() {
                               </FormItem>
                             )}
                           />
+
+                        </>
+                      )}
+                    </CardContent>
+                </Card>
+              ))}
+
+              {currentStep === 3 && <div className="space-y-4 rounded-lg border p-4" aria-label="Review your onboarding">
+                {[{title: "Personal information", value: `${form.getValues("firstNameOwner")} ${form.getValues("lastNameOwner")} · ${form.getValues("emailOwner")}`, detail: driversLicenseFile ? `License: ${driversLicenseFile.name}` : "Driver’s license not attached"},
+                  {title: "Vehicle information", value: `${form.getValues("vehicleMake")} ${form.getValues("vehicleModel")} ${form.getValues("vehicleYear")}`, detail: `VIN: ${form.getValues("vinNumber")} · Plate: ${form.getValues("licensePlate")}`},
+                  {title: "Secure information", value: `Bank: ${form.getValues("bankName")}`, detail: "Bank account and tax numbers are hidden in this summary."}].map((section, index) => <div key={section.title} className="flex items-start justify-between gap-3 border-b pb-3">
+                    <div className="min-w-0 break-words"><h4 className="font-medium">{section.title}</h4><p className="text-sm">{section.value}</p><p className="text-xs text-muted-foreground">{section.detail}</p></div>
+                    <Button type="button" variant="outline" size="sm" onClick={() => goToStep(index)}>Edit<span className="sr-only"> {section.title}</span></Button>
+                  </div>)}
+                <p className="text-sm text-muted-foreground">We use these details for your owner profile and vehicle record. Our team reviews your application before approving it. Approval sends your contract; the vehicle stays off fleet until signing and drop-off. New owners receive a separate link to set their GLA password.</p>
                           <div className="bg-background border border-border rounded p-4">
                             <p className="text-sm text-muted-foreground mb-4">
-                              After you submit, we will send the contract
-                              agreement to your email
+                              After GLA reviews and approves your application, we will email your contract. Sign it before completing the vehicle drop-off form.
                             </p>
                             <FormField
                               control={form.control}
@@ -2072,36 +2090,18 @@ export default function Onboarding() {
                                     />
                                   </FormControl>
                                   <FormLabel className="text-muted-foreground font-normal">
-                                    Confirm. Send My Agreement
+                                    Confirm and submit for review
                                   </FormLabel>
                                 </FormItem>
                               )}
                             />
                           </div>
-                        </>
-                      )}
-                    </CardContent>
-                  )}
-                </Card>
-              ))}
-
-              <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-primary/20">
-                <Button
-                  type="submit"
-                  className="bg-primary text-primary-foreground hover:bg-primary/80 font-bold w-full sm:w-auto sm:ml-auto"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      Submit
-                      <Check className="ml-2 w-4 h-4" />
-                    </>
-                  )}
+                <FormMessage>{form.formState.errors.confirmAgreement?.message}</FormMessage>
+              </div>}
+              <div className="flex gap-3 pt-4 border-t border-primary/20">
+                {currentStep > 0 && <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => goToStep(currentStep - 1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>}
+                <Button type="submit" className="ml-auto min-h-11" disabled={isSubmitting}>
+                  {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting…</> : currentStep === 3 ? "Submit for review" : <>Continue<ArrowRight className="ml-2 h-4 w-4" /></>}
                 </Button>
               </div>
             </form>

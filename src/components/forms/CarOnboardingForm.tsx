@@ -64,13 +64,13 @@ export default function CarOnboardingForm() {
   });
 
   // Fetch user's cars from the database (include all cars to filter for offboarded ones)
-  const { data: carsData, isLoading: isLoadingCars } = useQuery<{
+  const { data: carsData, isLoading: isLoadingCars, error: carsError, refetch: refreshCars } = useQuery<{
     success: boolean;
     data: UserCar[];
   }>({
     queryKey: ["/api/client/cars", "onboarding"], // Include "onboarding" to differentiate from offboarding query
     queryFn: async () => {
-      // Fetch cars for onboarding: off_fleet cars with approved onboarding submissions
+      // Fetch cars for onboarding: off_fleet cars with approved applications and signed owner-linked contracts
       const response = await fetch(buildApiUrl("/api/client/cars?for=onboarding"), {
         credentials: "include",
       });
@@ -88,7 +88,7 @@ export default function CarOnboardingForm() {
     enabled: !!userData?.user,
   });
 
-  // Backend already filters for off_fleet cars with approved onboarding submissions
+  // Backend already filters for off_fleet cars with approved applications and signed owner-linked contracts
   const offboardedCars = carsData?.data || [];
 
   const form = useForm<CarOnboardingFormData>({
@@ -200,15 +200,19 @@ export default function CarOnboardingForm() {
     }
   };
 
+  if (isLoadingCars) return <p role="status" className="p-4 text-sm">Checking signed contracts and eligible vehicles…</p>;
+  if (carsError) return <div role="alert" className="space-y-3 rounded border p-4"><p>We could not check which vehicles are ready for drop-off.</p><Button variant="outline" onClick={()=>void refreshCars()}>Retry</Button></div>;
+  if (!offboardedCars.length) return <Card className="border-primary/20"><CardHeader><CardTitle>Vehicle drop-off comes after signing</CardTitle><CardDescription>GLA must approve your application, your contract must be signed and linked to your account, and your vehicle record must be in the system. Eligible vehicles will appear here when those steps are complete.</CardDescription></CardHeader><CardContent><Button variant="outline" onClick={()=>void refreshCars()}>Check again</Button></CardContent></Card>;
+
   return (
     <Card className="bg-card border-primary/20">
       <CardHeader>
         <CardTitle className="text-[#D3BC8D] flex items-center gap-2">
           <Car className="w-5 h-5" />
-          Car On-boarding Form
+          Vehicle drop-off form
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Submit this form when dropping off your car to GLA for rental, maintenance, or onboarding into the fleet.
+          Your contract is signed. Submit this form when dropping off your vehicle at the GLA lot.
         </CardDescription>
       </CardHeader>
       <CardContent>
