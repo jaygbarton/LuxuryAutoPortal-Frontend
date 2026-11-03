@@ -88,7 +88,7 @@ export function Hero({
         </h1>
 
         <p className="mb-7 max-w-2xl text-base leading-7 sm:mb-10 sm:text-xl sm:leading-8" style={{ color: "rgba(255,255,255,0.76)" }}>
-          Rent from a curated fleet, or put your vehicle into a managed program built around clean operations, real scheduling, and guest-ready presentation {mode === "hub" ? "across active and upcoming locations" : `around ${location?.name}`}.
+          Golden Luxury Auto is a vehicle management company specializing in premium vehicles for rental. We already manage approximately 100 vehicles in Salt Lake City. Rent from our fleet or let our team manage your vehicle.
         </p>
 
         {mode === "hub" ? (
