@@ -81,3 +81,29 @@ No live runtime verification is claimed: this session's network proxy blocks the
 public Golden domain and deployment-status API with 403 Forbidden. The existing
 release path is scoped fast-forward pushes to main for Vercel/Render automatic
 deployments. Confirm Ready/Live and refresh existing browser tabs after release.
+
+
+## Task notes (November 3, 2026)
+
+Admins and managers can edit a Task note in any task popup, including current,
+future, carried-over and completed tasks. Employees can read notes on the compact
+card and in the popup; they cannot edit them. Completion keeps notes visible.
+Clearing the editor and saving removes a note without changing task status.
+
+The frontend calls `PATCH /api/operations/day-schedule/task-note` with the event
+identity, selected day, note and previously displayed `expectedNote`. The backend
+also retains `/carryover-note` as an alias for older clients. Existing vehicle/team
+scope and admin/manager checks still apply, including view-as exclusions.
+
+The backend creates `day_schedule_task_notes` using the existing ensure-table
+pattern. Keys include the source type and ID, so unrelated records and owner
+rental phases cannot share notes accidentally. Driver cards share their task's
+note. Existing `operation_tasks.carryover_note` values remain available as a
+fallback; explicit cleared notes override that fallback. Source record IDs,
+status and other notes are unchanged. Conflicting edits return 409; storage
+failures return an error instead of reporting a successful save. Changes are
+recorded in the Operations audit log under `day_schedule_note`.
+
+Deploy the backend update before the frontend. Local verification uses fixture
+accounts and data; it does not submit real onboarding applications or modify
+production tasks.

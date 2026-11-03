@@ -12,7 +12,7 @@ Vehicle creation is explicit and requires the signed application and linked clie
 
 ## Applicant and returning-client experience
 
-The List Your Car overview (`/onboarding`, `/salt-lake-city/onboarding`, `/wilmington-nc/onboarding`) is public. Its video, consultation booking link and testimonial sidebar are available before sign-in. **Get Started** opens `?start=1`: guests create/sign into an account and return to the steps; signed-in applicants/clients open their steps directly. Explicit `?new=1` and `?draft=…` workspace links continue to open applications without an extra marketing detour. Browsing the overview does not fetch reusable private application details or create an application. Testimonials reuse the existing published video list and remain below the video/consultation card beside the form.
+The List Your Car overview (`/onboarding`, `/salt-lake-city/onboarding`, `/wilmington-nc/onboarding`) is public. Its video, consultation booking link and testimonial sidebar are available before sign-in. **Get Started** opens `?start=1`: guests create an account directly in the application column (or use the existing sign-in link) and continue to the steps; signed-in applicants/clients open their steps directly. Explicit `?new=1` and `?draft=…` workspace links continue to open applications without an extra marketing detour. Browsing the overview does not fetch reusable private application details or create an application. Testimonials reuse the existing published video list and remain below the video/consultation card beside the form.
 
 - Sign-in offers account creation for future booking or List Your Car. Signup uses a chosen email/password and `LYC Applicant`, with no client, employee, admin or owner privileges. Matching an email never claims legacy records or resets an existing password.
 - Existing `/onboarding`, `/salt-lake-city/onboarding` and `/wilmington-nc/onboarding` entry links take a guest through signup/sign-in and then continue the application. Existing List Your Car Get started links use these entry routes.
@@ -96,3 +96,14 @@ The no-car flow remains four steps: Personal → Vehicle plan → Secure informa
 Pending alerts contain contact/plan/representative information and an admin link, not sensitive details. Delivery markers and per-application locks guard ordinary retries. The backend retries eligible undelivered alerts every five minutes, including earlier pending applications whose information is complete. Existing incomplete pending records are preserved but do not generate a misleading completion alert. The completed-application notification remains independent. See backend `docs/lyc-pending-intake.md` for delivery guarantees and environment gates.
 
 Follow-up validation: 82 backend tests and seven focused desktop/mobile browser scenarios passed, covering missing personal/secure/license/plan data, saved-step navigation, submission retry, completing the same application later, and both notification stages. Provider delivery was mocked; local tests do not verify live Slack delivery.
+
+
+### Inline account creation (November 3, 2026)
+
+`CreateAccountForm` is shared by the standalone `/signup` page and the application
+column on all three public onboarding routes after Get Started. The video,
+consultation link and testimonials remain alongside it on desktop and below it
+on mobile. Signup, login, local-only continuation URLs and restricted applicant
+roles use the existing APIs. No authentication or backend signup policy changed.
+The auth cache observer stays mounted through signup; other cached account data
+is cleared before displaying the newly signed-in applicant's steps.

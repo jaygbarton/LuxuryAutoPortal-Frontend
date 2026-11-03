@@ -21,7 +21,7 @@ async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType
     let body: any = { success: true, data: [], total: 0, notifications: [], unreadCount: 0 };
     if (route.request().method() !== 'GET') {
       const input = route.request().postDataJSON(); writes.push({ path, body: input });
-      if (path.endsWith('/carryover-note')) {
+      if (path.endsWith('/task-note') || path.endsWith('/carryover-note')) {
         const row = rows.find(row => row.id === input.eventId && row.type === input.type);
         if (row) row.carryover_note = input.note || null;
         body = { success: true, note: input.note || null };
@@ -359,25 +359,25 @@ for (const width of [1280, 390]) test(`pending carryovers precede daily work in 
   expect(state.errors).toEqual([]);
 });
 
-for (const access of ['admin', 'manager', 'employee'] as const) test(`carryover notes are visible on the card and editable only by admin or manager: ${access}`, async ({ page }) => {
+for (const access of ['admin', 'manager', 'employee'] as const) test(`task notes remain visible after completion and editable only by admin or manager: ${access}`, async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const state = await fixture(page, { manager: access === 'manager', user: { isAdmin: access === 'admin', isSuperAdmin: access === 'admin', isEmployee: access !== 'admin' }, rows: [
     task(401, 'turo:401', { type: 'pickup', category: 'Pick Up', location: '50 South Redwood Road', scheduled_day: '2026-10-06', is_carryover: true, carryover_note: 'Check the key envelope before pickup.' }),
   ] });
   const card = page.locator('[data-day-schedule-card]');
-  await expect(card.locator('[data-carryover-note]')).toContainText('Check the key envelope before pickup.');
+  await expect(card.locator('[data-carryover-note]')).toContainText('Check the key envelope before pickup.', { timeout: 15000 });
   await expect(card.locator('[data-carryover-note]')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await card.click();
   const popup = page.locator('[data-day-schedule-controls]');
-  const editor = popup.getByRole('textbox', { name: 'Carryover note', exact: true });
+  const editor = popup.getByRole('textbox', { name: 'Task note', exact: true });
   if (access === 'employee') {
     await expect(editor).toHaveCount(0);
     expect(state.writes).toEqual([]);
     return;
   }
   await editor.fill('Please take the spare key from the office.');
-  await popup.getByRole('button', { name: 'Save carryover note', exact: true }).click();
-  await expect.poll(() => state.writes.find(write => write.path.endsWith('/carryover-note'))?.body).toMatchObject({ eventId: 401, type: 'pickup', date: '2026-10-07', note: 'Please take the spare key from the office.' });
+  await popup.getByRole('button', { name: 'Save task note', exact: true }).click();
+  await expect.poll(() => state.writes.find(write => write.path.endsWith('/task-note'))?.body).toMatchObject({ eventId: 401, type: 'pickup', date: '2026-10-07', note: 'Please take the spare key from the office.' });
   await expect(editor).toHaveValue('Please take the spare key from the office.');
   await popup.getByRole('button', { name: 'Close task details', exact: true }).click();
   await expect(card.locator('[data-carryover-note]')).toContainText('Please take the spare key from the office.');
@@ -385,8 +385,11 @@ for (const access of ['admin', 'manager', 'employee'] as const) test(`carryover 
   await expect(popup.getByRole('combobox', { name: 'Task driver' })).toHaveCount(0);
   await popup.getByRole('combobox', { name: 'Task status', exact: true }).click();
   await page.getByRole('option', { name: 'Completed', exact: true }).click();
-  await expect(card.locator('[data-carryover-note]')).toHaveCount(0);
-  await expect(editor).toHaveCount(0);
+  await expect(card.locator('[data-task-note]')).toContainText('Please take the spare key from the office.');
+  await expect(editor).toBeVisible();
+  await editor.fill('Completed — spare key returned.');
+  await popup.getByRole('button', { name: 'Save task note', exact: true }).click();
+  await expect(card.locator('[data-task-note]')).toContainText('Completed — spare key returned.');
   expect(state.errors).toEqual([]);
 });
 
@@ -447,4 +450,46 @@ test('driver lookup failure keeps Uber and N/A selectable and supports retry wit
   await popup.getByRole('button', { name: 'Retry drivers', exact: true }).click();
   await expect(driver.locator('option[value="41"]')).toHaveText('Test Worker');
   await expect(popup.getByRole('button', { name: 'Retry drivers', exact: true })).toHaveCount(0);
+});
+
+
+for(const status of ['new','completed']) test(`task notes cover future owner and maintenance tasks without mixing matching IDs: ${status}`,async({page})=>{
+ const state=await fixture(page,{date:'2099-01-07',manager:true,user:{isAdmin:false,isSuperAdmin:false,isEmployee:true},rows:[
+  task(501,'owner_rental:501',{type:'owner_pickup',car_name:'Owner departure',status,is_carryover:false,scheduled_day:'2099-01-07'}),
+  task(501,'owner_rental:501',{type:'owner_dropoff',car_name:'Owner return',status,is_carryover:false,scheduled_day:'2099-01-07',carryover_note:'Keep return separate.'}),
+  task(501,'maintenance:501',{type:'maintenance',car_name:'Repair appointment',status,is_carryover:false,scheduled_day:'2099-01-07'}),
+  task(501,'turo:501',{type:'task_driver',car_name:'Unrelated driver task',status,is_carryover:false,scheduled_day:'2099-01-07',carryover_note:'Existing driver note.'}),
+ ]});
+ await page.locator('[aria-label="Filter schedule by task type"]').getByRole('button',{name:'Clear filter',exact:true}).click();
+ const cards=page.locator('[data-day-schedule-card]');await expect(cards).toHaveCount(4);
+ for(const car of ['Owner departure','Repair appointment']){
+  const card=cards.filter({hasText:car});await card.click();
+  const popup=page.locator('[data-day-schedule-controls]');
+  await popup.getByRole('textbox',{name:'Task note',exact:true}).fill(`Instructions for ${car}.`);
+  await popup.getByRole('button',{name:'Save task note',exact:true}).click();
+  await expect(card.locator('[data-task-note]')).toHaveText(`Note: Instructions for ${car}.`);
+  await popup.getByRole('button',{name:'Close task details',exact:true}).click();
+ }
+ await expect(cards.filter({hasText:'Owner return'}).locator('[data-task-note]')).toContainText('Keep return separate.');
+ await expect(cards.filter({hasText:'Unrelated driver task'}).locator('[data-task-note]')).toContainText('Existing driver note.');
+ await page.reload();
+ await page.locator('[aria-label="Filter schedule by task type"]').getByRole('button',{name:'Clear filter',exact:true}).click();
+ await expect(cards.filter({hasText:'Repair appointment'}).locator('[data-task-note]')).toContainText('Instructions for Repair appointment.');
+ await cards.filter({hasText:'Repair appointment'}).click();
+ const popup=page.locator('[data-day-schedule-controls]');
+ await popup.getByRole('textbox',{name:'Task note',exact:true}).fill('');
+ await popup.getByRole('button',{name:'Save task note',exact:true}).click();
+ await expect(cards.filter({hasText:'Repair appointment'}).locator('[data-task-note]')).toHaveCount(0);
+ expect(state.writes.filter(w=>w.path.endsWith('/task-note')).map(w=>w.body.expectedNote)).toEqual([null,null,'Instructions for Repair appointment.']);
+ expect(state.errors).toEqual([]);
+});
+
+test('task note save failure preserves the draft and original card note',async({page})=>{
+ const state=await fixture(page,{rows:[task(502,'turo:502',{type:'pickup',category:'Pick Up',carryover_note:'Original note.',is_carryover:false})]});
+ await page.route('**/api/operations/day-schedule/task-note',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'The task note could not be saved. Please retry.'})}));
+ const card=page.locator('[data-day-schedule-card]');await card.click();
+ const popup=page.locator('[data-day-schedule-controls]');const editor=popup.getByRole('textbox',{name:'Task note',exact:true});
+ await editor.fill('Unsaved instructions.');await popup.getByRole('button',{name:'Save task note',exact:true}).click();
+ await expect(popup.getByRole('alert')).toContainText('could not be saved');await expect(editor).toHaveValue('Unsaved instructions.');
+ await expect(card.locator('[data-task-note]')).toContainText('Original note.');expect(state.errors).toEqual([]);
 });

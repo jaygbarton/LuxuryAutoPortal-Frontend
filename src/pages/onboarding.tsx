@@ -1,6 +1,7 @@
 import {ListYourCarHero,ListYourCarConsultation,ListYourCarTestimonials} from '@/components/onboarding/ListYourCarIntro';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Redirect } from 'wouter';
+import { CreateAccountForm } from '@/components/auth/CreateAccountForm';
+import { ListYourCarApplicationLayout } from '@/components/onboarding/ListYourCarApplicationLayout';
 import { LycQuestionnaire } from '@/components/onboarding/LycQuestionnaire';
 import { lycRequest,personalFields,questionnaireFields } from '@/lib/lyc';
 import { optionKeywords } from "@/lib/select-search";
@@ -193,8 +194,7 @@ function OnboardingApplication() {
   const [initialDraftId]=useState(()=>new URLSearchParams(window.location.search).get('draft'));
   const publicLocation = getPreferredPublicLocation(currentPath);
   const suggestedCarsHref = publicLocation?.availablePages.suggestedCars === false
-    ? null
-    : withLocationPath("/suggested-cars", publicLocation);
+    ? null : withLocationPath('/suggested-cars', publicLocation);
 
   const form = useForm<OnboardingFormData, any, OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
@@ -414,11 +414,11 @@ function OnboardingApplication() {
     }
   };
 
-  if(auth.isLoading) return <p className="p-6" role="status">Loading your account…</p>;
-  if(auth.error) return <p role="alert" className="p-6">Unable to check your account. <button onClick={()=>void auth.refetch()}>Retry</button></p>;
-  if(!auth.data?.user) return <Redirect to={`/signup?next=${encodeURIComponent(currentPath+window.location.search)}`}/>;
-  if(loadError) return <div className="p-6" role="alert">{loadError} <Button variant="outline" onClick={()=>window.location.reload()}>Retry</Button></div>;
-  if(!loaded) return <p className="p-6" role="status">Loading your saved details…</p>;
+  if(auth.isLoading) return <ListYourCarApplicationLayout><p role="status">Loading your account…</p></ListYourCarApplicationLayout>;
+  if(auth.error) return <ListYourCarApplicationLayout><p role="alert">Unable to check your account. <Button variant="outline" onClick={()=>void auth.refetch()}>Retry</Button></p></ListYourCarApplicationLayout>;
+  if(!auth.data?.user) return <ListYourCarApplicationLayout><div className="rounded-xl border border-border bg-card p-6 sm:p-8"><CreateAccountForm next={currentPath+window.location.search}/></div></ListYourCarApplicationLayout>;
+  if(loadError) return <ListYourCarApplicationLayout><div role="alert">{loadError} <Button variant="outline" onClick={()=>window.location.reload()}>Retry</Button></div></ListYourCarApplicationLayout>;
+  if(!loaded) return <ListYourCarApplicationLayout><p role="status">Loading your saved details…</p></ListYourCarApplicationLayout>;
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-background">
@@ -453,19 +453,7 @@ function OnboardingApplication() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="pt-20 lg:pt-24 pb-20">
-        <ListYourCarHero/>
-
-        <div className="max-w-7xl mx-auto px-4 pt-6 sm:px-6 lg:px-8 lg:pt-16">
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-            <aside aria-label="About the List Your Car program" className="order-2 lg:order-1">
-              <ListYourCarConsultation suggestedCarsHref={suggestedCarsHref}/>
-              <ListYourCarTestimonials allTestimonialsHref={withLocationPath('/testimonials',publicLocation)}/>
-            </aside>
-
-            <section className="order-1 min-w-0 lg:order-2">
+    <ListYourCarApplicationLayout>
               <div className="mb-5">
                 <h2 className="text-2xl font-semibold text-foreground">Your LYC onboarding steps</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -2134,11 +2122,6 @@ function OnboardingApplication() {
               </div>
             </form>
           </Form>
-            </section>
-          </div>
-        </div>
-      </main>
-      <Footer />
-    </div>
+    </ListYourCarApplicationLayout>
   );
 }

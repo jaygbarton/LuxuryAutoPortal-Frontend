@@ -332,30 +332,30 @@ function DetailLine({ icon, label, value, className = "" }: {
   );
 }
 
-const ScheduleBookingContext = createContext<{ selectedBooking: string | null; date: string; now?: number; openAirportReceipt?: (event: DayEvent) => void; openFuelReceipt?: (event: DayEvent) => void; canEditCarryoverNotes?: boolean; saveCarryoverNote?: (event: DayEvent, note: string) => Promise<void> }>({
+const ScheduleBookingContext = createContext<{ selectedBooking: string | null; date: string; now?: number; openAirportReceipt?: (event: DayEvent) => void; openFuelReceipt?: (event: DayEvent) => void; canEditTaskNotes?: boolean; saveTaskNote?: (event: DayEvent, note: string) => Promise<void> }>({
   selectedBooking: null, date: "",
 });
 
-function CarryoverNoteEditor({ event }: { event: DayEvent }) {
+function TaskNoteEditor({ event }: { event: DayEvent }) {
   const context = useContext(ScheduleBookingContext);
   const [draft, setDraft] = useState(event.carryover_note || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const inputId = useId();
   useEffect(() => { setDraft(event.carryover_note || ""); }, [event.carryover_note]);
-  if (!context.canEditCarryoverNotes || !pendingCarryover(event)) return null;
+  if (!context.canEditTaskNotes) return event.carryover_note ? <p className="whitespace-pre-wrap break-words rounded-lg border bg-white p-3 text-sm [overflow-wrap:anywhere]"><strong>Note: </strong>{event.carryover_note}</p> : null;
   return <div className="space-y-2 rounded-lg border border-primary/30 bg-white p-3">
-    <label htmlFor={inputId} className="block text-sm font-semibold">Carryover note</label>
+    <label htmlFor={inputId} className="block text-sm font-semibold">Task note</label>
     <textarea id={inputId} value={draft} onChange={e => setDraft(e.target.value)} maxLength={2000} rows={3}
       placeholder="Instructions for the employee completing this task…" className="w-full rounded-md border bg-white p-2 text-base sm:text-sm" />
-    <p className="text-xs text-muted-foreground">Visible on the task card to employees. Hidden when the task is completed. Clear the text to remove the note.</p>
+    <p className="text-xs text-muted-foreground">Visible on the task card to employees. Notes stay visible after completion. Clear the text to remove the note.</p>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     <Button type="button" className="h-11 sm:h-9" disabled={saving || draft.trim() === (event.carryover_note || "")} onClick={async () => {
       setSaving(true); setError("");
-      try { await context.saveCarryoverNote?.(event, draft.trim()); }
+      try { await context.saveTaskNote?.(event, draft.trim()); }
       catch (error) { setError(error instanceof Error ? error.message : "The note could not be saved."); }
       finally { setSaving(false); }
-    }}>{saving ? "Saving…" : "Save carryover note"}</Button>
+    }}>{saving ? "Saving…" : "Save task note"}</Button>
   </div>;
 }
 
@@ -423,7 +423,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
           {pendingCarryover(event) && <span data-task-carryover className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-semibold text-white">Carried over</span>}
         </span>
         {event.extras && <span data-trip-extras className="gla-trip-extras block w-fit max-w-full break-words rounded px-2 py-1 text-xs font-semibold text-amber-950"><span>Extras: </span>{event.extras}</span>}
-        {pendingCarryover(event) && event.carryover_note && <span data-carryover-note className="block whitespace-pre-wrap break-words rounded-lg border border-primary/30 bg-white p-2 text-sm text-foreground [overflow-wrap:anywhere]"><span className="font-semibold">Note: </span>{event.carryover_note}</span>}
+        {event.carryover_note && <span data-task-note data-carryover-note className="block whitespace-pre-wrap break-words rounded-lg border border-primary/30 bg-white p-2 text-sm text-foreground [overflow-wrap:anywhere]"><span className="font-semibold">Note: </span>{event.carryover_note}</span>}
       </span>
       <span className="flex shrink-0 items-center gap-2">
         <span data-task-plate className="w-16 break-words text-center text-sm font-semibold text-foreground sm:w-20 sm:text-base">{event.plate || "Plate not set"}</span>
@@ -446,7 +446,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
             if (event.airport_parking_required && status === "completed") setOpen(false);
             props.onStatusChange(type, id, status, completedDate);
           }} />
-          <CarryoverNoteEditor event={event} />
+          <TaskNoteEditor event={event} />
         </ScheduleBookingContext.Provider>
       </DialogContent>
     </Dialog>
@@ -990,7 +990,7 @@ export function DayScheduleTab() {
   });
   const canBulkCompleteOldTasks = authData?.user?.isAdmin === true && !authData?.user?.viewAsEmployee && !authData?.user?.viewAsCoHost && !authData?.user?.viewAsClient;
   const managerAccess = useChartManagementAccess();
-  const canEditCarryoverNotes = !authData?.user?.viewAsClient && !authData?.user?.viewAsCoHost && (canBulkCompleteOldTasks || managerAccess.data?.canManage === true);
+  const canEditTaskNotes = !authData?.user?.viewAsClient && !authData?.user?.viewAsCoHost && (canBulkCompleteOldTasks || managerAccess.data?.canManage === true);
   const isAdmin = authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true || authData?.user?.isEmployee === true;
   const preferenceKey = ["/api/me/preferences/day-schedule", authData?.user?.id, authData?.user?.viewAsEmployee?.employeeId];
   const schedulePreference = useQuery<{ myTasksFirst: boolean; employeeId: number | null }>({
@@ -1308,15 +1308,15 @@ export function DayScheduleTab() {
     statusMutation.mutate({ type, id, status, completedDate });
   }
 
-  async function saveCarryoverNote(event: DayEvent, note: string) {
-    const response = await fetch(buildApiUrl('/api/operations/day-schedule/carryover-note'), {
+  async function saveTaskNote(event: DayEvent, note: string) {
+    const response = await fetch(buildApiUrl('/api/operations/day-schedule/task-note'), {
       method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: event.type, eventId: event.id, date, note }),
+      body: JSON.stringify({ type: event.type, eventId: event.id, date, note, expectedNote: event.carryover_note ?? null }),
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || 'The carryover note could not be saved.');
+    if (!response.ok) throw new Error(result.error || 'The task note could not be saved.');
     queryClient.setQueryData<DayScheduleResult>(dayScheduleQueryKey, current => current ? {
-      ...current, events: current.events.map(row => row.id === event.id && (row.type === event.type || row.type === 'task_driver' || event.type === 'task_driver' && OPERATION_TASK_TYPES.includes(row.type))
+      ...current, events: current.events.map(row => row.id === event.id && (row.type === event.type || (row.type === 'task_driver' || OPERATION_TASK_TYPES.includes(row.type)) && (event.type === 'task_driver' || OPERATION_TASK_TYPES.includes(event.type)) || ['maintenance', 'maintenance_driver'].includes(row.type) && ['maintenance', 'maintenance_driver'].includes(event.type))
         ? { ...row, carryover_note: result.note } : row),
     } : current);
     await queryClient.invalidateQueries({ queryKey: dayScheduleQueryKey, exact: true });
@@ -1492,7 +1492,7 @@ export function DayScheduleTab() {
   }, {});
 
   return (
-    <ScheduleBookingContext.Provider value={{ selectedBooking, date, now: clockNow, canEditCarryoverNotes, saveCarryoverNote, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
+    <ScheduleBookingContext.Provider value={{ selectedBooking, date, now: clockNow, canEditTaskNotes, saveTaskNote, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
     <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
     <div className="min-w-0 space-y-3 sm:space-y-4">
       {fuelReturn?.bookingKey && <TripReceiptDialog key={fuelReturn.bookingKey} kind="gas" bookingKey={fuelReturn.bookingKey} onClose={() => setFuelReturn(null)} onComplete={async () => {

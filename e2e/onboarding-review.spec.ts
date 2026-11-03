@@ -116,15 +116,30 @@ for(const signed of [false,true]) test(`owner drop-off form is ${signed?'availab
  else { await expect(page.getByText('Vehicle drop-off comes after signing',{exact:true})).toBeVisible();await expect(page.getByText('Select Your Car *',{exact:true})).toHaveCount(0); }
 });
 
-test('guests create a restricted account before starting and existing login continuation stays local',async({page})=>{
+for(const width of [390,1280]) test(`guests create a restricted account inline and continue into LYC steps at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:844});
  const {writes}=await fixture(page,'guest');await page.goto('/onboarding');
  await expect(page.locator('iframe[title="Golden Luxury Auto List Your Car"]')).toBeVisible();
  await expect(page.getByRole('heading',{name:'Create your account'})).toHaveCount(0);
  await page.getByRole('link',{name:'Get Started',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Create your account'})).toBeVisible();
+ await expect(page).toHaveURL(/\/onboarding\?start=1$/);
+ const sidebar=page.getByRole('complementary',{name:'About the List Your Car program'});
+ await expect(sidebar.getByRole('link',{name:'Book a Free Consulting Appointment'})).toBeVisible();
+ await expect(sidebar.locator('iframe[title="Golden Luxury Auto List Your Car"]')).toBeVisible();
+ await expect(sidebar.getByRole('heading',{name:'Client stories'})).toBeVisible();
+ const application=page.getByRole('region',{name:'LYC application'});
+ if(width===1280)expect((await application.boundingBox())!.x).toBeGreaterThan((await sidebar.boundingBox())!.x);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+ await page.screenshot({path:test.info().outputPath('inline-account.png'),fullPage:true});
+ await page.getByLabel('Phone (optional)').fill('8010000000');
  await page.getByLabel('First name',{exact:true}).fill('New');await page.getByLabel('Last name',{exact:true}).fill('Applicant');await page.getByLabel('Email',{exact:true}).fill('new@example.test');await page.getByLabel('Choose a password').fill('fixture-account-password');await page.getByLabel('Confirm password').fill('fixture-account-password');
  await page.getByRole('button',{name:'Create account & continue'}).click();await expect(page.locator('#onboarding-step-title')).toHaveText('Personal information');
+ await expect(page).toHaveURL(/\/onboarding\?start=1$/);
+ expect(writes.filter(w=>w.path==='/api/auth/signup')).toHaveLength(1);
  expect(writes.find(w=>w.path==='/api/auth/signup')?.body).not.toHaveProperty('roleId');
+ await expect(page.locator('input[name=phoneOwner]')).toHaveValue('8010000000');
+ await expect(sidebar.getByRole('link',{name:'Book a Free Consulting Appointment'})).toBeVisible();
 });
 
 for(const width of [390,1280]) test(`public LYC overview, consultation and testimonials remain available before Get Started at ${width}px`,async({page})=>{
@@ -154,7 +169,7 @@ for(const width of [390,1280]) test(`public LYC overview, consultation and testi
  }
  expect(writes).toHaveLength(0);expect(requests).not.toContain('/api/lyc/reusable');
  await page.getByRole('link',{name:'Get Started',exact:true}).click();
- await expect(page).toHaveURL(/\/signup\?next=%2Fwilmington-nc%2Fonboarding%3Fstart%3D1$/);
+ await expect(page).toHaveURL(/\/wilmington-nc\/onboarding\?start=1$/);
  await expect(page.getByRole('heading',{name:'Create your account'})).toBeVisible();
 });
 
@@ -319,4 +334,34 @@ test('retention queue blocks removal pending information and allows a reasoned k
  await page.goto('/admin/client-retention');await page.getByRole('button',{name:'Review retention options'}).click();await choose(page,page.getByRole('combobox',{name:'Decision',exact:true}),'Remove personal information; keep financials and contracts');await page.getByLabel('Reason',{exact:true}).fill('Fixture reviewed');await page.getByLabel('Enter client ID 12').fill('12');await expect(page.getByRole('button',{name:'Apply reviewed removal'})).toBeDisabled();await page.screenshot({path:test.info().outputPath('retention-mobile.png'),fullPage:true});
  await choose(page,page.getByRole('combobox',{name:'Decision',exact:true}),'Keep everything — record an exception');await page.getByRole('button',{name:'Save keep exception'}).click();await expect(page.getByRole('status').filter({hasText:'Keep exception recorded'})).toBeVisible();expect(writes[0]).toMatchObject({decision:'keep',reason:'Fixture reviewed'});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
+});
+
+
+test('standalone signup stays available, rejects mismatched passwords and keeps continuation local',async({page})=>{
+ const {writes}=await fixture(page,'guest');
+ await page.goto('/signup?next=https%3A%2F%2Fexample.test');
+ await expect(page.getByRole('heading',{name:'Create your account'})).toBeVisible();
+ await expect(page.getByRole('link',{name:'Sign in to continue'})).toHaveAttribute('href','/admin/login?next=%2Flyc%2Fstatus');
+ await page.getByLabel('First name',{exact:true}).fill('New');await page.getByLabel('Last name',{exact:true}).fill('Applicant');await page.getByLabel('Email',{exact:true}).fill('new@example.test');
+ await page.getByLabel('Choose a password').fill('fixture-password');await page.getByLabel('Confirm password').fill('different-password');
+ await page.getByRole('button',{name:'Create account & continue'}).click();
+ await expect(page.getByRole('alert')).toHaveText('Passwords do not match.');expect(writes).toHaveLength(0);
+ await page.getByLabel('Confirm password').fill('fixture-password');
+ await page.getByRole('button',{name:'Create account & continue'}).click();
+ await expect(page).toHaveURL(/\/lyc\/status$/);
+ await expect(page.getByRole('heading',{name:'Your LYC applications'})).toBeVisible();
+ expect(writes.filter(w=>w.path==='/api/auth/signup')).toHaveLength(1);
+});
+
+test('inline signup failure keeps the form and consultation visible without creating an application',async({page})=>{
+ const {writes}=await fixture(page,'guest');
+ await page.route('**/api/auth/signup',route=>route.fulfill({status:409,contentType:'application/json',body:JSON.stringify({error:'An account with this email already exists. Please sign in.'})}));
+ await page.goto('/salt-lake-city/onboarding?start=1');
+ await page.getByLabel('First name',{exact:true}).fill('New');await page.getByLabel('Last name',{exact:true}).fill('Applicant');await page.getByLabel('Email',{exact:true}).fill('new@example.test');
+ await page.getByLabel('Choose a password').fill('fixture-password');await page.getByLabel('Confirm password').fill('fixture-password');
+ await page.getByRole('button',{name:'Create account & continue'}).click();
+ await expect(page.getByRole('alert')).toContainText('already exists');
+ await expect(page.getByRole('link',{name:'Sign in to continue'})).toHaveAttribute('href','/admin/login?next=%2Fsalt-lake-city%2Fonboarding%3Fstart%3D1');
+ await expect(page.getByRole('link',{name:'Book a Free Consulting Appointment'})).toBeVisible();
+ await expect(page).toHaveURL(/\/salt-lake-city\/onboarding\?start=1$/);expect(writes).toHaveLength(0);
 });
