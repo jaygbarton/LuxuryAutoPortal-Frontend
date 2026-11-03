@@ -107,3 +107,19 @@ on mobile. Signup, login, local-only continuation URLs and restricted applicant
 roles use the existing APIs. No authentication or backend signup policy changed.
 The auth cache observer stays mounted through signup; other cached account data
 is cleared before displaying the newly signed-in applicant's steps.
+
+### Stable steps and sensitive-number verification (November 3, 2026)
+
+The applicant wizard now owns focus during navigation and validation. It disables
+React Hook Form's separate error-field focusing, focuses the current step heading
+with `preventScroll`, and performs one immediate scroll below the fixed header.
+It cancels pending focus work when another step is requested or the form unmounts.
+Typing, editing a number and saving the current step do not request navigation.
+
+Routing number, account number, EIN and SSN use independent Show/Hide buttons.
+They remain strings (including leading zeros), start masked, and remask when the
+step unmounts or the browser tab becomes hidden. Toggles are keyboard accessible,
+keep the field's existing label/ref/validation, and cannot submit the form. The
+review summary still omits these numbers. This only changes how already-authorized
+form values are displayed; storage, authentication, submission and Slack APIs are
+unchanged.

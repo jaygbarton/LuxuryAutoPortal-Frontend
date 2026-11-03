@@ -365,3 +365,71 @@ test('inline signup failure keeps the form and consultation visible without crea
  await expect(page.getByRole('link',{name:'Book a Free Consulting Appointment'})).toBeVisible();
  await expect(page).toHaveURL(/\/salt-lake-city\/onboarding\?start=1$/);expect(writes).toHaveLength(0);
 });
+
+
+for(const width of [390,1280]) test(`onboarding step navigation has one deliberate scroll and validation keeps focus at the step at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:844});await fixture(page);
+ await page.addInitScript(()=>{
+   const original=HTMLElement.prototype.focus;
+   (window as any).__onboardingFocus=[];
+   HTMLElement.prototype.focus=function(options){
+     if(this.id==='onboarding-step-title'||this.closest('form')&&this instanceof HTMLInputElement)
+       (window as any).__onboardingFocus.push({id:this.id,name:this.getAttribute('name'),preventScroll:options?.preventScroll===true});
+     return original.call(this,options);
+   };
+ });
+ await page.goto('/onboarding?start=1');
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Personal information');
+ await page.locator('form').getByRole('button',{name:'3. Secure information',exact:true}).click();
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Secure information');
+ await expect(page.locator('#onboarding-step-title')).toBeFocused();
+ const focus=await page.evaluate(()=>(window as any).__onboardingFocus.filter((call:any)=>call.id==='onboarding-step-title'));
+ expect(focus.length).toBeGreaterThan(0);expect(focus.every((call:any)=>call.preventScroll)).toBe(true);
+ const titleBox=await page.locator('#onboarding-step-title').boundingBox();expect(titleBox!.y).toBeGreaterThanOrEqual(80);expect(titleBox!.y).toBeLessThan(200);
+ await page.locator('form').getByRole('button',{name:'Continue',exact:true}).click();
+ await expect(page.locator('form').getByRole('alert')).toContainText('highlighted');
+ await expect(page.locator('#onboarding-step-title')).toBeFocused();
+ const errors=await page.evaluate(()=>(window as any).__onboardingFocus.filter((call:any)=>call.name));
+ expect(errors).toEqual([]);
+ const field=page.locator('input[name=bankName]');await field.fill('Fixture bank');
+ // Two animation frames let the browser commit focus/layout; no delayed
+ // focus callbacks may move the user away from the field they are editing.
+ const top=await field.evaluate(el=>el.getBoundingClientRect().top);
+ await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+ await expect(field).toBeFocused();expect(Math.abs((await field.boundingBox())!.y-top)).toBeLessThan(2);
+});
+
+
+for(const width of [390,1280]) test(`onboarding sensitive numbers reveal individually without submitting and remask between steps at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:844});const {writes}=await fixture(page);
+ await page.goto('/onboarding?start=1');const form=page.locator('form');
+ await form.getByRole('button',{name:'3. Secure information',exact:true}).click();
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Secure information');
+ const samples=[['routingNumber','routing number','012345678'],['accountNumber','account number','000001234567890'],['ein','EIN','01-2345678'],['ssn','SSN','001-02-3456']];
+ const writesBefore=writes.length;
+ for(const [name,label,value] of samples){
+   const input=form.locator(`input[name="${name}"]`);await expect(input).toHaveAttribute('type','password');
+   await input.fill(value);
+   const show=form.getByRole('button',{name:`Show ${label}`,exact:true});await expect(show).toHaveAttribute('type','button');
+   await show.click();await expect(input).toHaveAttribute('type','text');await expect(input).toHaveValue(value);
+   const hide=form.getByRole('button',{name:`Hide ${label}`,exact:true});await expect(hide).toHaveAttribute('aria-pressed','true');
+   const others=samples.filter(([other])=>other!==name);for(const [other]of others)await expect(form.locator(`input[name="${other}"]`)).toHaveAttribute('type','password');
+   await hide.click();await expect(input).toHaveAttribute('type','password');await expect(input).toHaveValue(value);
+ }
+ expect(writes.length).toBe(writesBefore);
+ // The toggle remains keyboard operable and never becomes a submit button.
+ const reveal=form.getByRole('button',{name:'Show SSN',exact:true});await reveal.focus();await page.keyboard.press('Enter');
+ await expect(form.locator('input[name=ssn]')).toHaveAttribute('type','text');expect(writes.length).toBe(writesBefore);
+ await form.getByRole('button',{name:'4. Review & submit',exact:true}).click();
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Review & submit');
+ for(const [, ,value]of samples)await expect(form).not.toContainText(value);
+ const saved=writes.filter(w=>w.path.includes('/api/lyc/drafts')).at(-1);
+ expect(saved.body.fields).toMatchObject(Object.fromEntries(samples.map(([name,,value])=>[name,value])));
+ await form.getByRole('button',{name:'Edit Secure information',exact:true}).click();
+ for(const [name,,value]of samples){await expect(form.locator(`input[name="${name}"]`)).toHaveAttribute('type','password');await expect(form.locator(`input[name="${name}"]`)).toHaveValue(value);}
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+ await form.getByRole('button',{name:'Show account number',exact:true}).click();
+ await expect(form.locator('input[name=accountNumber]')).toHaveAttribute('type','text');
+ await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
+ await expect(form.locator('input[name=accountNumber]')).toHaveAttribute('type','password');
+});

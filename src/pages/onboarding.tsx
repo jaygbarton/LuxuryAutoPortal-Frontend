@@ -14,6 +14,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SensitiveInput } from "@/components/ui/sensitive-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -187,6 +188,8 @@ function OnboardingApplication() {
   const auth=useQuery({queryKey:['/api/auth/me'],queryFn:()=>lycRequest('/api/auth/me')});
   const [loaded,setLoaded]=useState(false),[loadError,setLoadError]=useState('');
   const savingRef=useRef(false);
+  const stepFocusFrame=useRef<number | null>(null);
+  useEffect(() => () => { if(stepFocusFrame.current !== null) cancelAnimationFrame(stepFocusFrame.current); }, []);
   const [saving,setSaving]=useState(false),[savedMessage,setSavedMessage]=useState('');
   const [draft,setDraft]=useState<any>(null);
   const [reusedBank,setReusedBank]=useState(false);
@@ -198,6 +201,9 @@ function OnboardingApplication() {
 
   const form = useForm<OnboardingFormData, any, OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
+    // The wizard owns navigation; RHF must not also focus a field in an old
+    // step (including its delayed submit-error focus) and scroll the page again.
+    shouldFocusError: false,
     defaultValues: {
       date: "",
       tshirtSize: "",
@@ -322,18 +328,30 @@ function OnboardingApplication() {
     }
   }, [freeOilChanges, form]);
 
+  const focusStepHeading = () => {
+    if(stepFocusFrame.current !== null) cancelAnimationFrame(stepFocusFrame.current);
+    stepFocusFrame.current = requestAnimationFrame(() => {
+      stepFocusFrame.current = null;
+      const heading = document.getElementById("onboarding-step-title");
+      if (!heading) return;
+      heading.focus({ preventScroll: true });
+      // Ignore the site's smooth scrolling here: one deliberate movement after
+      // a step action must finish before the applicant starts typing again.
+      heading.scrollIntoView({ block: "start", behavior: "instant" });
+    });
+  };
   const goToStep = (step: number) => {
     setCurrentStep(step);
     setStepError("");
-    requestAnimationFrame(() => document.getElementById("onboarding-step-title")?.focus());
+    focusStepHeading();
   };
   const continueStep = async () => {
     if(currentStep===1&&answers.hasVehicle===null){setStepError('Please choose whether you already have a vehicle. You can add its details later.');return;}
     if(currentStep===1&&answers.hasVehicle===false&&!vehiclePlanReady()){setStepError('Choose your plan, say whether you know the car, and confirm the vehicle requirement.');return;}
     const fields=currentStep===1&&answers.hasVehicle!==true?[]:currentStep===2&&answers.hasVehicle!==true?wizardSteps[currentStep].fields.filter(key=>!["carManufacturerWebsite","carManufacturerUsername","password"].includes(key)):wizardSteps[currentStep].fields;
-    const valid = await form.trigger(fields as (keyof OnboardingFormData)[], { shouldFocus: true });
+    const valid = await form.trigger(fields as (keyof OnboardingFormData)[], { shouldFocus: false });
     if (valid) {await saveAndGo(currentStep + 1);}
-    else setStepError("Please complete the highlighted fields before continuing.");
+    else {setStepError("Please complete the highlighted fields before continuing.");focusStepHeading();}
   };
   const showErrors = (errors: typeof form.formState.errors) => {
     const firstStep = wizardSteps.findIndex(step => step.fields.some(field => field in errors));
@@ -478,7 +496,7 @@ function OnboardingApplication() {
                 </li>)}
               </ol>
               <div>
-                <h3 id="onboarding-step-title" tabIndex={-1} className="text-xl font-semibold outline-none">{wizardSteps[currentStep].title}</h3>
+                <h3 id="onboarding-step-title" tabIndex={-1} className="scroll-mt-28 text-xl font-semibold outline-none">{wizardSteps[currentStep].title}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{wizardSteps[currentStep].description}</p>
               </div>
               {stepError && <p role="alert" className="text-sm text-destructive">{stepError}</p>}
@@ -1925,7 +1943,7 @@ function OnboardingApplication() {
                                     Routing Number *
                                   </FormLabel>
                                   <FormControl>
-                                    <Input type="password" autoComplete="off"
+                                    <SensitiveInput visibilityLabel="routing number" inputMode="numeric"
                                       {...field}
                                       placeholder="9 digits"
                                       maxLength={9}
@@ -1945,7 +1963,7 @@ function OnboardingApplication() {
                                     Account Number *
                                   </FormLabel>
                                   <FormControl>
-                                    <Input type="password" autoComplete="off"
+                                    <SensitiveInput visibilityLabel="account number" inputMode="numeric"
                                       {...field}
                                       className="bg-background border-border"
                                     />
@@ -1983,7 +2001,7 @@ function OnboardingApplication() {
                                     EIN
                                   </FormLabel>
                                   <FormControl>
-                                    <Input type="password" autoComplete="off"
+                                    <SensitiveInput visibilityLabel="EIN" inputMode="numeric"
                                       {...field}
                                       placeholder="XX-XXXXXXX"
                                       className="bg-background border-border"
@@ -2003,7 +2021,7 @@ function OnboardingApplication() {
                                   SSN *
                                 </FormLabel>
                                 <FormControl>
-                                  <Input type="password" autoComplete="off"
+                                  <SensitiveInput visibilityLabel="SSN" inputMode="numeric"
                                     {...field}
                                     placeholder="XXX-XX-XXXX"
                                     className="bg-background border-border"
