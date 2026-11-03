@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
 /** Fallback while loading / on error — matches the backend default list. */
-export const DEFAULT_SALES_REPS = ["Jay Barton", "Jenn Mason", "Brynn Lunn"];
+export const DEFAULT_SALES_REPS = ["Andy Zhang", "Jay Barton", "Jenn Mason", "Brynn Lunn"];
 
 /**
  * Admin-managed sales representative names (Settings → Sales Representatives).

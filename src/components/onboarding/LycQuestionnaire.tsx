@@ -2,19 +2,19 @@ import { SearchableNativeSelect } from '@/components/ui/searchable-native-select
 import {Input} from '@/components/ui/input';
 import {Button} from '@/components/ui/button';
 type Answers={hasVehicle:boolean|null;[key:string]:any};
-export function LycQuestionnaire({answers,onChange,onContinue,busy,suggestedCarsHref}:{answers:Answers;onChange:(value:Answers)=>void;onContinue:()=>void;busy:boolean;suggestedCarsHref:string|null}) {
+export function LycQuestionnaire({answers,onChange,busy,suggestedCarsHref}:{answers:Answers;onChange:(value:Answers)=>void;busy:boolean;suggestedCarsHref:string|null}) {
   const set=(key:string,value:any)=>onChange({...answers,[key]:value});
   return <section className="space-y-6 rounded-xl border bg-background p-4 sm:p-6" aria-label="Your vehicle plan">
     <div><h2 className="text-xl font-semibold">Let’s tailor your LYC steps</h2><p className="mt-2 text-sm text-muted-foreground">You can save now, return later and complete the steps in any order. A vehicle isn’t required to start.</p></div>
     <fieldset><legend className="mb-3 font-medium">Do you already have a vehicle?</legend><div className="flex flex-wrap gap-3">{[true,false].map(value=><Button key={String(value)} type="button" disabled={busy} aria-pressed={answers.hasVehicle===value} variant={answers.hasVehicle===value?'default':'outline'} onClick={()=>set('hasVehicle',value)}>{value?'Yes, I have a vehicle':'Not yet'}</Button>)}</div></fieldset>
     {answers.hasVehicle===false&&<>
+      <p className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">You can submit a pending application now without a car. GLA can view your application and contact you while you’re planning. When you have the car information, sign back in to this same application, add the vehicle details and complete any remaining steps, then submit it for approval. A pending application is not an approval; your contract comes after your completed application is approved.</p>
       <VehiclePlanFields answers={answers} onChange={onChange} suggestedCarsHref={suggestedCarsHref}/>
     </>}
-    <Button type="button" disabled={busy||answers.hasVehicle===null} onClick={onContinue}>{busy?'Saving…':'Save plan & choose my next step'}</Button>
   </section>;
 }
 
-/** Only these vehicle-specific questions recur when planning another car. */
+/** Each application keeps its own vehicle plan, independently of reusable account details. */
 export function VehiclePlanFields({answers,onChange,suggestedCarsHref}:{answers:Answers;onChange:(value:Answers)=>void;suggestedCarsHref:string|null}) {
   const set=(key:string,value:any)=>onChange({...answers,[key]:value});
   return <div className="space-y-4">      <label className="block space-y-2"><span className="font-medium">Do you plan to buy or finance a vehicle for the program?</span><SearchableNativeSelect className="h-11 w-full rounded-md border bg-background px-3" value={answers.acquisitionPlan || ''} onChange={e=>set('acquisitionPlan',e.target.value)}><option value="">Choose your plan</option><option value="purchase">Buy a vehicle</option><option value="finance">Finance a vehicle</option><option value="unsure">Still deciding / need guidance</option></SearchableNativeSelect></label>

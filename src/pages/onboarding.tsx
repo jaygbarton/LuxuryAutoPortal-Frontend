@@ -1,7 +1,7 @@
 import {ListYourCarHero,ListYourCarConsultation,ListYourCarTestimonials} from '@/components/onboarding/ListYourCarIntro';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Redirect } from 'wouter';
-import { LycQuestionnaire, VehiclePlanFields } from '@/components/onboarding/LycQuestionnaire';
+import { LycQuestionnaire } from '@/components/onboarding/LycQuestionnaire';
 import { lycRequest,personalFields,questionnaireFields } from '@/lib/lyc';
 import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useState, useRef } from "react";
@@ -188,8 +188,6 @@ function OnboardingApplication() {
   const savingRef=useRef(false);
   const [saving,setSaving]=useState(false),[savedMessage,setSavedMessage]=useState('');
   const [draft,setDraft]=useState<any>(null);
-  const [showPlan,setShowPlan]=useState(false);
-  const [questionnaireDone,setQuestionnaireDone]=useState(false);
   const [reusedBank,setReusedBank]=useState(false);
   const [answers,setAnswers]=useState<any>({hasVehicle:null});
   const [initialDraftId]=useState(()=>new URLSearchParams(window.location.search).get('draft'));
@@ -271,15 +269,13 @@ function OnboardingApplication() {
         const [reusable,saved]=await Promise.all([lycRequest('/api/lyc/reusable'),initialDraftId?lycRequest(`/api/lyc/drafts/${initialDraftId}`):Promise.resolve(null)]);
         if(!active) return;
         if(saved?.draft.submissionId){setLocation('/lyc/status');return;}
-        const {profile,banking,questionnaireCompleted}=reusable;
-        setQuestionnaireDone(questionnaireCompleted);setReusedBank(!!banking?.accountNumber);
+        const {profile,banking}=reusable;
+        setReusedBank(!!banking?.accountNumber);
         const values={...form.getValues(),...profile,...banking,...(saved?.draft.fields || {}),date:new Date().toLocaleDateString('en-CA')};
         // The displayed account identity is authoritative; draft fields cannot replace it.
         values.emailOwner=profile.emailOwner;values.firstNameOwner=profile.firstNameOwner;values.lastNameOwner=profile.lastNameOwner;
         form.reset(values);setDraft(saved?.draft || null);
-        setAnswers({hasVehicle:saved?.draft.hasVehicle ?? (questionnaireCompleted?true:null),...Object.fromEntries(questionnaireFields.map(key=>[key,saved?.draft.fields[key] || '']))});
-        const personalReady=wizardSteps[0].fields.every(key=>!!values[key as keyof typeof values]);
-        setShowPlan(!questionnaireCompleted&&personalReady);
+        setAnswers({hasVehicle:saved?.draft.hasVehicle ?? null,...Object.fromEntries(questionnaireFields.map(key=>[key,saved?.draft.fields[key] || '']))});
         if(new URLSearchParams(window.location.search).get('step')==='vehicle') setCurrentStep(1);
         else if(wizardSteps[0].fields.every(key=>!!values[key as keyof typeof values])) setCurrentStep(1);
         setLoaded(true);setLoadError('');
@@ -313,7 +309,7 @@ function OnboardingApplication() {
     }finally{savingRef.current=false;setSaving(false);}
   };
   const saveAndGo=async(step?:number)=>{
-    try{await saveProgress();if(step!==undefined){setShowPlan(false);goToStep(step);}}
+    try{await saveProgress();if(step!==undefined){goToStep(step);}}
     catch(e:any){setStepError(e.message);}
   };
 
@@ -332,15 +328,31 @@ function OnboardingApplication() {
     requestAnimationFrame(() => document.getElementById("onboarding-step-title")?.focus());
   };
   const continueStep = async () => {
+    if(currentStep===1&&answers.hasVehicle===null){setStepError('Please choose whether you already have a vehicle. You can add its details later.');return;}
     const fields=currentStep===1&&answers.hasVehicle!==true?[]:currentStep===2&&answers.hasVehicle!==true?wizardSteps[currentStep].fields.filter(key=>!["carManufacturerWebsite","carManufacturerUsername","password"].includes(key)):wizardSteps[currentStep].fields;
     const valid = await form.trigger(fields as (keyof OnboardingFormData)[], { shouldFocus: true });
-    if (valid) {await saveAndGo(currentStep + 1);if(currentStep===0&&!questionnaireDone)setShowPlan(true);}
+    if (valid) {await saveAndGo(currentStep===1&&answers.hasVehicle===false?3:currentStep + 1);}
     else setStepError("Please complete the highlighted fields before continuing.");
   };
   const showErrors = (errors: typeof form.formState.errors) => {
     const firstStep = wizardSteps.findIndex(step => step.fields.some(field => field in errors));
     if (firstStep >= 0) goToStep(firstStep);
     setStepError("Please review the highlighted fields. Your information has not been submitted.");
+  };
+
+  const submitPending = async () => {
+    if(answers.hasVehicle!==false){goToStep(1);setStepError('Please choose whether you already have a vehicle. You can add its details later.');return;}
+    if(!form.getValues('confirmAgreement')){form.setError('confirmAgreement',{message:'Please confirm before submitting your pending application.'});return;}
+    form.clearErrors('confirmAgreement');
+    setIsSubmitting(true);setStepError('');
+    try {
+      const saved=await saveProgress();
+      const result=await lycRequest(`/api/lyc/drafts/${saved.id}/submit-pending`,'POST',{version:saved.version,confirmAgreement:true});
+      setDraft(result.draft);
+      await queryClient.invalidateQueries({queryKey:['/api/lyc/applications']});
+      setLocation('/lyc/status');
+    } catch(e:any) {setStepError(e.message || 'Your pending application could not be submitted. Please retry.');}
+    finally {setIsSubmitting(false);}
   };
 
   const onSubmit = async (data: OnboardingFormData) => {
@@ -448,12 +460,11 @@ function OnboardingApplication() {
               <div className="mb-5">
                 <h2 className="text-2xl font-semibold text-foreground">Your LYC onboarding steps</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Complete these steps in any order. Save and return later; we review your application after all required steps are complete.
+                  Complete these steps in any order. No car yet? Submit a pending application so our team can follow up, then add your vehicle details later.
                 </p>
               </div>
 
-          <div className="mb-4 flex flex-wrap gap-2">{!questionnaireDone&&<Button type="button" variant="outline" disabled={saving} onClick={()=>setShowPlan(!showPlan)}>{showPlan?'Hide vehicle questionnaire':'First application questionnaire'}</Button>}<Button type="button" variant="outline" disabled={saving} onClick={async()=>{try{await saveProgress();setLocation('/lyc/status');}catch(e:any){setStepError(e.message);}}}>Save & exit</Button></div>
-          {showPlan&&!questionnaireDone&&<div className="mb-5"><LycQuestionnaire answers={answers} onChange={setAnswers} busy={saving} suggestedCarsHref={suggestedCarsHref} onContinue={async()=>{try{await saveProgress();await lycRequest('/api/lyc/questionnaire','POST',answers);setQuestionnaireDone(true);setShowPlan(false);goToStep(1);}catch(e:any){setStepError(e.message);}}}/></div>}
+          <div className="mb-4 flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={saving||isSubmitting} onClick={async()=>{try{await saveProgress();setLocation('/lyc/status');}catch(e:any){setStepError(e.message);}}}>Save & exit</Button></div>
           {reusedBank&&<p className="mb-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">Your saved payment and tax details are included. You only need to add this vehicle’s information; use the other steps if anything has changed.</p>}
           {savedMessage&&<p role="status" className="mb-4 text-sm text-green-800">{savedMessage}</p>}
           {!!draft?.documents?.driversLicenseUrls?.length&&<p className="mb-2 text-sm">Driver’s license saved with this application.</p>}
@@ -461,6 +472,7 @@ function OnboardingApplication() {
           <Form {...form}>
             <form noValidate onSubmit={event => {
               if (currentStep < wizardSteps.length - 1) { event.preventDefault(); void continueStep(); }
+              else if(answers.hasVehicle!==true){event.preventDefault();void submitPending();}
               else void form.handleSubmit(onSubmit, showErrors)(event);
             }} className="space-y-4">
               <ol aria-label="Onboarding progress" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -473,8 +485,7 @@ function OnboardingApplication() {
                 <p className="mt-1 text-sm text-muted-foreground">{wizardSteps[currentStep].description}</p>
               </div>
               {stepError && <p role="alert" className="text-sm text-destructive">{stepError}</p>}
-              {currentStep===1&&questionnaireDone&&answers.hasVehicle===true&&<Button type="button" variant="outline" onClick={()=>setAnswers({...answers,hasVehicle:false})}>I’m still planning this vehicle — save its details for later</Button>}
-              {currentStep===1&&answers.hasVehicle!==true&&<div className="space-y-3 rounded-lg border bg-primary/5 p-4"><h4 className="font-semibold">Add your vehicle when you’re ready</h4><p className="text-sm">You can complete personal and payment/tax details now. No VIN or insurance information is required to save your progress.</p>{questionnaireDone&&<VehiclePlanFields answers={answers} onChange={setAnswers} suggestedCarsHref={suggestedCarsHref}/>}<Button type="button" onClick={()=>{setAnswers({...answers,hasVehicle:true});setShowPlan(false);}}>I now have a vehicle — add its details</Button></div>}
+              {currentStep===1&&<LycQuestionnaire answers={answers} onChange={setAnswers} busy={saving||isSubmitting} suggestedCarsHref={suggestedCarsHref}/>}
               {sections.filter(section => wizardSteps[currentStep].sections.includes(section.id) && !(answers.hasVehicle!==true&&[3,4,5,7].includes(section.id))).map((step) => (
                 <Card key={step.id} className="bg-card border-primary/20 overflow-hidden">
                   <h4 className="p-4 text-base font-semibold">{step.title}</h4>
@@ -2076,15 +2087,15 @@ function OnboardingApplication() {
 
               {currentStep === 3 && <div className="space-y-4 rounded-lg border p-4" aria-label="Review your onboarding">
                 {[{title: "Personal information", value: `${form.getValues("firstNameOwner")} ${form.getValues("lastNameOwner")} · ${form.getValues("emailOwner")}`, detail: driversLicenseFile ? `License: ${driversLicenseFile.name}` : "Driver’s license not attached"},
-                  {title: "Vehicle information", value: `${form.getValues("vehicleMake")} ${form.getValues("vehicleModel")} ${form.getValues("vehicleYear")}`, detail: `VIN: ${form.getValues("vinNumber")} · Plate: ${form.getValues("licensePlate")}`},
+                  {title: "Vehicle information", value: answers.hasVehicle===true?`${form.getValues("vehicleMake")} ${form.getValues("vehicleModel")} ${form.getValues("vehicleYear")}`:answers.hasVehicle===false?'Vehicle details to follow':'Vehicle plan not selected', detail: answers.hasVehicle===true?`VIN: ${form.getValues("vinNumber")} · Plate: ${form.getValues("licensePlate")}`:[answers.acquisitionPlan,...['plannedVehicleYear','plannedVehicleMake','plannedVehicleModel'].map(key=>answers[key])].filter(Boolean).join(' ')},
                   {title: "Secure information", value: `Bank: ${form.getValues("bankName")}`, detail: "Bank account and tax numbers are hidden in this summary."}].map((section, index) => <div key={section.title} className="flex items-start justify-between gap-3 border-b pb-3">
                     <div className="min-w-0 break-words"><h4 className="font-medium">{section.title}</h4><p className="text-sm">{section.value}</p><p className="text-xs text-muted-foreground">{section.detail}</p></div>
                     <Button type="button" variant="outline" size="sm" onClick={() => goToStep(index)}>Edit<span className="sr-only"> {section.title}</span></Button>
                   </div>)}
-                <p className="text-sm text-muted-foreground">We use these details for your owner profile and vehicle record. Our team reviews your application before approving it. Approval sends your contract; the vehicle stays off fleet until signing and drop-off. New owners receive a separate link to set their GLA password.</p>
+                <p className="text-sm text-muted-foreground">Keep using the email and password you chose for this account. Client access begins after your completed application is approved and your contract is signed.</p>
                           <div className="bg-background border border-border rounded p-4">
                             <p className="text-sm text-muted-foreground mb-4">
-                              After GLA reviews and approves your application, we will email your contract. Sign it before completing the vehicle drop-off form.
+                              {answers.hasVehicle===false?'Submit your pending application for GLA follow-up. You can return to add your vehicle, personal and secure details before requesting approval.':'After GLA reviews and approves your completed application, we will email your contract. Sign it before completing the vehicle drop-off form.'}
                             </p>
                             <FormField
                               control={form.control}
@@ -2098,7 +2109,7 @@ function OnboardingApplication() {
                                     />
                                   </FormControl>
                                   <FormLabel className="text-muted-foreground font-normal">
-                                    Confirm and submit for review
+                                    {answers.hasVehicle===false?'Confirm and submit pending application':'Confirm and submit for review'}
                                   </FormLabel>
                                 </FormItem>
                               )}
@@ -2106,12 +2117,11 @@ function OnboardingApplication() {
                           </div>
                 <FormMessage>{form.formState.errors.confirmAgreement?.message}</FormMessage>
               </div>}
-              {currentStep===3&&answers.hasVehicle!==true&&<p className="rounded border border-primary/30 bg-primary/5 p-3 text-sm">Your plan is saved as an application in progress. Return to add your vehicle details before submitting for approval.</p>}
               <div className="flex flex-wrap gap-3 pt-4 border-t border-primary/20">
                 <Button type="button" variant="outline" disabled={saving||isSubmitting} onClick={()=>void saveAndGo()}>Save this step</Button>
                 {currentStep > 0 && <Button type="button" variant="outline" disabled={isSubmitting} onClick={() => void saveAndGo(currentStep - 1)}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>}
-                <Button type="submit" className="ml-auto min-h-11" disabled={isSubmitting||saving||(currentStep===3&&answers.hasVehicle!==true)}>
-                  {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting…</> : currentStep === 3 ? "Submit for review" : <>Continue<ArrowRight className="ml-2 h-4 w-4" /></>}
+                <Button type="submit" className="ml-auto min-h-11" disabled={isSubmitting||saving}>
+                  {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Submitting…</> : currentStep === 3 ? (answers.hasVehicle===false?'Submit pending application':'Submit for review') : <>Continue<ArrowRight className="ml-2 h-4 w-4" /></>}
                 </Button>
               </div>
             </form>

@@ -79,7 +79,7 @@ export function ListYourCarConsultation({
               target="_blank"
               rel="noopener noreferrer"
             >
-              Book A Consulting Appointment
+              Book a Free Consulting Appointment
               <ArrowRight className="ml-2 h-4 w-4" />
             </a>
           </Button>

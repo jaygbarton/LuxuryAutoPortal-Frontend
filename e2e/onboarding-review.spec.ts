@@ -19,7 +19,7 @@ async function fixture(page:Page,admin:boolean|'client'|'guest'=false){
   if(path==='/api/lyc/applications')data={drafts:drafts.filter(d=>!d.submissionId),applications:[]};
   if(/^\/api\/lyc\/drafts\/\d+$/.test(path))data={draft:drafts.find(d=>d.id===Number(path.split('/').at(-1)))};
   if(path==='/api/public-page-status')data={isPublic:true,canPreview:false};
-  if(path==='/api/settings/sales-reps')data.data=['Fixture Rep'];
+  if(path==='/api/settings/sales-reps')data.data=['Fixture Rep','Andy Zhang'];
   if(path==='/api/admin/form-visibility')data={isAdmin:admin===true,isClient:admin!==true,isEmployee:false,formVisibility:{'Car On-boarding':{isVisible:true},'Client Onboarding Form LYC':{isVisible:true}}};
   if(path==='/api/onboarding/submissions')data={success:true,data:[submission],pagination:{page:1,total:1,totalPages:1,limit:10}};
   if(path==='/api/onboarding/submissions/7')data={success:true,data:submission};
@@ -32,6 +32,7 @@ async function fixture(page:Page,admin:boolean|'client'|'guest'=false){
    if(path==='/api/lyc/profile'){profile={...profile,...body};data={profile};}
    if(path==='/api/lyc/drafts'){const d={id:nextId++,hasVehicle:body.hasVehicle,fields:body.fields,version:0,updatedAt:new Date().toISOString(),documents:{}};drafts.push(d);data={draft:d};}
    if(/^\/api\/lyc\/drafts\/\d+$/.test(path)){const d=drafts.find(d=>d.id===Number(path.split('/').at(-1)));Object.assign(d,body,{version:d.version+1});data={draft:d};}
+   if(path.endsWith('/submit-pending')){const d=drafts.find(d=>d.id===Number(path.split('/').at(-2)));d.pendingSubmittedAt||=new Date().toISOString();d.version++;data={draft:d};}
    if(path.endsWith('/documents')){const d=drafts.find(d=>d.id===Number(path.split('/').at(-2)));d.documents={driversLicenseUrls:['/fixture-license.png']};d.version++;data={draft:d};}
    if(path.endsWith('/7/review'))Object.assign(submission,body.changes);
    if(path.endsWith('/7/approve')){submission.status='approved';data={success:true,data:submission};}
@@ -65,7 +66,7 @@ for(const width of [390,1280]) test(`customer onboarding step validation, back n
  if(width===390)await form.locator('input[type=file]').setInputFiles({name:'fixture-license.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64')});
  await fillStep(page);await form.getByRole('button',{name:'Continue',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Let’s tailor your LYC steps'})).toBeVisible();
- await page.getByRole('button',{name:'Yes, I have a vehicle',exact:true}).click();await page.getByRole('button',{name:'Save plan & choose my next step'}).click();
+ await page.getByRole('button',{name:'Yes, I have a vehicle',exact:true}).click();
  await expect(page.locator('#onboarding-step-title')).toHaveText('Vehicle information');
  await form.getByRole('button',{name:'Back',exact:true}).click();await expect(form.locator('input[name=emailOwner]')).toHaveValue(values.emailOwner);
  await form.getByRole('button',{name:'Continue',exact:true}).click();await expect(page.locator('#onboarding-step-title')).toHaveText('Vehicle information');await fillStep(page);
@@ -137,8 +138,8 @@ for(const width of [390,1280]) test(`public LYC overview, consultation and testi
    await expect(page.locator('#onboarding-step-title')).toHaveCount(0);
    const sidebar=page.getByRole('complementary',{name:'About the List Your Car program'});
    await expect(sidebar.locator('iframe[title="Golden Luxury Auto List Your Car"]')).toHaveAttribute('src','https://www.youtube.com/embed/zyhzeXvCp8U?start=1');
-   await expect(sidebar.getByRole('link',{name:'Book A Consulting Appointment'})).toHaveAttribute('href','https://rent.goldenluxuryauto.com/book-a-call-lyc');
-   await expect(sidebar.getByRole('link',{name:'Book A Consulting Appointment'})).toHaveAttribute('target','_blank');
+   await expect(sidebar.getByRole('link',{name:'Book a Free Consulting Appointment'})).toHaveAttribute('href','https://rent.goldenluxuryauto.com/book-a-call-lyc');
+   await expect(sidebar.getByRole('link',{name:'Book a Free Consulting Appointment'})).toHaveAttribute('target','_blank');
    const video=sidebar.locator('iframe[title="Golden Luxury Auto List Your Car"]');
    const testimonial=sidebar.locator('iframe[title="Client Testimonial 1"]');
    await expect(testimonial).toHaveAttribute('src','https://www.youtube-nocookie.com/embed/KMBnH3Bg4Qg');
@@ -165,7 +166,7 @@ test('signed-in applicant opens saved steps only after Get Started and retains t
  await expect(page.getByRole('heading',{name:'Create your account'})).toHaveCount(0);
  const sidebar=page.getByRole('complementary',{name:'About the List Your Car program'});
  await expect(sidebar.getByRole('heading',{name:'Client stories'})).toBeVisible();
- await expect(sidebar.getByRole('link',{name:'Book A Consulting Appointment'})).toBeVisible();
+ await expect(sidebar.getByRole('link',{name:'Book a Free Consulting Appointment'})).toBeVisible();
 });
 
 test('LYC video and testimonials send the origin required by YouTube without leaking application query details',async({page})=>{
@@ -197,12 +198,11 @@ test('applicant cannot mount the staff shell when visiting a staff URL',async({p
 test('vehicle-free finance plan saves secure details out of order and resumes a separate vehicle step',async({page})=>{
  await page.setViewportSize({width:390,height:844});const {drafts,writes}=await fixture(page);await page.goto('/onboarding?start=1');await fillStep(page);await page.locator('form').getByRole('button',{name:'Continue',exact:true}).click();
  await page.getByRole('button',{name:'Not yet',exact:true}).click();await choose(page,page.getByRole('combobox',{name:/Do you plan to buy or finance/}),'Finance a vehicle');await choose(page,page.getByRole('combobox',{name:/Do you know which vehicle/}),'Not yet — that’s okay');
- await page.getByRole('button',{name:'Save plan & choose my next step'}).click();
  await page.getByRole('button',{name:'3. Secure information',exact:true}).click();await page.locator('input[name=bankName]').fill('Fixture Bank');await page.locator('input[name=ssn]').fill('fixture-only');
  await page.getByRole('button',{name:'Save & exit',exact:true}).click();await expect(page.getByText('Waiting for vehicle details — your other steps can be completed now.')).toBeVisible();
  expect(drafts).toHaveLength(1);expect(drafts[0].fields).toMatchObject({acquisitionPlan:'finance',knowsPlannedCar:'no',bankName:'Fixture Bank'});expect(writes.some(w=>w.path==='/api/onboarding/submit')).toBe(false);
- await page.getByRole('link',{name:'Add vehicle details',exact:true}).click();await expect(page.getByRole('heading',{name:'Add your vehicle when you’re ready'})).toBeVisible();
- await page.getByRole('button',{name:'I now have a vehicle — add its details'}).click();await expect(page.locator('input[name=vinNumber]')).toBeVisible();
+ await page.getByRole('link',{name:'Add vehicle details',exact:true}).click();await expect(page.getByRole('heading',{name:'Let’s tailor your LYC steps'})).toBeVisible();await expect(page.getByRole('button',{name:'Not yet',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.getByRole('button',{name:'Yes, I have a vehicle',exact:true}).click();await expect(page.locator('input[name=vinNumber]')).toBeVisible();
  await page.getByRole('button',{name:'3. Secure information',exact:true}).click();await expect(page.locator('input[name=bankName]')).toHaveValue('Fixture Bank');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
  await page.screenshot({path:test.info().outputPath('independent-steps-mobile.png'),fullPage:true});
@@ -211,9 +211,77 @@ test('existing client personal details are reused and multiple vehicle plans rem
  const {setProfile,setBanking}=await fixture(page,'client');setBanking(Object.fromEntries(['bankName','routingNumber','accountNumber','ssn'].map(key=>[key,values[key]])));setProfile(Object.fromEntries(['firstNameOwner','lastNameOwner','emailOwner','phoneOwner','streetAddress','city','state','zipCode','birthday','emergencyContactName','emergencyContactPhone'].map(key=>[key,values[key]])));setProfile({tshirtSize:'M',representative:'Fixture Rep',heardAboutUs:'Referral'});
  await page.goto('/onboarding');await page.getByRole('link',{name:'Get Started',exact:true}).click();await expect(page.locator('#onboarding-step-title')).toHaveText('Vehicle information');
  await page.getByRole('button',{name:'3. Secure information',exact:true}).click();await expect(page.locator('input[name=accountNumber]')).toHaveValue(values.accountNumber);await page.getByRole('button',{name:'2. Vehicle information',exact:true}).click();
- await expect(page.getByRole('heading',{name:'Let’s tailor your LYC steps'})).toHaveCount(0);await page.getByRole('button',{name:'I’m still planning this vehicle — save its details for later'}).click();await choose(page,page.getByRole('combobox',{name:/Do you know which vehicle/}),'Yes');await page.getByLabel('Planned make',{exact:true}).fill('Honda');await page.getByLabel('Planned model',{exact:true}).fill('Accord');await page.getByRole('button',{name:'Save & exit'}).click();
- await page.getByRole('link',{name:'Start another application'}).click();await expect(page.getByRole('heading',{name:'Let’s tailor your LYC steps'})).toHaveCount(0);await page.getByRole('button',{name:'I’m still planning this vehicle — save its details for later'}).click();await choose(page,page.getByRole('combobox',{name:/Do you know which vehicle/}),'Yes');await page.getByLabel('Planned make',{exact:true}).fill('Toyota');await page.getByLabel('Planned model',{exact:true}).fill('Sienna');await page.getByRole('button',{name:'Save & exit'}).click();
+ await expect(page.getByRole('heading',{name:'Let’s tailor your LYC steps'})).toBeVisible();await expect(page.getByRole('button',{name:'Not yet',exact:true})).toHaveAttribute('aria-pressed','false');await page.getByRole('button',{name:'Not yet',exact:true}).click();await choose(page,page.getByRole('combobox',{name:/Do you know which vehicle/}),'Yes');await page.getByLabel('Planned make',{exact:true}).fill('Honda');await page.getByLabel('Planned model',{exact:true}).fill('Accord');await page.getByRole('button',{name:'Save & exit'}).click();
+ await page.getByRole('link',{name:'Start another application'}).click();await expect(page.getByRole('heading',{name:'Let’s tailor your LYC steps'})).toBeVisible();await expect(page.getByRole('button',{name:'Not yet',exact:true})).toHaveAttribute('aria-pressed','false');await page.getByRole('button',{name:'Not yet',exact:true}).click();await choose(page,page.getByRole('combobox',{name:/Do you know which vehicle/}),'Yes');await page.getByLabel('Planned make',{exact:true}).fill('Toyota');await page.getByLabel('Planned model',{exact:true}).fill('Sienna');await page.getByRole('button',{name:'Save & exit'}).click();
  await expect(page.getByRole('heading',{name:'Honda Accord'})).toBeVisible();await expect(page.getByRole('heading',{name:'Toyota Sienna'})).toBeVisible();
+});
+
+for(const width of [390,1280]) test(`pending application is submitted without car/secure details and completed later on the same plan at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:844});const {drafts,writes}=await fixture(page);
+ await page.goto('/onboarding?start=1');
+ const form=page.locator('form');
+ await expect(page.getByRole('heading',{name:'Let’s tailor your LYC steps'})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:/questionnaire/i})).toHaveCount(0);
+ await form.locator('input[name=phoneOwner]').fill('8010000000');
+ await choose(page,form.getByRole('combobox',{name:/Representative/}),'Andy Zhang');
+ await form.getByRole('button',{name:'2. Vehicle information',exact:true}).click();
+ const plan=page.getByRole('region',{name:'Your vehicle plan'});
+ await expect(plan).toBeVisible();
+ await form.getByRole('button',{name:'Continue',exact:true}).click();
+ await expect(form.getByRole('alert')).toContainText('Please choose whether');
+ await plan.getByRole('button',{name:'Not yet',exact:true}).click();
+ await expect(plan).toContainText('You can submit a pending application now without a car.');
+ await expect(plan).toContainText('sign back in to this same application');
+ await plan.screenshot({path:test.info().outputPath('vehicle-questionnaire.png')});
+ await choose(page,plan.getByRole('combobox',{name:/Do you plan to buy or finance/}),'Finance a vehicle');
+ await form.getByRole('button',{name:'Continue',exact:true}).click();
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Review & submit');
+ await expect(plan).toHaveCount(0);await expect(form).toContainText('Vehicle details to follow');
+ await form.getByRole('button',{name:'Submit pending application',exact:true}).click();
+ await expect(form).toContainText('Please confirm before submitting');
+ expect(writes.some(w=>w.path.endsWith('/submit-pending'))).toBe(false);
+ await form.getByRole('checkbox',{name:'Confirm and submit pending application',exact:true}).check();
+ let failOnce=width===390;
+ await page.route('**/api/lyc/drafts/*/submit-pending',route=>{
+   if(failOnce){failOnce=false;return route.fulfill({status:503,json:{error:'Pending application could not be saved. Please retry.'}});}
+   return route.fallback();
+ });
+ await form.getByRole('button',{name:'Submit pending application',exact:true}).click();
+ if(width===390){await expect(form.getByRole('alert')).toContainText('Please retry');await expect(page.locator('#onboarding-step-title')).toHaveText('Review & submit');await form.getByRole('button',{name:'Submit pending application',exact:true}).click();}
+ await expect(page.getByText('Pending application submitted — GLA can view it and contact you.')).toBeVisible();
+ expect(drafts).toHaveLength(1);expect(drafts[0]).toMatchObject({id:1,hasVehicle:false});expect(drafts[0].pendingSubmittedAt).toBeTruthy();
+ expect(drafts[0].fields.vinNumber).toBe('');expect(writes.some(w=>w.path==='/api/onboarding/submit')).toBe(false);
+ await page.getByRole('link',{name:'Add vehicle details',exact:true}).click();
+ await expect(plan.getByRole('button',{name:'Not yet',exact:true})).toHaveAttribute('aria-pressed','true');
+ await plan.getByRole('button',{name:'Yes, I have a vehicle',exact:true}).click();
+ await form.getByRole('button',{name:'1. Personal information',exact:true}).click();
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Personal information');await expect(plan).toHaveCount(0);await fillStep(page);
+ await form.getByRole('button',{name:'Continue',exact:true}).click();await expect(page.locator('#onboarding-step-title')).toHaveText('Vehicle information');await fillStep(page);await form.getByRole('checkbox').first().check();
+ await form.getByRole('button',{name:'Continue',exact:true}).click();await expect(page.locator('#onboarding-step-title')).toHaveText('Secure information');await expect(plan).toHaveCount(0);await fillStep(page);
+ await form.getByRole('button',{name:'Continue',exact:true}).click();
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Review & submit');
+ await form.getByRole('checkbox',{name:'Confirm and submit for review',exact:true}).check();
+ await form.getByRole('button',{name:'Submit for review',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Your LYC applications'})).toBeVisible();
+ expect(drafts).toHaveLength(1);expect(drafts[0]).toMatchObject({id:1,submissionId:7});
+ expect(writes.filter(w=>w.path==='/api/onboarding/submit')).toHaveLength(1);
+ expect(writes.find(w=>w.path==='/api/onboarding/submit')?.body.draftId).toBe(1);
+});
+
+test('admin can filter pending no-car applications and contact the applicant without client conversion',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await fixture(page,true);
+ const account={id:91,firstName:'Test',lastName:'Applicant',email:'applicant@example.test',phone:'8010000000',createdAt:'2026-11-03',lastActivityAt:'2026-11-03',stage:{key:'pending_vehicle',label:'Pending application · vehicle later',rank:2.5},applications:[],drafts:[{id:17,hasVehicle:false,fields:{acquisitionPlan:'finance'},pendingSubmittedAt:'2026-11-03'}]};
+ await page.route('**/api/onboarding/applicants',route=>route.fulfill({json:{accounts:[account]}}));
+ await page.goto('/admin/applicants');
+ await choose(page,page.getByRole('combobox',{name:'Applicant status'}),'Pending application · vehicle later');
+ await page.getByLabel('Search applicants').fill('801');
+ const applicant=page.locator('article');await expect(applicant).toHaveCount(1);await applicant.locator('summary').click();
+ await expect(applicant.getByRole('link',{name:'Email Test'})).toHaveAttribute('href','mailto:applicant@example.test');
+ await expect(applicant.getByRole('link',{name:'Call 8010000000'})).toHaveAttribute('href','tel:8010000000');
+ await expect(applicant).toContainText('Pending application submitted');
+ await expect(applicant).toContainText('before approval');
+ await expect(applicant.getByRole('button',{name:'Move account to Clients'})).toHaveCount(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
 test('applicant directory ranks closest first and only offers conversion after approval and signing',async({page})=>{
