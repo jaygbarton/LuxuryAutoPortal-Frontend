@@ -53,7 +53,9 @@ export function ListYourCarConsultation({
       <CardContent className="p-0">
         <div className="aspect-video bg-black">
           <iframe
-            referrerPolicy="no-referrer"
+            // YouTube requires a Referer (error 153 without one). Send only the
+            // site origin, never the application path or query parameters.
+            referrerPolicy="strict-origin"
             src="https://www.youtube.com/embed/zyhzeXvCp8U?start=1"
             title="Golden Luxury Auto List Your Car"
             className="h-full w-full"
@@ -139,7 +141,7 @@ export function ListYourCarTestimonials({
       </div>
       <div className="aspect-video bg-black">
         <iframe
-          referrerPolicy="no-referrer"
+          referrerPolicy="strict-origin"
           key={video.id}
           title={video.title}
           src={`https://www.youtube-nocookie.com/embed/${video.id}`}

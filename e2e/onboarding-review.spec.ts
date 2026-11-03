@@ -167,6 +167,28 @@ test('signed-in applicant opens saved steps only after Get Started and retains t
  await expect(sidebar.getByRole('heading',{name:'Client stories'})).toBeVisible();
  await expect(sidebar.getByRole('link',{name:'Book A Consulting Appointment'})).toBeVisible();
 });
+
+test('LYC video and testimonials send the origin required by YouTube without leaking application query details',async({page})=>{
+ await fixture(page);
+ const embeds:{url:string;referer:string|undefined}[]=[];
+ // Inspect the browser's real iframe request headers; do not call the provider
+ // or pretend that a mocked player verifies actual YouTube playback.
+ await page.route(/^https:\/\/www\.youtube(?:-nocookie)?\.com\/embed\//,async route=>{
+   embeds.push({url:route.request().url(),referer:(await route.request().allHeaders()).referer});
+   await route.fulfill({contentType:'text/html',body:'<!doctype html><title>Test player</title>'});
+ });
+ for(const query of ['?campaign=fixture-private-value','?start=1&campaign=fixture-private-value']){
+   embeds.length=0;
+   await page.goto(`/salt-lake-city/onboarding${query}`);
+   const sidebar=page.getByRole('complementary',{name:'About the List Your Car program'});
+   await sidebar.locator('iframe[title="Client Testimonial 1"]').scrollIntoViewIfNeeded();
+   await expect.poll(()=>embeds.length).toBe(2);
+   expect(embeds.every(item=>item.referer==='http://127.0.0.1:5336/')).toBe(true);
+   expect(embeds.some(item=>item.url.includes('fixture-private-value')||item.referer?.includes('onboarding'))).toBe(false);
+   await expect(sidebar.locator('iframe[title="Golden Luxury Auto List Your Car"]')).toHaveAttribute('referrerpolicy','strict-origin');
+   await expect(sidebar.locator('iframe[title="Client Testimonial 1"]')).toHaveAttribute('referrerpolicy','strict-origin');
+ }
+});
 test('applicant cannot mount the staff shell when visiting a staff URL',async({page})=>{
  const requests:string[]=[];await fixture(page);page.on('request',req=>{if(req.url().includes('/api/'))requests.push(new URL(req.url()).pathname);});
  await page.goto('/admin/admins');await expect(page).toHaveURL(/\/lyc\/status/);await expect(page.getByRole('heading',{name:'Your LYC applications'})).toBeVisible();
