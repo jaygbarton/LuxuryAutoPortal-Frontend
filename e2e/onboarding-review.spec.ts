@@ -433,3 +433,136 @@ for(const width of [390,1280]) test(`onboarding sensitive numbers reveal individ
  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
  await expect(form.locator('input[name=accountNumber]')).toHaveAttribute('type','password');
 });
+
+
+for(const width of [390,1280]) test(`Step 3 tax classification and typing keep the page in place at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:844});await fixture(page);await page.goto('/onboarding?start=1');
+ const form=page.locator('form');await form.getByRole('button',{name:'3. Secure information',exact:true}).click();
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Secure information');
+ const select=form.getByRole('combobox',{name:'Tax Classification *',exact:true});
+ await select.scrollIntoViewIfNeeded();
+ const before=await select.boundingBox();await select.click();
+ await page.getByRole('option',{name:'Individual',exact:true}).click();
+ const after=await select.boundingBox();
+ expect(Math.abs(after!.y-before!.y)).toBeLessThan(4);
+ const bank=form.locator('input[name=bankName]');await bank.fill('Test bank');
+ const initial=await bank.boundingBox();
+ const positions=await page.evaluate(()=>new Promise<number[]>(resolve=>{
+   const start=performance.now(),values:number[]=[];
+   const sample=()=>{values.push(document.querySelector('input[name=bankName]')!.getBoundingClientRect().top);if(performance.now()-start<1000)requestAnimationFrame(sample);else resolve(values);};sample();
+ }));
+ expect(Math.max(...positions)-Math.min(...positions)).toBeLessThan(4);
+ await expect(bank).toBeFocused();expect(Math.abs((await bank.boundingBox())!.y-initial!.y)).toBeLessThan(4);
+});
+
+
+for(const width of [390,1280]) test(`Step 3 stays steady during real keystrokes in each field at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:844});await fixture(page);await page.goto('/onboarding?start=1');
+ const form=page.locator('form');await form.getByRole('button',{name:'3. Secure information',exact:true}).click();
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Secure information');
+ await form.getByRole('button',{name:'Continue',exact:true}).click();
+ await expect(form.getByRole('alert')).toBeVisible();
+ for(const [name,text] of [['bankName','Test bank with a longer name'],['routingNumber','012345678'],['accountNumber','0001234567890123456789'],['businessName','Fixture business name'],['ein','01-2345678'],['ssn','001-02-3456']]){
+   const input=form.locator(`input[name="${name}"]`);await input.click();
+   const y=(await input.boundingBox())!.y;
+   await input.pressSequentially(text,{delay:50});
+   await expect(input).toBeFocused();expect(Math.abs((await input.boundingBox())!.y-y),name).toBeLessThan(4);
+ }
+});
+
+for(const height of [600,844]) test(`Step 3 clicking visible fields does not move the page on desktop at ${height}px high`,async({page})=>{
+ await page.setViewportSize({width:1280,height});await fixture(page);await page.goto('/onboarding?start=1');
+ const form=page.locator('form');await form.getByRole('button',{name:'3. Secure information',exact:true}).click();
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Secure information');
+ for(const name of ['bankName','routingNumber','accountNumber','businessName','ein','ssn']){
+   const input=form.locator(`input[name="${name}"]`);
+   await input.evaluate(el=>el.scrollIntoView({block:'center',behavior:'instant'}));
+   const before=(await input.boundingBox())!;
+   // Raw mouse clicks: locator.click()/fill() auto-scroll and can conceal a focus jump.
+   await page.mouse.click(before.x+30,before.y+before.height/2);
+   await expect(input).toBeFocused();
+   const positions=await input.evaluate(el=>new Promise<number[]>(resolve=>{
+     const values:number[]=[],start=performance.now();
+     const sample=()=>{values.push(el.getBoundingClientRect().top);if(performance.now()-start<500)requestAnimationFrame(sample);else resolve(values);};sample();
+   }));
+   expect(Math.max(...positions.map(y=>Math.abs(y-before.y))),name).toBeLessThan(3);
+ }
+});
+
+for(const position of ['top','bottom'] as const) test(`Step 3 clicks near viewport ${position} keep the visible field in place`,async({page})=>{
+ await page.setViewportSize({width:1280,height:720});await fixture(page);await page.goto('/onboarding?start=1');
+ await page.locator('form').getByRole('button',{name:'3. Secure information',exact:true}).click();
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Secure information');
+ for(const name of ['bankName','routingNumber','accountNumber','businessName','ein','ssn']){
+  const input=page.locator(`input[name="${name}"]`);
+  await input.evaluate((el,position)=>{el.scrollIntoView({block:'center',behavior:'instant'});window.scrollBy({top:el.getBoundingClientRect().top-(position==='top'?100:window.innerHeight-60),behavior:'instant'});},position);
+  const before=(await input.boundingBox())!;
+  await page.mouse.click(before.x+20,before.y+before.height/2);
+  await expect(input).toBeFocused();
+  await page.evaluate(()=>new Promise(resolve=>setTimeout(resolve,400)));
+  expect(Math.abs((await input.boundingBox())!.y-before.y),name).toBeLessThan(3);
+ }
+});
+
+async function applicantDeletionFixture(page:Page,blockers:string[]=[]) {
+ await fixture(page,true);const requests:any[]=[];let deleted=false,failDelete=false,version='a'.repeat(64);
+ const account={id:91,firstName:'Fixture',lastName:'Applicant',email:'applicant@example.test',createdAt:'2026-11-01',lastActivityAt:'2026-11-02',stage:{key:'created',rank:0,label:'Account created · not started'},drafts:[],applications:[]};
+ await page.route('**/api/onboarding/applicants**',async route=>{
+  const path=new URL(route.request().url()).pathname;
+  if(path.endsWith('/deletion-preview'))return route.fulfill({json:{user:{id:91,name:'Fixture Applicant',email:account.email},counts:{drafts:1,applications:0,documents:2},blockers,version}});
+  if(route.request().method()==='DELETE'){
+   requests.push(route.request().postDataJSON());
+   if(failDelete)return route.fulfill({status:409,json:{error:'This account changed after the preview. Refresh the preview before deleting.'}});
+   deleted=true;return route.fulfill({json:{success:true,message:'Applicant account and applications deleted. Uploaded documents are queued for cleanup.'}});
+  }
+  return route.fulfill({json:{accounts:deleted?[]:[account]}});
+ });
+ await page.goto('/admin/applicants');await page.getByText('Fixture Applicant',{exact:true}).click();
+ return {requests,setFailure:(value:boolean)=>{failDelete=value;version='b'.repeat(64);}};
+}
+for(const width of [390,1280])test(`admin can review, cancel and confirm applicant deletion at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:844});const {requests}=await applicantDeletionFixture(page);
+ await page.getByRole('button',{name:'Delete account',exact:true}).click();const dialog=page.getByRole('dialog');
+ await expect(dialog).toContainText('1 saved applications · 0 submitted applications · 2 uploaded documents');
+ const remove=dialog.getByRole('button',{name:'Permanently delete account'});await expect(remove).toBeDisabled();
+ await dialog.getByRole('button',{name:'Cancel',exact:true}).click();await expect(dialog).not.toBeVisible();expect(requests).toHaveLength(0);
+ await page.getByRole('button',{name:'Delete account',exact:true}).click();
+ await dialog.getByLabel('Reason for deletion').fill('Duplicate test account');
+ await dialog.getByLabel('Enter the applicant email to confirm').fill('someone-else@example.test');await expect(remove).toBeDisabled();
+ await dialog.getByLabel('Enter the applicant email to confirm').fill('applicant@example.test');await expect(remove).toBeEnabled();
+ await remove.click();await expect(dialog).not.toBeVisible();await expect(page.getByText('0 applicant accounts',{exact:true})).toBeVisible();
+ expect(requests).toEqual([{version:'a'.repeat(64),reason:'Duplicate test account',confirmationEmail:'applicant@example.test'}]);
+});
+test('admin sees linked-record blockers and cannot delete a protected applicant',async({page})=>{
+ const {requests}=await applicantDeletionFixture(page,['This account has a signed contract. Its contract and client records require review before removal.']);
+ await page.getByRole('button',{name:'Delete account',exact:true}).click();const dialog=page.getByRole('dialog');
+ await expect(dialog.getByRole('alert')).toContainText('signed contract');await expect(dialog.getByRole('button',{name:'Permanently delete account'})).toBeDisabled();
+ await expect(dialog.getByLabel('Reason for deletion')).toHaveCount(0);expect(requests).toHaveLength(0);
+});
+test('stale applicant deletion keeps the account visible and lets admin refresh the preview',async({page})=>{
+ const {requests,setFailure}=await applicantDeletionFixture(page);
+ await page.getByRole('button',{name:'Delete account',exact:true}).click();const dialog=page.getByRole('dialog');
+ await dialog.getByLabel('Reason for deletion').fill('Duplicate');await dialog.getByLabel('Enter the applicant email to confirm').fill('applicant@example.test');
+ setFailure(true);await dialog.getByRole('button',{name:'Permanently delete account'}).click();
+ await expect(dialog.getByRole('alert')).toContainText('changed after the preview');await expect(page.locator('article')).toContainText('Fixture Applicant');
+ setFailure(false);await dialog.getByRole('button',{name:'Refresh preview'}).click();await dialog.getByRole('button',{name:'Permanently delete account'}).click();
+ await expect(dialog).not.toBeVisible();expect(requests.map(r=>r.version)).toEqual(['a'.repeat(64),'b'.repeat(64)]);
+});
+
+test('visible onboarding fields use scroll-free mouse focus while preserving selection, labels and keyboard access',async({page})=>{
+ await page.setViewportSize({width:1280,height:844});await fixture(page);
+ await page.addInitScript(()=>{
+  const original=HTMLElement.prototype.focus;(window as any).__fieldFocus=[];
+  HTMLElement.prototype.focus=function(options){if(this instanceof HTMLInputElement)(window as any).__fieldFocus.push({name:this.name,preventScroll:options?.preventScroll===true});return original.call(this,options);};
+ });
+ await page.goto('/onboarding?start=1');const form=page.locator('form');await form.getByRole('button',{name:'3. Secure information',exact:true}).click();
+ const bank=form.locator('input[name=bankName]');await bank.evaluate(el=>el.scrollIntoView({block:'center',behavior:'instant'}));
+ let box=(await bank.boundingBox())!;await page.mouse.click(box.x+30,box.y+box.height/2);await bank.pressSequentially('Fixture bank');
+ expect(await page.evaluate(()=>(window as any).__fieldFocus)).toContainEqual({name:'bankName',preventScroll:true});
+ await bank.press('ControlOrMeta+A');await expect(bank).toBeFocused();expect(await bank.evaluate(el=>el.selectionEnd! - el.selectionStart!)).toBe(12);
+ await form.getByText('Bank Name *',{exact:true}).click();await expect(bank).toBeFocused();
+ await bank.press('Tab');await expect(form.getByRole('combobox',{name:'Tax Classification *',exact:true})).toBeFocused();
+ const routing=form.locator('input[name=routingNumber]');await routing.evaluate(el=>el.scrollIntoView({block:'center',behavior:'instant'}));box=(await routing.boundingBox())!;
+ await page.mouse.click(box.x+30,box.y+box.height/2);await expect(routing).toBeFocused();
+ expect(await page.evaluate(()=>(window as any).__fieldFocus)).toContainEqual({name:'routingNumber',preventScroll:true});
+});

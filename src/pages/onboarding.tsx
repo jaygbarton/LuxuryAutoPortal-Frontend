@@ -1,3 +1,4 @@
+import { focusVisibleOnboardingField } from '@/lib/onboardingFieldFocus';
 import {ListYourCarHero,ListYourCarConsultation,ListYourCarTestimonials} from '@/components/onboarding/ListYourCarIntro';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreateAccountForm } from '@/components/auth/CreateAccountForm';
@@ -485,7 +486,12 @@ function OnboardingApplication() {
           {currentStep===0&&!!draft?.documents?.driversLicenseUrls?.length&&<p className="mb-2 text-sm">Driver’s license saved with this application.</p>}
           {currentStep===1&&!!draft?.documents?.insuranceCardUrl&&<p className="mb-2 text-sm">Insurance document saved with this application.</p>}
           <Form {...form}>
-            <form noValidate onSubmit={event => {
+            <form noValidate onPointerDownCapture={event => {
+              if (focusVisibleOnboardingField(event) && stepFocusFrame.current !== null) {
+                cancelAnimationFrame(stepFocusFrame.current);
+                stepFocusFrame.current = null;
+              }
+            }} onSubmit={event => {
               if (currentStep < wizardSteps.length - 1) { event.preventDefault(); void continueStep(); }
               else if(answers.hasVehicle!==true){event.preventDefault();void submitPending();}
               else void form.handleSubmit(onSubmit, showErrors)(event);

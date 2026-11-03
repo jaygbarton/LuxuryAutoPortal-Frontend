@@ -123,3 +123,38 @@ keep the field's existing label/ref/validation, and cannot submit the form. The
 review summary still omits these numbers. This only changes how already-authorized
 form values are displayed; storage, authentication, submission and Slack APIs are
 unchanged.
+
+### Mouse focus and manual applicant removal (November 3 follow-up)
+
+The reported Step 3 issue occurs when clicking a field in desktop Chrome, before
+typing. The wizard pre-focuses fully visible text/number fields (including their
+labels) with `preventScroll` on a primary mouse pointer event. It does not cancel
+the event, so caret placement and text selection remain native. It also cancels
+any pending step-heading focus when the user selects a field. Touch, keyboard,
+date/file/select controls and off-screen fields retain normal browser behavior.
+This is a targeted safeguard; the original jump was not reproduced in the local
+Chromium fixture. Live confirmation in Cathy's Chrome session is still needed.
+
+Admins can expand an account in Applicants and choose Delete account. A server
+preview lists affected application/document counts and blockers. Deletion requires
+the applicant email, an admin reason and the unchanged preview version. The backend
+rechecks eligibility under the onboarding lock and a transaction. It excludes
+self-deletion, staff/secondary roles, current or former clients, signed contracts,
+and linked vehicle/client records. Client records continue through Clients and
+Records retention. Co-host, employee, applicant and View As sessions cannot use the
+new endpoints. No account IDs are reassigned.
+
+A successful deletion removes applicant-only data, sign-in sessions and reset
+tokens, queues uploaded documents in the existing retryable cleanup queue, and
+writes an admin audit of IDs, counts and the entered reason. Document cleanup runs
+with the existing nightly applicant-retention job. Database failures roll back;
+a changed preview requires a refresh. The UI never treats a failed delete as success.
+
+Validation for this follow-up: 103 backend tests passed (deletion service and route
+authorization, applicant permissions, onboarding access and retention). Nineteen
+focused browser scenarios passed, including raw mouse clicks at viewport edges,
+typing, masked-number controls, selection/keyboard navigation, deletion/cancel/
+blocked/stale-preview flows, and complete mobile/desktop application submissions.
+Frontend TypeScript, both production builds and diff whitespace checks passed.
+All account deletions and submissions used local fixtures; no real account was
+removed and no email or Slack notification was sent by these checks.

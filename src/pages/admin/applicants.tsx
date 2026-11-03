@@ -1,3 +1,4 @@
+import { DeleteApplicantDialog } from '@/components/admin/applicants/DeleteApplicantDialog';
 import { SearchableNativeSelect } from '@/components/ui/searchable-native-select';
 import {useMemo,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
@@ -11,6 +12,7 @@ import {lycRequest} from '@/lib/lyc';
 export default function Applicants(){
   const client=useQueryClient(),[search,setSearch]=useState(''),[status,setStatus]=useState('all'),[sort,setSort]=useState('progress');
   const [error,setError]=useState(''),[busy,setBusy]=useState<number|null>(null);
+  const [deleting,setDeleting]=useState<number|null>(null),[message,setMessage]=useState('');
   const accounts=useQuery({queryKey:['/api/onboarding/applicants'],queryFn:()=>lycRequest('/api/onboarding/applicants'),refetchInterval:30000});
   const filtered=useMemo(()=>[...(accounts.data?.accounts || [])].filter((a:any)=>
     (status==='all'||a.stage.key===status)&&`${a.firstName} ${a.lastName} ${a.email} ${a.phone||''}`.toLowerCase().includes(search.toLowerCase()))
@@ -23,12 +25,15 @@ export default function Applicants(){
       <SearchableNativeSelect aria-label="Applicant status" className="h-11 rounded-md border bg-background px-3" value={status} onChange={e=>setStatus(e.target.value)}>{[['all','All statuses'],['ready','Ready for client access'],['contract','Awaiting signature'],['approved','Approved · contract next'],['review','Awaiting approval'],['pending_vehicle','Pending application · vehicle later'],['in_progress','Application in progress'],['attention','On hold / needs attention'],['created','Account created · not started']].map(([value,label])=><option key={value} value={value}>{label}</option>)}</SearchableNativeSelect>
       <SearchableNativeSelect aria-label="Sort applicants" className="h-11 rounded-md border bg-background px-3" value={sort} onChange={e=>setSort(e.target.value)}><option value="progress">Closest to completion</option><option value="name">Name A–Z</option><option value="newest">Newest accounts</option><option value="activity">Recent activity</option></SearchableNativeSelect>
     </div>
+    {message&&<p role="status" className="text-sm text-green-800">{message}</p>}
+    {deleting!==null&&<DeleteApplicantDialog key={deleting} accountId={deleting} onClose={()=>setDeleting(null)} onDeleted={setMessage}/>}
     {(accounts.error||error)&&<p role="alert" className="text-destructive">{error||accounts.error?.message} <button onClick={()=>void accounts.refetch()}>Retry</button></p>}
     {accounts.isLoading?<p role="status">Loading applicants…</p>:<p className="text-sm text-muted-foreground">{filtered.length} applicant accounts</p>}
     {filtered.map((account:any)=><article key={account.id} className="rounded-xl border bg-background p-4">
       <details><summary className="cursor-pointer list-none"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold">{account.firstName} {account.lastName}</h2><p className="break-all text-sm text-muted-foreground">{account.email}</p><p className="mt-2 text-xs text-muted-foreground">Account created on {new Date(account.createdAt).toLocaleDateString()} · Last activity {new Date(account.lastActivityAt).toLocaleDateString()}</p></div><span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-sm">{account.stage.label}</span></div><p className="mt-3 text-sm">{account.applications.length} submitted · {account.drafts.length} saved plans · View vehicle applications ▾</p></summary>
       <div className="mt-4 space-y-4 border-t pt-4">
         <div className="flex flex-wrap gap-3 text-sm"><a className="underline" href={`mailto:${account.email}`}>Email {account.firstName}</a>{account.phone&&<a className="underline" href={`tel:${account.phone.replace(/[^\d+]/g,'')}`}>Call {account.phone}</a>}</div>
+        <Button variant="outline" className="text-destructive" disabled={busy!==null} onClick={()=>{setMessage('');setDeleting(account.id);}}>Delete account</Button>
         {account.representative&&<p className="text-sm">Representative: {account.representative}</p>}
         {!account.applications.length&&!account.drafts.length&&<p className="text-sm">This person has created an account but has not started a vehicle application.</p>}
         {account.drafts.map((draft:any)=><div key={`d${draft.id}`} className="rounded-lg border p-3"><h3 className="font-medium">{[draft.fields.vehicleYear||draft.fields.plannedVehicleYear,draft.fields.vehicleMake||draft.fields.plannedVehicleMake,draft.fields.vehicleModel||draft.fields.plannedVehicleModel].filter(Boolean).join(' ')||`Vehicle plan #${draft.id}`}</h3><p className="mt-1 text-sm">{draft.pendingSubmittedAt?`Pending application submitted ${new Date(draft.pendingSubmittedAt).toLocaleDateString()} · Available for follow-up`:draft.hasVehicle===false?'Waiting for a vehicle':'Saved application'}</p><p className="mt-1 text-sm text-muted-foreground">{draft.pendingSubmittedAt?'Applicant must return and complete the vehicle information and remaining steps before approval.':'Not submitted for approval'}{draft.fields.acquisitionPlan&&` Plan: ${draft.fields.acquisitionPlan}.`}</p>{draft.pendingSubmittedAt&&<p className="mt-1 text-xs text-muted-foreground">{draft.pendingSlackSentAt?'Pending Slack alert sent':'Pending Slack alert waiting for complete details or delivery retry'}</p>}</div>)}
