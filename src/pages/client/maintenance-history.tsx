@@ -1,242 +1,224 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link, useSearch } from "wouter";
 import { AdminLayout } from "@/components/admin/admin-layout";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Loader2, Wrench, ExternalLink } from "lucide-react";
-import { getProxiedImageUrl } from "@/lib/queryClient";
-import { api } from "@/lib/api";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
+import { Button } from "@/components/ui/button";
+import { SearchableNativeSelect } from "@/components/ui/searchable-native-select";
+import { api } from "@/lib/api";
+import { buildApiUrl } from "@/lib/queryClient";
 import { formatMonthDayYear } from "@/lib/date-format";
 
-interface ClientMaintenance {
+type Vehicle = {
   id: number;
-  car_name: string | null;
-  car_make: string | null;
-  car_model: string | null;
-  car_year: number | null;
-  car_plate_number: string | null;
-  task_description: string | null;
+  make: string;
+  model: string;
+  year: string;
+  plate: string;
   status: string;
-  scheduled_date: string | null;
-  due_date: string | null;
-  repair_shop: string | null;
-  notes: string | null;
-  photos: string[];
-  reservation_id: string | null;
-  owner_approval_status: "not_sent" | "email_sent" | "approved" | "declined" | "auto_approved" | null;
-  owner_decline_reason: string | null;
-  owner_wants_pickup: 0 | 1 | null;
-  owner_responded_at: string | null;
-  approval_token: string | null;
-  created_at: string;
-}
-
-function fmt(dateStr: string | null): string {
-  return formatMonthDayYear(dateStr);
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  new: "New",
-  damage_reported: "Maintenance Reported",
-  in_review: "In Review",
-  in_progress: "In Progress",
-  in_repair: "In Repair",
-  completed: "Completed",
-  completed_no_receipt: "Completed-No Receipt Yet",
-  charged_customer: "Charged Customer",
 };
-
-function approvalBadge(rec: ClientMaintenance) {
-  const s = rec.owner_approval_status || "not_sent";
-  if (s === "not_sent")
-    return <span className="text-xs text-muted-foreground">—</span>;
-  const map: Record<string, { label: string; cls: string }> = {
-    email_sent: {
-      label: "Awaiting your response",
-      cls: "bg-blue-500/10 text-blue-700 border-blue-500/30",
-    },
-    approved: {
-      label: "Approved",
-      cls: "bg-green-500/10 text-green-700 border-green-500/30",
-    },
-    declined: {
-      label: "Declined",
-      cls: "bg-red-500/10 text-red-700 border-red-500/30",
-    },
-    auto_approved: {
-      label: "Auto-Approved (no response in 5 days)",
-      cls: "bg-amber-500/10 text-amber-700 border-amber-500/30",
-    },
-  };
-  const m = map[s] || map.email_sent;
-  return <Badge variant="outline" className={m.cls}>{m.label}</Badge>;
-}
-
+type History = {
+  id: string;
+  carId: number;
+  label: string;
+  date: string | null;
+  dateBasis: string;
+  status: string;
+  amount: number | null;
+  source: string;
+  files: string[];
+  unavailableFiles: number;
+};
 export default function ClientMaintenanceHistory() {
-  const { data, isLoading } = useQuery<{
-    success: boolean;
-    data: ClientMaintenance[];
-  }>({
-    queryKey: ["/api/client/maintenance-history"],
-    queryFn: async () => {
-      return api.get("/api/client/maintenance-history", {
-        fallbackMessage: "Failed to fetch maintenance history",
-      });
-    },
+  const search = useSearch(),
+    requested = new URLSearchParams(search).get("car");
+  const [selected, setSelected] = useState(requested || ""),
+    [query, setQuery] = useState("");
+  useEffect(() => setSelected(requested || ""), [requested]);
+  const cars = useQuery<{ cars: Vehicle[] }>({
+    queryKey: ["/api/client/vehicle-history"],
+    queryFn: () => api.get("/api/client/vehicle-history"),
+    retry: false,
   });
-
-  const records = data?.data ?? [];
-
+  const carId = selected || String(cars.data?.cars[0]?.id || "");
+  const owned = cars.data?.cars.find((car) => String(car.id) === carId);
+  const history = useQuery<{ history: History[] }>({
+    queryKey: ["/api/client/vehicle-history", carId],
+    queryFn: () => api.get(`/api/client/vehicle-history/${carId}`),
+    enabled: !!owned,
+    retry: false,
+  });
+  const records =
+    history.data?.history.filter((row) =>
+      `${row.label} ${row.source} ${row.status}`
+        .toLowerCase()
+        .includes(query.toLowerCase()),
+    ) || [];
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="rounded-full bg-primary/10 p-2">
-            <Wrench className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-semibold text-primary leading-tight">
-              Maintenance History
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Maintenance reported and performed on your vehicles.
-            </p>
-          </div>
+      <main className="space-y-5">
+        <div>
+          <h1 className="text-2xl font-semibold text-primary">
+            Vehicle service history
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Completed maintenance, recorded services and approved receipts.
+            Records describe their source and date; linked entries may refer to
+            the same repair.
+          </p>
         </div>
-
-        <ClientPageLinks />
-
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        {cars.isError ? (
+          <div role="alert" className="rounded-lg border border-red-200 p-4">
+            Your vehicles could not be loaded.{" "}
+            <Button variant="outline" onClick={() => void cars.refetch()}>
+              Retry vehicles
+            </Button>
           </div>
-        ) : records.length === 0 ? (
-          <div className="text-center py-20 text-muted-foreground">
-            No maintenance records for your vehicles yet.
-          </div>
+        ) : cars.isLoading ? (
+          <p role="status">Loading vehicles…</p>
+        ) : !cars.data?.cars.length ? (
+          <p>No vehicles are linked to this account.</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">Vehicle</TableHead>
-                  <TableHead className="whitespace-nowrap">Reservation #</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="whitespace-nowrap">Status</TableHead>
-                  <TableHead className="whitespace-nowrap">Your Approval</TableHead>
-                  <TableHead className="whitespace-nowrap">Suggested date (unconfirmed)</TableHead>
-                  <TableHead className="whitespace-nowrap">Repair Shop</TableHead>
-                  <TableHead className="whitespace-nowrap">Photos</TableHead>
-                  <TableHead className="whitespace-nowrap">Reported</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {records.map((rec) => {
-                  const carLabel =
-                    rec.car_make && rec.car_model
-                      ? `${rec.car_make} ${rec.car_model} ${rec.car_year ?? ""}`.trim()
-                      : rec.car_name || "—";
-                  return (
-                    <TableRow key={rec.id}>
-                      <TableCell className="whitespace-nowrap font-medium">
-                        {carLabel}
-                        {rec.car_plate_number && (
-                          <span className="block text-xs text-muted-foreground">
-                            {rec.car_plate_number}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-sm">
-                        {rec.reservation_id || "—"}
-                      </TableCell>
-                      <TableCell className="max-w-[280px] text-sm">
-                        {rec.task_description || "—"}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-sm">
-                        {STATUS_LABELS[rec.status] || rec.status}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <div className="flex flex-col gap-1">
-                          {approvalBadge(rec)}
-                          {rec.owner_approval_status === "declined" &&
-                            rec.owner_decline_reason && (
-                              <span
-                                className="text-xs text-muted-foreground max-w-[180px] truncate"
-                                title={rec.owner_decline_reason}
-                              >
-                                {rec.owner_decline_reason}
-                              </span>
-                            )}
-                          {rec.owner_approval_status === "declined" &&
-                            (rec.owner_wants_pickup === 1) && (
-                              <span className="text-xs text-amber-600">
-                                Self-pickup requested
-                              </span>
-                            )}
-                          {rec.owner_approval_status === "email_sent" &&
-                            rec.approval_token && (
-                              <a
-                                href={`/maintenance-approval/${rec.approval_token}`}
-                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                              >
-                                Respond now
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                            )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-sm">
-                        {fmt(rec.scheduled_date)}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-sm">
-                        {rec.repair_shop || "—"}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {rec.photos && rec.photos.length > 0 ? (
-                          <div className="flex gap-1">
-                            {rec.photos.slice(0, 3).map((p, i) => (
-                              <a
-                                key={i}
-                                href={getProxiedImageUrl(p)}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                <img
-                                  src={getProxiedImageUrl(p)}
-                                  alt={`Photo ${i + 1}`}
-                                  className="h-10 w-10 object-cover rounded border border-border"
-                                />
-                              </a>
-                            ))}
-                            {rec.photos.length > 3 && (
-                              <span className="text-xs text-muted-foreground self-center">
-                                +{rec.photos.length - 3}
-                              </span>
-                            )}
+          <>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-sm">
+                Vehicle
+                <SearchableNativeSelect
+                  aria-label="History vehicle"
+                  className="mt-1 w-full"
+                  value={carId}
+                  onChange={(event) => setSelected(event.target.value)}
+                >
+                  {cars.data.cars.map((car) => (
+                    <option
+                      key={car.id}
+                      value={car.id}
+                    >{`${car.make} ${car.model} ${car.year} · ${car.plate || "No plate"}`}</option>
+                  ))}
+                </SearchableNativeSelect>
+              </label>
+              <label className="text-sm">
+                Search history
+                <input
+                  className="mt-1 h-11 w-full rounded-md border bg-background px-3"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Service or record type"
+                />
+              </label>
+            </div>
+            {!owned ? (
+              <p role="alert">
+                This vehicle is not available in your account. Choose one of
+                your vehicles.
+              </p>
+            ) : (
+              <>
+                <nav
+                  className="flex flex-wrap gap-2"
+                  aria-label="Vehicle reports"
+                >
+                  <Button asChild variant="outline">
+                    <Link href={`/admin/cars/${carId}/income-expense`}>
+                      Income, expenses & receipts
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link href={`/admin/cars/${carId}/records`}>
+                      Records & files
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link href={`/admin/cars/${carId}/totals`}>Totals</Link>
+                  </Button>
+                </nav>
+                {history.isError ? (
+                  <div
+                    role="alert"
+                    className="rounded-lg border border-red-200 p-4"
+                  >
+                    <p>
+                      Service history could not be loaded. This does not mean
+                      there are no records.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => void history.refetch()}
+                    >
+                      Retry history
+                    </Button>
+                  </div>
+                ) : history.isLoading ? (
+                  <p role="status">Loading service history…</p>
+                ) : !records.length ? (
+                  <p>
+                    {query
+                      ? "No records match this search."
+                      : "No completed service records or approved receipts are available for this vehicle yet."}
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {records.map((row) => (
+                      <article key={row.id} className="rounded-xl border p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <h2 className="font-semibold">{row.label}</h2>
+                            <p className="text-sm text-muted-foreground">
+                              {row.source} · {row.status.replaceAll("_", " ")}
+                            </p>
                           </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          {row.amount !== null && (
+                            <span className="font-medium">
+                              {row.amount.toLocaleString("en-US", {
+                                style: "currency",
+                                currency: "USD",
+                              })}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-2 text-sm">
+                          {row.date
+                            ? row.dateBasis === "month_only"
+                              ? `${row.date.slice(0, 7)} · Month recorded; exact service day unknown`
+                              : formatMonthDayYear(row.date)
+                            : "Service date not recorded"}
+                          {row.date && row.dateBasis !== "month_only" && (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              · {row.dateBasis.replaceAll("_", " ")}
+                            </span>
+                          )}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {row.files.map((file, index) => (
+                            <a
+                              className="rounded-md border px-3 py-2 text-sm underline"
+                              key={file}
+                              href={buildApiUrl(file)}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Receipt / file {index + 1}
+                            </a>
+                          ))}
+                        </div>
+                        {row.unavailableFiles > 0 && (
+                          <p className="mt-2 text-sm text-amber-800">
+                            {row.unavailableFiles} older file link(s) need
+                            review. Open Records & files or contact GLA; the
+                            service record is preserved.
+                          </p>
                         )}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                        {fmt(rec.created_at)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </>
         )}
-      </div>
+        <ClientPageLinks carId={owned?.id} />
+      </main>
     </AdminLayout>
   );
 }

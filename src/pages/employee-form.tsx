@@ -53,6 +53,7 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 export default function EmployeeFormPage() {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
+  const [documentWarning,setDocumentWarning]=useState('');
   const [driverLicenseFile, setDriverLicenseFile] = useState<File | null>(null);
   const [carInsuranceFile, setCarInsuranceFile] = useState<File | null>(null);
 
@@ -124,7 +125,8 @@ export default function EmployeeFormPage() {
       }
       return json;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      setDocumentWarning(result?.documentWarning || '');
       setDriverLicenseFile(null);
       setCarInsuranceFile(null);
       setSubmitted(true);
@@ -146,9 +148,10 @@ export default function EmployeeFormPage() {
         <Card className="bg-card border-border max-w-md w-full">
           <CardContent className="p-6 text-center space-y-4">
             <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
-            <h1 className="text-xl font-semibold text-primary">Success!</h1>
+            <h1 className="text-xl font-semibold text-primary">Application received</h1>
+            {documentWarning&&<p role="alert" className="rounded border border-amber-300 bg-amber-50 p-3 text-sm">{documentWarning}</p>}
             <p className="text-muted-foreground text-sm">
-              Your employee onboarding form has been submitted. A copy of your signed {CONTRACTOR_POLICY_TITLE} has been emailed to you.
+              Your employee onboarding form has been submitted. GLA will review your information.
             </p>
             <Button
               type="button"

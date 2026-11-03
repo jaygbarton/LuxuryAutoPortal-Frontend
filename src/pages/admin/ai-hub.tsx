@@ -1,3 +1,4 @@
+import { SearchableNativeSelect } from '@/components/ui/searchable-native-select';
 import { mtTodayKey } from "@/lib/mt-datetime";
 import { useTimezone } from "@/hooks/use-timezone";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -362,7 +363,7 @@ export default function AiHubPage() {
             </label>
             <label className="min-w-0 text-sm">
               Vehicle
-              <select
+              <SearchableNativeSelect
                 aria-label="Vehicle"
                 className={`mt-1 ${selectClass}`}
                 value={carId || ""}
@@ -379,7 +380,7 @@ export default function AiHubPage() {
                     {c.name} · {c.plate || "No plate"}
                   </option>
                 ))}
-              </select>
+              </SearchableNativeSelect>
             </label>
           </div>
           {cars.error && (
@@ -462,7 +463,7 @@ export default function AiHubPage() {
             ].map(([label, value, set, options]) => (
               <label className="min-w-0 text-xs" key={String(label)}>
                 {String(label)}
-                <select
+                <SearchableNativeSelect
                   aria-label={String(label)}
                   className={`mt-1 ${selectClass}`}
                   value={Number(value)}
@@ -480,7 +481,7 @@ export default function AiHubPage() {
                           )}
                     </option>
                   ))}
-                </select>
+                </SearchableNativeSelect>
               </label>
             ))}
           </div>

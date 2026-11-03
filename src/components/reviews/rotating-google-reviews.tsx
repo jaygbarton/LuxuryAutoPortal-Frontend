@@ -59,11 +59,11 @@ export function RotatingGoogleReviews({ className = "", surface = "dark", compac
       <div className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${compact ? "py-5 sm:py-6 lg:py-7" : "py-14 lg:py-16"}`}>
         <div className={`${compact ? "mb-4" : "mb-8"} flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between`}>
           <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-[3px]" style={{ color: "#E8B830" }}>
+            <p className="mb-3 text-xs font-bold uppercase tracking-[3px]" style={{ color: isDark ? "#E8B830" : "#795B26" }}>
               {googleReviewCount} 5-Star Google Reviews
             </p>
             <h2 className={`font-serif font-bold ${compact ? "text-2xl sm:text-3xl" : "text-3xl sm:text-4xl"}`}>
-              Exact guest reviews from Google
+              What our guests say
             </h2>
           </div>
           <div className="flex gap-2">

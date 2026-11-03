@@ -1,3 +1,4 @@
+import { SearchableNativeSelect } from '@/components/ui/searchable-native-select';
 import type { ReactNode } from "react";
 import { Car, Clock, ArrowRight, ArrowUpFromLine, ArrowDownToLine, User } from "lucide-react";
 
@@ -54,7 +55,7 @@ export interface DashboardRecordCardProps {
   media?: ReactNode;
   /** Optional media shown in the LEFT column, under the trip/location details. */
   leftMedia?: ReactNode;
-  /** Status control (the existing <Select>/<select>) — rendered in the header. */
+  /** Status control (the existing <Select>/<SearchableNativeSelect>) — rendered in the header. */
   statusControl?: ReactNode;
   /** Optional click handler (e.g. navigate to a detail page). */
   onClick?: () => void;

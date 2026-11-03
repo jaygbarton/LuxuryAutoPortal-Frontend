@@ -1,3 +1,4 @@
+import { SearchableNativeSelect } from '@/components/ui/searchable-native-select';
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { buildApiUrl } from '@/lib/queryClient';
@@ -22,9 +23,9 @@ export function OperationsFleetProvider({ children, activeOnly = false, showFilt
   return <Context.Provider value={value}>
     {showFilter && <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
       <label htmlFor="operations-fleet">Vehicles</label>
-      {activeOnly ? <span>Active vehicles only</span> : <select id="operations-fleet" aria-label="Operations fleet" className="min-h-11 rounded-lg border bg-card px-3 sm:min-h-9" value={fleet} onChange={e => setFleet(e.target.value as OperationsFleetFilter)}>
+      {activeOnly ? <span>Active vehicles only</span> : <SearchableNativeSelect id="operations-fleet" aria-label="Operations fleet" className="min-h-11 rounded-lg border bg-card px-3 sm:min-h-9" value={fleet} onChange={e => setFleet(e.target.value as OperationsFleetFilter)}>
         <option value="active">Active vehicles</option><option value="all">All vehicles / records</option><option value="inactive">Inactive vehicles</option>
-      </select>}
+      </SearchableNativeSelect>}
       {fleet !== 'all' && query.isPending && <span role="status">Loading vehicle status…</span>}
       {fleet !== 'all' && query.isError && <span role="alert">Vehicle status could not be loaded. <button className="underline" onClick={() => void query.refetch()}>Retry</button>{!activeOnly && " or choose All vehicles to review records."}</span>}
       {!activeOnly && <span className="text-xs text-muted-foreground">Unmatched vehicle records can be reviewed under All vehicles / records.</span>}

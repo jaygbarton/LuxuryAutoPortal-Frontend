@@ -1,3 +1,4 @@
+import { SearchableNativeSelect } from '@/components/ui/searchable-native-select';
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -146,12 +147,12 @@ export function TripReceiptDialog({ taskId, bookingKey, scheduleDate, kind = "pa
           {declined ? "This receipt was declined. Correct the existing submission in Forms → My submissions." : isFuel ? "The Gas Reimbursed receipt and completed Refuel Run are already saved for this return. Another expense or task will not be created." : "The receipt is saved for approval. Finish completing this pickup below; another expense will not be created."}
         </div> : <>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="min-w-0"><Label htmlFor="parking-car" className="text-xs">Vehicle</Label><select id="parking-car" className="mt-1 h-11 w-full min-w-0 rounded-lg border bg-background px-2 text-base sm:text-sm" value={carId} onChange={(e) => setCarId(e.target.value)} required disabled={!!busy || !!context.data?.carId}>
+            <div className="min-w-0"><Label htmlFor="parking-car" className="text-xs">Vehicle</Label><SearchableNativeSelect id="parking-car" className="mt-1 h-11 w-full min-w-0 rounded-lg border bg-background px-2 text-base sm:text-sm" value={carId} onChange={(e) => setCarId(e.target.value)} required disabled={!!busy || !!context.data?.carId}>
               <option value="">Select vehicle</option>{cars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>{!context.data?.carId && <p className="text-xs text-amber-700">The vehicle could not be matched safely. Select it from the list.</p>}</div>
-            <div className="min-w-0"><Label htmlFor="parking-employee" className="text-xs">Employee</Label><select id="parking-employee" className="mt-1 h-11 w-full min-w-0 rounded-lg border bg-background px-2 text-base sm:text-sm" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required disabled={!!busy}>
+            </SearchableNativeSelect>{!context.data?.carId && <p className="text-xs text-amber-700">The vehicle could not be matched safely. Select it from the list.</p>}</div>
+            <div className="min-w-0"><Label htmlFor="parking-employee" className="text-xs">Employee</Label><SearchableNativeSelect id="parking-employee" className="mt-1 h-11 w-full min-w-0 rounded-lg border bg-background px-2 text-base sm:text-sm" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required disabled={!!busy}>
               <option value="">Select employee</option>{employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </select><p className="text-xs text-muted-foreground mt-1">{context.data?.preview ? "Select the employee for this preview." : context.data?.employeeId || context.data?.employeeName?.trim() ? "Existing task assignments will be kept." : "Submitting assigns this unassigned task to the employee you select."}</p></div>
+            </SearchableNativeSelect><p className="text-xs text-muted-foreground mt-1">{context.data?.preview ? "Select the employee for this preview." : context.data?.employeeId || context.data?.employeeName?.trim() ? "Existing task assignments will be kept." : "Submitting assigns this unassigned task to the employee you select."}</p></div>
           </div>
           <div className="space-y-2">
             <div className="relative rounded-xl border border-dashed border-primary/50 bg-primary/5 focus-within:ring-2 focus-within:ring-ring">

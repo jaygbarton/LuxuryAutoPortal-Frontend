@@ -36,13 +36,14 @@ import {
   TrendingUp,
   UserPlus,
   Video,
+  Wrench,
 } from "lucide-react";
 import { ReportCenter } from "@/pages/client/_components/ReportCenter";
 import { SupportCenter } from "@/pages/client/_components/SupportCenter";
 
 /** `hideVehicleStatsLinks`: set by pages that also render View Stats
  *  (<VehicleStatsQuickLinks />), so the per-car stats links aren't listed twice. */
-export function ClientPageLinks({ hideVehicleStatsLinks }: { hideVehicleStatsLinks?: boolean } = {}) {
+export function ClientPageLinks({ hideVehicleStatsLinks,carId }: { hideVehicleStatsLinks?: boolean;carId?:number } = {}) {
   const [location] = useLocation();
 
   // If the current page URL already contains /admin/cars/:id/..., use that car
@@ -81,7 +82,7 @@ export function ClientPageLinks({ hideVehicleStatsLinks }: { hideVehicleStatsLin
   // Prefer the car ID already in the URL (so sub-pages like Records keep the
   // same car when linking to Maintenance, Totals, etc.). Fall back to the
   // client's first car when no car ID is in the URL (e.g. on trip-history).
-  const activeCarId = urlCarId ?? firstCarId;
+  const activeCarId = carId ?? urlCarId ?? firstCarId;
 
   const carPath = activeCarId
     ? (p: string) => `/admin/cars/${activeCarId}/${p}`
@@ -93,8 +94,10 @@ export function ClientPageLinks({ hideVehicleStatsLinks }: { hideVehicleStatsLin
   //   Row 2: Graphs and Charts Report | NADA Depreciation Schedule
   //   Row 3: Payment History
   //   Row 4: Vehicle Trip History | Driving Behavior
-  // Maintenance links are hidden from clients for now.
+  // Owner history has its own scoped, public-field-only endpoint.
   const reportLinks = [
+    { href: `/client/maintenance-history${activeCarId?`?car=${activeCarId}`:''}`, icon: Wrench, label: "Vehicle service history" },
+    { href: carPath("records"), icon: FileText, label: "Records & files" },
     { href: carPath("earnings"),       icon: DollarSign,   label: "Earnings" },
     { href: "/client/trip-history",    icon: History,      label: "History" },
     { href: carPath("totals"),         icon: BarChart3,    label: "Totals" },

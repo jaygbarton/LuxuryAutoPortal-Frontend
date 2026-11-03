@@ -1,4 +1,4 @@
-import {expect,test,type Page} from '@playwright/test';
+import {expect,test,type Page,type Locator} from '@playwright/test';
 const values:Record<string,string>={date:'2026-11-02',firstNameOwner:'Test',lastNameOwner:'Owner',phoneOwner:'8010000000',emailOwner:'owner@example.test',streetAddress:'50 Test Street',city:'Salt Lake City',state:'UT',zipCode:'84116',birthday:'1990-01-01',emergencyContactName:'Test Contact',emergencyContactPhone:'8010000001',vehicleYear:'2020',vehicleMake:'Honda',vehicleModel:'Accord',vehicleTrim:'Sport',vehicleMiles:'55000',exteriorColor:'White',interiorColor:'Black',vinNumber:'1HGCM82633A004352',licensePlate:'TEST123',registrationExpiration:'2027-03-01',numberOfSeats:'5',numberOfDoors:'4',lastOilChange:'2026-10-01',oilType:'0W-20',oilPackageDetails:'Test package',tireSize:'225/45R17',insuranceProvider:'Fixture insurance',insurancePhone:'8010000002',policyNumber:'FIXTURE',insuranceExpiration:'2027-04-01',purchasePrice:'20000',interestRate:'4',monthlyPayment:'300',downPayment:'2000',ultimateGoal:'Help cover costs',bankName:'Fixture bank',routingNumber:'123456789',accountNumber:'987654321',ssn:'000001234',ein:'001234567',businessName:'Test',carManufacturerWebsite:'https://example.test',carManufacturerUsername:'test-owner',password:'fixture-password'};
 async function fixture(page:Page,admin:boolean|'client'|'guest'=false){
  const writes:any[]=[];
@@ -43,6 +43,7 @@ async function fixture(page:Page,admin:boolean|'client'|'guest'=false){
  });
  return {writes,submission,workflow,drafts,profile,setBanking:(b:any)=>{banking=b;},setProfile:(p:any)=>{profile={...profile,...p};}};
 }
+async function choose(page:Page,trigger:Locator,label:string){await trigger.click();await page.getByRole('option',{name:label,exact:true}).click();}
 async function fillStep(page:Page){
  await expect(page.locator('form input[name]:visible').first()).toBeVisible();
  for(const input of await page.locator('form input[name]:visible, form textarea[name]:visible').all()){
@@ -128,7 +129,7 @@ test('applicant cannot mount the staff shell when visiting a staff URL',async({p
 });
 test('vehicle-free finance plan saves secure details out of order and resumes a separate vehicle step',async({page})=>{
  await page.setViewportSize({width:390,height:844});const {drafts,writes}=await fixture(page);await page.goto('/onboarding');await fillStep(page);await page.locator('form').getByRole('button',{name:'Continue',exact:true}).click();
- await page.getByRole('button',{name:'Not yet',exact:true}).click();await page.getByLabel('Do you plan to buy or finance').selectOption('finance');await page.getByLabel('Do you know which vehicle').selectOption('no');
+ await page.getByRole('button',{name:'Not yet',exact:true}).click();await choose(page,page.getByRole('combobox',{name:/Do you plan to buy or finance/}),'Finance a vehicle');await choose(page,page.getByRole('combobox',{name:/Do you know which vehicle/}),'Not yet — that’s okay');
  await page.getByRole('button',{name:'Save plan & choose my next step'}).click();
  await page.getByRole('button',{name:'3. Secure information',exact:true}).click();await page.locator('input[name=bankName]').fill('Fixture Bank');await page.locator('input[name=ssn]').fill('fixture-only');
  await page.getByRole('button',{name:'Save & exit',exact:true}).click();await expect(page.getByText('Waiting for vehicle details — your other steps can be completed now.')).toBeVisible();
@@ -143,8 +144,8 @@ test('existing client personal details are reused and multiple vehicle plans rem
  const {setProfile,setBanking}=await fixture(page,'client');setBanking(Object.fromEntries(['bankName','routingNumber','accountNumber','ssn'].map(key=>[key,values[key]])));setProfile(Object.fromEntries(['firstNameOwner','lastNameOwner','emailOwner','phoneOwner','streetAddress','city','state','zipCode','birthday','emergencyContactName','emergencyContactPhone'].map(key=>[key,values[key]])));setProfile({tshirtSize:'M',representative:'Fixture Rep',heardAboutUs:'Referral'});
  await page.goto('/onboarding');await expect(page.locator('#onboarding-step-title')).toHaveText('Vehicle information');
  await page.getByRole('button',{name:'3. Secure information',exact:true}).click();await expect(page.locator('input[name=accountNumber]')).toHaveValue(values.accountNumber);await page.getByRole('button',{name:'2. Vehicle information',exact:true}).click();
- await expect(page.getByRole('heading',{name:'Let’s tailor your LYC steps'})).toHaveCount(0);await page.getByRole('button',{name:'I’m still planning this vehicle — save its details for later'}).click();await page.getByLabel('Do you know which vehicle').selectOption('yes');await page.getByLabel('Planned make',{exact:true}).fill('Honda');await page.getByLabel('Planned model',{exact:true}).fill('Accord');await page.getByRole('button',{name:'Save & exit'}).click();
- await page.getByRole('link',{name:'Start another application'}).click();await expect(page.getByRole('heading',{name:'Let’s tailor your LYC steps'})).toHaveCount(0);await page.getByRole('button',{name:'I’m still planning this vehicle — save its details for later'}).click();await page.getByLabel('Do you know which vehicle').selectOption('yes');await page.getByLabel('Planned make',{exact:true}).fill('Toyota');await page.getByLabel('Planned model',{exact:true}).fill('Sienna');await page.getByRole('button',{name:'Save & exit'}).click();
+ await expect(page.getByRole('heading',{name:'Let’s tailor your LYC steps'})).toHaveCount(0);await page.getByRole('button',{name:'I’m still planning this vehicle — save its details for later'}).click();await choose(page,page.getByRole('combobox',{name:/Do you know which vehicle/}),'Yes');await page.getByLabel('Planned make',{exact:true}).fill('Honda');await page.getByLabel('Planned model',{exact:true}).fill('Accord');await page.getByRole('button',{name:'Save & exit'}).click();
+ await page.getByRole('link',{name:'Start another application'}).click();await expect(page.getByRole('heading',{name:'Let’s tailor your LYC steps'})).toHaveCount(0);await page.getByRole('button',{name:'I’m still planning this vehicle — save its details for later'}).click();await choose(page,page.getByRole('combobox',{name:/Do you know which vehicle/}),'Yes');await page.getByLabel('Planned make',{exact:true}).fill('Toyota');await page.getByLabel('Planned model',{exact:true}).fill('Sienna');await page.getByRole('button',{name:'Save & exit'}).click();
  await expect(page.getByRole('heading',{name:'Honda Accord'})).toBeVisible();await expect(page.getByRole('heading',{name:'Toyota Sienna'})).toBeVisible();
 });
 
@@ -158,7 +159,7 @@ test('applicant directory ranks closest first and only offers conversion after a
  await expect(page.locator('article').first()).toContainText('Ana Signed');
  const unsigned=page.locator('article').filter({hasText:'Bea Unsigned'});await unsigned.locator('summary').click();await expect(unsigned.getByRole('button',{name:'Move account to Clients'})).toHaveCount(0);
  const signed=page.locator('article').filter({hasText:'Ana Signed'});await signed.locator('summary').click();await signed.getByRole('button',{name:'Move account to Clients'}).click();await expect(page.getByRole('heading',{name:'Ana Signed'})).toHaveCount(0);expect(changes).toHaveLength(1);
- await page.getByLabel('Applicant status').selectOption('created');await expect(page.locator('article')).toHaveCount(1);await expect(page.locator('article')).toContainText('Zoe New');
+ await choose(page,page.getByRole('combobox',{name:'Applicant status'}),'Account created · not started');await expect(page.locator('article')).toHaveCount(1);await expect(page.locator('article')).toContainText('Zoe New');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
  await page.screenshot({path:test.info().outputPath('applicants-mobile.png'),fullPage:true});
 });
@@ -168,7 +169,7 @@ test('retention queue blocks removal pending information and allows a reasoned k
  await page.route('**/api/admin/client-retention',route=>route.fulfill({json:{records:[record]}}));
  await page.route('**/api/admin/client-retention/12/preview',route=>route.fulfill({json:{version:'a'.repeat(64),groups:[{table:'client_payments',kind:'financial',count:2}],blockers:['Provide the requested information before removing records.'],decisionBlockers:{},scope:'Current software records'}}));
  await page.route('**/api/admin/client-retention/12/decision',route=>{writes.push(route.request().postDataJSON());record.review_status='kept';return route.fulfill({json:{message:'Keep exception recorded.'}});});
- await page.goto('/admin/client-retention');await page.getByRole('button',{name:'Review retention options'}).click();await page.getByRole('combobox',{name:'Decision',exact:true}).selectOption('retain_financial');await page.getByLabel('Reason',{exact:true}).fill('Fixture reviewed');await page.getByLabel('Enter client ID 12').fill('12');await expect(page.getByRole('button',{name:'Apply reviewed removal'})).toBeDisabled();await page.screenshot({path:test.info().outputPath('retention-mobile.png'),fullPage:true});
- await page.getByRole('combobox',{name:'Decision',exact:true}).selectOption('keep');await page.getByRole('button',{name:'Save keep exception'}).click();await expect(page.getByRole('status').filter({hasText:'Keep exception recorded'})).toBeVisible();expect(writes[0]).toMatchObject({decision:'keep',reason:'Fixture reviewed'});
+ await page.goto('/admin/client-retention');await page.getByRole('button',{name:'Review retention options'}).click();await choose(page,page.getByRole('combobox',{name:'Decision',exact:true}),'Remove personal information; keep financials and contracts');await page.getByLabel('Reason',{exact:true}).fill('Fixture reviewed');await page.getByLabel('Enter client ID 12').fill('12');await expect(page.getByRole('button',{name:'Apply reviewed removal'})).toBeDisabled();await page.screenshot({path:test.info().outputPath('retention-mobile.png'),fullPage:true});
+ await choose(page,page.getByRole('combobox',{name:'Decision',exact:true}),'Keep everything — record an exception');await page.getByRole('button',{name:'Save keep exception'}).click();await expect(page.getByRole('status').filter({hasText:'Keep exception recorded'})).toBeVisible();expect(writes[0]).toMatchObject({decision:'keep',reason:'Fixture reviewed'});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
 });

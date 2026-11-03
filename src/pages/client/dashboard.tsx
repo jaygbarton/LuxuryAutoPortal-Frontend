@@ -489,6 +489,7 @@ export default function ClientDashboard() {
     activeCar ? `/admin/cars/${activeCar.id}/${segment}` : "#";
 
   const reportLinks = [
+    { href: "/client/maintenance-history", icon: History, label: "Vehicle service history" },
     { href: carHref("earnings"),       icon: DollarSign,   label: "Earnings" },
     { href: "/client/trip-history",    icon: History,      label: "History" },
     { href: carHref("totals"),         icon: BarChart3,    label: "Totals" },

@@ -24,9 +24,9 @@ The final sequence is **applicant account → application → GLA approval → c
 - Staff then create the vehicle from reviewed details, using the real client profile ID. It stays off-fleet until eligible physical drop-off. Same-owner VINs link without overwrites; ambiguous ownership is rejected. Intake, approval, signing and drop-off notification pathways, including Slack, remain in place.
 - Never-client applicants can expire after six inactive months. Former clients reach a manual admin review after two years without an active vehicle; no client is automatically deleted. Notice, information requests, keep exceptions and guarded removal/financial-contract retention are implemented. Existing historical inactivity is not guessed; unknown dependencies or storage ownership block removal.
 
-See [onboarding-review-workflow.md](onboarding-review-workflow.md) for exact routes, checks, configuration and rollout limits. This is saved source, not a production deployment.
+See [onboarding-review-workflow.md](onboarding-review-workflow.md) for exact routes, checks, configuration and rollout limits. Source and deployment status are reported separately in the final handoff.
 
-## Recommended next work — not implemented here
+## Findings at the initial audit
 
 | Priority | Verified finding | Why it matters | Recommended completion and acceptance check |
 | --- | --- | --- | --- |
@@ -40,13 +40,9 @@ See [onboarding-review-workflow.md](onboarding-review-workflow.md) for exact rou
 | 2 | **Sensitive onboarding collection needs a separate policy pass.** Existing schemas require an SSN and a vehicle-account password, with optional EIN. New private drafts/defaults now have application-level encryption, but existing submitted-form/client storage and the broader collection policy remain unchanged. This is not a finding about database/storage provider encryption. | A step called “Secure information” is not itself a storage/access control guarantee; business owners and non-connected cars may not fit current requirements. | Decide SSN versus EIN rules and whether a manufacturer password should be collected at all. Review retention, least-privilege access, audit logging, encryption and deletion. Do not silently change required fields or staff access without an agreed policy. |
 | 3 | **Direct booking is intentionally a private preview.** `docs/DIRECT-BOOKING-PREVIEW.md` documents developer-only drafts, no live reservation/payment and unfinished final-price policy. | It should not be presented as a production-ready customer booking system. | Treat pricing/taxes/deposit/protection, real availability holds, confirmation and refunds as a separate release with clear acceptance checks. It was not enabled in this change. |
 
-## Suggested order after review
+## Follow-up implementation
 
-1. Finish employee document persistence and document-storage failure handling.
-2. Consolidate the owner vehicle history/report journey and make failed data loads explicit.
-3. Normalize owner IDs and fleet/account state semantics with reconciliation fixtures.
-4. Review the financial definitions and report-specific navigation with a real customer statement.
-5. Finish the broader sensitive-data policy and, separately, the direct-booking production release.
+The owner subsequently authorized the five follow-up areas. Employee documents, durable-write failures, owner service history, explicit load errors, stable-ID reconciliation, report destinations, shared dropdowns and homepage interaction improvements are now implemented in the same worktrees. See [quality completion](quality-completion-2026-11-03.md), [financial review](owner-financial-review.md) and [sensitive-data policy](sensitive-data-policy.md) for exact scope and remaining production/legacy-data verification. Direct-booking production enablement is not included.
 
 The practical completion standard should be: **submit → review → save → reopen → view as the intended customer/employee → verify evidence and failure recovery**. A screenshot of the first page is not enough.
 

@@ -1,3 +1,4 @@
+import {reportSectionId,reportSections} from '@/lib/report-navigation';
 import { rentalMetric } from "@/lib/rentalReportMetrics";
 import React, { useState } from "react";
 import {
@@ -388,6 +389,15 @@ lastSavedNote.current = coHostNote;
     parkingAverageGLA: false,
     parkingAverageQB: false,
   });
+
+  const requestedSection=new URLSearchParams(window.location.search).get('section');
+  React.useEffect(()=>{
+    if(requestedSection&&requestedSection in reportSections){
+      setExpandedSections(previous=>({...previous,[requestedSection]:true}));
+      const frame=requestAnimationFrame(()=>document.getElementById(`report-${requestedSection}`)?.scrollIntoView({block:'start'}));
+      return ()=>cancelAnimationFrame(frame);
+    }
+  },[requestedSection,year,isLoading]);
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({
@@ -2124,6 +2134,12 @@ lastSavedNote.current = coHostNote;
     // with the content instead of pinning. We let the inner scroll container
     // own both the clipping and the sticky positioning.
     <div className="w-full min-w-0 bg-card border border-border rounded-lg">
+      <nav aria-label="Financial report sections" className="flex flex-wrap gap-2 border-b p-3">
+        {Object.entries(reportSections).filter(([key,section]) =>
+          (key !== 'officeSupport' || isAllCarsView) && (!isEmployeeView || isSectionAllowedForEmployee(section.title))
+        ).map(([key,section]) => <button key={key} type="button" className="rounded-md border px-3 py-2 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary"
+          onClick={() => {setExpandedSections(previous=>({...previous,[key]:true}));requestAnimationFrame(()=>document.getElementById(`report-${key}`)?.scrollIntoView({block:'start'}));}}>{section.label}</button>)}
+      </nav>
       {/* Co-Hosting: tri-state ownership selector (per-car only). The Co-Host
           Split formula is only active when an ownership option is selected; if
           NONE is selected the Co-Host Split is deactivated (zero). */}
@@ -5145,7 +5161,7 @@ function CategorySection({
   }
   return (
     <>
-      <tr className="bg-primary">
+      <tr id={reportSectionId(title)?`report-${reportSectionId(title)}`:undefined} className="bg-primary scroll-mt-24">
         {/*
           Split into two cells so the title can be sticky on desktop:
           • Cell 1 (sticky): holds the title text, same min-width as the

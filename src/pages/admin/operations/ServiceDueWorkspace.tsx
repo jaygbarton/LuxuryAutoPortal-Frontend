@@ -1,3 +1,4 @@
+import { SearchableNativeSelect } from '@/components/ui/searchable-native-select';
 import { MaintenanceIssueReports } from './MaintenanceIssueReports';
 import { ServiceMileageReading } from '@/components/shared/ServiceMileageReading';
 import { AddServiceRecordDialog } from './AddServiceRecordDialog';
@@ -145,7 +146,7 @@ export function ServiceDueWorkspace({ editor, registrationEditor, licenseEditor 
     {view === 'calendar' ? <FleetCalendar calendarScope="services" embedded activeVehiclesOnly /> : <>
       <div className={`grid min-w-0 grid-cols-1 gap-2 ${view === 'cars' ? 'sm:grid-cols-2' : ''}`}>
         <Input aria-label="Search service vehicles" placeholder="Search vehicle, plate or VIN…" value={search} onChange={e => setSearch(e.target.value)} className="h-11" />
-        {view === 'cars' && <select aria-label="Service type" className="h-11 min-w-0 rounded-md border border-input bg-white px-3 text-sm" value={category} onChange={e => setCategory(e.target.value)}><option value="all">All services</option>{data?.rules.map(r => <option key={r.kind} value={r.kind}>{r.label}</option>)}<option value="registration">Registration expiration</option></select>}
+        {view === 'cars' && <SearchableNativeSelect aria-label="Service type" className="h-11 min-w-0 rounded-md border border-input bg-white px-3 text-sm" value={category} onChange={e => setCategory(e.target.value)}><option value="all">All services</option>{data?.rules.map(r => <option key={r.kind} value={r.kind}>{r.label}</option>)}<option value="registration">Registration expiration</option></SearchableNativeSelect>}
       </div>
       {view === 'services' && <div role="group" aria-label="Service categories" className="flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border bg-muted/40 p-1">
         {[{ kind: 'all', label: 'All services' }, ...(data?.rules ?? []), { kind: 'registration', label: 'Registration expiration' }].map(rule => <Button key={rule.kind} aria-pressed={category === rule.kind} variant={category === rule.kind ? 'default' : 'ghost'} className="min-h-11 shrink-0 whitespace-nowrap" onClick={() => setCategory(rule.kind)}>{rule.kind === 'reported_service' ? 'Reported service' : rule.label}</Button>)}

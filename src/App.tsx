@@ -1,3 +1,4 @@
+import {legacyCarDestination} from '@/lib/report-navigation';
 import ClientRetention from '@/pages/admin/client-retention';
 import ClientRecordsRequest from '@/pages/client-records-request';
 import Applicants from '@/pages/admin/applicants';
@@ -179,19 +180,7 @@ function PublicRoute({ path, children }: { path: string; children: ReactNode }) 
   );
 }
 
-const legacyCarRoute = (section: "detail" | "income" | "expenses" | "depreciation" | "totals" | "earnings" | "calculator") =>
-  (query: URLSearchParams) => {
-    const carId = query.get("carId") || query.get("car_id") || query.get("id");
-    if (!carId) return "/cars";
-    const encodedId = encodeURIComponent(carId);
-    if (section === "detail") return `/admin/cars/${encodedId}`;
-    if (section === "income") return `/admin/cars/${encodedId}/income-expense`;
-    if (section === "expenses") return `/admin/cars/${encodedId}/expenses`;
-    if (section === "depreciation") return `/admin/cars/${encodedId}/depreciation`;
-    if (section === "totals") return `/admin/cars/${encodedId}/totals`;
-    if (section === "calculator") return `/admin/cars/${encodedId}/calculator`;
-    return `/admin/cars/${encodedId}/earnings`;
-  };
+const legacyCarRoute = (section:string) => (query:URLSearchParams) => legacyCarDestination(section,query);
 
 function Router() {
   const [currentPath] = useLocation();
@@ -405,20 +394,20 @@ function Router() {
             <Route path="/admin/car/view-car/nada-depreciation-schedule"><LegacyRouteRedirect to={legacyCarRoute("depreciation")} /></Route>
             <Route path="/developer/car/view-car/totals"><LegacyRouteRedirect to={legacyCarRoute("totals")} /></Route>
             <Route path="/admin/car/view-car/totals"><LegacyRouteRedirect to={legacyCarRoute("totals")} /></Route>
-            <Route path="/developer/car/view-car/history"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
-            <Route path="/admin/car/view-car/history"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
-            <Route path="/developer/car/view-car/cogs"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
-            <Route path="/admin/car/view-car/cogs"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
-            <Route path="/developer/car/view-car/direct-delivery"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
-            <Route path="/admin/car/view-car/direct-delivery"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
-            <Route path="/developer/car/view-car/office-support"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
-            <Route path="/admin/car/view-car/office-support"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
-            <Route path="/developer/car/view-car/car-management-and-car-owner-split"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
-            <Route path="/admin/car/view-car/car-management-and-car-owner-split"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
-            <Route path="/developer/car/view-car/p-&-l"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
-            <Route path="/admin/car/view-car/p-&-l"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
-            <Route path="/developer/car/view-car/rental-value-per-month"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
-            <Route path="/admin/car/view-car/rental-value-per-month"><LegacyRouteRedirect to={legacyCarRoute("income")} /></Route>
+            <Route path="/developer/car/view-car/history"><LegacyRouteRedirect to={legacyCarRoute("history")} /></Route>
+            <Route path="/admin/car/view-car/history"><LegacyRouteRedirect to={legacyCarRoute("history")} /></Route>
+            <Route path="/developer/car/view-car/cogs"><LegacyRouteRedirect to={legacyCarRoute("cogs")} /></Route>
+            <Route path="/admin/car/view-car/cogs"><LegacyRouteRedirect to={legacyCarRoute("cogs")} /></Route>
+            <Route path="/developer/car/view-car/direct-delivery"><LegacyRouteRedirect to={legacyCarRoute("directDelivery")} /></Route>
+            <Route path="/admin/car/view-car/direct-delivery"><LegacyRouteRedirect to={legacyCarRoute("directDelivery")} /></Route>
+            <Route path="/developer/car/view-car/office-support"><LegacyRouteRedirect to={legacyCarRoute("officeSupport")} /></Route>
+            <Route path="/admin/car/view-car/office-support"><LegacyRouteRedirect to={legacyCarRoute("officeSupport")} /></Route>
+            <Route path="/developer/car/view-car/car-management-and-car-owner-split"><LegacyRouteRedirect to={legacyCarRoute("managementOwner")} /></Route>
+            <Route path="/admin/car/view-car/car-management-and-car-owner-split"><LegacyRouteRedirect to={legacyCarRoute("managementOwner")} /></Route>
+            <Route path="/developer/car/view-car/p-&-l"><LegacyRouteRedirect to={legacyCarRoute("incomeExpenseSummary")} /></Route>
+            <Route path="/admin/car/view-car/p-&-l"><LegacyRouteRedirect to={legacyCarRoute("incomeExpenseSummary")} /></Route>
+            <Route path="/developer/car/view-car/rental-value-per-month"><LegacyRouteRedirect to={legacyCarRoute("rentalValue")} /></Route>
+            <Route path="/admin/car/view-car/rental-value-per-month"><LegacyRouteRedirect to={legacyCarRoute("rentalValue")} /></Route>
             <Route path="/developer/car/view-car/supplemental-information"><LegacyRouteRedirect to={legacyCarRoute("detail")} /></Route>
             <Route path="/admin/car/view-car/supplemental-information"><LegacyRouteRedirect to={legacyCarRoute("detail")} /></Route>
             <Route path="/developer/earnings/details"><LegacyRouteRedirect to={legacyCarRoute("earnings")} /></Route>
@@ -456,8 +445,7 @@ function Router() {
               <RequireRole roles={["isClient"]}><ClientTripCalendarPage /></RequireRole>
             </Route>
             <Route path="/client/maintenance-history">
-              {/* Hidden from clients for now — keep the page for admins who have a bookmark. */}
-              <RequireRole roles={["isAdmin"]}><ClientMaintenanceHistoryPage /></RequireRole>
+              <RequireRole roles={["isClient"]}><ClientMaintenanceHistoryPage /></RequireRole>
             </Route>
             <Route path="/client/offboarding-form">
               <RequireRole roles={["isClient"]}><ClientOffboardingFormPage /></RequireRole>

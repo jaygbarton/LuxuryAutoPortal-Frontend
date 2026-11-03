@@ -1,3 +1,4 @@
+import { SearchableNativeSelect } from '@/components/ui/searchable-native-select';
 import { useQuery } from '@tanstack/react-query';
 import { authMeQueryFn, buildApiUrl } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,7 @@ export function TaskDriverSelect({ value, assignmentType, onChange, disabled = f
   const selected = assignmentType === 'uber' || assignmentType === 'na' ? assignmentType : value ? String(value) : '';
   return <div className="min-w-0">
     <label className="flex flex-col gap-1 text-sm"><span>Driver</span>
-      <select aria-label="Task driver" className="h-11 w-full min-w-0 rounded-md border bg-white px-2 text-base sm:text-sm" value={selected} disabled={disabled} onChange={e => {
+      <SearchableNativeSelect aria-label="Task driver" className="h-11 w-full min-w-0 rounded-md border bg-white px-2 text-base sm:text-sm" value={selected} disabled={disabled} onChange={e => {
         if (e.target.value === 'uber' || e.target.value === 'na') { onChange(e.target.value, null, null); return; }
         const employee = employees.data?.find(employee => Number(employee.employee_aid) === Number(e.target.value));
         onChange(employee ? 'employee' : null, employee ? Number(employee.employee_aid) : null, employee?.fullname || null);
@@ -35,7 +36,7 @@ export function TaskDriverSelect({ value, assignmentType, onChange, disabled = f
         <option value="na">N/A</option>
         {employees.isLoading && <option disabled>Loading employee drivers…</option>}
         {employees.data?.map(employee => <option key={employee.employee_aid} value={employee.employee_aid}>{employee.fullname || `Employee #${employee.employee_aid}`}</option>)}
-      </select>
+      </SearchableNativeSelect>
     </label>
     {employees.isError && <div role="alert" className="mt-1 space-y-1 text-sm text-destructive"><p>Employee drivers could not be loaded. Retry the list, or select Uber or N/A if appropriate.</p><Button type="button" variant="outline" className="h-11" disabled={disabled || employees.isFetching} onClick={() => void employees.refetch()}>Retry drivers</Button></div>}
   </div>;

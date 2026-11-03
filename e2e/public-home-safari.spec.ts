@@ -45,6 +45,39 @@ test("home opens and remains usable after scrolling and navigation", async ({ pa
   await expect(page.getByRole("heading", { name: "Something went wrong" })).toHaveCount(0);
 });
 
+for (const width of [390,1280]) test(`business cards remain clickable at section boundaries at ${width}px`,async({page})=>{
+  await publicFixtures(page);await page.setViewportSize({width,height:844});
+  for(const [button,destination] of [
+    ['button-management-get-started','/signup?next=%2Fsalt-lake-city%2Fonboarding'],
+    ['button-management-info','/salt-lake-city/contact'],
+    ['button-rental-fleet','/salt-lake-city/fleet'],
+    ['button-rental-detail','/salt-lake-city/detail-shop'],
+  ]){
+    await page.goto('/salt-lake-city');
+    const link=page.locator('#business-split').getByTestId(button);
+    await link.scrollIntoViewIfNeeded();await link.click();
+    await expect(page).toHaveURL(new RegExp(destination.replace(/[?]/g,'\\?')+'$'));
+  }
+  await page.goto('/salt-lake-city');
+  const section=page.locator('#business-split');await section.scrollIntoViewIfNeeded();
+  const turo=section.getByTestId('button-rental-turo');
+  await expect(turo).toHaveAttribute('href','https://turo.com/us/en/drivers/4325673/vehicles');
+  await expect(turo).toHaveAttribute('target','_blank');
+  const popup=page.waitForEvent('popup');await turo.click();await (await popup).close();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  await expect(section.locator('button button, a button')).toHaveCount(0);
+  await expect(section).not.toContainText('Exact guest reviews');
+  await section.screenshot({path:test.info().outputPath(`business-cards-${width}.png`)});
+});
+
+test('Wilmington cards keep local routes and hide unavailable detail service',async({page})=>{
+  await publicFixtures(page);await page.goto('/wilmington-nc');
+  const section=page.locator('#business-split');
+  await expect(section.getByTestId('button-management-get-started')).toHaveAttribute('href','/wilmington-nc/onboarding');
+  await expect(section.getByTestId('button-rental-detail')).toHaveCount(0);
+  await section.getByTestId('button-rental-fleet').click();await expect(page).toHaveURL(/\/wilmington-nc\/fleet$/);
+});
+
 test("Safari DOM removal error on initial load recovers the same homepage once", async ({ page }) => {
   await publicFixtures(page);
   await mutateLoadingNode(page);

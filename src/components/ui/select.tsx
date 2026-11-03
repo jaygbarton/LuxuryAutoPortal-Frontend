@@ -1,3 +1,4 @@
+import {sortOptionNodes} from '@/lib/sort-options'
 "use client"
 
 import * as React from "react"
@@ -19,7 +20,7 @@ function optionText(node: React.ReactNode): string {
 
 const Select = SelectPrimitive.Root
 
-const SelectGroup = SelectPrimitive.Group
+const SelectGroup = React.forwardRef<React.ElementRef<typeof SelectPrimitive.Group>,React.ComponentPropsWithoutRef<typeof SelectPrimitive.Group>>(({children,...props},ref)=><SelectPrimitive.Group ref={ref} {...props}>{sortOptionNodes(children)}</SelectPrimitive.Group>)
 
 const SelectValue = SelectPrimitive.Value
 
@@ -103,7 +104,7 @@ const SelectContent = React.forwardRef<
       className={cn(
         // z-[4100] sits above Dialog overlay/content (z-[4000]/z-[4001]) so
         // portaled Select menus remain clickable inside modals.
-        "relative z-[4100] max-h-[min(24rem,var(--radix-select-content-available-height))] max-w-[calc(100vw-1rem)] min-w-[min(16rem,calc(100vw-1rem))] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-select-content-transform-origin]",
+        "relative flex flex-col z-[4100] max-h-[min(24rem,var(--radix-select-content-available-height))] max-w-[calc(100vw-1rem)] min-w-[min(16rem,calc(100vw-1rem))] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-select-content-transform-origin]",
         position === "popper" &&
           "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
         className
@@ -141,13 +142,15 @@ const SelectContent = React.forwardRef<
       </div>
       <SelectScrollUpButton />
       <SelectPrimitive.Viewport
+        style={{maxHeight:"min(18rem, calc(var(--radix-select-content-available-height) - 5rem))",overflowY:"auto",touchAction:"pan-y"}}
+        onWheel={event=>event.stopPropagation()}
         className={cn(
-          "max-h-[min(18rem,calc(var(--radix-select-content-available-height)-4rem))] overflow-y-auto overscroll-contain p-1",
+          "min-h-0 flex-1 overflow-y-auto overscroll-contain p-1",
           position === "popper" &&
             "min-h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
         )}
       >
-        <SelectSearchContext.Provider value={query}>{children}</SelectSearchContext.Provider>
+        <SelectSearchContext.Provider value={query}>{sortOptionNodes(children)}</SelectSearchContext.Provider>
         {query.trim() && !hasResults && <div role="status" className="px-3 py-6 text-center text-sm text-muted-foreground">No matching options.</div>}
       </SelectPrimitive.Viewport>
       <SelectScrollDownButton />

@@ -1,3 +1,4 @@
+import { SearchableNativeSelect } from '@/components/ui/searchable-native-select';
 import { useId, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +15,7 @@ export function EmployeeJobClassification({ label, options, value, onChange, dis
   const isCustom = custom || (!!value && !options.includes(value));
   return <div className="min-w-0 space-y-1.5">
     <Label htmlFor={id} className={hideLabel ? 'sr-only' : 'text-muted-foreground'}>{label}</Label>
-    <select id={id} value={isCustom ? '__custom__' : value} disabled={disabled}
+    <SearchableNativeSelect id={id} value={isCustom ? '__custom__' : value} disabled={disabled}
       className="h-11 w-full min-w-0 rounded-md border border-border bg-background px-3 text-base text-foreground sm:text-sm"
       onChange={event => {
         const next = event.target.value;
@@ -24,7 +25,7 @@ export function EmployeeJobClassification({ label, options, value, onChange, dis
       <option value="">Not set</option>
       {options.map(option => <option key={option} value={option}>{option}</option>)}
       <option value="__custom__">Custom…</option>
-    </select>
+    </SearchableNativeSelect>
     {isCustom && <Input aria-label={`Custom ${label.toLowerCase()}`} value={value} onChange={event => onChange(event.target.value)}
       maxLength={200} disabled={disabled} placeholder={`Enter custom ${label.toLowerCase()}`}
       className="h-11 text-base sm:text-sm" />}

@@ -8,8 +8,7 @@ import { SiteStatsStrip } from "@/components/layout/site-stats-strip";
 import { RotatingGoogleReviews } from "@/components/reviews/rotating-google-reviews";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import { type PublicLocation } from "@/lib/location-config";
-import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Link } from "wouter";
 import { ArrowRight, Car, ClipboardCheck, ExternalLink, Sparkles, UserPlus } from "lucide-react";
 
@@ -22,29 +21,12 @@ function scrollToTopOnNavigate() {
 }
 
 function ServiceSplitSection({ location }: { location: PublicLocation }) {
-  const sectionRef = useRef<HTMLElement | null>(null);
-  const [isSceneActive, setIsSceneActive] = useState(false);
-  const shouldReduceMotion = useReducedMotion();
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start start", "end end"],
-  });
-  const splitY = useTransform(scrollYProgress, [0, 0.58, 0.76], shouldReduceMotion ? ["0vh", "0vh", "0vh"] : ["16vh", "-8vh", "-38vh"]);
-  const reviewY = useTransform(scrollYProgress, [0.44, 0.64, 0.9], shouldReduceMotion ? ["0vh", "0vh", "0vh"] : ["28vh", "0vh", "-16vh"]);
-  const splitOpacity = useTransform(scrollYProgress, [0, 0.5, 0.64], [1, 1, 0]);
-  const reviewOpacity = useTransform(scrollYProgress, [0.56, 0.68, 0.88, 0.97], [0, 1, 1, 0]);
-  const contentOpacity = useTransform(scrollYProgress, [0, 0.08, 0.86, 1], [0.96, 1, 1, 0.96]);
-  const shadeOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [0.5, 0.32, 0.48]);
-
-  useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    setIsSceneActive(latest > 0.001 && latest < 0.985);
-  });
-  const businessOptions = [
+  const reduceMotion = useReducedMotion();
+  const options = [
     {
-      eyebrow: "Vehicle Management",
-      title: "List your vehicle with GLA",
-      copy:
-        "We'll manage the rental process while you sit back and reap the benefits.",
+      eyebrow: "For vehicle owners",
+      title: "Your vehicle. More possibility.",
+      copy: "Put your vehicle in GLA’s managed rental program. Explore how it works, then start your application at your own pace.",
       image: "/list-your-car-key-handoff-enhanced.png",
       icon: ClipboardCheck,
       primary: "List Your Car",
@@ -54,236 +36,73 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
       testId: "button-management-get-started",
     },
     {
-      eyebrow: "Rent a Vehicle",
-      title: "Premium rental or detail",
-      copy:
-        "Choose from GLA's premium fleet, compare the right fit, or book a clean detail appointment.",
+      eyebrow: "For your next trip",
+      title: "Find your next great drive.",
+      copy: "Explore the fleet and find a vehicle that fits your plans. View rental details and continue to booking on Turo.",
       image: "/rent-a-car-interior.jpg",
       icon: Car,
       primary: "Our Fleet",
       primaryHref: location.fleetPath,
       secondary: "Book on Turo",
       secondaryHref: location.turoFleetUrl || TURO_VEHICLES_URL,
-      tertiary: location.availablePages.detailShop ? "Detail Shop" : undefined,
-      tertiaryHref: `${location.path}/detail-shop`,
       testId: "button-rental-fleet",
       externalSecondary: true,
     },
   ];
+  const linkStyle = "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#96712D] focus-visible:ring-offset-4";
 
+  // Keep interactive content in normal document flow. The old fixed scroll scene
+  // disabled pointer events at its boundaries and layered reviews over the CTAs.
   return (
-    <section
-      id="business-split"
-      ref={sectionRef}
-      className="cinematic-scroll-section relative bg-transparent text-white lg:min-h-[360svh]"
-    >
-      <div className="relative overflow-hidden lg:hidden">
-        <div className="absolute inset-0 bg-[#050505]/72" />
-        <div className="relative z-10 px-4 py-14">
-          <div className="mb-8">
-            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#D4A017]">
-              Rental Operations + Vehicle Management
+    <section id="business-split" aria-labelledby="business-split-title" className="relative isolate bg-[#FBF9F4] text-[#242019]">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(211,188,141,0.24),transparent_60%)]" />
+      <div className="relative mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20 lg:py-24">
+        <div className="mb-8 flex flex-col justify-between gap-5 sm:mb-12 lg:flex-row lg:items-end">
+          <div className="max-w-2xl">
+            <p className="mb-4 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#795B26]">
+              <span aria-hidden="true" className="h-px w-9 bg-[#B19052]" /> The Golden Luxury experience
             </p>
-            <h2 className="font-serif text-3xl font-light leading-tight">
-              One company, two businesses.
-            </h2>
-            <p className="mt-4 text-base leading-7 text-white/74">
-              Rent from the fleet or put your vehicle into a managed program built for real day-to-day operations.
-            </p>
+            <h2 id="business-split-title" className="font-serif text-4xl font-light leading-[1.12] sm:text-5xl lg:text-6xl">One company.<br /><span className="text-[#96712D]">Two ways to go further.</span></h2>
           </div>
-
-          <div className="space-y-5">
-            {businessOptions.map((item) => {
-              const Icon = item.icon;
-              return (
-                <article key={item.eyebrow} className="overflow-hidden rounded-md border border-white/16 bg-[#090909]/84 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl">
-                  <div className="relative aspect-[16/9] overflow-hidden">
-                    <img src={item.image} alt="" className="h-full w-full object-cover" aria-hidden="true" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/48 via-black/18 to-transparent" />
+          <p className="max-w-sm text-base leading-7 text-[#625C50]">A vehicle for your next trip. A team to manage your own. Choose where you’d like to start.</p>
+        </div>
+        <div className="grid items-stretch gap-6 lg:grid-cols-2">
+          {options.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <motion.article key={item.testId} className="group flex flex-col overflow-hidden rounded-2xl border border-[#E3DACA] bg-white shadow-[0_12px_40px_rgba(65,48,19,0.06)] transition-shadow hover:shadow-[0_18px_48px_rgba(65,48,19,0.12)]"
+                initial={false} whileHover={reduceMotion ? undefined : { y: -4 }} transition={{ duration: 0.2 }}>
+                <div className="relative aspect-[16/9] overflow-hidden sm:aspect-[2/1]">
+                  <img src={item.image} alt="" loading="lazy" className="h-full w-full object-cover motion-safe:transition-transform motion-safe:duration-700 motion-safe:group-hover:scale-[1.035]" />
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                  <span className="absolute bottom-4 left-5 rounded-full border border-white/35 bg-black/35 px-4 py-2 text-xs font-medium tracking-wide text-white backdrop-blur-sm">{item.eyebrow}</span>
+                  <span aria-hidden="true" className="absolute right-5 top-4 font-serif text-3xl text-white">0{index + 1}</span>
+                </div>
+                <div className="flex flex-1 flex-col p-5 sm:p-8">
+                  <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl border border-[#E8DDC8] bg-[#F8F3E8] text-[#886524]"><Icon aria-hidden="true" className="h-5 w-5" /></div>
+                  <h3 className="font-serif text-3xl leading-tight sm:text-4xl">{item.title}</h3>
+                  <p className="mb-7 mt-4 text-sm leading-7 text-[#625C50] sm:text-base">{item.copy}</p>
+                  <div className="mt-auto flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                    <Link href={item.primaryHref} onClick={scrollToTopOnNavigate} className={`${linkStyle} bg-[#D3BC8D] text-[#211B11] hover:bg-[#C6A86D]`} data-testid={item.testId}>{item.primary}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link>
+                    {item.externalSecondary ? (
+                      <a href={item.secondaryHref} target="_blank" rel="noopener noreferrer" className={`${linkStyle} border border-[#D9CBB1] hover:bg-[#FBF8F1]`} data-testid="button-rental-turo">{item.secondary}<ExternalLink aria-hidden="true" className="h-4 w-4" /><span className="sr-only"> (opens in a new tab)</span></a>
+                    ) : (
+                      <Link href={item.secondaryHref} onClick={scrollToTopOnNavigate} className={`${linkStyle} border border-[#D9CBB1] hover:bg-[#FBF8F1]`} data-testid="button-management-info">{item.secondary}</Link>
+                    )}
+                    {item.externalSecondary && location.availablePages.detailShop && (
+                      <Link href={`${location.path}/detail-shop`} onClick={scrollToTopOnNavigate} className={`${linkStyle} text-[#795B26] hover:bg-[#FBF8F1]`} data-testid="button-rental-detail">Detail Shop<Sparkles aria-hidden="true" className="h-4 w-4" /></Link>
+                    )}
                   </div>
-                  <div className="p-5">
-                    <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-sm bg-[#D4A017] text-[#1A0E00]">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#D4A017]">{item.eyebrow}</p>
-                    <h3 className="font-serif text-2xl font-light leading-tight">{item.title}</h3>
-                    <p className="mt-4 text-sm leading-6 text-white/72">{item.copy}</p>
-                    <div className="mt-6 flex flex-col gap-3">
-                      <Link href={item.primaryHref} onClick={scrollToTopOnNavigate}>
-                        <button
-                          className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-sm px-6 text-sm font-bold"
-                          style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
-                          data-testid={item.testId}
-                        >
-                          {item.primary}
-                          <ArrowRight className="h-4 w-4" />
-                        </button>
-                      </Link>
-                      {item.externalSecondary ? (
-                        <a href={item.secondaryHref} target="_blank" rel="noopener noreferrer">
-                          <button
-                            className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-sm px-6 text-sm font-semibold"
-                            style={{ border: "1px solid rgba(212,160,23,0.8)", color: "#E8B830", background: "transparent" }}
-                            data-testid="button-rental-turo"
-                          >
-                            {item.secondary}
-                            <ExternalLink className="h-4 w-4" />
-                          </button>
-                        </a>
-                      ) : (
-                        <Link href={item.secondaryHref} onClick={scrollToTopOnNavigate}>
-                          <button
-                            className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-sm px-6 text-sm font-semibold"
-                            style={{ border: "1px solid rgba(212,160,23,0.8)", color: "#E8B830", background: "transparent" }}
-                            data-testid="button-management-info"
-                          >
-                            {item.secondary}
-                          </button>
-                        </Link>
-                      )}
-                      {item.tertiary && item.tertiaryHref ? (
-                        <Link href={item.tertiaryHref} onClick={scrollToTopOnNavigate}>
-                          <button
-                            className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-sm bg-white px-6 text-sm font-bold text-[#171717]"
-                            data-testid="button-rental-detail"
-                          >
-                            {item.tertiary}
-                            <Sparkles className="h-4 w-4" />
-                          </button>
-                        </Link>
-                      ) : null}
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-
-          <div className="mt-6 rounded-md border border-white/16 bg-[#070707]/80 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur-xl">
-            <RotatingGoogleReviews surface="dark" className="bg-transparent" compact />
-          </div>
-          <div className="mt-5">
-            <SiteStatsStrip variant="dark" />
-          </div>
+                </div>
+              </motion.article>
+            );
+          })}
         </div>
       </div>
-
-      <motion.div
-        className={`hidden lg:block lg:h-svh lg:overflow-hidden ${
-          isSceneActive ? "lg:fixed lg:inset-0" : "lg:absolute lg:inset-x-0 lg:top-0"
-        }`}
-        style={{ pointerEvents: isSceneActive ? "auto" : "none" }}
-      >
-        <motion.div className="absolute inset-0 bg-[#050505]" style={{ opacity: shadeOpacity }} />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_74%_18%,rgba(232,184,48,0.2),transparent_28%),linear-gradient(180deg,rgba(5,5,5,0.06),rgba(5,5,5,0.78))]" />
-
-        <motion.div
-          className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-center px-4 py-12 sm:px-6 lg:px-8"
-          style={{ opacity: contentOpacity }}
-        >
-          <motion.div style={{ y: splitY, opacity: splitOpacity }} className="will-change-transform">
-            <div className="mb-8 max-w-3xl sm:mb-10">
-              <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#D4A017]">
-                Rental Operations + Vehicle Management
-              </p>
-              <h2 className="font-serif text-3xl font-light leading-tight sm:text-4xl lg:text-5xl">
-                One company, two businesses.
-              </h2>
-              <p className="mt-4 text-base leading-7 text-white/74">
-                Rent from the fleet or put your vehicle into a managed program built for real day-to-day operations.
-              </p>
-            </div>
-
-            <div className="grid gap-5 sm:gap-6 lg:grid-cols-2">
-              {businessOptions.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <motion.article
-                    key={item.eyebrow}
-                    className="group overflow-hidden rounded-md border border-white/16 bg-[#090909]/78 shadow-[0_28px_100px_rgba(0,0,0,0.4)] backdrop-blur-xl"
-                    initial={shouldReduceMotion ? false : { opacity: 0, y: 26 }}
-                    whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.35 }}
-                    transition={{ duration: 0.62, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <div className="relative aspect-[16/9] overflow-hidden">
-                      <img src={item.image} alt="" className="h-full w-full object-cover" aria-hidden="true" />
-                      <div className="absolute inset-0 bg-gradient-to-r from-black/48 via-black/18 to-transparent" />
-                    </div>
-                    <div className="p-5 sm:p-7 lg:p-8">
-                      <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-sm bg-[#D4A017] text-[#1A0E00]">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#D4A017]">{item.eyebrow}</p>
-                      <h3 className="font-serif text-2xl font-light leading-tight sm:text-3xl">{item.title}</h3>
-                      <p className="mt-4 max-w-xl text-sm leading-6 text-white/72 sm:text-base sm:leading-7">{item.copy}</p>
-                      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                        <Link href={item.primaryHref} onClick={scrollToTopOnNavigate}>
-                          <button
-                            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-sm px-6 text-sm font-bold transition-all hover:-translate-y-0.5"
-                            style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
-                            data-testid={item.testId}
-                          >
-                            {item.primary}
-                            <ArrowRight className="h-4 w-4" />
-                          </button>
-                        </Link>
-                        {item.externalSecondary ? (
-                          <a href={item.secondaryHref} target="_blank" rel="noopener noreferrer">
-                            <button
-                              className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-sm px-6 text-sm font-semibold transition-all hover:bg-white/5"
-                              style={{ border: "1px solid rgba(212,160,23,0.8)", color: "#E8B830", background: "transparent" }}
-                              data-testid="button-rental-turo"
-                            >
-                              {item.secondary}
-                              <ExternalLink className="h-4 w-4" />
-                            </button>
-                          </a>
-                        ) : (
-                          <Link href={item.secondaryHref} onClick={scrollToTopOnNavigate}>
-                            <button
-                              className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-sm px-6 text-sm font-semibold transition-all hover:bg-white/5"
-                              style={{ border: "1px solid rgba(212,160,23,0.8)", color: "#E8B830", background: "transparent" }}
-                              data-testid="button-management-info"
-                            >
-                              {item.secondary}
-                            </button>
-                          </Link>
-                        )}
-                        {item.tertiary && item.tertiaryHref ? (
-                          <Link href={item.tertiaryHref} onClick={scrollToTopOnNavigate}>
-                            <button
-                              className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-sm bg-white px-6 text-sm font-bold text-[#171717] transition-all hover:-translate-y-0.5 hover:bg-white/90"
-                              data-testid="button-rental-detail"
-                            >
-                              {item.tertiary}
-                              <Sparkles className="h-4 w-4" />
-                            </button>
-                          </Link>
-                        ) : null}
-                      </div>
-                    </div>
-                  </motion.article>
-                );
-              })}
-            </div>
-          </motion.div>
-
-          <motion.div
-            style={{ y: reviewY, opacity: reviewOpacity }}
-            className="absolute inset-x-4 top-1/2 will-change-transform sm:inset-x-6 lg:inset-x-8"
-          >
-            <div className="-translate-y-1/2">
-              <div className="rounded-md border border-white/16 bg-[#070707]/76 shadow-[0_28px_100px_rgba(0,0,0,0.42)] backdrop-blur-xl">
-                <RotatingGoogleReviews surface="dark" className="bg-transparent" compact />
-              </div>
-              <div className="mt-5">
-                <SiteStatsStrip variant="dark" />
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-      </motion.div>
+      <div className="relative border-t border-[#E3DACA] bg-white">
+        <RotatingGoogleReviews surface="light" className="bg-transparent" compact />
+        <SiteStatsStrip />
+      </div>
     </section>
   );
 }

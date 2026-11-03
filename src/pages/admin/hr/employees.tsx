@@ -213,6 +213,7 @@ export default function EmployeesPage() {
   // File upload states for employee form
   const [carInsurancePhotos, setCarInsurancePhotos] = useState<File[]>([]);
   const [driverLicensePhoto, setDriverLicensePhoto] = useState<File | null>(null);
+  const [pendingEmployee, setPendingEmployee] = useState<any>(null);
 
   const [employeeToApprove, setEmployeeToApprove] = useState<Employee | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
@@ -309,8 +310,10 @@ export default function EmployeesPage() {
 
   const createMutation = useMutation({
     mutationFn: async (payload: EmployeeFormData) => {
-      // Note: Files are stored in state but backend currently expects JSON
-      // Files can be uploaded separately or backend can be updated to accept FormData
+      if(carInsurancePhotos.length>5)throw new Error('Choose up to five insurance files.');
+      for(const file of [...carInsurancePhotos,...(driverLicensePhoto?[driverLicensePhoto]:[])])if(!file.size||file.size>10*1024*1024)throw new Error('Each document must be nonempty and no more than 10 MB.');
+      let result=pendingEmployee;
+      if(!result){
       const response = await fetch(buildApiUrl("/api/employees"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -352,18 +355,23 @@ export default function EmployeesPage() {
         throw new Error(err.error || err.message || "Failed to create employee");
       }
       
-      const result = await response.json();
-      
-      // TODO: Upload files separately if backend supports file uploads
-      // For now, files are stored in state (carInsurancePhotos, driverLicensePhoto)
-      // and can be uploaded via a separate endpoint if needed
-      
+      result = await response.json();
+      setPendingEmployee(result);
+      }
+      if(driverLicensePhoto||carInsurancePhotos.length){
+        const documents=new FormData();
+        if(driverLicensePhoto)documents.append('driver_license',driverLicensePhoto);
+        for(const file of carInsurancePhotos)documents.append('car_insurance',file);
+        const uploaded=await fetch(buildApiUrl(`/api/employees/${result.data.employeeId}/upload-documents`),{method:'POST',credentials:'include',body:documents});
+        if(!uploaded.ok)throw new Error('Employee created, but documents were not saved. Keep this form open and select Retry documents. This will reuse the same employee record.');
+      }
       return result;
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
       toast(employeePasswordEmailFeedback("Created", result.passwordEmail));
       setIsAddModalOpen(false);
+      setPendingEmployee(null);
       addForm.reset();
       setCarInsurancePhotos([]);
       setDriverLicensePhoto(null);
@@ -1163,6 +1171,7 @@ export default function EmployeesPage() {
                 className="space-y-6 mt-4"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <fieldset disabled={!!pendingEmployee} className="contents">
                   <FormField
                     control={addForm.control}
                     name="firstName"
@@ -1547,6 +1556,8 @@ export default function EmployeesPage() {
                     )}
                   />
 
+                  </fieldset>
+                  {pendingEmployee&&<div role="status" className="md:col-span-2 rounded border border-amber-300 bg-amber-50 p-3 text-sm">Employee #{pendingEmployee.data.employeeId} is already created. Retry only the documents below; no second employee will be created.<Button type="button" className="mt-2 block" disabled={createMutation.isPending} onClick={()=>createMutation.mutate(addForm.getValues())}>Retry documents</Button></div>}
                   {/* File Uploads */}
                   <FormItem className="md:col-span-2">
                     <FormLabel className="text-muted-foreground">Photo of car insurance</FormLabel>
@@ -1560,7 +1571,7 @@ export default function EmployeesPage() {
                           <p className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
                             Click to upload or drag and drop
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">Multiple files allowed</p>
+                          <p className="text-xs text-muted-foreground mt-1">Up to five files, 10 MB each. Multiple pages are saved together as one PDF.</p>
                         </div>
                         <input
                           id="car-insurance-upload"
@@ -1654,8 +1665,8 @@ export default function EmployeesPage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <EmployeeJobClassification label="Department" options={EMPLOYEE_DEPARTMENTS} value={addForm.watch('departmentName')||''} onChange={value=>addForm.setValue('departmentName',value,{shouldDirty:true})} disabled={createMutation.isPending}/>
-                  <EmployeeJobClassification label="Job title" options={EMPLOYEE_JOB_TITLES} value={addForm.watch('jobTitleName')||''} onChange={value=>addForm.setValue('jobTitleName',value,{shouldDirty:true})} disabled={createMutation.isPending}/>
+                  <EmployeeJobClassification label="Department" options={EMPLOYEE_DEPARTMENTS} value={addForm.watch('departmentName')||''} onChange={value=>addForm.setValue('departmentName',value,{shouldDirty:true})} disabled={createMutation.isPending||!!pendingEmployee}/>
+                  <EmployeeJobClassification label="Job title" options={EMPLOYEE_JOB_TITLES} value={addForm.watch('jobTitleName')||''} onChange={value=>addForm.setValue('jobTitleName',value,{shouldDirty:true})} disabled={createMutation.isPending||!!pendingEmployee}/>
                 </div>
                 <p className="text-xs text-muted-foreground">Job title and department describe the position. Assign employee roles separately under Job and Pay.</p>
                 <div className="flex justify-end gap-3 pt-4">
@@ -1664,9 +1675,11 @@ export default function EmployeesPage() {
                     variant="ghost"
                     onClick={() => {
                       setIsAddModalOpen(false);
-                      addForm.reset();
-                      setCarInsurancePhotos([]);
-                      setDriverLicensePhoto(null);
+                      if (!pendingEmployee) {
+                        addForm.reset();
+                        setCarInsurancePhotos([]);
+                        setDriverLicensePhoto(null);
+                      }
                     }}
                     className="text-muted-foreground hover:text-foreground"
                     disabled={createMutation.isPending}

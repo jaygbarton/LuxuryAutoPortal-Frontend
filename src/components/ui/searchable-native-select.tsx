@@ -28,6 +28,30 @@ export const SearchableNativeSelect = React.forwardRef<HTMLSelectElement,
   const placeholder = options.find((option) => String(option.props.value ?? "") === "")?.props.children ?? "Select an option";
 
   return <>
+    <Select value={selected} disabled={disabled} onValueChange={(next) => {
+      if (!nativeRef.current) return;
+      nativeRef.current.value = next === "__empty_option__" ? "" : next;
+      nativeRef.current.dispatchEvent(new Event("change", { bubbles: true }));
+    }}>
+      <SelectTrigger
+        ref={triggerRef}
+        id={id}
+        title={props.title}
+        aria-label={props["aria-label"]}
+        aria-labelledby={props["aria-labelledby"]}
+        aria-describedby={props["aria-describedby"]}
+        aria-required={props.required}
+        aria-invalid={props["aria-invalid"]}
+        className={cn("w-auto", className)}
+        style={style}
+      ><SelectValue placeholder={placeholder} /></SelectTrigger>
+      <SelectContent>{options.map((option, index) => <SelectItem
+        key={option.key ?? index}
+        value={String(option.props.value ?? "") || "__empty_option__"}
+        disabled={option.props.disabled}
+        searchKeywords={option.props.searchKeywords}
+      >{option.props.children}</SelectItem>)}</SelectContent>
+    </Select>
     <select
       {...props}
       ref={(node) => {
@@ -44,30 +68,6 @@ export const SearchableNativeSelect = React.forwardRef<HTMLSelectElement,
       onChange={(event) => { setLocalValue(event.target.value); onChange?.(event); }}
       onInvalid={(event) => { onInvalid?.(event); event.preventDefault(); triggerRef.current?.focus(); }}
     >{children}</select>
-    <Select value={selected} disabled={disabled} onValueChange={(next) => {
-      if (!nativeRef.current) return;
-      nativeRef.current.value = next === "__empty_option__" ? "" : next;
-      nativeRef.current.dispatchEvent(new Event("change", { bubbles: true }));
-    }}>
-      <SelectTrigger
-        ref={triggerRef}
-        id={id}
-        title={props.title}
-        aria-label={props["aria-label"] ?? (typeof placeholder === "string" ? placeholder : undefined)}
-        aria-labelledby={props["aria-labelledby"]}
-        aria-describedby={props["aria-describedby"]}
-        aria-required={props.required}
-        aria-invalid={props["aria-invalid"]}
-        className={cn("w-auto", className)}
-        style={style}
-      ><SelectValue placeholder={placeholder} /></SelectTrigger>
-      <SelectContent>{options.map((option, index) => <SelectItem
-        key={option.key ?? index}
-        value={String(option.props.value ?? "") || "__empty_option__"}
-        disabled={option.props.disabled}
-        searchKeywords={option.props.searchKeywords}
-      >{option.props.children}</SelectItem>)}</SelectContent>
-    </Select>
   </>;
 });
 SearchableNativeSelect.displayName = "SearchableNativeSelect";

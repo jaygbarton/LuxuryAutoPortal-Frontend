@@ -8,6 +8,31 @@ for (const mobile of [false, true]) {
     test.use({ isMobile: mobile, viewport: mobile ? { width: 375, height: 667 } : { width: 1280, height: 800 }, hasTouch: mobile });
     test.beforeEach(async ({ page }) => { await page.goto("/e2e/fixtures/dropdowns.html"); });
 
+    test("sorts names, pins driver exceptions and filters from the first letter", async ({page}) => {
+      await activate(page.getByRole('combobox',{name:'Drivers'}));
+      await expect(page.getByRole('option')).toHaveText(['Uber','N/A','Andy Driver','Brynn Driver','Zoe Driver']);
+      await page.getByRole('searchbox').fill('z');
+      await expect(page.getByRole('option')).toHaveText(['Zoe Driver']);
+      await activate(page.getByRole('option',{name:'Zoe Driver'}));
+      await expect(page.getByRole('combobox',{name:'Drivers'})).toHaveText('Zoe Driver');
+    });
+
+    test("keeps long option lists scrollable inside the task modal", async ({page}) => {
+      await activate(page.getByRole('button',{name:'Open modal',exact:true}));
+      await activate(page.getByTestId('modal-cars'));
+      const viewport=page.locator('[data-radix-select-viewport]');
+      expect(await viewport.evaluate(el=>el.scrollHeight>el.clientHeight)).toBe(true);
+      if(mobile){
+        await viewport.evaluate(el=>el.scrollBy({top:250}));
+      }else{
+        await viewport.hover();await page.mouse.wheel(0,250);
+      }
+      await expect.poll(()=>viewport.evaluate(el=>el.scrollTop)).toBeGreaterThan(0);
+      await page.getByRole('searchbox').fill('99');
+      await activate(page.getByRole('option',{name:'Car 99',exact:true}));
+      await expect(page.getByTestId('modal-cars')).toHaveText('Car 99');
+    });
+
     test("searches a 120-car fleet by hidden VIN, plate, year, make and model", async ({ page }) => {
       await activate(page.getByTestId("cars"));
       const search = page.getByRole("searchbox");
@@ -43,17 +68,17 @@ for (const mobile of [false, true]) {
     test("preserves required native form validation and the saved option ID", async ({ page }) => {
       await activate(page.getByRole("button", { name: "Save selection" }));
       await expect(page.getByTestId("submitted")).toBeEmpty();
-      await activate(page.getByRole("combobox", { name: "Choose a car" }));
+      await activate(page.getByRole("combobox", { name: "Native-compatible car picker" }));
       await page.getByRole("searchbox").fill("abc123");
       await activate(page.getByRole("option", { name: "Car 99", exact: true }));
-      await expect(page.getByRole("combobox", { name: "Choose a car" })).toHaveText("Car 99");
+      await expect(page.getByRole("combobox", { name: "Native-compatible car picker" })).toHaveText("Car 99");
       await activate(page.getByRole("button", { name: "Save selection" }));
       await expect(page.getByTestId("submitted")).toHaveText("99");
-      await activate(page.getByRole("combobox", { name: "Choose a car" }));
+      await activate(page.getByRole("combobox", { name: "Native-compatible car picker" }));
       await page.getByRole("searchbox").fill("Unavailable");
       await expect(page.getByRole("option", { name: "Unavailable" })).toBeDisabled();
       await page.getByRole("searchbox").press("Escape");
-      await expect(page.getByRole("combobox", { name: "Choose a car" })).toHaveText("Car 99");
+      await expect(page.getByRole("combobox", { name: "Native-compatible car picker" })).toHaveText("Car 99");
     });
 
     test("searches employee names, email and department without changing their value", async ({ page }) => {

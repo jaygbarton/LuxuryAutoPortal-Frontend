@@ -1,3 +1,4 @@
+import { SearchableNativeSelect } from '@/components/ui/searchable-native-select';
 import { isActiveFleetStatus } from "@/lib/operationsFleet";
 import { useHomeDefaultFilter } from "@/hooks/use-workspace-location";
 import { WorkspaceLocationSelect } from "./WorkspaceLocationSelect";
@@ -401,7 +402,7 @@ function FleetCalendarContent({ historyMode, calendarScope, embedded, activeVehi
       </label>)}
       <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm"><Checkbox checked={showCancelled} onCheckedChange={(checked) => setShowCancelled(checked === true)} aria-label="Show cancelled trips" /><span className="h-3 w-3 rounded-full border border-dashed border-slate-400 bg-slate-100" /> Show cancelled trips</label>
     </div>
-    {calendarScope !== "trips" && <select aria-label="Service calendar events" value={serviceKind} onChange={e => setServiceKind(e.target.value)} className="mt-2 h-11 w-full rounded-md border border-input bg-white px-3 text-sm md:w-64"><option value="all">All event types</option><option value="appointment">Scheduled service</option><option value="due">Service due reminders</option><option value="receipt">Service receipts / files</option><option value="history">Service history</option></select>}
+    {calendarScope !== "trips" && <SearchableNativeSelect aria-label="Service calendar events" value={serviceKind} onChange={e => setServiceKind(e.target.value)} className="mt-2 h-11 w-full rounded-md border border-input bg-white px-3 text-sm md:w-64"><option value="all">All event types</option><option value="appointment">Scheduled service</option><option value="due">Service due reminders</option><option value="receipt">Service receipts / files</option><option value="history">Service history</option></SearchableNativeSelect>}
   </>;
 
   return (

@@ -63,7 +63,7 @@ export default function IncomeExpensesPage({ carIdFromRoute }: IncomeExpensesPag
   const startYear = 2019;
   const endYear = currentYear + 2;
   const yearOptions = Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i);
-  const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
+  const [selectedYear, setSelectedYear] = useState<string>(()=>{const year=new URLSearchParams(window.location.search).get('year');return year&&/^\d{4}$/.test(year)&&Number(year)>=startYear&&Number(year)<=endYear?year:String(currentYear);});
 
   // Update selected car when carIdFromQuery changes
   useEffect(() => {

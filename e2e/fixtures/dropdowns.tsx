@@ -24,6 +24,11 @@ function Harness() {
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState("");
   return <main className="mx-auto max-w-md space-y-5 p-4">
+    <SearchableNativeSelect aria-label="Drivers" defaultValue="902">
+      <option value="903">Zoe Driver</option><option value="902">Andy Driver</option>
+      <option value="na">N/A</option><option value="uber">Uber</option>
+      <option value="904">Brynn Driver</option>
+    </SearchableNativeSelect>
     <CarPicker testId="cars" />
     <form onSubmit={(event) => { event.preventDefault(); setSubmitted(String(new FormData(event.currentTarget).get("native"))); }}>
       <label htmlFor="native-picker">Native-compatible car picker</label>
