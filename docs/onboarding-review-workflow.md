@@ -12,6 +12,8 @@ Vehicle creation is explicit and requires the signed application and linked clie
 
 ## Applicant and returning-client experience
 
+The List Your Car overview (`/onboarding`, `/salt-lake-city/onboarding`, `/wilmington-nc/onboarding`) is public. Its video, consultation booking link and testimonial sidebar are available before sign-in. **Get Started** opens `?start=1`: guests create/sign into an account and return to the steps; signed-in applicants/clients open their steps directly. Explicit `?new=1` and `?draft=…` workspace links continue to open applications without an extra marketing detour. Browsing the overview does not fetch reusable private application details or create an application. Testimonials reuse the existing published video list and remain below the video/consultation card beside the form.
+
 - Sign-in offers account creation for future booking or List Your Car. Signup uses a chosen email/password and `LYC Applicant`, with no client, employee, admin or owner privileges. Matching an email never claims legacy records or resets an existing password.
 - Existing `/onboarding`, `/salt-lake-city/onboarding` and `/wilmington-nc/onboarding` entry links take a guest through signup/sign-in and then continue the application. Existing List Your Car Get started links use these entry routes.
 - Applicants use their own `/lyc/status`, `/lyc/profile`, application steps and contract link. The staff/client shell is not mounted. An API allowlist enforces the restriction independently of the UI.

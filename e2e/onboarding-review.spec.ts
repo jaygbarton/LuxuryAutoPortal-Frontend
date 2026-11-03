@@ -56,7 +56,7 @@ async function fillStep(page:Page){
 }
 for(const width of [390,1280]) test(`customer onboarding step validation, back navigation and final submission at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:844});const {writes}=await fixture(page);
- await page.goto('/onboarding');
+ await page.goto('/onboarding?start=1');
  const form=page.locator('form');
  await expect(form.getByText('Drivers License Upload',{exact:true})).toBeVisible();
  await expect(form.getByLabel('Vehicle Year *',{exact:true})).toHaveCount(0);
@@ -117,10 +117,55 @@ for(const signed of [false,true]) test(`owner drop-off form is ${signed?'availab
 
 test('guests create a restricted account before starting and existing login continuation stays local',async({page})=>{
  const {writes}=await fixture(page,'guest');await page.goto('/onboarding');
+ await expect(page.locator('iframe[title="Golden Luxury Auto List Your Car"]')).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Create your account'})).toHaveCount(0);
+ await page.getByRole('link',{name:'Get Started',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Create your account'})).toBeVisible();
  await page.getByLabel('First name',{exact:true}).fill('New');await page.getByLabel('Last name',{exact:true}).fill('Applicant');await page.getByLabel('Email',{exact:true}).fill('new@example.test');await page.getByLabel('Choose a password').fill('fixture-account-password');await page.getByLabel('Confirm password').fill('fixture-account-password');
  await page.getByRole('button',{name:'Create account & continue'}).click();await expect(page.locator('#onboarding-step-title')).toHaveText('Personal information');
  expect(writes.find(w=>w.path==='/api/auth/signup')?.body).not.toHaveProperty('roleId');
+});
+
+for(const width of [390,1280]) test(`public LYC overview, consultation and testimonials remain available before Get Started at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:844});const {writes}=await fixture(page,'guest');
+ const requests:string[]=[];page.on('request',request=>requests.push(new URL(request.url()).pathname));
+ for(const path of ['/onboarding','/salt-lake-city/onboarding','/wilmington-nc/onboarding']){
+   await page.goto(path);
+   await expect(page).toHaveURL(new RegExp(`${path}$`));
+   await expect(page.getByRole('heading',{name:'Let us manage your vehicle'})).toBeVisible();
+   await expect(page.getByRole('heading',{name:'Create your account'})).toHaveCount(0);
+   await expect(page.locator('#onboarding-step-title')).toHaveCount(0);
+   const sidebar=page.getByRole('complementary',{name:'About the List Your Car program'});
+   await expect(sidebar.locator('iframe[title="Golden Luxury Auto List Your Car"]')).toHaveAttribute('src','https://www.youtube.com/embed/zyhzeXvCp8U?start=1');
+   await expect(sidebar.getByRole('link',{name:'Book A Consulting Appointment'})).toHaveAttribute('href','https://rent.goldenluxuryauto.com/book-a-call-lyc');
+   await expect(sidebar.getByRole('link',{name:'Book A Consulting Appointment'})).toHaveAttribute('target','_blank');
+   const video=sidebar.locator('iframe[title="Golden Luxury Auto List Your Car"]');
+   const testimonial=sidebar.locator('iframe[title="Client Testimonial 1"]');
+   await expect(testimonial).toHaveAttribute('src','https://www.youtube-nocookie.com/embed/KMBnH3Bg4Qg');
+   const first=await video.boundingBox(),second=await testimonial.boundingBox();
+   expect(second!.y).toBeGreaterThan(first!.y+first!.height);
+   await sidebar.getByRole('button',{name:'Next testimonial'}).click();
+   await expect(sidebar.locator('iframe[title="Client Testimonial 2"]')).toHaveAttribute('src','https://www.youtube-nocookie.com/embed/nLOSfS22EhE');
+   await sidebar.getByRole('button',{name:'Previous testimonial'}).click();
+   const expectedTestimonials=path.startsWith('/wilmington-nc')?'/wilmington-nc/testimonials':'/salt-lake-city/testimonials';
+   await expect(sidebar.getByRole('link',{name:'View all testimonials'})).toHaveAttribute('href',expectedTestimonials);
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+ }
+ expect(writes).toHaveLength(0);expect(requests).not.toContain('/api/lyc/reusable');
+ await page.getByRole('link',{name:'Get Started',exact:true}).click();
+ await expect(page).toHaveURL(/\/signup\?next=%2Fwilmington-nc%2Fonboarding%3Fstart%3D1$/);
+ await expect(page.getByRole('heading',{name:'Create your account'})).toBeVisible();
+});
+
+test('signed-in applicant opens saved steps only after Get Started and retains the testimonial sidebar',async({page})=>{
+ await fixture(page);await page.goto('/salt-lake-city/onboarding');
+ await expect(page.locator('#onboarding-step-title')).toHaveCount(0);
+ await page.getByRole('link',{name:'Get Started',exact:true}).click();
+ await expect(page.locator('#onboarding-step-title')).toHaveText('Personal information');
+ await expect(page.getByRole('heading',{name:'Create your account'})).toHaveCount(0);
+ const sidebar=page.getByRole('complementary',{name:'About the List Your Car program'});
+ await expect(sidebar.getByRole('heading',{name:'Client stories'})).toBeVisible();
+ await expect(sidebar.getByRole('link',{name:'Book A Consulting Appointment'})).toBeVisible();
 });
 test('applicant cannot mount the staff shell when visiting a staff URL',async({page})=>{
  const requests:string[]=[];await fixture(page);page.on('request',req=>{if(req.url().includes('/api/'))requests.push(new URL(req.url()).pathname);});
@@ -128,7 +173,7 @@ test('applicant cannot mount the staff shell when visiting a staff URL',async({p
  expect(requests).not.toContain('/api/admin/users');await expect(page.getByRole('navigation',{name:'Workspace navigation'})).toHaveCount(0);
 });
 test('vehicle-free finance plan saves secure details out of order and resumes a separate vehicle step',async({page})=>{
- await page.setViewportSize({width:390,height:844});const {drafts,writes}=await fixture(page);await page.goto('/onboarding');await fillStep(page);await page.locator('form').getByRole('button',{name:'Continue',exact:true}).click();
+ await page.setViewportSize({width:390,height:844});const {drafts,writes}=await fixture(page);await page.goto('/onboarding?start=1');await fillStep(page);await page.locator('form').getByRole('button',{name:'Continue',exact:true}).click();
  await page.getByRole('button',{name:'Not yet',exact:true}).click();await choose(page,page.getByRole('combobox',{name:/Do you plan to buy or finance/}),'Finance a vehicle');await choose(page,page.getByRole('combobox',{name:/Do you know which vehicle/}),'Not yet — that’s okay');
  await page.getByRole('button',{name:'Save plan & choose my next step'}).click();
  await page.getByRole('button',{name:'3. Secure information',exact:true}).click();await page.locator('input[name=bankName]').fill('Fixture Bank');await page.locator('input[name=ssn]').fill('fixture-only');
@@ -142,7 +187,7 @@ test('vehicle-free finance plan saves secure details out of order and resumes a 
 });
 test('existing client personal details are reused and multiple vehicle plans remain separate',async({page})=>{
  const {setProfile,setBanking}=await fixture(page,'client');setBanking(Object.fromEntries(['bankName','routingNumber','accountNumber','ssn'].map(key=>[key,values[key]])));setProfile(Object.fromEntries(['firstNameOwner','lastNameOwner','emailOwner','phoneOwner','streetAddress','city','state','zipCode','birthday','emergencyContactName','emergencyContactPhone'].map(key=>[key,values[key]])));setProfile({tshirtSize:'M',representative:'Fixture Rep',heardAboutUs:'Referral'});
- await page.goto('/onboarding');await expect(page.locator('#onboarding-step-title')).toHaveText('Vehicle information');
+ await page.goto('/onboarding');await page.getByRole('link',{name:'Get Started',exact:true}).click();await expect(page.locator('#onboarding-step-title')).toHaveText('Vehicle information');
  await page.getByRole('button',{name:'3. Secure information',exact:true}).click();await expect(page.locator('input[name=accountNumber]')).toHaveValue(values.accountNumber);await page.getByRole('button',{name:'2. Vehicle information',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Let’s tailor your LYC steps'})).toHaveCount(0);await page.getByRole('button',{name:'I’m still planning this vehicle — save its details for later'}).click();await choose(page,page.getByRole('combobox',{name:/Do you know which vehicle/}),'Yes');await page.getByLabel('Planned make',{exact:true}).fill('Honda');await page.getByLabel('Planned model',{exact:true}).fill('Accord');await page.getByRole('button',{name:'Save & exit'}).click();
  await page.getByRole('link',{name:'Start another application'}).click();await expect(page.getByRole('heading',{name:'Let’s tailor your LYC steps'})).toHaveCount(0);await page.getByRole('button',{name:'I’m still planning this vehicle — save its details for later'}).click();await choose(page,page.getByRole('combobox',{name:/Do you know which vehicle/}),'Yes');await page.getByLabel('Planned make',{exact:true}).fill('Toyota');await page.getByLabel('Planned model',{exact:true}).fill('Sienna');await page.getByRole('button',{name:'Save & exit'}).click();

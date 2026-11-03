@@ -48,7 +48,7 @@ test("home opens and remains usable after scrolling and navigation", async ({ pa
 for (const width of [390,1280]) test(`business cards remain clickable at section boundaries at ${width}px`,async({page})=>{
   await publicFixtures(page);await page.setViewportSize({width,height:844});
   for(const [button,destination] of [
-    ['button-management-get-started','/signup?next=%2Fsalt-lake-city%2Fonboarding'],
+    ['button-management-get-started','/salt-lake-city/onboarding'],
     ['button-management-info','/salt-lake-city/contact'],
     ['button-rental-fleet','/salt-lake-city/fleet'],
     ['button-rental-detail','/salt-lake-city/detail-shop'],

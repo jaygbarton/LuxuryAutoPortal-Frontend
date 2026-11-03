@@ -1,10 +1,11 @@
+import {ListYourCarHero,ListYourCarConsultation,ListYourCarTestimonials} from '@/components/onboarding/ListYourCarIntro';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Redirect } from 'wouter';
 import { LycQuestionnaire, VehiclePlanFields } from '@/components/onboarding/LycQuestionnaire';
 import { lycRequest,personalFields,questionnaireFields } from '@/lib/lyc';
 import { optionKeywords } from "@/lib/select-search";
 import { useEffect, useState, useRef } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -137,6 +138,39 @@ const sections = [
 
 
 export default function Onboarding() {
+  const [currentPath]=useLocation();
+  const search=useSearch();
+  const params=new URLSearchParams(search);
+  // Marketing stays public. Only an explicit application action mounts the
+  // account check, reusable private details and form-saving hooks.
+  if(params.get('start')==='1'||params.get('new')==='1'||params.has('draft')) {
+    return <OnboardingApplication/>;
+  }
+  const location=getPreferredPublicLocation(currentPath);
+  const suggestedCarsHref=location?.availablePages.suggestedCars===false?null:withLocationPath('/suggested-cars',location);
+  params.set('start','1');
+  return <div className="min-h-screen bg-background">
+    <Navbar/>
+    <main className="pb-16 pt-20 lg:pt-24">
+      <ListYourCarHero/>
+      <div className="mx-auto grid max-w-7xl items-start gap-6 px-4 py-8 sm:px-6 lg:grid-cols-2 lg:px-8 lg:py-12">
+        <aside aria-label="About the List Your Car program">
+          <ListYourCarConsultation suggestedCarsHref={suggestedCarsHref}/>
+          <ListYourCarTestimonials allTestimonialsHref={withLocationPath('/testimonials',location)}/>
+        </aside>
+        <section className="rounded-xl border border-border bg-card p-6 sm:p-8" aria-labelledby="lyc-get-started-title">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary">Your next step</p>
+          <h2 id="lyc-get-started-title" className="font-serif text-3xl">Ready to list your car?</h2>
+          <p className="mb-6 mt-4 text-sm leading-7 text-muted-foreground">Start your application, save your progress and return whenever you’re ready. Already have an account? You can use your saved details.</p>
+          <Button asChild size="lg" className="w-full sm:w-auto"><Link href={`${currentPath}?${params}`} data-testid="button-lyc-get-started">Get Started<ArrowRight className="ml-2 h-4 w-4" aria-hidden="true"/></Link></Button>
+        </section>
+      </div>
+    </main>
+    <Footer/>
+  </div>;
+}
+
+function OnboardingApplication() {
   const queryClient=useQueryClient();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -401,91 +435,13 @@ export default function Onboarding() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-20 lg:pt-24 pb-20">
-        <section className="relative overflow-hidden border-b border-border bg-[#0A0A0A] text-white">
-          <div className="absolute inset-0">
-            <img
-              src="/list-your-car-key-handoff-enhanced.png"
-              alt=""
-              className="h-full w-full object-cover"
-              style={{ objectPosition: "center center" }}
-              aria-hidden="true"
-            />
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  "linear-gradient(90deg, rgba(6,6,5,0.82) 0%, rgba(6,6,5,0.58) 44%, rgba(6,6,5,0.16) 100%), linear-gradient(180deg, rgba(6,6,5,0.08), rgba(6,6,5,0.46))",
-              }}
-            />
-          </div>
-          <div className="relative mx-auto grid min-h-[240px] lg:min-h-[360px] max-w-7xl content-end px-4 py-8 sm:px-6 lg:px-8 lg:py-20">
-            <div className="max-w-3xl">
-              <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">List Your Car</p>
-              <h1 className="font-serif text-4xl font-light leading-tight text-white sm:text-5xl lg:text-6xl">
-                Let us manage your vehicle
-              </h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-white/75 sm:text-lg">
-                Have a car sitting in your garage 90% of the year? Currently financing, or looking to purchase a new vehicle? Let us turn your car into a cash-flowing asset!
-              </p>
-            </div>
-          </div>
-        </section>
+        <ListYourCarHero/>
 
         <div className="max-w-7xl mx-auto px-4 pt-6 sm:px-6 lg:px-8 lg:pt-16">
           <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-            <aside className="order-2 lg:order-1 lg:sticky lg:top-24">
-              <Card className="overflow-hidden border-border bg-card">
-                <CardContent className="p-0">
-                  <div className="aspect-video bg-black">
-                    <iframe
-                      src="https://www.youtube.com/embed/zyhzeXvCp8U?start=1"
-                      title="Golden Luxury Auto List Your Car"
-                      className="h-full w-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                    />
-                  </div>
-                  <div className="space-y-6 p-6 lg:p-8">
-                    <div>
-                      <h2 className="font-serif text-3xl font-light text-foreground">
-                        Have questions?
-                      </h2>
-                      <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                        Book a consultation with the GLA team before completing the vehicle form.
-                      </p>
-                    </div>
-                    <a href="https://rent.goldenluxuryauto.com/book-a-call-lyc" target="_blank" rel="noreferrer">
-                      <Button size="lg" className="w-full">
-                        Book A Consulting Appointment
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </a>
-                    <div className="rounded-md border border-primary/20 bg-primary/10 p-4">
-                      <p className="text-sm font-semibold leading-6 text-foreground">
-                        Don't have a qualifying car? Trade in or finance a new one and we'll help you pay it off.
-                      </p>
-                      {suggestedCarsHref && (
-                        <Link href={suggestedCarsHref} className="mt-3 inline-flex items-center text-sm font-semibold text-primary">
-                          View Suggested Cars
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                      )}
-                    </div>
-                    <div className="grid gap-3">
-                      {[
-                        "We review your vehicle fit and income potential.",
-                        "You keep ownership while GLA manages the rental process.",
-                        "Monthly reporting keeps revenue and expenses clear.",
-                      ].map((item) => (
-                        <div key={item} className="flex items-start gap-3 text-sm text-foreground">
-                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <aside aria-label="About the List Your Car program" className="order-2 lg:order-1">
+              <ListYourCarConsultation suggestedCarsHref={suggestedCarsHref}/>
+              <ListYourCarTestimonials allTestimonialsHref={withLocationPath('/testimonials',publicLocation)}/>
             </aside>
 
             <section className="order-1 min-w-0 lg:order-2">
