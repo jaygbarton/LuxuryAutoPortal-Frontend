@@ -566,3 +566,29 @@ test('visible onboarding fields use scroll-free mouse focus while preserving sel
  await page.mouse.click(box.x+30,box.y+box.height/2);await expect(routing).toBeFocused();
  expect(await page.evaluate(()=>(window as any).__fieldFocus)).toContainEqual({name:'routingNumber',preventScroll:true});
 });
+
+test('admin can remove a signed onboarding submission without deleting its account or contract',async({page})=>{
+ const {writes}=await fixture(page,true);let removed=false;
+ await page.route('**/api/onboarding/submissions**',async route=>{
+  const path=new URL(route.request().url()).pathname;
+  if(path==='/api/onboarding/submissions/7'&&route.request().method()==='DELETE'){writes.push({path,method:'DELETE',body:route.request().postDataJSON()});removed=true;return route.fulfill({json:{success:true,message:'Removed'}});}
+  if(path==='/api/onboarding/submissions')return route.fulfill({json:{success:true,data:removed?[]:[{id:7,firstNameOwner:'Test',lastNameOwner:'Owner',emailOwner:'owner@example.test',vehicleMake:'Honda',vehicleModel:'Accord',status:'approved',contractStatus:'signed',createdAt:'2026-11-03'}],pagination:{page:1,total:removed?0:1,totalPages:1,limit:10}}});
+  return route.fallback();
+ });
+ await page.goto('/admin/forms?section=client-onboarding&item=lyc');
+ await page.getByRole('button',{name:'Delete application for Test Owner',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Delete application'});
+ await expect(dialog).toContainText('Signed contracts, receipts and linked client or vehicle records are retained');
+ await expect(dialog.getByRole('button',{name:'Confirm delete application'})).toBeDisabled();
+ await dialog.getByLabel('Reason for deletion').fill('Test submission');await dialog.getByRole('button',{name:'Confirm delete application'}).click();
+ await expect(dialog).not.toBeVisible();await expect(page.getByRole('button',{name:'Delete application for Test Owner',exact:true})).toHaveCount(0);
+ expect(writes.filter(w=>w.method==='DELETE')).toEqual([{path:'/api/onboarding/submissions/7',method:'DELETE',body:{version:'a'.repeat(64),reason:'Test submission'}}]);
+});
+
+test('Operations defaults to Day Schedule with no Trips Overview and keeps legacy links working',async({page})=>{
+ await fixture(page,true);await page.goto('/admin/operations');
+ await expect(page.getByText('TRIPS OVERVIEW',{exact:true})).toHaveCount(0);
+ const nav=page.getByRole('link',{name:'Day Schedule',exact:true});await expect(nav.first()).toBeVisible();
+ await expect(page.getByRole('link',{name:'Trips Overview',exact:true})).toHaveCount(0);
+ expect(await nav.first().evaluate(el=>el.parentElement?.textContent)).toContain('Day Schedule');
+ await page.goto('/admin/operations?tab=trips');await expect(page).toHaveURL(/tab=day-schedule/);
+});

@@ -10,7 +10,6 @@ import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TripsOverviewTab } from "./operations/TripsOverviewTab";
 import { TuroInspectionTab } from "./operations/TuroInspectionTab";
 import { CarInspectionsTab } from "./operations/CarInspectionsTab";
 import { ClaimsTab } from "./operations/ClaimsTab";
@@ -30,10 +29,10 @@ import {
 import { useCoHostLocationTags } from "@/hooks/use-co-host";
 import { WorkScheduleNavigation } from "@/components/shared/WorkScheduleNavigation";
 
-const TAB_IDS = ["trips", "turo-inspection", "inspections", "claims", "ticket-violation", "towing-impound", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "day-schedule", "chart-management"] as const;
+const TAB_IDS = ["day-schedule", "turo-inspection", "inspections", "claims", "ticket-violation", "towing-impound", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "chart-management"] as const;
 type TabId = typeof TAB_IDS[number];
 const TAB_LABELS: Record<TabId, string> = {
-  trips: "Trips Overview", "turo-inspection": "Turo Messages", inspections: "Car Issues",
+  "turo-inspection": "Turo Messages", inspections: "Car Issues",
   claims: "Claims", "ticket-violation": "Ticket Violation", "towing-impound": "Towing & Impound",
   maintenance: "Maintenance", "service-due": "Service Due", completed: "No Car Issues",
   "car-repaired": "Car Repaired", "car-block-off": "Car Block Off",
@@ -59,7 +58,7 @@ function LazyTab({ value, activeTab, mountedTabs, children }: {
 function tabFromSearch(search: string): TabId {
   const t = new URLSearchParams(search).get("tab");
   if (t === 'tv-timeline') return 'day-schedule';
-  return t && (TAB_IDS as readonly string[]).includes(t) ? (t as TabId) : "trips";
+  return t && (TAB_IDS as readonly string[]).includes(t) ? (t as TabId) : "day-schedule";
 }
 
 export default function OperationsPage() {
@@ -73,12 +72,12 @@ export default function OperationsPage() {
   const [, setLocation] = useLocation();
   useEffect(() => {
     const params = new URLSearchParams(search);
-    if (params.get('tab') !== 'tv-timeline') return;
+    if (!['tv-timeline','trips'].includes(params.get('tab') || '')) return;
     params.set('tab', 'day-schedule');
     setLocation(`/admin/operations?${params.toString()}`, { replace: true });
   }, [search, setLocation]);
   const activeTab = tabFromSearch(search);
-  const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set(["trips", tabFromSearch(search)]));
+  const [mountedTabs, setMountedTabs] = useState<Set<TabId>>(() => new Set([tabFromSearch(search)]));
   const [locationFilter, setLocationFilter] = useHomeDefaultFilter<OperationLocationFilter>(home => home, "all");
   const workspace = useWorkspaceContext();
 
@@ -102,8 +101,7 @@ export default function OperationsPage() {
   const handleTabChange = (value: string) => {
     const tab = value as TabId;
     const params = new URLSearchParams(search);
-    if (tab === "trips") params.delete("tab");
-    else params.set("tab", tab);
+    params.set("tab", tab);
     const qs = params.toString();
     setLocation(`/admin/operations${qs ? `?${qs}` : ""}`);
   };
@@ -168,9 +166,6 @@ export default function OperationsPage() {
               <Tabs> stays as the state container — ?tab= still selects the
               panel, and the sidebar links are what switch it. */}
 
-          <LazyTab value="trips" activeTab={activeTab} mountedTabs={mountedTabs}>
-            <TripsOverviewTab />
-          </LazyTab>
           <LazyTab value="turo-inspection" activeTab={activeTab} mountedTabs={mountedTabs}>
             <TuroInspectionTab />
           </LazyTab>

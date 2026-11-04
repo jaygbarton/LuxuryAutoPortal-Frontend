@@ -91,14 +91,13 @@ interface SidebarItem {
  * Requested 2026-08-26: the horizontal tab strips on Operations and Forms were
  * replaced by sidebar sub-categories, for every role that can reach the page.
  * Each child addresses a tab through the ?tab= param the page already reads,
- * so these are ordinary links — no new routes. "Trips Overview" is the default
- * tab and therefore carries no query, matching what the page writes for it.
+ * so these are ordinary links — no new routes. Day Schedule is the default tab; its explicit link also supports saved URLs.
  *
  * `roles` is filled in per array below, since the same list is shared by the
  * admin and employee sidebars.
  */
 const OPERATIONS_TABS: { href: string; label: string; icon: any }[] = [
-  { href: "/admin/operations", label: "Trips Overview", icon: Route },
+  { href: "/admin/operations?tab=day-schedule", label: "Day Schedule", icon: CalendarDays },
   { href: "/admin/operations?tab=turo-inspection", label: "Turo Messages", icon: MessageCircle },
   { href: "/admin/operations?tab=inspections", label: "Car Issues", icon: ShieldAlert },
   { href: "/admin/operations?tab=claims", label: "Claims", icon: FileText },
@@ -110,7 +109,6 @@ const OPERATIONS_TABS: { href: string; label: string; icon: any }[] = [
   { href: "/admin/operations?tab=car-repaired", label: "Car Repaired", icon: Key },
   { href: "/admin/operations?tab=car-block-off", label: "Car Block Off", icon: CalendarOff },
   { href: "/admin/operations?tab=chart-management", label: "Chart Management", icon: BarChart3 },
-  { href: "/admin/operations?tab=day-schedule", label: "Day Schedule", icon: CalendarDays },
 ];
 
 /** Same idea for the admin Forms page's tabs, via its ?section= param. */
@@ -813,13 +811,13 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   // would light up all twelve Operations children at once.
   //
   // `tabKey` is the param this item's siblings are keyed by ("tab", "section").
-  // A query-less DEFAULT child (Trips Overview) must match only when that key
+  // A query-less DEFAULT child (Day Schedule) must match only when that key
   // is absent from the URL, otherwise it stays lit alongside whichever tab is
   // really open. Checking that one key rather than "any query at all" keeps
   // unrelated params (?category=…&field=… deep links) from breaking the match.
   // `isDefaultChild` marks the sub-item a page falls back to when the group's
   // param is missing. Operations expresses that with a query-less child
-  // (Trips Overview), but every admin Forms child carries a ?section=, so on a
+  // (Day Schedule), but every admin Forms child carries a ?section=, so on a
   // bare /admin/forms nothing matched and the group looked inactive. Flagging
   // the first child covers both shapes.
   const isPathActive = (

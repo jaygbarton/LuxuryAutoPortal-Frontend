@@ -158,3 +158,32 @@ blocked/stale-preview flows, and complete mobile/desktop application submissions
 Frontend TypeScript, both production builds and diff whitespace checks passed.
 All account deletions and submissions used local fixtures; no real account was
 removed and no email or Slack notification was sent by these checks.
+
+### Submission removal and Operations navigation
+
+The Recent Submissions table includes an admin Delete application control. It
+requires a reason, a refreshed review version and confirmation. This removes the
+application from active intake/progress lists using a separate archive marker;
+account IDs, client/vehicle records, receipts and signed contracts are retained.
+Unsigned contract invitations are revoked. The existing review lock protects
+concurrent changes; archived applications cannot be approved or edited. Account
+removal remains a separate action under Applicants. Co-host and impersonated
+sessions are rejected by the existing review authorization middleware.
+
+Operations opens Day Schedule by default, with Day Schedule first in the sidebar.
+Trips Overview is removed from navigation and no longer mounts or fetches data.
+Existing `tab=trips` and `tab=tv-timeline` links resolve to Day Schedule. Trip records
+and the Turo Trips page are retained.
+
+The Clients query now explicitly normalizes email collations in the applicant
+exclusion and fixes its legacy fallback alias. Unexpected query errors no longer
+claim a connection failure; they include a reference for server-log matching.
+Production database access is unavailable in this workspace, so live resolution
+of the reported Clients failure requires verification after deployment.
+
+Validation: 99 focused backend tests passed, including retained signed records,
+revoked unsigned invitations, stale versions, archived-application write guards,
+list totals/search, client scoping/collations and the legacy fallback. Both new
+browser scenarios passed: removing a signed application and refreshing its list,
+and opening Day Schedule from default/legacy Operations URLs. Frontend TypeScript
+and production build passed. Tests used fixtures and did not delete live data.

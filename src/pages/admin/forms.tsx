@@ -1,3 +1,4 @@
+import { DeleteSubmissionButton } from "@/components/admin/applicants/DeleteSubmissionButton";
 import { OnboardingReviewPanel } from "./forms/OnboardingReviewPanel";
 import { useState, useEffect, useRef } from "react";
 import { useSearch } from "wouter";
@@ -2393,6 +2394,8 @@ export default function FormsPage() {
                                                     >
                                                       <Eye className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                                                     </Button>
+
+                                                    {formVisibilityData?.isAdmin && !isCoHost && <DeleteSubmissionButton id={submission.id} name={`${submission.firstNameOwner} ${submission.lastNameOwner}`} vehicle={`${submission.vehicleMake || ''} ${submission.vehicleModel || ''} ${submission.vehicleYear || ''}`.trim() || 'Vehicle details pending'}/>}
 
                                                     {/* Always show Approve/Decline buttons for consistent layout */}
                                                     <Button
