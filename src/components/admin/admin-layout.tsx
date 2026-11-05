@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { ViewAsClientBanner } from "./ViewAsClientBanner";
+import { EmployeeWaiverLoginPrompt } from "@/components/staff/ContractorPolicy";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient, buildApiUrl, refreshAuthForSessionTransition } from "@/lib/queryClient";
 import { AuthGuard } from "./auth-guard";
@@ -1449,6 +1450,8 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         */}
         <main className={cn("flex-1 min-w-0 flex flex-col overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 bg-background", hasStaffWorkspace && "staff-app-content")}>
           <ViewAsClientBanner />
+          {/* Server decides who must sign (non-admin employees with the waiver outstanding). */}
+          <EmployeeWaiverLoginPrompt enabled={user?.isEmployee === true && !user?.isAdmin} userId={user?.id} />
           <div key={location} className="flex-1 min-h-0">
             {children}
           </div>

@@ -287,11 +287,12 @@ export function EmployeeContract1099Content() {
             <FileText className="w-6 h-6 text-primary" />
           </div>
           <div className="space-y-2">
-            <h3 className="font-semibold text-foreground">GLA Contractor Policy 1099</h3>
+            <h3 className="font-semibold text-foreground">GLA - Independent Contractor or W-2 Employee Waiver</h3>
             <p className="text-sm text-muted-foreground">
-              Employees agree to this policy on the Employee Onboarding Form. Employees who joined before it was
-              added are asked to agree before they can clock in. Each signed copy is emailed to the employee and the
-              admins, and shown on the employee profile (Contractor Policy 1099). Edit the policy text in Settings.
+              New employees sign the waiver on the Employee Onboarding Form (typed or drawn signature). Everyone else
+              is asked to sign when they log in and cannot clock in until they do. Each signed copy is emailed to the
+              employee and the admins, and shown on the employee profile (Contractor / W-2 Waiver). Replace the
+              title, text or link yourself in Settings.
             </p>
             <div className="flex gap-2 pt-2">
               <Button variant="outline" size="sm" asChild>

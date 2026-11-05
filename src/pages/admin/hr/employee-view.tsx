@@ -48,7 +48,7 @@ type ProfileSection =
 const PROFILE_SECTIONS: { id: ProfileSection; label: string }[] = [
   { id: "personal-information", label: "Personal Information" },
   { id: "job-and-pay", label: "Job and Pay" },
-  { id: "contractor-policy", label: "Contractor Policy 1099" },
+  { id: "contractor-policy", label: "Contractor / W-2 Waiver" },
   { id: "rate-history", label: "Rate History" },
 ];
 

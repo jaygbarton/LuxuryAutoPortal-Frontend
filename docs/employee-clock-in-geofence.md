@@ -100,16 +100,23 @@ proxy `403 Forbidden` for the public Golden site and GitHub deployment-status
 API. Public runtime verification requires an allowed browser/network connection.
 No production clock entries are made by these checks.
 
-## Clock-in agreement requirement removed
+## Employee waiver required before clock-in (November 5)
 
-At the owner's request, clock-in is independent of the GLA Contractor Policy 1099
-agreement. Both the staff and admin clock pages no longer fetch agreement status,
-show a required-agreement banner/modal, or intercept clock-in for a signature.
-Both the normal clock-in endpoint and the clock-in branch of the legacy action
-endpoint no longer call the agreement service. Existing onboarding, policy settings,
-signed agreement records and the agreement API are retained. The 300-meter employee
-geofence, admin exemptions, authentication and clock-out workflow remain in force.
+The Oct 31 removal of the agreement prerequisite is reversed at the client's
+request: the GLA Contractor Policy 1099 is replaced by the **GLA - Independent
+Contractor or W-2 Employee Waiver**, and employees must sign it before they can
+clock in.
 
-Focused tests exercise unsigned employee clock-ins, invalid-location refusal,
-admin exemptions, the legacy route, clock-out and the existing agreement API.
-Browser checks use an unsigned fixture and mock all time entries and GPS calls.
+- Admins publish it themselves in Admin → Settings (title, text, document link).
+  Until text or a link is saved, nothing is required. Saving with "every
+  employee must sign it again" starts a new version.
+- Employees sign on the Employee Onboarding Form, or in a prompt shown after they
+  log in, with a typed or drawn signature (same choice as the client contract).
+- Both clock-in endpoints refuse an unsigned non-admin employee with
+  `code: CONTRACTOR_POLICY_REQUIRED`; the staff and admin clock pages open the
+  waiver and continue the clock-in once it is signed. Admins, super admins and
+  View as Employee sessions are exempt, by session role, like the geofence.
+- 1099 signatures are kept as version 1 and shown as history on the profile;
+  they no longer satisfy the requirement.
+
+The geofence, admin exemptions and clock-out workflow are unchanged.

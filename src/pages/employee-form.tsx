@@ -14,7 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, Loader2, X, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
-import { ContractorPolicyAgreementFields, CONTRACTOR_POLICY_TITLE, useContractorPolicy } from "@/components/staff/ContractorPolicy";
+import {
+  ContractorPolicyAgreementFields,
+  DEFAULT_WAIVER_TITLE,
+  EMPTY_SIGNATURE,
+  signatureComplete,
+  signatureErrorFor,
+  useContractorPolicy,
+  type WaiverSignature,
+} from "@/components/staff/ContractorPolicy";
 
 const schema = z.object({
   firstName: z.string().min(1, "Required"),
@@ -40,8 +48,6 @@ const schema = z.object({
   emergencyNumber: z.string().min(1, "Required"),
   ssnEin: z.string().min(1, "Required"),
   shirtSize: z.string().min(1, "Required"),
-  contractorPolicyAgreed: z.boolean().refine((v) => v === true, "You must confirm your agreement"),
-  contractorPolicySignature: z.string().trim().min(1, "Required"),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -83,11 +89,16 @@ export default function EmployeeFormPage() {
       emergencyNumber: "",
       ssnEin: "",
       shirtSize: "",
-      contractorPolicyAgreed: false,
-      contractorPolicySignature: "",
     },
   });
   const policyQuery = useContractorPolicy();
+  // The waiver is signed here unless an admin has not published it yet.
+  const waiverRequired = policyQuery.data?.configured !== false;
+  const waiverTitle = policyQuery.data?.title ?? DEFAULT_WAIVER_TITLE;
+  const [waiverChecked, setWaiverChecked] = useState(false);
+  const [waiverSignature, setWaiverSignature] = useState<WaiverSignature>(EMPTY_SIGNATURE);
+  const [showWaiverErrors, setShowWaiverErrors] = useState(false);
+  const waiverComplete = waiverChecked && signatureComplete(waiverSignature);
 
   const mutation = useMutation({
     mutationFn: async (values: FormData) => {
@@ -99,6 +110,14 @@ export default function EmployeeFormPage() {
         ...values,
         link: window.location.origin,
       };
+      if (waiverRequired) {
+        payload.contractorPolicyAgreed = true;
+        payload.contractorPolicySignature = waiverSignature.name.trim();
+        payload.contractorPolicySignatureType = waiverSignature.type;
+        if (waiverSignature.type === "drawn" && waiverSignature.image) {
+          payload.contractorPolicySignatureImage = waiverSignature.image;
+        }
+      }
       if (coHostToken) payload.coHostToken = coHostToken;
 
       if (driverLicenseFile && driverLicenseFile.size > MAX_FILE_SIZE_BYTES) {
@@ -183,9 +202,13 @@ export default function EmployeeFormPage() {
         <Card className="bg-card border-border">
           <CardContent className="p-6 space-y-8">
             <form
-              onSubmit={handleSubmit((values) => {
-                mutation.mutate(values);
-              })}
+              onSubmit={(e) => {
+                setShowWaiverErrors(true);
+                void handleSubmit((values) => {
+                  if (waiverRequired && !waiverComplete) return;
+                  mutation.mutate(values);
+                })(e);
+              }}
               className="space-y-8"
             >
               <section className="space-y-4">
@@ -424,20 +447,22 @@ export default function EmployeeFormPage() {
                 </div>
               </section>
 
+              {waiverRequired && (
               <section className="space-y-4">
-                <h2 className="text-lg font-semibold text-primary border-b border-primary/30 pb-2">{CONTRACTOR_POLICY_TITLE}</h2>
+                <h2 className="text-lg font-semibold text-primary border-b border-primary/30 pb-2">{waiverTitle}</h2>
                 <ContractorPolicyAgreementFields
                   policy={policyQuery.data}
                   policyLoading={policyQuery.isLoading}
-                  checked={watch("contractorPolicyAgreed")}
-                  onCheckedChange={(v) => setValue("contractorPolicyAgreed", v, { shouldValidate: true })}
-                  signature={watch("contractorPolicySignature")}
-                  onSignatureChange={(v) => setValue("contractorPolicySignature", v, { shouldValidate: true })}
-                  checkedError={errors.contractorPolicyAgreed?.message}
-                  signatureError={errors.contractorPolicySignature?.message}
+                  checked={waiverChecked}
+                  onCheckedChange={setWaiverChecked}
+                  signature={waiverSignature}
+                  onSignatureChange={setWaiverSignature}
+                  checkedError={showWaiverErrors && !waiverChecked ? "You must confirm your agreement" : undefined}
+                  signatureError={showWaiverErrors ? signatureErrorFor(waiverSignature) : undefined}
                   disabled={mutation.isPending}
                 />
               </section>
+              )}
 
               <div className="flex justify-end">
                 <Button

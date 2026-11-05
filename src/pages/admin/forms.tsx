@@ -1143,7 +1143,7 @@ export default function FormsPage() {
       },
       {
         id: "employee-contract-1099",
-        title: "Contract GLA Contractor Policy 1099",
+        title: "GLA - Independent Contractor or W-2 Employee Waiver",
         icon: FileText,
       },
       {
@@ -1831,7 +1831,7 @@ export default function FormsPage() {
                                 </div>
                               )}
 
-                            {/* Expanded content for Contract GLA Contractor Policy 1099 */}
+                            {/* Expanded content for the employee waiver (id kept from the 1099 policy it replaced) */}
                             {isItemExpanded &&
                               item.id === "employee-contract-1099" && (
                                 <div className="bg-card border-t border-border px-3 sm:px-5 py-4 space-y-6 max-w-full">

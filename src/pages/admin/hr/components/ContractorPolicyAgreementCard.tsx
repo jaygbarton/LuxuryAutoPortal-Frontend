@@ -3,30 +3,67 @@ import { CheckCircle2, List, Loader2, XCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  CONTRACTOR_POLICY_TITLE,
+  DEFAULT_WAIVER_TITLE,
   ContractorPolicyDocument,
   formatAgreedAt,
   type ContractorPolicyAgreement,
 } from "@/components/staff/ContractorPolicy";
 
-/** The employee's signed GLA Contractor Policy 1099, as it was when they agreed. */
+interface EmployeeWaiverStatus {
+  agreed: boolean;
+  agreement: ContractorPolicyAgreement | null;
+  /** Signatures of superseded versions, e.g. the old GLA Contractor Policy 1099. */
+  previous: ContractorPolicyAgreement[];
+  policy: { title: string; version: number; configured: boolean };
+}
+
+function AgreementDetails({ agreement }: { agreement: ContractorPolicyAgreement }) {
+  return (
+    <>
+      <ul className="grid grid-cols-[150px,1fr] md:grid-cols-[200px,1fr] gap-x-4 gap-y-1 text-muted-foreground">
+        <li className="font-bold text-muted-foreground">Signed As:</li>
+        <li>{agreement.signatureName}</li>
+        <li className="font-bold text-muted-foreground">Signed At:</li>
+        <li>{formatAgreedAt(agreement.agreedAt)}</li>
+        <li className="font-bold text-muted-foreground">Submitted From:</li>
+        <li>{agreement.source === "onboarding_form" ? "Employee Onboarding Form" : "Employee Portal"}</li>
+        <li className="font-bold text-muted-foreground">IP Address:</li>
+        <li>{agreement.ipAddress || "Unspecified"}</li>
+      </ul>
+      {agreement.signatureImage ? (
+        <img
+          src={agreement.signatureImage}
+          alt={`Signature of ${agreement.signatureName}`}
+          className="h-24 max-w-full rounded-md border border-border bg-white object-contain p-2"
+        />
+      ) : null}
+      <ContractorPolicyDocument
+        title={agreement.policyTitle}
+        policyText={agreement.policyText}
+        documentUrl={agreement.documentUrl}
+      />
+    </>
+  );
+}
+
+/** The employee's signed waiver, as it was when they signed, plus superseded signatures. */
 export function ContractorPolicyAgreementCard({ employeeId }: { employeeId: number }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["/api/employees", employeeId, "contractor-policy"],
     queryFn: async () =>
-      (await api.get<{ data: { agreed: boolean; agreement: ContractorPolicyAgreement | null } }>(
-        `/api/employees/${employeeId}/contractor-policy`,
-        { fallbackMessage: "Failed to load the contractor policy agreement" },
-      )).data,
+      (await api.get<{ data: EmployeeWaiverStatus }>(`/api/employees/${employeeId}/contractor-policy`, {
+        fallbackMessage: "Failed to load the waiver",
+      })).data,
   });
   const agreement = data?.agreement ?? null;
+  const title = data?.policy.title ?? DEFAULT_WAIVER_TITLE;
 
   return (
     <Card className="bg-card border-border">
       <CardContent className="p-4 space-y-4 text-sm">
         <div className="flex items-center gap-2 border-b border-border pb-2">
           <List className="h-4 w-4 text-primary" />
-          <span className="font-bold uppercase text-[13px] text-primary">{CONTRACTOR_POLICY_TITLE}</span>
+          <span className="font-bold uppercase text-[13px] text-primary">{title}</span>
         </div>
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -34,28 +71,34 @@ export function ContractorPolicyAgreementCard({ employeeId }: { employeeId: numb
           </div>
         ) : error ? (
           <p className="text-destructive">{error instanceof Error ? error.message : "Failed to load"}</p>
-        ) : agreement ? (
-          <>
-            <p className="flex items-center gap-2 font-medium text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="h-4 w-4" /> Agreed
-            </p>
-            <ul className="grid grid-cols-[150px,1fr] md:grid-cols-[200px,1fr] gap-x-4 gap-y-1 text-muted-foreground">
-              <li className="font-bold text-muted-foreground">Signed As:</li>
-              <li>{agreement.signatureName}</li>
-              <li className="font-bold text-muted-foreground">Agreed At:</li>
-              <li>{formatAgreedAt(agreement.agreedAt)}</li>
-              <li className="font-bold text-muted-foreground">Submitted From:</li>
-              <li>{agreement.source === "onboarding_form" ? "Employee Onboarding Form" : "Employee Portal"}</li>
-              <li className="font-bold text-muted-foreground">IP Address:</li>
-              <li>{agreement.ipAddress || "Unspecified"}</li>
-            </ul>
-            <ContractorPolicyDocument policyText={agreement.policyText} documentUrl={agreement.documentUrl} />
-          </>
         ) : (
-          <p className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-            <XCircle className="h-4 w-4" />
-            Not agreed yet. The employee will be asked to agree before they can clock in.
-          </p>
+          <>
+            {agreement ? (
+              <>
+                <p className="flex items-center gap-2 font-medium text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="h-4 w-4" /> Signed
+                </p>
+                <AgreementDetails agreement={agreement} />
+              </>
+            ) : (
+              <p className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <XCircle className="h-4 w-4" />
+                {data?.policy.configured
+                  ? "Not signed yet. The employee is asked to sign when they log in and cannot clock in until they do."
+                  : "Not signed yet. The waiver has not been published in Settings, so nothing is required."}
+              </p>
+            )}
+            {(data?.previous ?? []).map((prev) => (
+              <details key={prev.id} className="rounded-md border border-border p-3">
+                <summary className="cursor-pointer font-medium text-foreground">
+                  Previously signed: {prev.policyTitle} ({formatAgreedAt(prev.agreedAt)})
+                </summary>
+                <div className="mt-3 space-y-3">
+                  <AgreementDetails agreement={prev} />
+                </div>
+              </details>
+            ))}
+          </>
         )}
       </CardContent>
     </Card>

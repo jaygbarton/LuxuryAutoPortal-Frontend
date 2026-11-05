@@ -637,7 +637,7 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {/* GLA Contractor Policy 1099 - GLA Admin Only */}
+        {/* Employee waiver (GLA - Independent Contractor or W-2 Employee Waiver) - GLA Admin Only */}
         {isGlaAdmin && <ContractorPolicySettingsCard />}
 
         {/* Slack Channel Configuration - GLA Admin Only */}
