@@ -207,6 +207,8 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
         linkedTrip?.returnLocation,
         insp.car_name,
         linkedTrip?.plateNumber,
+        // A manual Car Issue has no trip; place it by its car's home location.
+        linkedTrip ? null : insp.car_public_location,
       ])) return false;
       if (q) {
         const trip = insp.turo_trip_id != null ? tripsById.get(insp.turo_trip_id) : undefined;

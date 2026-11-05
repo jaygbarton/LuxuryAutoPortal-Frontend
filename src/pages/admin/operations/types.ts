@@ -90,6 +90,11 @@ export interface Inspection {
   plate?: string | null;
   /** Car model year, resolved the same way — used to title the card. */
   car_year?: number | string | null;
+  /** The matched car's id and home location ("slc" / "wilmington"), resolved
+   *  the same way. A manual issue has no trip, so the Vehicles and Location
+   *  filters rely on these to place it. */
+  car_id?: number | null;
+  car_public_location?: string | null;
   source: "turo_return" | "manual" | string;
   assigned_to: string;
   status: "new" | "in_progress" | "completed" | "no_issues";
@@ -269,6 +274,8 @@ export interface MaintenanceRecord {
   car_year: number | null;
   car_plate: string | null;
   car_vin: string | null;
+  /** The car's home location, for the Location filter when there is no trip. */
+  car_public_location?: string | null;
   car_photo?: string | null;
   // Trip context joined on the backend via inspection_id → inspections →
   // turo_trips. Null when there's no linked inspection/trip (manual rows).

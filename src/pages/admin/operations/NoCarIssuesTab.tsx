@@ -120,6 +120,8 @@ export function NoCarIssuesTab() {
         trip?.returnLocation,
         insp.car_name,
         trip?.plateNumber,
+        // An inspection with no trip is placed by its car's home location.
+        trip ? null : insp.car_public_location,
       ])) return false;
       if (q) {
         // Mirror every visible column so the search box matches anything the

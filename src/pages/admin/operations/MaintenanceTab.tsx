@@ -269,6 +269,10 @@ export function MaintenanceTab({
         rec.car_name,
         rec.car_plate,
         rec.trip_plate_number,
+        // A task from a manual Car Issue has no trip; place it by its car's home location.
+        trip || rec.trip_pickup_location || rec.trip_delivery_location || rec.trip_return_location || rec.report_trip_contexts?.length
+          ? null
+          : rec.car_public_location,
       ])) return false;
       if (q) {
         const hay = [

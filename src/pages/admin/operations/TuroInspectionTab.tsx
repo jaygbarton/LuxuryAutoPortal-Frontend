@@ -445,6 +445,8 @@ queryClient.invalidateQueries({ queryKey: ["/api/turo-trips"] });
         trip?.returnLocation,
         insp.car_name,
         trip?.plateNumber,
+        // An inspection with no trip is placed by its car's home location.
+        trip ? null : insp.car_public_location,
       ])) return false;
 
       // Default ("all") shows only ended trips. Explicit filter overrides.
