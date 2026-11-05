@@ -46,7 +46,7 @@ export default function SignContract() {
     })();
 
   const contractTemplateUrl = buildApiUrl(
-    "/contracts/GoldenLuxuryAuto_Contract_Template.pdf"
+    "/contracts/GoldenLuxuryAuto_Contract_Template_V14.pdf"
   );
   const { toast } = useToast();
   const authCache=useQueryClient();

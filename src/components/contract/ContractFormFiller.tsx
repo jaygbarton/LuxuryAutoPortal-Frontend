@@ -123,43 +123,43 @@ function wrapText(text: string, maxCharsPerLine: number = 20): string[] {
 const PDF_FIELD_COORDINATES: Record<string, { page: number; x: number; y: number }> = {
   // Owner information - exact coordinates as specified
   owner: { page: 1, x: 300, y: 618 },
-  firstName: { page: 1, x: 144, y: 386 },
-  lastName: { page: 1, x: 360, y: 386 },
-  phone: { page: 1, x: 144, y: 361 }, // Mobile Phone Number
-  email: { page: 1, x: 360, y: 361 },
+  firstName: { page: 1, x: 144, y: 387 },
+  lastName: { page: 1, x: 360, y: 387 },
+  phone: { page: 1, x: 144, y: 377 }, // Mobile Phone Number
+  email: { page: 1, x: 360, y: 377 },
   
   // Vehicle information - exact coordinates as specified
-  vehicleMake: { page: 1, x: 114, y: 311 },
-  vehicleModel: { page: 1, x: 300, y: 311 },
-  vehicleTrim: { page: 1, x: 440, y: 311 },
-  exteriorColor: { page: 1, x: 150, y: 282 },
-  interiorColor: { page: 1, x: 330, y: 282 },
-  licensePlate: { page: 1, x: 470, y: 282 },
+  vehicleMake: { page: 1, x: 114, y: 307 },
+  vehicleModel: { page: 1, x: 300, y: 307 },
+  vehicleTrim: { page: 1, x: 440, y: 307 },
+  exteriorColor: { page: 1, x: 150, y: 280 },
+  interiorColor: { page: 1, x: 330, y: 280 },
+  licensePlate: { page: 1, x: 470, y: 280 },
   vin: { page: 1, x: 105, y: 256 },
   modelYear: { page: 1, x: 290, y: 256 }, // Year
   fuelType: { page: 1, x: 455, y: 256 },
   
   // Additional contract fields - exact coordinates as specified
   expectedStartDate: { page: 2, x: 170, y: 496 },
-  vehicleMileage: { page: 3, x: 190, y: 191 },
-  contractDate: { page: 11, x: 260, y: 343 },
-  vehicleOwner: { page: 11, x: 345, y: 263 },
+  vehicleMileage: { page: 3, x: 190, y: 192 },
+  contractDate: { page: 11, x: 260, y: 123 },
+  vehicleOwner: { page: 12, x: 345, y: 670 },
 };
 
-// Signature coordinates - exact position on Page 11
-// Two signature fields: left (owner/client) and right (company)
+// Signature coordinates - exact position on Page 12
+// Two signature fields: left (company, pre-signed in the template) and right (owner/client)
 const SIGNATURE_COORDINATES = {
-  page: 11, // Page 11 as specified
+  page: 12, // Page 12 of the V14 template
   left: {
-    x: 100, // Left signature X coordinate (owner/client signature)
-    y: 130, // Y coordinate (PDF coordinate system: bottom-left origin)
+    x: 100, // Left signature X coordinate (company signature)
+    y: 431, // Y coordinate (PDF coordinate system: bottom-left origin)
   },
   right: {
-    x: 340, // Right signature X coordinate (company signature)
-    y: 130, // Y coordinate (same Y as left signature - aligned on same line)
+    x: 340, // Right signature X coordinate (owner/client signature)
+    y: 431, // Y coordinate (same Y as left signature - aligned on same line)
   },
   dateX: 450, // X position for date (to the right of "Date:" label, same line)
-  dateY: 130, // Y position for date (same Y as signature - aligned on same line)
+  dateY: 431, // Y position for date (same Y as signature - aligned on same line)
 } as const;
 
 // Checkbox coordinates for options/notes (X marks)
@@ -169,29 +169,29 @@ const PDF_CHECKBOX_COORDINATES: Record<
   { page: number; x: number; y: number }
 > = {
   // Mandatory agreements
-  agreeMaintainInsurance: { page: 10, x: 80, y: 348 },
-  agreeSplit730: { page: 10, x: 80, y: 308 },
-  agreeParkingFee: { page: 10, x: 80, y: 288 },
-  agreeCleaningFee: { page: 10, x: 80, y: 268 },
-  agreeCarWashFee: { page: 10, x: 80, y: 248 },
-  agreeOwnerReimbursesExpenses: { page: 10, x: 80, y: 210 },
+  agreeMaintainInsurance: { page: 10, x: 80, y: 230 },
+  agreeSplit730: { page: 10, x: 80, y: 194 },
+  agreeParkingFee: { page: 10, x: 80, y: 173 },
+  agreeCleaningFee: { page: 10, x: 80, y: 151 },
+  agreeCarWashFee: { page: 10, x: 80, y: 129 },
+  agreeOwnerReimbursesExpenses: { page: 11, x: 80, y: 712 },
 
   // Payment options
-  payment_735: { page: 10, x: 80, y: 140 },
-  payment_357: { page: 10, x: 80, y: 105 },
-  payment_exitFee: { page: 11, x: 80, y: 715 },
+  payment_735: { page: 11, x: 80, y: 642 },
+  payment_357: { page: 11, x: 80, y: 606 },
+  payment_exitFee: { page: 11, x: 80, y: 571 },
 
   // Optional services
-  optionalTintRoamy: { page: 11, x: 80, y: 640 },
-  optionalGpsMonthly: { page: 11, x: 80, y: 620 },
-  optionalGpsInstall: { page: 11, x: 80, y: 600 },
-  optionalAirportDelivery: { page: 11, x: 80, y: 580 },
-  optionalHomePickup: { page: 11, x: 80, y: 560 },
+  optionalTintRoamy: { page: 11, x: 80, y: 330 },
+  optionalGpsMonthly: { page: 11, x: 80, y: 501 },
+  optionalGpsInstall: { page: 11, x: 80, y: 479 },
+  optionalAirportDelivery: { page: 11, x: 80, y: 457 },
+  optionalHomePickup: { page: 11, x: 80, y: 422 },
 
   // Additional earnings options
-  authorizeRelocation: { page: 11, x: 80, y: 485 },
-  authorizeOtherPlatforms: { page: 11, x: 80, y: 450 },
-  authorizeChauffeurUse: { page: 11, x: 80, y: 415 },
+  authorizeRelocation: { page: 11, x: 80, y: 265 },
+  authorizeOtherPlatforms: { page: 11, x: 80, y: 229 },
+  authorizeChauffeurUse: { page: 11, x: 80, y: 194 },
 };
 // ============================================================================
 
@@ -1412,7 +1412,7 @@ export function ContractFormFiller({
                       htmlFor="agree-carwash-fee"
                       className="text-sm text-muted-foreground cursor-pointer leading-relaxed"
                     >
-                      I agree to an annual car wash service fee of $499.
+                      I agree to a $499/year fee for ding repair, paint correction and buffing, and wet-vac extraction detailing.
                     </Label>
                   </div>
 
@@ -1508,7 +1508,7 @@ export function ContractFormFiller({
                       htmlFor="optional-rome-insurance"
                       className="text-sm text-muted-foreground cursor-pointer leading-relaxed"
                     >
-                      Enroll in Tint or Roamy Insurance at $97/month.
+                      Enroll in the Roamy Insurance plan at $140/month.
                     </Label>
                   </div>
                   <div className="flex items-start space-x-3">
@@ -1524,7 +1524,7 @@ export function ContractFormFiller({
                       htmlFor="optional-gps"
                       className="text-sm text-muted-foreground cursor-pointer leading-relaxed"
                     >
-                      Activate GPS tracking at $9.99/month.
+                      Activate GPS tracking at $8.99/month.
                     </Label>
                   </div>
                   <div className="flex items-start space-x-3">
@@ -1556,7 +1556,7 @@ export function ContractFormFiller({
                       htmlFor="optional-airport"
                       className="text-sm text-muted-foreground cursor-pointer leading-relaxed"
                     >
-                      Airport delivery and pick-up at $25 per use.
+                      Airport delivery and pick-up at $25 each way, plus both parking tickets.
                     </Label>
                   </div>
                   <div className="flex items-start space-x-3">
@@ -1572,7 +1572,7 @@ export function ContractFormFiller({
                       htmlFor="optional-home-pickup"
                       className="text-sm text-muted-foreground cursor-pointer leading-relaxed"
                     >
-                      Home or dealership pickup for $100, $75, or $50 based on distance.
+                      Home or dealership pickup (or for oil changes) for $100, $75, or $50 based on distance, plus the Uber/Lyft cost.
                     </Label>
                   </div>
                 </div>
