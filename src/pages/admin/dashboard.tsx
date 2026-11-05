@@ -15,7 +15,7 @@ import { useCoHost } from "@/hooks/use-co-host";
 
 // Dashboard section components
 import IncomeExpensesSection from "@/components/admin/dashboard/IncomeExpensesSection";
-import OperationsSection from "@/components/admin/dashboard/OperationsSection";
+import DayScheduleSection from "@/components/admin/dashboard/DayScheduleSection";
 import MaintenanceSection from "@/components/admin/dashboard/MaintenanceSection";
 import AirportParkingSection from "@/components/admin/dashboard/AirportParkingSection";
 import CommissionsSection from "@/components/admin/dashboard/CommissionsSection";
@@ -46,7 +46,7 @@ const ALL_SECTIONS: SectionDef[] = [
   { id: "commissions", label: "Commissions" },
   { id: "car-onboarding-offboarding", label: "Car Onboarding & Offboarding" },
   { id: "car-blocked-off", label: "Car Blocked Off" },
-  { id: "operations", label: "Operations" },
+  { id: "operations", label: "Operations (Day Schedule)" },
   { id: "turo-inspections", label: "Turo Inspections" },
   { id: "car-issues", label: "Car Issues" },
   { id: "maintenance", label: "Maintenance" },
@@ -350,7 +350,7 @@ export default function AdminDashboard() {
 
           {show["car-blocked-off"] && <CarBlockedOffSection />}
 
-          {show["operations"] && <OperationsSection />}
+          {show["operations"] && <DayScheduleSection />}
 
           {show["turo-inspections"] && <TuroInspectionsSection />}
 
