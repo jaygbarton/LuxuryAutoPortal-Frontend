@@ -57,8 +57,13 @@ async function fillStep(page:Page){
 }
 for(const width of [390,1280]) test(`customer onboarding step validation, back navigation and final submission at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:844});const {writes}=await fixture(page);
+ if(width===390)await page.addInitScript(()=>{
+  const format=Date.prototype.toLocaleDateString;
+  Date.prototype.toLocaleDateString=function(...args){return args[0]==='en-CA'?'11/6/2026':format.apply(this,args);};
+ });
  await page.goto('/onboarding?start=1');
  const form=page.locator('form');
+ await expect(form.locator('input[name=date]')).toHaveValue(/^\d{4}-\d{2}-\d{2}$/);
  await expect(form.getByText('Drivers License Upload',{exact:true})).toBeVisible();
  await expect(form.getByLabel('Vehicle Year *',{exact:true})).toHaveCount(0);
  await form.getByRole('button',{name:'Continue',exact:true}).click();
@@ -78,6 +83,13 @@ for(const width of [390,1280]) test(`customer onboarding step validation, back n
  await page.screenshot({path:test.info().outputPath('review.png'),fullPage:true});
  await expect(form).not.toContainText(values.accountNumber);await expect(form).not.toContainText(values.ssn);
  await form.getByRole('checkbox',{name:'Confirm and submit for review'}).check();
+ if(width===390){
+  await page.route('**/api/onboarding/submit',route=>route.fulfill({status:500,json:{error:'Failed to create onboarding submission',message:'Your saved draft is still available; please retry.'}}),{times:1});
+  await form.getByRole('button',{name:'Submit for review'}).click();
+  await expect(form.getByRole('alert')).toHaveText('Your saved draft is still available; please retry.');
+  await expect(form.getByRole('button',{name:'Submit for review'})).toBeEnabled();
+  await expect(form.getByRole('checkbox',{name:'Confirm and submit for review'})).toBeChecked();
+ }
  await form.getByRole('button',{name:'Submit for review'}).click();
  await expect(page.getByRole('heading',{name:'Your LYC applications'})).toBeVisible();
  const submissionWrites=writes.filter(w=>w.path==='/api/onboarding/submit');expect(submissionWrites).toHaveLength(1);

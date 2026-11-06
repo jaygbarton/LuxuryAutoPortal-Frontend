@@ -1,4 +1,5 @@
 import { focusVisibleOnboardingField } from '@/lib/onboardingFieldFocus';
+import { onboardingDate, onboardingSubmissionError } from '@/lib/onboardingSubmission';
 import {ListYourCarHero,ListYourCarConsultation,ListYourCarTestimonials} from '@/components/onboarding/ListYourCarIntro';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreateAccountForm } from '@/components/auth/CreateAccountForm';
@@ -278,7 +279,7 @@ function OnboardingApplication() {
         if(saved?.draft.submissionId){setLocation('/lyc/status');return;}
         const {profile,banking}=reusable;
         setReusedBank(!!banking?.accountNumber);
-        const values={...form.getValues(),...profile,...banking,...(saved?.draft.fields || {}),date:new Date().toLocaleDateString('en-CA')};
+        const values={...form.getValues(),...profile,...banking,...(saved?.draft.fields || {}),date:onboardingDate()};
         // The displayed account identity is authoritative; draft fields cannot replace it.
         values.emailOwner=profile.emailOwner;values.firstNameOwner=profile.firstNameOwner;values.lastNameOwner=profile.lastNameOwner;
         form.reset(values);setDraft(saved?.draft || null);
@@ -385,6 +386,7 @@ function OnboardingApplication() {
 
   const onSubmit = async (data: OnboardingFormData) => {
     setIsSubmitting(true);
+    setStepError('');
     try {
       if(answers.hasVehicle!==true) throw new Error('Save your progress and add your actual vehicle details when ready. All required steps must be complete before review.');
       const saved=await saveProgress();
@@ -414,7 +416,7 @@ function OnboardingApplication() {
           if (fieldStep >= 0) goToStep(fieldStep);
         }
         
-        throw new Error(error.error || error.message || "Submission failed");
+        throw new Error(onboardingSubmissionError(error));
       }
 
       await response.json();
@@ -423,6 +425,7 @@ function OnboardingApplication() {
       setIsSubmitted(true);
       setLocation("/lyc/status");
     } catch (error: any) {
+      setStepError(error.message || 'Please try again later.');
       toast({
         title: "Submission Failed",
         description: error.message || "Please try again later.",
