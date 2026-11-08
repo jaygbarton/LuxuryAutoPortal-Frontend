@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical, LayoutList, Rows3, Plus, Trash2, CheckCircle, MoreHorizontal, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Car, User, ArrowRight, ArrowDownToLine, ArrowUpFromLine, GripVertical, LayoutList, Rows3, Plus, Trash2, CheckCircle, MoreHorizontal, X, RefreshCw } from "lucide-react";
 import { PhotoUpload } from "./PhotoUpload";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarScheduleImage } from "./CarScheduleImage";
@@ -103,7 +103,7 @@ const MAINTENANCE_STATUSES = ["new", "completed"];
 const BLOCK_OFF_STATUSES = ["new", "completed"];
 
 const OPERATION_TASK_TYPES: DayEventType[] = ["cleaning", "delivery", "pickup", "refuel", "custom", "mechanic", "windshield", "license_plate", "airport"];
-const DAY_SCHEDULE_REFRESH_MS = 10 * 60 * 1000;
+const DAY_SCHEDULE_REFRESH_MS = 30 * 1000;
 
 // Event types assignable via the on-card employee picker / drag-and-drop.
 // Matches ASSIGNABLE_TYPES in routes/operations.ts.
@@ -332,7 +332,7 @@ function DetailLine({ icon, label, value, className = "" }: {
   );
 }
 
-const ScheduleBookingContext = createContext<{ selectedBooking: string | null; date: string; now?: number; openAirportReceipt?: (event: DayEvent) => void; openFuelReceipt?: (event: DayEvent) => void; canEditTaskNotes?: boolean; saveTaskNote?: (event: DayEvent, note: string) => Promise<void> }>({
+const ScheduleBookingContext = createContext<{ selectedBooking: string | null; date: string; now?: number; openAirportReceipt?: (event: DayEvent) => void; openFuelReceipt?: (event: DayEvent) => void; canRefreshTrips?: boolean; canEditTaskNotes?: boolean; saveTaskNote?: (event: DayEvent, note: string) => Promise<void> }>({
   selectedBooking: null, date: "",
 });
 
@@ -391,6 +391,27 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
   const [open, setOpen] = useState(false);
   const context = useContext(ScheduleBookingContext);
   const timezone = useTimezone();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const refreshTrip = useMutation({
+    mutationFn: async () => {
+      const tripId = /^turo:([1-9]\d*)$/.exec(event.bookingKey || '')?.[1];
+      if (!tripId) throw new Error('This task is not linked to a Turo trip.');
+      const response = await fetch(buildApiUrl(`/api/turo-trips/${tripId}/reparse`), {method:'POST', credentials:'include'});
+      const result = await response.json();
+      if (!response.ok || result.success !== true) throw new Error(result.message || result.error || 'Trip refresh failed.');
+      if (!result.data?.parsed?.tripStart && !result.data?.parsed?.tripEnd) throw new Error('No confirmed booking or trip-change email could verify this reservation. The task was kept for review.');
+    },
+    onSuccess: async () => {
+      setOpen(false);
+      await Promise.all([
+        queryClient.invalidateQueries({queryKey:['/api/operations/day-schedule']}),
+        queryClient.invalidateQueries({queryKey:['/api/turo-trips']}),
+        queryClient.invalidateQueries({queryKey:['/api/internal-calendar/events']}),
+      ]);
+      toast({title:'Trip refreshed', description:'The reservation and schedule were rechecked against their source emails.'});
+    },
+  });
   const past = taskDeadlineHasPassed(event, props.date, timezone, context.now ?? Date.now());
   const taskStatus = scheduleTaskStatus(event);
   const source = taskSource(event);
@@ -437,6 +458,13 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
           <DialogDescription>{formatDisplayDate(props.date)} · {event.start_time ? fmt12(event.start_time) : "Time not set"}{event.plate ? ` · ${event.plate}` : ""}</DialogDescription></div>
           <DialogClose asChild><Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" aria-label="Close task details"><X className="h-4 w-4" /></Button></DialogClose>
         </DialogHeader>
+        {context.canRefreshTrips && event.bookingKey?.startsWith('turo:') && <div className="space-y-2">
+          <Button type="button" variant="outline" disabled={refreshTrip.isPending} onClick={() => refreshTrip.mutate()}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${refreshTrip.isPending ? 'animate-spin' : ''}`} />
+            {refreshTrip.isPending ? 'Checking source emails…' : 'Refresh trip from emails'}
+          </Button>
+          {refreshTrip.isError && <p role="alert" className="text-sm text-red-700">{refreshTrip.error.message}</p>}
+        </div>}
         <ScheduleBookingContext.Provider value={popupContext}>
           {(canRefuel(event) || event.airport_parking_required) && <div className="flex flex-wrap gap-2" aria-label="Trip receipt actions">
             {event.airport_parking_required && <Button type="button" variant="outline" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" onClick={()=>popupContext.openAirportReceipt(event)}>Airport parking receipt</Button>}
@@ -983,12 +1011,13 @@ export function DayScheduleTab() {
   );
   const [entryNotes, setEntryNotes] = useState("");
   const [entryEmployee, setEntryEmployee] = useState<{ id: number | null; name: string }>({ id: null, name: "" });
-  const { data: authData } = useQuery<{ user?: { id?: number; viewAsEmployee?: { employeeId: number }; viewAsCoHost?: { coHostId: number }; viewAsClient?: { clientId: number }; isAdmin?: boolean; isEmployee?: boolean; isSuperAdmin?: boolean; impersonatorIsAdmin?: boolean } }>({
+  const { data: authData } = useQuery<{ user?: { id?: number; viewAsEmployee?: { employeeId: number }; viewAsCoHost?: { coHostId: number }; viewAsClient?: { clientId: number }; isAdmin?: boolean; isCoHost?: boolean; isEmployee?: boolean; isSuperAdmin?: boolean; impersonatorIsAdmin?: boolean } }>({
     queryKey: ["/api/auth/me"],
     queryFn: authMeQueryFn,
     refetchOnMount: "always",
   });
   const canBulkCompleteOldTasks = authData?.user?.isAdmin === true && !authData?.user?.viewAsEmployee && !authData?.user?.viewAsCoHost && !authData?.user?.viewAsClient;
+  const canForceUpdate = canBulkCompleteOldTasks && authData?.user?.isCoHost !== true;
   const managerAccess = useChartManagementAccess();
   const canEditTaskNotes = !authData?.user?.viewAsClient && !authData?.user?.viewAsCoHost && (canBulkCompleteOldTasks || managerAccess.data?.canManage === true);
   const isAdmin = authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true || authData?.user?.isEmployee === true;
@@ -1068,6 +1097,30 @@ export function DayScheduleTab() {
     staleTime: 30 * 1000,
   });
   const dayScheduleQueryKey = ["/api/operations/day-schedule", date] as const;
+  const forceUpdate = useMutation({
+    mutationFn: async (scheduleDate: string) => {
+      const response = await fetch(buildApiUrl('/api/operations/day-schedule/force-update'), {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: scheduleDate }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'The schedule could not be updated. Please retry.');
+      if (!result.success || result.schedule?.date !== scheduleDate || !Array.isArray(result.schedule?.events)) {
+        throw new Error('The schedule update could not be confirmed. Please retry.');
+      }
+      return result.schedule as DayScheduleResult;
+    },
+    onSuccess: async schedule => {
+      // An older background request must not overwrite the force-sync result.
+      await queryClient.cancelQueries({ queryKey: ['/api/operations/day-schedule'] });
+      queryClient.setQueryData(['/api/operations/day-schedule', schedule.date], schedule);
+      // If the admin navigated to another date while syncing, refresh that day too.
+      await queryClient.invalidateQueries({ queryKey: ['/api/operations/day-schedule'], predicate: query => query.queryKey[1] !== schedule.date });
+      void queryClient.invalidateQueries({ queryKey: ['/api/turo-trips'] });
+      void queryClient.invalidateQueries({ queryKey: ['/api/internal-calendar/events'] });
+      toast({ title: 'Schedule updated', description: 'Turo email sync and task reconciliation completed.' });
+    },
+  });
 
   // Drag-and-drop assign / unassign. employeeId === null means unassign.
   const assignMutation = useMutation({
@@ -1492,7 +1545,7 @@ export function DayScheduleTab() {
   }, {});
 
   return (
-    <ScheduleBookingContext.Provider value={{ selectedBooking, date, now: clockNow, canEditTaskNotes, saveTaskNote, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
+    <ScheduleBookingContext.Provider value={{ selectedBooking, date, now: clockNow, canRefreshTrips:canForceUpdate, canEditTaskNotes, saveTaskNote, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
     <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
     <div className="min-w-0 space-y-3 sm:space-y-4">
       {fuelReturn?.bookingKey && <TripReceiptDialog key={fuelReturn.bookingKey} kind="gas" bookingKey={fuelReturn.bookingKey} onClose={() => setFuelReturn(null)} onComplete={async () => {
@@ -1550,6 +1603,10 @@ export function DayScheduleTab() {
           <Plus className="hidden h-4 w-4 sm:block" />
           <span className="sm:hidden">Add</span><span className="hidden sm:inline">Add Entry</span>
         </Button>
+        {canForceUpdate && <Button type="button" variant="outline" size="sm" className="h-11 px-2.5 text-xs sm:h-9 sm:text-sm" disabled={forceUpdate.isPending} onClick={() => forceUpdate.mutate(date)}>
+          <RefreshCw aria-hidden="true" className={`mr-1 h-4 w-4 ${forceUpdate.isPending ? 'animate-spin' : ''}`} />
+          {forceUpdate.isPending ? 'Updating…' : 'Force update'}
+        </Button>}
         </div>
 
         {/* Timeline opens by default; employees can switch to grouped tasks. */}
@@ -1577,6 +1634,7 @@ export function DayScheduleTab() {
         </div>
       </div>
 
+      {forceUpdate.isError && <p role="alert" className="text-sm text-destructive">{forceUpdate.error.message}</p>}
       {schedulePreference.isError && <p role="alert" className="text-sm text-destructive">Could not load your saved schedule setting. <button className="underline" onClick={() => void schedulePreference.refetch()}>Retry</button></p>}
 
       {showAddEntry && (

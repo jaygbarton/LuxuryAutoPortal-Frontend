@@ -36,6 +36,7 @@ async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType
       }
     }
     else if (path === '/api/auth/me') body = { user: { id: 1, name: 'Admin', isAdmin: true, isEmployee: false, isSuperAdmin: true, effectiveTimezone: 'America/Denver', tourCompleted: true, ...overrides.user } };
+    else if (path === '/api/me/contractor-policy') body = { data: { hasEmployee: true, agreed: true, mustSign: false, agreement: null, policy: { version: 1 } } };
     else if (path === '/api/operations/chart-management/access') body = { canManage: overrides.manager === true };
     else if (path === '/api/me/employee') {
       if (overrides.missingEmployee) return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'No employee record' }) });
@@ -492,4 +493,65 @@ test('task note save failure preserves the draft and original card note',async({
  await editor.fill('Unsaved instructions.');await popup.getByRole('button',{name:'Save task note',exact:true}).click();
  await expect(popup.getByRole('alert')).toContainText('could not be saved');await expect(editor).toHaveValue('Unsaved instructions.');
  await expect(card.locator('[data-task-note]')).toContainText('Original note.');expect(state.errors).toEqual([]);
+});
+
+for (const width of [390,1280]) test(`Force update waits for sync, reports failures and removes stale tasks at ${width}px`, async ({page}) => {
+  await page.setViewportSize({width,height:844});
+  const rows=[task(91,'turo:91',{car_name:'GMC Acadia',type:'pickup',category:'Pick Up'})];
+  await fixture(page,{date:'2026-11-07',rows});
+  const card=page.locator('[data-day-schedule-card]').filter({hasText:'GMC Acadia'});
+  await expect(card).toBeVisible();
+  const requests:any[]=[];
+  let release!:()=>void;
+  let fail=true;
+  await page.route('**/api/operations/day-schedule/force-update',async route=>{
+    requests.push({method:route.request().method(),body:route.request().postDataJSON()});
+    if(fail){await new Promise<void>(resolve=>{release=resolve;});return route.fulfill({status:502,json:{error:'Turo sync could not be confirmed. Please retry.'}});}
+    return route.fulfill({json:{success:true,schedule:{date:'2026-11-07',events:[],work_shifts:[]}}});
+  });
+  await page.getByRole('button',{name:'Force update',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Updating…',exact:true})).toBeDisabled();
+  await expect.poll(()=>requests.length).toBe(1);release();
+  await expect(page.getByRole('alert').filter({hasText:'Turo sync could not be confirmed'})).toBeVisible();
+  await expect(card).toBeVisible();
+  fail=false;
+  await page.getByRole('button',{name:'Force update',exact:true}).click();
+  await expect(card).toHaveCount(0);
+  expect(requests).toEqual([{method:'POST',body:{date:'2026-11-07'}},{method:'POST',body:{date:'2026-11-07'}}]);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+for(const user of [{isAdmin:true,isCoHost:true},{isAdmin:false,isEmployee:true},{isAdmin:true,viewAsEmployee:{employeeId:41}},{isAdmin:true,viewAsClient:{clientId:4}},{isAdmin:true,viewAsCoHost:{coHostId:4}}])test(`Force update is hidden for nonacting administrators ${JSON.stringify(user)}`,async({page})=>{
+  await fixture(page,{user:{...user,isSuperAdmin:false}});
+  await expect(page.getByLabel('Schedule date',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Force update',exact:true})).toHaveCount(0);
+});
+
+for (const width of [390,1280]) test(`refresh a Turo task from source emails without confusing task and trip IDs at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:1000});
+  let attempts=0;
+  const rows=[task(19,'turo:208',{type:'delivery',category:'Drop Off',car_name:'White Chevrolet Suburban 2026',plate:'TEST123',start_time:'15:00',scheduled_day:'2026-11-08'})];
+  const state=await fixture(page,{date:'2026-11-08',rows});
+  await page.route('**/api/turo-trips/208/reparse',async route=>{
+    expect(route.request().method()).toBe('POST');attempts++;
+    if(attempts===1)return route.fulfill({status:502,json:{success:false,message:'Source email service unavailable'}});
+    if(attempts===2)return route.fulfill({json:{success:true,data:{emailsScanned:0,parsed:{tripStart:null,tripEnd:null}}}});
+    rows.splice(0);
+    return route.fulfill({json:{success:true,data:{updated:true,emailsScanned:2,parsed:{tripStart:'2026-08-11T21:00:00Z',tripEnd:'2026-08-14T18:00:00Z'}}}});
+  });
+  const card=page.locator('[data-day-schedule-card][data-booking-key="turo:208"]');
+  await expect(card).toContainText('3:00 PM');await expect(card.locator('[data-booking-source]')).toHaveText('Turo');
+  await card.click();const dialog=page.locator('[data-day-schedule-controls]');const refresh=dialog.getByRole('button',{name:'Refresh trip from emails',exact:true});
+  await refresh.click();await expect(dialog.getByRole('alert')).toContainText('Source email service unavailable');await expect(card).toBeVisible();
+  await refresh.click();await expect(dialog.getByRole('alert')).toContainText('No confirmed booking or trip-change email');await expect(card).toBeVisible();
+  await refresh.click();await expect(dialog).toHaveCount(0);await expect(card).toHaveCount(0);
+  expect(attempts).toBe(3);expect(state.errors).toEqual([]);
+});
+
+test('an accepted trip edit appears on the next automatic schedule refresh',async({page})=>{
+ await page.clock.install({time:new Date('2026-10-07T16:00:00Z')});
+ const rows=[task(19,'turo:208',{type:'pickup',category:'Pick Up',start_time:'10:30',extras:null})];
+ const state=await fixture(page,{rows});const card=page.locator('[data-day-schedule-card][data-booking-key="turo:208"]');await expect(card).toContainText('10:30 AM');
+ Object.assign(rows[0],{start_time:'13:30',location:'Changed return lot',extras:'Child seat'});
+ await page.clock.fastForward(31_000);
+ await expect(card).toContainText('1:30 PM');await expect(card).toContainText('Changed return lot');await expect(card).toContainText('Child seat');expect(state.errors).toEqual([]);
 });
