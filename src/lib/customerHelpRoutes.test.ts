@@ -70,7 +70,7 @@ describe('customer help visibility does not grant access', () => {
   it('keeps customer Operations chat coverage aligned while excluding staff-only charts and preserving the legacy alias', () => {
     const page = readFileSync(new URL('../pages/admin/operations.tsx', import.meta.url), 'utf8');
     const tabs = JSON.parse(page.match(/const TAB_IDS = (\[[^\n]+\]) as const;/)![1]);
-    expect([...CUSTOMER_HELP_OPERATIONS_TABS]).toEqual([...tabs.filter((tab:string)=>tab!=='chart-management'),'tv-timeline']);
+    expect([...CUSTOMER_HELP_OPERATIONS_TABS]).toEqual([...tabs.filter((tab:string)=>tab!=='chart-management'),'trips','tv-timeline']);
   });
   it('is hidden for unresolved/logged-out sessions, normal staff and employee previews', () => {
     for (const user of [undefined,{}, {isAdmin:true}, {isEmployee:true}, {isSuperAdmin:true}, {...owner,isAdmin:true}, {...owner,viewAsEmployee:{employeeId:3}}]) expect(customerHelpAllowed('/dashboard',user)).toBe(false);

@@ -102,9 +102,9 @@ export function customerHelpTeaserAllowed(location: string): boolean {
 // Existing vehicle workflows plus the legacy TV Timeline alias to Day Schedule.
 // Unknown/future tabs fail closed until their customer scope has been reviewed.
 export const CUSTOMER_HELP_OPERATIONS_TABS = [
-  'trips', 'turo-inspection', 'inspections', 'claims', 'ticket-violation',
+  'day-schedule', 'turo-inspection', 'inspections', 'claims', 'ticket-violation',
   'towing-impound', 'maintenance', 'service-due', 'completed', 'car-repaired',
-  'car-block-off', 'day-schedule', 'tv-timeline',
+  'car-block-off', 'trips', 'tv-timeline',
 ] as const;
 
 export function customerHelpAllowed(location: string, user?: CustomerHelpUser | null): boolean {
