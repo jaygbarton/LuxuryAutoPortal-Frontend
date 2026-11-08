@@ -1815,9 +1815,9 @@ export default function CarDetailPage() {
               
               {/* Assigned To Section */}
                 <div className="pt-1.5 border-t border-border min-w-0">
-                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 lg:gap-6 min-w-0">
-                    {/* Left: Assigned To */}
-                    <div className="flex-shrink-0 text-center lg:text-left min-w-0">
+                  <div className="flex flex-col gap-4 min-w-0">
+                    {/* Owner details */}
+                    <div className="text-left min-w-0 [overflow-wrap:anywhere]">
                       <p className="text-xs text-muted-foreground mb-1.5">Assigned To</p>
                     {/* Display maintenance status if car is in maintenance */}
                     {car.rawStatus === "maintenance" ? (
@@ -1845,7 +1845,7 @@ export default function CarDetailPage() {
                       car.clientId ? (
                         <button
                           onClick={() => setLocation(`/admin/clients/${car.clientId}`)}
-                            className="hover:text-blue-700 transition-colors"
+                            className="max-w-full text-left hover:text-blue-700 transition-colors"
                         >
                             <p className="text-foreground text-sm sm:text-base font-semibold hover:underline">
                             {car.owner.firstName} {car.owner.lastName}
@@ -1873,10 +1873,10 @@ export default function CarDetailPage() {
                       )}
                     </div>
 
-                    {/* Right: Car Status, Management, Online Status, Last Login */}
-                    <div className="grid grid-cols-2 lg:flex lg:items-start lg:gap-6 lg:flex-1 lg:justify-end gap-4 w-full min-w-0">
+                    {/* Status details wrap to the card width, independent of the viewport. */}
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] items-start gap-4 w-full min-w-0 [overflow-wrap:anywhere]">
                       {/* Car Status */}
-                      <div className="text-center lg:min-w-[100px] min-w-0">
+                      <div className="text-center min-w-0">
                         <p className="text-xs text-muted-foreground mb-1.5">Car Status</p>
                         <div className="flex justify-center">
                           <Badge
@@ -1893,7 +1893,7 @@ export default function CarDetailPage() {
                       </div>
 
                       {/* Management */}
-                      <div className="text-center lg:min-w-[100px] min-w-0">
+                      <div className="text-center min-w-0">
                         <p className="text-xs text-muted-foreground mb-1.5">Management</p>
                         <p className="text-foreground text-xs sm:text-sm font-medium">
                           {car.managementStatus === "management"
@@ -1907,7 +1907,7 @@ export default function CarDetailPage() {
                       </div>
 
                       {/* Car Location */}
-                      <div className="text-center lg:min-w-[100px] min-w-0">
+                      <div className="text-center min-w-0">
                         <p className="text-xs text-muted-foreground mb-1.5">Car Location</p>
                         <p className="text-foreground text-xs sm:text-sm font-medium">
                           {car.locationTag && PUBLIC_LOCATIONS[car.locationTag as keyof typeof PUBLIC_LOCATIONS]
@@ -1917,7 +1917,7 @@ export default function CarDetailPage() {
                       </div>
 
                       {/* Online Status */}
-                      <div className="text-center lg:min-w-[120px] min-w-0">
+                      <div className="text-center min-w-0">
                         <p className="text-xs text-muted-foreground mb-1.5">Online Status</p>
                         {!car.owner ? (
                           <p className="text-muted-foreground text-xs sm:text-sm">N/A</p>
@@ -1936,7 +1936,7 @@ export default function CarDetailPage() {
                       </div>
 
                       {/* Last Login - use client API value so it matches Client profile page */}
-                      <div className="text-center lg:min-w-[140px] min-w-0 col-span-2 lg:col-span-1">
+                      <div className="text-center min-w-0">
                         <p className="text-xs text-muted-foreground mb-1.5">Last Login</p>
                         <p className="text-foreground text-xs sm:text-sm font-medium whitespace-normal break-words">
                           {car.owner
