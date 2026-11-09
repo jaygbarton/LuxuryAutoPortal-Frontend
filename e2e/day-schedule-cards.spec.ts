@@ -707,3 +707,15 @@ test('employees with driver and cleaner roles retain handoffs as the default', a
   await expect(filters.getByRole('button',{name:/^Drop Off/})).toHaveAttribute('aria-pressed','true');
   await expect(page.locator('[data-day-schedule-card]')).toHaveCount(4);
 });
+
+test('Day Schedule pauses polling in hidden tabs and refreshes when staff return',async({page})=>{
+ await page.clock.install({time:new Date('2026-11-09T16:00:00Z')});
+ await fixture(page,{date:'2026-11-09'});await expect(page.locator('[data-day-schedule-card]').first()).toBeVisible();
+ let reads=0;
+ await page.route('**/api/operations/day-schedule?*',route=>{reads++;return route.fulfill({json:{date:'2026-11-09',events:[],work_shifts:[]}});});
+ await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'});document.dispatchEvent(new Event('visibilitychange',{bubbles:true}));});
+ await page.clock.fastForward(5*60*1000);expect(reads).toBe(0);
+ await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'});document.dispatchEvent(new Event('visibilitychange',{bubbles:true}));});
+ await expect.poll(()=>reads).toBe(1);
+ await page.clock.fastForward(60*1000);await expect.poll(()=>reads).toBe(2);
+});

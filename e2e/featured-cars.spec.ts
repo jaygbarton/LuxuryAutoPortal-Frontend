@@ -50,22 +50,24 @@ test('a failed ranking request has a retry and a legitimate empty selection has 
   await expect(page.getByRole('alert')).toContainText('could not be loaded');
   fail=false;await page.getByRole('button',{name:'Try again',exact:true}).click();await expectCardsVisible(page,4);
   await page.route('**/api/public/fleet/featured?*',route=>route.fulfill({json:{success:true,data:[]}}));
-  await page.reload();await expect(page.getByText('No featured vehicles are available for this selection.',{exact:false})).toBeVisible();
+  await page.reload();await expect(page.getByText('This ranking is not available yet.',{exact:false})).toBeVisible();
   await expect(page.getByRole('link',{name:'Explore the Salt Lake City, UT collection.'})).toHaveAttribute('href','/salt-lake-city/fleet');
 });
 
-test('an open page refreshes rankings automatically and keeps cards painted after data changes',async({page})=>{
-  await page.clock.install({time:new Date('2026-11-01T05:55:00Z')});
+test('rankings do not poll or refetch on focus during the day and refresh once on Denver day rollover',async({page})=>{
+  await page.clock.install({time:new Date('2026-11-09T15:00:00Z')});
+  let requests=0;
   await setup(page);await expectCardsVisible(page,1);
-  let refreshed=false;
   await page.route('**/api/public/fleet/featured?*',route=>{
-    expect(new URL(route.request().url()).searchParams.get('location')).toBe('slc');refreshed=true;
+    expect(new URL(route.request().url()).searchParams.get('location')).toBe('slc');requests++;
     return route.fulfill({json:{success:true,data:cars(10)}});
   });
   await page.clock.fastForward(15*60*1000);
-  await expect.poll(()=>refreshed).toBe(true);await expectCardsVisible(page,10);
-  await page.route('**/api/public/fleet/featured?*',route=>route.fulfill({status:503,json:{success:false}}));
-  await page.clock.fastForward(15*60*1000);
-  await expect(page.getByRole('alert')).toContainText('Showing the last available results');
-  await expectCardsVisible(page,10);
+  await page.evaluate(()=>{window.dispatchEvent(new Event('focus'));document.dispatchEvent(new Event('visibilitychange',{bubbles:true}));});
+  await page.clock.fastForward(14*60*60*1000);
+  expect(requests).toBe(0);await expectCardsVisible(page,1);
+  await page.clock.fastForward(2*60*60*1000);
+  await expect.poll(()=>requests).toBe(1);await expectCardsVisible(page,10);
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  expect(requests).toBe(1);
 });

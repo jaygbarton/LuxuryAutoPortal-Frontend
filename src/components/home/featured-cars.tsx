@@ -1,4 +1,5 @@
 import { useState } from "react";
+import {useFeaturedRankingDay} from "@/hooks/use-featured-ranking-day";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, ExternalLink, Calendar, Users, Loader2 } from "lucide-react";
@@ -10,7 +11,7 @@ import { fleetCarBelongsToLocation, type PublicLocation } from "@/lib/location-c
 
 // Top-3 featured vehicles come from GET /api/public/fleet/featured — the top
 // active cars by calendar-year or previous completed month's rental income.
-// Rankings are recalculated server-side; refresh open pages throughout the day.
+// One shared daily snapshot; no periodic polling or refetch on tab focus.
 interface FeaturedCar {
   id: number;
   make: string | null;
@@ -117,22 +118,24 @@ function CarCard({ car, location }: { car: FeaturedCar; location: PublicLocation
 }
 
 export function FeaturedCars({ location }: { location: PublicLocation }) {
+  const rankingDay = useFeaturedRankingDay();
   const [mode, setMode] = useState<FeaturedMode>("top-performing");
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery<{ success: boolean; data: FeaturedCar[] }>({
-    queryKey: ["/api/public/fleet/featured", mode, location.id],
+    queryKey: ["/api/public/fleet/featured", mode, location.id, rankingDay],
     queryFn: async () => {
       const path = location.id === "wilmington" ? "/api/public/fleet" : `/api/public/fleet/featured?${new URLSearchParams({mode, location: location.id})}`;
-      const res = await fetch(buildApiUrl(path), {cache: 'no-store'});
+      const res = await fetch(buildApiUrl(path));
       if (!res.ok) throw new Error("Failed to load featured vehicles");
       const result = await res.json();
       if (result.success !== true || !Array.isArray(result.data)) throw new Error('Failed to load featured vehicles');
       return result;
     },
-    staleTime: 1000 * 60 * 5,
-    refetchInterval: 1000 * 60 * 15,
-    refetchOnWindowFocus: 'always',
-    refetchOnReconnect: 'always',
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const cars = (data?.data ?? []).filter((car) => fleetCarBelongsToLocation(car.turoLink, location, car.locationTag));
@@ -196,7 +199,7 @@ export function FeaturedCars({ location }: { location: PublicLocation }) {
           </div>
         ) : (
           <p className="text-center" style={{ color: "#808080" }}>
-            No featured vehicles are available for this selection.{' '}
+            This ranking is not available yet.{' '}
             <Link href={location.fleetPath} className="underline">Explore the {location.cityState} collection.</Link>
           </p>
         )}

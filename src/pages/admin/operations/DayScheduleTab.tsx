@@ -1118,7 +1118,8 @@ export function DayScheduleTab() {
       return res.json();
     },
     refetchInterval: DAY_SCHEDULE_REFRESH_MS,
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
     staleTime: 30 * 1000,
   });
   const dayScheduleQueryKey = ["/api/operations/day-schedule", date] as const;
