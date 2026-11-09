@@ -4,7 +4,7 @@ function task(id: number, bookingKey: string, overrides: Record<string, unknown>
   return { id, bookingKey, type: "cleaning", category: "Cleaning", car_name: `Vehicle task ${id}`, plate: "TEST123", guest_name: "Test Guest", assigned_to: "Test Worker", assigned_to_id: 41, start_time: "09:00", end_time: null, location: "Test airport", status: "new", notes: null, detail: null, reservation_id: "RES-208", extras: null, trip_start: "09:00", trip_end: "10:00", trip_start_mt: "2026-10-07 09:00", trip_end_mt: "2026-10-08 10:00", pickup_location: "Test airport", dropoff_location: "Test airport", location_tag: "slc", photos: null, car_photo: null, duration_minutes: 60, scheduled_day: "2026-10-07", ...overrides };
 }
 
-async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType<typeof task>[]; user?: Record<string, unknown>; manager?: boolean; missingEmployee?: boolean; pickerFailOnce?: boolean } = {}) {
+async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType<typeof task>[]; user?: Record<string, unknown>; manager?: boolean; missingEmployee?: boolean; pickerFailOnce?: boolean; fleet?: Array<Record<string,unknown>> } = {}) {
   const writes: any[] = [], errors: string[] = [];
   let pickerRequests = 0;
   page.on('pageerror', error => errors.push(error.message));
@@ -42,7 +42,7 @@ async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType
       if (overrides.missingEmployee) return route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'No employee record' }) });
       body = { success: true, data: { employee_aid: 41, employee_first_name: 'Test', employee_last_name: 'Worker', employee_is_active: 1 } };
     }
-    else if (path === '/api/operations/fleet-vehicles') body = { data: [{ carId: 101, carName: 'Test vehicle', plateNumber: 'TEST123', vinNumber: null, carStatus: 'available' }, { carId: 102, carName: 'Retired vehicle', plateNumber: 'RETIRED', vinNumber: null, carStatus: 'off_fleet' }] };
+    else if (path === '/api/operations/fleet-vehicles') body = { data: overrides.fleet ?? [{ carId: 101, carName: 'Test vehicle', plateNumber: 'TEST123', vinNumber: null, carStatus: 'available' }, { carId: 102, carName: 'Retired vehicle', plateNumber: 'RETIRED', vinNumber: null, carStatus: 'off_fleet' }] };
     else if (path === '/api/me/preferences/day-schedule') body = { myTasksFirst: true, employeeId: 41 };
     else if (path === '/api/operations/day-schedule') body = { date, events: rows, work_shifts: [] };
     else if (path === '/api/employees/picker') {
@@ -554,4 +554,33 @@ test('an accepted trip edit appears on the next automatic schedule refresh',asyn
  Object.assign(rows[0],{start_time:'13:30',location:'Changed return lot',extras:'Child seat'});
  await page.clock.fastForward(31_000);
  await expect(card).toContainText('1:30 PM');await expect(card).toContainText('Changed return lot');await expect(card).toContainText('Child seat');expect(state.errors).toEqual([]);
+});
+
+for(const width of [390,1280]) test(`a confirmed swap updates the vehicle, plate and flashing extras at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:1000});
+ await page.clock.install({time:new Date('2026-11-08T16:00:00Z')});
+ const rows=[task(19,'turo:208',{type:'pickup',category:'Pick Up',car_name:'Chevrolet Suburban 2026',plate:'OLD123',vehicle_swap_pending:true,extras:null,start_time:'12:00',scheduled_day:'2026-11-08'})];
+ const state=await fixture(page,{date:'2026-11-08',rows,fleet:[{carId:101,carName:'Chevrolet Suburban 2026',plateNumber:'OLD123',vinNumber:null,carStatus:'available'},{carId:102,carName:'Chevrolet Tahoe 2025',plateNumber:'NEW123',vinNumber:null,carStatus:'available'}]});
+ const card=page.locator('[data-day-schedule-card][data-booking-key="turo:208"]');
+ await expect(card.locator('[data-vehicle-swap-pending]')).toContainText('replacement needs verification');
+ Object.assign(rows[0],{car_name:'Chevrolet Tahoe 2025',plate:'NEW123',vehicle_swap_pending:false,extras:'Child safety seat',car_photo:'/homepage-hero-escalade.jpg'});
+ await page.clock.fastForward(31_000);
+ await expect(card).toContainText('Chevrolet Tahoe 2025');await expect(card).not.toContainText('Suburban');
+ await expect(card.locator('[data-task-plate]')).toHaveText('NEW123');
+ await expect(card.locator('[data-vehicle-swap-pending]')).toHaveCount(0);
+ await expect(card.locator('[data-trip-extras]')).toContainText('Child safety seat');await expect(card.locator('[data-trip-extras]')).toHaveClass(/gla-trip-extras/);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(state.errors).toEqual([]);
+});
+
+test('refreshing an accepted swap without replacement details shows verification instead of a date-parsing error',async({page})=>{
+ const rows=[task(19,'turo:208',{type:'pickup',category:'Pick Up'})];
+ await fixture(page,{rows});
+ await page.route('**/api/turo-trips/208/reparse',async route=>{
+  Object.assign(rows[0],{vehicle_swap_pending:true});
+  await route.fulfill({json:{success:true,data:{vehicleUpdated:true,updated:true,parsed:{tripStart:null,tripEnd:null}}}});
+ });
+ const card=page.locator('[data-day-schedule-card][data-booking-key="turo:208"]');await card.click();
+ await page.locator('[data-day-schedule-controls]').getByRole('button',{name:'Refresh trip from emails',exact:true}).click();
+ await expect(page.locator('[data-day-schedule-controls]')).toHaveCount(0);
+ await expect(card.locator('[data-vehicle-swap-pending]')).toContainText('replacement needs verification');
 });

@@ -60,6 +60,7 @@ interface DayEvent {
   detail: string | null;
   reservation_id: string | null;
   extras: string | null;
+  vehicle_swap_pending?: boolean;
   trip_start: string | null;
   trip_end: string | null;
   trip_start_mt: string | null;
@@ -400,7 +401,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
       const response = await fetch(buildApiUrl(`/api/turo-trips/${tripId}/reparse`), {method:'POST', credentials:'include'});
       const result = await response.json();
       if (!response.ok || result.success !== true) throw new Error(result.message || result.error || 'Trip refresh failed.');
-      if (!result.data?.parsed?.tripStart && !result.data?.parsed?.tripEnd) throw new Error('No confirmed booking or trip-change email could verify this reservation. The task was kept for review.');
+      if (!result.data?.parsed?.tripStart && !result.data?.parsed?.tripEnd && !result.data?.vehicleUpdated && !result.data?.extrasUpdated) throw new Error('No confirmed booking or trip-change email could verify this reservation. The task was kept for review.');
     },
     onSuccess: async () => {
       setOpen(false);
@@ -443,6 +444,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
               date must never turn an upcoming task into an overdue one. */}
           {pendingCarryover(event) && <span data-task-carryover className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-semibold text-white">Carried over</span>}
         </span>
+        {event.vehicle_swap_pending && <span role="status" data-vehicle-swap-pending className="block w-fit rounded border border-amber-400 bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-950">Vehicle swap confirmed — replacement needs verification</span>}
         {event.extras && <span data-trip-extras className="gla-trip-extras block w-fit max-w-full break-words rounded px-2 py-1 text-xs font-semibold text-amber-950"><span>Extras: </span>{event.extras}</span>}
         {event.carryover_note && <span data-task-note data-carryover-note className="block whitespace-pre-wrap break-words rounded-lg border border-primary/30 bg-white p-2 text-sm text-foreground [overflow-wrap:anywhere]"><span className="font-semibold">Note: </span>{event.carryover_note}</span>}
       </span>
