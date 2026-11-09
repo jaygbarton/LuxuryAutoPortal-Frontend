@@ -4,12 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, ExternalLink, Calendar, Users, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ScrollReveal, StaggeredReveal, StaggeredRevealItem } from "@/components/animations/ScrollReveal";
+import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { fleetCarBelongsToLocation, type PublicLocation } from "@/lib/location-config";
 
 // Top-3 featured vehicles come from GET /api/public/fleet/featured — the top
-// active cars by the PREVIOUS month's rental income. Auto-updates monthly.
+// active cars by calendar-year or previous completed month's rental income.
+// Rankings are recalculated server-side; refresh open pages throughout the day.
 interface FeaturedCar {
   id: number;
   make: string | null;
@@ -118,15 +119,20 @@ function CarCard({ car, location }: { car: FeaturedCar; location: PublicLocation
 export function FeaturedCars({ location }: { location: PublicLocation }) {
   const [mode, setMode] = useState<FeaturedMode>("top-performing");
 
-  const { data, isLoading } = useQuery<{ success: boolean; data: FeaturedCar[] }>({
+  const { data, isLoading, isError, refetch, isFetching } = useQuery<{ success: boolean; data: FeaturedCar[] }>({
     queryKey: ["/api/public/fleet/featured", mode, location.id],
     queryFn: async () => {
-      const path = location.id === "wilmington" ? "/api/public/fleet" : `/api/public/fleet/featured?mode=${mode}`;
-      const res = await fetch(buildApiUrl(path));
+      const path = location.id === "wilmington" ? "/api/public/fleet" : `/api/public/fleet/featured?${new URLSearchParams({mode, location: location.id})}`;
+      const res = await fetch(buildApiUrl(path), {cache: 'no-store'});
       if (!res.ok) throw new Error("Failed to load featured vehicles");
-      return res.json();
+      const result = await res.json();
+      if (result.success !== true || !Array.isArray(result.data)) throw new Error('Failed to load featured vehicles');
+      return result;
     },
-    staleTime: 1000 * 60 * 30,
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: 1000 * 60 * 15,
+    refetchOnWindowFocus: 'always',
+    refetchOnReconnect: 'always',
   });
 
   const cars = (data?.data ?? []).filter((car) => fleetCarBelongsToLocation(car.turoLink, location, car.locationTag));
@@ -142,13 +148,13 @@ export function FeaturedCars({ location }: { location: PublicLocation }) {
             Featured Vehicles
           </h2>
           <p className="max-w-2xl mx-auto" style={{ color: "#4A4A4A", fontSize: "16px", lineHeight: "1.65" }}>
-            {mode === "previous-month"
-              ? "Our top-performing vehicles from the previous completed month — updated automatically."
-              : "Our top-performing vehicles for 2026 — updated automatically."}
+            {location.id === 'wilmington' ? 'Explore our local Wilmington fleet — updated automatically.' : mode === "previous-month"
+              ? "Our top-performing vehicles from the previous completed month — rankings updated daily."
+              : "Our top-performing vehicles this year — rankings updated daily."}
           </p>
           {location.id === "slc" ? <div className="mt-6 inline-flex rounded-lg border p-1" style={{ borderColor: "#E8D4A0", background: "#FFF8E8" }}>
             {([
-              ["top-performing", "Top 2026"],
+              ["top-performing", "Top Vehicles"],
               ["previous-month", "Top Last Month"],
             ] as const).map(([value, label]) => {
               const active = mode === value;
@@ -157,6 +163,7 @@ export function FeaturedCars({ location }: { location: PublicLocation }) {
                   key={value}
                   type="button"
                   onClick={() => setMode(value)}
+                  aria-pressed={active}
                   className="px-4 py-2 text-sm font-semibold rounded-md transition-all"
                   style={{
                     background: active ? "linear-gradient(135deg, #D4A017, #E8B830)" : "transparent",
@@ -171,22 +178,32 @@ export function FeaturedCars({ location }: { location: PublicLocation }) {
         </ScrollReveal>
 
         {isLoading ? (
-          <div className="flex justify-center py-12">
+          <div className="flex justify-center py-12" role="status" aria-label="Loading featured vehicles">
             <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#C49000" }} />
           </div>
+        ) : isError && !data ? (
+          <div className="text-center" role="alert">
+            <p>Featured vehicles could not be loaded.</p>
+            <button type="button" className="mt-3 min-h-11 rounded-md border px-4 py-2" disabled={isFetching} onClick={() => void refetch()}>Try again</button>
+          </div>
         ) : cars.length > 0 ? (
-          <StaggeredReveal className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8" data-featured-cars>
             {cars.map((car) => (
-              <StaggeredRevealItem key={car.id}>
+              <div key={car.id}>
                 <CarCard car={car} location={location} />
-              </StaggeredRevealItem>
+              </div>
             ))}
-          </StaggeredReveal>
+          </div>
         ) : (
           <p className="text-center" style={{ color: "#808080" }}>
-            Explore the {location.cityState} collection below.
+            No featured vehicles are available for this selection.{' '}
+            <Link href={location.fleetPath} className="underline">Explore the {location.cityState} collection.</Link>
           </p>
         )}
+        {isError && data && <p role="alert" className="mt-4 text-center text-sm">
+          Rankings could not be refreshed. Showing the last available results.{' '}
+          <button type="button" className="min-h-11 underline" disabled={isFetching} onClick={() => void refetch()}>Try again</button>
+        </p>}
 
       </div>
     </section>
