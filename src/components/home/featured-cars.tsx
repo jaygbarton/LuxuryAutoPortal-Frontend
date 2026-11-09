@@ -26,6 +26,7 @@ interface FeaturedCar {
   photo: string | null;
   turoLink: string | null;
   locationTag?: string | null;
+  performancePeriod?: {year:number;month:number|null}|null;
 }
 
 type FeaturedMode = "top-performing" | "previous-month";
@@ -122,9 +123,9 @@ export function FeaturedCars({ location }: { location: PublicLocation }) {
   const [mode, setMode] = useState<FeaturedMode>("top-performing");
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery<{ success: boolean; data: FeaturedCar[] }>({
-    queryKey: ["/api/public/fleet/featured", mode, location.id, rankingDay],
+    queryKey: ["/api/public/fleet/featured", mode, location.id, rankingDay, "month-fallback"],
     queryFn: async () => {
-      const path = location.id === "wilmington" ? "/api/public/fleet" : `/api/public/fleet/featured?${new URLSearchParams({mode, location: location.id})}`;
+      const path = location.id === "wilmington" ? "/api/public/fleet" : `/api/public/fleet/featured?${new URLSearchParams({mode, location: location.id, v: "month-fallback"})}`;
       const res = await fetch(buildApiUrl(path));
       if (!res.ok) throw new Error("Failed to load featured vehicles");
       const result = await res.json();
@@ -140,6 +141,10 @@ export function FeaturedCars({ location }: { location: PublicLocation }) {
 
   const cars = (data?.data ?? []).filter((car) => fleetCarBelongsToLocation(car.turoLink, location, car.locationTag));
 
+  const period=cars[0]?.performancePeriod;
+  const monthLabel=period && Number.isInteger(period.year) && period.month!=null && Number.isInteger(period.month) && period.month>=1 && period.month<=12
+    ? new Intl.DateTimeFormat('en-US',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(period.year,period.month-1,1))) : null;
+
   return (
     <section id="featured-fleet" className="py-20 lg:py-28" style={{ background: "#FFFDF8" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -152,7 +157,7 @@ export function FeaturedCars({ location }: { location: PublicLocation }) {
           </h2>
           <p className="max-w-2xl mx-auto" style={{ color: "#4A4A4A", fontSize: "16px", lineHeight: "1.65" }}>
             {location.id === 'wilmington' ? 'Explore our local Wilmington fleet — updated automatically.' : mode === "previous-month"
-              ? "Our top-performing vehicles from the previous completed month — rankings updated daily."
+              ? monthLabel ? `Our top-performing vehicles for ${monthLabel} — rankings updated daily.` : "Our top-performing vehicles from the latest available completed month — rankings updated daily."
               : "Our top-performing vehicles this year — rankings updated daily."}
           </p>
           {location.id === "slc" ? <div className="mt-6 inline-flex rounded-lg border p-1" style={{ borderColor: "#E8D4A0", background: "#FFF8E8" }}>

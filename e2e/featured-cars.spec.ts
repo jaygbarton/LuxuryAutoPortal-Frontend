@@ -71,3 +71,17 @@ test('rankings do not poll or refetch on focus during the day and refresh once o
   await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
   expect(requests).toBe(1);
 });
+
+for(const width of [390,1280])test(`fallback rankings show the actual earlier month at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:844});await setup(page);await expectCardsVisible(page,1);
+ await page.route('**/api/public/fleet/featured?*mode=previous-month*',route=>{
+  expect(new URL(route.request().url()).searchParams.get('v')).toBe('month-fallback');
+  return route.fulfill({json:{success:true,data:cars(4).map(car=>({...car,performancePeriod:{year:2025,month:12}}))}});
+ });
+ await page.getByRole('button',{name:'Top Last Month',exact:true}).click();
+ await expectCardsVisible(page,4);await expect(page.locator('#featured-fleet')).toContainText('Our top-performing vehicles for December 2025');
+ await page.getByRole('button',{name:'Top Vehicles',exact:true}).click();
+ await expectCardsVisible(page,1);await expect(page.locator('#featured-fleet')).not.toContainText('December 2025');
+ await page.getByRole('button',{name:'Top Last Month',exact:true}).click();
+ await expectCardsVisible(page,4);await expect(page.locator('#featured-fleet')).toContainText('December 2025');
+});
