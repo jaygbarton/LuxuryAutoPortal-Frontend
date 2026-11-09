@@ -4,7 +4,7 @@ function task(id: number, bookingKey: string, overrides: Record<string, unknown>
   return { id, bookingKey, type: "cleaning", category: "Cleaning", car_name: `Vehicle task ${id}`, plate: "TEST123", guest_name: "Test Guest", assigned_to: "Test Worker", assigned_to_id: 41, start_time: "09:00", end_time: null, location: "Test airport", status: "new", notes: null, detail: null, reservation_id: "RES-208", extras: null, trip_start: "09:00", trip_end: "10:00", trip_start_mt: "2026-10-07 09:00", trip_end_mt: "2026-10-08 10:00", pickup_location: "Test airport", dropoff_location: "Test airport", location_tag: "slc", photos: null, car_photo: null, duration_minutes: 60, scheduled_day: "2026-10-07", ...overrides };
 }
 
-async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType<typeof task>[]; user?: Record<string, unknown>; manager?: boolean; missingEmployee?: boolean; pickerFailOnce?: boolean; fleet?: Array<Record<string,unknown>> } = {}) {
+async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType<typeof task>[]; user?: Record<string, unknown>; manager?: boolean; taskCategories?: string[]; missingEmployee?: boolean; pickerFailOnce?: boolean; fleet?: Array<Record<string,unknown>> } = {}) {
   const writes: any[] = [], errors: string[] = [];
   let pickerRequests = 0;
   page.on('pageerror', error => errors.push(error.message));
@@ -43,7 +43,7 @@ async function fixture(page: Page, overrides: { date?: string; rows?: ReturnType
       body = { success: true, data: { employee_aid: 41, employee_first_name: 'Test', employee_last_name: 'Worker', employee_is_active: 1 } };
     }
     else if (path === '/api/operations/fleet-vehicles') body = { data: overrides.fleet ?? [{ carId: 101, carName: 'Test vehicle', plateNumber: 'TEST123', vinNumber: null, carStatus: 'available' }, { carId: 102, carName: 'Retired vehicle', plateNumber: 'RETIRED', vinNumber: null, carStatus: 'off_fleet' }] };
-    else if (path === '/api/me/preferences/day-schedule') body = { myTasksFirst: true, employeeId: 41 };
+    else if (path === '/api/me/preferences/day-schedule') body = { myTasksFirst: true, employeeId: 41, defaultTaskCategories: overrides.taskCategories };
     else if (path === '/api/operations/day-schedule') body = { date, events: rows, work_shifts: [] };
     else if (path === '/api/employees/picker') {
       if (overrides.pickerFailOnce && ++pickerRequests === 1) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporarily unavailable' }) });
@@ -654,4 +654,56 @@ test('an active Subaru pickup keeps its fleet match from the saved VIN when its 
  await expect(page.getByRole('combobox',{name:'Operations fleet'})).toContainText('Active vehicles');
  await expect(card).toBeVisible();await expect(card).toContainText('12:00 PM');
  await page.reload();await expect(card).toBeVisible();
+});
+
+for (const width of [390, 1280]) test(`cleaner-only employees default to Cleaning and can change their filters at ${width}px`, async ({page}) => {
+  await page.setViewportSize({width, height:1000});
+  const state = await fixture(page, {user:{isAdmin:false,isEmployee:true,isSuperAdmin:false}, taskCategories:['Cleaning']});
+  const filters = page.locator('[aria-label="Filter schedule by task type"]');
+  await expect(filters.getByRole('button',{name:/^Cleaning/})).toHaveAttribute('aria-pressed','true');
+  await expect(filters.getByRole('button',{name:/^Pick Up/})).toHaveAttribute('aria-pressed','false');
+  await expect(filters.getByRole('button',{name:/^Drop Off/})).toHaveAttribute('aria-pressed','false');
+  await expect(page.locator('[data-day-schedule-card]')).toHaveCount(1);
+  await expect(page.locator('[data-day-schedule-card]')).toContainText('Cleaning');
+  await filters.getByRole('button',{name:/^Pick Up/}).click();
+  await expect(page.locator('[data-day-schedule-card]')).toHaveCount(4);
+  // Background role/preferences refresh must not overwrite a deliberate choice.
+  await page.evaluate(() => { window.dispatchEvent(new Event('blur')); window.dispatchEvent(new Event('focus')); });
+  await expect(filters.getByRole('button',{name:/^Pick Up/})).toHaveAttribute('aria-pressed','true');
+  await filters.getByRole('button',{name:'Clear filter',exact:true}).click();
+  await expect(page.locator('[data-day-schedule-card]')).toHaveCount(5);
+  await page.reload();
+  await expect(filters.getByRole('button',{name:/^Cleaning/})).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('[data-day-schedule-card]')).toHaveCount(1);
+  expect(state.errors).toEqual([]);
+});
+
+test('a filter choice made before employee defaults load is preserved', async ({page}) => {
+  await fixture(page, {user:{isAdmin:false,isEmployee:true,isSuperAdmin:false}});
+  let release!:()=>void;
+  const waitForPreference = new Promise<void>(resolve => {release=resolve;});
+  let preferenceRequested=false;
+  await page.route('**/api/me/preferences/day-schedule', async route => {
+    preferenceRequested=true; await waitForPreference;
+    return route.fulfill({json:{myTasksFirst:true,employeeId:41,defaultTaskCategories:['Cleaning']}});
+  });
+  await page.reload();
+  await expect.poll(()=>preferenceRequested).toBe(true);
+  const filters = page.locator('[aria-label="Filter schedule by task type"]');
+  await filters.getByRole('button',{name:'Clear filter',exact:true}).click();
+  release();
+  // The checkbox becomes enabled only after preferences arrive.
+  await expect(page.getByRole('checkbox',{name:'My tasks first'})).toBeEnabled();
+  await expect(page.locator('[data-day-schedule-card]')).toHaveCount(5);
+  await expect(filters.getByRole('button',{name:/^Cleaning/})).toHaveAttribute('aria-pressed','false');
+});
+
+test('employees with driver and cleaner roles retain handoffs as the default', async ({page}) => {
+  await fixture(page, {user:{isAdmin:false,isEmployee:true,isSuperAdmin:false}, taskCategories:['Pick Up','Drop Off']});
+  const filters = page.locator('[aria-label="Filter schedule by task type"]');
+  await expect(page.getByRole('checkbox',{name:'My tasks first'})).toBeEnabled();
+  await expect(filters.getByRole('button',{name:/^Cleaning/})).toHaveAttribute('aria-pressed','false');
+  await expect(filters.getByRole('button',{name:/^Pick Up/})).toHaveAttribute('aria-pressed','true');
+  await expect(filters.getByRole('button',{name:/^Drop Off/})).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('[data-day-schedule-card]')).toHaveCount(4);
 });

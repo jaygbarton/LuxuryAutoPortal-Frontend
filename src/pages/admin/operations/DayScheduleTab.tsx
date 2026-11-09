@@ -1007,8 +1007,8 @@ export function DayScheduleTab() {
   const [unassignedSearch, setUnassignedSearch] = useState("");
   const [fuelReturn, setFuelReturn] = useState<DayEvent | null>(null);
   const [parkingTask, setParkingTask] = useState<{ event: DayEvent; status: string; completedDate?: string } | null>(null);
-  // Start with handoffs selected. Badges toggle categories; an empty set shows all.
-  const [activeCategories, setActiveCategories] = useState<Set<string>>(() => new Set(['Pick Up', 'Drop Off']));
+  // A manual choice overrides the role-based default for this account/view only.
+  const [categorySelection, setCategorySelection] = useState<{identity: string; categories: Set<string>} | null>(null);
   const [viewMode, setViewMode] = useState<"employee" | "timeline">("timeline");
   const [showAddEntry, setShowAddEntry] = useState(false);
   const [entryType, setEntryType] = useState<"refuel" | "custom">("refuel");
@@ -1037,8 +1037,9 @@ export function DayScheduleTab() {
   const managerAccess = useChartManagementAccess();
   const canEditTaskNotes = !authData?.user?.viewAsClient && !authData?.user?.viewAsCoHost && (canBulkCompleteOldTasks || managerAccess.data?.canManage === true);
   const isAdmin = authData?.user?.isAdmin === true || authData?.user?.impersonatorIsAdmin === true || authData?.user?.isEmployee === true;
-  const preferenceKey = ["/api/me/preferences/day-schedule", authData?.user?.id, authData?.user?.viewAsEmployee?.employeeId];
-  const schedulePreference = useQuery<{ myTasksFirst: boolean; employeeId: number | null }>({
+  const preferenceKey = ["/api/me/preferences/day-schedule", authData?.user?.id, authData?.user?.viewAsEmployee?.employeeId, authData?.user?.viewAsCoHost?.coHostId, authData?.user?.viewAsClient?.clientId, authData?.user?.isAdmin, authData?.user?.isEmployee];
+  const categoryIdentity = JSON.stringify(preferenceKey);
+  const schedulePreference = useQuery<{ myTasksFirst: boolean; employeeId: number | null; defaultTaskCategories?: string[] }>({
     queryKey: preferenceKey,
     enabled: !!authData?.user?.id,
     queryFn: async () => {
@@ -1047,6 +1048,14 @@ export function DayScheduleTab() {
       return response.json();
     },
   });
+  const activeCategories = categorySelection?.identity === categoryIdentity ? categorySelection.categories :
+    new Set(schedulePreference.data?.defaultTaskCategories ?? ['Pick Up', 'Drop Off']);
+  function setActiveCategories(value: Set<string> | ((previous: Set<string>) => Set<string>)) {
+    setCategorySelection(previous => {
+      const current = previous?.identity === categoryIdentity ? previous.categories : activeCategories;
+      return {identity: categoryIdentity, categories: typeof value === 'function' ? value(current) : value};
+    });
+  }
   const saveSchedulePreference = useMutation({
     mutationFn: async (enabled: boolean) => {
       const response = await fetch(buildApiUrl("/api/me/preferences/day-schedule"), {
