@@ -17,6 +17,7 @@ async function mock(page: Page, options: { unreadable?: boolean; failStatus?: bo
     if (isWrite) calls.push({ path, body });
     let result: any = { success: true, data: [], notifications: [], unreadCount: 0 }, status = 200;
     if (path === "/api/auth/me") result = { user: { id: 7, name: "Actual Submitter", roleName: "Admin", isAdmin: true, isSuperAdmin: true, isEmployee: false, isClient: false, effectiveTimezone: "America/Denver" } };
+    else if(path === "/api/me/employee") result={data:{employee_aid:options.myEmployeeId??7}};
     else if (path === "/api/me/preferences/day-schedule") {
       if (isWrite) myTasksFirst = body.myTasksFirst;
       result = { myTasksFirst, employeeId: options.myEmployeeId ?? 41 };
@@ -312,7 +313,7 @@ for (const [height, choice] of [[844, "41"], [500, "uber"], [667, "na"]] as cons
   await driverDialog.getByRole('button', { name: 'Back to receipt', exact: true }).click();
   await expect(page.getByLabel('Amount ($)', { exact: true })).toHaveValue('5.00');
   await page.getByRole('button', { name: 'Submit receipt & complete pickup', exact: true }).click();
-  await driverDialog.getByRole('combobox', { name: 'Task driver', exact: true }).selectOption(choice);
+  await driverDialog.getByRole('combobox', { name: 'Task driver', exact: true }).click();await page.getByRole('option',{name:choice==='41'?'Test Worker':choice==='uber'?'Uber':'N/A',exact:true}).click();
   await driverDialog.getByRole('button', { name: 'Save driver & submit', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const writes = state.calls.filter(call => ['/api/operations/day-schedule/driver', '/api/expense-form-submissions', '/api/operations/tasks/19/status'].includes(call.path));

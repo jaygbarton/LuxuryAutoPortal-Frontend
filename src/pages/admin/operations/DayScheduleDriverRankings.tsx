@@ -34,12 +34,12 @@ export function DayScheduleDriverRankings({ selectedMonth, wide = false }: { sel
         className="mt-1 h-11 w-full min-w-0 rounded-md border bg-background px-3 text-base sm:text-sm" />
       {month !== currentMonth && <Button variant="ghost" className="mt-1 h-11 w-full text-xs" onClick={() => setMonth(currentMonth)}>Current month</Button>}</>}
       <p className="mt-2 text-xs text-muted-foreground">{label} · {location === 'all' ? 'All locations' : location === 'slc' ? 'SLC' : 'Wilmington'}</p>
-      <p className="mt-1 text-xs text-muted-foreground">Car Drivers only. Submitted receipts, including pending approval; declined forms excluded.</p>
+      <p className="mt-1 text-xs text-muted-foreground">Parking includes Car Drivers and employees assigned to the airport run. Submitted receipts include pending approval; declined forms are excluded.</p>
     </div>
     {query.isPending ? <p role="status" className="p-3 text-sm text-muted-foreground">Loading driver charts…</p> : query.isError ? <div role="alert" className="rounded-xl border p-4 text-sm">Driver charts could not be loaded. <Button variant="outline" className="mt-2 h-11" onClick={() => query.refetch()}>Retry driver charts</Button></div> : <>
-      <Ranking title="Airport parking average" caption="Lowest average first · airport-return trips only" rows={query.data.parking} parking />
+      <Ranking title="Airport parking average" caption="Lowest average first · airport runs with included receipts" rows={query.data.parking} parking />
       <Ranking title="Gas reimbursed" caption="Highest submitted reimbursement total first" rows={query.data.gas} />
-      <p className={`px-1 text-xs text-muted-foreground ${wide ? 'lg:col-span-2' : ''}`}>$40+ parking tickets are excluded unless a manager includes them. Airport-return links are required unless a manager force includes the entry; those overrides are labeled below.</p>
+      <p className={`px-1 text-xs text-muted-foreground ${wide ? 'lg:col-span-2' : ''}`}>$40+ parking tickets are excluded unless a manager includes them. Each included ticket’s full cost counts for both the receipt employee and the assigned driver. Airport-return links are required unless a manager force includes the entry; those overrides are labeled below.</p>
     </>}
   </aside>;
 }
@@ -51,7 +51,7 @@ function Ranking({ title, caption, rows, parking = false }: { title: string; cap
       <div className="flex items-start justify-between gap-2 text-xs"><span className="min-w-0 break-words font-medium">{index + 1}. {row.name}</span><span className="shrink-0 font-semibold">{row.receipts ? money(parking ? row.average! : row.total) : 'No data'}</span></div>
       {row.receipts > 0 && <>
         <div className="my-1.5 h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(1, (parking ? row.average ?? 0 : row.total) / largest * 100)}%` }} /></div>
-        <p className="text-[11px] text-muted-foreground">{parking ? `${money(row.total)} ÷ ${row.trips} ${row.trips === 1 ? 'trip' : 'trips'}` : `${row.receipts} ${row.receipts === 1 ? 'receipt' : 'receipts'}`}{row.pending ? ` · ${row.pending} pending` : ''}</p>
+        <p className="text-[11px] text-muted-foreground">{parking ? `${money(row.total)} ÷ ${row.trips} ${row.trips === 1 ? 'Airport run' : 'Airport runs'}` : `${row.receipts} ${row.receipts === 1 ? 'receipt' : 'receipts'}`}{row.pending ? ` · ${row.pending} pending` : ''}</p>
         {parking&&!!row.unlinked&&<p className="text-[11px] text-amber-800">Includes {row.unlinked} force-included {row.unlinked===1?'entry':'entries'} without verified trip links, each counted once.</p>}
       </>}
     </li>)}</ol>}

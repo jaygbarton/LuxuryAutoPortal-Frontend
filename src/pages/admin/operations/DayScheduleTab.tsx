@@ -1,3 +1,4 @@
+import {TripChangeList,SwapVehiclePicker,RestoreReservationPickup,type TripChange} from './DayScheduleTripTools';
 import { scheduleTaskStatus } from "@/lib/dayScheduleStatus";
 import { compareScheduleTasks, pendingCarryover } from "@/lib/dayScheduleOrder";
 import { useChartManagementAccess } from "@/hooks/use-chart-management-access";
@@ -61,6 +62,9 @@ interface DayEvent {
   reservation_id: string | null;
   extras: string | null;
   vehicle_swap_pending?: boolean;
+  vehicle_swap?: boolean;
+  vehicle_revision?: string|null;
+  trip_changes?: TripChange[];
   trip_start: string | null;
   trip_end: string | null;
   trip_start_mt: string | null;
@@ -333,7 +337,7 @@ function DetailLine({ icon, label, value, className = "" }: {
   );
 }
 
-const ScheduleBookingContext = createContext<{ selectedBooking: string | null; date: string; now?: number; openAirportReceipt?: (event: DayEvent) => void; openFuelReceipt?: (event: DayEvent) => void; canRefreshTrips?: boolean; canEditTaskNotes?: boolean; saveTaskNote?: (event: DayEvent, note: string) => Promise<void> }>({
+const ScheduleBookingContext = createContext<{ selectedBooking: string | null; date: string; now?: number; openAirportReceipt?: (event: DayEvent) => void; openFuelReceipt?: (event: DayEvent) => void; canRefreshTrips?: boolean; canSelectSwapVehicle?:boolean; canEditTaskNotes?: boolean; saveTaskNote?: (event: DayEvent, note: string) => Promise<void> }>({
   selectedBooking: null, date: "",
 });
 
@@ -444,6 +448,8 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
               date must never turn an upcoming task into an overdue one. */}
           {pendingCarryover(event) && <span data-task-carryover className="rounded bg-red-600 px-2 py-0.5 text-[11px] font-semibold text-white">Carried over</span>}
         </span>
+        {event.vehicle_swap&&<span data-swapped-badge className="inline-block rounded bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-950">Swapped</span>}
+        <TripChangeList changes={event.trip_changes} formatDateTime={fmtTripDateTime}/>
         {event.vehicle_swap_pending && <span role="status" data-vehicle-swap-pending className="block w-fit rounded border border-amber-400 bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-950">Vehicle swap confirmed — replacement needs verification</span>}
         {event.extras && <span data-trip-extras className="gla-trip-extras block w-fit max-w-full break-words rounded px-2 py-1 text-xs font-semibold text-amber-950"><span>Extras: </span>{event.extras}</span>}
         {event.carryover_note && <span data-task-note data-carryover-note className="block whitespace-pre-wrap break-words rounded-lg border border-primary/30 bg-white p-2 text-sm text-foreground [overflow-wrap:anywhere]"><span className="font-semibold">Note: </span>{event.carryover_note}</span>}
@@ -467,6 +473,8 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
           </Button>
           {refreshTrip.isError && <p role="alert" className="text-sm text-red-700">{refreshTrip.error.message}</p>}
         </div>}
+        {(event.vehicle_swap||event.vehicle_swap_pending)&&context.canSelectSwapVehicle&&/^turo:[1-9]\d*$/.test(event.bookingKey||'')&&<SwapVehiclePicker tripId={Number(event.bookingKey!.split(':')[1])} revision={event.vehicle_revision??null}/>}
+        <TripChangeList changes={event.trip_changes} formatDateTime={fmtTripDateTime}/>
         <ScheduleBookingContext.Provider value={popupContext}>
           {(canRefuel(event) || event.airport_parking_required) && <div className="flex flex-wrap gap-2" aria-label="Trip receipt actions">
             {event.airport_parking_required && <Button type="button" variant="outline" className="h-11 min-w-0 flex-1 rounded-lg px-3 text-xs sm:flex-none" onClick={()=>popupContext.openAirportReceipt(event)}>Airport parking receipt</Button>}
@@ -1547,7 +1555,7 @@ export function DayScheduleTab() {
   }, {});
 
   return (
-    <ScheduleBookingContext.Provider value={{ selectedBooking, date, now: clockNow, canRefreshTrips:canForceUpdate, canEditTaskNotes, saveTaskNote, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
+    <ScheduleBookingContext.Provider value={{ selectedBooking, date, now: clockNow, canRefreshTrips:canForceUpdate, canSelectSwapVehicle:!!(authData?.user?.isAdmin||authData?.user?.isEmployee)&&!authData?.user?.viewAsClient, canEditTaskNotes, saveTaskNote, openAirportReceipt: (event) => setParkingTask({ event, status: "completed", completedDate: event.completed_day || date }), openFuelReceipt: setFuelReturn }}>
     <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
     <div className="min-w-0 space-y-3 sm:space-y-4">
       {fuelReturn?.bookingKey && <TripReceiptDialog key={fuelReturn.bookingKey} kind="gas" bookingKey={fuelReturn.bookingKey} onClose={() => setFuelReturn(null)} onComplete={async () => {
@@ -1636,6 +1644,11 @@ export function DayScheduleTab() {
         </div>
       </div>
 
+      {canForceUpdate&&<RestoreReservationPickup onRestored={schedule=>{
+        setDate(schedule.date);queryClient.setQueryData(['/api/operations/day-schedule',schedule.date],schedule);
+        void queryClient.invalidateQueries({queryKey:['/api/operations/day-schedule']});
+        toast({title:'Pickup restored',description:`The verified pickup is on ${schedule.date}.`});
+      }}/>}
       {forceUpdate.isError && <p role="alert" className="text-sm text-destructive">{forceUpdate.error.message}</p>}
       {schedulePreference.isError && <p role="alert" className="text-sm text-destructive">Could not load your saved schedule setting. <button className="underline" onClick={() => void schedulePreference.refetch()}>Retry</button></p>}
 

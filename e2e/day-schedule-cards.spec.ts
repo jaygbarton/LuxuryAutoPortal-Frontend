@@ -403,15 +403,15 @@ for (const type of ['custom', 'delivery']) test(`manual ${type} task completion 
   await page.getByRole('option', { name: 'Completed', exact: true }).click();
   await expect(page.getByText('Select a driver before completing this task.', { exact: true })).toBeVisible();
   expect(state.writes.filter(write => write.path.endsWith('/status'))).toEqual([]);
-  await popup.getByRole('combobox', { name: 'Task driver', exact: true }).selectOption('41');
-  await expect.poll(() => state.writes.find(write => write.path.endsWith('/driver'))?.body).toMatchObject({ eventId: 402, employeeId: 41, assignmentType: 'employee', date: '2026-10-07' });
+  await popup.getByRole('combobox', { name: 'Task driver', exact: true }).click();await page.getByRole('option',{name:'Amy Driver',exact:true}).click();
+  await expect.poll(() => state.writes.find(write => write.path.endsWith('/driver'))?.body).toMatchObject({ eventId: 402, employeeId: 42, assignmentType: 'employee', date: '2026-10-07' });
   await popup.getByRole('combobox', { name: 'Task status', exact: true }).click();
   await page.getByRole('option', { name: 'Completed', exact: true }).click();
   await expect.poll(() => state.writes.filter(write => write.path.endsWith('/status')).length).toBe(1);
   expect(state.errors).toEqual([]);
 });
 
-for (const choice of ['41', 'uber', 'na']) test(`employees load the staff driver picker and complete an airport drop-off with ${choice}`, async ({ page }) => {
+for (const choice of ['42', 'uber', 'na']) test(`employees load the staff driver picker and complete an airport drop-off with ${choice}`, async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const reads: string[] = [];
   page.on('request', request => { if (request.url().includes('/api/employees')) reads.push(new URL(request.url()).pathname); });
@@ -421,14 +421,13 @@ for (const choice of ['41', 'uber', 'na']) test(`employees load the staff driver
   await card.click();
   const popup = page.locator('[data-day-schedule-controls]');
   const driver = popup.getByRole('combobox', { name: 'Task driver', exact: true });
-  await expect(driver.locator('option[value="41"]')).toHaveText('Test Worker');
-  await expect(driver.locator('option[value="uber"]')).toHaveText('Uber');
-  await expect(driver.locator('option[value="na"]')).toHaveText('N/A');
-  await expect(driver.locator('option')).toHaveText(['Select driver', 'Uber', 'N/A', 'Amy Driver', 'Test Worker', 'Zoe Driver']);
-  await driver.selectOption(choice);
-  const mode = choice === '41' ? 'employee' : choice;
-  await expect.poll(() => state.writes.find(write => write.path.endsWith('/driver'))?.body).toMatchObject({ assignmentType: mode, employeeId: choice === '41' ? 41 : null });
-  await expect(driver).toHaveValue(choice);
+  await driver.click();
+  await expect(page.getByRole('option',{name:'Test Worker',exact:true})).toHaveCount(0);
+  for(const name of ['Amy Driver','Zoe Driver','Uber','N/A'])await expect(page.getByRole('option',{name,exact:true})).toBeEnabled();
+  await page.getByRole('option',{name:choice==='42'?'Amy Driver':choice==='uber'?'Uber':'N/A',exact:true}).click();
+  const mode = choice === '42' ? 'employee' : choice;
+  await expect.poll(() => state.writes.find(write => write.path.endsWith('/driver'))?.body).toMatchObject({ assignmentType: mode, employeeId: choice === '42' ? 42 : null });
+  await expect(driver).toContainText(choice==='42'?'Amy Driver':choice==='uber'?'Uber':'N/A');
   await popup.getByRole('combobox', { name: 'Task status', exact: true }).click();
   await page.getByRole('option', { name: 'Completed', exact: true }).click();
   await expect.poll(() => state.writes.filter(write => write.path.endsWith('/status')).length).toBe(1);
@@ -446,10 +445,10 @@ test('driver lookup failure keeps Uber and N/A selectable and supports retry wit
   const driver = popup.getByRole('combobox', { name: 'Task driver', exact: true });
   await expect(popup.getByRole('alert')).toContainText('Employee drivers could not be loaded');
   await expect(driver).toBeEnabled();
-  await driver.selectOption('na');
-  await expect(driver).toHaveValue('na');
+  await driver.click();await page.getByRole('option',{name:'N/A',exact:true}).click();
+  await expect(driver).toContainText('N/A');
   await popup.getByRole('button', { name: 'Retry drivers', exact: true }).click();
-  await expect(driver.locator('option[value="41"]')).toHaveText('Test Worker');
+  await driver.click();await expect(page.getByRole('option',{name:'Amy Driver',exact:true})).toBeEnabled();await expect(page.getByRole('option',{name:'Test Worker',exact:true})).toHaveCount(0);await page.keyboard.press('Escape');
   await expect(popup.getByRole('button', { name: 'Retry drivers', exact: true })).toHaveCount(0);
 });
 
@@ -583,4 +582,42 @@ test('refreshing an accepted swap without replacement details shows verification
  await page.locator('[data-day-schedule-controls]').getByRole('button',{name:'Refresh trip from emails',exact:true}).click();
  await expect(page.locator('[data-day-schedule-controls]')).toHaveCount(0);
  await expect(card.locator('[data-vehicle-swap-pending]')).toContainText('replacement needs verification');
+});
+
+for(const width of [390,1280])test(`employees choose a confirmed replacement and see swapped and modified details at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:1000});
+ const rows=[task(19,'turo:208',{type:'pickup',category:'Pick Up',car_name:'Chevrolet Suburban 2026',plate:'OLD123',vehicle_swap:true,vehicle_swap_pending:true,vehicle_revision:null,extras:'Child seat',trip_changes:[{field:'trip_end',label:'Trip end',previous:'2026-11-06 21:00',current:'2026-11-08 12:00'}]})];
+ const state=await fixture(page,{rows,user:{isAdmin:false,isEmployee:true,isSuperAdmin:false},fleet:[{carId:101,carName:'Chevrolet Suburban 2026',plateNumber:'OLD123',vinNumber:'OLDVIN',carStatus:'available'},{carId:102,carName:'Chevrolet Tahoe 2025',plateNumber:'NEW123',vinNumber:'NEWVIN',carStatus:'available'}]});
+ const card=page.locator('[data-day-schedule-card]');await expect(card.locator('[data-swapped-badge]')).toHaveText('Swapped');await expect(card.locator('del')).toContainText('9:00 PM');
+ await card.click();let attempts=0;
+ await page.route('**/api/operations/day-schedule/trips/208/swap-vehicle',async route=>{
+  expect(route.request().postDataJSON()).toEqual({carId:102,expectedRevision:null});attempts++;
+  if(attempts===1)return route.fulfill({status:409,json:{error:'The reservation changed. Refresh it before choosing the replacement.'}});
+  Object.assign(rows[0],{car_name:'Chevrolet Tahoe 2025',plate:'NEW123',vehicle_swap_pending:false,vehicle_revision:'2026-11-09T01:00:00Z'});
+  return route.fulfill({json:{success:true}});
+ });
+ const picker=page.locator('[data-swap-vehicle-picker]');await picker.getByRole('combobox',{name:'Replacement vehicle'}).click();await page.getByRole('option',{name:'Chevrolet Tahoe 2025 · NEW123',exact:true}).click();
+ await picker.getByRole('button',{name:'Confirm replacement vehicle'}).click();await expect(picker.getByRole('alert')).toContainText('reservation changed');await expect(card).toContainText('Suburban');
+ await picker.getByRole('button',{name:'Confirm replacement vehicle'}).click();await expect(card).toContainText('Tahoe');await expect(card.locator('[data-task-plate]')).toHaveText('NEW123');await expect(card.locator('[data-swapped-badge]')).toHaveText('Swapped');await expect(card.locator('[data-trip-extras]')).toContainText('Child seat');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(state.errors).toEqual([]);
+});
+
+test('restores a missing pickup only after source verification, on its actual return day',async({page})=>{
+ const rows:ReturnType<typeof task>[]=[];const state=await fixture(page,{rows});
+ await page.route('**/api/operations/day-schedule/reservations/77770001',route=>route.fulfill({json:{success:true,tripId:208,reservationId:'77770001'}}));
+ let verified=false;
+ await page.route('**/api/turo-trips/208/reparse',route=>{verified=true;return route.fulfill({json:{success:true,data:{parsed:{tripEnd:'2026-11-08T19:00:00Z'}}}});});
+ await page.route('**/api/operations/day-schedule?*',route=>route.fulfill({json:{date:'2026-11-08',events:rows,work_shifts:[]}}));
+ await page.route('**/api/operations/day-schedule/reservations/77770001/restore',route=>{
+  expect(verified).toBe(true);rows.push(task(19,'turo:208',{type:'pickup',category:'Pick Up',car_name:'Subaru Outback 2022',reservation_id:'77770001',start_time:'12:00',scheduled_day:'2026-11-08'}));
+  return route.fulfill({json:{success:true,tripId:208,taskId:19,date:'2026-11-08',schedule:{date:'2026-11-08',events:rows,work_shifts:[]}}});
+ });
+ await page.getByRole('button',{name:'Restore reservation pickup',exact:true}).click();await page.getByLabel('Reservation number',{exact:true}).fill('77770001');await page.getByRole('button',{name:'Verify emails & restore pickup',exact:true}).click();
+ await expect(page.getByLabel('Schedule date',{exact:true})).toHaveValue('2026-11-08');await expect(page.locator('[data-day-schedule-card]')).toContainText('Subaru Outback');await expect(page.locator('[data-day-schedule-card]')).toContainText('12:00 PM');expect(state.errors).toEqual([]);
+});
+
+test('driver picker excludes the signed-in employee while keeping other drivers, Uber and N/A available',async({page})=>{
+ await fixture(page,{user:{isAdmin:false,isEmployee:true,isSuperAdmin:false},rows:[task(19,'turo:208',{type:'pickup',category:'Pick Up',location:'SLC Airport'})]});
+ await page.locator('[data-day-schedule-card]').click();const picker=page.getByRole('combobox',{name:'Task driver',exact:true});
+ await picker.click();await expect(page.getByRole('option',{name:'Amy Driver',exact:true})).toBeEnabled();await expect(page.getByRole('option',{name:'Test Worker',exact:true})).toHaveCount(0);await expect(page.getByRole('option',{name:'Uber',exact:true})).toBeEnabled();await expect(page.getByRole('option',{name:'N/A',exact:true})).toBeEnabled();
 });

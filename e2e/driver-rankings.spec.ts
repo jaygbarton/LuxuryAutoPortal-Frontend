@@ -9,8 +9,9 @@ async function fixture(page:Page) {
     let body:any={success:true,data:[],total:0,notifications:[],unreadCount:0};
     if(req.method()==='GET') reads.push(path+url.search); else writes.push({path,body:req.postDataJSON()});
     if(path==='/api/auth/me')body={user:{id:7,name:'Test Admin',isAdmin:true,isEmployee:false,isSuperAdmin:true,isClient:false,effectiveTimezone:'America/Denver',tourCompleted:true}};
+    else if(path==='/api/operations/fleet-vehicles')body={data:[1,2,3,4,5].map(id=>({carId:id,carName:`Vehicle ${id}`,plateNumber:`TEST${id}`,carStatus:'available'}))};
     else if(path==='/api/me/preferences/day-schedule')body={myTasksFirst:true,employeeId:41};
-    else if(path==='/api/operations/day-schedule')body={date:url.searchParams.get('date'),work_shifts:[],events:[1,2,3,4,5].map(id=>({id,type:'pickup',category:'Pick Up',bookingKey:`turo:${id}`,car_name:`Vehicle ${id}`,plate:`TEST${id}`,assigned_to:null,assigned_to_id:null,start_time:'09:00',status:id===2?'completed':null,completed_day:id===2?'2026-10-02':null,scheduled_day:id<3?'2026-10-01':'2026-10-30',car_photo:null,extras:'Child seat'}))};
+    else if(path==='/api/operations/day-schedule')body={date:url.searchParams.get('date'),work_shifts:[],events:[1,2,3,4,5].map(id=>({id,type:'pickup',category:'Pick Up',bookingKey:`turo:${id}`,car_name:`Vehicle ${id}`,plate:`TEST${id}`,assigned_to:null,assigned_to_id:null,start_time:'09:00',status:id===2?'completed':null,completed_day:id===2?'2026-10-02':null,scheduled_day:id<3?'2026-10-01':'2026-10-30',is_carryover:id===1,car_photo:null,extras:'Child seat'}))};
     else if(path==='/api/operations/day-schedule/driver-rankings')body={parking:[{employeeId:41,name:'Cheapest Driver',total:12,trips:4,receipts:4,average:3,pending:1,unlinked:1},{employeeId:42,name:'Second Driver',total:20,trips:4,receipts:4,average:5,pending:0,unlinked:0}],gas:[{employeeId:42,name:'Second Driver',total:200,receipts:4,pending:0},{employeeId:41,name:'Cheapest Driver',total:90,receipts:2,pending:1}]};
     else if(path==='/api/employees/41')body={success:true,data:employee};
     else if(path==='/api/employees/41/job-and-pay'&&req.method()==='PATCH'){Object.assign(employee,req.postDataJSON());body={success:true};}
@@ -43,7 +44,7 @@ for(const width of [390,1440])test.describe(`${width}px monthly charts`,()=>{
     const parking=page.getByRole('region',{name:'Airport parking average',exact:true});
     await expect(parking.locator('[data-ranked-employee]').first()).toContainText('Cheapest Driver');
     await expect(parking).toContainText('$3.00');
-    await expect(parking).toContainText('$12.00 ÷ 4 trips');
+    await expect(parking).toContainText('$12.00 ÷ 4 Airport runs');
     const gas=page.getByRole('region',{name:'Gas reimbursed',exact:true});
     await expect(gas.locator('[data-ranked-employee]').first()).toContainText('Second Driver');
     await expect(gas).toContainText('$200.00');
