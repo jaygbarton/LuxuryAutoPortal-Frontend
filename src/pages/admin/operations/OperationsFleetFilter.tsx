@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { buildApiUrl } from '@/lib/queryClient';
 import { operationVehicleMatches, type OperationsFleetFilter, type OperationsVehicle } from '@/lib/operationsFleet';
 
-const Context = createContext({ fleet: 'all' as OperationsFleetFilter, matches: (_row: any): boolean => true });
+const Context = createContext({ fleet: 'all' as OperationsFleetFilter, matches: (_row: any): boolean => true, showAllRecords:()=>{} });
 
 export function OperationsFleetProvider({ children, activeOnly = false, showFilter = true }: { children: ReactNode; activeOnly?: boolean; showFilter?: boolean }) {
   const [selectedFleet, setFleet] = useState<OperationsFleetFilter>('active');
@@ -19,7 +19,7 @@ export function OperationsFleetProvider({ children, activeOnly = false, showFilt
       return body.data;
     },
   });
-  const value = useMemo(() => ({ fleet, matches: (row: any) => operationVehicleMatches(row, query.data ?? [], fleet) }), [fleet, query.data]);
+  const value = useMemo(() => ({ fleet, showAllRecords:()=>{if(!activeOnly)setFleet('all');}, matches: (row: any) => operationVehicleMatches(row, query.data ?? [], fleet) }), [fleet, query.data, activeOnly]);
   return <Context.Provider value={value}>
     {showFilter && <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
       <label htmlFor="operations-fleet">Vehicles</label>

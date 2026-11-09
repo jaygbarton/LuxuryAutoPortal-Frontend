@@ -126,7 +126,7 @@ export default function OperationsPage() {
           </p>
         </div>
 
-        <OperationLocationFilterProvider value={locationFilter}>
+        <OperationLocationFilterProvider value={locationFilter} onReset={()=>setLocationFilter("all")}>
         <OperationsFleetProvider activeOnly={activeTab === "service-due"} showFilter={activeTab !== "chart-management"}>
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           {activeTab === "day-schedule" && <WorkScheduleNavigation className="mb-3" />}

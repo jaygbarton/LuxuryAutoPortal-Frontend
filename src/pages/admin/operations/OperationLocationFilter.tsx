@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 
 export type OperationLocationFilter = "all" | "slc" | "wilmington";
 
@@ -10,7 +10,11 @@ export const OPERATION_LOCATION_OPTIONS: { value: OperationLocationFilter; label
 
 const OperationLocationFilterContext = createContext<OperationLocationFilter>("all");
 
-export const OperationLocationFilterProvider = OperationLocationFilterContext.Provider;
+const ResetLocationContext=createContext<(()=>void)|null>(null);
+export function OperationLocationFilterProvider({value,onReset,children}:{value:OperationLocationFilter;onReset?:()=>void;children:ReactNode}) {
+  return <OperationLocationFilterContext.Provider value={value}><ResetLocationContext.Provider value={onReset??null}>{children}</ResetLocationContext.Provider></OperationLocationFilterContext.Provider>;
+}
+export const useResetOperationLocationFilter=()=>useContext(ResetLocationContext);
 
 export function useOperationLocationFilter() {
   return useContext(OperationLocationFilterContext);

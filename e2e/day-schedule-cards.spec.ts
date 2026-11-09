@@ -621,3 +621,37 @@ test('driver picker excludes the signed-in employee while keeping other drivers,
  await page.locator('[data-day-schedule-card]').click();const picker=page.getByRole('combobox',{name:'Task driver',exact:true});
  await picker.click();await expect(page.getByRole('option',{name:'Amy Driver',exact:true})).toBeEnabled();await expect(page.getByRole('option',{name:'Test Worker',exact:true})).toHaveCount(0);await expect(page.getByRole('option',{name:'Uber',exact:true})).toBeEnabled();await expect(page.getByRole('option',{name:'N/A',exact:true})).toBeEnabled();
 });
+
+for(const width of [390,1280])test(`a successful restore reveals the verified pickup through existing filters at ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:1000});
+ const initial=[task(30,'turo:30',{type:'cleaning',category:'Cleaning'})];
+ const state=await fixture(page,{date:'2026-11-07',rows:initial});
+ const filters=page.locator('[aria-label="Filter schedule by task type"]');
+ await filters.getByRole('button',{name:'Clear filter',exact:true}).click();
+ await filters.getByRole('button',{name:/^Cleaning/}).click();
+ await page.getByRole('combobox',{name:'Operations location',exact:true}).click();await page.getByRole('option',{name:'Wilmington',exact:true}).click();
+ await page.getByRole('button',{name:/^(By Employee|Employees)$/}).click();
+ let restored=false;
+ const row=task(19,'turo:208',{type:'pickup',category:'Pick Up',car_name:'Subaru Outback 2022',plate:'UNMATCHED',reservation_id:'77770001',start_time:'12:00',scheduled_day:'2026-11-08',location:'50 South Redwood Road, Salt Lake City, UT',location_tag:'slc'});
+ const schedule={date:'2026-11-08',events:[row],work_shifts:[]};
+ await page.route('**/api/operations/day-schedule/reservations/77770001',route=>route.fulfill({json:{success:true,tripId:208,reservationId:'77770001'}}));
+ await page.route('**/api/turo-trips/208/reparse',route=>route.fulfill({json:{success:true,data:{parsed:{tripEnd:'2026-11-08T19:00:00Z'}}}}));
+ await page.route('**/api/operations/day-schedule?*',route=>route.fulfill({json:restored?schedule:{date:'2026-11-07',events:initial,work_shifts:[]}}));
+ await page.route('**/api/operations/day-schedule/reservations/77770001/restore',route=>{restored=true;return route.fulfill({json:{success:true,tripId:208,taskId:19,date:'2026-11-08',schedule}});});
+ await page.getByRole('button',{name:'Restore reservation pickup',exact:true}).click();await page.getByLabel('Reservation number',{exact:true}).fill('77770001');await page.getByRole('button',{name:'Verify emails & restore pickup',exact:true}).click();
+ const card=page.locator('[data-day-schedule-card][data-booking-key="turo:208"][data-task-type="pickup"]');
+ await expect(card).toBeVisible();await expect(card).toContainText('12:00 PM');
+ await expect(page.getByRole('button',{name:'Timeline',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(page.getByRole('combobox',{name:'Operations fleet'})).toContainText('All vehicles / records');
+ await expect(page.getByRole('combobox',{name:'Operations location'})).toContainText('All locations');
+ await expect(page).toHaveURL(/date=2026-11-08/);
+ await expect(card).toBeFocused();await expect(page.locator('[data-restored-pickup-confirmation]')).toContainText('2026-11-08 · 12:00 PM');expect(state.errors).toEqual([]);
+});
+
+test('an active Subaru pickup keeps its fleet match from the saved VIN when its plate differs',async({page})=>{
+ await fixture(page,{date:'2026-11-08',fleet:[{carId:101,carName:'Subaru Outback 2022',plateNumber:'CURRENT123',vinNumber:'VERIFIED-VIN-1',carStatus:'available'}],rows:[task(19,'turo:208',{type:'pickup',category:'Pick Up',car_name:'Subaru Outback 2022',plate:'OLDER123',vin_number:'VERIFIED-VIN-1',start_time:'12:00',scheduled_day:'2026-11-08'})]});
+ const card=page.locator('[data-day-schedule-card][data-booking-key="turo:208"]');
+ await expect(page.getByRole('combobox',{name:'Operations fleet'})).toContainText('Active vehicles');
+ await expect(card).toBeVisible();await expect(card).toContainText('12:00 PM');
+ await page.reload();await expect(card).toBeVisible();
+});

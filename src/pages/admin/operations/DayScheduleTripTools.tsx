@@ -48,19 +48,23 @@ export function SwapVehiclePicker({tripId,revision}:{tripId:number;revision:stri
   </div>;
 }
 
-export function RestoreReservationPickup({onRestored}:{onRestored:(schedule:any)=>void}) {
-  const [open,setOpen]=useState(false),[reservation,setReservation]=useState('');
+export function RestoreReservationPickup({onRestored}:{onRestored:(result:{schedule:any;tripId:number;taskId:number})=>void|Promise<void>}) {
+  const [open,setOpen]=useState(false),[reservation,setReservation]=useState(''),[confirmation,setConfirmation]=useState('');
   const restore=useMutation({mutationFn:async()=>{
     const id=reservation.trim();if(!/^\d{1,20}$/.test(id))throw new Error('Enter a reservation number.');
     const lookup=await responseJson(await fetch(buildApiUrl(`/api/operations/day-schedule/reservations/${id}`),{credentials:'include'}));
     const source=await responseJson(await fetch(buildApiUrl(`/api/turo-trips/${lookup.tripId}/reparse`),{method:'POST',credentials:'include'}));
     if(!source.data?.parsed?.tripEnd)throw new Error('The return time could not be verified from source emails. Nothing was restored.');
     const restored=await responseJson(await fetch(buildApiUrl(`/api/operations/day-schedule/reservations/${id}/restore`),{method:'POST',credentials:'include'}));
-    if(!restored.schedule?.events?.some((event:any)=>event.id===restored.taskId && event.bookingKey===`turo:${restored.tripId}`))throw new Error('Pickup saved, but its schedule visibility could not be verified. Please refresh.');
-    return restored.schedule;
-  },onSuccess:schedule=>{onRestored(schedule);setOpen(false);}});
+    if(!Number.isSafeInteger(restored.taskId)||restored.taskId<=0||restored.tripId!==lookup.tripId||!restored.schedule?.events?.some((event:any)=>event.id===restored.taskId && event.type==='pickup' && event.bookingKey===`turo:${lookup.tripId}`))throw new Error('Pickup saved, but its schedule visibility could not be verified. Please refresh.');
+    const pickup=restored.schedule.events.find((event:any)=>event.id===restored.taskId&&event.type==='pickup');
+    const time=/^(\d{2}):(\d{2})$/.exec(pickup.start_time||'');
+    const clock=time?`${Number(time[1])%12||12}:${time[2]} ${Number(time[1])>=12?'PM':'AM'}`:'time not set';
+    return {schedule:restored.schedule,tripId:restored.tripId,taskId:restored.taskId,confirmation:`${pickup.car_name||'Pickup'} · reservation #${id} · ${restored.schedule.date} · ${clock}`};
+  },onSuccess:async result=>{await onRestored(result);setConfirmation(result.confirmation);setOpen(false);}});
   return <div className="space-y-2" data-restore-reservation>
     <Button type="button" variant="outline" className="h-11 sm:h-9" onClick={()=>setOpen(!open)}>Restore reservation pickup</Button>
+    {confirmation&&<p role="status" data-restored-pickup-confirmation className="break-words rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-900">{confirmation}</p>}
     {open&&<div className="space-y-2 rounded-lg border bg-card p-3 text-sm">
       <p>Recheck the source emails and restore a missing pickup at the verified return time.</p>
       <label className="block space-y-1"><span>Reservation number</span><input aria-label="Reservation number" inputMode="numeric" className="h-11 w-full rounded-md border bg-background px-3" value={reservation} disabled={restore.isPending} onChange={event=>setReservation(event.target.value)}/></label>

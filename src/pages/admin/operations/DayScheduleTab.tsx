@@ -5,12 +5,12 @@ import { useChartManagementAccess } from "@/hooks/use-chart-management-access";
 import { needsTaskDriver, hasTaskDriver } from "@/lib/dayScheduleDriver";
 import { TaskDriverSelect } from "./TaskDriverSelect";
 import { taskDeadlineHasPassed } from "@/lib/dayScheduleDeadline";
-import { useOperationFleetRows } from "./OperationsFleetFilter";
+import { useOperationFleetRows, useOperationsFleet } from "./OperationsFleetFilter";
 import { DayScheduleDriverRankings } from "./DayScheduleDriverRankings";
 import { optionKeywords } from "@/lib/select-search";
 import { createContext, useContext, useEffect, useId, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link, useSearch } from "wouter";
+import { Link, useSearch, useLocation } from "wouter";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Clock, MapPin, Ca
 import { PhotoUpload } from "./PhotoUpload";
 import { EmployeeSelectCombobox } from "./EmployeeSelectCombobox";
 import { CarScheduleImage } from "./CarScheduleImage";
-import { operationLocationMatches, useOperationLocationFilter } from "./OperationLocationFilter";
+import { operationLocationMatches, useOperationLocationFilter, useResetOperationLocationFilter } from "./OperationLocationFilter";
 import { mtLocalInputToUtcIso, mtTodayKey, addUtcDays, dayKeyToUtcDate, utcDateToDayKey } from "@/lib/mt-datetime";
 import { useTimezone } from "@/hooks/use-timezone";
 import { BookingNavigation } from "@/components/shared/BookingNavigation";
@@ -61,6 +61,7 @@ interface DayEvent {
   detail: string | null;
   reservation_id: string | null;
   extras: string | null;
+  vin_number?: string|null;
   vehicle_swap_pending?: boolean;
   vehicle_swap?: boolean;
   vehicle_revision?: string|null;
@@ -429,7 +430,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
   };
   return <>
     <button type="button" draggable onDragStart={(e) => setDragData(e, event)}
-      data-day-schedule-card data-booking-key={event.bookingKey} data-task-type={event.type}
+      data-day-schedule-card data-booking-key={event.bookingKey} data-task-type={event.type} data-event-id={event.id}
       data-booking-selected={selected || undefined}
       data-task-past={past || undefined}
       aria-label={`Task details for ${event.car_name || label}`} aria-haspopup="dialog" aria-expanded={open}
@@ -979,6 +980,11 @@ export function DayScheduleTab() {
   const [clockNow, setClockNow] = useState(Date.now);
   useEffect(() => { const timer = window.setInterval(() => setClockNow(Date.now()), 30_000); return () => window.clearInterval(timer); }, []);
   const search = useSearch();
+  const [,navigate]=useLocation();
+  const fleetFilter=useOperationsFleet();
+  const resetLocation=useResetOperationLocationFilter();
+  const [restoredPickup,setRestoredPickup]=useState<{id:number;bookingKey:string;date:string}|null>(null);
+  const restoredScroll=useRef<string|null>(null);
   const selectedBooking = dayScheduleBookingKey(search);
   const requestedDate = validScheduleDate(new URLSearchParams(search).get("date"));
   const requestedLink = useRef<string | null>(null);
@@ -1439,6 +1445,14 @@ export function DayScheduleTab() {
   const events = activeCategories.size === 0
     ? allEvents
     : allEvents.filter((e) => activeCategories.has(scheduleTaskLabel(e)));
+  useEffect(()=>{
+    if(!restoredPickup||restoredPickup.date!==date)return;
+    const key=`${restoredPickup.bookingKey}:${restoredPickup.id}:${date}`;
+    if(restoredScroll.current===key)return;
+    const card=document.querySelector<HTMLElement>(`[data-day-schedule-card][data-event-id="${restoredPickup.id}"][data-task-type="pickup"][data-booking-key="${restoredPickup.bookingKey}"]`);
+    if(!card?.getClientRects().length)return;
+    card.scrollIntoView({block:'center',behavior:'auto'});card.focus({preventScroll:true});restoredScroll.current=key;
+  },[restoredPickup,date,data,viewMode,locationFilter,fleetFilter.fleet,activeCategories]);
   const shifts = data?.work_shifts ?? [];
   const matchingBookingEvents = (data?.events ?? []).filter((event) => event.bookingKey === selectedBooking);
   const visibleBookingEvents = events.filter((event) => event.bookingKey === selectedBooking);
@@ -1644,10 +1658,15 @@ export function DayScheduleTab() {
         </div>
       </div>
 
-      {canForceUpdate&&<RestoreReservationPickup onRestored={schedule=>{
-        setDate(schedule.date);queryClient.setQueryData(['/api/operations/day-schedule',schedule.date],schedule);
+      {canForceUpdate&&<RestoreReservationPickup onRestored={async({schedule,tripId,taskId})=>{
+        await queryClient.cancelQueries({queryKey:['/api/operations/day-schedule']});
+        queryClient.setQueryData(['/api/operations/day-schedule',schedule.date],schedule);
+        fleetFilter.showAllRecords();resetLocation?.();setActiveCategories(new Set());setViewMode('timeline');setUnassignedSearch('');setShowAllUnassigned(true);
+        setDate(schedule.date);restoredScroll.current=null;setRestoredPickup({id:taskId,bookingKey:`turo:${tripId}`,date:schedule.date});
+        const params=new URLSearchParams(search);params.set('tab','day-schedule');params.set('date',schedule.date);params.delete('booking');
+        navigate(`/admin/operations?${params.toString()}`,{replace:true});
         void queryClient.invalidateQueries({queryKey:['/api/operations/day-schedule']});
-        toast({title:'Pickup restored',description:`The verified pickup is on ${schedule.date}.`});
+        toast({title:'Pickup restored',description:`Showing the verified pickup on ${schedule.date}.`});
       }}/>}
       {forceUpdate.isError && <p role="alert" className="text-sm text-destructive">{forceUpdate.error.message}</p>}
       {schedulePreference.isError && <p role="alert" className="text-sm text-destructive">Could not load your saved schedule setting. <button className="underline" onClick={() => void schedulePreference.refetch()}>Retry</button></p>}
