@@ -5,13 +5,14 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {LycProgress} from '@/components/onboarding/LycProgress';
 import {applicantUser,lycRequest,personalFields} from '@/lib/lyc';
+import {authMeQueryFn} from '@/lib/queryClient';
 
 const displayDate=(value:any)=>value?new Date(value).toLocaleDateString():null;
 const labels:Record<string,string>={tshirtSize:'T-shirt size',phoneOwner:'Phone',representative:'GLA representative (or Not sure)',heardAboutUs:'How did you hear about us?',streetAddress:'Street address',city:'City',state:'State',zipCode:'ZIP code',birthday:'Date of birth',emergencyContactName:'Emergency contact name',emergencyContactPhone:'Emergency contact phone'};
 export default function LycWorkspace({admin=false}:{admin?:boolean}) {
   const [path,setLocation]=useLocation(),client=useQueryClient();
   const profilePage=path==='/lyc/profile';
-  const auth=useQuery({queryKey:['/api/auth/me'],queryFn:()=>lycRequest('/api/auth/me'),staleTime:0,refetchInterval:30000});
+  const auth=useQuery({queryKey:['/api/auth/me'],queryFn:authMeQueryFn,staleTime:0,refetchInterval:30000});
   const user=auth.data?.user;
   const permitted=!!user && (!admin || (user.isAdmin && !user.isCoHost && !user.viewAsClient && !user.viewAsEmployee && !user.viewAsCoHost));
   const url=admin?'/api/onboarding/applicant-progress':'/api/lyc/applications';
@@ -20,7 +21,7 @@ export default function LycWorkspace({admin=false}:{admin?:boolean}) {
   const [values,setValues]=useState<Record<string,string>>({}),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
   useEffect(()=>{if(profile.data) setValues(Object.fromEntries(personalFields.map(key=>[key,profile.data.profile[key] || ''])));},[profile.data]);
   if(auth.isLoading) return <p className="p-6">Loading your account…</p>;
-  if(auth.error) return <p role="alert" className="p-6">Could not check your account. <button onClick={()=>void auth.refetch()}>Retry</button></p>;
+  if(auth.error && !auth.data) return <p role="alert" className="p-6">Could not check your account. <button onClick={()=>void auth.refetch()}>Retry</button></p>;
   if(!user) return <Redirect to="/admin/login?next=%2Flyc%2Fstatus"/>;
   if(!permitted) return <Redirect to="/lyc/status"/>;
   const save=async()=>{setBusy(true);setMessage('');try{await lycRequest('/api/lyc/profile','PATCH',values);await client.invalidateQueries({queryKey:['/api/lyc/profile']});setMessage('Personal information saved.');}catch(e:any){setMessage(e.message);}finally{setBusy(false);}};

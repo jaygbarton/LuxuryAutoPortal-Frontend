@@ -3,8 +3,9 @@ import {useQuery} from '@tanstack/react-query';
 import {Link,Redirect} from 'wouter';
 import {Button} from '@/components/ui/button';
 import {lycRequest} from '@/lib/lyc';
+import {authMeQueryFn} from '@/lib/queryClient';
 export default function ClientRecordsRequest(){
-  const auth=useQuery({queryKey:['/api/auth/me'],queryFn:()=>lycRequest('/api/auth/me'),staleTime:0});
+  const auth=useQuery({queryKey:['/api/auth/me'],queryFn:authMeQueryFn,staleTime:0});
   const state=useQuery({queryKey:['/api/lyc/retention'],queryFn:()=>lycRequest('/api/lyc/retention'),enabled:!!auth.data?.user?.isClient});
   const [message,setMessage]=useState(''),[result,setResult]=useState(''),[busy,setBusy]=useState(false);
   if(auth.isLoading)return <p className="p-6">Loading your account…</p>;

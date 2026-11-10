@@ -4,11 +4,12 @@ import {Link,useLocation} from 'wouter';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {lycNext,lycRequest} from '@/lib/lyc';
+import {authMeQueryFn} from '@/lib/queryClient';
 
 export function CreateAccountForm({ next: requestedNext }: { next: string }) {
   const [,setLocation]=useLocation(),client=useQueryClient();
   const next=lycNext(requestedNext);
-  const auth=useQuery({queryKey:['/api/auth/me'],queryFn:()=>lycRequest('/api/auth/me')});
+  const auth=useQuery({queryKey:['/api/auth/me'],queryFn:authMeQueryFn});
   const [values,setValues]=useState({firstName:'',lastName:'',email:'',phoneOwner:'',password:'',confirmPassword:''});
   const [busy,setBusy]=useState(false),[error,setError]=useState('');
   const submit=async(event:React.FormEvent)=>{

@@ -43,7 +43,7 @@ import {
   ArrowLeft,
   Loader2,
 } from "lucide-react";
-import { buildApiUrl, buildUploadApiUrl } from "@/lib/queryClient";
+import { authMeQueryFn, buildApiUrl, buildUploadApiUrl } from "@/lib/queryClient";
 import { wizardSteps } from "@/lib/onboardingSteps";
 import { getPreferredPublicLocation, withLocationPath } from "@/lib/location-config";
 
@@ -187,7 +187,7 @@ function OnboardingApplication() {
   const { toast } = useToast();
   const { salesReps } = useSalesReps();
   const [currentPath, setLocation] = useLocation();
-  const auth=useQuery({queryKey:['/api/auth/me'],queryFn:()=>lycRequest('/api/auth/me')});
+  const auth=useQuery({queryKey:['/api/auth/me'],queryFn:authMeQueryFn});
   const [loaded,setLoaded]=useState(false),[loadError,setLoadError]=useState('');
   const savingRef=useRef(false);
   const stepFocusFrame=useRef<number | null>(null);
@@ -437,7 +437,7 @@ function OnboardingApplication() {
   };
 
   if(auth.isLoading) return <ListYourCarApplicationLayout><p role="status">Loading your account…</p></ListYourCarApplicationLayout>;
-  if(auth.error) return <ListYourCarApplicationLayout><p role="alert">Unable to check your account. <Button variant="outline" onClick={()=>void auth.refetch()}>Retry</Button></p></ListYourCarApplicationLayout>;
+  if(auth.error && !auth.data) return <ListYourCarApplicationLayout><p role="alert">Unable to check your account. <Button variant="outline" onClick={()=>void auth.refetch()}>Retry</Button></p></ListYourCarApplicationLayout>;
   if(!auth.data?.user) return <ListYourCarApplicationLayout><div className="rounded-xl border border-border bg-card p-6 sm:p-8"><CreateAccountForm next={currentPath+window.location.search}/></div></ListYourCarApplicationLayout>;
   if(loadError) return <ListYourCarApplicationLayout><div role="alert">{loadError} <Button variant="outline" onClick={()=>window.location.reload()}>Retry</Button></div></ListYourCarApplicationLayout>;
   if(!loaded) return <ListYourCarApplicationLayout><p role="status">Loading your saved details…</p></ListYourCarApplicationLayout>;
