@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { buildApiUrl } from "@/lib/queryClient";
 import { formatCurrency } from "@/components/admin/dashboard/utils";
 import { useCoHost } from "@/hooks/use-co-host";
-import { COMMISSION_TYPES } from "@/lib/commissionTypes";
+import { COMMISSION_TYPES, hasCommissionAmount } from "@/lib/commissionTypes";
 import {
   Select,
   SelectContent,
@@ -207,7 +207,7 @@ function MatrixTable({
             </tr>
           </thead>
           <tbody>
-            {EXPENSE_TYPES.map((type) => {
+            {EXPENSE_TYPES.filter((type) => hasCommissionAmount(matrix[type] ?? [])).map((type) => {
               const monthly = matrix[type] ?? Array(12).fill(0);
               const typeTotal = monthly.reduce((s, v) => s + v, 0);
               return (

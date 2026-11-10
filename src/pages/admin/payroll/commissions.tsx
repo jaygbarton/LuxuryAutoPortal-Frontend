@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select";
 import { buildApiUrl } from "@/lib/queryClient";
 import { api } from "@/lib/api";
-import { COMMISSION_TYPES } from "@/lib/commissionTypes";
+import { COMMISSION_TYPES, hasCommissionAmount } from "@/lib/commissionTypes";
 import { CommissionTypeCombobox } from "@/pages/admin/payroll/CommissionTypeCombobox";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2, Search, ChevronDown, X, HandCoins } from "lucide-react";
@@ -135,7 +135,9 @@ function CommissionsMatrix() {
     .map((r) => ({ type: r.type, monthly: r.monthly, total: r.monthly.reduce((s, v) => s + v, 0) }));
   // Display alphabetically (A–Z by type) — the Add Commission dropdown keeps
   // COMMISSION_TYPES' own order; only this table's row order is sorted.
-  const rows = [...baseRows, ...extraRows].sort((a, b) => a.type.localeCompare(b.type));
+  const rows = [...baseRows, ...extraRows]
+    .filter((row) => hasCommissionAmount(row.monthly))
+    .sort((a, b) => a.type.localeCompare(b.type));
 
   const grandMonthly = Array(12).fill(0);
   for (const row of rows) for (let i = 0; i < 12; i++) grandMonthly[i] += row.monthly[i] || 0;

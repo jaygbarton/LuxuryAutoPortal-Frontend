@@ -6,7 +6,7 @@ import { optionKeywords } from "@/lib/select-search";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { COMMISSION_TYPES as SHARED_COMMISSION_TYPES } from "@/lib/commissionTypes";
+import { COMMISSION_TYPES as SHARED_COMMISSION_TYPES, hasCommissionAmount } from "@/lib/commissionTypes";
 import {
   LineChart,
   Line,
@@ -102,7 +102,7 @@ export default function CommissionsSection() {
     while (monthly.length < 12) monthly.push(0);
     const total = monthly.reduce((s: number, v: number) => s + v, 0);
     return { type, monthly, total };
-  });
+  }).filter((row) => hasCommissionAmount(row.monthly));
 
   const grandMonthly = Array(12).fill(0);
   for (const row of displayRows) for (let i = 0; i < 12; i++) grandMonthly[i] += row.monthly[i];

@@ -35,3 +35,9 @@ export const COMMISSION_TYPES = [
 ] as const;
 
 export type CommissionType = (typeof COMMISSION_TYPES)[number];
+
+/** A commission-type row worth showing: any month carries an amount. The
+ *  matrices list every type, so all-zero rows are hidden (TOTAL always stays). */
+export function hasCommissionAmount(monthly: readonly unknown[]): boolean {
+  return monthly.some((v) => Number(v) !== 0 && Number.isFinite(Number(v)));
+}
