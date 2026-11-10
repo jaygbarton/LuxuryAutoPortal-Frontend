@@ -75,6 +75,9 @@ export default function ViewCarPage() {
   const [statementDialogOpen, setStatementDialogOpen] = useState(false);
   const [statementFromYear, setStatementFromYear] = useState<string>("");
   const [statementToYear, setStatementToYear] = useState<string>("");
+  // Who the statement is for: the car owner (client), or the car's co-host —
+  // across every car they co-host, or this car only.
+  const [statementSubject, setStatementSubject] = useState<"client" | "coHostAll" | "coHostCar">("client");
   // Blob URL of the generated PDF while it's being previewed in-app. Kept in
   // state (not a popup window) because browsers block window.open on an async
   // fetch — the click gesture has expired by the time the PDF is ready.
@@ -125,7 +128,11 @@ export default function ViewCarPage() {
   // Years this car actually has statement activity in — populates the
   // Statement of Account year / date-range picker. Fetched only when the
   // dialog is open so the ordinary page load isn't slowed by it.
-  const { data: statementYearsData } = useQuery<{ success: boolean; years: number[] }>({
+  const { data: statementYearsData } = useQuery<{
+    success: boolean;
+    years: number[];
+    coHost: { id: number; name: string; carCount: number } | null;
+  }>({
     queryKey: ["/api/cars", carId, "statement-of-account/years"],
     queryFn: async () => {
       return api.get(`/api/cars/${carId}/statement-of-account/years`, {
@@ -135,7 +142,25 @@ export default function ViewCarPage() {
     enabled: !!carId && isAdmin && statementDialogOpen,
     retry: false,
   });
-  const statementYears = statementYearsData?.years ?? [];
+  const statementCoHost = statementYearsData?.coHost ?? null;
+  const isCoHostStatement = statementSubject !== "client" && !!statementCoHost;
+  const coHostStatementCarId = statementSubject === "coHostCar" ? carId : undefined;
+  const coHostStatementPath = statementCoHost
+    ? `/api/admin/co-hosts/${statementCoHost.id}/statement-of-account`
+    : "";
+
+  // The co-host statement has its own active years (only co-hosted months count).
+  const { data: coHostYearsData } = useQuery<{ success: boolean; years: number[] }>({
+    queryKey: [`${coHostStatementPath}/years`, coHostStatementCarId ?? "all"],
+    queryFn: async () =>
+      api.get(`${coHostStatementPath}/years`, {
+        query: { carId: coHostStatementCarId },
+        fallbackMessage: "Failed to load co-host statement years",
+      }),
+    enabled: statementDialogOpen && isCoHostStatement,
+    retry: false,
+  });
+  const statementYears = (isCoHostStatement ? coHostYearsData?.years : statementYearsData?.years) ?? [];
 
   // Fetch onboarding data for additional car info
   const { data: onboardingData } = useQuery<{
@@ -304,6 +329,10 @@ export default function ViewCarPage() {
     if (statementFromYear) qs.set("fromYear", statementFromYear);
     if (statementToYear) qs.set("toYear", statementToYear);
     qs.set("disposition", disposition);
+    if (isCoHostStatement) {
+      if (coHostStatementCarId) qs.set("carId", String(coHostStatementCarId));
+      return buildApiUrl(`${coHostStatementPath}?${qs.toString()}`);
+    }
     return buildApiUrl(`/api/cars/${carId}/statement-of-account?${qs.toString()}`);
   };
 
@@ -311,6 +340,10 @@ export default function ViewCarPage() {
     const rangeLabel = statementFromYear || statementToYear
       ? ` (${statementFromYear || "start"} - ${statementToYear || "latest"})`
       : "";
+    if (isCoHostStatement) {
+      const scope = statementSubject === "coHostCar" ? ` - ${carName || carId}` : "";
+      return `Co-Host Statement of Account - ${statementCoHost!.name}${scope}${rangeLabel}.pdf`;
+    }
     return `Statement of Account - ${carName || carId}${rangeLabel}.pdf`;
   };
 
@@ -412,6 +445,31 @@ export default function ViewCarPage() {
               </DialogDescription>
             </DialogHeader>
 
+            {statementCoHost && (
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Statement for</label>
+                <SearchableNativeSelect
+                  value={statementSubject}
+                  onChange={(e) => {
+                    setStatementSubject(e.target.value as typeof statementSubject);
+                    // Each subject has its own active years; a year picked for
+                    // one may not exist for the other.
+                    setStatementFromYear("");
+                    setStatementToYear("");
+                  }}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                >
+                  <SearchableOption value="client">{`Client — ${ownerName}`}</SearchableOption>
+                  <SearchableOption value="coHostAll">
+                    {`Co-Host — ${statementCoHost.name} (all ${statementCoHost.carCount} car${statementCoHost.carCount === 1 ? "" : "s"})`}
+                  </SearchableOption>
+                  {statementCoHost.carCount > 1 && (
+                    <SearchableOption value="coHostCar">{`Co-Host — ${statementCoHost.name} (this car only)`}</SearchableOption>
+                  )}
+                </SearchableNativeSelect>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">From year</label>
@@ -488,7 +546,8 @@ export default function ViewCarPage() {
           <DialogContent className="max-w-[96vw] w-[96vw] h-[94vh] max-h-[94vh] flex flex-col p-0 gap-0 overflow-hidden">
             <DialogHeader className="px-4 py-3 border-b border-border shrink-0">
               <DialogTitle className="text-base">
-                Statement of Account{statementFromYear || statementToYear
+                {isCoHostStatement ? `Co-Host Statement of Account — ${statementCoHost!.name}` : "Statement of Account"}
+                {statementFromYear || statementToYear
                   ? ` — ${statementFromYear || "start"} to ${statementToYear || "latest"}`
                   : ""}
               </DialogTitle>
