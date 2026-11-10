@@ -42,6 +42,7 @@ interface TicketViolationRow {
 const STATUS_LABELS: Record<string, string> = {
   new: "New",
   charged_guest: "Charged the Guest",
+  charged_cohost: "Charged the Co-Host (No trip)",
   paid: "Paid",
   disputed: "Disputed",
 };
@@ -76,6 +77,8 @@ function StatusBadge({ status }: { status: string }) {
       ? "bg-red-100 text-red-800 border-red-200"
       : status === "charged_guest"
       ? "bg-amber-100 text-amber-800 border-amber-200"
+      : status === "charged_cohost"
+      ? "bg-violet-100 text-violet-800 border-violet-200"
       : "bg-blue-100 text-blue-800 border-blue-200";
   return <Badge className={cls}>{label}</Badge>;
 }
