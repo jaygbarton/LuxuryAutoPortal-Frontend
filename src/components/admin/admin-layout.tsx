@@ -165,18 +165,6 @@ const allSidebarItems: SidebarItem[] = [
   // Client-only profile link for logged-in clients
   { href: "/profile", label: "Profile", icon: User, roles: ["client"] },
   {
-    href: "/client/my-car-tracking",
-    label: "Track My Car",
-    icon: Navigation,
-    roles: ["client"],
-  },
-  {
-    href: "/client/trip-history",
-    label: "Trip History",
-    icon: Route,
-    roles: ["client"],
-  },
-  {
     href: "/client/trip-calendar",
     label: "Booking Calendar",
     icon: CalendarDays,
@@ -187,7 +175,20 @@ const allSidebarItems: SidebarItem[] = [
   { href: "/admin/my-co-host-cars", label: "My Co-Host Cars", icon: Car, roles: ["admin"] },
   { href: "/admin/applicants", label: "Applicants", icon: Users, roles: ["admin"] },
   { href: "/admin/clients", label: "Clients", icon: Users, roles: ["admin"] },
-  { href: "/cars", label: "Cars", icon: Car, roles: ["admin", "client"] },
+  { href: "/cars", label: "Cars", icon: Car, roles: ["admin"] },
+  // Client "Cars" is a dropdown: the car list plus the per-car pages (Jay, 2026-11).
+  {
+    href: "/cars",
+    label: "Cars",
+    icon: Car,
+    roles: ["client"],
+    children: [
+      { href: "/cars", label: "My Cars", icon: Car, roles: ["client"] },
+      { href: "/client/my-car-tracking", label: "Track My Car", icon: Navigation, roles: ["client"] },
+      { href: "/client/trip-history", label: "Trip History", icon: Route, roles: ["client"] },
+      { href: "/client/view-stats", label: "View Stats", icon: BarChart3, roles: ["client"] },
+    ],
+  },
   { href: "/admin/car-block-off", label: "Car Block Off", icon: CalendarOff, roles: ["client"] },
   {
     href: "/admin/income-expenses",

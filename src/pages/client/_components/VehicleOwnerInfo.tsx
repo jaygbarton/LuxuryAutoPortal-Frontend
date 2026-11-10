@@ -119,7 +119,7 @@ export function VehicleOwnerInfo({
                   </button>
                 </a>
                 <a href="https://rent.goldenluxuryauto.com/lyc-client-check-in" target="_blank" rel="noopener noreferrer">
-                  <button className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:border-primary hover:text-[#d3bc8d] transition-colors">
+                  <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/80 transition-colors">
                     <Video className="w-3.5 h-3.5" />
                     Schedule a Zoom Call
                     <ExternalLink className="w-3 h-3 opacity-70" />

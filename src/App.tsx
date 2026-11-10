@@ -113,6 +113,7 @@ const TrainingManualPage = lazy(() => import("@/pages/admin/training-manual"));
 const ClientTrainingManualPage = lazy(() => import("@/pages/client/training-manual"));
 const ClientDashboardPage = lazy(() => import("@/pages/client/dashboard"));
 const ClientTripHistoryPage = lazy(() => import("@/pages/client/trip-history"));
+const ClientViewStatsPage = lazy(() => import("@/pages/client/view-stats"));
 const ClientTripCalendarPage = lazy(() => import("@/pages/client/trip-calendar"));
 const ClientMaintenanceHistoryPage = lazy(() => import("@/pages/client/maintenance-history"));
 const ClientOffboardingFormPage = lazy(() => import("@/pages/client/offboarding-form"));
@@ -438,6 +439,9 @@ function Router() {
             <Route path="/client/my-car-tracking">
               <RequireRole roles={["isClient"]}><ClientCarTrackingPage /></RequireRole>
             </Route>
+            <Route path="/client/view-stats">
+              <RequireRole roles={["isClient"]}><ClientViewStatsPage /></RequireRole>
+            </Route>
             <Route path="/client/trip-history">
               <RequireRole roles={["isClient"]}><ClientTripHistoryPage /></RequireRole>
             </Route>
@@ -554,7 +558,8 @@ function Router() {
               <RequireRole roles={["isAdmin"]}><IncomeExpenseLogPage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id/income-expense">
-              <RequireRole roles={["isAdmin", "isClient", "isEmployee", "isCoHost"]}><CarIncomeExpensePage /></RequireRole>
+              {/* No isClient: clients must not see a car's Income & Expenses (Jay, 2026-11). */}
+              <RequireRole roles={["isAdmin", "isEmployee", "isCoHost"]}><CarIncomeExpensePage /></RequireRole>
             </Route>
             <Route path="/admin/cars/:id">
               <RequireRole roles={["isAdmin", "isClient"]}><CarDetailPage /></RequireRole>

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart3,
+  Car,
   CreditCard,
   DollarSign,
   FileText,
@@ -11,6 +12,7 @@ import {
   Receipt,
   TrendingDown,
   Wrench,
+  type LucideIcon,
 } from "lucide-react";
 import {
   Select,
@@ -21,8 +23,9 @@ import {
 } from "@/components/ui/select";
 import { ReportLinkCard } from "@/pages/client/_components/ReportLinkCard";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
+import { useSelectedClientCarId } from "@/lib/clientSelectedCar";
 
-interface StatsCar {
+export interface StatsCar {
   id: number;
   vin?: string | null;
   makeModel?: string | null;
@@ -49,7 +52,7 @@ function normalizeClientCar(car: any): StatsCar {
   };
 }
 
-function getCarLabel(car: StatsCar) {
+export function getCarLabel(car: StatsCar) {
   return [
     car.year,
     car.make || car.makeModel,
@@ -60,9 +63,33 @@ function getCarLabel(car: StatsCar) {
     .join(" ");
 }
 
-export function VehicleStatsQuickLinks() {
-  const [selectedCarId, setSelectedCarId] = useState<string>("");
+export interface StatsSection {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+}
 
+/**
+ * A client's per-car stats sections, in the order Jay asked for (2026-11).
+ * Income and Expenses is deliberately absent: clients must not see a car's
+ * I&E page.
+ */
+export function clientStatsSections(carId: number): StatsSection[] {
+  const car = (path: string) => `/admin/cars/${carId}/${path}`;
+  return [
+    { href: `/admin/view-car/${carId}`, icon: BarChart3, label: "Stats Overview" },
+    { href: `/admin/cars/${carId}`, icon: Car, label: "Car Details" },
+    { href: car("earnings"), icon: DollarSign, label: "Earnings" },
+    { href: car("depreciation"), icon: TrendingDown, label: "NADA Depreciation Schedule" },
+    { href: car("totals"), icon: Receipt, label: "Totals" },
+    { href: car("records"), icon: History, label: "Records and Files" },
+    { href: car("graphs"), icon: LineChart, label: "Graphs and Charts" },
+    { href: car("payments"), icon: CreditCard, label: "Payment History" },
+  ];
+}
+
+/** The signed-in user's cars for the stats pickers (a client's own, or every car for an admin). */
+export function useStatsCars() {
   const { data: meData } = useQuery<{
     user?: { isAdmin?: boolean; isClient?: boolean; isEmployee?: boolean };
   }>({
@@ -107,11 +134,33 @@ export function VehicleStatsQuickLinks() {
     [data?.data],
   );
 
+  return { cars, isLoading, isAdmin, isClient, canView };
+}
+
+/**
+ * `defaultCarId`: the car a page is already showing (the client Dashboard's
+ * selected vehicle), used until the client picks one here.
+ */
+export function VehicleStatsQuickLinks({ defaultCarId }: { defaultCarId?: number | null } = {}) {
+  const { cars, isLoading, isAdmin, isClient, canView } = useStatsCars();
+  // A client's pick is shared with the Dashboard and Cars → View Stats; an
+  // admin's stays local to this card.
+  const [sharedCarId, setSharedCarId] = useSelectedClientCarId();
+  const [localCarId, setLocalCarId] = useState<string>("");
+  const ownsCar = (id: number | null | undefined) => id != null && cars.some((c) => c.id === id);
+  const selectedCarId = isClient
+    ? String(ownsCar(sharedCarId) ? sharedCarId : ownsCar(defaultCarId) ? defaultCarId : "")
+    : localCarId;
+  const setSelectedCarId = (v: string) => (isClient ? setSharedCarId(Number(v)) : setLocalCarId(v));
+
   const selectedCar = cars.find((car) => String(car.id) === selectedCarId);
   const carPath = (path: string) => selectedCar ? `/admin/cars/${selectedCar.id}/${path}` : "#";
 
-  const links = selectedCar
-    ? [
+  const links: StatsSection[] = !selectedCar
+    ? []
+    : isClient
+      ? clientStatsSections(selectedCar.id)
+      : [
         { href: `/admin/view-car/${selectedCar.id}`, icon: BarChart3, label: "Stats Overview" },
         { href: carPath("earnings"), icon: DollarSign, label: "Earnings" },
         { href: carPath("totals"), icon: Receipt, label: "Totals" },
@@ -125,8 +174,7 @@ export function VehicleStatsQuickLinks() {
               { href: carPath("maintenance"), icon: Wrench, label: "Maintenance" },
             ]
           : []),
-      ]
-    : [];
+      ];
 
   if (!canView) return null;
 

@@ -119,11 +119,6 @@ export default function ClientMaintenanceHistory() {
                   aria-label="Vehicle reports"
                 >
                   <Button asChild variant="outline">
-                    <Link href={`/admin/cars/${carId}/income-expense`}>
-                      Income, expenses & receipts
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline">
                     <Link href={`/admin/cars/${carId}/records`}>
                       Records & files
                     </Link>

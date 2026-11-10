@@ -33,6 +33,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { buildApiUrl } from "@/lib/queryClient";
+import { useSelectedClientCarId } from "@/lib/clientSelectedCar";
 import { api } from "@/lib/api";
 import { differenceInDays } from "date-fns";
 
@@ -62,11 +63,24 @@ import { PaymentHistoryCard } from "./_components/PaymentHistoryCard";
 import { ReportCenter } from "./_components/ReportCenter";
 import { SupportCenter } from "./_components/SupportCenter";
 
+/** "2019 BMW X6 xDrive 35i (G108NE) • 5UXKU2C57K0Z63897" */
+function carLabel(c: ClientCar): string {
+  const parts = [
+    c.year ? String(c.year) : null,
+    c.makeModel || null,
+    c.licensePlate ? `(${c.licensePlate})` : null,
+    c.vin ? `• ${c.vin}` : null,
+  ].filter(Boolean).join(" ");
+  return parts || `Car #${c.id}`;
+}
+
 export default function ClientDashboard() {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
-  const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
+  // Shared with the View Stats quick links / Cars → View Stats, so the car
+  // picked here is the one those open (Jay, 2026-11).
+  const [selectedCarId, setSelectedCarId] = useSelectedClientCarId();
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
   const [selectedYearTrips, setSelectedYearTrips] = useState<string>(
     String(currentYear),
@@ -536,33 +550,43 @@ export default function ClientDashboard() {
   return (
     <AdminLayout>
       <div className="flex flex-col gap-8 pb-12">
-        {/* Car selector (multi-car clients) */}
-        {cars.length > 1 && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">Vehicle:</span>
-            <Select
-              value={String(activeCar?.id ?? "")}
-              onValueChange={(v) => setSelectedCarId(parseInt(v, 10))}
-            >
-              <SelectTrigger className="w-auto max-w-sm h-9 text-sm">
-                <SelectValue placeholder="Select car" />
-              </SelectTrigger>
-              <SelectContent>
-                {cars.map((c) => {
-                  const parts = [
-                    c.year ? String(c.year) : null,
-                    c.makeModel || null,
-                    c.licensePlate ? `(${c.licensePlate})` : null,
-                    c.vin ? `• ${c.vin}` : null,
-                  ].filter(Boolean).join(" ");
-                  return (
+        {/* Selected vehicle — a highlighted bar so it's obvious which car the
+            whole dashboard is showing; multi-car clients switch it here. */}
+        {activeCar && (
+          <div
+            className="flex flex-col gap-3 rounded-xl border-2 border-[#D3BC8D] bg-[#D3BC8D]/10 px-4 py-3 shadow-sm shadow-[#D3BC8D]/20 sm:flex-row sm:items-center sm:gap-4"
+            data-testid="client-selected-vehicle"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#D3BC8D] text-black">
+                <Car className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#8B6914]">
+                  Selected vehicle
+                </p>
+                {cars.length === 1 && (
+                  <p className="text-base font-bold text-foreground break-words">{carLabel(activeCar)}</p>
+                )}
+              </div>
+            </div>
+            {cars.length > 1 && (
+              <Select
+                value={String(activeCar.id)}
+                onValueChange={(v) => setSelectedCarId(parseInt(v, 10))}
+              >
+                <SelectTrigger className="h-10 w-full border-[#D3BC8D] bg-background text-sm font-semibold text-foreground sm:w-[520px]">
+                  <SelectValue placeholder="Select car" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cars.map((c) => (
                     <SelectItem searchKeywords={optionKeywords(c)} key={c.id} value={String(c.id)}>
-                      {parts || `Car #${c.id}`}
+                      {carLabel(c)}
                     </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         )}
 
@@ -677,7 +701,7 @@ export default function ClientDashboard() {
 
         {/* Sections 10 & 11: Report Center + Support Center */}
         <div className="space-y-6 mt-8 mb-12">
-          <VehicleStatsQuickLinks />
+          <VehicleStatsQuickLinks defaultCarId={activeCar?.id} />
           <ReportCenter reportLinks={reportLinks} hideVehicleStatsLinks hideSidebarDuplicateLinks />
           <SupportCenter supportLinks={supportLinks} />
         </div>

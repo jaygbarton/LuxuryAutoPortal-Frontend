@@ -68,7 +68,7 @@ export const CUSTOMER_HELP_PUBLIC_PATHS = [
 
 export const CUSTOMER_HELP_OWNER_PATTERNS = [
   /^\/(dashboard|profile|tutorial|cars)$/,
-  /^\/client\/(dashboard|my-car-tracking|trip-history|trip-calendar|offboarding-form|geofence-zones|vehicle-trips|vehicle-behavior|account|profile|cars|record-and-files|earnings\/details|earnings-calculator)$/,
+  /^\/client\/(dashboard|my-car-tracking|trip-history|view-stats|trip-calendar|offboarding-form|geofence-zones|vehicle-trips|vehicle-behavior|account|profile|cars|record-and-files|earnings\/details|earnings-calculator)$/,
   /^\/admin\/view-car\/[^/]+$/,
   /^\/admin\/cars\/[^/]+(?:\/(earnings|depreciation|purchase|graphs|calculator|totals|records|payments|income-expense))?$/,
   /^\/admin\/cars\/[^/]+\/records\/[^/]+\/files$/,
