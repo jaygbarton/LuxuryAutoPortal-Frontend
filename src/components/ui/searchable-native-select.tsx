@@ -65,6 +65,12 @@ export const SearchableNativeSelect = React.forwardRef<HTMLSelectElement,
       aria-hidden="true"
       tabIndex={-1}
       className="sr-only"
+      // sr-only is position:absolute, and this fragment has no positioned
+      // wrapper: the select was placed against the whole page at its flow
+      // position inside the scrolled <main>, making the window itself
+      // scrollable (a second scrollbar). Pinned, the 1px box never extends
+      // any scroll area.
+      style={{ position: "fixed", top: 0, left: 0 }}
       onChange={(event) => { setLocalValue(event.target.value); onChange?.(event); }}
       onInvalid={(event) => { onInvalid?.(event); event.preventDefault(); triggerRef.current?.focus(); }}
     >{children}</select>
