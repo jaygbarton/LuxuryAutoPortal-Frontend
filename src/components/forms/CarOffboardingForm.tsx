@@ -58,7 +58,11 @@ interface UserCar {
   isActive: number;
 }
 
-export default function CarOffboardingForm() {
+/**
+ * `preview`: an admin looking at the form clients fill in. Submitting is
+ * disabled — a submit takes the car off the fleet.
+ */
+export default function CarOffboardingForm({ preview = false }: { preview?: boolean } = {}) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const [selectedCarId, setSelectedCarId] = useState<string>("");
@@ -134,6 +138,7 @@ export default function CarOffboardingForm() {
   }, [selectedCarId, activeCars, form]);
 
   const onSubmit = async (data: CarOffboardingFormData) => {
+    if (preview) return;
     setIsSubmitting(true);
     try {
       // These are Mountain-Time calendar dates and wall times. Letting
@@ -217,6 +222,11 @@ export default function CarOffboardingForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {preview && (
+          <p className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+            Preview of the form clients see. Submitting is turned off here.
+          </p>
+        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Date and Name Row */}
@@ -463,7 +473,7 @@ export default function CarOffboardingForm() {
 
             <Button
               type="submit"
-              disabled={isSubmitting || isLoadingCars || activeCars.length === 0}
+              disabled={preview || isSubmitting || isLoadingCars || activeCars.length === 0}
               className="w-full bg-primary text-primary-foreground hover:bg-primary/80 font-medium"
             >
               {isSubmitting ? (

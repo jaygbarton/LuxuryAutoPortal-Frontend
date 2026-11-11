@@ -33,7 +33,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { buildApiUrl } from "@/lib/queryClient";
-import { Loader2, Search, LogOut } from "lucide-react";
+import { Loader2, Search, LogOut, Eye } from "lucide-react";
+import CarOffboardingForm from "@/components/forms/CarOffboardingForm";
 import {
   TablePagination,
   ItemsPerPage,
@@ -61,6 +62,8 @@ interface OffboardingCar {
   offboardReason: string | null;
   finalMileage: number | null;
   contractStatus: string | null;
+  /** Where the client asked to pick the car up (Car Off-boarding form). */
+  pickUpLocation?: string | null;
 }
 
 const offboardCarSchema = z.object({
@@ -79,6 +82,7 @@ export default function CarOffboarding() {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [isOffboardDialogOpen, setIsOffboardDialogOpen] = useState(false);
+  const [isFormPreviewOpen, setIsFormPreviewOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -225,12 +229,28 @@ export default function CarOffboarding() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">Car Off-boarding</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          View vehicles removed from the fleet
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-foreground">Car Off-boarding</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            View vehicles removed from the fleet
+          </p>
+        </div>
+        <Button variant="outline" className="border-primary/30 text-primary shrink-0" onClick={() => setIsFormPreviewOpen(true)}>
+          <Eye className="w-4 h-4 mr-2" />
+          Preview client form
+        </Button>
       </div>
+
+      <Dialog open={isFormPreviewOpen} onOpenChange={setIsFormPreviewOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Car Off-boarding Form (client view)</DialogTitle>
+            <DialogDescription>What clients fill in when they request their car back.</DialogDescription>
+          </DialogHeader>
+          {isFormPreviewOpen && <CarOffboardingForm preview />}
+        </DialogContent>
+      </Dialog>
 
       {/* Search Bar */}
       <div className="relative max-w-md">
@@ -287,6 +307,9 @@ export default function CarOffboarding() {
                       </TableHead>
                       <TableHead className="text-left text-xs font-medium text-primary uppercase tracking-wider px-2 sm:px-3 py-3 sm:py-4 hidden 2xl:table-cell whitespace-nowrap">
                         Car Offboarding Date
+                      </TableHead>
+                      <TableHead className="text-left text-xs font-medium text-primary uppercase tracking-wider px-2 sm:px-3 py-3 sm:py-4 hidden xl:table-cell whitespace-nowrap">
+                        Pick Up Location
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -380,6 +403,9 @@ export default function CarOffboarding() {
                                 }
                               )
                             : "—"}
+                        </TableCell>
+                        <TableCell className="text-left px-2 sm:px-3 py-3 sm:py-4 text-muted-foreground text-xs sm:text-sm hidden xl:table-cell max-w-[220px] truncate" title={car.pickUpLocation || undefined}>
+                          {car.pickUpLocation || "—"}
                         </TableCell>
                       </TableRow>
                     ))}
