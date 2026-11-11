@@ -37,12 +37,12 @@ describe("ApplicantBoundary", () => {
   it("keeps rendering the page when a background re-check fails but the user is cached", () => {
     const html = render({ data: staff, error: new TypeError("Failed to fetch") });
     expect(html).toContain("page-content");
-    expect(html).not.toContain("could not be checked");
+    expect(html).not.toContain("Reconnecting to the server");
   });
 
-  it("shows the retry screen only when the very first check failed", () => {
+  it("shows the auto-retrying reconnect screen only when the very first check failed", () => {
     const html = render({ error: new TypeError("Failed to fetch") });
-    expect(html).toContain("could not be checked");
+    expect(html).toContain("Reconnecting to the server");
     expect(html).not.toContain("page-content");
   });
 

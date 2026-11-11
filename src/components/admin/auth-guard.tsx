@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { ServerReconnecting } from "@/components/auth/ServerReconnecting";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -12,7 +13,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [hasAuthenticated, setHasAuthenticated] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
-  const { data, isLoading, isError, error, isFetching, refetch } = useQuery<{ user?: { id?: number; email?: string; isAdmin?: boolean; isClient?: boolean; isEmployee?: boolean } }>({
+  const { data, isLoading, isError, error, isFetching, refetch, errorUpdateCount } = useQuery<{ user?: { id?: number; email?: string; isAdmin?: boolean; isClient?: boolean; isEmployee?: boolean } }>({
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
       const { buildApiUrl } = await import("@/lib/queryClient");
@@ -124,21 +125,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
   // forever, hammering /api/auth/me and /api/notifications.
   if (isError && !data) {
     return (
-      <div className="min-h-screen bg-card flex items-center justify-center px-6">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <p className="text-foreground font-medium">We couldn't verify your session.</p>
-          <p className="text-muted-foreground text-sm">
-            {error instanceof Error ? error.message : "The server is temporarily unavailable."}
-          </p>
-          <button
-            type="button"
-            onClick={() => refetch()}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-          >
-            Try again
-          </button>
-        </div>
-      </div>
+      <ServerReconnecting
+        error={error}
+        isFetching={isFetching}
+        errorUpdateCount={errorUpdateCount}
+        onRetry={() => void refetch()}
+      />
     );
   }
 
