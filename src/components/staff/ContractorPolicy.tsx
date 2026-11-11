@@ -51,7 +51,14 @@ export interface ContractorPolicyAgreement {
   policyText: string;
   documentUrl: string;
   ipAddress: string | null;
+  /** policyText with the signer's name, date and signature in its blanks (filled by the server). */
+  signedDocument?: SignedWaiverPart[];
 }
+
+export type SignedWaiverPart =
+  | { kind: "text"; text: string }
+  | { kind: "field"; text: string }
+  | { kind: "signature" };
 
 interface MyContractorPolicy {
   hasEmployee: boolean;
@@ -128,20 +135,50 @@ export function useMyContractorPolicy(enabled: boolean) {
   });
 }
 
+/** The signature as it sits on the waiver's signature line. */
+function InlineSignature({ name, image }: { name: string; image: string | null }) {
+  return image ? (
+    <img
+      src={image}
+      alt={`Signature of ${name}`}
+      className="inline-block h-12 max-w-[220px] rounded bg-white object-contain align-middle"
+    />
+  ) : (
+    <span className="text-xl italic" style={{ fontFamily: "'Dancing Script', cursive" }}>
+      {name}
+    </span>
+  );
+}
+
 export function ContractorPolicyDocument({
   title,
   policyText,
   documentUrl,
+  signed,
 }: {
   title: string;
   policyText: string;
   documentUrl: string;
+  /** A signed copy: shows the signer's name, date and signature in the blanks. */
+  signed?: { parts: SignedWaiverPart[]; signatureName: string; signatureImage: string | null };
 }) {
   return (
     <div className="space-y-2">
       {policyText.trim() ? (
         <div className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-md border border-border bg-background p-4 text-sm leading-relaxed text-foreground">
-          {policyText}
+          {signed
+            ? signed.parts.map((p, i) =>
+                p.kind === "text" ? (
+                  <span key={i}>{p.text}</span>
+                ) : p.kind === "field" ? (
+                  <strong key={i} className="underline underline-offset-2">
+                    {p.text}
+                  </strong>
+                ) : (
+                  <InlineSignature key={i} name={signed.signatureName} image={signed.signatureImage} />
+                ),
+              )
+            : policyText}
         </div>
       ) : null}
       {documentUrl ? (

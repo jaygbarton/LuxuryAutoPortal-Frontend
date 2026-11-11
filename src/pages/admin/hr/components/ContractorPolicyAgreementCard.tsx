@@ -41,6 +41,15 @@ function AgreementDetails({ agreement }: { agreement: ContractorPolicyAgreement 
         title={agreement.policyTitle}
         policyText={agreement.policyText}
         documentUrl={agreement.documentUrl}
+        signed={
+          agreement.signedDocument
+            ? {
+                parts: agreement.signedDocument,
+                signatureName: agreement.signatureName,
+                signatureImage: agreement.signatureImage,
+              }
+            : undefined
+        }
       />
     </>
   );
