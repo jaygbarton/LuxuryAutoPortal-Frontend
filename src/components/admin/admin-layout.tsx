@@ -171,8 +171,16 @@ const allSidebarItems: SidebarItem[] = [
     roles: ["client"],
   },
   { href: "/admin/admins", label: "Admins", icon: Users, roles: ["admin"] },
-  { href: "/admin/co-hosts", label: "Co-Hosts", icon: Users, roles: ["admin"] },
-  { href: "/admin/my-co-host-cars", label: "My Co-Host Cars", icon: Car, roles: ["admin"] },
+  {
+    href: "/admin/co-hosts",
+    label: "Co-Hosts",
+    icon: Users,
+    roles: ["admin"],
+    children: [
+      { href: "/admin/co-hosts", label: "Co-Hosts", icon: Users, roles: ["admin"] },
+      { href: "/admin/my-co-host-cars", label: "My Co-Host Cars", icon: Car, roles: ["admin"] },
+    ],
+  },
   { href: "/admin/applicants", label: "Applicants", icon: Users, roles: ["admin"] },
   { href: "/admin/clients", label: "Clients", icon: Users, roles: ["admin"] },
   { href: "/cars", label: "Cars", icon: Car, roles: ["admin"] },
@@ -195,6 +203,10 @@ const allSidebarItems: SidebarItem[] = [
     label: "Income and Expenses",
     icon: DollarSign,
     roles: ["admin"],
+    children: [
+      { href: "/admin/income-expenses", label: "Income and Expenses", icon: DollarSign, roles: ["admin"] },
+      { href: "/admin/totals", label: "Totals", icon: Calculator, roles: ["admin"] },
+    ],
   },
   {
     href: "/admin/payments",
@@ -220,15 +232,12 @@ const allSidebarItems: SidebarItem[] = [
         icon: ClipboardList,
         roles: ["admin"],
       },
+      // Payroll moved here from its own top-level group (Cathy, 2026-11).
+      { href: "/admin/payroll", label: "Payroll", icon: DollarSign, roles: ["admin"] },
+      { href: "/admin/payroll/commissions", label: "Commissions", icon: DollarSign, roles: ["admin"] },
     ],
   },
   { href: "/admin/ai-hub", label: "AI Hub", icon: Cpu, roles: ["admin"] },
-  {
-    href: "/admin/totals",
-    label: "Totals",
-    icon: Calculator,
-    roles: ["admin"],
-  },
   {
     href: "/admin/turo-trips",
     label: "Turo Trips",
@@ -397,26 +406,6 @@ const allSidebarItems: SidebarItem[] = [
         href: "/admin/hr/report",
         label: "Report",
         icon: ClipboardList,
-        roles: ["admin"],
-      },
-    ],
-  },
-  {
-    href: "/admin/payroll",
-    label: "Payroll",
-    icon: DollarSign,
-    roles: ["admin"],
-    children: [
-      {
-        href: "/admin/payroll",
-        label: "Pay Run",
-        icon: DollarSign,
-        roles: ["admin"],
-      },
-      {
-        href: "/admin/payroll/commissions",
-        label: "Commissions",
-        icon: DollarSign,
         roles: ["admin"],
       },
     ],
@@ -672,7 +661,15 @@ export const coHostSidebarItems: SidebarItem[] = [
   { href: "/admin/my-co-host-cars", label: "My Co-Host Cars", icon: Car },
   { href: "/cars", label: "Cars", icon: Car },
   { href: "/admin/clients", label: "Clients", icon: Users },
-  { href: "/admin/income-expenses", label: "Income and Expenses", icon: DollarSign },
+  {
+    href: "/admin/income-expenses",
+    label: "Income and Expenses",
+    icon: DollarSign,
+    children: [
+      { href: "/admin/income-expenses", label: "Income and Expenses", icon: DollarSign },
+      { href: "/admin/totals", label: "Totals", icon: Calculator },
+    ],
+  },
   {
     href: "/admin/payments",
     label: "Payments",
@@ -681,9 +678,10 @@ export const coHostSidebarItems: SidebarItem[] = [
       { href: "/admin/payments", label: "Client Payments", icon: CreditCard },
       { href: "/admin/co-host-payments", label: "Co-Host Payments", icon: CreditCard },
       { href: "/admin/payment-status", label: "Status", icon: ClipboardList },
+      { href: "/admin/payroll", label: "Payroll", icon: DollarSign },
+      { href: "/admin/payroll/commissions", label: "Commissions", icon: DollarSign },
     ],
   },
-  { href: "/admin/totals", label: "Totals", icon: Calculator },
   { href: "/admin/turo-trips", label: "Turo Trips", icon: Mail },
   { href: "/admin/trip-calendar", label: "Trips Calendar", icon: CalendarDays },
   {
@@ -735,15 +733,6 @@ export const coHostSidebarItems: SidebarItem[] = [
       { href: "/admin/hr/time", label: "Time", icon: Clock },
       { href: "/admin/hr/time-off", label: "Time Off", icon: Clock },
       { href: "/admin/hr/report", label: "Report", icon: ClipboardList },
-    ],
-  },
-  {
-    href: "/admin/payroll",
-    label: "Payroll",
-    icon: DollarSign,
-    children: [
-      { href: "/admin/payroll", label: "Pay Run", icon: DollarSign },
-      { href: "/admin/payroll/commissions", label: "Commissions", icon: DollarSign },
     ],
   },
   { href: "/admin/settings", label: "Settings", icon: Settings },
