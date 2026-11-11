@@ -469,6 +469,12 @@ export default function ViewCarPage() {
                 </SearchableNativeSelect>
               </div>
             )}
+            {statementYearsData && !statementCoHost && (
+              <p className="text-xs text-muted-foreground">
+                No co-host is assigned to this car, so this is the client statement. For a co-host statement, open
+                Co-Hosts and click Statement of Account on the co-host.
+              </p>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>

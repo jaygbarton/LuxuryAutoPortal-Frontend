@@ -28,7 +28,8 @@ import { apiRequest, authMeQueryFn } from "@/lib/queryClient";
 import { api } from "@/lib/api";
 import { SensitiveValue } from "@/components/admin/SensitiveValue";
 import { cn } from "@/lib/utils";
-import { Search, Eye, CheckCircle, XCircle, Trash2, Loader2, ExternalLink, QrCode, Car, Save, Copy, History } from "lucide-react";
+import { Search, Eye, CheckCircle, XCircle, Trash2, Loader2, ExternalLink, QrCode, Car, Save, Copy, History, FileText } from "lucide-react";
+import { CoHostStatementDialog } from "@/components/admin/CoHostStatementDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
@@ -121,6 +122,7 @@ export default function CoHostsPage() {
   const [showQr, setShowQr] = useState(false);
   const [selectedCarAids, setSelectedCarAids] = useState<Set<number>>(new Set());
   const [editHistoryCoHostId, setEditHistoryCoHostId] = useState<number | null>(null);
+  const [statementCoHost, setStatementCoHost] = useState<{ id: number; name: string } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -390,6 +392,18 @@ export default function CoHostsPage() {
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
+                            {ch.status === "approved" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-primary hover:text-primary"
+                                title="Statement of Account"
+                                aria-label={`Statement of Account for ${ch.first_name} ${ch.last_name}`}
+                                onClick={() => setStatementCoHost({ id: ch.id, name: `${ch.first_name} ${ch.last_name}`.trim() })}
+                              >
+                                <FileText className="w-4 h-4" />
+                              </Button>
+                            )}
                             {ch.status === "pending" && (
                               <>
                                 <Button
@@ -462,16 +476,32 @@ export default function CoHostsPage() {
                     {viewCoHost.co_host_number} · Submitted {format(new Date(viewCoHost.created_at), "MM/dd/yyyy")}
                   </DialogDescription>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="border-primary/30 text-primary shrink-0"
-                  onClick={() => setEditHistoryCoHostId(viewCoHost.id)}
-                >
-                  <History className="w-4 h-4 mr-2" />
-                  Edit History
-                </Button>
+                <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                  {viewCoHost.status === "approved" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-primary/30 text-primary"
+                      onClick={() =>
+                        setStatementCoHost({ id: viewCoHost.id, name: `${viewCoHost.first_name} ${viewCoHost.last_name}`.trim() })
+                      }
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Statement of Account
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-primary/30 text-primary"
+                    onClick={() => setEditHistoryCoHostId(viewCoHost.id)}
+                  >
+                    <History className="w-4 h-4 mr-2" />
+                    Edit History
+                  </Button>
+                </div>
               </div>
             </DialogHeader>
 
@@ -792,6 +822,8 @@ export default function CoHostsPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      <CoHostStatementDialog coHost={statementCoHost} onClose={() => setStatementCoHost(null)} />
     </AdminLayout>
   );
 }
