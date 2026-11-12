@@ -3,7 +3,7 @@ export type DirectBookingPreviewView = "customer" | "worker" | "calendar" | "day
 
 const UUID = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}";
 export function isBookingKey(key: string): boolean {
-  return /^(?:turo|owner_rental|block_off|maintenance|direct_booking):[1-9]\d*$/.test(key) ||
+  return /^(?:turo|owner_rental|block_off|maintenance|car_onboarding|car_offboarding|direct_booking):[1-9]\d*$/.test(key) ||
     /^block_off:google:[A-Za-z0-9_.@-]{1,512}$/.test(key) ||
     new RegExp(`^direct_booking_preview:${UUID}$`, "i").test(key);
 }

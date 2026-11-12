@@ -1,3 +1,4 @@
+import {VehicleOnboardingStatus} from '@/components/admin/VehicleOnboardingStatus';
 import { optionKeywords } from "@/lib/select-search";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -1813,6 +1814,7 @@ export default function CarDetailPage() {
                 </p>
               </div>
               
+              {isAdmin && carId && <VehicleOnboardingStatus carId={carId} />}
               {/* Assigned To Section */}
                 <div className="pt-1.5 border-t border-border min-w-0">
                   <div className="flex flex-col gap-4 min-w-0">

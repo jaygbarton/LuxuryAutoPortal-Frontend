@@ -1,4 +1,4 @@
-export const FLEET_CALENDAR_SOURCES = ["turo", "owner_rental", "block_off", "maintenance", "direct_booking"] as const;
+export const FLEET_CALENDAR_SOURCES = ["turo", "owner_rental", "block_off", "maintenance", "car_onboarding", "car_offboarding", "direct_booking"] as const;
 export type FleetCalendarSource = typeof FLEET_CALENDAR_SOURCES[number];
 
 export interface FleetCalendarCar {
@@ -81,6 +81,8 @@ export const FLEET_SOURCE_LABELS: Record<FleetCalendarSource, string> = {
   block_off: "Blocked off",
   maintenance: "Services",
   direct_booking: "Direct rentals",
+  car_onboarding: "Car Onboarding",
+  car_offboarding: "Car Offboarding",
 };
 
 export function isCancelledCalendarEvent(event: FleetCalendarEvent): boolean {

@@ -36,6 +36,8 @@ const LABEL_WIDTH = 190;
 const LANE_HEIGHT = 34;
 const SYNC_REQUEST_KEY = "gla:internal-calendar:last-sync-request";
 const SOURCE_COLORS: Record<FleetCalendarSource, string> = {
+  car_onboarding: "border-amber-400 bg-amber-100 text-amber-950",
+  car_offboarding: "border-slate-400 bg-slate-100 text-slate-800",
   turo: "border-[#BD9C5D] bg-[#D3BC8D] text-black",
   owner_rental: "border-blue-400 bg-blue-100 text-blue-950",
   block_off: "border-amber-400 bg-amber-100 text-amber-950",

@@ -39,6 +39,7 @@ interface ContractSubmission {
   signedContractUrl: string | null;
   isOffboarded: boolean;
   carOffboardAt: string | null;
+  carOnboardAt?: string | null;
   carOffboardReason: string | null;
 }
 
@@ -272,8 +273,9 @@ export default function ContractManagement() {
                         Contract
                       </TableHead>
                       <TableHead className="text-center text-xs font-medium text-primary uppercase tracking-wider px-2 sm:px-3 py-3 sm:py-4 hidden 2xl:table-cell whitespace-nowrap">
-                        Car Onboarding Date
+                        Agreement Signed
                       </TableHead>
+                      <TableHead className="hidden 2xl:table-cell">Car Onboarding Date</TableHead>
                       <TableHead className="text-center text-xs font-medium text-primary uppercase tracking-wider px-2 sm:px-3 py-3 sm:py-4 hidden 2xl:table-cell whitespace-nowrap">
                         Offboarding
                       </TableHead>
@@ -365,6 +367,7 @@ export default function ContractManagement() {
                             <span className="text-muted-foreground">Not signed</span>
                           )}
                         </TableCell>
+                        <TableCell className="hidden 2xl:table-cell">{contract.carOnboardAt ? new Date(contract.carOnboardAt).toLocaleDateString('en-US') : '—'}</TableCell>
                         <TableCell className="px-2 sm:px-3 py-3 sm:py-4 hidden 2xl:table-cell whitespace-nowrap">
                           {contract.isOffboarded ? (
                             <div className="flex flex-col gap-1">
@@ -392,12 +395,7 @@ export default function ContractManagement() {
                               )}
             </div>
           ) : (
-                            <Badge
-                              variant="outline"
-                              className="border-green-500/50 text-green-700 bg-green-500/10 text-xs"
-                            >
-                              Active
-                            </Badge>
+                            <span>—</span>
                           )}
                     </TableCell>
                         <TableCell className="px-6 py-4">

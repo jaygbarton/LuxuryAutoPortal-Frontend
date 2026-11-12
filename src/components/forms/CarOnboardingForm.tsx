@@ -135,8 +135,9 @@ export default function CarOnboardingForm() {
       // `new Date()` parse them applied the *browser's* offset — a bare
       // YYYY-MM-DD as UTC midnight, and the date+time pair as browser-local —
       // so a user outside Mountain Time filed records under the wrong day.
-      const dateTime = mtDayStartToUtcIso(data.date);
-      const dropOffDateTime = mtLocalInputToUtcIso(`${data.dropOffDate}T${data.dropOffTime}`);
+      const timezone = data.dropOffLocation === '9789 Blackwell Road Southeast, Leland, NC 28451' ? 'America/New_York' : 'America/Denver';
+      const dateTime = mtDayStartToUtcIso(data.date, timezone);
+      const dropOffDateTime = mtLocalInputToUtcIso(`${data.dropOffDate}T${data.dropOffTime}`, timezone);
       if (!dateTime || !dropOffDateTime) {
         throw new Error("Pick a valid date and time");
       }
@@ -297,21 +298,21 @@ export default function CarOnboardingForm() {
                         })
                       ) : (
                         <SelectItem value="no-cars" disabled>
-                          No offboarded cars available
+                          No eligible vehicles available
                         </SelectItem>
                       )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Only showing offboarded cars (inactive/returned vehicles)
+                    Showing vehicles eligible for Car Onboarding
                   </p>
                 </FormItem>
               )}
             />
 
             {/* Car Details Row: Make/Model/Year, Plate Number, Dealership Address */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="carMakeModelYear"
@@ -350,23 +351,6 @@ export default function CarOnboardingForm() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="dealershipAddress"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-muted-foreground">Address of Dealership</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Enter dealership address (if applicable)"
-                        className="bg-card border-border text-foreground focus:border-primary"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
 
             {/* Drop-off Date and Time */}
@@ -415,13 +399,14 @@ export default function CarOnboardingForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-muted-foreground">Car Onboarding Location *</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Address or description"
-                      className="bg-card border-border text-foreground focus:border-primary"
-                    />
-                  </FormControl>
+                  <p className="text-xs text-muted-foreground">Enter the date and time in the selected location’s local time.</p>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select a GLA home location" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="50 South Redwood Road, Salt Lake City, Utah 84116">Utah — 50 South Redwood Road, Salt Lake City, Utah 84116</SelectItem>
+                        <SelectItem value="9789 Blackwell Road Southeast, Leland, NC 28451">North Carolina — 9789 Blackwell Road Southeast, Leland, NC 28451</SelectItem>
+                      </SelectContent>
+                    </Select>
                   <FormMessage />
                 </FormItem>
               )}

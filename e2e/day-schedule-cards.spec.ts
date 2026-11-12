@@ -719,3 +719,11 @@ test('Day Schedule pauses polling in hidden tabs and refreshes when staff return
  await expect.poll(()=>reads).toBe(1);
  await page.clock.fastForward(60*1000);await expect.poll(()=>reads).toBe(2);
 });
+
+test('super admins can assign themselves as the employee task driver',async({page})=>{
+ const state=await fixture(page,{rows:[task(19,'turo:208',{type:'pickup',category:'Pick Up',location:'SLC Airport'})]});
+ await page.locator('[data-day-schedule-card]').click();
+ await page.getByRole('combobox',{name:'Task driver',exact:true}).click();
+ await page.getByRole('option',{name:'Test Worker',exact:true}).click();
+ await expect.poll(()=>state.writes.find(w=>w.path.endsWith('/driver'))?.body).toMatchObject({employeeId:41,assignmentType:'employee'});
+});

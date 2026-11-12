@@ -709,3 +709,18 @@ test('unavailable workflow status is not presented as a missing vehicle',async({
  await expect(panel.getByText('Vehicle record not yet linked',{exact:true})).toHaveCount(0);
  await expect(panel.getByRole('button',{name:'Repair client setup & send missing instructions'})).toBeDisabled();
 });
+
+test('Car Onboarding offers both home locations, removes dealership and uses North Carolina time',async({page})=>{
+ const {writes}=await fixture(page,'client');
+ await page.route('**/api/client/cars?for=onboarding',route=>route.fulfill({json:{success:true,data:[{id:88,makeModel:'Honda Accord 2020',plateNumber:'TEST123',carStatus:'off_fleet'}]}}));
+ await page.goto('/admin/forms?section=client-onboarding&item=car-on');
+ await expect(page.getByLabel('Address of Dealership')).toHaveCount(0);
+ await choose(page,page.getByRole('combobox',{name:'Select Your Car *',exact:true}),'Honda Accord 2020 - TEST123');
+ await page.getByLabel('Car Onboarding Date *',{exact:true}).fill('2026-11-15');
+ await page.getByLabel('Car Onboarding Time *',{exact:true}).fill('09:00');
+ await page.getByRole('combobox',{name:'Car Onboarding Location *',exact:true}).click();
+ await expect(page.getByRole('option',{name:/Utah — 50 South Redwood/})).toBeVisible();
+ await page.getByRole('option',{name:/North Carolina — 9789 Blackwell/}).click();
+ await page.getByRole('button',{name:'Submit Form',exact:true}).click();
+ await expect.poll(()=>writes.find(w=>w.path==='/api/car-onboarding/submit')?.body).toMatchObject({carId:'88',dropOffDate:'2026-11-15T14:00:00.000Z',dropOffLocation:'9789 Blackwell Road Southeast, Leland, NC 28451'});
+});

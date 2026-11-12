@@ -13,6 +13,7 @@ export function TaskDriverSelect({ value, assignmentType, onChange, disabled = f
 }) {
   const auth = useQuery({ queryKey: ['/api/auth/me'], queryFn: authMeQueryFn, staleTime: 60_000 });
   const user = auth.data?.user;
+  const canAssignSelf=!!user?.isSuperAdmin && !!user?.isAdmin && !user?.viewAsEmployee && !user?.viewAsClient && !user?.viewAsCoHost;
   const employees = useQuery({ queryKey: ['/api/employees/picker', 'driver-options', user?.id, user?.viewAsCoHost?.coHostId, user?.viewAsEmployee?.employeeId], enabled: !!user, queryFn: async () => {
     // The HR employee-management endpoint is admin-only. This existing picker
     // supplies only active employee IDs/names and keeps the caller's team scope.
@@ -30,14 +31,14 @@ export function TaskDriverSelect({ value, assignmentType, onChange, disabled = f
     const body=await response.json();const id=Number(body.data?.employee_aid);
     if(!Number.isSafeInteger(id)||id<=0)throw new Error('Your employee identity could not be verified.');return id;
   },retry:false,staleTime:30_000});
-  const identityReady=ownEmployee.isSuccess && !(user?.isEmployee && ownEmployee.data===null);
+  const identityReady=canAssignSelf || ownEmployee.isSuccess && !(user?.isEmployee && ownEmployee.data===null);
   const selected = assignmentType === 'uber' || assignmentType === 'na' ? assignmentType : value ? String(value) : '';
   return <div className="min-w-0">
     <label className="flex flex-col gap-1 text-sm"><span>Driver</span>
       <SearchableNativeSelect aria-label="Task driver" className="h-11 w-full min-w-0 rounded-md border bg-white px-2 text-base sm:text-sm" value={selected} disabled={disabled} onChange={e => {
         if(e.target.value===''){onChange(null,null,null);return;}
         if (e.target.value === 'uber' || e.target.value === 'na') { onChange(e.target.value, null, null); return; }
-        if(!identityReady || Number(e.target.value)===ownEmployee.data)return;
+        if(!identityReady || !canAssignSelf && Number(e.target.value)===ownEmployee.data)return;
         const employee = employees.data?.find(employee => Number(employee.employee_aid) === Number(e.target.value));
         onChange(employee ? 'employee' : null, employee ? Number(employee.employee_aid) : null, employee?.fullname || null);
       }}>
@@ -45,7 +46,7 @@ export function TaskDriverSelect({ value, assignmentType, onChange, disabled = f
         <option value="uber">Uber</option>
         <option value="na">N/A</option>
         {employees.isLoading && <option disabled>Loading employee drivers…</option>}
-        {employees.data?.filter(employee=>Number(employee.employee_aid)!==ownEmployee.data).map(employee => <option disabled={!identityReady} key={employee.employee_aid} value={employee.employee_aid}>{employee.fullname || `Employee #${employee.employee_aid}`}</option>)}
+        {employees.data?.filter(employee=>canAssignSelf || Number(employee.employee_aid)!==ownEmployee.data).map(employee => <option disabled={!identityReady} key={employee.employee_aid} value={employee.employee_aid}>{employee.fullname || `Employee #${employee.employee_aid}`}</option>)}
       </SearchableNativeSelect>
     </label>
     {!identityReady&&!ownEmployee.isPending&&<p role="alert" className="text-sm text-destructive">Your employee identity could not be verified. <button type="button" className="underline" onClick={()=>void ownEmployee.refetch()}>Retry identity</button></p>}
