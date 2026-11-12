@@ -5,34 +5,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { coHostSidebarItems } from "../admin-layout";
-
-// Mirror of isPathActive / tabKeyOf in admin-layout.tsx.
-const isPathActive = (
-  pathname: string,
-  href: string,
-  currentSearch = "",
-  tabKey?: string,
-  isDefaultChild = false,
-) => {
-  const [hrefPath, hrefQuery] = href.split("?");
-  const params = new URLSearchParams(currentSearch);
-  if (hrefQuery != null) {
-    if (pathname !== hrefPath) return false;
-    const wanted = [...new URLSearchParams(hrefQuery).entries()];
-    if (wanted.length === 0) return isDefaultChild;
-    let sawParam = false;
-    for (const [key, value] of wanted) {
-      const current = params.get(key);
-      if (current === null) continue;
-      sawParam = true;
-      if (current !== value) return false;
-    }
-    return sawParam ? true : isDefaultChild;
-  }
-  if (pathname === hrefPath) return tabKey ? !params.get(tabKey) : true;
-  if (hrefPath === "/dashboard") return false;
-  return pathname.startsWith(hrefPath + "/");
-};
+import { isSidebarPathActive as isPathActive, organizeSidebar } from "@/lib/sidebar-navigation";
 
 /** Admin Forms group — note EVERY child carries a ?section=, no bare default. */
 const FORMS = [
@@ -76,6 +49,12 @@ describe("co-host sidebar sub-categories", () => {
   // default tab with no way to reach the others.
   const find = (label: string) =>
     coHostSidebarItems.find((i) => i.label === label);
+
+  it("orders the grouped Operations menu and removes the duplicate block-off shortcut", () => {
+    const organized=organizeSidebar(coHostSidebarItems);
+    expect(organized.find(item=>item.label==='Operations')?.children?.slice(0,5).map(item=>item.label)).toEqual(['Day Schedule','Car Block Off','Maintenance','Service Due','Turo Trips']);
+    expect(organized.some(item=>item.label==='Car Block Off')).toBe(false);
+  });
 
   it("gives Operations and Forms sub-categories, like every other role", () => {
     for (const label of ["Operations", "Forms"]) {

@@ -1,3 +1,4 @@
+import {organizeSidebar,activeSidebarItems,isSidebarPathActive as isPathActive,type SidebarItem} from "@/lib/sidebar-navigation";
 import { useChartManagementAccess } from "@/hooks/use-chart-management-access";
 import React, {
   useState,
@@ -72,19 +73,6 @@ interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
-interface SidebarItem {
-  href: string;
-  label: string;
-  icon: any;
-  roles?: ("admin" | "client" | "employee" | "cohost")[];
-  children?: SidebarItem[];
-  /** When true, render as a plain <a target="_blank"> instead of an in-app
-   *  router link. Used for sidebar entries that link out to third-party
-   *  services (Turo host page, etc.). The active-route highlight is skipped
-   *  for external links since they never match the current URL. */
-  external?: boolean;
-  superAdminOnly?: boolean;
-}
 
 /**
  * The Operations page's twelve tabs, as sidebar sub-items.
@@ -99,16 +87,16 @@ interface SidebarItem {
  */
 const OPERATIONS_TABS: { href: string; label: string; icon: any }[] = [
   { href: "/admin/operations?tab=day-schedule", label: "Day Schedule", icon: CalendarDays },
+  { href: "/admin/operations?tab=car-block-off", label: "Car Block Off", icon: CalendarOff },
+  { href: "/admin/operations?tab=maintenance", label: "Maintenance", icon: Cog },
+  { href: "/admin/operations?tab=service-due", label: "Service Due", icon: Clock },
   { href: "/admin/operations?tab=turo-inspection", label: "Turo Messages", icon: MessageCircle },
   { href: "/admin/operations?tab=inspections", label: "Car Issues", icon: ShieldAlert },
   { href: "/admin/operations?tab=claims", label: "Claims", icon: FileText },
   { href: "/admin/operations?tab=ticket-violation", label: "Ticket Violation", icon: ShieldAlert },
   { href: "/admin/operations?tab=towing-impound", label: "Towing & Impound", icon: Truck },
-  { href: "/admin/operations?tab=maintenance", label: "Maintenance", icon: Cog },
-  { href: "/admin/operations?tab=service-due", label: "Service Due", icon: Clock },
   { href: "/admin/operations?tab=completed", label: "No Car Issues", icon: ClipboardList },
   { href: "/admin/operations?tab=car-repaired", label: "Car Repaired", icon: Key },
-  { href: "/admin/operations?tab=car-block-off", label: "Car Block Off", icon: CalendarOff },
   { href: "/admin/operations?tab=chart-management", label: "Chart Management", icon: BarChart3 },
 ];
 
@@ -197,7 +185,6 @@ const allSidebarItems: SidebarItem[] = [
       { href: "/client/view-stats", label: "View Stats", icon: BarChart3, roles: ["client"] },
     ],
   },
-  { href: "/admin/car-block-off", label: "Car Block Off", icon: CalendarOff, roles: ["client"] },
   {
     href: "/admin/income-expenses",
     label: "Income and Expenses",
@@ -306,16 +293,6 @@ const allSidebarItems: SidebarItem[] = [
     roles: ["admin"],
     children: withRoles(OPERATIONS_TABS, ["admin"]),
   },
-  // The standalone Car Block Off page (CarBlockOff.tsx) is a different screen
-  // from the Operations "Car Block Off" tab (CarBlockOffTab.tsx) — it's the
-  // submission form. It used to be a child of Operations; kept as its own
-  // entry now that Operations' children are the tab strip.
-  {
-    href: "/admin/car-block-off",
-    label: "Car Block Off",
-    icon: CalendarOff,
-    roles: ["admin"],
-  },
   {
     href: "/admin/forms",
     label: "Forms",
@@ -338,12 +315,6 @@ const allSidebarItems: SidebarItem[] = [
     icon: Key,
     roles: ["admin"],
     external: true,
-  },
-  {
-    href: "/admin/rental-listings",
-    label: "Rental Listings",
-    icon: Car,
-    roles: ["admin"],
   },
   {
     href: "/admin/marketing",
@@ -707,7 +678,6 @@ export const coHostSidebarItems: SidebarItem[] = [
     // navigation does not widen what they can see.
     children: COHOST_OPERATIONS_TABS,
   },
-  { href: "/admin/car-block-off", label: "Car Block Off", icon: CalendarOff },
   {
     href: "/admin/forms",
     label: "Forms",
@@ -766,110 +736,8 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   const [switching, setSwitching] = useState(false);
   const { toast } = useToast();
 
-  const [expandedParents, setExpandedParents] = useState<
-    Record<string, boolean>
-  >(() => {
-    const obj: Record<string, boolean> = {};
-    const currentSearch = typeof window === "undefined" ? "" : window.location.search.replace(/^\?/, "");
-    // Mirrors isPathActive below; kept inline because that lives in the body.
-    const matches = (pathname: string, href: string, isDefaultChild: boolean) => {
-      const [hrefPath, hrefQuery] = href.split("?");
-      if (hrefQuery != null) {
-        const [key, value] = hrefQuery.split("=");
-        if (pathname !== hrefPath) return false;
-        const current = new URLSearchParams(currentSearch).get(key);
-        return current === null ? isDefaultChild : current === value;
-      }
-      if (pathname === hrefPath) return true;
-      if (hrefPath === "/dashboard") return false;
-      return pathname.startsWith(hrefPath + "/");
-    };
-    [...allSidebarItems, ...employeeSidebarItems, ...coHostSidebarItems].forEach((it) => {
-      if (it.children && it.children.length > 0) {
-        obj[it.href] = it.children.some((c, i) => matches(location, c.href, i === 0));
-      }
-    });
-    return obj;
-  });
-
-  const toggleExpand = (href: string) =>
-    setExpandedParents((prev) => ({ ...prev, [href]: !prev[href] }));
-
-  // Proper path-boundary match so e.g. "/admin/bouncie" does NOT match "/admin/bouncie-devices".
-  //
-  // Tab sub-items carry a query string ("/admin/operations?tab=maintenance").
-  // Those must match the CURRENT query exactly — matching on pathname alone
-  // would light up all twelve Operations children at once.
-  //
-  // `tabKey` is the param this item's siblings are keyed by ("tab", "section").
-  // A query-less DEFAULT child (Day Schedule) must match only when that key
-  // is absent from the URL, otherwise it stays lit alongside whichever tab is
-  // really open. Checking that one key rather than "any query at all" keeps
-  // unrelated params (?category=…&field=… deep links) from breaking the match.
-  // `isDefaultChild` marks the sub-item a page falls back to when the group's
-  // param is missing. Operations expresses that with a query-less child
-  // (Day Schedule), but every admin Forms child carries a ?section=, so on a
-  // bare /admin/forms nothing matched and the group looked inactive. Flagging
-  // the first child covers both shapes.
-  const isPathActive = (
-    pathname: string,
-    href: string,
-    currentSearch = "",
-    tabKey?: string,
-    isDefaultChild = false,
-  ) => {
-    const [hrefPath, hrefQuery] = href.split("?");
-    const params = new URLSearchParams(currentSearch);
-    if (hrefQuery != null) {
-      if (pathname !== hrefPath) return false;
-      // An href may pin more than one param (?section=…&item=…, so the three
-      // Client Onboarding sub-forms are separately addressable). EVERY pinned
-      // param must match, or sibling links that share a section all light up.
-      const wanted = [...new URLSearchParams(hrefQuery).entries()];
-      if (wanted.length === 0) return isDefaultChild;
-      let sawParam = false;
-      for (const [key, value] of wanted) {
-        const current = params.get(key);
-        if (current === null) continue;
-        sawParam = true;
-        if (current !== value) return false;
-      }
-      // None of the pinned params are in the URL at all: only the group's
-      // default child claims the bare path.
-      return sawParam ? true : isDefaultChild;
-    }
-    if (pathname === hrefPath) return tabKey ? !params.get(tabKey) : true;
-    if (hrefPath === "/dashboard") return false;
-    return pathname.startsWith(hrefPath + "/");
-  };
-
-  /** The query param a group of sub-items switches on, e.g. "tab" or "section". */
-  const tabKeyOf = (children?: SidebarItem[]) => {
-    for (const c of children ?? []) {
-      const q = c.href.split("?")[1];
-      if (q) return q.split("=")[0];
-    }
-    return undefined;
-  };
-
-  useEffect(() => {
-    // Auto-expand parent when a child matches the current location
-    let changed = false;
-    const newState = { ...expandedParents };
-    [...allSidebarItems, ...employeeSidebarItems, ...coHostSidebarItems].forEach((it) => {
-      if (it.children && it.children.length > 0) {
-        const key = tabKeyOf(it.children);
-        const childActive = it.children.some((c, i) =>
-          isPathActive(location, c.href, search, key, i === 0),
-        );
-        if (childActive && !newState[it.href]) {
-          newState[it.href] = true;
-          changed = true;
-        }
-      }
-    });
-    if (changed) setExpandedParents(newState);
-  }, [location, search]);
+  const [expandedParents,setExpandedParents]=useState<Record<string,boolean>>({});
+  const toggleExpand=(href:string)=>setExpandedParents(previous=>({...previous,[href]:!previous[href]}));
 
   const { data } = useQuery<{ user?: any }>({
     queryKey: ["/api/auth/me"],
@@ -915,7 +783,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   // Filter sidebar items based on user role and path (employees see staff nav; on /staff path admins also see staff nav)
   const chartAccess = useChartManagementAccess();
   const chartVisible = (item: { href: string }) => item.href !== "/admin/operations?tab=chart-management" || chartAccess.data?.canManage === true;
-  const sidebarItems = useMemo(() => {
+  const authorizedSidebarItems = useMemo(() => {
     if (!user) return [];
 
     // Co-host sidebar — scoped view, no GLA admin data
@@ -1016,6 +884,41 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       })
       .filter(Boolean) as SidebarItem[];
   }, [user, location, showStaffSidebar, showCoHostSidebar, chartAccess.data?.canManage]);
+
+  const sidebarItems=useMemo(()=>organizeSidebar(authorizedSidebarItems),[authorizedSidebarItems]);
+  const activeNavigation=useMemo(()=>activeSidebarItems(sidebarItems,location,search),[sidebarItems,location,search]);
+  useEffect(()=>{
+    setExpandedParents(previous=>{
+      const missing=[...activeNavigation.groups].filter(href=>!previous[href]);
+      return missing.length?{...previous,...Object.fromEntries(missing.map(href=>[href,true]))}:previous;
+    });
+  },[activeNavigation]);
+
+  function renderSidebarItems(items:SidebarItem[],depth=0):React.ReactNode {
+    return items.map(item=>{
+      const Icon=item.icon;
+      const testId=`link-admin-${item.label.toLowerCase().replace(/\s+/g,'-')}`;
+      const inactive='border-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground';
+      const active='border-[hsl(var(--sidebar-primary))] text-[hsl(var(--sidebar-primary))] font-semibold bg-[hsl(var(--sidebar-primary)/0.08)]';
+      const leafActive='bg-gradient-to-r from-[hsl(40_55%_78%)] via-[hsl(var(--sidebar-primary))] to-[hsl(36_45%_60%)] text-[hsl(var(--sidebar-primary-foreground))] font-semibold border-[hsl(36_60%_50%)] shadow-[0_4px_14px_-4px_hsl(var(--sidebar-primary)/0.5)] ring-1 ring-[hsl(var(--sidebar-primary)/0.3)]';
+      const row='flex min-h-11 w-full min-w-0 items-center gap-2 px-3 py-2 rounded-md text-sm text-left transition-colors border-l-2 lg:min-h-9 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+      const content=<><Icon className="h-4 w-4 shrink-0"/>{sidebarOpen&&<span className="min-w-0 flex-1 break-words">{item.label}</span>}</>;
+      if(item.children?.length) {
+        const expanded=expandedParents[item.href]??activeNavigation.groups.has(item.href);
+        const id=`sidebar-${item.href.replace(/[^a-z0-9]+/gi,'-')}`;
+        return <div key={item.href} className={depth===0?'mx-2':undefined} data-nav-group={item.label}>
+          <button type="button" className={cn(row,activeNavigation.groups.has(item.href)?active:inactive)} aria-label={item.label} aria-expanded={expanded} aria-controls={id} onClick={()=>toggleExpand(item.href)} data-testid={testId}>
+            {content}{sidebarOpen&&<ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform',expanded&&'rotate-180')}/>}
+          </button>
+          {expanded&&sidebarOpen&&<div id={id} className="mt-1 ml-3 border-l-2 border-[hsl(var(--sidebar-primary)/0.35)] pl-1">{renderSidebarItems(item.children,depth+1)}</div>}
+        </div>;
+      }
+      const className=cn(row,depth===0&&'mx-2 w-auto',activeNavigation.leaves.has(item.href)?leafActive:inactive);
+      const click=()=>setMobileMenuOpen(false);
+      return item.external?<a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" className={className} onClick={click} data-testid={testId} aria-label={item.label}>{content}{sidebarOpen&&<ExternalLink className="h-3 w-3 shrink-0 opacity-60"/>}</a>:
+        <Link key={item.href} href={item.href} className={className} onClick={click} data-testid={testId} aria-label={item.label} aria-current={activeNavigation.leaves.has(item.href)?'page':undefined}>{content}</Link>;
+    });
+  }
 
   // Derive shortcuts from the same authorized menu as desktop, including
   // impersonation. A client must never gain employee links through mobile UI.
@@ -1193,138 +1096,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
             and double-clicking one (e.g. collapsing then re-opening a group)
             otherwise starts a text selection that spans the sibling labels. */}
         <nav className="flex-1 overflow-y-auto py-2 select-none">
-          {sidebarItems.map((item) => {
-            const Icon = item.icon;
-            // Top-level / parent active: elegant gold text + left bar, no fill.
-            // Restrained luxury — the parent is a category label, not the destination.
-            const activeClasses =
-              "border-[hsl(var(--sidebar-primary))] text-[hsl(var(--sidebar-primary))] font-semibold bg-[hsl(var(--sidebar-primary)/0.08)]";
-            // Sub-menu active: THE hero item — full premium gold gradient with glow.
-            // The selected page always gets the spotlight.
-            const childActiveClasses =
-              "bg-gradient-to-r from-[hsl(40_55%_78%)] via-[hsl(var(--sidebar-primary))] to-[hsl(36_45%_60%)] text-[hsl(var(--sidebar-primary-foreground))] font-semibold border-[hsl(36_60%_50%)] shadow-[0_4px_14px_-4px_hsl(var(--sidebar-primary)/0.5)] ring-1 ring-[hsl(var(--sidebar-primary)/0.3)]";
-            const inactiveClasses =
-              "border-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground";
-
-            if (item.children && item.children.length > 0) {
-              // Parent is considered active only when a child path is active.
-              const groupTabKey = tabKeyOf(item.children);
-              const isParentActive = item.children.some((c, i) =>
-                isPathActive(location, c.href, search, groupTabKey, i === 0),
-              );
-              const expanded = expandedParents[item.href] ?? isParentActive;
-
-              return (
-                <div key={item.href} className="mx-2">
-                  <button
-                    type="button"
-                    aria-expanded={expanded}
-                    aria-label={item.label}
-                    className={cn(
-                      "flex min-h-11 w-full items-center gap-3 px-3 py-2 rounded-md text-left transition-colors relative cursor-pointer border-l-2 lg:min-h-9 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      isParentActive ? activeClasses : inactiveClasses,
-                    )}
-                    onClick={() => toggleExpand(item.href)}
-                    data-testid={`link-admin-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    {sidebarOpen && (
-                      <>
-                        <span className="text-sm flex-1">{item.label}</span>
-                        <ChevronDown
-                          className={`w-4 h-4 transition-transform ${expanded ? "rotate-180" : ""}`}
-                        />
-                      </>
-                    )}
-                  </button>
-
-                  {expanded && sidebarOpen && (
-                    <div className="mt-1 ml-4 border-l-2 border-[hsl(var(--sidebar-primary)/0.35)] pl-2">
-                      {item.children.map((child, childIndex) => {
-                        const ChildIcon = child.icon;
-                        const childActive = isPathActive(location, child.href, search, groupTabKey, childIndex === 0);
-                        return (
-                          <Link
-                            key={child.href}
-                            href={child.href}
-                            className={cn(
-                              "flex min-h-11 items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors border-l-2 lg:min-h-8 lg:py-1.5",
-                              childActive
-                                ? childActiveClasses
-                                : inactiveClasses,
-                            )}
-                            onClick={() => setMobileMenuOpen(false)}
-                            data-testid={`link-admin-${child.label.toLowerCase().replace(/\s+/g, "-")}`}
-                          >
-                            <ChildIcon
-                              className={cn(
-                                "w-3 h-3 shrink-0",
-                                childActive
-                                  ? "text-[hsl(var(--sidebar-primary-foreground))]"
-                                  : "text-muted-foreground",
-                              )}
-                            />
-                            <span>{child.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
-            // External links (e.g. the Turo host page under Car Rental) open
-            // in a new tab via a plain <a>. They can't be the active route, so
-            // we skip the isActive check and always render with inactive
-            // styling plus a small "open in new tab" icon for affordance.
-            if (item.external) {
-              return (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(
-                    "flex min-h-11 items-center gap-3 mx-2 px-3 py-2 rounded-md transition-colors relative border-l-2 lg:min-h-9",
-                    inactiveClasses,
-                  )}
-                  onClick={() => setMobileMenuOpen(false)}
-                  data-testid={`link-admin-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  {sidebarOpen && (
-                    <>
-                      <span className="text-sm flex-1">{item.label}</span>
-                      <ExternalLink className="w-3 h-3 shrink-0 opacity-60" />
-                    </>
-                  )}
-                </a>
-              );
-            }
-
-            const isActive = isPathActive(location, item.href);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex min-h-11 items-center gap-3 mx-2 px-3 py-2 rounded-md transition-colors relative border-l-2 lg:min-h-9",
-                  isActive ? childActiveClasses : inactiveClasses,
-                )}
-                onClick={() => setMobileMenuOpen(false)}
-                data-testid={`link-admin-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                {sidebarOpen && (
-                  <>
-                    <span className="text-sm">{item.label}</span>
-                  </>
-                )}
-              </Link>
-            );
-          })}
+          {renderSidebarItems(sidebarItems)}
         </nav>
 
         <div className="p-4 border-t border-sidebar-border">

@@ -53,7 +53,6 @@ export function AdminPageLinks() {
   const isAdmin    = Boolean(meData?.user?.isAdmin);
   const isClient   = Boolean(meData?.user?.isClient);
   const isEmployee = Boolean(meData?.user?.isEmployee);
-  const isCoHost   = Boolean((meData?.user as any)?.isCoHost);
 
   if (!isAdmin || isClient || isEmployee) return null;
 
@@ -70,8 +69,7 @@ export function AdminPageLinks() {
     { href: "/admin/turo-trips",    icon: TrendingUp,    label: "Turo Trips" },
     { href: "/admin/bouncie",       icon: Radio,         label: "Bouncie" },
     { href: "/admin/operations",    icon: Anchor,        label: "Operations" },
-    { href: "/admin/car-block-off", icon: CalendarOff,   label: "Car Block Off" },
-    ...(!isCoHost ? [{ href: "/admin/rental-listings", icon: Car, label: "Rental Listings" }] : []),
+    { href: "/admin/operations?tab=car-block-off", icon: CalendarOff, label: "Car Block Off" },
     { href: "/admin/forms",         icon: ClipboardList, label: "Forms" },
   ];
 

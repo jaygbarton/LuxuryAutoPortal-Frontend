@@ -144,7 +144,6 @@ const TripCalendarPage = lazy(() => import("@/pages/admin/trip-calendar"));
 const CarBlockOffPage = lazy(() => import("@/pages/admin/CarBlockOff"));
 const AdminTestimonialsPage = lazy(() => import("@/pages/admin/testimonials"));
 const AdminTuroGuidePage = lazy(() => import("@/pages/admin/turo-guide"));
-const RentalListingsPage = lazy(() => import("@/pages/admin/rental-listings"));
 const GuestDatabasePage = lazy(() => import("@/pages/admin/marketing/guest-database"));
 const NewsMediaPage = lazy(() => import("@/pages/admin/news-media"));
 const NoticeBoardManagementPage = lazy(() => import("@/pages/admin/notice-board"));
@@ -679,7 +678,7 @@ function Router() {
               <RequireRole roles={["isAdmin", "isClient"]}><AdminTuroGuidePage /></RequireRole>
             </Route>
             <Route path="/admin/rental-listings">
-              <RequireRole roles={["isAdmin"]}><RentalListingsPage /></RequireRole>
+              <RequireRole roles={["isAdmin"]}><LegacyRouteRedirect to="/cars" /></RequireRole>
             </Route>
             <Route path="/admin/marketing/guest-database">
               <RequireRole roles={["isAdmin"]}><GuestDatabasePage /></RequireRole>

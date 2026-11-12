@@ -6,6 +6,7 @@ async function fixture(page: Page, role: "Employee" | "Admin" | "Client" | "CoHo
     const path = new URL(route.request().url()).pathname;
     let result: any = { success: true, data: [], total: 0, notifications: [], unreadCount: 0 };
     if (path === "/api/auth/me") result = { user: { id: 7, firstName: "Jordan", lastName: "Worker", roleName: role, isAdmin: role === "Admin" || role === "CoHost", isEmployee: role === "Employee", isClient: role === "Client", isCoHost: role === "CoHost", isSuperAdmin: false, effectiveTimezone: "America/Denver", ...(viewAsClient ? { viewAsClient: { clientId: 12 } } : {}) } };
+    if (path === "/api/me/contractor-policy") result = { data: { hasEmployee: true, agreed: true, mustSign: false, agreement: null, policy: { version: 1 } } };
     if (path === "/api/me/time-sheet/last") result = { success: true, data: { isClockedIn: clockedIn, openSession: clockedIn ? { time_aid: 1, time_in: "2026-10-18 14:00:00" } : null, lastRecord: null } };
     if (path === "/api/me/time-sheet/sessions") result = { success: true, data: { hourlyRate: 20, sessions: [] } };
     if (path === "/api/operations/day-schedule") result = { date: "2026-10-18", events: [], work_shifts: [] };
