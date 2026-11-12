@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { mtLocalInputToUtcIso, mtDayStartToUtcIso } from "@/lib/mt-datetime";
+import { CAR_ONBOARDING_TIMEZONES, mtLocalInputToUtcIso, mtDayStartToUtcIso } from "@/lib/mt-datetime";
 
 const carOnboardingSchema = z.object({
   date: z.string().min(1, "Date is required"),
@@ -135,7 +135,7 @@ export default function CarOnboardingForm() {
       // `new Date()` parse them applied the *browser's* offset — a bare
       // YYYY-MM-DD as UTC midnight, and the date+time pair as browser-local —
       // so a user outside Mountain Time filed records under the wrong day.
-      const timezone = data.dropOffLocation === '9789 Blackwell Road Southeast, Leland, NC 28451' ? 'America/New_York' : 'America/Denver';
+      const timezone = data.dropOffLocation === '9789 Blackwell Road Southeast, Leland, NC 28451' ? CAR_ONBOARDING_TIMEZONES.northCarolina : CAR_ONBOARDING_TIMEZONES.utah;
       const dateTime = mtDayStartToUtcIso(data.date, timezone);
       const dropOffDateTime = mtLocalInputToUtcIso(`${data.dropOffDate}T${data.dropOffTime}`, timezone);
       if (!dateTime || !dropOffDateTime) {

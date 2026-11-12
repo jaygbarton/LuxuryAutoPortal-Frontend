@@ -205,3 +205,6 @@ export function utcDateToDayKey(d: Date): string {
 export function addUtcDays(d: Date, n: number): Date {
   return new Date(d.getTime() + n * 86_400_000);
 }
+
+/** Physical handoff locations use their local wall time, independent of the viewer's preference. */
+export const CAR_ONBOARDING_TIMEZONES = {utah:'America/Denver',northCarolina:'America/New_York'} as const;
