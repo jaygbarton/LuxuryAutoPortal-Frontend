@@ -68,22 +68,27 @@ export function OnboardingReviewPanel({submission}:{submission:Record<string,any
         setConfirmCreate(false); setMessage(result.message);
       }
       await refresh();
-    } catch(err) { setError(err instanceof Error ? err.message : 'Please retry.'); }
+    } catch(err) {
+      setError(err instanceof Error ? err.message : 'The save result is unconfirmed. Refresh to check the current status.');
+      // A proxy can lose the response after the transaction commits. Re-read;
+      // never automatically repeat a write or keep offering stale creation actions.
+      await refresh();
+    }
     finally {setBusy(false);}
   };
   return <section aria-label="Onboarding review workflow" className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-4">
     <div><h3 className="font-semibold">Submit → sign agreement → approval → Car Onboarding</h3><p className="mt-1 text-sm text-muted-foreground">Submission sends the agreement for signing. Approval requires the signed agreement, creates or links the vehicle in Cars and the client profile, and sends account instructions. The client then completes the Car Onboarding Form when bringing the vehicle into GLA.</p></div>
     {workflow?.progress&&<LycProgress steps={workflow.progress.steps}/>}
-    <div className="flex flex-wrap gap-2 text-sm"><span className="rounded border bg-background px-2 py-1">Application: {submission.status}</span><span className="rounded border bg-background px-2 py-1">Contract: {submission.contractStatus || 'pending'}</span><span className="rounded border bg-background px-2 py-1">{workflow?.carId ? `Vehicle #${workflow.carId} in system` : 'Vehicle record not yet linked'}</span></div>
-    {(state.error || error) && <p role="alert" className="text-sm text-destructive">{error || state.error?.message} <Button type="button" variant="ghost" disabled={busy} onClick={()=>void refresh()}>Refresh review</Button></p>}
+    <div className="flex flex-wrap gap-2 text-sm"><span className="rounded border bg-background px-2 py-1">Application: {submission.status}</span><span className="rounded border bg-background px-2 py-1">Contract: {submission.contractStatus || 'pending'}</span><span className="rounded border bg-background px-2 py-1">{state.error || !workflow ? 'Vehicle link status unavailable' : workflow.carId ? `Vehicle #${workflow.carId} in system` : 'Vehicle record not yet linked'}</span></div>
+    {(state.error || error) && <p role="alert" className="text-sm text-destructive">{error || state.error?.message} <Button type="button" variant="ghost" disabled={busy} onClick={()=>{setError('');void refresh();}}>Refresh review</Button></p>}
     {submission.contractStatus !== 'signed' && <p className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Awaiting the client’s signed agreement. The application cannot be approved and applicant accounts cannot access the client software until signing and approval are complete.</p>}
     {['pending','in_review','approved'].includes(submission.status) && submission.contractStatus !== 'signed' && <Button type="button" variant="outline" disabled={busy} onClick={()=>void action('contract')}>Resend contract</Button>}
-    {submission.status === 'approved' && submission.contractStatus === 'signed' && <p className="text-sm text-muted-foreground">Contract signed. {workflow?.carId ? 'The owner can now complete the Car Onboarding Form.' : 'Restore the missing vehicle record so it can appear in the owner’s Car Onboarding Form.'}</p>}
-    {submission.status==='approved' && submission.contractStatus==='signed' && <Button type="button" variant="outline" disabled={busy || !version} onClick={()=>void action('reconcile')}>Repair client setup & send missing instructions</Button>}
+    {workflow && !state.error && submission.status === 'approved' && submission.contractStatus === 'signed' && <p className="text-sm text-muted-foreground">Contract signed. {workflow.carId ? 'The owner can now complete the Car Onboarding Form.' : 'Restore the missing vehicle record so it can appear in the owner’s Car Onboarding Form.'}</p>}
+    {submission.status==='approved' && submission.contractStatus==='signed' && <Button type="button" variant="outline" disabled={busy || !version || !workflow || !!state.error} onClick={()=>void action('reconcile')}>Repair client setup & send missing instructions</Button>}
     {!!workflow?.emailDeliveries?.length && <div className="text-sm text-muted-foreground"><p className="font-medium">Email acceptance recorded</p><ul className="mt-1 list-disc pl-5">{workflow.emailDeliveries.map((email:any)=><li key={email.kind}>{({contract:'Agreement',approval_setup:'Password setup',approval_existing:'Existing client approval',car_onboarding:'Car Onboarding instructions'} as Record<string,string>)[email.kind] || email.kind}: {new Date(email.sent_at).toLocaleString()}</li>)}</ul></div>}
     {message && <p role="status" className="text-sm">{message}</p>}
     {state.isLoading && <p className="text-sm">Loading review status…</p>}
-    {workflow && !editing && <div className="flex flex-wrap gap-2">
+    {workflow && !state.error && !editing && <div className="flex flex-wrap gap-2">
       {workflow.carId ? <Button asChild variant="outline"><Link href={`/admin/cars/${workflow.carId}`}>Open vehicle record</Link></Button> : <>
         <Button type="button" variant="outline" disabled={busy || submission.status === 'approved'} onClick={()=>{setChanges({});setEditing(true);setError('');}}>Edit application</Button>
         {submission.status === 'approved' ? <>
@@ -93,7 +98,7 @@ export function OnboardingReviewPanel({submission}:{submission:Record<string,any
         </> : <Button type="button" disabled={busy || !version || submission.contractStatus!=='signed'} onClick={()=>void action('approve')}>Approve application</Button>}
       </>}
     </div>}
-    {confirmCreate && !workflow?.carId && <div className="rounded border bg-background p-3 space-y-3" aria-label="Confirm vehicle record creation">
+    {confirmCreate && workflow && !state.error && !workflow.carId && <div className="rounded border bg-background p-3 space-y-3" aria-label="Confirm vehicle record creation">
       <p className="text-sm">Create a record for <strong>{submission.vehicleMake} {submission.vehicleModel} {submission.vehicleYear}</strong>, VIN {submission.vinNumber}, under {submission.firstNameOwner} {submission.lastNameOwner}? It will remain off fleet. A matching existing vehicle will be linked without overwriting its data.</p>
       <div className="flex flex-wrap gap-2"><Button type="button" disabled={busy} onClick={()=>void action('create')}>{busy ? 'Saving…' : 'Confirm create vehicle record'}</Button><Button type="button" variant="outline" disabled={busy} onClick={()=>setConfirmCreate(false)}>Cancel</Button></div>
     </div>}

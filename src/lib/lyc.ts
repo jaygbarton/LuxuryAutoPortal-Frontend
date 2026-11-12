@@ -5,8 +5,8 @@ export const applicantUser = (user:any) => !!user && (user.isApplicant === true 
 export async function lycRequest(path:string,method='GET',body?:unknown) {
   const response=await fetch(buildApiUrl(path),{method,credentials:'include',headers:{'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});
   const result=await response.json().catch(()=>null);
-  if(!result || typeof result!=='object') throw new Error(response.status===401?'Your session expired. Please sign in again.':'The server returned an unexpected response. Please retry.');
-  if(!response.ok) throw new Error(result.error || result.message || 'Unable to save. Please try again.');
+  if(!result || typeof result!=='object' || Array.isArray(result)) throw new Error(response.status===401?'Your session expired. Please sign in again.':`The server returned an unexpected response (HTTP ${response.status}). ${method==='GET'?'Refresh to check the current status.':'The save result is unconfirmed. Check the current status before trying again.'}`);
+  if(!response.ok || result.success===false) throw new Error(result.error || result.message || 'Unable to save. Please try again.');
   return result;
 }
 /** Keep login/signup continuation local and limited to the onboarding workspace. */

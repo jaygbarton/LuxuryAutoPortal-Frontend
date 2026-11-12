@@ -666,3 +666,46 @@ test('Completed retains the signed application and recovery links the reviewed o
  expect(workflow.clientId).toBe(773);expect(submission.signedContractUrl).toBe('/fixture-signed.pdf');
  expect(writes.filter(w=>w.path.endsWith('/approve'))).toHaveLength(0);
 });
+
+test('review keeps the plate under Vehicle Information and displays complete financial amounts',async({page})=>{
+ const {submission}=await fixture(page,true);
+ Object.assign(submission,{purchasePrice:'70,000',downPayment:'$10,000.00',monthlyPayment:'To Follow',interestRate:'To follow'});
+ await page.goto('/admin/forms?section=client-onboarding&item=lyc');
+ await page.getByRole('button',{name:'Review & edit application',exact:true}).click();
+ const financial=page.getByRole('heading',{name:'Financial Information',exact:true}).locator('..');
+ await expect(financial.getByText('Purchase Price:',{exact:true})).toBeVisible();
+ await expect(financial.getByText('$70,000.00',{exact:true})).toBeVisible();
+ await expect(financial.getByText('$10,000.00',{exact:true})).toBeVisible();
+ await expect(financial).not.toContainText('Plate');
+ await expect(financial).not.toContainText('follow%');
+ const plate=page.getByText('License Plate:',{exact:true});
+ await expect(plate).toHaveCount(1);
+ await expect(plate.locator('..')).toContainText('TEST123');
+});
+
+test('vehicle recovery rechecks a committed write after a gateway error without sending it twice',async({page})=>{
+ const {submission,workflow}=await fixture(page,true);submission.status='approved';submission.contractStatus='signed';workflow.clientId=12;
+ let writes=0;
+ await page.route('**/api/onboarding/submissions/7/create-vehicle',route=>{
+  writes++;workflow.carId=88;
+  return route.fulfill({status:502,contentType:'text/html',body:'<html>Bad gateway</html>'});
+ });
+ await page.goto('/admin/forms?section=client-onboarding&item=lyc');await page.getByRole('button',{name:'Review & edit application',exact:true}).click();
+ const panel=page.getByRole('region',{name:'Onboarding review workflow'});
+ await panel.getByRole('button',{name:'Restore approved vehicle',exact:true}).click();
+ await panel.getByRole('button',{name:'Confirm create vehicle record',exact:true}).click();
+ await expect(panel.getByRole('alert')).toContainText('HTTP 502');
+ await expect(panel.getByRole('link',{name:'Open vehicle record'})).toHaveAttribute('href','/admin/cars/88');
+ await expect(panel.getByText('Vehicle record not yet linked',{exact:true})).toHaveCount(0);
+ await expect(panel.getByRole('button',{name:'Confirm create vehicle record',exact:true})).toHaveCount(0);
+ expect(writes).toBe(1);
+});
+test('unavailable workflow status is not presented as a missing vehicle',async({page})=>{
+ const {submission}=await fixture(page,true);submission.status='approved';submission.contractStatus='signed';
+ await page.route('**/api/onboarding/submissions/7/review',route=>route.fulfill({status:502,contentType:'text/html',body:'<html>Bad gateway</html>'}));
+ await page.goto('/admin/forms?section=client-onboarding&item=lyc');await page.getByRole('button',{name:'Review & edit application',exact:true}).click();
+ const panel=page.getByRole('region',{name:'Onboarding review workflow'});
+ await expect(panel.getByText('Vehicle link status unavailable',{exact:true})).toBeVisible();
+ await expect(panel.getByText('Vehicle record not yet linked',{exact:true})).toHaveCount(0);
+ await expect(panel.getByRole('button',{name:'Repair client setup & send missing instructions'})).toBeDisabled();
+});

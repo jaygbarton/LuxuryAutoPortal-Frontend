@@ -1,5 +1,6 @@
 import { DeleteSubmissionButton } from "@/components/admin/applicants/DeleteSubmissionButton";
 import { OnboardingReviewPanel } from "./forms/OnboardingReviewPanel";
+import { formatOnboardingFinancial } from "@/lib/onboardingFinancialDisplay";
 import { useState, useEffect, useRef } from "react";
 import { useSearch } from "wouter";
 import {
@@ -2677,16 +2678,6 @@ export default function FormsPage() {
                   }
                 };
 
-                const formatCurrency = (value: string | null): string => {
-                  if (!value) return "Not provided";
-                  const num = parseFloat(value);
-                  if (isNaN(num)) return value;
-                  return `$${num.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}`;
-                };
-
                 const data = submissionDetails.data;
 
                 // Helper function to check if a URL is a PDF
@@ -3144,10 +3135,10 @@ export default function FormsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-muted-foreground block mb-1">
-                            Plate #:
+                            Purchase Price:
                           </span>
                           <span className="text-foreground font-medium">
-                            {formatCurrency(data.purchasePrice)}
+                            {formatOnboardingFinancial(data.purchasePrice)}
                           </span>
                         </div>
                         <div>
@@ -3155,7 +3146,7 @@ export default function FormsPage() {
                             Down Payment:
                           </span>
                           <span className="text-foreground font-medium">
-                            {formatCurrency(data.downPayment)}
+                            {formatOnboardingFinancial(data.downPayment)}
                           </span>
                         </div>
                         <div>
@@ -3163,7 +3154,7 @@ export default function FormsPage() {
                             Monthly Payment:
                           </span>
                           <span className="text-foreground font-medium">
-                            {formatCurrency(data.monthlyPayment)}
+                            {formatOnboardingFinancial(data.monthlyPayment)}
                           </span>
                         </div>
                         <div>
@@ -3171,7 +3162,7 @@ export default function FormsPage() {
                             Interest Rate:
                           </span>
                           <span className="text-foreground">
-                            {formatValue(data.interestRate)}%
+                            {formatOnboardingFinancial(data.interestRate, 'percent')}
                           </span>
                         </div>
                         <div>
