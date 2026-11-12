@@ -252,7 +252,10 @@ for (const width of [390, 2048]) test(`hero stats sit at the bottom and guest re
   const heroBox = (await hero.boundingBox())!;
   const statsBox = (await stats.boundingBox())!;
   expect(Math.abs(heroBox.y + heroBox.height - statsBox.y - statsBox.height)).toBeLessThan(2);
-  if (width >= 1024) expect(heroBox.height).toBeLessThanOrEqual(840);
+  const viewportHeight = await page.evaluate(() => innerHeight);
+  expect(heroBox.height).toBeGreaterThanOrEqual(viewportHeight);
+  expect(statsBox.y + statsBox.height).toBeLessThanOrEqual(viewportHeight + 2);
+  expect((await page.locator('[data-home-intro]').boundingBox())!.y).toBeGreaterThanOrEqual(viewportHeight);
   await page.screenshot({ path: test.info().outputPath(`hero-bottom-stats-${width}.png`) });
   const reviewBox = page.locator('[data-google-review-box]');
   await reviewBox.scrollIntoViewIfNeeded();

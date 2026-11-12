@@ -17,7 +17,7 @@ export function Hero({ location, mode = "location", showBackground = true }: Her
   const { scrollYProgress } = useScroll({ target: section, offset: ["start start", "end start"] });
   const imageOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 0.6, 0]);
   return (
-    <section ref={section} className="relative isolate flex min-h-[min(820px,100svh)] flex-col overflow-hidden bg-[#141414] text-white" data-public-hero>
+    <section ref={section} className="relative isolate flex min-h-[100svh] flex-col overflow-hidden bg-[#141414] text-white" data-public-hero>
       {showBackground && <>
         <motion.div data-cadillac-backdrop className="gla-hero-backdrop absolute inset-0" style={{ opacity: reduceMotion ? 1 : imageOpacity }}>
           <img src="/homepage-hero-escalade.jpg" alt="" fetchPriority="high" className="h-full w-full object-cover object-[65%_center] lg:invisible" />
