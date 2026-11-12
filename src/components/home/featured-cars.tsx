@@ -2,9 +2,7 @@ import { useState } from "react";
 import {useFeaturedRankingDay} from "@/hooks/use-featured-ranking-day";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ExternalLink, Calendar, Users, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { ArrowRight, Calendar, Users, Loader2 } from "lucide-react";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { fleetCarBelongsToLocation, type PublicLocation } from "@/lib/location-config";
@@ -42,79 +40,29 @@ function cleanVal(v: string | null | undefined): string {
 
 function CarCard({ car, location }: { car: FeaturedCar; location: PublicLocation }) {
   const imgSrc = car.photo ? getProxiedImageUrl(car.photo) : PLACEHOLDER_IMG;
+  const href = car.turoLink || location.fleetPath;
+  const linkProps = car.turoLink ? { target: "_blank", rel: "noopener noreferrer" } : {};
+  const details = [car.vehicleTrim, car.color].map(cleanVal).filter(Boolean).join(" · ");
+
   return (
-    <Card
-      className="group overflow-hidden hover-elevate transition-all duration-300"
-      style={{ background: "#fff", border: "1px solid #E5E5E5", borderRadius: "16px" }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#E8D4A0"; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "#E5E5E5"; }}
-    >
-      <div className="relative aspect-[16/10] overflow-hidden">
-        <img
-          src={imgSrc}
-          alt={car.makeModel}
-          loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(e) => { if (e.currentTarget.src !== PLACEHOLDER_IMG) e.currentTarget.src = PLACEHOLDER_IMG; }}
-        />
-        <Badge
-          className="absolute top-4 left-4 font-semibold"
-          style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00", border: "none" }}
-        >
-          Featured
-        </Badge>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+    <article className="group overflow-hidden rounded-xl border border-[#DED8CB] bg-white shadow-[0_10px_35px_rgba(35,30,20,0.04)]">
+      <a href={href} {...linkProps} className="relative block aspect-[4/3] overflow-hidden bg-[#E9E5DB]" aria-label={`View ${car.makeModel}${car.turoLink ? " on Turo" : ""}`}>
+        <img src={imgSrc} alt={car.makeModel} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-105"
+          onError={e => { if (e.currentTarget.src !== PLACEHOLDER_IMG) e.currentTarget.src = PLACEHOLDER_IMG; }} />
+        <span className="absolute left-4 top-4 rounded-full bg-[#FAF8F2]/95 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#544228]">The GLA collection</span>
+      </a>
+      <div className="p-6">
+        <h3 className="font-serif text-2xl leading-tight text-[#24251E]">{car.makeModel}</h3>
+        {details && <p className="mt-2 text-sm text-[#767367]">{details}</p>}
+        <div className="mt-5 flex flex-wrap gap-4 border-t border-[#E8E1D5] pt-4 text-xs text-[#767367]">
+          {car.year != null && <span className="flex items-center gap-2"><Calendar className="h-4 w-4" />{car.year}</span>}
+          {car.numberOfSeats != null && <span className="flex items-center gap-2"><Users className="h-4 w-4" />{car.numberOfSeats} seats</span>}
+        </div>
+        <a href={href} {...linkProps} className="mt-5 flex min-h-12 items-center justify-between rounded-lg bg-[#F2EBDD] px-4 text-sm font-semibold text-[#735525] hover:bg-[#E7D6B6]">
+          {car.turoLink ? "View & book on Turo" : "Explore vehicle"}<ArrowRight className="h-4 w-4" />
+        </a>
       </div>
-
-      <CardContent className="p-6">
-        <div className="mb-4">
-          <h3 className="text-xl font-semibold" style={{ color: "#1C1C1C", fontFamily: "'Playfair Display', Georgia, serif" }}>
-            {car.makeModel}
-          </h3>
-          {(() => {
-            const sub = [car.vehicleTrim, car.color].map(cleanVal).filter(Boolean).join(" · ");
-            return sub ? <p className="text-sm" style={{ color: "#808080" }}>{sub}</p> : null;
-          })()}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="flex items-center gap-2 text-sm" style={{ color: "#808080" }}>
-            <Calendar className="w-4 h-4" style={{ stroke: "#d3bc8d" }} />
-            <span>{car.year ?? "—"}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm" style={{ color: "#808080" }}>
-            <Users className="w-4 h-4" style={{ stroke: "#C49000" }} />
-            <span>{car.numberOfSeats != null ? `${car.numberOfSeats} seats` : "—"}</span>
-          </div>
-        </div>
-
-        {car.turoLink ? (
-          <a href={car.turoLink} target="_blank" rel="noopener noreferrer">
-            <button
-              className="w-full py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold transition-all duration-300 group/btn"
-              style={{ border: "1.5px solid #E8D4A0", background: "#FDF8EE", color: "#8B6914" }}
-              onMouseEnter={(e) => { const el = e.currentTarget as HTMLButtonElement; el.style.background = "linear-gradient(135deg, #D4A017, #E8B830)"; el.style.color = "#1A0E00"; el.style.borderColor = "#D4A017"; }}
-              onMouseLeave={(e) => { const el = e.currentTarget as HTMLButtonElement; el.style.background = "#FDF8EE"; el.style.color = "#8B6914"; el.style.borderColor = "#E8D4A0"; }}
-            >
-              Book Now
-              <ExternalLink className="w-4 h-4 transition-transform group-hover/btn:translate-x-0.5" />
-            </button>
-          </a>
-        ) : (
-          <Link href={location.fleetPath}>
-            <button
-              className="w-full py-3 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold transition-all duration-300 group/btn"
-              style={{ border: "1.5px solid #E8D4A0", background: "#FDF8EE", color: "#8B6914" }}
-              onMouseEnter={(e) => { const el = e.currentTarget as HTMLButtonElement; el.style.background = "linear-gradient(135deg, #D4A017, #E8B830)"; el.style.color = "#1A0E00"; el.style.borderColor = "#D4A017"; }}
-              onMouseLeave={(e) => { const el = e.currentTarget as HTMLButtonElement; el.style.background = "#FDF8EE"; el.style.color = "#8B6914"; el.style.borderColor = "#E8D4A0"; }}
-            >
-              View Details
-              <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-            </button>
-          </Link>
-        )}
-      </CardContent>
-    </Card>
+    </article>
   );
 }
 
@@ -150,7 +98,7 @@ export function FeaturedCars({ location }: { location: PublicLocation }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <ScrollReveal preset="soft" className="text-center mb-12 lg:mb-16">
           <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "#C49000", letterSpacing: "3px" }}>
-            Curated Selection
+            Exceptional cars. Memorable journeys.
           </p>
           <h2 className="font-serif text-3xl lg:text-4xl font-bold mb-4" style={{ color: "#1C1C1C" }}>
             Featured Vehicles

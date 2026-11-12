@@ -573,3 +573,18 @@
 }
 .gla-trip-extras { background-color: #fde047; animation: gla-trip-extras-flash 1.8s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .gla-trip-extras { animation: none; } }
+
+/* Public journeys: large imagery, visible content and generous touch targets. */
+.gla-public-button {
+  display: inline-flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color .2s;
+}
+.gla-public-button:focus-visible { outline: 2px solid #B08A45; outline-offset: 4px; }

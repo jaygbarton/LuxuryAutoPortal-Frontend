@@ -5,6 +5,8 @@ export interface PublicPageDefinition {
 }
 
 export const PUBLIC_PAGES: PublicPageDefinition[] = [
+  { path: "/salt-lake-city/list-your-car", label: "Salt Lake City Vehicle Management", group: "Locations" },
+  { path: "/wilmington-nc/list-your-car", label: "Wilmington Vehicle Management", group: "Locations" },
   { path: "/choose-location", label: "Choose Location", group: "Core" },
   { path: "/salt-lake-city", label: "Salt Lake City Home", group: "Locations" },
   { path: "/wilmington-nc", label: "Wilmington NC Home", group: "Locations" },

@@ -1,10 +1,10 @@
+import { RentalJourney } from "@/components/home/rental-journey";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Hero } from "@/components/home/hero";
 import { FeaturedCars } from "@/components/home/featured-cars";
 import { Services } from "@/components/home/services";
 import { CTASection } from "@/components/home/cta-section";
-import { SiteStatsStrip } from "@/components/layout/site-stats-strip";
 import { RotatingGoogleReviews } from "@/components/reviews/rotating-google-reviews";
 import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import { type PublicLocation } from "@/lib/location-config";
@@ -26,11 +26,11 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
     {
       eyebrow: "For vehicle owners",
       title: "Your vehicle. More possibility.",
-      copy: "Put your vehicle in GLA’s managed rental program. Explore how it works, then start your application at your own pace.",
+      copy: "Put your vehicle in GLA’s managed rental program. Discuss your vehicle’s earning potential with our team, then explore the next steps.",
       image: "/list-your-car-key-handoff-enhanced.png",
       icon: ClipboardCheck,
       primary: "List Your Car",
-      primaryHref: `${location.path}/onboarding`,
+      primaryHref: `${location.path}/list-your-car`,
       secondary: "Management Info",
       secondaryHref: `${location.path}/contact`,
       testId: "button-management-get-started",
@@ -101,30 +101,8 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
       </div>
       <div className="relative border-t border-[#E3DACA] bg-white">
         <RotatingGoogleReviews surface="light" className="bg-transparent" compact />
-        <SiteStatsStrip />
       </div>
     </section>
-  );
-}
-
-function HeroServiceCinematic({ location }: { location: PublicLocation }) {
-  return (
-    <div className="cinematic-shell relative isolate overflow-hidden bg-[#050505] text-white">
-      <div className="cinematic-mobile-image" aria-hidden="true" />
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(90deg, rgba(7,6,4,0.76) 0%, rgba(7,6,4,0.46) 42%, rgba(7,6,4,0.16) 100%), linear-gradient(180deg, rgba(7,6,4,0.24), rgba(7,6,4,0.58))",
-          }}
-        />
-      </div>
-      <div className="relative z-10">
-        <Hero location={location} showBackground={false} />
-        <ServiceSplitSection location={location} />
-      </div>
-    </div>
   );
 }
 
@@ -199,13 +177,13 @@ export default function Home({ location }: { location?: PublicLocation }) {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="public-page">
-        <HeroServiceCinematic location={location} />
-        <ScrollReveal preset="soft" amount={0.16}>
-          <FeaturedCars location={location} />
-        </ScrollReveal>
+        <Hero location={location} />
+        <FeaturedCars location={location} />
+        <ServiceSplitSection location={location} />
         <ScrollReveal preset="soft" amount={0.16}>
           <Services location={location} />
         </ScrollReveal>
+        <RentalJourney location={location} />
         <CTASection location={location} />
       </main>
       <Footer />

@@ -14,7 +14,7 @@ const navLinks = [
   { href: "/deals", label: "Deals", icon: BadgePercent },
   { href: "/testimonials", label: "Testimonials", icon: Star },
   { href: "/jobs", label: "Jobs", icon: BriefcaseBusiness },
-  { href: "/onboarding", label: "List Your Car", icon: FileText },
+  { href: "/list-your-car", label: "List Your Car", icon: FileText },
   { href: "/chauffeur-services", label: "Chauffeur", icon: ShieldCheck },
   { href: "/suggested-cars", label: "Suggested Cars", icon: Car },
   { href: "/contact", label: "Contact", icon: Phone },
@@ -39,7 +39,7 @@ export function Navbar() {
   const primaryLinks = links.filter((link) =>
     link.href === "/" ||
     link.href === "/fleet" ||
-    link.href === "/onboarding" ||
+    link.href === "/list-your-car" ||
     link.href === "/contact"
   );
   const pageLinks = links.filter((link) => !primaryLinks.some((primary) => primary.href === link.href));

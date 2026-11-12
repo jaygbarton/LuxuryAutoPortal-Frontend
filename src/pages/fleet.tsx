@@ -256,7 +256,7 @@ export default function Fleet({ location = PUBLIC_LOCATIONS.slc }: { location?: 
         <section className="relative overflow-hidden border-b border-border bg-[#0A0A0A] text-white">
           <div className="absolute inset-0">
             <img
-              src="/gateway-buildings-hero.jpg"
+              src="/homepage-hero-escalade.jpg"
               alt=""
               className="h-full w-full object-cover"
               style={{ objectPosition: "center bottom" }}
@@ -273,10 +273,10 @@ export default function Fleet({ location = PUBLIC_LOCATIONS.slc }: { location?: 
             <ScrollReveal preset="hero" className="max-w-3xl">
               <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">Our Collection</p>
               <h1 className="font-serif text-4xl font-light leading-tight text-white sm:text-5xl lg:text-6xl">
-                Browse Our Fleet
+                Find your next great drive.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-white/75 sm:text-lg">
-                Browse active vehicles available through Golden Luxury Auto in {location.cityState}.
+                Explore the {location.name} collection. Find your vehicle, then check dates and pricing on its Turo listing.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href={location.turoFleetUrl} target="_blank" rel="noopener noreferrer">

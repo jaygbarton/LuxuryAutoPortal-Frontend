@@ -1,134 +1,22 @@
 import { Link } from "wouter";
-import { ArrowRight, Car, Phone } from "lucide-react";
-import { ScrollReveal } from "@/components/animations/ScrollReveal";
+import { ArrowRight } from "lucide-react";
 import type { PublicLocation } from "@/lib/location-config";
 
 export function CTASection({ location }: { location: PublicLocation }) {
   return (
-    <section className="no-view-reveal relative isolate overflow-hidden bg-[#050505] py-14 lg:py-20">
-      <div
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: "url('/bmw-x6-cta.jpg')",
-        }}
-      >
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(90deg, rgba(10,7,3,0.84) 0%, rgba(10,7,3,0.62) 48%, rgba(10,7,3,0.32) 100%), linear-gradient(180deg, rgba(10,7,3,0.3), rgba(10,7,3,0.72))",
-          }}
-        />
-      </div>
-
-      <ScrollReveal preset="hero" className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <p
-          className="text-xs font-bold tracking-widest uppercase mb-4"
-          style={{ color: "#E8B830", letterSpacing: "3px" }}
-        >
-          Start Your Journey
-        </p>
-        <h2 className="font-serif text-3xl lg:text-5xl font-bold text-white mb-6">
-          Ready to Find Your
-          <span
-            className="block mt-2"
-            style={{
-              background: "linear-gradient(135deg, #E8B830, #F0D060)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            Right Vehicle?
-          </span>
-        </h2>
-        <p
-          className="text-lg mb-10 max-w-2xl mx-auto"
-          style={{ color: "rgba(255,255,255,0.7)", lineHeight: "1.65" }}
-        >
-          Tell us what you need and our team will help you choose a vehicle
-          that fits the trip, timing, and pickup plan.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href={`${location.path}/onboarding`}>
-            <button
-              className="inline-flex items-center gap-2 min-w-[200px] justify-center px-8 py-4 rounded-lg text-sm font-bold transition-all duration-300 group"
-              style={{
-                background: "linear-gradient(135deg, #D4A017, #E8B830)",
-                color: "#1A0E00",
-                border: "none",
-              }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLButtonElement;
-                el.style.background = "linear-gradient(135deg, #C49000, #D4A017)";
-                el.style.boxShadow = "0 8px 32px rgba(212,160,23,0.4)";
-                el.style.transform = "translateY(-2px)";
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLButtonElement;
-                el.style.background = "linear-gradient(135deg, #D4A017, #E8B830)";
-                el.style.boxShadow = "none";
-                el.style.transform = "translateY(0)";
-              }}
-              data-testid="button-cta-get-started"
-            >
-              List Your Car
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </button>
-          </Link>
-          <Link href={location.fleetPath}>
-            <button
-              className="inline-flex items-center gap-2 min-w-[200px] justify-center px-8 py-4 rounded-lg text-sm font-bold transition-all duration-300"
-              style={{
-                background: "rgba(255,255,255,0.96)",
-                border: "1px solid rgba(255,255,255,0.35)",
-                color: "#1A0E00",
-              }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLButtonElement;
-                el.style.background = "#ffffff";
-                el.style.boxShadow = "0 8px 32px rgba(255,255,255,0.22)";
-                el.style.transform = "translateY(-2px)";
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLButtonElement;
-                el.style.background = "rgba(255,255,255,0.96)";
-                el.style.boxShadow = "none";
-                el.style.transform = "translateY(0)";
-              }}
-              data-testid="button-cta-rent-car"
-            >
-              <Car className="w-4 h-4" />
-              Rent a Car
-            </button>
-          </Link>
-          <a href="tel:+1234567890">
-            <button
-              className="inline-flex items-center gap-2 min-w-[200px] justify-center px-8 py-4 rounded-lg text-sm font-medium transition-all duration-300"
-              style={{
-                background: "rgba(255,255,255,0.1)",
-                border: "1px solid rgba(255,255,255,0.25)",
-                color: "#fff",
-              }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLButtonElement;
-                el.style.background = "rgba(255,255,255,0.2)";
-                el.style.borderColor = "rgba(255,255,255,0.4)";
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLButtonElement;
-                el.style.background = "rgba(255,255,255,0.1)";
-                el.style.borderColor = "rgba(255,255,255,0.25)";
-              }}
-              data-testid="button-cta-call"
-            >
-              <Phone className="w-4 h-4" />
-              Call Us Now
-            </button>
-          </a>
+    <section className="relative isolate overflow-hidden bg-[#171D19] px-5 py-20 text-white sm:px-8 lg:py-28">
+      <img src="/bmw-x6-cta.jpg" alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-black/70" />
+      <div className="relative mx-auto max-w-3xl text-center">
+        <p className="mb-5 text-xs uppercase tracking-[0.2em] text-[#DFC899]">Make your next move</p>
+        <h2 className="font-serif text-4xl font-light sm:text-6xl">Great journeys<br /><span className="italic text-[#DFC899]">start here.</span></h2>
+        <p className="mx-auto mb-9 mt-6 max-w-xl leading-8 text-white/80">Explore a vehicle for your next trip, or talk with our team about putting your own car to work.</p>
+        <div className="flex flex-col justify-center gap-3 sm:flex-row">
+          <Link href={location.fleetPath} className="gla-public-button bg-[#D3BC8D] text-[#211B11] hover:bg-[#E3CCA0]" data-testid="button-cta-rent-car">Explore the fleet <ArrowRight className="h-4 w-4" /></Link>
+          <Link href={`${location.path}/list-your-car`} className="gla-public-button border border-white/40 hover:bg-white/10" data-testid="button-cta-get-started">Earn with your vehicle <ArrowRight className="h-4 w-4" /></Link>
         </div>
-      </ScrollReveal>
+        <Link href={`${location.path}/contact`} className="mt-7 inline-flex min-h-11 items-center text-sm text-white/80 underline underline-offset-4">Have a question? Talk with our team</Link>
+      </div>
     </section>
   );
 }

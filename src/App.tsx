@@ -23,6 +23,7 @@ import { NativePortalIntegration } from "@/components/NativePortalIntegration";
 
 const Home = lazy(() => import("@/pages/home"));
 const Fleet = lazy(() => import("@/pages/fleet"));
+const ListYourCar = lazy(() => import("@/pages/list-your-car"));
 const Onboarding = lazy(() => import("@/pages/onboarding"));
 const Contact = lazy(() => import("@/pages/contact"));
 const ChauffeurPage = lazy(() => import("@/pages/chauffeur"));
@@ -252,6 +253,8 @@ function Router() {
       <PublicRoute path="/salt-lake-city/privacy-policy"><PrivacyPolicyPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/terms-and-conditions"><TermsPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/terms"><TermsPage /></PublicRoute>
+      <PublicRoute path="/salt-lake-city/list-your-car"><ListYourCar /></PublicRoute>
+      <PublicRoute path="/wilmington-nc/list-your-car"><ListYourCar /></PublicRoute>
       <PublicRoute path="/salt-lake-city/onboarding"><Onboarding /></PublicRoute>
       <PublicRoute path="/salt-lake-city/contact"><Contact /></PublicRoute>
       <PublicRoute path="/wilmington-nc/testimonials"><TestimonialsPage /></PublicRoute>

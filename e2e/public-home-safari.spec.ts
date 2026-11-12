@@ -37,7 +37,7 @@ async function mutateLoadingNode(page: Page, persistent = false) {
 test("home opens and remains usable after scrolling and navigation", async ({ page }) => {
   await publicFixtures(page);
   await page.goto("/salt-lake-city");
-  await expect(page.getByRole("heading", { name: /Premium vehicle rentals/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /A remarkable drive/ })).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, 1000));
   await expect(page.getByTestId("button-nav-pages")).toBeVisible();
   await page.getByTestId("button-nav-pages").hover();
@@ -48,7 +48,7 @@ test("home opens and remains usable after scrolling and navigation", async ({ pa
 for (const width of [390,1280]) test(`business cards remain clickable at section boundaries at ${width}px`,async({page})=>{
   await publicFixtures(page);await page.setViewportSize({width,height:844});
   for(const [button,destination] of [
-    ['button-management-get-started','/salt-lake-city/onboarding'],
+    ['button-management-get-started','/salt-lake-city/list-your-car'],
     ['button-management-info','/salt-lake-city/contact'],
     ['button-rental-fleet','/salt-lake-city/fleet'],
     ['button-rental-detail','/salt-lake-city/detail-shop'],
@@ -73,7 +73,7 @@ for (const width of [390,1280]) test(`business cards remain clickable at section
 test('Wilmington cards keep local routes and hide unavailable detail service',async({page})=>{
   await publicFixtures(page);await page.goto('/wilmington-nc');
   const section=page.locator('#business-split');
-  await expect(section.getByTestId('button-management-get-started')).toHaveAttribute('href','/wilmington-nc/onboarding');
+  await expect(section.getByTestId('button-management-get-started')).toHaveAttribute('href','/wilmington-nc/list-your-car');
   await expect(section.getByTestId('button-rental-detail')).toHaveCount(0);
   await section.getByTestId('button-rental-fleet').click();await expect(page).toHaveURL(/\/wilmington-nc\/fleet$/);
 });
@@ -85,7 +85,7 @@ test("Safari DOM removal error on initial load recovers the same homepage once",
   page.on("request", req => { if (req.isNavigationRequest() && req.frame() === page.mainFrame()) documents++; });
   await page.goto("/salt-lake-city");
   await expect.poll(() => documents).toBe(2);
-  await expect(page.getByRole("heading", { name: /Premium vehicle rentals/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /A remarkable drive/ })).toBeVisible();
   expect(await page.evaluate(() => sessionStorage.getItem("test:dom-fault"))).toBe("injected");
   expect(documents).toBe(2);
   expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem("gla:external-dom-recovery")!).url))

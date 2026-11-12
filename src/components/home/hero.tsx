@@ -1,182 +1,67 @@
 import { Link } from "wouter";
-import { ArrowRight, ChevronDown, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, MapPin } from "lucide-react";
 import { PUBLIC_LOCATIONS, type PublicLocation } from "@/lib/location-config";
+import { SiteStatsStrip } from "@/components/layout/site-stats-strip";
 
-export function Hero({
-  location,
-  mode = "location",
-  showBackground = true,
-}: {
+interface HeroProps {
   location?: PublicLocation;
   mode?: "hub" | "location";
   showBackground?: boolean;
-}) {
-  const scrollToFleet = () => {
-    document.getElementById("business-split")?.scrollIntoView({ behavior: "smooth" });
-  };
-  const locations = [
-    PUBLIC_LOCATIONS.slc,
-    PUBLIC_LOCATIONS.wilmington,
-    PUBLIC_LOCATIONS.myrtle,
-    PUBLIC_LOCATIONS.charleston,
-  ];
+}
 
+export function Hero({ location, mode = "location", showBackground = true }: HeroProps) {
   return (
-    <section className="relative flex min-h-[100svh] items-center justify-center overflow-hidden">
-      {showBackground ? (
-        <div className="absolute inset-0 bg-[#050505]">
-          <div
-            className="absolute inset-0 hidden bg-cover bg-center bg-no-repeat sm:block"
-            style={{
-              backgroundImage: `url('/homepage-hero-escalade.jpg')`,
-            }}
-          />
-          <img
-            src="/homepage-hero-escalade.jpg"
-            alt=""
-            aria-hidden="true"
-            className="absolute left-1/2 top-0 block h-auto max-w-none -translate-x-1/2 sm:hidden"
-            style={{ width: "172vw" }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(90deg, rgba(7,6,4,0.76) 0%, rgba(7,6,4,0.46) 42%, rgba(7,6,4,0.16) 100%), linear-gradient(180deg, rgba(7,6,4,0.18), rgba(7,6,4,0.48) 30%, rgba(7,6,4,0.86) 55%, rgba(7,6,4,0.94) 100%)",
-            }}
-          />
-        </div>
-      ) : null}
-
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-8 pt-[38svh] text-left sm:px-6 sm:pb-16 sm:pt-28 lg:px-8 lg:pt-24">
-        <div
-          className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full px-3 py-2 sm:mb-8 sm:px-4"
-          style={{
-            background: "rgba(212,160,23,0.14)",
-            border: "1px solid rgba(212,160,23,0.4)",
-          }}
-        >
-          <span
-            className="w-2 h-2 rounded-full animate-pulse"
-            style={{
-              background: "#E8B830",
-              boxShadow: "0 0 8px #D4A017",
-            }}
-          />
-          <span
-            className="truncate text-xs font-semibold tracking-wide sm:text-sm"
-            style={{ color: "#E8B830" }}
-          >
-            {mode === "hub" ? "Golden Luxury Auto Locations" : `${location?.cityState} Premium Vehicle Rentals`}
-          </span>
-        </div>
-
-        <h1 className="mb-4 max-w-4xl font-serif text-4xl font-light leading-[1.12] text-white sm:mb-6 sm:text-6xl lg:text-7xl">
-          Premium vehicle rentals
-          <span
-            className="mt-1 block pb-2 sm:mt-2"
-            style={{
-              background: "linear-gradient(135deg, #E8B830, #F0D060, #D4A017)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            managed with precision.
-          </span>
-        </h1>
-
-        <p className="mb-7 max-w-2xl text-base leading-7 sm:mb-10 sm:text-xl sm:leading-8" style={{ color: "rgba(255,255,255,0.76)" }}>
-          Golden Luxury Auto is a vehicle management company specializing in premium vehicles for rental. We already manage approximately 100 vehicles in Salt Lake City. Rent from our fleet or let our team manage your vehicle.
+    <section className="relative isolate overflow-hidden bg-[#141512] text-white" data-public-hero>
+      {showBackground && <>
+        <img src="/homepage-hero-escalade.jpg" alt="" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover object-[65%_center]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/15" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
+      </>}
+      <div className="relative mx-auto max-w-7xl px-5 pb-8 pt-36 sm:px-8 sm:pt-44 lg:pt-48">
+        <p className="mb-7 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.22em] text-[#E0C791]">
+          <span className="h-px w-10 bg-[#D3BC8D]" />{mode === "hub" ? "Golden Luxury Auto" : location?.cityState}
         </p>
-
+        <div className="max-w-4xl">
+          <h1 className="font-serif text-[clamp(3.3rem,7vw,7rem)] font-light leading-[1.02] tracking-tight">
+            A remarkable drive.<br /><span className="italic text-[#E0C791]">An unforgettable stay.</span>
+          </h1>
+          <p className="mt-7 max-w-xl text-base leading-7 text-white/80 sm:text-lg">
+            {mode === "hub"
+              ? "Find your destination. Choose your drive. Explore Golden Luxury Auto’s locations."
+              : `Make more of your time in ${location?.name}. Discover premium vehicles for your next getaway, family trip, or everyday escape.`}
+          </p>
+        </div>
         {mode === "hub" ? (
-          <div className="max-w-5xl">
-            <p className="mb-3 text-xs font-bold uppercase tracking-[2px] sm:mb-4 sm:tracking-[3px]" style={{ color: "#E8B830" }}>
-              Select Location to Continue
-            </p>
-            <div className="grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
-              {locations.map((item) => (
-                <Link key={item.id} href={item.path}>
-                  <button
-                    className="group flex min-h-[54px] w-full items-center justify-between rounded-lg border px-3 py-2 text-left transition-all sm:min-h-[84px] sm:px-5 sm:py-4"
-                    style={{
-                      background: "rgba(255,255,255,0.08)",
-                      borderColor: "rgba(232,184,48,0.35)",
-                      color: "#fff",
-                    }}
-                    data-testid={`button-location-${item.id}`}
-                  >
-                    <span className="flex items-center gap-3">
-                      <span
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md sm:h-10 sm:w-10"
-                        style={{ background: "linear-gradient(135deg, #D4A017, #E8B830)", color: "#1A0E00" }}
-                      >
-                        <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold sm:text-base">{item.cityState}</span>
-                        {item.comingSoon ? (
-                          <span className="block text-xs font-medium sm:mt-1" style={{ color: "rgba(255,255,255,0.62)" }}>
-                            Coming Soon
-                          </span>
-                        ) : null}
-                      </span>
-                    </span>
-                    <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" />
-                  </button>
-                </Link>
-              ))}
-            </div>
+          <div className="mt-9 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.values(PUBLIC_LOCATIONS).map(item => (
+              <Link key={item.id} href={item.path} data-testid={`button-location-${item.id}`} className="flex min-h-16 items-center justify-between gap-3 rounded-xl border border-white/25 bg-black/30 p-4 hover:bg-white/10">
+                <span>
+                  <span className="block font-medium">{item.cityState}</span>
+                  {item.comingSoon && <span className="text-xs text-[#E0C791]">Coming Soon</span>}
+                </span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            ))}
           </div>
-        ) : location ? (
-          <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center sm:gap-4">
-            <Link href="/choose-location">
-            <Button
-              size="lg"
-              className="group min-w-0 w-full font-bold sm:min-w-[180px]"
-              style={{
-                background: "linear-gradient(135deg, #D4A017, #E8B830)",
-                color: "#1A0E00",
-                border: "none",
-              }}
-              data-testid="button-switch-location"
-            >
-              Switch Location
-              <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </Button>
-          </Link>
-          <Link href={`${location.path}/contact`}>
-            <Button
-              size="lg"
-              variant="outline"
-              className="min-w-0 w-full font-medium sm:min-w-[180px]"
-              style={{
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.2)",
-                color: "#fff",
-              }}
-              data-testid="button-contact-us"
-            >
-              Contact Us
-            </Button>
-          </Link>
+        ) : location && (
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <Link href={location.fleetPath} className="gla-public-button bg-[#D3BC8D] text-[#201B12] hover:bg-[#E3CCA0]" data-testid="button-hero-fleet">
+              Explore the fleet <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link href={`${location.path}/list-your-car`} className="gla-public-button border border-white/40 text-white hover:bg-white/10" data-testid="button-hero-owner">
+              Earn with your vehicle <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
-        ) : null}
+        )}
+        <div className="mb-5 mt-10 flex flex-wrap items-center gap-5 text-xs text-white/70">
+          <span className="flex items-center gap-2"><MapPin className="h-4 w-4 text-[#D3BC8D]" />{mode === "hub" ? "Choose your location" : location?.cityState}</span>
+          {location && <>
+            <Link href="/choose-location" data-testid="button-switch-location" className="underline underline-offset-4">Change location</Link>
+            <Link href={`${location.path}/contact`} data-testid="button-contact-us" className="underline underline-offset-4">Talk to our team</Link>
+          </>}
+        </div>
+        <div className="mt-12 border-t border-white/15 pt-6"><SiteStatsStrip variant="dark" /></div>
       </div>
-
-      {mode === "location" ? <div className="hidden sm:block absolute bottom-10 left-1/2 -translate-x-1/2 z-10">
-        <button
-          onClick={scrollToFleet}
-          className="flex flex-col items-center gap-2 transition-colors group"
-          style={{ color: "rgba(255,255,255,0.4)" }}
-          data-testid="button-scroll-down"
-        >
-          <span className="text-xs tracking-widest uppercase">Scroll to explore</span>
-          <ChevronDown className="w-5 h-5 animate-bounce" />
-        </button>
-      </div> : null}
     </section>
   );
 }
