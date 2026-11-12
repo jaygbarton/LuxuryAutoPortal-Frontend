@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { Link } from "wouter";
-import { ArrowRight, MapPin } from "lucide-react";
+import { ArrowRight, ChevronDown, MapPin } from "lucide-react";
 import { PUBLIC_LOCATIONS, type PublicLocation } from "@/lib/location-config";
 import { SiteStatsStrip } from "@/components/layout/site-stats-strip";
 
@@ -17,7 +17,7 @@ export function Hero({ location, mode = "location", showBackground = true }: Her
   const { scrollYProgress } = useScroll({ target: section, offset: ["start start", "end start"] });
   const imageOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 0.6, 0]);
   return (
-    <section ref={section} className="relative isolate min-h-[100svh] overflow-hidden bg-[#141512] text-white" data-public-hero>
+    <section ref={section} className="relative isolate min-h-[100svh] overflow-hidden bg-[#141414] text-white" data-public-hero>
       {showBackground && <>
         <motion.div data-cadillac-backdrop className="gla-hero-backdrop absolute inset-0" style={{ opacity: reduceMotion ? 1 : imageOpacity }}>
           <img src="/homepage-hero-escalade.jpg" alt="" fetchPriority="high" className="h-full w-full object-cover object-[65%_center] lg:invisible" />
@@ -30,14 +30,12 @@ export function Hero({ location, mode = "location", showBackground = true }: Her
           <span className="h-px w-10 bg-[#D3BC8D]" />{mode === "hub" ? "Golden Luxury Auto" : location?.cityState}
         </p>
         <div className="max-w-4xl">
-          <h1 className="font-serif text-[clamp(2.6rem,13.5vw,3.3rem)] sm:text-[clamp(3.3rem,7vw,7rem)] font-light leading-[1.02] tracking-tight">
-            A remarkable drive.<br /><span className="italic text-[#E0C791]">An unforgettable stay.</span>
+          <h1 className="font-serif text-[clamp(1.75rem,7.3vw,2.75rem)] sm:text-[clamp(2.25rem,4vw,4rem)] font-light leading-[1.02] tracking-tight">
+            <span className="sm:whitespace-nowrap">A remarkable drive.</span><br /><span className="text-[#E0C791] sm:whitespace-nowrap">An unforgettable stay.</span>
           </h1>
-          <p className="mt-7 max-w-xl text-base leading-7 text-white/80 sm:text-lg">
-            {mode === "hub"
-              ? "Find your destination. Choose your drive. Explore Golden Luxury Auto’s locations."
-              : `Make more of your time in ${location?.name}. Discover premium vehicles for your next getaway, family trip, or everyday escape.`}
-          </p>
+          {mode === "hub" && <p className="mt-7 max-w-xl text-base leading-7 text-white/80 sm:text-lg">
+            Find your destination. Choose your drive. Explore Golden Luxury Auto’s locations.
+          </p>}
         </div>
         {mode === "hub" ? (
           <div className="mt-9 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -69,6 +67,9 @@ export function Hero({ location, mode = "location", showBackground = true }: Her
           </>}
         </div>
         <div className="mt-12 border-t border-white/15 pt-6"><SiteStatsStrip variant="dark" /></div>
+        {mode === "location" && <button type="button" data-testid="button-scroll-down" onClick={() => document.getElementById("home-intro-title")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="mt-6 flex min-h-11 items-center gap-2 text-xs uppercase tracking-widest text-white/70 hover:text-[#E0C791]">
+          Scroll to explore <ChevronDown className="h-4 w-4" />
+        </button>}
       </div>
     </section>
   );

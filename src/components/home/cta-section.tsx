@@ -1,10 +1,11 @@
 import { Link } from "wouter";
-import { ArrowRight } from "lucide-react";
+import { SITE_CONTACT } from "@/lib/site-config";
+import { ArrowRight, Phone } from "lucide-react";
 import type { PublicLocation } from "@/lib/location-config";
 
 export function CTASection({ location }: { location: PublicLocation }) {
   return (
-    <section className="relative isolate overflow-hidden bg-[#171D19] px-5 py-20 text-white sm:px-8 lg:py-28">
+    <section className="relative isolate overflow-hidden bg-[#171717] px-5 py-20 text-white sm:px-8 lg:py-28">
       <img src="/bmw-x6-cta.jpg" alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
       <div className="absolute inset-0 bg-black/70" />
       <div className="relative mx-auto max-w-3xl text-center">
@@ -14,6 +15,7 @@ export function CTASection({ location }: { location: PublicLocation }) {
         <div className="flex flex-col justify-center gap-3 sm:flex-row">
           <Link href={location.fleetPath} className="gla-public-button bg-[#D3BC8D] text-[#211B11] hover:bg-[#E3CCA0]" data-testid="button-cta-rent-car">Explore the fleet <ArrowRight className="h-4 w-4" /></Link>
           <Link href={`${location.path}/onboarding`} className="gla-public-button border border-white/40 hover:bg-white/10" data-testid="button-cta-get-started">Earn with your vehicle <ArrowRight className="h-4 w-4" /></Link>
+          <a href={SITE_CONTACT.phoneHref} className="gla-public-button border border-white/40 hover:bg-white/10" data-testid="button-cta-call">Call us <Phone className="h-4 w-4" /></a>
         </div>
         <Link href={`${location.path}/contact`} className="mt-7 inline-flex min-h-11 items-center text-sm text-white/80 underline underline-offset-4">Have a question? Talk with our team</Link>
       </div>

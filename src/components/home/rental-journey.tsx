@@ -10,7 +10,7 @@ const STEPS = [
 
 export function RentalJourney({ location }: { location: PublicLocation }) {
   return (
-    <section className="bg-[#171D19] px-5 py-20 text-white sm:px-8 sm:py-28">
+    <section className="bg-[#171717] px-5 py-20 text-white sm:px-8 sm:py-28">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>

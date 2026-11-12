@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import { useQuery } from "@tanstack/react-query";
 import { Search, ArrowRight, X, ExternalLink, Users, SlidersHorizontal } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
@@ -121,12 +122,12 @@ function CarCard({ car }: { car: FleetCar }) {
       </a>
       <div className="flex flex-1 flex-col p-6">
         <h3 className="font-serif text-3xl leading-tight">{car.makeModel}</h3>
-        {details && <p className="mt-2 text-sm leading-6 text-[#68695D]">{details}</p>}
-        <div className="mb-6 mt-5 flex flex-wrap gap-4 border-t border-[#E8E1D5] pt-4 text-xs text-[#68695D]">
+        {details && <p className="mt-2 text-sm leading-6 text-[#686868]">{details}</p>}
+        <div className="mb-6 mt-5 flex flex-wrap gap-4 border-t border-[#E8E1D5] pt-4 text-xs text-[#686868]">
           {car.numberOfSeats != null && <span className="flex items-center gap-2"><Users className="h-4 w-4 text-[#87632C]" />{car.numberOfSeats} seats</span>}
           {cleanVal(car.fuelType) && <span>{car.fuelType}</span>}
         </div>
-        <a href={href} {...bookingProps} className="mt-auto flex min-h-12 items-center justify-between gap-3 rounded-lg bg-[#17221C] px-5 py-3 text-sm font-semibold text-white hover:bg-[#2C3D31]">
+        <a href={href} {...bookingProps} className="mt-auto flex min-h-12 items-center justify-between gap-3 rounded-lg bg-[#D3BC8D] px-5 py-3 text-sm font-semibold text-[#211B11] hover:bg-[#E3CCA0]">
           {car.turoLink ? "Book Now" : "Inquire"}{car.turoLink ? <ExternalLink className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
         </a>
       </div>
@@ -209,41 +210,42 @@ export default function Fleet({ location = PUBLIC_LOCATIONS.slc }: { location?: 
   }, [cars, search, selectedMakes, selectedSeats, selectedTypes, selectedYears, sort]);
 
   return (
-    <div className="min-h-screen bg-[#FAF8F2] text-[#26281F]">
+    <div className="min-h-screen bg-[#FAF8F2] text-[#262626]">
       <Navbar />
       <main className="public-page pt-[68px]">
-        <section className="relative overflow-hidden bg-[#17221C] text-white">
-          <div className="mx-auto grid max-w-7xl lg:min-h-[560px] lg:grid-cols-2">
-            <div className="relative z-10 px-5 py-14 sm:px-8 lg:py-20">
+        <section data-fleet-hero className="relative overflow-hidden bg-[#171717] text-white">
+          <div className="grid items-center lg:min-h-[520px] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+            <div className="gla-fleet-intro relative z-10 px-5 py-14 sm:px-8 lg:py-20">
               <p className="mb-6 text-xs font-semibold uppercase tracking-[0.24em] text-[#D3BC8D]">The GLA collection · {location.name}</p>
-              <h1 className="font-serif text-5xl font-light leading-[1.08] sm:text-6xl lg:text-7xl">The right car.<br /><span className="italic text-[#DFC899]">A better journey.</span></h1>
+              <h1 className="font-serif text-4xl font-light leading-[1.08] sm:text-5xl lg:text-[clamp(2.75rem,3.6vw,4rem)]">The right car.<br /><span className="italic text-[#DFC899]">A better journey.</span></h1>
               <p className="mt-6 max-w-md text-base leading-8 text-white/75">Space for the whole family. Comfort for the open road. Find a vehicle that fits your trip, then check dates and pricing on Turo.</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href="#fleet-list" className="gla-public-button bg-[#D3BC8D] text-[#211B11] hover:bg-[#E3CCA0]">Explore the collection <ArrowRight className="h-4 w-4" /></a>
                 <a href={location.turoFleetUrl} target="_blank" rel="noopener noreferrer" className="gla-public-button border border-white/30 hover:bg-white/10">View Jay's Turo Fleet <ExternalLink className="h-4 w-4" /></a>
               </div>
             </div>
-            <div className="relative min-h-72 lg:min-h-full">
-              <img src="/homepage-hero-escalade.jpg" alt="Cadillac Escalade in the Golden Luxury Auto collection" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover object-[65%_center]" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#17221C]/40 to-transparent lg:bg-gradient-to-r lg:from-[#17221C] lg:via-transparent" />
+            <div data-fleet-hero-media className="relative min-w-0 w-full self-center">
+              <img src="/homepage-hero-escalade.jpg" alt="Cadillac Escalade in the Golden Luxury Auto collection" fetchPriority="high" className="block h-auto max-h-[720px] w-full object-contain" />
+              <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-16 bg-gradient-to-r from-[#171717] to-transparent lg:block" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#171717]/70 to-transparent" />
               <p className="absolute bottom-6 right-6 text-xs uppercase tracking-[0.2em] text-white/90">Arrive in your own style.</p>
             </div>
           </div>
         </section>
 
-        <section id="fleet-list" aria-labelledby="fleet-heading" className="mx-auto max-w-7xl scroll-mt-20 px-5 py-14 sm:px-8 lg:py-20">
+        <section id="fleet-list" aria-labelledby="fleet-heading" className="mx-auto max-w-[1920px] scroll-mt-20 px-5 py-14 sm:px-8 lg:py-20">
           <div className="mb-8 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#87632C]">Find your drive</p>
               <h2 id="fleet-heading" className="font-serif text-4xl sm:text-5xl">Explore our fleet.</h2>
             </div>
-            <p className="max-w-sm text-sm leading-7 text-[#68695D]">Browse {location.cityState} vehicles below. Each booking link opens that vehicle’s own Turo listing.</p>
+            <p className="max-w-sm text-sm leading-7 text-[#686868]">Browse {location.cityState} vehicles below. Each booking link opens that vehicle’s own Turo listing.</p>
           </div>
 
           <div className="mb-6 flex flex-wrap gap-2" aria-label="Vehicle categories">
-            <button type="button" aria-pressed={selectedTypes.length === 0} onClick={() => setSelectedTypes([])} className={`min-h-11 rounded-full border px-5 text-sm font-medium transition-colors ${selectedTypes.length === 0 ? "border-[#17221C] bg-[#17221C] text-white" : "border-[#DCD5C7] bg-white text-[#68695D] hover:border-[#96712D]"}`}>All vehicles</button>
+            <button type="button" aria-pressed={selectedTypes.length === 0} onClick={() => setSelectedTypes([])} className={`min-h-11 rounded-full border px-5 text-sm font-medium transition-colors ${selectedTypes.length === 0 ? "border-[#D3BC8D] bg-[#D3BC8D] text-[#211B11]" : "border-[#DCD5C7] bg-white text-[#686868] hover:border-[#96712D]"}`}>All vehicles</button>
             {vehicleTypes.map(type => (
-              <button key={type} type="button" aria-pressed={selectedTypes.includes(type)} onClick={() => setSelectedTypes(current => toggleValue(current, type))} className={`min-h-11 rounded-full border px-5 text-sm font-medium transition-colors ${selectedTypes.includes(type) ? "border-[#17221C] bg-[#17221C] text-white" : "border-[#DCD5C7] bg-white text-[#68695D] hover:border-[#96712D]"}`}>{type}</button>
+              <button key={type} type="button" aria-pressed={selectedTypes.includes(type)} onClick={() => setSelectedTypes(current => toggleValue(current, type))} className={`min-h-11 rounded-full border px-5 text-sm font-medium transition-colors ${selectedTypes.includes(type) ? "border-[#D3BC8D] bg-[#D3BC8D] text-[#211B11]" : "border-[#DCD5C7] bg-white text-[#686868] hover:border-[#96712D]"}`}>{type}</button>
             ))}
           </div>
 
@@ -276,9 +278,9 @@ export default function Fleet({ location = PUBLIC_LOCATIONS.slc }: { location?: 
           </div>
 
           <div className="mb-8 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-            <p className="text-sm text-[#68695D]" role="status">{isLoading ? "Loading collection…" : `Showing ${filteredCars.length} ${filteredCars.length === 1 ? "vehicle" : "vehicles"}`}</p>
+            <p className="text-sm text-[#686868]" role="status">{isLoading ? "Loading collection…" : `Showing ${filteredCars.length} ${filteredCars.length === 1 ? "vehicle" : "vehicles"}`}</p>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-[#68695D]" id="fleet-sort-label">Sort</span>
+              <span className="text-sm text-[#686868]" id="fleet-sort-label">Sort</span>
               <Select value={sort} onValueChange={value => setSort(value as SortOption)}>
                 <SelectTrigger aria-labelledby="fleet-sort-label" className="min-h-11 w-full border-[#DCD5C7] bg-white sm:w-52"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -292,7 +294,7 @@ export default function Fleet({ location = PUBLIC_LOCATIONS.slc }: { location?: 
           </div>
 
           {isLoading ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading fleet">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" aria-label="Loading fleet">
               {[1, 2, 3].map(n => <div key={n} className="overflow-hidden rounded-2xl border border-[#E3DACA] bg-white"><div className="aspect-[4/3] animate-pulse bg-[#E8E2D7]" /><div className="h-44" /></div>)}
             </div>
           ) : isError ? (
@@ -301,8 +303,12 @@ export default function Fleet({ location = PUBLIC_LOCATIONS.slc }: { location?: 
               <Button variant="outline" className="mt-5" onClick={() => void refetch()}>Try again</Button>
             </div>
           ) : filteredCars.length > 0 ? (
-            <div className="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8" data-fleet-grid>
-              {filteredCars.map(car => <CarCard key={car.id} car={car} />)}
+            <div className="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 lg:gap-8" data-fleet-grid>
+              {filteredCars.map((car, index) => (
+                <ScrollReveal key={car.id} preset="soft" amount={0.08} delay={(index % 4) * 0.04} className="h-full min-w-0" data-fleet-reveal>
+                  <CarCard car={car} />
+                </ScrollReveal>
+              ))}
             </div>
           ) : (
             <div className="rounded-2xl border border-[#DCD5C7] bg-white px-6 py-16 text-center">

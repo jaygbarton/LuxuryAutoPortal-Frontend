@@ -1,3 +1,4 @@
+import { resetPageScroll } from "@/lib/navigation-scroll";
 import { PublicPageLoading } from "@/components/public-page-loading";
 import {legacyCarDestination} from '@/lib/report-navigation';
 import ClientRetention from '@/pages/admin/client-retention';
@@ -6,8 +7,8 @@ import Applicants from '@/pages/admin/applicants';
 import { ApplicantBoundary } from '@/components/onboarding/ApplicantBoundary';
 import LycWorkspace from '@/pages/lyc-workspace';
 import { CustomerHelpWidget } from "@/components/customer-help/CustomerHelpWidget";
-import { lazy, Suspense, useEffect, type ReactNode } from "react";
-import { Switch, Route, Redirect, useLocation } from "wouter";
+import { lazy, Suspense, useEffect, useLayoutEffect, type ReactNode } from "react";
+import { Switch, Route, Redirect, useLocation, useSearch } from "wouter";
 import { queryClient, getApiBaseUrl } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -711,16 +712,25 @@ function Router() {
 
 function ScrollToTopOnRouteChange() {
   const [location] = useLocation();
+  const search = useSearch();
+  const query = new URLSearchParams(search);
+  // These parameters open another page or workflow; ordinary filters retain
+  // their position. This also covers starting or resuming an application.
+  const pageKey = [location, ...["tab", "section", "start", "new", "draft", "page"].map(key => query.get(key))].join("|");
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  useLayoutEffect(() => {
+    const previous = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    return () => { window.history.scrollRestoration = previous; };
+  }, []);
 
-    const hasHash = window.location.hash.length > 1;
-    if (hasHash) return;
-
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
-  }, [location]);
+  useLayoutEffect(() => {
+    // Preserve intentional links to sections within a page.
+    if (window.location.hash.length > 1) return;
+    resetPageScroll();
+    const frame = requestAnimationFrame(resetPageScroll);
+    return () => cancelAnimationFrame(frame);
+  }, [pageKey]);
 
   return null;
 }

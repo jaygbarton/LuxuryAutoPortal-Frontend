@@ -119,15 +119,125 @@ test('initial HTML and delayed page status keep a full-height dark hero during l
   const initial = page.locator('.initial-page-loader');
   await expect(initial).toBeVisible();
   expect(await initial.evaluate(el => el.getBoundingClientRect().height >= innerHeight)).toBe(true);
-  await expect(initial).toHaveCSS('background-color', 'rgb(20, 21, 18)');
+  await expect(initial).toHaveCSS('background-color', 'rgb(20, 20, 20)');
   let releaseStatus!: () => void;
   const statusWait = new Promise<void>(resolve => { releaseStatus = resolve; });
   await page.route('**/api/public-page-status?*', async route => { await statusWait; await route.fulfill({ json: { isPublic: true } }); });
   releaseScript();
   const loading = page.locator('[data-public-loading]');
   await expect(loading).toBeVisible();
-  await expect(loading).toHaveCSS('background-color', 'rgb(20, 21, 18)');
+  await expect(loading).toHaveCSS('background-color', 'rgb(20, 20, 20)');
   expect(await loading.evaluate(el => el.getBoundingClientRect().height >= innerHeight)).toBe(true);
   releaseStatus();
   await expect(page.getByRole('heading', { level: 1 })).toContainText('A remarkable drive');
+});
+
+for (const width of [390, 1440, 2048, 3440]) test(`fleet hero keeps the full photograph and adapts to ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  await publicFixtures(page);
+  await page.goto('/salt-lake-city/fleet');
+  const image = page.locator('[data-fleet-hero-media] img');
+  await expect(image).toHaveCSS('object-fit', 'contain');
+  await expect.poll(() => image.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+  const geometry = await image.evaluate(el => ({ width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height }));
+  expect(geometry.width).toBeGreaterThan(width >= 1024 ? width * 0.55 : width * 0.95);
+  expect(geometry.height).toBeLessThanOrEqual(720);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const collection = await page.locator('#fleet-list').boundingBox();
+  expect(collection!.width).toBeGreaterThanOrEqual(Math.min(width * 0.9, 1900));
+  if (width >= 1536) expect(await page.locator('[data-fleet-grid]').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length)).toBe(4);
+  await expect(page.getByRole('button', { name: 'All vehicles', exact: true })).toHaveCSS('background-color', 'rgb(211, 188, 141)');
+  await page.screenshot({ path: test.info().outputPath(`fleet-hero-${width}.png`) });
+});
+
+test('fleet cards fade in on scroll and remain painted after filtering and sorting', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await publicFixtures(page);
+  await page.route('**/api/public/fleet', route => route.fulfill({ json: { success: true, data: Array.from({ length: 12 }, (_, i) => ({ ...cars[0], id: 10 + i, makeModel: `Fleet vehicle ${i}` })) } }));
+  await page.goto('/salt-lake-city/fleet');
+  const first = page.locator('[data-fleet-reveal]').first();
+  const last = page.locator('[data-fleet-reveal]').last();
+  await expect(first).toHaveCSS('opacity', '0');
+  await first.scrollIntoViewIfNeeded();
+  await expect(first).toHaveCSS('opacity', '1');
+  await expect(last).toHaveCSS('opacity', '0');
+  await last.scrollIntoViewIfNeeded();
+  await expect(last).toHaveCSS('opacity', '1');
+  await page.getByRole('textbox', { name: 'Search vehicles' }).fill('Fleet vehicle 11');
+  await page.locator('[data-fleet-reveal]').scrollIntoViewIfNeeded();
+  await expect(page.locator('[data-fleet-reveal]')).toHaveCSS('opacity', '1');
+  await page.getByRole('button', { name: 'Clear All', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Sort' }).click();
+  await page.getByRole('option', { name: 'Z-A', exact: true }).click();
+  await first.scrollIntoViewIfNeeded();
+  await expect(first).toHaveCSS('opacity', '1');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.reload();
+  await expect(page.locator('[data-fleet-reveal]').last()).toHaveCSS('opacity', '1');
+});
+
+for (const width of [390, 1595, 2560]) test(`homepage keeps a compact headline and introduction below the hero at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  await publicFixtures(page);
+  await page.goto('/salt-lake-city');
+  const heading = page.getByRole('heading', { level: 1 });
+  const metrics = await heading.evaluate(el => ({ height: el.getBoundingClientRect().height, lineHeight: parseFloat(getComputedStyle(el).lineHeight) }));
+  expect(metrics.height).toBeLessThanOrEqual(metrics.lineHeight * 2 + 2);
+  await expect(page.locator('[data-public-hero]')).not.toContainText('Find a premium vehicle');
+  await expect(page.locator('[data-home-intro]')).toContainText('car sharing program');
+  await expect(page.getByTestId('button-scroll-down')).toBeVisible();
+  await expect(page.getByTestId('button-cta-call')).toHaveAttribute('href', 'tel:+18003461394');
+  await page.screenshot({ path: test.info().outputPath(`home-compact-${width}.png`) });
+});
+
+for (const width of [390, 1440]) test(`page navigation starts at the top without animating through the old scroll position at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 });
+  await publicFixtures(page);
+  await page.addInitScript(() => {
+    const samples: { path: string; y: number }[] = [];
+    (window as any).__routeScrollSamples = samples;
+    let last = location.pathname + location.search;
+    function sample() {
+      if (location.pathname + location.search !== last) {
+        samples.push({ path: location.pathname + location.search, y: window.scrollY });
+        last = location.pathname + location.search;
+      }
+      requestAnimationFrame(sample);
+    }
+    requestAnimationFrame(sample);
+  });
+  await page.goto('/salt-lake-city');
+  for (const [name, path] of [['Our Fleet', '/salt-lake-city/fleet'], ['List Your Car', '/salt-lake-city/onboarding'], ['Contact Us', '/salt-lake-city/contact'], ['Our Fleet', '/salt-lake-city/fleet']]) {
+    await expect(page.locator('footer')).toBeVisible();
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
+    await page.locator('footer').getByRole('link', { name, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`${path}$`));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+    await expect.poll(() => page.evaluate(() => (window as any).__routeScrollSamples.at(-1))).toEqual({ path, y: 0 });
+  }
+  await page.evaluate(() => window.scrollTo({ top: 800, behavior: 'instant' }));
+  await page.goBack();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await page.goto('/salt-lake-city/onboarding');
+  await expect(page.getByTestId('button-lyc-get-started')).toBeVisible();
+  await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
+  await page.getByTestId('button-lyc-get-started').click();
+  await expect(page).toHaveURL(/onboarding\?start=1$/);
+  await expect.poll(() => page.evaluate(() => (window as any).__routeScrollSamples.at(-1))).toEqual({ path: '/salt-lake-city/onboarding?start=1', y: 0 });
+  // Exercise the same central reset against the independently scrolling staff pane.
+  const nested = await page.evaluate(async () => {
+    const { resetPageScroll } = await import('/src/lib/navigation-scroll.ts');
+    const pane = document.createElement('main');
+    pane.style.cssText = 'height:100px; overflow:auto; scroll-behavior:smooth';
+    const content = document.createElement('div'); content.style.height = '2000px';
+    pane.appendChild(content); document.body.appendChild(pane);
+    pane.scrollTo({ top: 700, behavior: 'instant' });
+    const before = pane.scrollTop;
+    resetPageScroll();
+    const result = { before, after: pane.scrollTop, scrollBehavior: pane.style.scrollBehavior };
+    pane.remove(); return result;
+  });
+  expect(nested).toEqual({ before: 700, after: 0, scrollBehavior: 'smooth' });
 });

@@ -52,7 +52,7 @@ function CarCard({ car, location }: { car: FeaturedCar; location: PublicLocation
         <span className="absolute left-4 top-4 rounded-full bg-[#FAF8F2]/95 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#544228]">The GLA collection</span>
       </a>
       <div className="p-6">
-        <h3 className="font-serif text-2xl leading-tight text-[#24251E]">{car.makeModel}</h3>
+        <h3 className="font-serif text-2xl leading-tight text-[#242424]">{car.makeModel}</h3>
         {details && <p className="mt-2 text-sm text-[#767367]">{details}</p>}
         <div className="mt-5 flex flex-wrap gap-4 border-t border-[#E8E1D5] pt-4 text-xs text-[#767367]">
           {car.year != null && <span className="flex items-center gap-2"><Calendar className="h-4 w-4" />{car.year}</span>}

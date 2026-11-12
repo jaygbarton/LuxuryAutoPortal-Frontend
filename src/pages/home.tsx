@@ -14,12 +14,6 @@ import { ArrowRight, Car, ClipboardCheck, ExternalLink, Sparkles, UserPlus } fro
 
 const TURO_VEHICLES_URL = "https://turo.com/us/en/drivers/4325673/vehicles";
 
-function scrollToTopOnNavigate() {
-  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
-  window.setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }), 0);
-}
-
 function ServiceSplitSection({ location }: { location: PublicLocation }) {
   const reduceMotion = useReducedMotion();
   const options = [
@@ -83,14 +77,14 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
                   <h3 className="font-serif text-3xl leading-tight sm:text-4xl">{item.title}</h3>
                   <p className="mb-7 mt-4 text-sm leading-7 text-[#625C50] sm:text-base">{item.copy}</p>
                   <div className="mt-auto flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                    <Link href={item.primaryHref} onClick={scrollToTopOnNavigate} className={`${linkStyle} bg-[#D3BC8D] text-[#211B11] hover:bg-[#C6A86D]`} data-testid={item.testId}>{item.primary}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link>
+                    <Link href={item.primaryHref} className={`${linkStyle} bg-[#D3BC8D] text-[#211B11] hover:bg-[#C6A86D]`} data-testid={item.testId}>{item.primary}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link>
                     {item.externalSecondary ? (
                       <a href={item.secondaryHref} target="_blank" rel="noopener noreferrer" className={`${linkStyle} border border-[#D9CBB1] hover:bg-[#FBF8F1]`} data-testid="button-rental-turo">{item.secondary}<ExternalLink aria-hidden="true" className="h-4 w-4" /><span className="sr-only"> (opens in a new tab)</span></a>
                     ) : (
-                      <Link href={item.secondaryHref} onClick={scrollToTopOnNavigate} className={`${linkStyle} border border-[#D9CBB1] hover:bg-[#FBF8F1]`} data-testid="button-management-info">{item.secondary}</Link>
+                      <Link href={item.secondaryHref} className={`${linkStyle} border border-[#D9CBB1] hover:bg-[#FBF8F1]`} data-testid="button-management-info">{item.secondary}</Link>
                     )}
                     {item.externalSecondary && location.availablePages.detailShop && (
-                      <Link href={`${location.path}/detail-shop`} onClick={scrollToTopOnNavigate} className={`${linkStyle} text-[#795B26] hover:bg-[#FBF8F1]`} data-testid="button-rental-detail">Detail Shop<Sparkles aria-hidden="true" className="h-4 w-4" /></Link>
+                      <Link href={`${location.path}/detail-shop`} className={`${linkStyle} text-[#795B26] hover:bg-[#FBF8F1]`} data-testid="button-rental-detail">Detail Shop<Sparkles aria-hidden="true" className="h-4 w-4" /></Link>
                     )}
                   </div>
                 </div>
@@ -178,6 +172,15 @@ export default function Home({ location }: { location?: PublicLocation }) {
       <Navbar />
       <main className="public-page">
         <Hero location={location} />
+        <section data-home-intro className="bg-[#FAF8F2] px-5 py-12 sm:px-8 lg:py-16" aria-labelledby="home-intro-title">
+          <ScrollReveal preset="soft" className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#87632C]">Golden Luxury Auto · {location.name}</p>
+              <h2 id="home-intro-title" className="scroll-mt-24 font-serif text-3xl leading-tight sm:text-4xl">More from every mile.</h2>
+            </div>
+            <p className="max-w-2xl text-base leading-8 text-[#626262]">Find a premium vehicle for your next getaway, family trip, or everyday escape in {location.name}. Have a vehicle of your own? Explore our car sharing program and talk with our team about its earning potential. We’re here to help you take the next step.</p>
+          </ScrollReveal>
+        </section>
         <FeaturedCars location={location} />
         <ServiceSplitSection location={location} />
         <ScrollReveal preset="soft" amount={0.16}>
