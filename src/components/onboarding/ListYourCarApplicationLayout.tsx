@@ -10,9 +10,9 @@ export function ListYourCarApplicationLayout({ children }: { children: ReactNode
   const location = getPreferredPublicLocation(path);
   const suggestedCarsHref = location?.availablePages.suggestedCars === false
     ? null : withLocationPath('/suggested-cars', location);
-  return <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-[#FAF8F2]">
     <Navbar />
-    <main className="pb-20 pt-20 lg:pt-24">
+    <main className="public-page pb-20 pt-[68px]">
       <ListYourCarHero />
       <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8 lg:pt-16">
         <div className="grid items-start gap-8 lg:grid-cols-2">

@@ -30,7 +30,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
       image: "/list-your-car-key-handoff-enhanced.png",
       icon: ClipboardCheck,
       primary: "List Your Car",
-      primaryHref: `${location.path}/list-your-car`,
+      primaryHref: `${location.path}/onboarding`,
       secondary: "Management Info",
       secondaryHref: `${location.path}/contact`,
       testId: "button-management-get-started",

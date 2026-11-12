@@ -588,3 +588,15 @@
   transition: background-color .2s;
 }
 .gla-public-button:focus-visible { outline: 2px solid #B08A45; outline-offset: 4px; }
+
+/* Match initial HTML, route loading, and the homepage while the hero loads. */
+.gla-home-loading {
+  background: linear-gradient(90deg, rgba(20,21,18,.9), rgba(20,21,18,.4)), url('/homepage-hero-escalade.jpg') 65% center / cover, #141512;
+}
+.gla-hero-backdrop { background: url('/homepage-hero-escalade.jpg') center / cover no-repeat; }
+@media (min-width: 1024px) {
+  .gla-hero-backdrop { background-attachment: fixed; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gla-hero-backdrop { background-attachment: scroll; opacity: 1 !important; }
+}

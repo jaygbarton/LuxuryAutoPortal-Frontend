@@ -1,14 +1,11 @@
 import { useMemo, useState } from "react";
-import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Search, ArrowRight, X, Loader2, ExternalLink, Calendar, Users, SlidersHorizontal } from "lucide-react";
+import { Search, ArrowRight, X, ExternalLink, Users, SlidersHorizontal } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollReveal } from "@/components/animations/ScrollReveal";
 import {
   Popover,
   PopoverContent,
@@ -111,67 +108,29 @@ function FilterGroup({
 
 function CarCard({ car }: { car: FleetCar }) {
   const imgSrc = car.photo ? getProxiedImageUrl(car.photo) : PLACEHOLDER_IMG;
+  const details = [car.vehicleTrim, car.color].map(cleanVal).filter(Boolean).join(" · ");
+  const href = car.turoLink || "/contact";
+  const bookingProps = car.turoLink ? { target: "_blank", rel: "noopener noreferrer" } : {};
   return (
-    <Card className="group flex flex-col h-full overflow-hidden bg-card border-border hover-elevate">
-      <div className="relative aspect-[16/10] overflow-hidden">
-        <img
-          src={imgSrc}
-          alt={car.makeModel}
-          loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(e) => {
-            if (e.currentTarget.src !== PLACEHOLDER_IMG) e.currentTarget.src = PLACEHOLDER_IMG;
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+    <article data-fleet-card className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#E3DACA] bg-white shadow-[0_8px_28px_rgba(36,37,30,0.04)]">
+      <a href={href} {...bookingProps} className="relative block aspect-[4/3] overflow-hidden bg-[#E8E2D7]" aria-label={`View ${car.makeModel}${car.turoLink ? " on Turo" : " inquiry"}`}>
+        <img src={imgSrc} alt={car.makeModel} loading="lazy" className="h-full w-full object-cover motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-105"
+          onError={e => { if (e.currentTarget.src !== PLACEHOLDER_IMG) e.currentTarget.src = PLACEHOLDER_IMG; }} />
+        <span className="absolute left-4 top-4 rounded-full bg-[#FAF8F2]/95 px-3 py-1.5 text-xs font-medium text-[#544228]">{vehicleType(car) === "Other" ? "GLA collection" : vehicleType(car)}</span>
+        {car.year != null && <span className="absolute bottom-4 right-4 rounded-md bg-black/60 px-3 py-1 text-xs font-semibold text-white">{car.year}</span>}
+      </a>
+      <div className="flex flex-1 flex-col p-6">
+        <h3 className="font-serif text-3xl leading-tight">{car.makeModel}</h3>
+        {details && <p className="mt-2 text-sm leading-6 text-[#68695D]">{details}</p>}
+        <div className="mb-6 mt-5 flex flex-wrap gap-4 border-t border-[#E8E1D5] pt-4 text-xs text-[#68695D]">
+          {car.numberOfSeats != null && <span className="flex items-center gap-2"><Users className="h-4 w-4 text-[#87632C]" />{car.numberOfSeats} seats</span>}
+          {cleanVal(car.fuelType) && <span>{car.fuelType}</span>}
+        </div>
+        <a href={href} {...bookingProps} className="mt-auto flex min-h-12 items-center justify-between gap-3 rounded-lg bg-[#17221C] px-5 py-3 text-sm font-semibold text-white hover:bg-[#2C3D31]">
+          {car.turoLink ? "Book Now" : "Inquire"}{car.turoLink ? <ExternalLink className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
+        </a>
       </div>
-      <CardContent className="flex flex-1 flex-col p-6">
-        <div className="mb-6">
-          {/* Name format matches the booking car picker: "<make/model/trim> <year>"
-              (e.g. "Acura MDX Base - AWD 2020"). */}
-          <h3 className="text-xl font-semibold text-foreground">
-            {[car.makeModel, car.year].filter(Boolean).join(" ")}
-          </h3>
-          {(() => {
-            const sub = [car.vehicleTrim, car.color].map(cleanVal).filter(Boolean).join(" · ");
-            return sub ? <p className="text-sm text-gray-500">{sub}</p> : null;
-          })()}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 mb-6 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2 min-w-0">
-            <Calendar className="w-4 h-4 shrink-0 text-primary" />
-            <span className="truncate">{car.year ?? "—"}</span>
-          </div>
-          <div className="flex items-center gap-2 min-w-0">
-            <Users className="w-4 h-4 shrink-0 text-primary" />
-            <span className="truncate">{car.numberOfSeats != null ? `${car.numberOfSeats} seats` : "—"}</span>
-          </div>
-        </div>
-
-        {/* mt-auto pins the action to the card bottom so buttons line up across
-            a row regardless of title length or whether a subtitle is shown. */}
-        <div className="mt-auto">
-          {car.turoLink ? (
-            // Book Now → the car's OWN public Turo link (not the admin Turo link).
-            <a href={car.turoLink} target="_blank" rel="noopener noreferrer" className="block">
-              <Button className="w-full group/btn bg-primary text-primary-foreground hover:bg-primary/90">
-                Book Now
-                <ExternalLink className="ml-2 w-4 h-4 transition-transform group-hover/btn:translate-x-0.5" />
-              </Button>
-            </a>
-          ) : (
-            // No Turo link on file → fall back to the inquiry/contact flow.
-            <Link href="/contact" className="block">
-              <Button variant="outline" className="w-full group/btn border-gray-300 text-foreground hover:bg-gray-50">
-                Inquire
-                <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
-              </Button>
-            </Link>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+    </article>
   );
 }
 
@@ -183,7 +142,7 @@ export default function Fleet({ location = PUBLIC_LOCATIONS.slc }: { location?: 
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [sort, setSort] = useState<SortOption>("az");
 
-  const { data, isLoading } = useQuery<{ success: boolean; data: FleetCar[] }>({
+  const { data, isLoading, isError, refetch } = useQuery<{ success: boolean; data: FleetCar[] }>({
     queryKey: ["/api/public/fleet"],
     queryFn: async () => {
       const res = await fetch(buildApiUrl("/api/public/fleet"));
@@ -250,176 +209,108 @@ export default function Fleet({ location = PUBLIC_LOCATIONS.slc }: { location?: 
   }, [cars, search, selectedMakes, selectedSeats, selectedTypes, selectedYears, sort]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#FAF8F2] text-[#26281F]">
       <Navbar />
-      <main className="public-page pt-20 lg:pt-24">
-        <section className="relative overflow-hidden border-b border-border bg-[#0A0A0A] text-white">
-          <div className="absolute inset-0">
-            <img
-              src="/homepage-hero-escalade.jpg"
-              alt=""
-              className="h-full w-full object-cover"
-              style={{ objectPosition: "center bottom" }}
-            />
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  "linear-gradient(90deg, rgba(6,6,5,0.78) 0%, rgba(6,6,5,0.54) 44%, rgba(6,6,5,0.16) 100%), linear-gradient(180deg, rgba(6,6,5,0.08), rgba(6,6,5,0.44))",
-              }}
-            />
-          </div>
-          <div className="relative mx-auto grid min-h-[440px] max-w-7xl content-end px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
-            <ScrollReveal preset="hero" className="max-w-3xl">
-              <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">Our Collection</p>
-              <h1 className="font-serif text-4xl font-light leading-tight text-white sm:text-5xl lg:text-6xl">
-                Find your next great drive.
-              </h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-white/75 sm:text-lg">
-                Explore the {location.name} collection. Find your vehicle, then check dates and pricing on its Turo listing.
-              </p>
+      <main className="public-page pt-[68px]">
+        <section className="relative overflow-hidden bg-[#17221C] text-white">
+          <div className="mx-auto grid max-w-7xl lg:min-h-[560px] lg:grid-cols-2">
+            <div className="relative z-10 px-5 py-14 sm:px-8 lg:py-20">
+              <p className="mb-6 text-xs font-semibold uppercase tracking-[0.24em] text-[#D3BC8D]">The GLA collection · {location.name}</p>
+              <h1 className="font-serif text-5xl font-light leading-[1.08] sm:text-6xl lg:text-7xl">The right car.<br /><span className="italic text-[#DFC899]">A better journey.</span></h1>
+              <p className="mt-6 max-w-md text-base leading-8 text-white/75">Space for the whole family. Comfort for the open road. Find a vehicle that fits your trip, then check dates and pricing on Turo.</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a href={location.turoFleetUrl} target="_blank" rel="noopener noreferrer">
-                  <Button size="lg" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto">
-                    View Jay's Turo Fleet
-                    <ExternalLink className="ml-2 h-4 w-4" />
-                  </Button>
-                </a>
-                <a href="#fleet-list">
-                  <Button size="lg" variant="outline" className="w-full border-white/30 bg-white/5 text-white hover:bg-white/10 hover:text-white sm:w-auto">
-                    Browse On Site
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </a>
+                <a href="#fleet-list" className="gla-public-button bg-[#D3BC8D] text-[#211B11] hover:bg-[#E3CCA0]">Explore the collection <ArrowRight className="h-4 w-4" /></a>
+                <a href={location.turoFleetUrl} target="_blank" rel="noopener noreferrer" className="gla-public-button border border-white/30 hover:bg-white/10">View Jay's Turo Fleet <ExternalLink className="h-4 w-4" /></a>
               </div>
-            </ScrollReveal>
+            </div>
+            <div className="relative min-h-72 lg:min-h-full">
+              <img src="/homepage-hero-escalade.jpg" alt="Cadillac Escalade in the Golden Luxury Auto collection" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover object-[65%_center]" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#17221C]/40 to-transparent lg:bg-gradient-to-r lg:from-[#17221C] lg:via-transparent" />
+              <p className="absolute bottom-6 right-6 text-xs uppercase tracking-[0.2em] text-white/90">Arrive in your own style.</p>
+            </div>
           </div>
         </section>
 
-        <div id="fleet-list" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div>
-            {/* Top filter bar: search on the left, filter button on the right. */}
-            <ScrollReveal preset="soft" className="flex flex-col md:flex-row md:items-end gap-4 mb-8">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  placeholder="Search vehicles..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 bg-card border-border"
-                />
-              </div>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full md:w-auto border-border bg-card">
-                    <SlidersHorizontal className="w-4 h-4 mr-2" />
-                    Filters
-                    {activeFilterCount > 0 && (
-                      <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
-                        {activeFilterCount}
-                      </span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-[min(92vw,560px)] p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="font-semibold text-foreground">Filter Vehicles</p>
-                    {activeFilterCount > 0 && (
-                      <Button variant="ghost" size="sm" onClick={clearFilters}>
-                        <X className="w-4 h-4 mr-1" />
-                        Clear
-                      </Button>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
-                    <FilterGroup
-                      title="Make"
-                      options={makes}
-                      selected={selectedMakes}
-                      onToggle={(value) => setSelectedMakes((current) => toggleValue(current, value))}
-                    />
-                    <FilterGroup
-                      title="Year"
-                      options={years}
-                      selected={selectedYears}
-                      onToggle={(value) => setSelectedYears((current) => toggleValue(current, value))}
-                    />
-                    <FilterGroup
-                      title="Type"
-                      options={vehicleTypes}
-                      selected={selectedTypes}
-                      onToggle={(value) => setSelectedTypes((current) => toggleValue(current, value))}
-                    />
-                    <FilterGroup
-                      title="Seats"
-                      options={seatOptions}
-                      selected={selectedSeats}
-                      onToggle={(value) => setSelectedSeats((current) => toggleValue(current, value))}
-                    />
-                  </div>
-                </PopoverContent>
-              </Popover>
-
-              {(activeFilterCount > 0 || search) && (
-                <Button variant="ghost" onClick={clearFilters} className="md:mb-0">
-                  <X className="w-4 h-4 mr-1" />
-                  Clear All
-                </Button>
-              )}
-            </ScrollReveal>
-
-            <ScrollReveal preset="soft" delay={0.06} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-              <p className="text-sm text-muted-foreground">
-                Showing <span className="text-foreground font-medium">{filteredCars.length}</span> {filteredCars.length === 1 ? "vehicle" : "vehicles"}
-              </p>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Sort</span>
-                <Select value={sort} onValueChange={(value) => setSort(value as SortOption)}>
-                  <SelectTrigger className="w-full sm:w-48 bg-card border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="az">A-Z</SelectItem>
-                    <SelectItem value="za">Z-A</SelectItem>
-                    <SelectItem value="top-performing">Top Monthly Performing</SelectItem>
-                    <SelectItem value="newest">Newest Model Year</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </ScrollReveal>
-
-            {isLoading ? (
-              <div className="flex justify-center py-24">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            ) : filteredCars.length > 0 ? (
-              <div
-                key={`${search}-${selectedMakes.join("|")}-${selectedYears.join("|")}-${selectedTypes.join("|")}-${selectedSeats.join("|")}-${sort}`}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-              >
-                {filteredCars.map((car, index) => (
-                  <ScrollReveal key={car.id} preset="scale" amount={0.18} delay={(index % 4) * 0.045}>
-                    <CarCard car={car} />
-                  </ScrollReveal>
-                ))}
-              </div>
-            ) : (
-              <ScrollReveal preset="soft" className="text-center py-16">
-                <p className="text-lg text-muted-foreground mb-4">
-                  {cars.length === 0
-                    ? "No vehicles are available right now. Please check back soon."
-                    : "No vehicles match your criteria"}
-                </p>
-                {cars.length > 0 && (
-                  <Button variant="outline" onClick={clearFilters} className="border-white/20">
-                    Clear All Filters
-                  </Button>
-                )}
-              </ScrollReveal>
-            )}
+        <section id="fleet-list" aria-labelledby="fleet-heading" className="mx-auto max-w-7xl scroll-mt-20 px-5 py-14 sm:px-8 lg:py-20">
+          <div className="mb-8 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#87632C]">Find your drive</p>
+              <h2 id="fleet-heading" className="font-serif text-4xl sm:text-5xl">Explore our fleet.</h2>
+            </div>
+            <p className="max-w-sm text-sm leading-7 text-[#68695D]">Browse {location.cityState} vehicles below. Each booking link opens that vehicle’s own Turo listing.</p>
           </div>
-        </div>
+
+          <div className="mb-6 flex flex-wrap gap-2" aria-label="Vehicle categories">
+            <button type="button" aria-pressed={selectedTypes.length === 0} onClick={() => setSelectedTypes([])} className={`min-h-11 rounded-full border px-5 text-sm font-medium transition-colors ${selectedTypes.length === 0 ? "border-[#17221C] bg-[#17221C] text-white" : "border-[#DCD5C7] bg-white text-[#68695D] hover:border-[#96712D]"}`}>All vehicles</button>
+            {vehicleTypes.map(type => (
+              <button key={type} type="button" aria-pressed={selectedTypes.includes(type)} onClick={() => setSelectedTypes(current => toggleValue(current, type))} className={`min-h-11 rounded-full border px-5 text-sm font-medium transition-colors ${selectedTypes.includes(type) ? "border-[#17221C] bg-[#17221C] text-white" : "border-[#DCD5C7] bg-white text-[#68695D] hover:border-[#96712D]"}`}>{type}</button>
+            ))}
+          </div>
+
+          <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-[#E3DACA] bg-white p-4 sm:p-5 md:flex-row md:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#87632C]" />
+              <Input aria-label="Search vehicles" placeholder="Search vehicles..." value={search} onChange={e => setSearch(e.target.value)} className="min-h-12 border-[#E3DACA] bg-[#FAF8F2] pl-10" />
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="min-h-12 border-[#DCD5C7] bg-white md:w-auto">
+                  <SlidersHorizontal className="mr-2 h-4 w-4" />Filters
+                  {activeFilterCount > 0 && <span className="ml-2 rounded-full bg-[#D3BC8D] px-2 py-0.5 text-xs text-[#211B11]">{activeFilterCount}</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-[min(92vw,560px)] p-4">
+                <div className="mb-4 flex items-center justify-between">
+                  <p className="font-semibold text-foreground">Filter Vehicles</p>
+                  {activeFilterCount > 0 && <Button variant="ghost" size="sm" onClick={clearFilters}><X className="mr-1 h-4 w-4" />Clear</Button>}
+                </div>
+                <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+                  <FilterGroup title="Make" options={makes} selected={selectedMakes} onToggle={value => setSelectedMakes(current => toggleValue(current, value))} />
+                  <FilterGroup title="Year" options={years} selected={selectedYears} onToggle={value => setSelectedYears(current => toggleValue(current, value))} />
+                  <FilterGroup title="Type" options={vehicleTypes} selected={selectedTypes} onToggle={value => setSelectedTypes(current => toggleValue(current, value))} />
+                  <FilterGroup title="Seats" options={seatOptions} selected={selectedSeats} onToggle={value => setSelectedSeats(current => toggleValue(current, value))} />
+                </div>
+              </PopoverContent>
+            </Popover>
+            {(activeFilterCount > 0 || search) && <Button variant="ghost" onClick={clearFilters} className="min-h-12"><X className="mr-1 h-4 w-4" />Clear All</Button>}
+          </div>
+
+          <div className="mb-8 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <p className="text-sm text-[#68695D]" role="status">{isLoading ? "Loading collection…" : `Showing ${filteredCars.length} ${filteredCars.length === 1 ? "vehicle" : "vehicles"}`}</p>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-[#68695D]" id="fleet-sort-label">Sort</span>
+              <Select value={sort} onValueChange={value => setSort(value as SortOption)}>
+                <SelectTrigger aria-labelledby="fleet-sort-label" className="min-h-11 w-full border-[#DCD5C7] bg-white sm:w-52"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="az">A-Z</SelectItem>
+                  <SelectItem value="za">Z-A</SelectItem>
+                  <SelectItem value="top-performing">Top Monthly Performing</SelectItem>
+                  <SelectItem value="newest">Newest Model Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading fleet">
+              {[1, 2, 3].map(n => <div key={n} className="overflow-hidden rounded-2xl border border-[#E3DACA] bg-white"><div className="aspect-[4/3] animate-pulse bg-[#E8E2D7]" /><div className="h-44" /></div>)}
+            </div>
+          ) : isError ? (
+            <div role="alert" className="rounded-2xl border border-[#DCD5C7] bg-white p-10 text-center">
+              <p>The fleet could not be loaded. Please try again.</p>
+              <Button variant="outline" className="mt-5" onClick={() => void refetch()}>Try again</Button>
+            </div>
+          ) : filteredCars.length > 0 ? (
+            <div className="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8" data-fleet-grid>
+              {filteredCars.map(car => <CarCard key={car.id} car={car} />)}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-[#DCD5C7] bg-white px-6 py-16 text-center">
+              <p className="font-serif text-2xl">{cars.length === 0 ? "No vehicles are available right now. Please check back soon." : "No vehicles match your criteria"}</p>
+              {cars.length > 0 && <Button variant="outline" onClick={clearFilters} className="mt-5">Clear All Filters</Button>}
+            </div>
+          )}
+        </section>
       </main>
       <Footer />
     </div>

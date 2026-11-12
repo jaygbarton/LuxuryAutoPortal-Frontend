@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { Link } from "wouter";
 import { ArrowRight, MapPin } from "lucide-react";
 import { PUBLIC_LOCATIONS, type PublicLocation } from "@/lib/location-config";
@@ -10,10 +12,16 @@ interface HeroProps {
 }
 
 export function Hero({ location, mode = "location", showBackground = true }: HeroProps) {
+  const section = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({ target: section, offset: ["start start", "end start"] });
+  const imageOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 0.6, 0]);
   return (
-    <section className="relative isolate overflow-hidden bg-[#141512] text-white" data-public-hero>
+    <section ref={section} className="relative isolate min-h-[100svh] overflow-hidden bg-[#141512] text-white" data-public-hero>
       {showBackground && <>
-        <img src="/homepage-hero-escalade.jpg" alt="" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover object-[65%_center]" />
+        <motion.div data-cadillac-backdrop className="gla-hero-backdrop absolute inset-0" style={{ opacity: reduceMotion ? 1 : imageOpacity }}>
+          <img src="/homepage-hero-escalade.jpg" alt="" fetchPriority="high" className="h-full w-full object-cover object-[65%_center] lg:invisible" />
+        </motion.div>
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/15" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
       </>}
@@ -22,7 +30,7 @@ export function Hero({ location, mode = "location", showBackground = true }: Her
           <span className="h-px w-10 bg-[#D3BC8D]" />{mode === "hub" ? "Golden Luxury Auto" : location?.cityState}
         </p>
         <div className="max-w-4xl">
-          <h1 className="font-serif text-[clamp(3.3rem,7vw,7rem)] font-light leading-[1.02] tracking-tight">
+          <h1 className="font-serif text-[clamp(2.6rem,13.5vw,3.3rem)] sm:text-[clamp(3.3rem,7vw,7rem)] font-light leading-[1.02] tracking-tight">
             A remarkable drive.<br /><span className="italic text-[#E0C791]">An unforgettable stay.</span>
           </h1>
           <p className="mt-7 max-w-xl text-base leading-7 text-white/80 sm:text-lg">
@@ -48,7 +56,7 @@ export function Hero({ location, mode = "location", showBackground = true }: Her
             <Link href={location.fleetPath} className="gla-public-button bg-[#D3BC8D] text-[#201B12] hover:bg-[#E3CCA0]" data-testid="button-hero-fleet">
               Explore the fleet <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link href={`${location.path}/list-your-car`} className="gla-public-button border border-white/40 text-white hover:bg-white/10" data-testid="button-hero-owner">
+            <Link href={`${location.path}/onboarding`} className="gla-public-button border border-white/40 text-white hover:bg-white/10" data-testid="button-hero-owner">
               Earn with your vehicle <ArrowRight className="h-4 w-4" />
             </Link>
           </div>

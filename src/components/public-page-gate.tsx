@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { PublicPageLoading } from "@/components/public-page-loading";
 import { buildApiUrl } from "@/lib/queryClient";
 import { publicPageLabel } from "@/lib/public-pages";
 
@@ -47,11 +47,7 @@ export function PublicPageGate({ path, children }: PublicPageGateProps) {
   });
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-7 w-7 animate-spin text-primary" />
-      </div>
-    );
+    return <PublicPageLoading path={path} />;
   }
 
   if (isError || data?.isPublic || (isDeveloperPreview && data?.canPreview)) {

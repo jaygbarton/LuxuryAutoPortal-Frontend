@@ -13,7 +13,7 @@ export function CTASection({ location }: { location: PublicLocation }) {
         <p className="mx-auto mb-9 mt-6 max-w-xl leading-8 text-white/80">Explore a vehicle for your next trip, or talk with our team about putting your own car to work.</p>
         <div className="flex flex-col justify-center gap-3 sm:flex-row">
           <Link href={location.fleetPath} className="gla-public-button bg-[#D3BC8D] text-[#211B11] hover:bg-[#E3CCA0]" data-testid="button-cta-rent-car">Explore the fleet <ArrowRight className="h-4 w-4" /></Link>
-          <Link href={`${location.path}/list-your-car`} className="gla-public-button border border-white/40 hover:bg-white/10" data-testid="button-cta-get-started">Earn with your vehicle <ArrowRight className="h-4 w-4" /></Link>
+          <Link href={`${location.path}/onboarding`} className="gla-public-button border border-white/40 hover:bg-white/10" data-testid="button-cta-get-started">Earn with your vehicle <ArrowRight className="h-4 w-4" /></Link>
         </div>
         <Link href={`${location.path}/contact`} className="mt-7 inline-flex min-h-11 items-center text-sm text-white/80 underline underline-offset-4">Have a question? Talk with our team</Link>
       </div>

@@ -1,3 +1,4 @@
+import { PublicPageLoading } from "@/components/public-page-loading";
 import {legacyCarDestination} from '@/lib/report-navigation';
 import ClientRetention from '@/pages/admin/client-retention';
 import ClientRecordsRequest from '@/pages/client-records-request';
@@ -6,7 +7,6 @@ import { ApplicantBoundary } from '@/components/onboarding/ApplicantBoundary';
 import LycWorkspace from '@/pages/lyc-workspace';
 import { CustomerHelpWidget } from "@/components/customer-help/CustomerHelpWidget";
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
-import { Loader2 } from "lucide-react";
 import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient, getApiBaseUrl } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -23,7 +23,7 @@ import { NativePortalIntegration } from "@/components/NativePortalIntegration";
 
 const Home = lazy(() => import("@/pages/home"));
 const Fleet = lazy(() => import("@/pages/fleet"));
-const ListYourCar = lazy(() => import("@/pages/list-your-car"));
+const ListYourCarRedirect = lazy(() => import("@/pages/list-your-car"));
 const Onboarding = lazy(() => import("@/pages/onboarding"));
 const Contact = lazy(() => import("@/pages/contact"));
 const ChauffeurPage = lazy(() => import("@/pages/chauffeur"));
@@ -154,11 +154,7 @@ const DirectBookingPreviewPage = lazy(() => import("@/pages/admin/direct-booking
 const CarRentalsPreviewPage = lazy(() => import("@/pages/admin/car-rentals"));
 
 function PageFallback() {
-  return (
-    <div className="flex items-center justify-center py-16">
-      <Loader2 className="w-8 h-8 text-primary animate-spin" />
-    </div>
-  );
+  return <PublicPageLoading path={window.location.pathname} />;
 }
 
 // Wrapper component for IncomeExpensesPage to handle Wouter route props
@@ -253,8 +249,8 @@ function Router() {
       <PublicRoute path="/salt-lake-city/privacy-policy"><PrivacyPolicyPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/terms-and-conditions"><TermsPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/terms"><TermsPage /></PublicRoute>
-      <PublicRoute path="/salt-lake-city/list-your-car"><ListYourCar /></PublicRoute>
-      <PublicRoute path="/wilmington-nc/list-your-car"><ListYourCar /></PublicRoute>
+      <Route path="/salt-lake-city/list-your-car"><ListYourCarRedirect /></Route>
+      <Route path="/wilmington-nc/list-your-car"><ListYourCarRedirect /></Route>
       <PublicRoute path="/salt-lake-city/onboarding"><Onboarding /></PublicRoute>
       <PublicRoute path="/salt-lake-city/contact"><Contact /></PublicRoute>
       <PublicRoute path="/wilmington-nc/testimonials"><TestimonialsPage /></PublicRoute>

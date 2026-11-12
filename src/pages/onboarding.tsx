@@ -153,9 +153,9 @@ export default function Onboarding() {
   const location=getPreferredPublicLocation(currentPath);
   const suggestedCarsHref=location?.availablePages.suggestedCars===false?null:withLocationPath('/suggested-cars',location);
   params.set('start','1');
-  return <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-[#FAF8F2]">
     <Navbar/>
-    <main className="pb-16 pt-20 lg:pt-24">
+    <main className="public-page pb-16 pt-[68px]">
       <ListYourCarHero/>
       <div className="mx-auto grid max-w-7xl items-start gap-6 px-4 py-8 sm:px-6 lg:grid-cols-2 lg:px-8 lg:py-12">
         <aside aria-label="About the List Your Car program">

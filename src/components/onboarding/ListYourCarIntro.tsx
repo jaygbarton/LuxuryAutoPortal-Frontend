@@ -5,38 +5,29 @@ import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
+const CONSULTATION_URL = "https://rent.goldenluxuryauto.com/book-a-call-lyc";
+const PROGRAM_VIDEO_URL = "https://www.youtube.com/watch?v=zyhzeXvCp8U";
+
 export function ListYourCarHero() {
   return (
-    <section className="relative overflow-hidden border-b border-border bg-[#0A0A0A] text-white">
-      <div className="absolute inset-0">
-        <img
-          src="/list-your-car-key-handoff-enhanced.png"
-          alt=""
-          className="h-full w-full object-cover"
-          style={{ objectPosition: "center center" }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(90deg, rgba(6,6,5,0.82) 0%, rgba(6,6,5,0.58) 44%, rgba(6,6,5,0.16) 100%), linear-gradient(180deg, rgba(6,6,5,0.08), rgba(6,6,5,0.46))",
-          }}
-        />
-      </div>
-      <div className="relative mx-auto grid min-h-[240px] lg:min-h-[360px] max-w-7xl content-end px-4 py-8 sm:px-6 lg:px-8 lg:py-20">
-        <div className="max-w-3xl">
-          <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">
-            List Your Car
-          </p>
-          <h1 className="font-serif text-4xl font-light leading-tight text-white sm:text-5xl lg:text-6xl">
-            Let us manage your vehicle
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-white/75 sm:text-lg">
-            Have a car sitting in your garage 90% of the year? Currently
-            financing, or looking to purchase a new vehicle? Let us turn your
-            car into a cash-flowing asset!
-          </p>
+    <section className="relative isolate overflow-hidden bg-[#151B17] px-5 py-16 text-white sm:px-8 lg:py-24">
+      <img src="/list-your-car-key-handoff-enhanced.png" alt="" className="absolute inset-0 h-full w-full object-cover object-right opacity-50" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#101712] via-[#101712]/80 to-transparent" />
+      <div className="relative mx-auto max-w-7xl">
+        <p className="mb-6 text-xs uppercase tracking-[0.25em] text-[#D3BC8D]">List Your Car · Golden Luxury Auto</p>
+        <h1 className="max-w-4xl font-serif text-5xl font-light leading-[1.06] sm:text-7xl lg:text-8xl">
+          Let us manage<br /><span className="italic text-[#DFC899]">your vehicle</span>
+        </h1>
+        <p className="mb-9 mt-7 max-w-lg text-lg leading-8 text-white/80">
+          Find out what your car could earn in a consultation with our team. We’ll discuss your vehicle, the market, and the management options that fit.
+        </p>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <a href={CONSULTATION_URL} target="_blank" rel="noopener noreferrer" className="gla-public-button bg-[#D3BC8D] text-[#211B11] hover:bg-[#E3CCA0]">
+            Book a consultation <ArrowRight className="h-4 w-4" />
+          </a>
+          <a href={PROGRAM_VIDEO_URL} target="_blank" rel="noopener noreferrer" className="gla-public-button border border-white/40 hover:bg-white/10">
+            Watch the Car Sharing Program <ArrowRight className="h-4 w-4" />
+          </a>
         </div>
       </div>
     </section>
@@ -66,8 +57,11 @@ export function ListYourCarConsultation({
         <div className="space-y-6 p-6 lg:p-8">
           <div>
             <h2 className="font-serif text-3xl font-light text-foreground">
-              Have questions?
+              Car Sharing Program
             </h2>
+            <a href={PROGRAM_VIDEO_URL} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary underline underline-offset-4">
+              Watch on YouTube <ArrowRight className="h-4 w-4" />
+            </a>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               Book a consultation with the GLA team before completing the
               vehicle form.
@@ -75,7 +69,7 @@ export function ListYourCarConsultation({
           </div>
           <Button asChild size="lg" className="w-full">
             <a
-              href="https://rent.goldenluxuryauto.com/book-a-call-lyc"
+              href={CONSULTATION_URL}
               target="_blank"
               rel="noopener noreferrer"
             >

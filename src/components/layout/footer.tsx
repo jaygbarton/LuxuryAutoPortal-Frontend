@@ -14,7 +14,7 @@ const quickLinks = [
   { href: "/deals", label: "Deals" },
   { href: "/testimonials", label: "Testimonials" },
   { href: "/jobs", label: "Jobs" },
-  { href: "/list-your-car", label: "List Your Car" },
+  { href: "/onboarding", label: "List Your Car" },
   { href: "/suggested-cars", label: "Suggested Cars" },
   { href: "/contact", label: "Contact Us" },
 ];
