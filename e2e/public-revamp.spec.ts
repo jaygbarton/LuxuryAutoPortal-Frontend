@@ -132,16 +132,20 @@ test('initial HTML and delayed page status keep a full-height dark hero during l
   await expect(page.getByRole('heading', { level: 1 })).toContainText('A remarkable drive');
 });
 
-for (const width of [390, 1440, 2048, 3440]) test(`fleet hero keeps the full photograph and adapts to ${width}px`, async ({ page }) => {
+for (const width of [390, 1440, 2048, 3440]) test(`fleet hero uses the original full-width photograph with overlaid text at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 1000 });
   await publicFixtures(page);
   await page.goto('/salt-lake-city/fleet');
   const image = page.locator('[data-fleet-hero-media] img');
-  await expect(image).toHaveCSS('object-fit', 'contain');
+  await expect(image).toHaveCSS('object-fit', 'cover');
   await expect.poll(() => image.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
   const geometry = await image.evaluate(el => ({ width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height }));
-  expect(geometry.width).toBeGreaterThan(width >= 1024 ? width * 0.55 : width * 0.95);
-  expect(geometry.height).toBeLessThanOrEqual(720);
+  expect(geometry.width).toBeGreaterThan(width * 0.98);
+  const heroBox=(await page.locator('[data-fleet-hero]').boundingBox())!;
+  const heading=(await page.getByRole('heading',{level:1}).boundingBox())!;
+  expect(heading.y).toBeGreaterThan(heroBox.y);
+  expect(heading.y+heading.height).toBeLessThan(heroBox.y+heroBox.height);
+  expect(geometry.height).toBeLessThanOrEqual(850);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const collection = await page.locator('#fleet-list').boundingBox();
   expect(collection!.width).toBeGreaterThanOrEqual(Math.min(width * 0.9, 1900));

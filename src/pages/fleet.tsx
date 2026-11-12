@@ -214,7 +214,12 @@ export default function Fleet({ location = PUBLIC_LOCATIONS.slc }: { location?: 
       <Navbar />
       <main className="public-page pt-[68px]">
         <section data-fleet-hero className="relative overflow-hidden bg-[#171717] text-white">
-          <div className="grid items-center lg:min-h-[520px] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+          <div data-fleet-hero-media className="absolute inset-0">
+            <img src="/homepage-hero-escalade.jpg" alt="Cadillac Escalade in the Golden Luxury Auto collection" fetchPriority="high" className="h-full w-full object-cover object-center" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-black/20" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/60 to-transparent" />
+          </div>
+          <div className="relative mx-auto flex min-h-[540px] max-w-[1440px] items-center sm:min-h-[600px] 2xl:min-h-[min(68vw,760px)]">
             <div className="gla-fleet-intro relative z-10 px-5 py-14 sm:px-8 lg:py-20">
               <p className="mb-6 text-xs font-semibold uppercase tracking-[0.24em] text-[#D3BC8D]">The GLA collection · {location.name}</p>
               <h1 className="font-serif text-4xl font-light leading-[1.08] sm:text-5xl lg:text-[clamp(2.75rem,3.6vw,4rem)]">The right car.<br /><span className="italic text-[#DFC899]">A better journey.</span></h1>
@@ -223,12 +228,6 @@ export default function Fleet({ location = PUBLIC_LOCATIONS.slc }: { location?: 
                 <a href="#fleet-list" className="gla-public-button bg-[#D3BC8D] text-[#211B11] hover:bg-[#E3CCA0]">Explore the collection <ArrowRight className="h-4 w-4" /></a>
                 <a href={location.turoFleetUrl} target="_blank" rel="noopener noreferrer" className="gla-public-button border border-white/30 hover:bg-white/10">View Jay's Turo Fleet <ExternalLink className="h-4 w-4" /></a>
               </div>
-            </div>
-            <div data-fleet-hero-media className="relative min-w-0 w-full self-center">
-              <img src="/homepage-hero-escalade.jpg" alt="Cadillac Escalade in the Golden Luxury Auto collection" fetchPriority="high" className="block h-auto max-h-[720px] w-full object-contain" />
-              <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-16 bg-gradient-to-r from-[#171717] to-transparent lg:block" />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#171717]/70 to-transparent" />
-              <p className="absolute bottom-6 right-6 text-xs uppercase tracking-[0.2em] text-white/90">Arrive in your own style.</p>
             </div>
           </div>
         </section>
