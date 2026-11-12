@@ -35,7 +35,7 @@ async function fixture(page:Page,admin:boolean|'client'|'guest'=false){
    if(path.endsWith('/submit-pending')){const d=drafts.find(d=>d.id===Number(path.split('/').at(-2)));d.pendingSubmittedAt||=new Date().toISOString();d.version++;data={draft:d};}
    if(path.endsWith('/documents')){const d=drafts.find(d=>d.id===Number(path.split('/').at(-2)));d.documents={driversLicenseUrls:['/fixture-license.png']};d.version++;data={draft:d};}
    if(path.endsWith('/7/review'))Object.assign(submission,body.changes);
-   if(path.endsWith('/7/approve')){submission.status='approved';data={success:true,data:submission};}
+   if(path.endsWith('/7/approve')){submission.status='approved';workflow.clientId=12;workflow.carId=88;data={success:true,data:submission};}
    if(path.endsWith('/7/status'))submission.status=body.status;
    if(path.endsWith('/7/create-vehicle')){workflow.carId=88;data={success:true,data:{carId:88},message:'Vehicle record created. It has not been activated for rental.'};}
    if(path==='/api/onboarding/submit'){drafts.find(d=>d.id===body.draftId).submissionId=7;data={success:true,data:{id:7}};}
@@ -96,7 +96,7 @@ for(const width of [390,1280]) test(`customer onboarding step validation, back n
  expect(submissionWrites[0].body).toMatchObject({emailOwner:values.emailOwner,vinNumber:values.vinNumber,accountNumber:values.accountNumber,confirmAgreement:true,draftId:1});
  if(width===390)expect(writes.find(w=>w.path.endsWith('/documents'))?.body.multipart).toContain('filename="fixture-license.png"');
 });
-test('admin review saves only edited fields, approves separately from signing, then creates one inactive record',async({page})=>{
+test('admin review approval creates an off-fleet record while signing and activation remain separate',async({page})=>{
  await page.setViewportSize({width:390,height:844});const {writes,submission,workflow}=await fixture(page,true);
  await page.goto('/admin/forms?section=client-onboarding&item=lyc');
  await page.getByRole('button',{name:'Review & edit application',exact:true}).click();
@@ -110,13 +110,8 @@ test('admin review saves only edited fields, approves separately from signing, t
  await panel.getByRole('button',{name:'Approve application',exact:true}).click();
  await expect(panel.getByText('Application: approved',{exact:true})).toBeVisible();
  await expect(panel.getByText('Contract: sent',{exact:true})).toBeVisible();
- expect(writes.filter(w=>w.path.includes('create-vehicle'))).toHaveLength(0);await expect(panel.getByRole('button',{name:'Create vehicle record',exact:true})).toBeDisabled();
- submission.contractStatus='signed';workflow.clientId=12;await page.reload();await page.getByRole('button',{name:'Review & edit application',exact:true}).click();
- await panel.getByRole('button',{name:'Create vehicle record',exact:true}).click();
- await panel.getByRole('button',{name:'Confirm create vehicle record',exact:true}).click();
  await expect(panel.getByRole('link',{name:'Open vehicle record'})).toHaveAttribute('href','/admin/cars/88');
- await expect(panel.getByRole('button',{name:'Create vehicle record',exact:true})).toHaveCount(0);
- expect(writes.filter(w=>w.path.includes('create-vehicle'))).toHaveLength(1);
+ expect(writes.filter(w=>w.path.includes('create-vehicle'))).toHaveLength(0);
  for(const entry of writes)expect(entry.body).not.toHaveProperty('status','ACTIVE');
 });
 
@@ -125,7 +120,7 @@ for(const signed of [false,true]) test(`owner drop-off form is ${signed?'availab
  await page.route('**/api/client/cars?for=onboarding',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({success:true,data:signed?[{id:88,makeModel:'Honda Accord 2020',plateNumber:'TEST123',carStatus:'off_fleet'}]:[]})}));
  await page.goto('/admin/forms?section=client-onboarding&item=car-on');
  if(signed) { await expect(page.getByText('Your contract is signed.',{exact:false})).toBeVisible();await expect(page.getByText('Select Your Car *',{exact:true})).toBeVisible(); }
- else { await expect(page.getByText('Vehicle drop-off comes after signing',{exact:true})).toBeVisible();await expect(page.getByText('Select Your Car *',{exact:true})).toHaveCount(0); }
+ else { await expect(page.getByText('No vehicles ready for drop-off',{exact:true})).toBeVisible();await expect(page.getByText('Select Your Car *',{exact:true})).toHaveCount(0); }
 });
 
 for(const width of [390,1280]) test(`guests create a restricted account inline and continue into LYC steps at ${width}px`,async({page})=>{
@@ -629,4 +624,14 @@ test('admin client view can read application progress without offering personal 
  await expect(page.getByRole('link',{name:'Start another application'})).toHaveCount(0);
  await page.getByRole('link',{name:'Complete vehicle drop-off form'}).click();
  await expect(page).toHaveURL(/\/admin\/forms\?section=client-onboarding&item=car-on$/);
+});
+
+test('an already approved missing vehicle has an explicit retry-safe recovery action',async({page})=>{
+ const {submission,workflow,writes}=await fixture(page,true);submission.status='approved';workflow.clientId=12;
+ await page.goto('/admin/forms?section=client-onboarding&item=lyc');await page.getByRole('button',{name:'Review & edit application',exact:true}).click();
+ const panel=page.getByRole('region',{name:'Onboarding review workflow'});
+ await panel.getByRole('button',{name:'Restore approved vehicle',exact:true}).click();
+ await panel.getByRole('button',{name:'Confirm create vehicle record',exact:true}).click();
+ await expect(panel.getByRole('link',{name:'Open vehicle record'})).toHaveAttribute('href','/admin/cars/88');
+ expect(writes.filter(w=>w.path.includes('create-vehicle'))).toHaveLength(1);
 });

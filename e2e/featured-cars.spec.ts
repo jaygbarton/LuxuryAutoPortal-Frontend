@@ -55,6 +55,7 @@ test('a failed ranking request has a retry and a legitimate empty selection has 
 });
 
 test('rankings do not poll or refetch on focus during the day and refresh once on Denver day rollover',async({page})=>{
+  await page.emulateMedia({reducedMotion:'reduce'});
   await page.clock.install({time:new Date('2026-11-09T15:00:00Z')});
   let requests=0;
   await setup(page);await expectCardsVisible(page,1);

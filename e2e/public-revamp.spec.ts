@@ -241,3 +241,29 @@ for (const width of [390, 1440]) test(`page navigation starts at the top without
   });
   expect(nested).toEqual({ before: 700, after: 0, scrollBehavior: 'smooth' });
 });
+
+for (const width of [390, 2048]) test(`hero stats sit at the bottom and guest reviews crossfade without resizing at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 1000 });
+  await publicFixtures(page);
+  await page.goto('/salt-lake-city');
+  const hero = page.locator('[data-public-hero]');
+  const stats = page.locator('[data-hero-stats]');
+  await expect(stats).toBeVisible();
+  const heroBox = (await hero.boundingBox())!;
+  const statsBox = (await stats.boundingBox())!;
+  expect(Math.abs(heroBox.y + heroBox.height - statsBox.y - statsBox.height)).toBeLessThan(2);
+  if (width >= 1024) expect(heroBox.height).toBeLessThanOrEqual(840);
+  await page.screenshot({ path: test.info().outputPath(`hero-bottom-stats-${width}.png`) });
+  const reviewBox = page.locator('[data-google-review-box]');
+  await reviewBox.scrollIntoViewIfNeeded();
+  const initialHeight = (await reviewBox.boundingBox())!.height;
+  for (const name of ['Melissa Rose Stoltzfus', 'Faatupuinati Muliumu', 'Tony LoPresto', 'Sinthia Kabir']) {
+    await page.getByRole('button', { name: `Show Google review from ${name}`, exact: true }).click();
+    const active = page.locator('[data-review-active="true"]');
+    await expect(active).toHaveCSS('opacity', '1');
+    await expect(active).toContainText(name);
+    expect(Math.abs((await reviewBox.boundingBox())!.height - initialHeight)).toBeLessThan(1);
+  }
+  await expect(page.locator('[data-review-active="true"]')).toHaveCSS('transition-property', 'opacity');
+  await page.screenshot({ path: test.info().outputPath(`reviews-stable-${width}.png`) });
+});

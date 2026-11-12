@@ -55,7 +55,7 @@ export function OnboardingReviewPanel({submission}:{submission:Record<string,any
         setEditing(false); setChanges({}); setMessage('Review changes saved.');
       } else if (kind === 'approve') {
         result = await request(`${root}/${id}/approve`,{version});
-        setMessage(result.data?.notificationWarnings?.length ? `Approved. Delivery needs checking: ${result.data.notificationWarnings.join(', ')}.` : 'Approved. The contract email and existing Slack alerts have been requested. Applicants remain applicants until signing.');
+        setMessage(result.data?.notificationWarnings?.length ? `Approved. Delivery needs checking: ${result.data.notificationWarnings.join(', ')}.` : 'Approved. The vehicle is in Cars and remains off fleet until signed drop-off. Contract and approval notifications have been requested.');
       } else if (kind === 'pending') {
         result = await request(`${root}/${id}/status`,{status:'pending',version},'PATCH');
         setMessage('Returned to Pending. Review and approve again after making changes.');
@@ -73,13 +73,13 @@ export function OnboardingReviewPanel({submission}:{submission:Record<string,any
     finally {setBusy(false);}
   };
   return <section aria-label="Onboarding review workflow" className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-4">
-    <div><h3 className="font-semibold">Review → approve → sign contract → vehicle drop-off</h3><p className="mt-1 text-sm text-muted-foreground">Approval sends the contract and leaves new accounts as applicants. Signing creates or links the client record. Staff can then create the vehicle from this application; it remains off fleet until the signed owner completes the drop-off form.</p></div>
+    <div><h3 className="font-semibold">Review → approve → sign contract → vehicle drop-off</h3><p className="mt-1 text-sm text-muted-foreground">Approval automatically creates or links the vehicle in Cars as off fleet and requests the contract. New accounts remain applicants until signing. The signed owner then completes the vehicle drop-off form before activation.</p></div>
     {workflow?.progress&&<LycProgress steps={workflow.progress.steps}/>}
     <div className="flex flex-wrap gap-2 text-sm"><span className="rounded border bg-background px-2 py-1">Application: {submission.status}</span><span className="rounded border bg-background px-2 py-1">Contract: {submission.contractStatus || 'pending'}</span><span className="rounded border bg-background px-2 py-1">{workflow?.carId ? `Vehicle #${workflow.carId} in system` : 'Vehicle record not yet linked'}</span></div>
     {(state.error || error) && <p role="alert" className="text-sm text-destructive">{error || state.error?.message} <Button type="button" variant="ghost" disabled={busy} onClick={()=>void refresh()}>Refresh review</Button></p>}
-    {submission.contractStatus !== 'signed' && <p className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Awaiting contract signature. This applicant will not move to Clients or create a new vehicle record until the contract is signed.</p>}
+    {submission.contractStatus !== 'signed' && <p className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Awaiting contract signature. Approval adds the off-fleet vehicle record to Cars. Client access and vehicle drop-off still require the signed contract.</p>}
     {submission.status === 'approved' && submission.contractStatus !== 'signed' && <Button type="button" variant="outline" disabled={busy} onClick={()=>void action('contract')}>Resend contract</Button>}
-    {submission.status === 'approved' && submission.contractStatus === 'signed' && <p className="text-sm text-muted-foreground">Contract signed. {workflow?.carId ? 'The owner can now complete the vehicle drop-off form.' : 'Create the vehicle record to make it available in the owner’s drop-off form.'}</p>}
+    {submission.status === 'approved' && submission.contractStatus === 'signed' && <p className="text-sm text-muted-foreground">Contract signed. {workflow?.carId ? 'The owner can now complete the vehicle drop-off form.' : 'Restore the missing vehicle record so it can appear in the owner’s drop-off form.'}</p>}
     {message && <p role="status" className="text-sm">{message}</p>}
     {state.isLoading && <p className="text-sm">Loading review status…</p>}
     {workflow && !editing && <div className="flex flex-wrap gap-2">
@@ -87,7 +87,7 @@ export function OnboardingReviewPanel({submission}:{submission:Record<string,any
         <Button type="button" variant="outline" disabled={busy || submission.status === 'approved'} onClick={()=>{setChanges({});setEditing(true);setError('');}}>Edit application</Button>
         {submission.status === 'approved' ? <>
           <Button type="button" variant="outline" disabled={busy} onClick={()=>void action('pending')}>Return to Pending to edit</Button>
-          <Button type="button" disabled={busy || !version || !workflow.clientId || submission.contractStatus!=='signed'} onClick={()=>setConfirmCreate(true)}>Create vehicle record</Button>
+          <Button type="button" disabled={busy || !version} onClick={()=>setConfirmCreate(true)}>Restore approved vehicle</Button>
           {!workflow.clientId && submission.contractStatus==='signed' && <Button type="button" disabled={busy} onClick={()=>void action('activate')}>Complete signed client setup</Button>}
         </> : <Button type="button" disabled={busy || !version} onClick={()=>void action('approve')}>Approve application</Button>}
       </>}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {useFeaturedRankingDay} from "@/hooks/use-featured-ranking-day";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -69,6 +70,7 @@ function CarCard({ car, location }: { car: FeaturedCar; location: PublicLocation
 export function FeaturedCars({ location }: { location: PublicLocation }) {
   const rankingDay = useFeaturedRankingDay();
   const [mode, setMode] = useState<FeaturedMode>("top-performing");
+  const reduceMotion = useReducedMotion();
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery<{ success: boolean; data: FeaturedCar[] }>({
     queryKey: ["/api/public/fleet/featured", mode, location.id, rankingDay, "month-fallback"],
@@ -133,6 +135,11 @@ export function FeaturedCars({ location }: { location: PublicLocation }) {
           </div> : null}
         </ScrollReveal>
 
+        <div className="overflow-hidden" data-featured-stage>
+        <AnimatePresence initial={false} mode="wait">
+        <motion.div key={`${mode}:${isLoading ? 'loading' : 'results'}`} data-featured-slide
+          initial={reduceMotion ? false : { opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }}
+          exit={reduceMotion ? undefined : { opacity: 0, x: -28 }} transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}>
         {isLoading ? (
           <div className="flex justify-center py-12" role="status" aria-label="Loading featured vehicles">
             <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#C49000" }} />
@@ -144,10 +151,10 @@ export function FeaturedCars({ location }: { location: PublicLocation }) {
           </div>
         ) : cars.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8" data-featured-cars>
-            {cars.map((car) => (
-              <div key={car.id}>
+            {cars.map((car, index) => (
+              <ScrollReveal key={`${mode}:${car.id}`} preset="soft" amount={0.08} delay={index * 0.05} className="h-full min-w-0" data-featured-reveal>
                 <CarCard car={car} location={location} />
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         ) : (
@@ -156,6 +163,9 @@ export function FeaturedCars({ location }: { location: PublicLocation }) {
             <Link href={location.fleetPath} className="underline">Explore the {location.cityState} collection.</Link>
           </p>
         )}
+        </motion.div>
+        </AnimatePresence>
+        </div>
         {isError && data && <p role="alert" className="mt-4 text-center text-sm">
           Rankings could not be refreshed. Showing the last available results.{' '}
           <button type="button" className="min-h-11 underline" disabled={isFetching} onClick={() => void refetch()}>Try again</button>

@@ -17,7 +17,7 @@ export function Hero({ location, mode = "location", showBackground = true }: Her
   const { scrollYProgress } = useScroll({ target: section, offset: ["start start", "end start"] });
   const imageOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 0.6, 0]);
   return (
-    <section ref={section} className="relative isolate min-h-[100svh] overflow-hidden bg-[#141414] text-white" data-public-hero>
+    <section ref={section} className="relative isolate flex min-h-[min(820px,100svh)] flex-col overflow-hidden bg-[#141414] text-white" data-public-hero>
       {showBackground && <>
         <motion.div data-cadillac-backdrop className="gla-hero-backdrop absolute inset-0" style={{ opacity: reduceMotion ? 1 : imageOpacity }}>
           <img src="/homepage-hero-escalade.jpg" alt="" fetchPriority="high" className="h-full w-full object-cover object-[65%_center] lg:invisible" />
@@ -25,7 +25,7 @@ export function Hero({ location, mode = "location", showBackground = true }: Her
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/15" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
       </>}
-      <div className="relative mx-auto max-w-7xl px-5 pb-8 pt-36 sm:px-8 sm:pt-44 lg:pt-48">
+      <div className="relative mx-auto w-full max-w-7xl flex-1 px-5 pt-28 sm:px-8 sm:pt-32 lg:pt-36">
         <p className="mb-7 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.22em] text-[#E0C791]">
           <span className="h-px w-10 bg-[#D3BC8D]" />{mode === "hub" ? "Golden Luxury Auto" : location?.cityState}
         </p>
@@ -66,10 +66,12 @@ export function Hero({ location, mode = "location", showBackground = true }: Her
             <Link href={`${location.path}/contact`} data-testid="button-contact-us" className="underline underline-offset-4">Talk to our team</Link>
           </>}
         </div>
-        <div className="mt-12 border-t border-white/15 pt-6"><SiteStatsStrip variant="dark" /></div>
         {mode === "location" && <button type="button" data-testid="button-scroll-down" onClick={() => document.getElementById("home-intro-title")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="mt-6 flex min-h-11 items-center gap-2 text-xs uppercase tracking-widest text-white/70 hover:text-[#E0C791]">
           Scroll to explore <ChevronDown className="h-4 w-4" />
         </button>}
+      </div>
+      <div data-hero-stats className="relative mx-auto mt-6 w-full max-w-7xl px-5 pb-6 sm:px-8">
+        <div className="border-t border-white/15 pt-5"><SiteStatsStrip variant="dark" /></div>
       </div>
     </section>
   );

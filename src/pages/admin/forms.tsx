@@ -1600,7 +1600,11 @@ export default function FormsPage() {
         <div className="mb-4">
           <h1 className="text-2xl font-semibold text-primary">Forms</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {FORM_SECTION_DESCRIPTIONS[selectedSection?.id ?? ""] ?? DEFAULT_FORMS_DESCRIPTION}
+            {focusedItem === "car-on"
+              ? "Schedule a vehicle drop-off with GLA. Select your approved vehicle, choose a drop-off date, time and location, and submit the form once the owner’s contract is signed."
+              : focusedItem === "car-off"
+                ? "Request to pick up your vehicle from GLA. Select the vehicle, provide your pickup date, time and location, and review the offboarding acknowledgement before submitting."
+                : FORM_SECTION_DESCRIPTIONS[selectedSection?.id ?? ""] ?? DEFAULT_FORMS_DESCRIPTION}
           </p>
         </div>
         {/* No section tab strip: every section the current role can see is

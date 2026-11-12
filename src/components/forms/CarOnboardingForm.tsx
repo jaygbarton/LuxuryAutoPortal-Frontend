@@ -202,7 +202,7 @@ export default function CarOnboardingForm() {
 
   if (isLoadingCars) return <p role="status" className="p-4 text-sm">Checking signed contracts and eligible vehicles…</p>;
   if (carsError) return <div role="alert" className="space-y-3 rounded border p-4"><p>We could not check which vehicles are ready for drop-off.</p><Button variant="outline" onClick={()=>void refreshCars()}>Retry</Button></div>;
-  if (!offboardedCars.length) return <Card className="border-primary/20"><CardHeader><CardTitle>Vehicle drop-off comes after signing</CardTitle><CardDescription>GLA must approve your application, your contract must be signed and linked to your account, and your vehicle record must be in the system. Eligible vehicles will appear here when those steps are complete.</CardDescription></CardHeader><CardContent><Button variant="outline" onClick={()=>void refreshCars()}>Check again</Button></CardContent></Card>;
+  if (!offboardedCars.length) return <Card className="border-primary/20"><CardHeader><CardTitle>No vehicles ready for drop-off</CardTitle><CardDescription>This list includes your off-fleet vehicles with a verified signed owner contract. If an approved vehicle is missing, GLA needs to check the application’s vehicle link and signed contract.</CardDescription></CardHeader><CardContent><Button variant="outline" onClick={()=>void refreshCars()}>Check again</Button></CardContent></Card>;
 
   return (
     <Card className="bg-card border-primary/20">

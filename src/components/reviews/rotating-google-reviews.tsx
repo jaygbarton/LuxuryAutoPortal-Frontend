@@ -37,25 +37,20 @@ type RotatingGoogleReviewsProps = {
 
 export function RotatingGoogleReviews({ className = "", surface = "dark", compact = false }: RotatingGoogleReviewsProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const activeReview = recentGoogleReviews[activeIndex];
+  const [paused, setPaused] = useState(false);
   const isDark = surface === "dark";
-  const quoteSize =
-    activeReview.quote.length > 190
-      ? "text-sm leading-6 sm:text-base sm:leading-7"
-      : activeReview.quote.length > 110
-        ? "text-base leading-7 sm:text-lg sm:leading-8"
-        : "text-lg leading-8 sm:text-xl sm:leading-9";
 
   useEffect(() => {
+    if (paused) return;
     const timer = window.setInterval(() => {
       setActiveIndex((index) => (index + 1) % recentGoogleReviews.length);
     }, 5200);
 
     return () => window.clearInterval(timer);
-  }, []);
+  }, [paused]);
 
   return (
-    <section className={`overflow-hidden ${isDark ? "bg-[#050505] text-white" : "bg-background text-foreground"} ${className}`}>
+    <section onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setPaused(false); }} className={`overflow-hidden ${isDark ? "bg-[#050505] text-white" : "bg-background text-foreground"} ${className}`}>
       <div className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${compact ? "py-5 sm:py-6 lg:py-7" : "py-14 lg:py-16"}`}>
         <div className={`${compact ? "mb-4" : "mb-8"} flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between`}>
           <div>
@@ -71,6 +66,7 @@ export function RotatingGoogleReviews({ className = "", surface = "dark", compac
               <button
                 key={item.name}
                 aria-label={`Show Google review from ${item.name}`}
+                aria-pressed={index === activeIndex}
                 onClick={() => setActiveIndex(index)}
                 className="h-2.5 w-8 rounded-full transition-all"
                 style={{
@@ -81,8 +77,8 @@ export function RotatingGoogleReviews({ className = "", surface = "dark", compac
           </div>
         </div>
 
-        <article
-          className={`rounded-[6px] border shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-2xl transition-all duration-500 ${compact ? "p-5 sm:p-6 lg:p-7" : "p-6 sm:p-8 lg:p-10"}`}
+        <article data-google-review-box
+          className={`rounded-[6px] border shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-2xl ${compact ? "p-5 sm:p-6 lg:p-7" : "p-6 sm:p-8 lg:p-10"}`}
           style={{
             borderColor: isDark ? "rgba(255,255,255,0.28)" : "rgba(212,160,23,0.28)",
             background: isDark
@@ -90,20 +86,28 @@ export function RotatingGoogleReviews({ className = "", surface = "dark", compac
               : "linear-gradient(135deg, rgba(255,255,255,0.82), rgba(255,255,255,0.58))",
           }}
         >
+          <div className="grid" data-review-stage>
+            {recentGoogleReviews.map((review, index) => (
+              <div key={review.name} data-review-active={index === activeIndex} aria-hidden={index !== activeIndex}
+                className="col-start-1 row-start-1 flex flex-col transition-opacity duration-500 motion-reduce:transition-none"
+                style={{ opacity: index === activeIndex ? 1 : 0, pointerEvents: index === activeIndex ? 'auto' : 'none', zIndex: index === activeIndex ? 1 : 0 }}>
           <div className={`${compact ? "mb-3" : "mb-5"} flex items-center gap-1`}>
             {Array.from({ length: 5 }).map((_, starIndex) => (
               <Star key={starIndex} className="h-5 w-5 fill-[#D4A017] text-[#D4A017]" />
             ))}
           </div>
-          <p className={`max-w-5xl ${quoteSize} ${isDark ? "text-white/88" : "text-foreground/82"}`}>
-            "{activeReview.quote}"
+          <p className={`max-w-5xl flex-1 ${review.quote.length > 190 ? "text-sm leading-6 sm:text-base sm:leading-7" : review.quote.length > 110 ? "text-base leading-7 sm:text-lg sm:leading-8" : "text-lg leading-8 sm:text-xl sm:leading-9"} ${isDark ? "text-white/88" : "text-foreground/82"}`}>
+            "{review.quote}"
           </p>
           <div className={`${compact ? "mt-4" : "mt-5"} flex flex-wrap items-center gap-3 text-sm ${isDark ? "text-white/62" : "text-muted-foreground"}`}>
-            <span className={isDark ? "font-bold text-white" : "font-bold text-foreground"}>{activeReview.name}</span>
+            <span className={isDark ? "font-bold text-white" : "font-bold text-foreground"}>{review.name}</span>
             <span className="h-1 w-1 rounded-full bg-[#D4A017]" />
-            <span>{activeReview.date}</span>
+            <span>{review.date}</span>
             <span className="h-1 w-1 rounded-full bg-[#D4A017]" />
             <span>Google review</span>
+          </div>
+              </div>
+            ))}
           </div>
         </article>
       </div>
