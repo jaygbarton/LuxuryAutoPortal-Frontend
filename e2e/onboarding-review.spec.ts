@@ -604,3 +604,29 @@ test('Operations defaults to Day Schedule with no Trips Overview and keeps legac
  expect(await nav.first().evaluate(el=>el.parentElement?.textContent)).toContain('Day Schedule');
  await page.goto('/admin/operations?tab=trips');await expect(page).toHaveURL(/tab=day-schedule/);
 });
+
+test('clients can open Forms from their applications and load their drop-off vehicle picker',async({page})=>{
+ await fixture(page,'client');
+ await page.route('**/api/client/cars?for=onboarding',route=>route.fulfill({json:{success:true,data:[{id:88,makeModel:'Fixture vehicle',year:2026,plateNumber:'FIXTURE',carStatus:'off_fleet'}]}}));
+ await page.goto('/lyc/status');
+ await page.getByRole('link',{name:'Forms',exact:true}).click();
+ await expect(page).toHaveURL(/\/admin\/forms$/);
+ await page.goto('/admin/forms?section=client-onboarding&item=car-on');
+ await expect(page.getByText('Vehicle drop-off form',{exact:true})).toBeVisible();
+ await expect(page.getByText('We could not check which vehicles are ready for drop-off.')).toHaveCount(0);
+ await page.getByRole('combobox',{name:'Select Your Car *',exact:true}).click();
+ await expect(page.getByRole('option',{name:/Fixture vehicle/})).toBeVisible();
+});
+
+test('admin client view can read application progress without offering personal application writes',async({page})=>{
+ await fixture(page,'client');
+ await page.route('**/api/auth/me',route=>route.fulfill({json:{user:{id:7,firstName:'Test',lastName:'Client',email:'owner@example.test',isClient:true,isAdmin:false,isApplicant:false,viewAsClient:{clientId:12}}}}));
+ await page.route('**/api/lyc/applications',route=>route.fulfill({json:{drafts:[],applications:[{id:44,vehicle:'Fixture vehicle',vin:'FIXTURE',status:'approved',steps:[{label:'Application submitted',done:true},{label:'Application approved',done:true},{label:'Contract sent',done:true},{label:'Contract signed',done:true},{label:'Vehicle drop-off',done:false}],canDropOff:true}]}}));
+ await page.goto('/lyc/status');
+ await expect(page.getByRole('heading',{name:'Fixture vehicle'})).toBeVisible();
+ await expect(page.getByText('Viewing this client’s applications and profile.',{exact:false})).toBeVisible();
+ await expect(page.getByRole('link',{name:'Forms',exact:true})).toBeVisible();
+ await expect(page.getByRole('link',{name:'Start another application'})).toHaveCount(0);
+ await page.getByRole('link',{name:'Complete vehicle drop-off form'}).click();
+ await expect(page).toHaveURL(/\/admin\/forms\?section=client-onboarding&item=car-on$/);
+});

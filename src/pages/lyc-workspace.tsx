@@ -14,6 +14,7 @@ export default function LycWorkspace({admin=false}:{admin?:boolean}) {
   const profilePage=path==='/lyc/profile';
   const auth=useQuery({queryKey:['/api/auth/me'],queryFn:authMeQueryFn,staleTime:0,refetchInterval:30000});
   const user=auth.data?.user;
+  const readOnly=!!(user?.viewAsClient || user?.viewAsEmployee || user?.viewAsCoHost);
   const permitted=!!user && (!admin || (user.isAdmin && !user.isCoHost && !user.viewAsClient && !user.viewAsEmployee && !user.viewAsCoHost));
   const url=admin?'/api/onboarding/applicant-progress':'/api/lyc/applications';
   const applications=useQuery({queryKey:[url],queryFn:()=>lycRequest(url),enabled:permitted,refetchInterval:30000});
@@ -34,26 +35,28 @@ export default function LycWorkspace({admin=false}:{admin?:boolean}) {
           <Button asChild variant={profilePage?'outline':'default'}><Link href="/lyc/status">LYC program</Link></Button>
           <Button asChild variant={profilePage?'default':'outline'}><Link href="/lyc/profile">My profile</Link></Button>
           {!applicantUser(user)&&<Button asChild variant="outline"><Link href="/dashboard">Dashboard</Link></Button>}
+          {user.isClient&&!applicantUser(user)&&<Button asChild variant="outline"><Link href="/admin/forms">Forms</Link></Button>}
         </>}
       </nav>
+      {readOnly&&<p role="status" className="rounded-lg border bg-primary/5 p-3 text-sm">Viewing this client’s applications and profile. Personal applications can only be edited while signed in to the client’s own account.</p>}
       {applicantUser(user)&&<p className="rounded-lg border bg-primary/5 p-3 text-sm">Applicant-only accounts that have never been clients are deleted after six months without activity. Sign in or save a step to keep your account current.</p>}
       {profilePage?<section className="rounded-xl border p-4 sm:p-6">
         <h2 className="text-xl font-semibold">Personal information</h2><dl className="my-4 grid gap-3 rounded-lg bg-primary/5 p-3 sm:grid-cols-2"><div><dt className="text-sm text-muted-foreground">Account created on</dt><dd className="font-medium">{displayDate(profile.data?.account?.accountCreatedAt) || 'Date not recorded'}</dd></div><div><dt className="text-sm text-muted-foreground">Client since</dt><dd className="font-medium">{displayDate(profile.data?.account?.clientSince) || (applicantUser(user)?'Not yet a client':'Date not recorded')}</dd></div></dl><p className="my-2 text-sm text-muted-foreground">{user.firstName} {user.lastName} · {user.email}. Your saved details are reused for each application.</p>
         {profile.error?<p role="alert">Could not load your profile. <button onClick={()=>void profile.refetch()}>Retry</button></p>:<form onSubmit={e=>{e.preventDefault();void save();}} className="grid gap-4 sm:grid-cols-2">
-          {personalFields.map(key=><label key={key} className="text-sm">{labels[key]}<Input className="mt-1" type={key==='birthday'?'date':key.includes('Phone')||key==='phoneOwner'?'tel':'text'} value={values[key] || ''} onChange={e=>setValues({...values,[key]:e.target.value})}/></label>)}
-          <Button disabled={busy || profile.isLoading} className="sm:col-span-2">{busy?'Saving…':'Save personal information'}</Button><p role="status">{message}</p>
+          {personalFields.map(key=><label key={key} className="text-sm">{labels[key]}<Input className="mt-1" type={key==='birthday'?'date':key.includes('Phone')||key==='phoneOwner'?'tel':'text'} disabled={readOnly} value={values[key] || ''} onChange={e=>setValues({...values,[key]:e.target.value})}/></label>)}
+          <Button disabled={readOnly || busy || profile.isLoading} className="sm:col-span-2">{busy?'Saving…':'Save personal information'}</Button><p role="status">{message}</p>
         </form>}
       </section>:<>
-        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold">{admin?'Applications and saved plans':'Your LYC applications'}</h2><p className="mt-1 text-sm text-muted-foreground">Complete the steps in any order. Submit for approval when every required step is ready.</p></div>{!admin&&<Button asChild><Link href="/onboarding?new=1">Start another application</Link></Button>}</div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold">{admin?'Applications and saved plans':'Your LYC applications'}</h2><p className="mt-1 text-sm text-muted-foreground">Complete the steps in any order. Submit for approval when every required step is ready.</p></div>{!admin&&!readOnly&&<Button asChild><Link href="/onboarding?new=1">Start another application</Link></Button>}</div>
         {applications.isLoading&&<p role="status">Loading your progress…</p>}
-        {applications.error&&<p role="alert">Could not load applications. <button onClick={()=>void applications.refetch()}>Retry</button></p>}
-        {!applications.isLoading&&!applications.error&&!applications.data?.drafts?.length&&!applications.data?.applications?.length&&<div className="rounded-xl border p-6"><p className="mb-4">You don’t need to own a car yet to get started. We’ll ask a few questions and save your plan.</p><Button asChild><Link href="/onboarding?new=1">Get started</Link></Button></div>}
+        {applications.error&&<p role="alert">Could not load applications. {applications.error instanceof Error ? applications.error.message : ''} <button onClick={()=>void applications.refetch()}>Retry</button></p>}
+        {!applications.isLoading&&!applications.error&&!applications.data?.drafts?.length&&!applications.data?.applications?.length&&<div className="rounded-xl border p-6"><p className="mb-4">{readOnly?'No applications or saved plans are linked to this client’s login account.':'You don’t need to own a car yet to get started. We’ll ask a few questions and save your plan.'}</p>{!readOnly&&<Button asChild><Link href="/onboarding?new=1">Get started</Link></Button>}</div>}
         {applications.data?.drafts?.map((draft:any)=><article key={`draft-${draft.id}`} className="space-y-3 rounded-xl border p-4 sm:p-5">
           <h3 className="font-semibold">{draft.applicantName&&`${draft.applicantName} · `}{[draft.fields.vehicleYear||draft.fields.plannedVehicleYear,draft.fields.vehicleMake||draft.fields.plannedVehicleMake,draft.fields.vehicleModel||draft.fields.plannedVehicleModel].filter(Boolean).join(' ') || `Vehicle plan #${draft.id}`}</h3>
           <p className="text-sm">{draft.pendingSubmittedAt?'Pending application submitted — GLA can view it and contact you.':draft.hasVehicle===false?'Waiting for vehicle details — your other steps can be completed now.':'Application in progress'}</p>
           {draft.pendingSubmittedAt&&<p className="text-sm">Return to this application when you have the car information, check your saved details and submit for approval.</p>}
           <p className="text-sm text-muted-foreground">{draft.fields.acquisitionPlan&&`Plan: ${draft.fields.acquisitionPlan}. `}Saved {new Date(draft.updatedAt).toLocaleDateString()} · {draft.pendingSubmittedAt?`Submitted as pending ${new Date(draft.pendingSubmittedAt).toLocaleDateString()}`:'Not yet submitted for approval'}</p>
-          {!admin&&<div className="flex flex-wrap gap-2"><Button asChild><Link href={`/onboarding?draft=${draft.id}`}>Continue steps</Link></Button><Button asChild variant="outline"><Link href={`/onboarding?draft=${draft.id}&step=vehicle`}>Add vehicle details</Link></Button></div>}
+          {!admin&&!readOnly&&<div className="flex flex-wrap gap-2"><Button asChild><Link href={`/onboarding?draft=${draft.id}`}>Continue steps</Link></Button><Button asChild variant="outline"><Link href={`/onboarding?draft=${draft.id}&step=vehicle`}>Add vehicle details</Link></Button></div>}
         </article>)}
         {applications.data?.applications?.map((item:any)=><article key={item.id} className="space-y-4 rounded-xl border p-4 sm:p-5"><div><h3 className="text-lg font-semibold">{item.vehicle}</h3><p className="text-sm text-muted-foreground">Application #{item.id} · {item.vin} · {String(item.status).replaceAll('_',' ')}</p></div><LycProgress steps={item.steps}/>
           {item.status==='approved'&&!item.steps[3]?.done&&<p className="text-sm">Check your email for the contract. Approval alone does not complete signing.</p>}
