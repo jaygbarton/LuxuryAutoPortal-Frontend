@@ -456,7 +456,7 @@ function OnboardingApplication() {
                   Thank You!
                 </h2>
                 <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Your application is saved for GLA review. After approval, we will email your contract and account instructions. Once the contract is signed, you can complete the vehicle drop-off form.
+                  Your application is saved. Check your email to sign the agreement before GLA approval. After approval, we will email your client account instructions. Then complete the Car Onboarding Form when bringing your vehicle into GLA.
                 </p>
                 <Button
                   onClick={() => (window.location.href = "/fleet")}
@@ -2118,7 +2118,7 @@ function OnboardingApplication() {
                   </div>)}
                           <div className="bg-background border border-border rounded p-4">
                             <p className="text-sm text-muted-foreground mb-4">
-                              {answers.hasVehicle===false?'Submit your personal and secure information now. Your application stays pending until you return and add the car details for approval.':'After GLA approves your application, we will email your contract. Sign it before completing the vehicle drop-off form.'}
+                              {answers.hasVehicle===false?'Submit your personal and secure information now. Your application stays pending until you return and add the car details for approval.':'After submission, we will email your agreement. Sign it first, then GLA reviews it for approval. Car Onboarding follows signing, approval and client account setup.'}
                             </p>
                             <FormField
                               control={form.control}

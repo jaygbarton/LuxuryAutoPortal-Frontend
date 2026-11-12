@@ -47,7 +47,7 @@ export default function LycWorkspace({admin=false}:{admin?:boolean}) {
           <Button disabled={readOnly || busy || profile.isLoading} className="sm:col-span-2">{busy?'Saving…':'Save personal information'}</Button><p role="status">{message}</p>
         </form>}
       </section>:<>
-        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold">{admin?'Applications and saved plans':'Your LYC applications'}</h2><p className="mt-1 text-sm text-muted-foreground">Complete the steps in any order. Submit for approval when every required step is ready.</p></div>{!admin&&!readOnly&&<Button asChild><Link href="/onboarding?new=1">Start another application</Link></Button>}</div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold">{admin?'Applications and saved plans':'Your LYC applications'}</h2><p className="mt-1 text-sm text-muted-foreground">Save and resume your intake at any time. After submission, sign the agreement, await GLA approval and complete Car Onboarding. Approved applications remain here as completed records.</p></div>{!admin&&!readOnly&&<Button asChild><Link href="/onboarding?new=1">Start another application</Link></Button>}</div>
         {applications.isLoading&&<p role="status">Loading your progress…</p>}
         {applications.error&&<p role="alert">Could not load applications. {applications.error instanceof Error ? applications.error.message : ''} <button onClick={()=>void applications.refetch()}>Retry</button></p>}
         {!applications.isLoading&&!applications.error&&!applications.data?.drafts?.length&&!applications.data?.applications?.length&&<div className="rounded-xl border p-6"><p className="mb-4">{readOnly?'No applications or saved plans are linked to this client’s login account.':'You don’t need to own a car yet to get started. We’ll ask a few questions and save your plan.'}</p>{!readOnly&&<Button asChild><Link href="/onboarding?new=1">Get started</Link></Button>}</div>}
@@ -59,8 +59,9 @@ export default function LycWorkspace({admin=false}:{admin?:boolean}) {
           {!admin&&!readOnly&&<div className="flex flex-wrap gap-2"><Button asChild><Link href={`/onboarding?draft=${draft.id}`}>Continue steps</Link></Button><Button asChild variant="outline"><Link href={`/onboarding?draft=${draft.id}&step=vehicle`}>Add vehicle details</Link></Button></div>}
         </article>)}
         {applications.data?.applications?.map((item:any)=><article key={item.id} className="space-y-4 rounded-xl border p-4 sm:p-5"><div><h3 className="text-lg font-semibold">{item.vehicle}</h3><p className="text-sm text-muted-foreground">Application #{item.id} · {item.vin} · {String(item.status).replaceAll('_',' ')}</p></div><LycProgress steps={item.steps}/>
-          {item.status==='approved'&&!item.steps[3]?.done&&<p className="text-sm">Check your email for the contract. Approval alone does not complete signing.</p>}
-          {item.canDropOff&&!admin&&<Button asChild><Link href="/admin/forms?section=client-onboarding&item=car-on">Complete vehicle drop-off form</Link></Button>}
+          {item.contractEmailPending&&<p role="status" className="text-sm">Your application is saved. Agreement email delivery has not been confirmed; GLA can check and resend it.</p>}
+          {!item.contractEmailPending&&!item.steps.find((step:any)=>step.label==='Contract signed')?.done&&<p className="text-sm">Check your email to sign the agreement. GLA approval comes after signing.</p>}
+          {item.canDropOff&&!admin&&<Button asChild><Link href="/admin/forms?section=client-onboarding&item=car-on">Complete Car Onboarding Form</Link></Button>}
           {['rejected','on-hold'].includes(item.status)&&<p className="text-sm">Please contact GLA to review the next steps for this application.</p>}
         </article>)}
       </>}

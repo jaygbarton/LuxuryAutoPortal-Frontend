@@ -4,7 +4,8 @@ export const questionnaireFields = ['acquisitionPlan','knowsPlannedCar','planned
 export const applicantUser = (user:any) => !!user && (user.isApplicant === true || user.roleName === 'LYC Applicant');
 export async function lycRequest(path:string,method='GET',body?:unknown) {
   const response=await fetch(buildApiUrl(path),{method,credentials:'include',headers:{'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});
-  const result=await response.json();
+  const result=await response.json().catch(()=>null);
+  if(!result || typeof result!=='object') throw new Error(response.status===401?'Your session expired. Please sign in again.':'The server returned an unexpected response. Please retry.');
   if(!response.ok) throw new Error(result.error || result.message || 'Unable to save. Please try again.');
   return result;
 }

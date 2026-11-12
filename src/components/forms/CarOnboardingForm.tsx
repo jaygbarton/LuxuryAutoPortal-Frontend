@@ -33,9 +33,9 @@ const carOnboardingSchema = z.object({
   carId: z.string().min(1, "Please select a car"),
   carMakeModelYear: z.string().min(1, "Car Make/Model/Year is required").max(255),
   plateNumber: z.string().min(1, "Plate number is required").max(50),
-  dropOffDate: z.string().min(1, "Drop-off date is required"),
-  dropOffTime: z.string().min(1, "Drop-off time is required"),
-  dropOffLocation: z.string().min(1, "Drop-off location is required"),
+  dropOffDate: z.string().min(1, "Car Onboarding date is required"),
+  dropOffTime: z.string().min(1, "Car Onboarding time is required"),
+  dropOffLocation: z.string().min(1, "Car Onboarding location is required"),
   dealershipAddress: z.string().optional(),
 });
 
@@ -201,18 +201,18 @@ export default function CarOnboardingForm() {
   };
 
   if (isLoadingCars) return <p role="status" className="p-4 text-sm">Checking signed contracts and eligible vehicles…</p>;
-  if (carsError) return <div role="alert" className="space-y-3 rounded border p-4"><p>We could not check which vehicles are ready for drop-off.</p><Button variant="outline" onClick={()=>void refreshCars()}>Retry</Button></div>;
-  if (!offboardedCars.length) return <Card className="border-primary/20"><CardHeader><CardTitle>No vehicles ready for drop-off</CardTitle><CardDescription>This list includes your off-fleet vehicles with a verified signed owner contract. If an approved vehicle is missing, GLA needs to check the application’s vehicle link and signed contract.</CardDescription></CardHeader><CardContent><Button variant="outline" onClick={()=>void refreshCars()}>Check again</Button></CardContent></Card>;
+  if (carsError) return <div role="alert" className="space-y-3 rounded border p-4"><p>We could not check which vehicles are ready for Car Onboarding.</p><Button variant="outline" onClick={()=>void refreshCars()}>Retry</Button></div>;
+  if (!offboardedCars.length) return <Card className="border-primary/20"><CardHeader><CardTitle>No vehicles ready for Car Onboarding</CardTitle><CardDescription>This list includes your off-fleet vehicles with a verified signed owner contract. If an approved vehicle is missing, GLA needs to check the application’s vehicle link and signed contract.</CardDescription></CardHeader><CardContent><Button variant="outline" onClick={()=>void refreshCars()}>Check again</Button></CardContent></Card>;
 
   return (
     <Card className="bg-card border-primary/20">
       <CardHeader>
         <CardTitle className="text-[#D3BC8D] flex items-center gap-2">
           <Car className="w-5 h-5" />
-          Vehicle drop-off form
+          Car Onboarding Form
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Your contract is signed. Submit this form when dropping off your vehicle at the GLA lot.
+          Your contract is signed. Submit this form when bringing your vehicle into GLA for management.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -274,7 +274,7 @@ export default function CarOnboardingForm() {
                   >
                     <FormControl>
                       <SelectTrigger className="bg-card border-border text-foreground focus:border-primary">
-                        <SelectValue placeholder="Select a car to drop off" />
+                        <SelectValue placeholder="Select a vehicle for Car Onboarding" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="bg-card border-border text-foreground">
@@ -376,7 +376,7 @@ export default function CarOnboardingForm() {
                 name="dropOffDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-muted-foreground">Date of Car Drop-off *</FormLabel>
+                    <FormLabel className="text-muted-foreground">Car Onboarding Date *</FormLabel>
                     <FormControl>
                       <Input
                         type="date"
@@ -394,7 +394,7 @@ export default function CarOnboardingForm() {
                 name="dropOffTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-muted-foreground">Time of Car Drop-off *</FormLabel>
+                    <FormLabel className="text-muted-foreground">Car Onboarding Time *</FormLabel>
                     <FormControl>
                       <Input
                         type="time"
@@ -414,7 +414,7 @@ export default function CarOnboardingForm() {
               name="dropOffLocation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-muted-foreground">Drop Off Location *</FormLabel>
+                  <FormLabel className="text-muted-foreground">Car Onboarding Location *</FormLabel>
                   <FormControl>
                     <Input
                       {...field}

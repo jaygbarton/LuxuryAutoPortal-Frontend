@@ -560,6 +560,8 @@ export default function FormsPage() {
     }
   };
 
+  const [submissionView,setSubmissionView] = useState<'all'|'active'|'completed'>('all');
+
   // Fetch submissions for LYC form
   const {
     data: submissionsData,
@@ -575,12 +577,13 @@ export default function FormsPage() {
       totalPages: number;
     };
   }>({
-    queryKey: ["onboarding-submissions", searchQuery, page, effectiveSubmissionsLimit],
+    queryKey: ["onboarding-submissions", searchQuery, page, effectiveSubmissionsLimit,submissionView],
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: effectiveSubmissionsLimit.toString(),
+        view: submissionView,
       });
       if (searchQuery) {
         params.append("search", searchQuery);
@@ -1601,7 +1604,7 @@ export default function FormsPage() {
           <h1 className="text-2xl font-semibold text-primary">Forms</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {focusedItem === "car-on"
-              ? "Schedule a vehicle drop-off with GLA. Select your approved vehicle, choose a drop-off date, time and location, and submit the form once the owner’s contract is signed."
+              ? "Complete Car Onboarding when bringing an approved vehicle into GLA for management. Select your vehicle and arrival date, time and location. This is separate from personal-use Vehicle Pick-Up and Drop-Off."
               : focusedItem === "car-off"
                 ? "Request to pick up your vehicle from GLA. Select the vehicle, provide your pickup date, time and location, and review the offboarding acknowledgement before submitting."
                 : FORM_SECTION_DESCRIPTIONS[selectedSection?.id ?? ""] ?? DEFAULT_FORMS_DESCRIPTION}
@@ -2032,13 +2035,13 @@ export default function FormsPage() {
 
                                 <div className="mb-4">
                                   <h3 className="text-sm font-medium text-foreground mb-3">
-                                    Recent Submissions
+                                    Applications & Completed records
                                   </h3>
                                   <div className="relative">
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                     <Input
                                       type="text"
-                                      placeholder="Search by name, email, phone, or vehicle..."
+                                      placeholder="Search by name, email, phone, vehicle, or VIN..."
                                       value={searchQuery}
                                       onChange={(e) =>
                                         setSearchQuery(e.target.value)
@@ -2046,6 +2049,11 @@ export default function FormsPage() {
                                       className="pl-10 bg-card border-border text-foreground placeholder:text-gray-600"
                                     />
                                   </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2" aria-label="Application records">
+                                  {(['all','active','completed'] as const).map(view=><Button key={view} variant={submissionView===view?'default':'outline'} onClick={()=>{setSubmissionView(view);setPage(1);}}>{view==='completed'?'Completed':view==='active'?'Awaiting completion':'All applications'}</Button>)}
+                                  <p className="w-full text-sm text-muted-foreground">Approved applications stay in Completed with their signed agreements and submission history.</p>
                                 </div>
 
                                 {isLoadingSubmissions ? (
@@ -2419,6 +2427,7 @@ export default function FormsPage() {
                                                           "approved" ||
                                                         submission.status ===
                                                           "rejected" ||
+                                                        submission.contractStatus !== "signed" ||
                                                         approvalMutation.isPending
                                                       }
                                                       title={
@@ -2428,7 +2437,7 @@ export default function FormsPage() {
                                                             : submission.status ===
                                                                 "rejected"
                                                               ? "Already rejected"
-                                                              : "Approve submission"
+                                                              : submission.contractStatus !== "signed" ? "Signed agreement required before approval" : "Approve submission"
                                                       }
                                                     >
                                                       <CheckCircle className="w-4 h-4" />

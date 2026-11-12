@@ -1,10 +1,10 @@
+import { lycRequest } from '@/lib/lyc';
 import { LycProgress } from '@/components/onboarding/LycProgress';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { buildApiUrl } from '@/lib/queryClient';
 import { wizardSteps } from '@/lib/onboardingSteps';
 
 const labels: Record<string,string> = { firstNameOwner:'Owner first name',lastNameOwner:'Owner last name',phoneOwner:'Owner phone',emailOwner:'Owner email',vinNumber:'VIN',ssn:'SSN',ein:'EIN',tshirtSize:'T-shirt size',carManufacturerWebsite:'Vehicle account website',carManufacturerUsername:'Vehicle account username',password:'Vehicle account password',vehicleFeatures:'Vehicle features (comma separated)',date:'Application date' };
@@ -14,10 +14,7 @@ const label = (field:string) => labels[field] || field.replace(/([A-Z])/g,' $1')
 const display = (field:string,value:any) => secrets.has(field) ? '' : Array.isArray(value) ? value.join(', ') : dates.has(field) && value ? String(value).slice(0,10) : String(value ?? '');
 const root = '/api/onboarding/submissions';
 async function request(path:string,body?:any,method='POST') {
-  const response = await fetch(buildApiUrl(path),{credentials:'include',method,headers:{'Content-Type':'application/json'},...(body ? {body:JSON.stringify(body)} : {})});
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || result.message || 'The onboarding update could not be saved.');
-  return result;
+  return lycRequest(path,method,body);
 }
 
 /** Uses the existing admin-only review dialog and signed document viewer below it. */
@@ -44,7 +41,7 @@ export function OnboardingReviewPanel({submission}:{submission:Record<string,any
       queryClient.invalidateQueries({queryKey:['sidebar-badges']}),
     ]);
   };
-  const action = async (kind:'save'|'approve'|'pending'|'create'|'contract'|'activate') => {
+  const action = async (kind:'save'|'approve'|'pending'|'create'|'contract'|'activate'|'reconcile') => {
     setBusy(true); setError(''); setMessage('');
     try {
       let result:any;
@@ -55,10 +52,12 @@ export function OnboardingReviewPanel({submission}:{submission:Record<string,any
         setEditing(false); setChanges({}); setMessage('Review changes saved.');
       } else if (kind === 'approve') {
         result = await request(`${root}/${id}/approve`,{version});
-        setMessage(result.data?.notificationWarnings?.length ? `Approved. Delivery needs checking: ${result.data.notificationWarnings.join(', ')}.` : 'Approved. The vehicle is in Cars and remains off fleet until signed drop-off. Contract and approval notifications have been requested.');
+        setMessage(result.data?.notificationWarnings?.length ? `Approved. Delivery needs checking: ${result.data.notificationWarnings.join(', ')}.` : 'Approved. The vehicle is in Cars and remains off fleet until Car Onboarding is completed. Account instructions have been requested.');
       } else if (kind === 'pending') {
         result = await request(`${root}/${id}/status`,{status:'pending',version},'PATCH');
         setMessage('Returned to Pending. Review and approve again after making changes.');
+      } else if(kind==='reconcile'){
+        result=await request(`${root}/${id}/reconcile`,{version});setMessage(result.data.message+(result.data.alreadySent?' The instructions were already sent; no duplicate email was requested.':''));
       } else if(kind==='activate'){
         result=await request(`${root}/${id}/activate-client`,{});setMessage('Signed client account setup completed.');
       } else if (kind === 'contract') {
@@ -73,13 +72,15 @@ export function OnboardingReviewPanel({submission}:{submission:Record<string,any
     finally {setBusy(false);}
   };
   return <section aria-label="Onboarding review workflow" className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-4">
-    <div><h3 className="font-semibold">Review → approve → sign contract → vehicle drop-off</h3><p className="mt-1 text-sm text-muted-foreground">Approval automatically creates or links the vehicle in Cars as off fleet and requests the contract. New accounts remain applicants until signing. The signed owner then completes the vehicle drop-off form before activation.</p></div>
+    <div><h3 className="font-semibold">Submit → sign agreement → approval → Car Onboarding</h3><p className="mt-1 text-sm text-muted-foreground">Submission sends the agreement for signing. Approval requires the signed agreement, creates or links the vehicle in Cars and the client profile, and sends account instructions. The client then completes the Car Onboarding Form when bringing the vehicle into GLA.</p></div>
     {workflow?.progress&&<LycProgress steps={workflow.progress.steps}/>}
     <div className="flex flex-wrap gap-2 text-sm"><span className="rounded border bg-background px-2 py-1">Application: {submission.status}</span><span className="rounded border bg-background px-2 py-1">Contract: {submission.contractStatus || 'pending'}</span><span className="rounded border bg-background px-2 py-1">{workflow?.carId ? `Vehicle #${workflow.carId} in system` : 'Vehicle record not yet linked'}</span></div>
     {(state.error || error) && <p role="alert" className="text-sm text-destructive">{error || state.error?.message} <Button type="button" variant="ghost" disabled={busy} onClick={()=>void refresh()}>Refresh review</Button></p>}
-    {submission.contractStatus !== 'signed' && <p className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Awaiting contract signature. Approval adds the off-fleet vehicle record to Cars. Client access and vehicle drop-off still require the signed contract.</p>}
-    {submission.status === 'approved' && submission.contractStatus !== 'signed' && <Button type="button" variant="outline" disabled={busy} onClick={()=>void action('contract')}>Resend contract</Button>}
-    {submission.status === 'approved' && submission.contractStatus === 'signed' && <p className="text-sm text-muted-foreground">Contract signed. {workflow?.carId ? 'The owner can now complete the vehicle drop-off form.' : 'Restore the missing vehicle record so it can appear in the owner’s drop-off form.'}</p>}
+    {submission.contractStatus !== 'signed' && <p className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Awaiting the client’s signed agreement. The application cannot be approved and applicant accounts cannot access the client software until signing and approval are complete.</p>}
+    {['pending','in_review','approved'].includes(submission.status) && submission.contractStatus !== 'signed' && <Button type="button" variant="outline" disabled={busy} onClick={()=>void action('contract')}>Resend contract</Button>}
+    {submission.status === 'approved' && submission.contractStatus === 'signed' && <p className="text-sm text-muted-foreground">Contract signed. {workflow?.carId ? 'The owner can now complete the Car Onboarding Form.' : 'Restore the missing vehicle record so it can appear in the owner’s Car Onboarding Form.'}</p>}
+    {submission.status==='approved' && submission.contractStatus==='signed' && <Button type="button" variant="outline" disabled={busy || !version} onClick={()=>void action('reconcile')}>Repair client setup & send missing instructions</Button>}
+    {!!workflow?.emailDeliveries?.length && <div className="text-sm text-muted-foreground"><p className="font-medium">Email acceptance recorded</p><ul className="mt-1 list-disc pl-5">{workflow.emailDeliveries.map((email:any)=><li key={email.kind}>{({contract:'Agreement',approval_setup:'Password setup',approval_existing:'Existing client approval',car_onboarding:'Car Onboarding instructions'} as Record<string,string>)[email.kind] || email.kind}: {new Date(email.sent_at).toLocaleString()}</li>)}</ul></div>}
     {message && <p role="status" className="text-sm">{message}</p>}
     {state.isLoading && <p className="text-sm">Loading review status…</p>}
     {workflow && !editing && <div className="flex flex-wrap gap-2">
@@ -89,7 +90,7 @@ export function OnboardingReviewPanel({submission}:{submission:Record<string,any
           <Button type="button" variant="outline" disabled={busy} onClick={()=>void action('pending')}>Return to Pending to edit</Button>
           <Button type="button" disabled={busy || !version} onClick={()=>setConfirmCreate(true)}>Restore approved vehicle</Button>
           {!workflow.clientId && submission.contractStatus==='signed' && <Button type="button" disabled={busy} onClick={()=>void action('activate')}>Complete signed client setup</Button>}
-        </> : <Button type="button" disabled={busy || !version} onClick={()=>void action('approve')}>Approve application</Button>}
+        </> : <Button type="button" disabled={busy || !version || submission.contractStatus!=='signed'} onClick={()=>void action('approve')}>Approve application</Button>}
       </>}
     </div>}
     {confirmCreate && !workflow?.carId && <div className="rounded border bg-background p-3 space-y-3" aria-label="Confirm vehicle record creation">

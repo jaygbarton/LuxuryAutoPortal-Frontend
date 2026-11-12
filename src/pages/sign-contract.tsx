@@ -141,7 +141,7 @@ export default function SignContract() {
       if (data.action === "sign") {
         toast({
           title: "Contract signed successfully!",
-          description: "Your contract has been saved. Next, sign in to complete the vehicle drop-off form.",
+          description: "Your signed agreement has been saved. GLA approval comes next, followed by Car Onboarding.",
         });
         setClientAccessPending(!!result.clientAccessPending);
         setSignedComplete(true);
@@ -178,7 +178,7 @@ export default function SignContract() {
     }
   };
 
-  if (signedComplete) return <div className="min-h-screen bg-background px-4 py-16"><div className="mx-auto max-w-xl space-y-5 rounded-xl border border-primary/30 bg-card p-6 text-center"><h1 className="text-2xl font-semibold">Contract signed</h1>{clientAccessPending&&<p role="status">Your signature is saved. GLA needs to finish enabling your client access before vehicle drop-off. You can follow your application status in the meantime.</p>}<p className="text-muted-foreground">Next, sign in to complete the vehicle drop-off form when you bring your vehicle to the GLA lot. If your vehicle is not listed yet, GLA still needs to finish creating its record.</p><Button onClick={()=>setLocation(clientAccessPending?'/lyc/status':'/admin/forms?section=client-onboarding&item=car-on')}>{clientAccessPending?'View application status':'Continue to vehicle drop-off'}</Button><p className="text-sm text-muted-foreground">Use the password setup email from your application approval if you have not created your GLA password yet.</p></div></div>;
+  if (signedComplete) return <div className="min-h-screen bg-background px-4 py-16"><div className="mx-auto max-w-xl space-y-5 rounded-xl border border-primary/30 bg-card p-6 text-center"><h1 className="text-2xl font-semibold">Contract signed</h1>{clientAccessPending&&<p role="status">Your signature is saved. GLA needs to finish enabling your client access before Car Onboarding. You can follow your application status in the meantime.</p>}<p className="text-muted-foreground">GLA reviews your application after signing. Once approved, check your email for client account instructions, then complete the Car Onboarding Form when bringing your vehicle into GLA.</p><Button onClick={()=>setLocation(clientAccessPending?'/lyc/status':'/admin/forms?section=client-onboarding&item=car-on')}>{clientAccessPending?'View application status':'Continue to Car Onboarding'}</Button><p className="text-sm text-muted-foreground">Use the password setup email from your application approval if you have not created your GLA password yet.</p></div></div>;
 
   // Loading state
   if (isValidating) {
