@@ -203,11 +203,19 @@ export default function ContractManagement() {
   return (
     <div className="space-y-6">
       {/* Header with Title and Description */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-        <h2 className="text-xl font-semibold text-foreground">LYC Contract / Agreement</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage LYC contracts and agreements
-        </p>
+          <h2 className="text-xl font-semibold text-foreground">LYC Contract / Agreement</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage LYC contracts and agreements
+          </p>
+        </div>
+        {/* The blank agreement every owner signs — the same file the signing page loads. */}
+        <Button variant="outline" size="sm" asChild>
+          <a href={buildApiUrl("/contracts/GoldenLuxuryAuto_Contract_Template_V14.pdf")} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="w-4 h-4 mr-1" /> View blank template
+          </a>
+        </Button>
       </div>
 
       {/* Search Bar */}
