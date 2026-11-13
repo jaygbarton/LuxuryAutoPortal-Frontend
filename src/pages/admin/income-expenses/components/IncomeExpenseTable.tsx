@@ -2476,11 +2476,10 @@ lastSavedNote.current = coHostNote;
                 percentageValues={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
                   if (!isMgmtRowShown(monthNum)) return 0;
-                  return getMonthValue(
-                    data.incomeExpenses,
-                    monthNum,
-                    "carManagementSplit",
-                  );
+                  // Stored % or the car's default — the same % the amount above
+                  // is computed with. getMonthValue showed 0% for months with no
+                  // saved split while the dollars used the default.
+                  return getCarManagementPercent(monthNum);
                 })}
                 category="income"
                 field="carManagementSplit"
@@ -2524,11 +2523,7 @@ lastSavedNote.current = coHostNote;
                 percentageValues={MONTHS.map((_, i) => {
                   const monthNum = i + 1;
                   if (!isMgmtOwnerActive(monthNum)) return 0;
-                  return getMonthValue(
-                    data.incomeExpenses,
-                    monthNum,
-                    "carOwnerSplit",
-                  );
+                  return getCarOwnerPercent(monthNum);
                 })}
                 category="income"
                 field="carOwnerSplit"
