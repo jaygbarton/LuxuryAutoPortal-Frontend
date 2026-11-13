@@ -144,6 +144,23 @@ const STAFF_FORM_TABS: { href: string; label: string; icon: any }[] = [
   { href: "/staff/forms?tab=car-repaired", label: "Car Repaired", icon: Key },
 ];
 
+/**
+ * Settings page sections, via its ?section= param (Cathy, 2026-11: Settings
+ * became a dropdown). Timezone is the default section and also carries Home
+ * location. The last three are GLA-admin only — the page hides them from
+ * anyone else, so they are listed only in the admin sidebar.
+ */
+const SETTINGS_TABS: { href: string; label: string; icon: any }[] = [
+  { href: "/admin/settings?section=timezone", label: "Timezone", icon: Clock },
+  { href: "/admin/settings?section=security", label: "Account Security", icon: Key },
+];
+const ADMIN_SETTINGS_TABS: { href: string; label: string; icon: any }[] = [
+  ...SETTINGS_TABS,
+  { href: "/admin/settings?section=sales-reps", label: "Sales Representative", icon: Users },
+  { href: "/admin/settings?section=waiver", label: "GLA - Independent Contractor or W-2 Employee Waiver", icon: FileText },
+  { href: "/admin/settings?section=slack", label: "Slack Channel Configuration", icon: MessageCircle },
+];
+
 /** Stamps a role onto a shared tab list so one definition serves every sidebar. */
 const withRoles = (
   tabs: { href: string; label: string; icon: any }[],
@@ -388,6 +405,10 @@ const allSidebarItems: SidebarItem[] = [
     label: "Settings",
     icon: Settings,
     roles: ["admin", "client"],
+    children: [
+      ...withRoles(ADMIN_SETTINGS_TABS, ["admin"]),
+      ...withRoles(SETTINGS_TABS, ["client"]),
+    ],
   },
   {
     href: "/admin/turo-guide",
@@ -550,6 +571,7 @@ const employeeSidebarItems: SidebarItem[] = [
     label: "Settings",
     icon: Settings,
     roles: ["employee"],
+    children: withRoles(SETTINGS_TABS, ["employee"]),
   },
   {
     href: "/staff/turo-guide",
@@ -707,7 +729,8 @@ export const coHostSidebarItems: SidebarItem[] = [
       { href: "/admin/hr/report", label: "Report", icon: ClipboardList },
     ],
   },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  // Co-hosts carry isAdmin but the page hides GLA-only sections from them.
+  { href: "/admin/settings", label: "Settings", icon: Settings, children: SETTINGS_TABS.map((t) => ({ ...t })) },
   { href: "/admin/turo-guide", label: "Turo Guide", icon: BookOpen },
   { href: "/cohost/training-manual", label: "System Tutorial", icon: GraduationCap },
   { href: "/admin/testimonials", label: "Client Testimonials", icon: Star },

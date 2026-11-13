@@ -299,7 +299,7 @@ export function EmployeeContract1099Content() {
                 <a href="/admin/hr/employees">Go to Employees</a>
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <a href="/admin/settings">Settings</a>
+                <a href="/admin/settings?section=waiver">Settings</a>
               </Button>
             </div>
           </div>

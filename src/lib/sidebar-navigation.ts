@@ -70,20 +70,29 @@ export function isSidebarPathActive(pathname:string,href:string,currentSearch=''
 
 /** Shared with the renderer so deep links open every ancestor, not sibling groups. */
 export function activeSidebarItems(items:SidebarItem[],pathname:string,search='') {
-  const groups=new Set<string>(),leaves=new Set<string>();
-  function visit(siblings:SidebarItem[]):boolean {
-    let any=false;
+  const matched=new Set<string>();
+  function collect(siblings:SidebarItem[]) {
     siblings.forEach((item,index)=>{
       if(item.external)return;
-      if(item.children?.length) {
-        if(visit(item.children)){groups.add(item.href);any=true;}
-      } else {
-        const samePage=siblings.filter(sibling=>sibling.href.split('?')[0]===item.href.split('?')[0]);
-        const tabKey=samePage.map(sibling=>sibling.href.split('?')[1]).find(Boolean)?.split('=')[0];
-        if(isSidebarPathActive(pathname,item.href,search,tabKey,index===0)){leaves.add(item.href);any=true;}
-      }
+      if(item.children?.length){collect(item.children);return;}
+      const samePage=siblings.filter(sibling=>sibling.href.split('?')[0]===item.href.split('?')[0]);
+      const tabKey=samePage.map(sibling=>sibling.href.split('?')[1]).find(Boolean)?.split('=')[0];
+      if(isSidebarPathActive(pathname,item.href,search,tabKey,index===0))matched.add(item.href);
     });
+  }
+  collect(items);
+  // Prefix matching lets /admin/payroll claim /admin/payroll/commissions too.
+  // When a more specific item matched, it alone is the active one.
+  const pathOf=(href:string)=>href.split('?')[0];
+  const leaves=new Set([...matched].filter(href=>![...matched].some(other=>pathOf(other).startsWith(pathOf(href)+'/'))));
+  const groups=new Set<string>();
+  function mark(siblings:SidebarItem[]):boolean {
+    let any=false;
+    for(const item of siblings) {
+      if(item.children?.length){if(mark(item.children)){groups.add(item.href);any=true;}}
+      else if(leaves.has(item.href))any=true;
+    }
     return any;
   }
-  visit(items);return {groups,leaves};
+  mark(items);return {groups,leaves};
 }

@@ -94,7 +94,7 @@ export function AdminPageLinks() {
     { href: "/admin/training-manual", icon: BookOpen, label: "System Tutorial" },
     { href: "/admin/testimonials",  icon: Star,      label: "Client Testimonials" },
     { href: "/admin/news-media",    icon: Newspaper, label: "News & Media" },
-    { href: "/admin/settings",      icon: Bell,      label: "Slack Notifications" },
+    { href: "/admin/settings?section=slack", icon: Bell, label: "Slack Notifications" },
   ];
 
   return (

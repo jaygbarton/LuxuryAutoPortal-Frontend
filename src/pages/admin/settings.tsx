@@ -1,7 +1,7 @@
 import { HomeLocationPreferenceCard } from "@/components/shared/HomeLocationPreferenceCard";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
@@ -46,10 +46,21 @@ const formTypeLabels: Record<string, string> = {
   car_recall: "Car Recalls",
 };
 
+/** Keep in sync with the Settings children in admin-layout.tsx. */
+const SETTINGS_SECTIONS = ["timezone", "security", "sales-reps", "waiver", "slack"] as const;
+type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
+
 export default function SettingsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  // The sidebar's Settings sub-items address one section each via ?section=
+  // (same pattern as Operations/Forms). No param, or an unknown one, opens
+  // the first section so a bare /admin/settings link still lands somewhere.
+  const sectionParam = new URLSearchParams(useSearch()).get("section");
+  const section = SETTINGS_SECTIONS.includes(sectionParam as SettingsSection)
+    ? (sectionParam as SettingsSection)
+    : "timezone";
   const [editingChannels, setEditingChannels] = useState<Record<string, string>>({});
   
   // Password change form state
@@ -382,11 +393,16 @@ export default function SettingsPage() {
           <p className="text-muted-foreground">Manage your account settings and preferences</p>
         </div>
 
-        {/* Timezone preference */}
-        <TimezonePreferenceCard />
+        {/* Timezone preference (Home location is the other "where/when" preference) */}
+        {section === "timezone" && (
+          <>
+            <TimezonePreferenceCard />
             <HomeLocationPreferenceCard />
+          </>
+        )}
 
         {/* Account Security - Password Change */}
+        {section === "security" && (
         <Card className="bg-card border-primary/20">
           <CardHeader>
             <CardTitle className="text-primary flex items-center gap-2">
@@ -541,9 +557,10 @@ export default function SettingsPage() {
             </form>
           </CardContent>
         </Card>
+        )}
 
         {/* Sales Representatives - GLA Admin Only */}
-        {isGlaAdmin && (
+        {isGlaAdmin && section === "sales-reps" && (
           <Card className="bg-card border-primary/20">
             <CardHeader>
               <CardTitle className="text-primary flex items-center gap-2">
@@ -639,10 +656,10 @@ export default function SettingsPage() {
         )}
 
         {/* Employee waiver (GLA - Independent Contractor or W-2 Employee Waiver) - GLA Admin Only */}
-        {isGlaAdmin && <ContractorPolicySettingsCard />}
+        {isGlaAdmin && section === "waiver" && <ContractorPolicySettingsCard />}
 
         {/* Slack Channel Configuration - GLA Admin Only */}
-        {isGlaAdmin && (
+        {isGlaAdmin && section === "slack" && (
           <>
             <Card className="bg-card border-primary/20">
             <CardHeader>

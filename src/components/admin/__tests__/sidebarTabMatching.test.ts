@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { coHostSidebarItems } from "../admin-layout";
-import { isSidebarPathActive as isPathActive, organizeSidebar } from "@/lib/sidebar-navigation";
+import { isSidebarPathActive as isPathActive, organizeSidebar, activeSidebarItems } from "@/lib/sidebar-navigation";
 
 /** Admin Forms group — note EVERY child carries a ?section=, no bare default. */
 const FORMS = [
@@ -196,5 +196,37 @@ describe("sidebar tab matching", () => {
   it("keeps prefix matching for ordinary nav items", () => {
     expect(isPathActive("/admin/bouncie-devices", "/admin/bouncie")).toBe(false);
     expect(isPathActive("/admin/cars/12", "/admin/cars")).toBe(true);
+  });
+});
+
+describe("most specific sidebar match wins", () => {
+  // Reported: opening Commissions also lit Payroll, because /admin/payroll
+  // prefix-matches /admin/payroll/commissions.
+  const PAYMENTS = [{
+    href: "/admin/payments", label: "Payments", icon: null,
+    children: [
+      { href: "/admin/payments", label: "Client Payments", icon: null },
+      { href: "/admin/payroll", label: "Payroll", icon: null },
+      { href: "/admin/payroll/commissions", label: "Commissions", icon: null },
+    ],
+  }];
+  const lit = (path: string) => [...activeSidebarItems(PAYMENTS, path).leaves];
+
+  it("lights only Commissions on the commissions page", () => {
+    expect(lit("/admin/payroll/commissions")).toEqual(["/admin/payroll/commissions"]);
+  });
+  it("still lights Payroll on its own pages", () => {
+    expect(lit("/admin/payroll")).toEqual(["/admin/payroll"]);
+    expect(lit("/admin/payroll/42")).toEqual(["/admin/payroll"]);
+  });
+  it("keeps the parent group open", () => {
+    expect([...activeSidebarItems(PAYMENTS, "/admin/payroll/commissions").groups]).toEqual(["/admin/payments"]);
+  });
+});
+
+describe("co-host Settings sub-categories", () => {
+  it("offers only the sections the page shows a co-host", () => {
+    const settings = coHostSidebarItems.find((i) => i.label === "Settings");
+    expect((settings?.children ?? []).map((c) => c.label)).toEqual(["Timezone", "Account Security"]);
   });
 });
