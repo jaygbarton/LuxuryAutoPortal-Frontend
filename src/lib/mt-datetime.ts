@@ -223,3 +223,26 @@ export function handoffTimezone(location?: string | null): string {
     ? CAR_ONBOARDING_TIMEZONES.northCarolina
     : CAR_ONBOARDING_TIMEZONES.utah;
 }
+
+/**
+ * An inclusive `YYYY-MM-DD` day range as UTC instants in `tz`: the first
+ * moment of `fromKey` to the last millisecond of `toKey`.
+ *
+ * For API filters compared with `>=` / `<=` against stored UTC timestamps. A
+ * bare day key sent instead is parsed server-side as UTC midnight (5-6 PM the
+ * previous day in Mountain Time), and a hand-built "T23:59:59-07:00" end is an
+ * hour off whenever daylight time is in effect. Deriving the end from the next
+ * day's start keeps both bounds exact across DST changes.
+ */
+export function dayRangeToUtcIso(
+  fromKey: string,
+  toKey: string,
+  tz: string = "America/Denver",
+): { start: string | null; end: string | null } {
+  const start = fromKey ? mtDayStartToUtcIso(fromKey, tz) : null;
+  const nextDayStart = toKey
+    ? mtDayStartToUtcIso(utcDateToDayKey(addUtcDays(dayKeyToUtcDate(toKey.slice(0, 10)), 1)), tz)
+    : null;
+  const end = nextDayStart ? new Date(Date.parse(nextDayStart) - 1).toISOString() : null;
+  return { start, end };
+}

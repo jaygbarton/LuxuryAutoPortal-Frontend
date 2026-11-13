@@ -129,3 +129,18 @@ describe("handoffTimezone (car on/off-boarding)", () => {
     expect(mtLocalInputToUtcIso("2026-11-19T11:00", handoffTimezone(NC_HANDOFF_ADDRESS))).toBe("2026-11-19T16:00:00.000Z");
   });
 });
+
+describe("dayRangeToUtcIso", () => {
+  it("covers exactly the local days, in both standard and daylight time", async () => {
+    const { dayRangeToUtcIso } = await import("../mt-datetime");
+    // MST (-07:00)
+    expect(dayRangeToUtcIso("2026-11-01", "2026-11-13")).toEqual({ start: "2026-11-01T06:00:00.000Z", end: "2026-11-14T06:59:59.999Z" });
+    // MDT (-06:00): the old fixed "-07:00" end spilled an hour into the next day
+    expect(dayRangeToUtcIso("2026-07-01", "2026-07-15")).toEqual({ start: "2026-07-01T06:00:00.000Z", end: "2026-07-16T05:59:59.999Z" });
+    // Range ending on the fall-back day (25 hours long)
+    expect(dayRangeToUtcIso("2026-11-01", "2026-11-01").end).toBe("2026-11-02T06:59:59.999Z");
+    // Viewer in another zone
+    expect(dayRangeToUtcIso("2026-11-13", "2026-11-13", "America/New_York")).toEqual({ start: "2026-11-13T05:00:00.000Z", end: "2026-11-14T04:59:59.999Z" });
+    expect(dayRangeToUtcIso("", "")).toEqual({ start: null, end: null });
+  });
+});

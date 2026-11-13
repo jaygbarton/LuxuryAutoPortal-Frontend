@@ -41,7 +41,8 @@ import {
   vehicleName,
   type StoredTrip,
 } from "@/components/bouncie/trip-route";
-import { mtTodayKey } from "@/lib/mt-datetime";
+import { addUtcDays, dayKeyToUtcDate, dayRangeToUtcIso, mtTodayKey, utcDateToDayKey } from "@/lib/mt-datetime";
+import { getActiveTimezone, useTimezone } from "@/hooks/use-timezone";
 
 export default function BouncieTripsPage() {
   const search = useSearch();
@@ -49,20 +50,20 @@ export default function BouncieTripsPage() {
   const preselectedDeviceId = params.get("deviceId") || "";
 
   const [deviceFilter, setDeviceFilter] = useState(preselectedDeviceId);
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    return d.toISOString().slice(0, 10);
-  });
-  const [endDate, setEndDate] = useState(() => mtTodayKey());
+  // Trip times render in the viewer's timezone (formatDate → getActiveTimezone),
+  // so the day filter is drawn in that same zone.
+  const timezone = useTimezone();
+  const [startDate, setStartDate] = useState(() =>
+    utcDateToDayKey(addUtcDays(dayKeyToUtcDate(mtTodayKey(getActiveTimezone())), -30)),
+  );
+  const [endDate, setEndDate] = useState(() => mtTodayKey(getActiveTimezone()));
   const [selectedTrip, setSelectedTrip] = useState<StoredTrip | null>(null);
 
   const queryParams = new URLSearchParams();
   if (deviceFilter) queryParams.set("deviceId", deviceFilter);
-  if (startDate) queryParams.set("startDate", startDate);
-  // Compute end-of-day in Mountain Time respecting DST (-07:00 MDT, -06:00 MST)
-  const mtOffset = new Date(`${endDate}T12:00:00`).toLocaleString("en-US", { timeZone: "America/Denver", timeZoneName: "shortOffset" }).match(/GMT([+-]\d+:\d+)/)?.[1] ?? "-07:00";
-  if (endDate) queryParams.set("endDate", endDate + "T23:59:59" + mtOffset);
+  const range = dayRangeToUtcIso(startDate, endDate, timezone);
+  if (range.start) queryParams.set("startDate", range.start);
+  if (range.end) queryParams.set("endDate", range.end);
   queryParams.set("limit", "100");
 
   const { data: devicesData } = useQuery<{ success: boolean; data: any[] }>({
@@ -76,7 +77,7 @@ export default function BouncieTripsPage() {
   const devices = devicesData?.data ?? [];
 
   const { data, isLoading, refetch, isFetching } = useQuery<{ success: boolean; data: StoredTrip[] }>({
-    queryKey: ["/api/bouncie/trips", deviceFilter, startDate, endDate],
+    queryKey: ["/api/bouncie/trips", deviceFilter, startDate, endDate, timezone],
     queryFn: async () => {
       return api.get(`/api/bouncie/trips?${queryParams.toString()}`, {
         fallbackMessage: "Failed to fetch trips",
