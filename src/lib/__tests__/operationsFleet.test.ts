@@ -17,7 +17,29 @@ describe('operational fleet filtering', () => {
     expect(operationVehicleMatches({ car_id: 2, plate: 'ACTIVE1' }, cars, 'active')).toBe(false);
     expect(operationVehicleMatches({ vin: 'VIN2', plate: 'ACTIVE1' }, cars, 'active')).toBe(false);
     expect(operationVehicleMatches({ plate: 'ACTIVE1' }, cars, 'active')).toBe(true);
-    expect(operationVehicleMatches({ car_name: 'Toyota Sienna 2024', plate: 'TEMP' }, cars, 'active')).toBe(false);
+  });
+  it('keeps real work visible when only an ambiguous model name identifies the car', () => {
+    // Two Siennas, one in the fleet: a Turo trip with no plate stays in Active.
+    expect(operationVehicleMatches({ car_name: 'Toyota Sienna 2024', plate: 'TEMP' }, cars, 'active')).toBe(true);
+    expect(operationVehicleMatches({ car_name: 'Toyota Sienna 2024', plate: 'TEMP' }, cars, 'inactive')).toBe(false);
+    const retired: OperationsVehicle[] = cars.map(c => ({ ...c, carStatus: 'off_fleet' }));
+    expect(operationVehicleMatches({ car_name: 'Toyota Sienna 2024' }, retired, 'active')).toBe(false);
+    expect(operationVehicleMatches({ car_name: 'Toyota Sienna 2024' }, retired, 'inactive')).toBe(true);
+  });
+  it('shows a G161UZ Outback trip whose email omitted the plate (regression)', () => {
+    const outbacks: OperationsVehicle[] = [
+      { carId: 141, carName: '2022 Subaru Outback', plateNumber: 'G161UZ', vinNumber: 'OUTBACKVIN1', carStatus: 'available' },
+      { carId: 77, carName: '2021 Subaru Outback', plateNumber: 'OLDOUT', vinNumber: 'OUTBACKVIN2', carStatus: 'off_fleet' },
+      { carId: 78, carName: '2023 Subaru Outback', plateNumber: 'OTHER1', vinNumber: 'OUTBACKVIN3', carStatus: 'available' },
+    ];
+    // Resolved by the backend from the Turo listing.
+    expect(operationVehicleMatches({ car_id: 141, plate: null, vin_number: null, car_name: 'Subaru Outback 2022' }, outbacks, 'active')).toBe(true);
+    // No identity beyond the shared model name.
+    expect(operationVehicleMatches({ car_id: null, plate: null, vin_number: null, car_name: 'Subaru Outback 2022' }, outbacks, 'active')).toBe(true);
+    // Plate formatting differences still match.
+    expect(operationVehicleMatches({ plate: 'g161-uz' }, outbacks, 'active')).toBe(true);
+    // A VIN the catalogue does not know falls back to the plate.
+    expect(operationVehicleMatches({ vin_number: 'STALEVIN', plate: 'G161UZ' }, outbacks, 'active')).toBe(true);
   });
   it('retains inactive and uncertain records under explicit All, plus generic employee work', () => {
     expect(operationVehicleMatches({ car_id: 2 }, cars, 'inactive')).toBe(true);
