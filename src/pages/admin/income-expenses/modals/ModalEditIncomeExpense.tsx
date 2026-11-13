@@ -54,7 +54,7 @@ export default function ModalEditIncomeExpense() {
   } = useImageUpload(
     carId,
     year,
-    editingCell?.category || "",
+    isOpen ? editingCell.category : "",
     editingCell?.field || "",
     editingCell?.month || 1
   );

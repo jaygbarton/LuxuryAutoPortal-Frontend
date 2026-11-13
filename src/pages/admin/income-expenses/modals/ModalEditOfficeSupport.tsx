@@ -76,7 +76,7 @@ export default function ModalEditOfficeSupport() {
     imageFiles, existingImages, isUploading, isLoadingImages,
     fileInputRef, handleFileChange, handleFilesDropped,
     handleRemoveImage, handleRemoveExistingImage, uploadImages, resetImages,
-  } = useImageUpload(carId, year, editingCell?.category || "", editingCell?.field || "", editingCell?.month || 1);
+  } = useImageUpload(carId, year, isOpen ? editingCell.category : "", editingCell?.field || "", editingCell?.month || 1);
 
   const handleClose = () => {
     setEditingCell(null);

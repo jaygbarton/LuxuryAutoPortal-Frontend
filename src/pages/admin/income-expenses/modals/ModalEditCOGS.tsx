@@ -27,9 +27,11 @@ export default function ModalEditCOGS() {
   const { editingCell, setEditingCell, updateCell, saveChanges, isSaving, year, carId, getFormAmount } = useIncomeExpense();
   const [remarks, setRemarks] = useState("");
 
-  // Load remarks when modal opens
+  // Load remarks when the modal opens for a cell. Keyed on the cell, not the
+  // whole editingCell object: that object changes on every Amount keystroke,
+  // which re-fetched and overwrote a remark the user was typing.
   useEffect(() => {
-    if (editingCell) {
+    if (editingCell?.category === "cogs") {
       const loadRemarks = async () => {
         try {
           const response = await fetch(
@@ -46,7 +48,7 @@ export default function ModalEditCOGS() {
       };
       loadRemarks();
     }
-  }, [editingCell, carId, year]);
+  }, [editingCell?.category, editingCell?.field, editingCell?.month, carId, year]);
 
   const monthName = editingCell ? MONTHS[editingCell.month - 1] : "";
   const isOpen = !!editingCell && editingCell.category === "cogs";
@@ -66,7 +68,7 @@ export default function ModalEditCOGS() {
   } = useImageUpload(
     carId,
     year,
-    editingCell?.category || "",
+    isOpen ? editingCell.category : "",
     editingCell?.field || "",
     editingCell?.month || 1
   );

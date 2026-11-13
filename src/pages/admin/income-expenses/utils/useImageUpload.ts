@@ -71,6 +71,9 @@ export function useImageUpload(carId: number, year: string, category: string, fi
     }
     
     fetchingRef.current = fetchKey;
+    // Each modal now fetches only while it is the open one, so drop the
+    // previous cell's receipts rather than showing them under this cell.
+    setExistingImages([]);
     setIsLoadingImages(true);
     
     try {

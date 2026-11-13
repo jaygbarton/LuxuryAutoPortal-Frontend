@@ -1,5 +1,5 @@
 // Modal for Parking Fee & Labor Cleaning category
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,21 +15,42 @@ import { Textarea } from "@/components/ui/textarea";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
 import ReceiptUploadZone from "../components/ReceiptUploadZone";
 import { useImageUpload } from "../utils/useImageUpload";
+import { buildApiUrl } from "@/lib/queryClient";
+import { api } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export default function ModalEditParkingFeeLabor() {
   const { editingCell, setEditingCell, updateCell, saveChanges, isSaving, year, carId } = useIncomeExpense();
+  const { toast } = useToast();
   const [remarks, setRemarks] = useState("");
 
   const monthName = editingCell ? MONTHS[editingCell.month - 1] : "";
   const isOpen = !!editingCell && editingCell.category === "parkingFeeLabor";
 
+  // The Remarks box used to be local state only: never loaded, never sent, so
+  // whatever was typed vanished on Save. Load the cell's saved remark once per
+  // opened cell; keyed on the cell, not its value, so typing an amount does not
+  // re-fetch and overwrite what is being typed.
+  useEffect(() => {
+    if (!isOpen || !editingCell) return;
+    let cancelled = false;
+    fetch(
+      buildApiUrl(`/api/income-expense/remarks?carId=${carId}&year=${year}&month=${editingCell.month}&category=${editingCell.category}&field=${editingCell.field}`),
+      { credentials: "include" }
+    )
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => { if (!cancelled && data) setRemarks(data.remarks || ""); })
+      .catch(() => { /* leave the box editable; a failed save still reports */ });
+    return () => { cancelled = true; };
+  }, [isOpen, editingCell?.category, editingCell?.field, editingCell?.month, carId, year]);
+
   const {
     imageFiles, existingImages, isUploading, isLoadingImages,
     fileInputRef, handleFileChange, handleFilesDropped,
     handleRemoveImage, handleRemoveExistingImage, uploadImages, resetImages,
-  } = useImageUpload(carId, year, editingCell?.category || "", editingCell?.field || "", editingCell?.month || 1);
+  } = useImageUpload(carId, year, isOpen ? editingCell.category : "", editingCell?.field || "", editingCell?.month || 1);
 
   const handleClose = () => {
     setEditingCell(null);
@@ -40,6 +61,23 @@ export default function ModalEditParkingFeeLabor() {
   const handleSave = async () => {
     if (!editingCell) return;
     if (imageFiles.length > 0) await uploadImages();
+    try {
+      await api.post("/api/income-expense/remarks", {
+        carId,
+        year: parseInt(year),
+        month: editingCell.month,
+        category: editingCell.category,
+        field: editingCell.field,
+        remarks: remarks.trim(),
+      }, { fallbackMessage: "Failed to save remarks" });
+    } catch (error) {
+      toast({
+        title: "Remarks not saved",
+        description: error instanceof Error ? error.message : "Failed to save remarks",
+        variant: "destructive",
+      });
+      return;
+    }
     saveChanges({
       category: editingCell.category,
       field: editingCell.field,

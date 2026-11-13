@@ -43,12 +43,14 @@ export default function ModalEditDirectDelivery() {
   } = useImageUpload(
     carId,
     year,
-    editingCell?.category || "",
+    isOpen ? editingCell.category : "",
     editingCell?.field || "",
     editingCell?.month || 1
   );
 
-  // Load remarks when modal opens
+  // Load remarks when the modal opens for a cell. Keyed on the cell, not the
+  // whole editingCell object: that object changes on every Amount keystroke,
+  // which re-fetched and overwrote a remark the user was typing.
   useEffect(() => {
     if (isOpen && editingCell) {
       const loadRemarks = async () => {
@@ -67,7 +69,7 @@ export default function ModalEditDirectDelivery() {
       };
       loadRemarks();
     }
-  }, [isOpen, editingCell, carId, year]);
+  }, [isOpen, editingCell?.category, editingCell?.field, editingCell?.month, carId, year]);
 
   const handleClose = () => {
     setEditingCell(null);
