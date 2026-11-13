@@ -46,9 +46,9 @@ describe("ApplicantBoundary", () => {
     expect(html).not.toContain("page-content");
   });
 
-  it("blames the phone's connection, not a server update, when the request never got a response", () => {
+  it("does not blame a server update when the request got no response at all", () => {
     const network = render({ error: new TypeError("Load failed") });
-    expect(network).toContain("can&#x27;t reach the server");
+    expect(network).toContain("didn&#x27;t get a response from the server");
     expect(network).not.toContain("update being installed");
     const outage = render({ error: new Error("auth/me failed: 502") });
     expect(outage).toContain("update being installed");
