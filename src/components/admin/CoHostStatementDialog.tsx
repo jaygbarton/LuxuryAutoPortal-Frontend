@@ -3,9 +3,9 @@
  * co-host manages, for a year range. (View Car offers the same statement, but
  * only on cars that have a co-host, which is easy to miss.)
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, ExternalLink, Loader2 } from "lucide-react";
+import { Download, Eye, Loader2 } from "lucide-react";
 import { api, apiBlob } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,21 @@ export function CoHostStatementDialog({
   const [fromYear, setFromYear] = useState("");
   const [toYear, setToYear] = useState("");
   const [busy, setBusy] = useState<"view" | "download" | null>(null);
+  // View shows the PDF in an in-app preview (as View Car does) instead of a
+  // blank popup tab: the statement takes a while to build, and the popup sat
+  // empty long enough that it was closed before the PDF ever arrived.
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
+  previewUrlRef.current = previewUrl;
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+  }, []);
+  const closePreview = () => {
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  };
   const path = coHost ? `/api/admin/co-hosts/${coHost.id}/statement-of-account` : "";
 
   const { data: years = [], isLoading } = useQuery({
@@ -31,18 +46,27 @@ export function CoHostStatementDialog({
     queryFn: async () =>
       (await api.get<{ years: number[] }>(`${path}/years`, { fallbackMessage: "Failed to load statement years" })).years,
     enabled: !!coHost,
+    retry: false,
   });
 
   const close = () => {
+    closePreview();
     setFromYear("");
     setToYear("");
     onClose();
   };
 
+  const saveAs = (url: string) => {
+    if (!coHost) return;
+    const a = document.createElement("a");
+    a.href = url;
+    const range = fromYear || toYear ? ` (${fromYear || "start"} - ${toYear || "latest"})` : "";
+    a.download = `Co-Host Statement of Account - ${coHost.name}${range}.pdf`;
+    a.click();
+  };
+
   const generate = async (mode: "view" | "download") => {
     if (!coHost) return;
-    // Open the tab before the await so the popup blocker treats it as the click's.
-    const tab = mode === "view" ? window.open("", "_blank") : null;
     setBusy(mode);
     try {
       const blob = await apiBlob(path, {
@@ -50,20 +74,15 @@ export function CoHostStatementDialog({
         fallbackMessage: "Failed to generate the statement",
       });
       const url = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
-      if (tab) {
-        tab.location.href = url;
-      } else {
-        const a = document.createElement("a");
-        a.href = url;
-        const range = fromYear || toYear ? ` (${fromYear || "start"} - ${toYear || "latest"})` : "";
-        a.download = `Co-Host Statement of Account - ${coHost.name}${range}.pdf`;
-        a.click();
+      if (mode === "view") {
+        closePreview();
+        setPreviewUrl(url);
+        return;
       }
-      // The new tab keeps its own reference; release ours once it has loaded.
+      saveAs(url);
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
       close();
     } catch (e) {
-      tab?.close();
       toast({
         title: mode === "view" ? "Preview failed" : "Download failed",
         description: e instanceof Error ? e.message : "Could not generate the statement of account.",
@@ -92,8 +111,11 @@ export function CoHostStatementDialog({
     </div>
   );
 
+  const rangeLabel = fromYear || toYear ? ` — ${fromYear || "start"} to ${toYear || "latest"}` : "";
+
   return (
-    <Dialog open={!!coHost} onOpenChange={(o) => !o && close()}>
+    <>
+    <Dialog open={!!coHost && !previewUrl} onOpenChange={(o) => !o && close()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Co-Host Statement of Account</DialogTitle>
@@ -114,7 +136,7 @@ export function CoHostStatementDialog({
         </p>
         <DialogFooter className="gap-2 sm:gap-2">
           <Button variant="outline" onClick={() => generate("view")} disabled={!!busy}>
-            {busy === "view" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ExternalLink className="w-4 h-4 mr-2" />}
+            {busy === "view" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
             View
           </Button>
           <Button onClick={() => generate("download")} disabled={!!busy}>
@@ -124,5 +146,30 @@ export function CoHostStatementDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <Dialog open={!!coHost && !!previewUrl} onOpenChange={(o) => !o && close()}>
+      <DialogContent className="max-w-[96vw] w-[96vw] h-[94vh] max-h-[94vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-4 py-3 border-b border-border shrink-0">
+          <DialogTitle className="text-base">
+            Co-Host Statement of Account — {coHost?.name}
+            {rangeLabel}
+          </DialogTitle>
+          <DialogDescription className="sr-only">Preview of the generated Co-Host Statement of Account PDF.</DialogDescription>
+        </DialogHeader>
+        {previewUrl && (
+          <iframe src={previewUrl} title="Co-Host Statement of Account" className="flex-1 w-full border-0 bg-muted" />
+        )}
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-border shrink-0">
+          <Button variant="outline" onClick={closePreview} disabled={!!busy}>
+            Change period
+          </Button>
+          {/* The preview already holds the PDF; save it rather than rebuilding it. */}
+          <Button onClick={() => previewUrl && saveAs(previewUrl)}>
+            <Download className="w-4 h-4 mr-2" />
+            Download
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
