@@ -267,6 +267,7 @@ export default function LoggedHoursSection() {
                 <tr>
                   <th className="px-3 py-2 text-center font-bold uppercase text-white">Time in</th>
                   <th className="px-3 py-2 text-center font-bold uppercase text-white">Time Out</th>
+                  <th className="px-3 py-2 text-center font-bold uppercase text-white">Total Hours</th>
                   <th className="px-3 py-2 text-center font-bold uppercase text-white">Rate</th>
                   <th className="px-3 py-2 text-center font-bold uppercase text-white">Amount</th>
                 </tr>
@@ -289,6 +290,9 @@ export default function LoggedHoursSection() {
                         ) : (
                           <span className="font-medium text-emerald-600">In progress</span>
                         )}
+                      </td>
+                      <td className="px-3 py-2 text-center font-medium text-black">
+                        {formatHM(r.workedHours)}
                       </td>
                       <td className="px-3 py-2 text-center font-mono text-black">
                         ${rate.toFixed(2)}
