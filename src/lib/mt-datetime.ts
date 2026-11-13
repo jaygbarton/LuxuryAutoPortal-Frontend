@@ -208,3 +208,18 @@ export function addUtcDays(d: Date, n: number): Date {
 
 /** Physical handoff locations use their local wall time, independent of the viewer's preference. */
 export const CAR_ONBOARDING_TIMEZONES = {utah:'America/Denver',northCarolina:'America/New_York'} as const;
+
+/** The GLA North Carolina home base, offered on the car on/off-boarding forms. */
+export const NC_HANDOFF_ADDRESS = "9789 Blackwell Road Southeast, Leland, NC 28451";
+
+/**
+ * The zone a car on/off-boarding time is entered in: a North Carolina location
+ * (the Leland base, or an "Other" address in Wilmington / NC) is Eastern,
+ * everything else Mountain. The backend formats Slack and emails with the same
+ * rule (handoffTimezone in backend/src/config/timezone.ts); keep them in step.
+ */
+export function handoffTimezone(location?: string | null): string {
+  return /\bwilmington\b|\bleland\b|\bnorth carolina\b|\bnc\b/i.test(location ?? "")
+    ? CAR_ONBOARDING_TIMEZONES.northCarolina
+    : CAR_ONBOARDING_TIMEZONES.utah;
+}

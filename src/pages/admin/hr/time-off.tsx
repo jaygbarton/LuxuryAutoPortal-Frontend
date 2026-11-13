@@ -51,6 +51,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { mtTodayKey } from "@/lib/mt-datetime";
 
 const PER_PAGE_OPTIONS = [10, 20, 50, 100];
 
@@ -679,7 +680,7 @@ function TimeOffEditor({
     } else {
       setSelectedEmployee(null);
       setEmployeeSearch("");
-      setDate(new Date().toISOString().slice(0, 10));
+      setDate(mtTodayKey());
       setType("day off");
       setHour("8");
       setMinute("0");

@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CAR_ONBOARDING_TIMEZONES, mtLocalInputToUtcIso, mtDayStartToUtcIso } from "@/lib/mt-datetime";
+import { handoffTimezone, mtLocalInputToUtcIso, mtDayStartToUtcIso, mtTodayKey } from "@/lib/mt-datetime";
 
 const carOnboardingSchema = z.object({
   date: z.string().min(1, "Date is required"),
@@ -94,12 +94,12 @@ export default function CarOnboardingForm() {
   const form = useForm<CarOnboardingFormData>({
     resolver: zodResolver(carOnboardingSchema),
     defaultValues: {
-      date: new Date().toISOString().split('T')[0],
+      date: mtTodayKey(),
       name: "",
       carId: "",
       carMakeModelYear: "",
       plateNumber: "",
-      dropOffDate: new Date().toISOString().split('T')[0],
+      dropOffDate: mtTodayKey(),
       dropOffTime: "09:00",
       dropOffLocation: "",
       dealershipAddress: "",
@@ -135,7 +135,7 @@ export default function CarOnboardingForm() {
       // `new Date()` parse them applied the *browser's* offset — a bare
       // YYYY-MM-DD as UTC midnight, and the date+time pair as browser-local —
       // so a user outside Mountain Time filed records under the wrong day.
-      const timezone = data.dropOffLocation === '9789 Blackwell Road Southeast, Leland, NC 28451' ? CAR_ONBOARDING_TIMEZONES.northCarolina : CAR_ONBOARDING_TIMEZONES.utah;
+      const timezone = handoffTimezone(data.dropOffLocation);
       const dateTime = mtDayStartToUtcIso(data.date, timezone);
       const dropOffDateTime = mtLocalInputToUtcIso(`${data.dropOffDate}T${data.dropOffTime}`, timezone);
       if (!dateTime || !dropOffDateTime) {
@@ -176,14 +176,13 @@ export default function CarOnboardingForm() {
       });
 
       // Reset form
-      const now = new Date();
       form.reset({
-        date: now.toISOString().split('T')[0],
+        date: mtTodayKey(),
         name: userData?.user ? `${userData.user.firstName} ${userData.user.lastName}` : "",
         carId: "",
         carMakeModelYear: "",
         plateNumber: "",
-        dropOffDate: now.toISOString().split('T')[0],
+        dropOffDate: mtTodayKey(),
         dropOffTime: "09:00",
         dropOffLocation: "",
         dealershipAddress: "",

@@ -28,6 +28,7 @@ import {
   vehicleName,
   type StoredTrip,
 } from "@/components/bouncie/trip-route";
+import { mtTodayKey } from "@/lib/mt-datetime";
 
 export default function ClientVehicleTripsPage() {
   const [startDate, setStartDate] = useState(() => {
@@ -35,7 +36,7 @@ export default function ClientVehicleTripsPage() {
     d.setDate(d.getDate() - 30);
     return d.toISOString().slice(0, 10);
   });
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = useState(() => mtTodayKey());
   const [selectedTrip, setSelectedTrip] = useState<StoredTrip | null>(null);
 
   const queryParams = new URLSearchParams();

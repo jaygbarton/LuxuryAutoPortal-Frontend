@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { buildApiUrl } from "@/lib/queryClient";
+import { mtTodayKey } from "@/lib/mt-datetime";
 
 interface RecordFileModalProps {
   isOpen: boolean;
@@ -32,7 +33,7 @@ export function RecordFileModal({
   useEffect(() => {
     if (isOpen) {
       // Set default date to today for new records
-      const today = new Date().toISOString().split("T")[0];
+      const today = mtTodayKey();
       setFormData({
         record_files_doc_name: "",
         record_files_date: today,

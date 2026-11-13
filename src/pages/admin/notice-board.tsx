@@ -36,6 +36,7 @@ import {
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2, ClipboardList } from "lucide-react";
+import { mtTodayKey } from "@/lib/mt-datetime";
 
 interface NoticeBoardRow {
   notice_board_aid: number;
@@ -63,7 +64,7 @@ const emptyForm = {
   notice_board_body: "",
   notice_board_category: "Operations",
   notice_board_priority: "Info",
-  notice_board_date: new Date().toISOString().slice(0, 10),
+  notice_board_date: mtTodayKey(),
   notice_board_is_active: 1,
 };
 

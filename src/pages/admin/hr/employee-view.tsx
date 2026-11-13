@@ -38,6 +38,7 @@ import { EditJobInfoModal } from "./components/EditJobInfoModal";
 import { EditPayInfoModal } from "./components/EditPayInfoModal";
 import { ContractorPolicyAgreementCard } from "./components/ContractorPolicyAgreementCard";
 import { useCoHost } from "@/hooks/use-co-host";
+import { mtTodayKey } from "@/lib/mt-datetime";
 
 type ProfileSection =
   | "personal-information"
@@ -155,7 +156,7 @@ function formatDateTime(dateString: string | null | undefined): string {
 function AddRateModal({ employeeId, onSuccess }: { employeeId: number; onSuccess: () => void }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
-  const [effectiveStart, setEffectiveStart] = useState(new Date().toISOString().slice(0, 10));
+  const [effectiveStart, setEffectiveStart] = useState(mtTodayKey());
   const [payType, setPayType] = useState("hourly");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -182,7 +183,7 @@ function AddRateModal({ employeeId, onSuccess }: { employeeId: number; onSuccess
       queryClient.invalidateQueries({ queryKey: ["/api/employees", employeeId, "rate-history"] });
       setOpen(false);
       setAmount("");
-      setEffectiveStart(new Date().toISOString().slice(0, 10));
+      setEffectiveStart(mtTodayKey());
       onSuccess();
     },
     onError: (e: Error) => {

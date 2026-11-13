@@ -114,3 +114,18 @@ describe("mtDayKeyOrNull", () => {
     expect(mtDayKeyOrNull(Date.parse("2026-08-31T04:00:00.000Z"))).toBe("2026-08-30");
   });
 });
+
+describe("handoffTimezone (car on/off-boarding)", () => {
+  // Must agree with handoffTimezone in backend/src/config/timezone.ts, which
+  // formats the same stored instant for Slack and the emails.
+  it("reads North Carolina locations as Eastern and everything else as Mountain", async () => {
+    const { handoffTimezone, NC_HANDOFF_ADDRESS, mtLocalInputToUtcIso } = await import("../mt-datetime");
+    expect(handoffTimezone(NC_HANDOFF_ADDRESS)).toBe("America/New_York");
+    expect(handoffTimezone("123 Market St, Wilmington NC")).toBe("America/New_York");
+    expect(handoffTimezone("50 South Redwood Road, Salt Lake City, Utah 84116")).toBe("America/Denver");
+    expect(handoffTimezone("Lincoln Avenue")).toBe("America/Denver");
+    expect(handoffTimezone("")).toBe("America/Denver");
+    // An NC pick-up at 11:00 AM is 16:00 UTC, not the 18:00 a Mountain reading gave.
+    expect(mtLocalInputToUtcIso("2026-11-19T11:00", handoffTimezone(NC_HANDOFF_ADDRESS))).toBe("2026-11-19T16:00:00.000Z");
+  });
+});

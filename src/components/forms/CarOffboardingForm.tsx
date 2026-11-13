@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { mtLocalInputToUtcIso, mtDayStartToUtcIso } from "@/lib/mt-datetime";
+import { NC_HANDOFF_ADDRESS, handoffTimezone, mtLocalInputToUtcIso, mtDayStartToUtcIso, mtTodayKey } from "@/lib/mt-datetime";
 
 const DEFAULT_PICKUP_LOCATION = "50 South Redwood Road, Salt Lake City, Utah 84116";
 const OTHER_PICKUP_LOCATION = "__other__";
@@ -103,12 +103,12 @@ export default function CarOffboardingForm({ preview = false }: { preview?: bool
   const form = useForm<CarOffboardingFormData>({
     resolver: zodResolver(carOffboardingSchema),
     defaultValues: {
-      date: new Date().toISOString().split('T')[0],
+      date: mtTodayKey(),
       name: "",
       carId: "",
       carMakeModelYear: "",
       plateNumber: "",
-      pickUpDate: new Date().toISOString().split('T')[0],
+      pickUpDate: mtTodayKey(),
       pickUpTime: "09:00",
       pickUpLocation: DEFAULT_PICKUP_LOCATION,
       agreeToTerms: false,
@@ -141,12 +141,14 @@ export default function CarOffboardingForm({ preview = false }: { preview?: bool
     if (preview) return;
     setIsSubmitting(true);
     try {
-      // These are Mountain-Time calendar dates and wall times. Letting
-      // `new Date()` parse them applied the *browser's* offset — a bare
-      // YYYY-MM-DD as UTC midnight, and the date+time pair as browser-local —
-      // so a user outside Mountain Time filed records under the wrong day.
-      const dateTime = mtDayStartToUtcIso(data.date);
-      const pickUpDateTime = mtLocalInputToUtcIso(`${data.pickUpDate}T${data.pickUpTime}`);
+      // These are calendar dates and wall times in the pick-up location's zone
+      // (North Carolina = Eastern, otherwise Mountain), matching the onboarding
+      // form. Letting `new Date()` parse them applied the *browser's* offset —
+      // a bare YYYY-MM-DD as UTC midnight, and the date+time pair as
+      // browser-local — so a user elsewhere filed records under the wrong day.
+      const timezone = handoffTimezone(data.pickUpLocation);
+      const dateTime = mtDayStartToUtcIso(data.date, timezone);
+      const pickUpDateTime = mtLocalInputToUtcIso(`${data.pickUpDate}T${data.pickUpTime}`, timezone);
       if (!dateTime || !pickUpDateTime) {
         throw new Error("Pick a valid date and time");
       }
@@ -184,14 +186,13 @@ export default function CarOffboardingForm({ preview = false }: { preview?: bool
       });
 
       // Reset form
-      const now = new Date();
       form.reset({
-        date: now.toISOString().split('T')[0],
+        date: mtTodayKey(),
         name: userData?.user ? `${userData.user.firstName} ${userData.user.lastName}` : "",
         carId: "",
         carMakeModelYear: "",
         plateNumber: "",
-        pickUpDate: now.toISOString().split('T')[0],
+        pickUpDate: mtTodayKey(),
         pickUpTime: "09:00",
         pickUpLocation: DEFAULT_PICKUP_LOCATION,
         agreeToTerms: false,
@@ -408,6 +409,7 @@ export default function CarOffboardingForm({ preview = false }: { preview?: bool
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-muted-foreground">Pick Up Location *</FormLabel>
+                  <p className="text-xs text-muted-foreground">Enter the date and time in the pick-up location’s local time.</p>
                   <Select
                     onValueChange={(value) => {
                       if (value === OTHER_PICKUP_LOCATION) {
@@ -429,6 +431,7 @@ export default function CarOffboardingForm({ preview = false }: { preview?: bool
                       <SelectItem value={DEFAULT_PICKUP_LOCATION}>
                         {DEFAULT_PICKUP_LOCATION}
                       </SelectItem>
+                      <SelectItem value={NC_HANDOFF_ADDRESS}>{NC_HANDOFF_ADDRESS}</SelectItem>
                       <SelectItem value={OTHER_PICKUP_LOCATION}>Other (enter address)</SelectItem>
                     </SelectContent>
                   </Select>

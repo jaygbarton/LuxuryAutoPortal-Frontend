@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Upload, Loader2, X, FileText, Eye } from "lucide-react";
+import { mtTodayKey } from "@/lib/mt-datetime";
 
 const CATEGORY_LABELS: Record<string, string> = {
   income: "Income & Expenses",
@@ -53,7 +54,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField, i
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
-    submissionDate: new Date().toISOString().slice(0, 10),
+    submissionDate: mtTodayKey(),
     employeeId: "",
     carId: initialCarId ? String(initialCarId) : "",
     year: new Date().getFullYear().toString(),
@@ -361,7 +362,7 @@ export default function ExpenseFormSubmission({ initialCategory, initialField, i
           : "Expense receipt form submitted successfully. Awaiting admin approval. (Slack notification was not sent—check Admin → Settings → Slack channels.)",
       });
       setFormData({
-        submissionDate: new Date().toISOString().slice(0, 10),
+        submissionDate: mtTodayKey(),
         employeeId:
           formData.employeeId ||
           (currentEmployeeId != null ? String(currentEmployeeId) : "") ||

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CheckCircle, ParkingCircle, UploadCloud, X, FileText } from "lucide-react";
+import { mtTodayKey } from "@/lib/mt-datetime";
 
 interface CarOption {
   id: number;
@@ -35,7 +36,7 @@ export default function ParkingTicketSubmission() {
 
   const [form, setForm] = useState({
     pt_car_id: "",
-    pt_receipt_date: new Date().toISOString().slice(0, 10),
+    pt_receipt_date: mtTodayKey(),
     pt_amount: "",
   });
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -122,7 +123,7 @@ export default function ParkingTicketSubmission() {
   const handleReset = () => {
     setForm({
       pt_car_id: cars.length === 1 ? String(cars[0].id) : "",
-      pt_receipt_date: new Date().toISOString().slice(0, 10),
+      pt_receipt_date: mtTodayKey(),
       pt_amount: "",
     });
     setReceiptFile(null);

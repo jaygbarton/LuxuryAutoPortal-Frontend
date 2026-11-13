@@ -51,6 +51,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { mtTodayKey } from "@/lib/mt-datetime";
 
 interface OnboardingCar {
   id: number;
@@ -110,11 +111,11 @@ function CarOnboarding() {
   const addCarForm = useForm<AddCarFormData>({
     resolver: zodResolver(addCarSchema),
     defaultValues: {
-      date: new Date().toISOString().split("T")[0],
+      date: mtTodayKey(),
       name: "",
       carMakeModelYear: "",
       plateNumber: "",
-      dropOffDate: new Date().toISOString().split("T")[0],
+      dropOffDate: mtTodayKey(),
     },
   });
 

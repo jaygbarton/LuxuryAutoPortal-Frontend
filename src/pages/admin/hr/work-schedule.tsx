@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Copy, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { mtTodayKey } from "@/lib/mt-datetime";
 
 const LIMIT_CELL = 3;
 
@@ -98,7 +99,7 @@ function DayCellContent({
 }) {
   const code = cell.originalDateCode;
   const { data: list = [], isLoading } = useWorkSchedByCode(code, LIMIT_CELL);
-  const isToday = code && new Date().toISOString().slice(0, 10).replace(/-/g, "") === code;
+  const isToday = code && mtTodayKey().replace(/-/g, "") === code;
   const hasEntries = list.length > 0;
 
   if (cell.day === 0) {

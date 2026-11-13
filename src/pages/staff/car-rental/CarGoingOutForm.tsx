@@ -17,6 +17,7 @@ import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useCallback, useState } from "react";
+import { mtTodayKey } from "@/lib/mt-datetime";
 
 interface CarOption {
   id: number;
@@ -126,7 +127,7 @@ interface CarGoingOutFormProps {
 export function CarGoingOutForm({ onBack }: CarGoingOutFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [submitDate, setSubmitDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [submitDate, setSubmitDate] = useState(() => mtTodayKey());
   const [startDateRental, setStartDateRental] = useState("");
   const [carId, setCarId] = useState<number | "">("");
   const [checklists, setChecklists] = useState<Record<string, boolean>>({});

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CheckCircle, Users, Search } from "lucide-react";
+import { mtTodayKey } from "@/lib/mt-datetime";
 
 interface ClientOption {
   id: number;
@@ -41,7 +42,7 @@ export default function ReferralFormSubmission() {
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState({
-    rf_date: new Date().toISOString().slice(0, 10),
+    rf_date: mtTodayKey(),
     rf_referral_first_name: "",
     rf_referral_last_name: "",
     rf_referral_phone_number: "",
@@ -178,7 +179,7 @@ export default function ReferralFormSubmission() {
 
   const handleReset = () => {
     setForm({
-      rf_date: new Date().toISOString().slice(0, 10),
+      rf_date: mtTodayKey(),
       rf_referral_first_name: "",
       rf_referral_last_name: "",
       rf_referral_phone_number: "",

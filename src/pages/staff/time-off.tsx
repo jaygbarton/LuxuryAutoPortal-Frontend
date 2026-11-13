@@ -45,6 +45,7 @@ import {
   TreePalm,
 } from "lucide-react";
 import { useState } from "react";
+import { mtTodayKey } from "@/lib/mt-datetime";
 
 const PER_PAGE_OPTIONS = [10, 20, 50, 100];
 
@@ -138,7 +139,7 @@ export default function StaffTimeOff() {
 
   const [applyOpen, setApplyOpen] = useState(false);
   const [formDate, setFormDate] = useState(
-    () => new Date().toISOString().slice(0, 10)
+    () => mtTodayKey()
   );
   const [formType, setFormType] = useState("day off");
   const [formRemarks, setFormRemarks] = useState("");
@@ -226,7 +227,7 @@ export default function StaffTimeOff() {
 
   function closeForm() {
     setApplyOpen(false);
-    setFormDate(new Date().toISOString().slice(0, 10));
+    setFormDate(mtTodayKey());
     setFormType("day off");
     setFormRemarks("");
   }

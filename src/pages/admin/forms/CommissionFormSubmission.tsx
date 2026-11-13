@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Upload, X, FileText, DollarSign, CheckCircle } from "lucide-react";
+import { mtTodayKey } from "@/lib/mt-datetime";
 
 interface Car {
   id: number;
@@ -39,7 +40,7 @@ export default function CommissionFormSubmission() {
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState({
-    cf_commission_date: new Date().toISOString().slice(0, 10),
+    cf_commission_date: mtTodayKey(),
     cf_commission_type: "",
     cf_total_receipt_cost: "",
     cf_remarks: "",
@@ -170,7 +171,7 @@ export default function CommissionFormSubmission() {
   };
 
   const handleReset = () => {
-    setForm({ cf_commission_date: new Date().toISOString().slice(0, 10), cf_commission_type: "", cf_total_receipt_cost: "", cf_remarks: "" });
+    setForm({ cf_commission_date: mtTodayKey(), cf_commission_type: "", cf_total_receipt_cost: "", cf_remarks: "" });
     setCarSearch("");
     setSelectedCarId(null);
     setSelectedCarName("");

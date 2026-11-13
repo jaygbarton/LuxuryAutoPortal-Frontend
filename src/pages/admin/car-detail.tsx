@@ -52,7 +52,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ClientSelectCombobox } from "./ClientSelectCombobox";
 import { PUBLIC_LOCATIONS } from "@/lib/location-config";
 import { useTimezone } from "@/hooks/use-timezone";
-import { mtDayKey } from "@/lib/mt-datetime";
+import { mtDayKey, mtTodayKey } from "@/lib/mt-datetime";
 import { useCoHost } from "@/hooks/use-co-host";
 import {
   buildRentalHistorySearchParams,
@@ -4033,7 +4033,7 @@ export default function CarDetailPage() {
                                   // Set offboardAt to current date if not already set
                                   const currentOffboardAt = form.getValues("offboardAt");
                                   if (!currentOffboardAt) {
-                                    form.setValue("offboardAt", new Date().toISOString().split('T')[0]);
+                                    form.setValue("offboardAt", mtTodayKey());
                                   }
                                   // Keep offboardReason if already set, otherwise leave it
                                 } else if (value === "ACTIVE") {
