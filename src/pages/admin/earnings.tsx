@@ -1526,7 +1526,14 @@ export default function EarningsPage() {
 
         {/* Earnings Header with Year Filter */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
-          <h1 className="text-xl sm:text-3xl font-serif text-primary italic leading-tight">Earnings</h1>
+          <div>
+            <h1 className="text-xl sm:text-3xl font-serif text-primary italic leading-tight">Earnings</h1>
+            {/* Per Cathy (2026-11-12): monthly I&E is finalized on the 20th
+                (1st–15th data entry, 16th–18th payment finalization, 19th–20th buffer). */}
+            <p className="mt-1 text-xs sm:text-sm italic font-medium text-red-600">
+              Please be advised that the finalized rental income and detailed expenses for all vehicles will be available every 20th of the month.
+            </p>
+          </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {carId && <ReceiptEditHistory carId={carId} year={selectedYear} />}
             <div className="w-full sm:w-[150px]">
