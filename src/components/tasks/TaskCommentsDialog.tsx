@@ -24,6 +24,7 @@ import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { api } from "@/lib/api";
 import { getActiveTimezone } from "@/hooks/use-timezone";
 import { useToast } from "@/hooks/use-toast";
+import { ImageLightbox } from "@/components/ui/fullscreen-layer";
 
 interface TaskComment {
   task_comment_aid: number;
@@ -312,23 +313,7 @@ export default function TaskCommentsDialog({ taskId, taskName, onClose }: Props)
       </DialogContent>
 
       {fullScreenPhoto && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
-          onClick={() => setFullScreenPhoto(null)}
-        >
-          <img
-            src={fullScreenPhoto}
-            alt="Attachment full size"
-            className="max-w-full max-h-full object-contain"
-          />
-          <button
-            type="button"
-            onClick={() => setFullScreenPhoto(null)}
-            className="absolute top-4 right-4 text-white bg-white/10 hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        <ImageLightbox url={fullScreenPhoto} alt="Attachment full size" onClose={() => setFullScreenPhoto(null)} />
       )}
     </Dialog>
   );
