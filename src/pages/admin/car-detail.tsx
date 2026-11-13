@@ -4185,8 +4185,8 @@ export default function CarDetailPage() {
                                   <p className="text-muted-foreground text-xs mt-1 truncate max-w-full px-2">{isGoogleDriveId ? 'Google Drive File' : onboarding.insuranceCardUrl.split("/").pop()}</p>
                                 </div>
                               ) : (
-                                <img
-                                  src={documentUrl}
+                                <DocumentImageWithAuth
+                                  url={documentUrl}
                                   alt="Current Insurance Card"
                                   className="w-full h-full object-contain p-2"
                                 />
@@ -4307,8 +4307,8 @@ export default function CarDetailPage() {
                                     <p className="text-muted-foreground text-xs mt-1 truncate max-w-full px-2">{isGoogleDriveId ? 'Google Drive File' : url.split("/").pop()}</p>
                                   </div>
                                 ) : (
-                                  <img
-                                    src={documentUrl}
+                                  <DocumentImageWithAuth
+                                    url={documentUrl}
                                     alt="Drivers License"
                                     className="w-full h-full object-contain p-2"
                                   />
@@ -4346,8 +4346,8 @@ export default function CarDetailPage() {
                                       <p className="text-primary text-xs font-semibold">PDF</p>
                                     </div>
                                   ) : (
-                                      <img
-                                        src={documentUrl}
+                                      <DocumentImageWithAuth
+                                        url={documentUrl}
                                         alt={`License ${index + 1}`}
                                         className="w-full h-full object-contain p-1"
                                       />
@@ -4512,7 +4512,7 @@ export default function CarDetailPage() {
         {/* Full Screen Image Viewer */}
         {fullScreenImageIndex !== null && car?.photos && car.photos[fullScreenImageIndex] && (
           <div 
-            className="fixed inset-0 z-[100] bg-background/98 flex items-center justify-center"
+            className="fixed inset-0 z-[4000] bg-background/95 flex items-center justify-center"
             onClick={() => setFullScreenImageIndex(null)}
           >
             {/* Close Button - Top Right */}
@@ -4564,7 +4564,7 @@ export default function CarDetailPage() {
         {/* Full Screen Document Viewer Dialog */}
         {fullScreenDocument && (
           <div 
-            className="fixed inset-0 z-[100] bg-background/98 flex items-center justify-center"
+            className="fixed inset-0 z-[4000] bg-background/95 flex items-center justify-center"
             onClick={() => setFullScreenDocument(null)}
           >
             {/* Close Button - Top Right Corner */}
@@ -4689,20 +4689,18 @@ export default function CarDetailPage() {
                   title={fullScreenDocument.type === 'insurance' ? 'Insurance Card PDF' : `Drivers License PDF ${fullScreenDocument.index !== undefined ? fullScreenDocument.index + 1 : ''}`}
                 />
               ) : (
-                <img
-                  src={fullScreenDocument.url}
-                  alt={fullScreenDocument.type === 'insurance' ? 'Insurance Card' : `Drivers License ${fullScreenDocument.index !== undefined ? fullScreenDocument.index + 1 : ''}`}
-                  className="w-full h-full object-contain"
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    maxWidth: '100vw',
-                    maxHeight: '100vh',
-                  }}
-                  onError={(e) => {
-                    console.error('Failed to load image in full screen viewer:', fullScreenDocument.url);
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
+                // Credentialled fetch: a plain <img> sends no cookies cross-origin, so the
+                // Google Drive proxy (/api/cars/documents/file-content) 401s and the viewer opened blank.
+                <div className="w-full h-full max-w-[100vw] max-h-[100vh]" onClick={(e) => e.stopPropagation()}>
+                  <DocumentImageWithAuth
+                    url={fullScreenDocument.url}
+                    alt={fullScreenDocument.type === 'insurance' ? 'Insurance Card' : `Drivers License ${fullScreenDocument.index !== undefined ? fullScreenDocument.index + 1 : ''}`}
+                    className="w-full h-full object-contain"
+                    onError={() => {
+                      console.error('Failed to load image in full screen viewer:', fullScreenDocument.url);
+                    }}
+                  />
+                </div>
               )}
             </div>
           </div>

@@ -2290,13 +2290,14 @@ export default function EarningsPage() {
         {/* Rental Income Image Preview Modal */}
         {previewRentalImage && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+            className="fixed inset-0 z-[4000] flex items-center justify-center bg-black/70"
             onClick={() => setPreviewRentalImage(null)}
           >
             <div className="relative max-w-3xl max-h-[90vh] w-full mx-4" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setPreviewRentalImage(null)}
-                className="absolute -top-10 right-0 text-white hover:text-primary transition-colors"
+                className="absolute top-2 right-2 z-10 rounded-full bg-black/60 p-1 text-white hover:text-primary transition-colors"
+                aria-label="Close preview"
               >
                 <X className="w-6 h-6" />
               </button>

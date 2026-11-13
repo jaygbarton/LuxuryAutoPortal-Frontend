@@ -755,7 +755,7 @@ export default function CommissionFormApprovalDashboard() {
       {/* Receipt Lightbox */}
       {lightboxUrl && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-[4000] flex items-center justify-center bg-black/80 p-4"
           onClick={() => setLightboxUrl(null)}
         >
           <button
