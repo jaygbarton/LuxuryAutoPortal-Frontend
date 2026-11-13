@@ -82,6 +82,13 @@ function unspecified(val: string | null | undefined): string {
   return (val ?? "").trim() || "Unspecified";
 }
 
+const PAYSLIP_STATUS: Record<number, { label: string; className: string }> = {
+  0: { label: "To Pay", className: "bg-yellow-500/20 text-yellow-700" },
+  1: { label: "Paid", className: "bg-green-500/20 text-green-700" },
+  2: { label: "On Hold", className: "bg-red-500/20 text-red-700" },
+  3: { label: "In Review", className: "bg-blue-500/20 text-blue-700" },
+};
+
 function formatCurrency(val: string | number | null | undefined): string {
   const n = parseFloat(String(val ?? 0));
   return isNaN(n) ? "$0.00" : `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -291,7 +298,7 @@ export default function StaffMyInfoSection() {
     enabled: section === "rate-history",
   });
 
-  const { data: payslipsData, isLoading: payslipsLoading } = useQuery<{ success: boolean; data: { payrun_list_aid: number; payrun_number?: string; payrun_status?: number; payrun_list_gross: string; payrun_list_deduction: string; payrun_list_net: string }[] }>({
+  const { data: payslipsData, isLoading: payslipsLoading } = useQuery<{ success: boolean; data: { payrun_list_aid: number; payrun_number?: string; payrun_list_status?: number; payrun_date_from?: string; payrun_date_to?: string; payrun_list_gross: string; payrun_list_deduction: string; payrun_list_net: string }[] }>({
     queryKey: ["/api/me/payslips"],
     queryFn: async () => {
       return api.get("/api/me/payslips", {
@@ -796,6 +803,7 @@ export default function StaffMyInfoSection() {
                       <th className="text-left py-2 text-foreground font-medium">#</th>
                       <th className="text-left py-2 text-foreground font-medium">Status</th>
                       <th className="text-left py-2 text-foreground font-medium">Payroll ID</th>
+                      <th className="text-left py-2 text-foreground font-medium">Date Range</th>
                       <th className="text-right py-2 text-foreground font-medium">Gross</th>
                       <th className="text-right py-2 text-foreground font-medium">Deduction</th>
                       <th className="text-right py-2 text-foreground font-medium">Net Pay</th>
@@ -806,11 +814,19 @@ export default function StaffMyInfoSection() {
                       <tr key={row.payrun_list_aid} className="border-b border-border/50">
                         <td className="py-2 text-muted-foreground">{i + 1}.</td>
                         <td className="py-2">
-                          <span className={`px-2 py-0.5 text-xs rounded-full ${row.payrun_status === 1 ? "bg-green-500/20 text-green-700" : "bg-yellow-500/20 text-yellow-700"}`}>
-                            {row.payrun_status === 1 ? "Paid" : "Unpaid"}
-                          </span>
+                          {(() => {
+                            // Per-employee status set on the admin Payroll run page
+                            // (payrun_list_status: 0=To Pay, 1=Paid, 2=On Hold, 3=In Review).
+                            const st = PAYSLIP_STATUS[Number(row.payrun_list_status ?? 0)] ?? PAYSLIP_STATUS[0];
+                            return <span className={`px-2 py-0.5 text-xs rounded-full ${st.className}`}>{st.label}</span>;
+                          })()}
                         </td>
                         <td className="py-2 text-muted-foreground">{row.payrun_number || "—"}</td>
+                        <td className="py-2 text-muted-foreground whitespace-nowrap">
+                          {row.payrun_date_from && row.payrun_date_to
+                            ? `${formatMonthDayYear(row.payrun_date_from)} – ${formatMonthDayYear(row.payrun_date_to)}`
+                            : "—"}
+                        </td>
                         <td className="py-2 text-right text-muted-foreground">{formatCurrency(row.payrun_list_gross)}</td>
                         <td className="py-2 text-right text-muted-foreground">{formatCurrency(row.payrun_list_deduction)}</td>
                         <td className="py-2 text-right text-muted-foreground">{formatCurrency(row.payrun_list_net)}</td>
