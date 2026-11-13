@@ -17,6 +17,7 @@ export type OperationsEntityType =
   | "inspection"
   | "maintenance"
   | "claim"
+  | "recall"
   | "car_repaired"
   | "ticket_violation"
   | "towing_impound"

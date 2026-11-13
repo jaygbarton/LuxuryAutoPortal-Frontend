@@ -20,7 +20,7 @@ import { checkPasswordStrength, getPasswordStrengthColor, getPasswordStrengthLab
 
 interface SlackChannelConfig {
   id: number;
-  formType: "lyc" | "car_onboarding" | "car_offboarding" | "employee_onboarding" | "employee_time_in_out" | "expense_income" | "expense_direct_delivery" | "expense_cogs" | "expense_reimbursed_bills" | "commission_form" | "lyc_client_car_block_off" | "parking_ticket" | "ticket_violation" | "towing_impound" | "car_repaired" | "turo_claims";
+  formType: "lyc" | "car_onboarding" | "car_offboarding" | "employee_onboarding" | "employee_time_in_out" | "expense_income" | "expense_direct_delivery" | "expense_cogs" | "expense_reimbursed_bills" | "commission_form" | "lyc_client_car_block_off" | "parking_ticket" | "ticket_violation" | "towing_impound" | "car_repaired" | "turo_claims" | "car_recall";
   channelId: string;
   channelName: string | null;
   updatedAt: string;
@@ -43,6 +43,7 @@ const formTypeLabels: Record<string, string> = {
   towing_impound: "Towing & Impound (Client)",
   car_repaired: "Repaired Cars",
   turo_claims: "Turo Claims",
+  car_recall: "Car Recalls",
 };
 
 export default function SettingsPage() {

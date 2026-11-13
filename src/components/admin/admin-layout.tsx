@@ -51,6 +51,7 @@ import {
   Truck,
   Code2,
   Ellipsis,
+  AlertTriangle,
 } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
 import { ViewAsClientBanner } from "./ViewAsClientBanner";
@@ -93,6 +94,7 @@ const OPERATIONS_TABS: { href: string; label: string; icon: any }[] = [
   { href: "/admin/operations?tab=turo-inspection", label: "Turo Messages", icon: MessageCircle },
   { href: "/admin/operations?tab=inspections", label: "Car Issues", icon: ShieldAlert },
   { href: "/admin/operations?tab=claims", label: "Claims", icon: FileText },
+  { href: "/admin/operations?tab=recall", label: "Recall", icon: AlertTriangle },
   { href: "/admin/operations?tab=ticket-violation", label: "Ticket Violation", icon: ShieldAlert },
   { href: "/admin/operations?tab=towing-impound", label: "Towing & Impound", icon: Truck },
   { href: "/admin/operations?tab=completed", label: "No Car Issues", icon: ClipboardList },

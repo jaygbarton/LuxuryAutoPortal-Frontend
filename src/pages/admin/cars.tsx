@@ -46,6 +46,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { createRecall, RECALLS_PATH } from "./operations/recalls";
 import { apiRequest, buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { PUBLIC_LOCATIONS } from "@/lib/location-config";
 import { cn } from "@/lib/utils";
@@ -76,6 +77,8 @@ interface Car {
   color: string | null;
   mileage: number;
   status: "ACTIVE" | "INACTIVE";
+  /** An open recall (Operations → Recall). An overlay: `status` stays the fleet status. */
+  hasOpenRecall?: boolean;
   /**
    * Car photo paths returned by the backend (typically under `/car-photos/...`).
    * We use the first photo as the thumbnail in the Cars table.
@@ -121,7 +124,9 @@ const carSchema = z.object({
   color: z.string().optional(),
   interiorColor: z.string().optional(),
   mileage: z.string().optional(),
-  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+  // RECALL is not a fleet status: saving it keeps the car's ACTIVE/INACTIVE
+  // status and opens (or keeps) a recall in Operations → Recall.
+  status: z.enum(["ACTIVE", "INACTIVE", "RECALL"]).optional(),
   tireSize: z.string().optional(),
   oilType: z.string().optional(),
   lastOilChange: z.string().optional(),
@@ -646,7 +651,7 @@ export default function CarsPage() {
       color: car.color || "",
       interiorColor: "",
       mileage: car.mileage?.toString() || "",
-      status: car.status || "ACTIVE",
+      status: car.hasOpenRecall && car.status === "ACTIVE" ? "RECALL" : car.status || "ACTIVE",
       tireSize: car.tireSize || "",
       oilType: car.oilType || "",
       lastOilChange: car.lastOilChange || "",
@@ -662,7 +667,22 @@ export default function CarsPage() {
 
   const onSubmit = (data: CarFormData) => {
     if (selectedCar) {
-      updateMutation.mutate({ id: selectedCar.id, data });
+      const wantsRecall = data.status === "RECALL";
+      const carId = selectedCar.id;
+      updateMutation.mutate(
+        { id: carId, data: wantsRecall ? { ...data, status: selectedCar.status || "ACTIVE" } : data },
+        {
+          onSuccess: () => {
+            if (!wantsRecall) return;
+            createRecall({ carId, reuseOpen: true })
+              .then(() => {
+                queryClient.invalidateQueries({ queryKey: [RECALLS_PATH] });
+                queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
+              })
+              .catch((error: Error) => toast({ title: "Car saved, but the recall wasn't added", description: error.message, variant: "destructive" }));
+          },
+        },
+      );
     } else {
       createMutation.mutate(data);
     }
@@ -833,6 +853,7 @@ export default function CarsPage() {
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="ACTIVE">ACTIVE</SelectItem>
                   <SelectItem value="INACTIVE">INACTIVE</SelectItem>
+                  {!isClient && <SelectItem value="RECALL">RECALL</SelectItem>}
                 </SelectContent>
               </Select>
               <Select
@@ -999,6 +1020,11 @@ export default function CarsPage() {
                                     ? "INACTIVE"
                                     : car.status || "ACTIVE"}
                               </Badge>
+                              {car.hasOpenRecall && (
+                                <Badge variant="outline" className="border-red-300 bg-red-500/15 text-red-600 text-xs" title="Open safety recall — see Operations → Recall">
+                                  RECALL
+                                </Badge>
+                              )}
                             </div>
                           </td>
                           <td className="text-center px-1.5 sm:px-2 py-2 sm:py-3 align-middle">
@@ -1450,9 +1476,17 @@ export default function CarsPage() {
                           <SelectContent className="bg-card border-border text-foreground">
                             <SelectItem value="ACTIVE">ACTIVE</SelectItem>
                             <SelectItem value="INACTIVE">INACTIVE</SelectItem>
+                            {selectedCar && <SelectItem value="RECALL">RECALL</SelectItem>}
                           </SelectContent>
                         </Select>
                         <FormMessage />
+                        {field.value === "RECALL" ? (
+                          <p className="text-xs text-muted-foreground">
+                            The car stays {selectedCar?.status === "INACTIVE" ? "inactive" : "active"} for payments and totals, and is tracked in Operations → Recall until the repair is marked completed.
+                          </p>
+                        ) : selectedCar?.hasOpenRecall ? (
+                          <p className="text-xs text-amber-600">This car still has an open recall. Close it in Operations → Recall by marking the repair completed.</p>
+                        ) : null}
                       </FormItem>
                     )}
                   />

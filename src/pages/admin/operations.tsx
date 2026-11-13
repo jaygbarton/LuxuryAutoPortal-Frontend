@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TuroInspectionTab } from "./operations/TuroInspectionTab";
 import { CarInspectionsTab } from "./operations/CarInspectionsTab";
 import { ClaimsTab } from "./operations/ClaimsTab";
+import { RecallTab } from "./operations/RecallTab";
 import { TicketViolationTab } from "./operations/TicketViolationTab";
 import { TowingImpoundTab } from "./operations/TowingImpoundTab";
 import { MaintenanceTab } from "./operations/MaintenanceTab";
@@ -29,11 +30,11 @@ import {
 import { useCoHostLocationTags } from "@/hooks/use-co-host";
 import { WorkScheduleNavigation } from "@/components/shared/WorkScheduleNavigation";
 
-const TAB_IDS = ["day-schedule", "turo-inspection", "inspections", "claims", "ticket-violation", "towing-impound", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "chart-management"] as const;
+const TAB_IDS = ["day-schedule", "turo-inspection", "inspections", "claims", "recall", "ticket-violation", "towing-impound", "maintenance", "service-due", "completed", "car-repaired", "car-block-off", "chart-management"] as const;
 type TabId = typeof TAB_IDS[number];
 const TAB_LABELS: Record<TabId, string> = {
   "turo-inspection": "Turo Messages", inspections: "Car Issues",
-  claims: "Claims", "ticket-violation": "Ticket Violation", "towing-impound": "Towing & Impound",
+  claims: "Claims", recall: "Recall", "ticket-violation": "Ticket Violation", "towing-impound": "Towing & Impound",
   maintenance: "Maintenance", "service-due": "Service Due", completed: "No Car Issues",
   "car-repaired": "Car Repaired", "car-block-off": "Car Block Off",
   "day-schedule": "Day Schedule", "chart-management": "Chart Management",
@@ -174,6 +175,9 @@ export default function OperationsPage() {
           </LazyTab>
           <LazyTab value="claims" activeTab={activeTab} mountedTabs={mountedTabs}>
             <ClaimsTab />
+          </LazyTab>
+          <LazyTab value="recall" activeTab={activeTab} mountedTabs={mountedTabs}>
+            <RecallTab />
           </LazyTab>
           <LazyTab value="ticket-violation" activeTab={activeTab} mountedTabs={mountedTabs}>
             <TicketViolationTab />

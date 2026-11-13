@@ -23,6 +23,7 @@ import TaskManagementSection from "@/components/admin/dashboard/TaskManagementSe
 import NoticeBoardSection from "@/components/admin/dashboard/NoticeBoardSection";
 import TuroInspectionsSection from "@/components/admin/dashboard/TuroInspectionsSection";
 import CarIssuesSection from "@/components/admin/dashboard/CarIssuesSection";
+import RecallSection from "@/components/admin/dashboard/RecallSection";
 import CarPerformanceSection from "@/components/admin/dashboard/CarPerformanceSection";
 import CarBlockedOffSection from "@/components/admin/dashboard/CarBlockedOffSection";
 import CarOnOffboardingReport from "@/pages/admin/forms/CarOnOffboardingReport";
@@ -49,6 +50,7 @@ const ALL_SECTIONS: SectionDef[] = [
   { id: "operations", label: "Operations (Day Schedule)" },
   { id: "turo-inspections", label: "Turo Inspections" },
   { id: "car-issues", label: "Car Issues" },
+  { id: "recall", label: "Recall" },
   { id: "maintenance", label: "Maintenance" },
   { id: "task-management", label: "Task Management" },
   { id: "notice-board", label: "Notice Board" },
@@ -355,6 +357,8 @@ export default function AdminDashboard() {
           {show["turo-inspections"] && <TuroInspectionsSection />}
 
           {show["car-issues"] && <CarIssuesSection />}
+
+          {show["recall"] && <RecallSection />}
 
           {show["maintenance"] && <MaintenanceSection year={selectedYear} />}
 

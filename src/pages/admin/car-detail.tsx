@@ -53,6 +53,7 @@ import { ClientSelectCombobox } from "./ClientSelectCombobox";
 import { PUBLIC_LOCATIONS } from "@/lib/location-config";
 import { useTimezone } from "@/hooks/use-timezone";
 import { mtDayKey, mtTodayKey } from "@/lib/mt-datetime";
+import { createRecall, fetchRecalls, RECALLS_PATH, type Recall } from "./operations/recalls";
 import { useCoHost } from "@/hooks/use-co-host";
 import {
   buildRentalHistorySearchParams,
@@ -285,8 +286,9 @@ const carSchema = z.object({
   turoLink: z.string().optional(),
   adminTuroLink: z.string().optional(),
   turoVehicleIds: z.array(z.string()).max(10).optional(),
-  // Car Status (admin-only)
-  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+  // Car Status (admin-only). RECALL is not a fleet status: saving it keeps the
+  // car's ACTIVE/INACTIVE status and opens (or keeps) a recall in Operations → Recall.
+  status: z.enum(["ACTIVE", "INACTIVE", "RECALL"]).optional(),
   // Management Status (admin-only)
   managementStatus: z.enum(["management", "own", "off_ride"]).optional(),
   // Owner assignment (admin-only)
@@ -375,6 +377,13 @@ export default function CarDetailPage() {
   });
 
   const car = data?.data;
+  // Open recall for this car (an overlay on the fleet status; see Operations → Recall).
+  const { data: openRecalls = [] } = useQuery<Recall[]>({
+    queryKey: [RECALLS_PATH, "car", carId],
+    queryFn: () => fetchRecalls({ carId: carId!, status: "new" }),
+    enabled: !!carId,
+  });
+  const hasOpenRecall = openRecalls.length > 0;
   
   // Debug logging for photos
   useEffect(() => {
@@ -849,7 +858,7 @@ export default function CarDetailPage() {
       formData.append("turoVehicleIds", JSON.stringify((data.turoVehicleIds || []).filter((id): id is string => typeof id === "string" && id.trim().length > 0)));
       // Car Status (admin-only) - Always send if admin and value is provided
       if (isAdmin && data.status) {
-        formData.append("status", data.status);
+        formData.append("status", data.status === "RECALL" ? (car?.status === "INACTIVE" ? "INACTIVE" : "ACTIVE") : data.status);
       }
       // Management Status (admin-only) - Only send if admin and value is provided
       if (isAdmin && data.managementStatus) {
@@ -1361,7 +1370,7 @@ export default function CarDetailPage() {
         return extracted.length > 0 ? extracted : [];
       })(),
       // Car Status
-      status: (car.status || "ACTIVE") as "ACTIVE" | "INACTIVE",
+      status: (hasOpenRecall && car.status === "ACTIVE" ? "RECALL" : car.status || "ACTIVE") as "ACTIVE" | "INACTIVE" | "RECALL",
       // Management Status
       managementStatus: (car.managementStatus || "own") as "management" | "own" | "off_ride",
       // Owner assignment
@@ -1454,7 +1463,18 @@ export default function CarDetailPage() {
   };
 
   const onSubmit = (data: CarFormData) => {
-    updateMutation.mutate(data);
+    const wantsRecall = data.status === "RECALL";
+    updateMutation.mutate(data, {
+      onSuccess: () => {
+        if (!wantsRecall || !carId) return;
+        createRecall({ carId, reuseOpen: true })
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: [RECALLS_PATH] });
+            queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
+          })
+          .catch((error: Error) => toast({ title: "Car saved, but the recall wasn't added", description: error.message, variant: "destructive" }));
+      },
+    });
   };
 
   // Photo selection and deletion handlers
@@ -1891,6 +1911,11 @@ export default function CarDetailPage() {
                               ? "INACTIVE"
                               : String(car.status).replace("_", " ").toUpperCase()}
                           </Badge>
+                          {hasOpenRecall && (
+                            <a href="/admin/operations?tab=recall" title="Open safety recall — see Operations → Recall">
+                              <Badge variant="outline" className="ml-1.5 border-red-300 bg-red-500/15 text-red-600 text-xs">RECALL</Badge>
+                            </a>
+                          )}
                         </div>
                       </div>
 
@@ -4051,6 +4076,7 @@ export default function CarDetailPage() {
                               <SelectContent className="bg-card border-border text-foreground">
                                 <SelectItem value="ACTIVE">Active</SelectItem>
                                 <SelectItem value="INACTIVE">Inactive</SelectItem>
+                                <SelectItem value="RECALL">Recall</SelectItem>
                               </SelectContent>
                             </Select>
                           </FormControl>
@@ -4058,6 +4084,13 @@ export default function CarDetailPage() {
                           <p className="text-xs text-muted-foreground">
                             Only admins can change car status. When set to Inactive, offboarding status will be automatically updated to Offboarded. When set to Active, offboarding status will be automatically updated to Active.
                           </p>
+                          {field.value === "RECALL" ? (
+                            <p className="text-xs text-muted-foreground">
+                              Recall keeps the car {car?.status === "INACTIVE" ? "inactive" : "active"} for payments and totals and tracks it in Operations → Recall until the repair is marked completed.
+                            </p>
+                          ) : hasOpenRecall ? (
+                            <p className="text-xs text-amber-600">This car still has an open recall. Close it in Operations → Recall by marking the repair completed.</p>
+                          ) : null}
                         </FormItem>
                       )}
                     />
