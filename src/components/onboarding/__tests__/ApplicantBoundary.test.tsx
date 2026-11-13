@@ -46,6 +46,14 @@ describe("ApplicantBoundary", () => {
     expect(html).not.toContain("page-content");
   });
 
+  it("blames the phone's connection, not a server update, when the request never got a response", () => {
+    const network = render({ error: new TypeError("Load failed") });
+    expect(network).toContain("can&#x27;t reach the server");
+    expect(network).not.toContain("update being installed");
+    const outage = render({ error: new Error("auth/me failed: 502") });
+    expect(outage).toContain("update being installed");
+  });
+
   it("still keeps applicants out of the shell", () => {
     const html = render({ data: { user: { id: 2, isApplicant: true } } });
     expect(html).not.toContain("page-content");

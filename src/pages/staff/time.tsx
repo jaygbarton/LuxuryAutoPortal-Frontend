@@ -403,6 +403,21 @@ export default function StaffTime() {
       qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/last"] });
       qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/dashboard"] });
       qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/sessions"] });
+    } catch (error) {
+      // fetch() rejects (Safari: "Load failed", Chrome: "Failed to fetch") when
+      // the phone drops its connection, typically while walking out of Wi-Fi
+      // range at the end of a shift. This used to fail silently. The request may
+      // still have reached the server, so re-read the open session either way.
+      const offline = error instanceof TypeError;
+      toast({
+        title: "Could not clock out",
+        description: offline
+          ? "Your phone could not reach the server. Check your Wi-Fi or mobile data and tap Clock Out again."
+          : error instanceof Error ? error.message : "Could not clock out",
+        variant: "destructive",
+      });
+      qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/last"] });
+      qc.invalidateQueries({ queryKey: ["/api/me/time-sheet/sessions"] });
     } finally {
       setActionLoading(false);
     }

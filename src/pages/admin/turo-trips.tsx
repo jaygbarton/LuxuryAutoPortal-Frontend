@@ -815,6 +815,12 @@ export default function TuroTripsPage() {
       } else {
         toast({ title: "Error", description: "Failed to save locations.", variant: "destructive" });
       }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save locations.",
+        variant: "destructive",
+      });
     } finally {
       setSavingLocations(null);
     }

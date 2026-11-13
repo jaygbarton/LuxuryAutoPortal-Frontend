@@ -39,8 +39,12 @@ export function ServerReconnecting({
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         <p className="text-foreground font-medium">Reconnecting to the server…</p>
         <p className="text-muted-foreground text-sm max-w-sm">
-          You're still signed in. The server is briefly unavailable (usually an update being installed), and
-          this page will continue by itself in a moment.
+          {/* fetch() rejects with a TypeError ("Load failed" / "Failed to fetch") only when the
+              device never got a response, i.e. its own connection dropped. A server outage
+              arrives as an HTTP status instead, so blaming an update there misleads staff. */}
+          {error instanceof TypeError
+            ? "You're still signed in. Your phone can't reach the server right now. Check your Wi-Fi or mobile data, and this page will continue by itself once you're connected."
+            : "You're still signed in. The server is briefly unavailable (usually an update being installed), and this page will continue by itself in a moment."}
         </p>
         <p className="text-muted-foreground text-xs">
           {error instanceof Error ? error.message : "Server temporarily unavailable"}
