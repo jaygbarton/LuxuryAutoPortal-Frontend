@@ -99,6 +99,7 @@ import {
   TablePagination,
   ItemsPerPage,
 } from "@/components/ui/table-pagination";
+import { FullscreenLayer } from "@/components/ui/fullscreen-layer";
 
 interface FormItem {
   id: string;
@@ -3752,9 +3753,10 @@ export default function FormsPage() {
 
       {/* Full Screen Document Viewer Dialog */}
       {fullScreenDocument && (
-        <div
-          className="fixed inset-0 z-[4000] bg-background/95 flex items-center justify-center"
-          onClick={() => setFullScreenDocument(null)}
+        <FullscreenLayer
+          className="bg-background/95"
+          title={fullScreenDocument.type === "insurance" ? "Insurance Card" : "Driver's License"}
+          onClose={() => setFullScreenDocument(null)}
         >
           {/* Close Button - Top Right Corner */}
           <Button
@@ -3947,7 +3949,7 @@ export default function FormsPage() {
               />
             )}
           </div>
-        </div>
+        </FullscreenLayer>
       )}
       <AdminPageLinks />
     </AdminLayout>

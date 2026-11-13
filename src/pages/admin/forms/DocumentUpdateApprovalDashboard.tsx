@@ -59,6 +59,7 @@ import {
   XCircle,
   ZoomIn,
 } from "lucide-react";
+import { ImageLightbox } from "@/components/ui/fullscreen-layer";
 
 type DocumentType = "license" | "registration" | "insurance";
 type Status = "pending_review" | "approved" | "rejected" | "update_requested";
@@ -967,23 +968,7 @@ export default function DocumentUpdateApprovalDashboard() {
 
       {/* Lightbox */}
       {lightboxUrl && (
-        <div
-          className="fixed inset-0 z-[4000] flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setLightboxUrl(null)}
-        >
-          <button
-            className="absolute top-4 right-4 text-white/80 hover:text-white"
-            onClick={() => setLightboxUrl(null)}
-          >
-            <X className="h-7 w-7" />
-          </button>
-          <img
-            src={lightboxUrl}
-            alt="Document full size"
-            className="max-w-full max-h-full rounded-lg shadow-2xl object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
+        <ImageLightbox url={lightboxUrl} alt="Document full size" onClose={() => setLightboxUrl(null)} />
       )}
     </div>
   );

@@ -52,6 +52,7 @@ import {
   ZoomIn,
   History,
 } from "lucide-react";
+import { ImageLightbox } from "@/components/ui/fullscreen-layer";
 
 interface CommissionFormRow {
   cf_aid: number;
@@ -754,23 +755,7 @@ export default function CommissionFormApprovalDashboard() {
 
       {/* Receipt Lightbox */}
       {lightboxUrl && (
-        <div
-          className="fixed inset-0 z-[4000] flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setLightboxUrl(null)}
-        >
-          <button
-            className="absolute top-4 right-4 text-white/80 hover:text-white"
-            onClick={() => setLightboxUrl(null)}
-          >
-            <X className="h-7 w-7" />
-          </button>
-          <img
-            src={lightboxUrl}
-            alt="Receipt full size"
-            className="max-w-full max-h-full rounded-lg shadow-2xl object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
+        <ImageLightbox url={lightboxUrl} alt="Receipt full size" onClose={() => setLightboxUrl(null)} />
       )}
     </div>
   );
