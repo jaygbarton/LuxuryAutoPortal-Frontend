@@ -23,6 +23,7 @@ import {
   type HubSection,
 } from "@/lib/aiHub";
 import { serviceDate } from "@/lib/serviceWorkspace";
+import { AssistantAccess } from "./ai-hub/AssistantAccess";
 
 async function read<T>(path: string): Promise<T> {
   const response = await fetch(buildApiUrl(path), { credentials: "include" });
@@ -343,10 +344,11 @@ export default function AiHubPage() {
             AI Hub
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Vehicle reports prepared from your existing records. No AI credits
-            used.
+            Vehicle, fleet and schedule summaries prepared from your existing
+            records for AI assistants. No AI credits used.
           </p>
         </header>
+        <AssistantAccess enabled={!!user} accessKey={accessKey} />
         <section
           className="space-y-3 rounded-xl border bg-white p-4"
           aria-label="Report filters"

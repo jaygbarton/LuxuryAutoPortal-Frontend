@@ -363,7 +363,7 @@ export function ContractorPolicyDialog({ open, onOpenChange, onAgreed, reason = 
   const [checked, setChecked] = useState(false);
   const [signature, setSignature] = useState<WaiverSignature>(EMPTY_SIGNATURE);
   const [showErrors, setShowErrors] = useState(false);
-  const title = policyQuery.data?.policy.title ?? DEFAULT_WAIVER_TITLE;
+  const title = policyQuery.data?.policy?.title ?? DEFAULT_WAIVER_TITLE;
 
   const accept = useMutation({
     mutationFn: () =>
@@ -453,7 +453,7 @@ export function useContractorPolicyGate(enabled: boolean) {
   // "clock-in": opened by a clock-in attempt, so signing continues it.
   const [mode, setMode] = useState<null | "review" | "clock-in">(null);
   const needsPolicy = query.data?.mustSign === true;
-  const title = query.data?.policy.title ?? DEFAULT_WAIVER_TITLE;
+  const title = query.data?.policy?.title ?? DEFAULT_WAIVER_TITLE;
 
   // `policyAgreed` is passed on the continued clock-in, which runs before
   // this render's `needsPolicy` has refreshed.
@@ -490,7 +490,7 @@ export function EmployeeWaiverLoginPrompt({ enabled, userId }: { enabled: boolea
   const query = useMyContractorPolicy(enabled);
   const [open, setOpen] = useState(false);
   const mustSign = query.data?.mustSign === true;
-  const version = query.data?.policy.version;
+  const version = query.data?.policy?.version;
 
   useEffect(() => {
     if (!mustSign) return;

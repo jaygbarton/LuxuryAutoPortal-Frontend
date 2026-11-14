@@ -7,3 +7,17 @@ The screen supports refresh, a copied text summary, and a structured JSON downlo
 See the [backend API and interpretation contract](https://github.com/jaygbarton/LuxuryAutoPortal-Replit/blob/main/docs/ai-hub.md) before integrating an assistant. Keep authorization on the server; hiding a frontend tab does not protect financial data.
 
 Validation: `npm run lint`, `npm test`, `npm run build`, and `npx playwright test --config playwright.ai-hub.config.ts`. Browser tests use explicit API fixtures; they do not establish completeness of the private production records.
+
+## Assistant access (November 14, 2026)
+
+The hub is the read interface for AI assistants. An **Assistant access** panel
+on `/admin/ai-hub` lists every endpoint an assistant can call, shows admins
+whether any assistant key is configured, and copies a ready-made instruction
+block to paste into an assistant. The panel is built from the live index at
+`GET /api/ai-hub`, so it stays in step with the backend. Keys are created and
+revoked on the backend; see the backend contract linked above. The screen
+never displays a key.
+
+If the backend does not serve the index yet, the panel says so and the rest of
+the screen keeps working.
+

@@ -136,9 +136,9 @@ for (const width of [390, 1280])
     await expect(
       page.getByRole("heading", { name: "AI Hub", exact: true }),
     ).toBeVisible();
-    await page.getByLabel("Year", { exact: true }).selectOption("2025");
-    await page.getByLabel("To month", { exact: true }).selectOption("2");
-    await page.getByLabel("Vehicle", { exact: true }).selectOption("7");
+    await page.locator(`select[aria-label="Year"]`).selectOption("2025");
+    await page.locator(`select[aria-label="To month"]`).selectOption("2");
+    await page.locator(`select[aria-label="Vehicle"]`).selectOption("7");
     await expect(
       page.getByRole("region", { name: "Maintenance", exact: true }),
     ).toContainText("9 reports across 3 linked trips");
@@ -257,4 +257,49 @@ test("employee hub omits profitability and shows retry on request failure", asyn
   await expect(
     page.getByRole("region", { name: "Maintenance", exact: true }),
   ).toBeVisible();
+});
+
+test("assistant access lists what a bot can read and survives an older backend", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  let index: any = { success: true, data: [] }; // what a backend without the index returns
+  await page.route(
+    (url) => url.pathname.startsWith("/api/"),
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      let data: any = { success: true, data: [] };
+      if (path === "/api/auth/me")
+        data = { user: { id: 41, name: "Andy", isAdmin: true, isEmployee: false, roleName: "Admin", tourCompleted: true } };
+      if (path === "/api/ai-hub/cars") data = { cars: [car], canReadFinancials: true, nextOffset: null };
+      if (path === "/api/ai-hub") data = index;
+      await route.fulfill({ json: data });
+    },
+  );
+  await page.goto("/admin/ai-hub");
+  const panel = page.locator("[data-assistant-access]");
+  await panel.locator("summary").click();
+  await expect(panel.getByRole("alert")).toContainText("not available from the server yet");
+  await expect(page.getByRole("heading", { name: "AI Hub", exact: true })).toBeVisible();
+
+  index = {
+    schemaVersion: 2,
+    caller: { type: "staff", name: "admin", scopes: ["operations", "financials"] },
+    assistantAccess: { keysConfigured: 0 },
+    rules: ["Never invent mileage, dates, amounts, availability or service history."],
+    startHere: ["Call fleet-attention or operations-day for questions about the whole business."],
+    endpoints: [
+      { id: "fleet", path: "/api/ai-hub/fleet", scope: "operations", summary: "Every active vehicle.", available: true },
+      { id: "vehicle-schedule", path: "/api/ai-hub/cars/{carId}/schedule", scope: "operations", summary: "When one vehicle is committed.", available: true,
+        params: [{ name: "carId", in: "path", required: true, description: "Vehicle id." }, { name: "from", in: "query", description: "Start day." }] },
+    ],
+  };
+  await page.reload();
+  await page.locator("[data-assistant-access] summary").click();
+  await expect(panel.getByText("No assistant key set up")).toBeVisible();
+  await expect(panel.getByText("GET /api/ai-hub/cars/{carId}/schedule")).toBeVisible();
+  await expect(panel.getByText("carId (required) · from")).toBeVisible();
+  await panel.getByRole("button", { name: "Copy instructions for an assistant" }).click();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toContain("/api/ai-hub");
+  expect(copied).toContain("Never invent mileage");
+  expect(copied).not.toContain("glahub_");
 });
