@@ -108,7 +108,7 @@ function FilterGroup({
 }
 
 function CarCard({ car }: { car: FleetCar }) {
-  const imgSrc = car.photo ? getProxiedImageUrl(car.photo) : PLACEHOLDER_IMG;
+  const imgSrc = car.photo ? getProxiedImageUrl(car.photo, 720) : PLACEHOLDER_IMG;
   const details = [car.vehicleTrim, car.color].map(cleanVal).filter(Boolean).join(" · ");
   const href = car.turoLink || "/contact";
   const bookingProps = car.turoLink ? { target: "_blank", rel: "noopener noreferrer" } : {};

@@ -6,7 +6,7 @@ import type { PublicLocation } from "@/lib/location-config";
 export function CTASection({ location }: { location: PublicLocation }) {
   return (
     <section className="relative isolate overflow-hidden bg-[#171717] px-5 py-20 text-white sm:px-8 lg:py-28">
-      <img src="/bmw-x6-cta.jpg" alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+      <img src="/bmw-x6-cta.webp" alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
       <div className="absolute inset-0 bg-black/70" />
       <div className="relative mx-auto max-w-3xl text-center">
         <p className="mb-5 text-xs uppercase tracking-[0.2em] text-[#DFC899]">Make your next move</p>

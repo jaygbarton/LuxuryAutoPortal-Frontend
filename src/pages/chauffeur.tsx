@@ -112,7 +112,7 @@ function chauffeurVehicleType(car: FleetCar): string {
 }
 
 function ChauffeurVehicleCard({ car }: { car: FleetCar }) {
-  const imgSrc = car.photo ? getProxiedImageUrl(car.photo) : PLACEHOLDER_IMG;
+  const imgSrc = car.photo ? getProxiedImageUrl(car.photo, 720) : PLACEHOLDER_IMG;
   const rate = chauffeurHourlyRate(car);
 
   return (

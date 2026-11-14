@@ -21,7 +21,7 @@ function ServiceSplitSection({ location }: { location: PublicLocation }) {
       eyebrow: "For vehicle owners",
       title: "Your vehicle. More possibility.",
       copy: "Put your vehicle in GLA’s managed rental program. Discuss your vehicle’s earning potential with our team, then explore the next steps.",
-      image: "/list-your-car-key-handoff-enhanced.png",
+      image: "/list-your-car-key-handoff-enhanced.webp",
       icon: ClipboardCheck,
       primary: "List Your Car",
       primaryHref: `${location.path}/onboarding`,

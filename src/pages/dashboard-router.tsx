@@ -10,9 +10,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
-import AdminDashboard from "@/pages/admin/dashboard";
-import ClientDashboardPage from "@/pages/client/dashboard";
+import { lazy } from "react";
 import { authMeQueryFn } from "@/lib/queryClient";
+
+// Each role downloads only its own dashboard. The surrounding route supplies
+// the Suspense fallback.
+const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
+const ClientDashboardPage = lazy(() => import("@/pages/client/dashboard"));
 
 interface AuthMe {
   user?: {

@@ -11,7 +11,7 @@ const PROGRAM_VIDEO_URL = "https://www.youtube.com/watch?v=zyhzeXvCp8U";
 export function ListYourCarHero() {
   return (
     <section className="relative isolate overflow-hidden bg-[#171717] px-5 py-16 text-white sm:px-8 lg:py-24">
-      <img src="/list-your-car-key-handoff-enhanced.png" alt="" className="absolute inset-0 h-full w-full object-cover object-right opacity-50" />
+      <img src="/list-your-car-key-handoff-enhanced.webp" alt="" className="absolute inset-0 h-full w-full object-cover object-right opacity-50" />
       <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#141414]/80 to-transparent" />
       <div className="relative mx-auto max-w-7xl">
         <p className="mb-6 text-xs uppercase tracking-[0.25em] text-[#D3BC8D]">List Your Car · Golden Luxury Auto</p>

@@ -157,8 +157,9 @@ const DEFAULT_TUTORIAL_STEPS: TutorialStep[] = [
 ];
 
 // Hook to fetch tutorial modules from API
-function useTutorialModules(role: 'admin' | 'client' | 'employee' = 'client') {
+function useTutorialModules(role: 'admin' | 'client' | 'employee' = 'client', enabled = true) {
   return useQuery<TutorialModule[]>({
+    enabled,
     queryKey: ["/api/tutorial/modules", role],
     queryFn: async () => {
       try {
@@ -225,8 +226,9 @@ function useTutorialStepsWithModules(role: 'admin' | 'client' | 'employee' = 'cl
 }
 
 // Hook to fetch tutorial steps from API (backwards compatibility - flat list)
-function useTutorialSteps(role: 'admin' | 'client' | 'employee' = 'client') {
+function useTutorialSteps(role: 'admin' | 'client' | 'employee' = 'client', enabled = true) {
   return useQuery<TutorialStep[]>({
+    enabled,
     queryKey: ["/api/tutorial/steps", role],
     queryFn: async () => {
       try {
@@ -307,8 +309,12 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   // Determine role from user data
   const userRole = userData?.user?.isAdmin ? 'admin' : userData?.user?.isClient ? 'client' : userData?.user?.isEmployee ? 'employee' : 'client';
   
-  const { data: tutorialSteps = DEFAULT_TUTORIAL_STEPS, refetch: refetchTutorialSteps } = useTutorialSteps(userRole);
-  const { data: tutorialModules = [], refetch: refetchTutorialModules } = useTutorialModules(userRole);
+  // Only signed-in users have a tutorial. Anonymous visitors to public pages
+  // used to download it too, and staff fetched the client copy first and then
+  // their own once their role was known.
+  const tutorialEnabled = Boolean(userData?.user);
+  const { data: tutorialSteps = DEFAULT_TUTORIAL_STEPS, refetch: refetchTutorialSteps } = useTutorialSteps(userRole, tutorialEnabled);
+  const { data: tutorialModules = [], refetch: refetchTutorialModules } = useTutorialModules(userRole, tutorialEnabled);
   // useTutorialStepsWithModules is fetched inside OnboardingTutorial component only when dialog is active
 
   // Mutation to mark tour as completed

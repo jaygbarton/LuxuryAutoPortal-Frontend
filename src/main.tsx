@@ -6,14 +6,9 @@ import { attachStaleChunkRecoveryHandler } from "@/lib/chunkRecovery";
 
 attachStaleChunkRecoveryHandler();
 
-// PDF worker is configured in pdf-config.ts - import it to ensure it runs
-// Use dynamic import to prevent blocking app initialization if PDF config fails
-// This is non-critical - PDF features will work when needed, just may need to configure worker then
-import("@/lib/pdf-config").catch((error) => {
-  console.warn("⚠️ [MAIN] Failed to load PDF config (non-critical, app will continue):", error);
-  // PDF config is not critical for app initialization, continue anyway
-  // PDF components will handle worker configuration when they load
-});
+// The PDF library (about 320 KB) is loaded only by the contract-signing page,
+// which configures its own worker. It used to be imported here and was
+// downloaded on every page, including the public homepage.
 
 // Enhanced error handling for initialization
 const rootElement = document.getElementById("root");

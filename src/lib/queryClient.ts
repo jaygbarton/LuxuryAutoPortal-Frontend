@@ -114,7 +114,7 @@ export function buildUploadApiUrl(path: string): string {
  * @param url - The GCS URL or any other URL
  * @returns The proxy URL for GCS URLs, or the original URL for non-GCS URLs
  */
-export function getProxiedImageUrl(url: string): string {
+export function getProxiedImageUrl(url: string, size?: number): string {
   if (!url) {
     return url;
   }
@@ -129,16 +129,12 @@ export function getProxiedImageUrl(url: string): string {
   // If it's a GCS URL (storage.googleapis.com), proxy it through the backend
   if (normalizedUrl.startsWith("https://storage.googleapis.com/")) {
     const encodedUrl = encodeURIComponent(normalizedUrl);
-    const proxyUrl = buildApiUrl(`/api/gcs-image-proxy?url=${encodedUrl}`);
-    
-    // Debug logging in both dev and production to help diagnose issues
-    console.log(`[IMAGE PROXY] Converting GCS URL to proxy:`, {
-      original: normalizedUrl.substring(0, 150) + (normalizedUrl.length > 150 ? '...' : ''),
-      proxy: proxyUrl.substring(0, 150) + (proxyUrl.length > 150 ? '...' : ''),
-      apiBaseUrl: API_BASE_URL || 'relative',
-      isProduction: import.meta.env.PROD
-    });
-    
+    // `size` asks the backend for a resized WebP no larger than that many
+    // pixels on its longest edge. Cards and thumbnails should always pass it;
+    // omit it only where the original file is needed (receipts, downloads).
+    const sizeParam = size && size > 0 ? `&size=${Math.round(size)}` : "";
+    const proxyUrl = buildApiUrl(`/api/gcs-image-proxy?url=${encodedUrl}${sizeParam}`);
+
     return proxyUrl;
   }
 

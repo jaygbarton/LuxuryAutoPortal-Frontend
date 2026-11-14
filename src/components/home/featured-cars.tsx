@@ -40,7 +40,7 @@ function cleanVal(v: string | null | undefined): string {
 }
 
 function CarCard({ car, location }: { car: FeaturedCar; location: PublicLocation }) {
-  const imgSrc = car.photo ? getProxiedImageUrl(car.photo) : PLACEHOLDER_IMG;
+  const imgSrc = car.photo ? getProxiedImageUrl(car.photo, 720) : PLACEHOLDER_IMG;
   const href = car.turoLink || location.fleetPath;
   const linkProps = car.turoLink ? { target: "_blank", rel: "noopener noreferrer" } : {};
   const details = [car.vehicleTrim, car.color].map(cleanVal).filter(Boolean).join(" · ");

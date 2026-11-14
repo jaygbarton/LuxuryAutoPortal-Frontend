@@ -1,27 +1,30 @@
 import { resetPageScroll } from "@/lib/navigation-scroll";
 import { PublicPageLoading } from "@/components/public-page-loading";
 import {legacyCarDestination} from '@/lib/report-navigation';
-import ClientRetention from '@/pages/admin/client-retention';
-import ClientRecordsRequest from '@/pages/client-records-request';
-import Applicants from '@/pages/admin/applicants';
 import { ApplicantBoundary } from '@/components/onboarding/ApplicantBoundary';
-import LycWorkspace from '@/pages/lyc-workspace';
 import { CustomerHelpWidget } from "@/components/customer-help/CustomerHelpWidget";
 import { lazy, Suspense, useEffect, useLayoutEffect, type ReactNode } from "react";
 import { Switch, Route, Redirect, useLocation, useSearch } from "wouter";
+import { Loader2 } from "lucide-react";
 import { queryClient, getApiBaseUrl } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TutorialProvider } from "@/components/onboarding/OnboardingTutorial";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AdminLayout } from "@/components/admin/admin-layout";
 import { RequireRole } from "@/components/admin/require-role";
 import { PublicPageGate } from "@/components/public-page-gate";
 import { PUBLIC_LOCATIONS, rememberPublicLocationFromPath } from "@/lib/location-config";
-import DashboardRouter from "@/pages/dashboard-router";
 import { NativePortalIntegration } from "@/components/NativePortalIntegration";
 
+// The signed-in shell and its pages are split from the entry bundle so public
+// visitors do not download the dashboard, charts and Day Schedule.
+const AdminLayout = lazy(() => import("@/components/admin/admin-layout").then((module) => ({ default: module.AdminLayout })));
+const DashboardRouter = lazy(() => import("@/pages/dashboard-router"));
+const ClientRetention = lazy(() => import("@/pages/admin/client-retention"));
+const ClientRecordsRequest = lazy(() => import("@/pages/client-records-request"));
+const Applicants = lazy(() => import("@/pages/admin/applicants"));
+const LycWorkspace = lazy(() => import("@/pages/lyc-workspace"));
 const Home = lazy(() => import("@/pages/home"));
 const Fleet = lazy(() => import("@/pages/fleet"));
 const ListYourCarRedirect = lazy(() => import("@/pages/list-your-car"));
@@ -156,6 +159,16 @@ const CarRentalsPreviewPage = lazy(() => import("@/pages/admin/car-rentals"));
 
 function PageFallback() {
   return <PublicPageLoading path={window.location.pathname} />;
+}
+
+/** Shown inside the signed-in shell while a page's code loads, so the sidebar
+ *  and header stay mounted instead of the whole screen being replaced. */
+function ShellPageFallback() {
+  return (
+    <div data-shell-page-loading className="flex min-h-[50vh] items-center justify-center text-primary">
+      <Loader2 className="h-8 w-8 animate-spin" aria-label="Loading page" />
+    </div>
+  );
 }
 
 // Wrapper component for IncomeExpensesPage to handle Wouter route props
@@ -302,6 +315,7 @@ function Router() {
       */}
       <Route>
         <ApplicantBoundary><AdminLayout>
+          <Suspense fallback={<ShellPageFallback />}>
           <Switch>
             <Route path="/admin/client-retention"><RequireRole roles={["isAdmin"]}><ClientRetention /></RequireRole></Route>
             <Route path="/admin/applicants"><RequireRole roles={["isAdmin"]}><Applicants /></RequireRole></Route>
@@ -703,6 +717,7 @@ function Router() {
             </Route>
             <Route component={NotFound} />
           </Switch>
+          </Suspense>
         </AdminLayout></ApplicantBoundary>
       </Route>
     </Switch>
