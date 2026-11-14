@@ -36,10 +36,13 @@ for(const width of[390,1440])test.describe(`${width}px manager review`,()=>{
   const row=page.getByRole('article',{name:'Chart entry receipt:1'});await expect(row).toContainText('$40+ parking anomaly');await expect(row).toHaveClass(/border-red-400/);
   await page.screenshot({path:`/workspace/artifacts/chart-management-${width}.png`,fullPage:true,animations:'disabled'});
   await row.getByRole('button',{name:'Edit',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Edit chart entry'});
-  await dialog.getByLabel('Chart employee',{exact:true}).selectOption('');
-  await expect(dialog.getByLabel('Chart inclusion')).toHaveValue('exclude');
+  await dialog.locator('select[aria-label="Chart employee"]').selectOption('');
+  // Airport parking also credits the task's driver, which can be excluded separately.
+  await expect(dialog.locator('select[aria-label="Chart driver"]')).toHaveValue('auto');
+  await dialog.locator('select[aria-label="Chart driver"]').selectOption('none');
+  await dialog.locator('select[aria-label="Chart inclusion"]').selectOption('exclude');
   await dialog.getByLabel('Reason for chart change').fill('Special-case ticket, do not count');await dialog.getByRole('button',{name:'Save chart entry'}).click();
-  await expect(dialog).toHaveCount(0);expect(state.writes).toHaveLength(1);expect(state.writes[0]).toMatchObject({path:'/api/operations/chart-management/receipt:1',body:{employeeId:null,decision:'exclude',version:0,amount:50}});
+  await expect(dialog).toHaveCount(0);expect(state.writes).toHaveLength(1);expect(state.writes[0]).toMatchObject({path:'/api/operations/chart-management/receipt:1',body:{employeeId:null,decision:'exclude',version:0,amount:50,driverMode:'none',driverEmployeeId:null}});
   await expect(row).toContainText('No one');await row.getByRole('button',{name:'History'}).click();await expect(page.getByRole('dialog',{name:'Chart edit history'})).toContainText('Special case');
   expect(state.writes.some(w=>w.path.includes('expense-form'))).toBe(false);expect(state.errors).toEqual([]);
  });
@@ -84,7 +87,7 @@ for(const width of[390,1440])test(`force inclusion reassigns only the chart and 
  await dialog.getByLabel('Reason for chart change').fill('Reviewed receipt: Second Driver completed airport pickup');
  await dialog.getByRole('button',{name:'Save chart entry'}).click();await expect(dialog).toHaveCount(0);
  expect(state.writes).toHaveLength(1);expect(state.writes[0]).toMatchObject({path:'/api/operations/chart-management/receipt:1',body:{employeeId:42,decision:'force',returnReference:'',amount:50}});
- await expect(row).toContainText('Chart employee: Second Driver');await expect(row).toContainText('Form employee: Own Driver');await expect(row).toContainText('Force included by manager');
+ await expect(row).toContainText('Form filler: Second Driver');await expect(row).toContainText('Form employee: Own Driver');await expect(row).toContainText('Force included by manager');
  await page.screenshot({path:`/workspace/artifacts/chart-force-${width}.png`,fullPage:true,animations:'disabled'});
  expect(state.errors).toEqual([]);
 });
