@@ -474,7 +474,7 @@ function EventCard(props: ComponentProps<typeof EventControls>) {
           </Button>
           {refreshTrip.isError && <p role="alert" className="text-sm text-red-700">{refreshTrip.error.message}</p>}
         </div>}
-        {(event.vehicle_swap||event.vehicle_swap_pending)&&context.canSelectSwapVehicle&&/^turo:[1-9]\d*$/.test(event.bookingKey||'')&&<SwapVehiclePicker tripId={Number(event.bookingKey!.split(':')[1])} revision={event.vehicle_revision??null}/>}
+        {(event.vehicle_swap||event.vehicle_swap_pending)&&context.canSelectSwapVehicle&&/^turo:[1-9]\d*$/.test(event.bookingKey||'')&&<SwapVehiclePicker tripId={Number(event.bookingKey!.split(':')[1])} revision={event.vehicle_revision??null} pending={!!event.vehicle_swap_pending}/>}
         <TripChangeList changes={event.trip_changes} formatDateTime={fmtTripDateTime}/>
         <ScheduleBookingContext.Provider value={popupContext}>
           {(canRefuel(event) || event.airport_parking_required) && <div className="flex flex-wrap gap-2" aria-label="Trip receipt actions">

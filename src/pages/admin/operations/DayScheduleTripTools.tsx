@@ -20,7 +20,17 @@ async function responseJson(response:Response) {
   if(!response.ok || body.success===false)throw new Error(body.error||body.message||'The reservation could not be updated.');
   return body;
 }
-export function SwapVehiclePicker({tripId,revision}:{tripId:number;revision:string|null}) {
+/**
+ * While a confirmed swap still needs its replacement verified, ask for it.
+ * Once the replacement is recorded, only offer a way to correct it: the red
+ * Tahoe on reservation 62853259 kept asking for a replacement it already had.
+ */
+export function SwapVehiclePicker({tripId,revision,pending=true}:{tripId:number;revision:string|null;pending?:boolean}) {
+  const [changing,setChanging]=useState(false);
+  if(!pending&&!changing)return <Button type="button" variant="outline" className="h-11 sm:h-9" data-change-replacement onClick={()=>setChanging(true)}>Change replacement vehicle</Button>;
+  return <SwapVehicleForm tripId={tripId} revision={revision} pending={pending}/>;
+}
+function SwapVehicleForm({tripId,revision,pending}:{tripId:number;revision:string|null;pending:boolean}) {
   const client=useQueryClient();
   const [selected,setSelected]=useState(''),[saved,setSaved]=useState('');
   const fleet=useQuery<OperationsVehicle[]>({queryKey:['/api/operations/fleet-vehicles'],queryFn:async()=>{
@@ -34,7 +44,7 @@ export function SwapVehiclePicker({tripId,revision}:{tripId:number;revision:stri
     await Promise.all(['/api/operations/day-schedule','/api/turo-trips','/api/internal-calendar/events','/api/operations/day-schedule/driver-rankings'].map(key=>client.invalidateQueries({queryKey:[key]})));
   }});
   return <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm" data-swap-vehicle-picker>
-    <p>Check the confirmed swap on Turo, then select the replacement vehicle.</p>
+    <p>{pending?'Check the confirmed swap on Turo, then select the replacement vehicle.':'Select a different replacement vehicle only if the recorded one is wrong.'}</p>
     <label className="block space-y-1"><span className="font-medium">Replacement vehicle</span>
       <SearchableNativeSelect aria-label="Replacement vehicle" value={selected} className="h-11 w-full min-w-0 rounded-md border bg-white px-2" disabled={save.isPending||fleet.isPending||fleet.isError} onChange={event=>{setSelected(event.target.value);setSaved('');}}>
         <option value="">Select replacement vehicle</option>
