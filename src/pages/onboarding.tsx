@@ -112,13 +112,20 @@ const onboardingSchema = z
   accountNumber: z.string().min(1, "Account number is required"),
   businessName: z.string().optional(),
   ein: z.string().optional(),
-  ssn: z.string().min(1, "SSN is required"),
+  // Required for a personal (SSN) application; a company (EIN) application needs EIN + business name instead.
+  ssn: z.string().optional(),
   carManufacturerWebsite: z.string().url("Valid URL is required"),
   carManufacturerUsername: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
   confirmAgreement: z.boolean().refine((val) => val === true, "You must confirm"),
 })
   .superRefine((data, ctx) => {
+    if (data.taxClassification === "Business") {
+      if (!data.businessName?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["businessName"], message: "Business name is required for a company (EIN) application" });
+      if (!data.ein?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["ein"], message: "EIN is required for a company (EIN) application" });
+    } else if (!data.ssn?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["ssn"], message: "SSN is required for a personal (SSN) application" });
+    }
     if (data.freeDealershipOilChanges === "Yes" && !data.oilPackageDetails?.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -323,6 +330,8 @@ function OnboardingApplication() {
   };
 
   const freeOilChanges = form.watch("freeDealershipOilChanges");
+  // Personal (SSN) or company (EIN): shows only the tax ID that applies.
+  const taxClassification = form.watch("taxClassification");
 
   // Keep dependent field clean when "No" is selected
   useEffect(() => {
@@ -1919,11 +1928,11 @@ function OnboardingApplication() {
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="text-muted-foreground">
-                                    Tax Classification *
+                                    Personal or company? *
                                   </FormLabel>
                                   <Select
                                     onValueChange={field.onChange}
-                                    defaultValue={field.value}
+                                    value={field.value}
                                   >
                                     <FormControl>
                                       <SelectTrigger className="bg-background border-border">
@@ -1932,10 +1941,10 @@ function OnboardingApplication() {
                                     </FormControl>
                                     <SelectContent>
                                       <SelectItem value="Individual">
-                                        Individual
+                                        Personal (SSN)
                                       </SelectItem>
                                       <SelectItem value="Business">
-                                        Business
+                                        Company (EIN)
                                       </SelectItem>
                                     </SelectContent>
                                   </Select>
@@ -1984,14 +1993,14 @@ function OnboardingApplication() {
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {taxClassification === "Business" && <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name="businessName"
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="text-muted-foreground">
-                                    Business Name
+                                    Business Name *
                                   </FormLabel>
                                   <FormControl>
                                     <Input
@@ -2009,7 +2018,7 @@ function OnboardingApplication() {
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="text-muted-foreground">
-                                    EIN
+                                    EIN *
                                   </FormLabel>
                                   <FormControl>
                                     <SensitiveInput visibilityLabel="EIN" inputMode="numeric"
@@ -2022,8 +2031,8 @@ function OnboardingApplication() {
                                 </FormItem>
                               )}
                             />
-                          </div>
-                          <FormField
+                          </div>}
+                          {taxClassification !== "Business" && <FormField
                             control={form.control}
                             name="ssn"
                             render={({ field }) => (
@@ -2041,7 +2050,7 @@ function OnboardingApplication() {
                                 <FormMessage />
                               </FormItem>
                             )}
-                          />
+                          />}
                         </>
                       )}
                       {step.id === 7 && (
