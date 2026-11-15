@@ -114,6 +114,27 @@ export function ViewAsClientBanner({ standalone = false }: { standalone?: boolea
     },
   });
 
+  // Submit the previewed applicant's saved application for them (server reads the real answers).
+  const submitForApplicantMutation = useMutation({
+    mutationFn: async () => {
+      const draftId = Number(new URLSearchParams(window.location.search).get("draft")) || undefined;
+      const res = await fetch(buildApiUrl("/api/admin/view-as-applicant/submit"), {
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ draftId }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || j?.success === false) throw new Error(j?.message || j?.error || "The application could not be submitted.");
+      return j;
+    },
+    onSuccess: async () => {
+      toast({ title: "Application submitted", description: "Submitted for the applicant. Their signing email is on its way." });
+      await qc.invalidateQueries();
+      setLocation("/lyc/status");
+    },
+    onError: (err: Error) => {
+      toast({ title: "Submission failed", description: err.message, variant: "destructive" });
+    },
+  });
+
   const stopEmployeeMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(buildApiUrl("/api/admin/view-as-employee/stop"), {
@@ -214,6 +235,20 @@ export function ViewAsClientBanner({ standalone = false }: { standalone?: boolea
             <span className="hidden sm:inline"> — {subtitle}</span>
           </span>
         </div>
+        <div className="flex flex-wrap gap-2 shrink-0">
+        {viewingAsApplicant && (
+          <Button
+            size="sm"
+            className="shrink-0"
+            disabled={submitForApplicantMutation.isPending}
+            onClick={() => {
+              if (window.confirm(`Submit ${user.viewAsApplicant!.name}'s saved application for review on their behalf?`)) submitForApplicantMutation.mutate();
+            }}
+          >
+            {submitForApplicantMutation.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+            Submit application for applicant
+          </Button>
+        )}
         <Button
           size="sm"
           variant="outline"
@@ -228,6 +263,7 @@ export function ViewAsClientBanner({ standalone = false }: { standalone?: boolea
           )}
           {actionLabel}
         </Button>
+        </div>
       </div>
     </div>
   );
