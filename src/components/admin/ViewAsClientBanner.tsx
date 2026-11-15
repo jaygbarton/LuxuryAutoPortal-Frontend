@@ -32,6 +32,12 @@ interface AuthMe {
       employeeName: string;
       startedAt: string;
     };
+    viewAsApplicant?: {
+      userId: number;
+      email: string;
+      name: string;
+      startedAt: string;
+    };
     viewAsCoHost?: {
       coHostId: number;
       coHostEmail: string;
@@ -54,7 +60,8 @@ interface AuthMe {
  * (the /api/auth/me payload flips role flags), the rendered pages match
  * exactly what the impersonated client/employee would see when logged in.
  */
-export function ViewAsClientBanner() {
+/** `standalone` drops the negative margins that fit the admin layout's padding (applicant pages have none). */
+export function ViewAsClientBanner({ standalone = false }: { standalone?: boolean } = {}) {
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -82,6 +89,25 @@ export function ViewAsClientBanner() {
       toast({ title: "Back to admin", description: "Returned to admin view." });
       await refreshAuthForSessionTransition(qc);
       setLocation("/dashboard");
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const stopApplicantMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(buildApiUrl("/api/admin/view-as-applicant/stop"), { method: "POST", credentials: "include" });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j?.error || "Failed to stop");
+      }
+      return res.json();
+    },
+    onSuccess: async () => {
+      toast({ title: "Exited applicant view", description: "You're back in your admin account." });
+      await refreshAuthForSessionTransition(qc);
+      setLocation("/admin/view-as-applicant");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -142,22 +168,29 @@ export function ViewAsClientBanner() {
   const viewingAsClient = !!user?.viewAsClient?.clientId;
   const viewingAsEmployee = !viewingAsClient && !!user?.viewAsEmployee?.employeeId;
   const viewingAsCoHost = !viewingAsClient && !viewingAsEmployee && !!user?.viewAsCoHost?.coHostId;
+  const viewingAsApplicant = !viewingAsClient && !viewingAsEmployee && !viewingAsCoHost && !!user?.viewAsApplicant?.userId;
 
-  if (!viewingAsClient && !viewingAsEmployee && !viewingAsCoHost) return null;
+  if (!viewingAsClient && !viewingAsEmployee && !viewingAsCoHost && !viewingAsApplicant) return null;
 
-  const label = viewingAsClient ? "Client" : viewingAsEmployee ? "Employee" : "Co-Host";
-  const subtitle = viewingAsClient
+  const label = viewingAsClient ? "Client" : viewingAsEmployee ? "Employee" : viewingAsApplicant ? "Applicant (read-only)" : "Co-Host";
+  const subtitle = viewingAsApplicant
+    ? `${user.viewAsApplicant!.name} (${user.viewAsApplicant!.email})`
+    : viewingAsClient
     ? `${user.viewAsClient!.clientName} (${user.viewAsClient!.clientEmail})`
     : viewingAsEmployee
     ? `${user.viewAsEmployee!.employeeName} (${user.viewAsEmployee!.employeeEmail})`
     : `${user.viewAsCoHost!.coHostName} (${user.viewAsCoHost!.coHostEmail})`;
-  const actionLabel = viewingAsClient
+  const actionLabel = viewingAsApplicant
+    ? "Exit applicant view"
+    : viewingAsClient
     ? "Exit client view"
     : viewingAsEmployee
     ? "Exit employee view"
     : "Exit co-host view";
   const onAction = () => {
-    if (viewingAsClient) {
+    if (viewingAsApplicant) {
+      stopApplicantMutation.mutate();
+    } else if (viewingAsClient) {
       stopClientMutation.mutate();
     } else if (viewingAsEmployee) {
       stopEmployeeMutation.mutate();
@@ -168,10 +201,11 @@ export function ViewAsClientBanner() {
   const isLoading =
     (viewingAsClient && stopClientMutation.isPending) ||
     (viewingAsEmployee && stopEmployeeMutation.isPending) ||
-    (viewingAsCoHost && stopCoHostMutation.isPending);
+    (viewingAsCoHost && stopCoHostMutation.isPending) ||
+    (viewingAsApplicant && stopApplicantMutation.isPending);
 
   return (
-    <div className="sticky top-0 z-[4000] -mx-3 sm:-mx-4 md:-mx-6 -mt-3 sm:-mt-4 md:-mt-6 mb-3 sm:mb-4 md:mb-6 border-b border-amber-500/40 bg-amber-500/15 backdrop-blur px-3 sm:px-4 md:px-6 py-2">
+    <div className={`sticky top-0 z-[4000] ${standalone ? "" : "-mx-3 sm:-mx-4 md:-mx-6 -mt-3 sm:-mt-4 md:-mt-6 mb-3 sm:mb-4 md:mb-6 "}border-b border-amber-500/40 bg-amber-500/15 backdrop-blur px-3 sm:px-4 md:px-6 py-2`}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div className="flex items-center gap-2 text-sm text-amber-900 min-w-0">
           <Eye className="w-4 h-4 shrink-0" />

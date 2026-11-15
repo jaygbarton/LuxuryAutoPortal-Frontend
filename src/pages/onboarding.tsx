@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { authMeQueryFn, buildApiUrl, buildUploadApiUrl } from "@/lib/queryClient";
 import { wizardSteps } from "@/lib/onboardingSteps";
+import { ViewAsClientBanner } from "@/components/admin/ViewAsClientBanner";
 import { getPreferredPublicLocation, withLocationPath } from "@/lib/location-config";
 
 const onboardingSchema = z
@@ -476,6 +477,7 @@ function OnboardingApplication() {
 
   return (
     <ListYourCarApplicationLayout>
+      <ViewAsClientBanner standalone />
               <div className="mb-5">
                 <h2 className="text-2xl font-semibold text-foreground">Your LYC onboarding steps</h2>
                 <p className="mt-2 text-sm text-muted-foreground">

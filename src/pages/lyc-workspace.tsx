@@ -1,3 +1,4 @@
+import { ViewAsClientBanner } from '@/components/admin/ViewAsClientBanner';
 import {useEffect,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {Link,Redirect,useLocation} from 'wouter';
@@ -27,7 +28,8 @@ export default function LycWorkspace({admin=false}:{admin?:boolean}) {
   if(!permitted) return <Redirect to="/lyc/status"/>;
   const save=async()=>{setBusy(true);setMessage('');try{await lycRequest('/api/lyc/profile','PATCH',values);await client.invalidateQueries({queryKey:['/api/lyc/profile']});setMessage('Personal information saved.');}catch(e:any){setMessage(e.message);}finally{setBusy(false);}};
   return <div className="min-h-screen bg-background text-foreground">
-    <header className="border-b"><div className="mx-auto flex max-w-5xl items-center justify-between gap-3 p-4"><Link href="/"><img src="/logo.png" alt="Golden Luxury Auto" className="h-12 w-40 object-contain"/></Link><Button variant="outline" onClick={async()=>{await lycRequest('/api/auth/logout','POST');client.clear();setLocation('/admin/login');}}>Sign out</Button></div></header>
+    <ViewAsClientBanner standalone/>
+    <header className="border-b"><div className="mx-auto flex max-w-5xl items-center justify-between gap-3 p-4"><Link href="/"><img src="/logo.png" alt="Golden Luxury Auto" className="h-12 w-40 object-contain"/></Link>{!user.viewAsApplicant&&<Button variant="outline" onClick={async()=>{await lycRequest('/api/auth/logout','POST');client.clear();setLocation('/admin/login');}}>Sign out</Button>}</div></header>
     <main className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
       <h1 className="text-2xl font-semibold">{admin?'LYC applicant progress':`Hello, ${user.firstName}`}</h1>
       <nav aria-label="Your account" className="flex flex-wrap gap-2">

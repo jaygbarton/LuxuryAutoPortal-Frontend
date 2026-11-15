@@ -57,6 +57,7 @@ const ClientDetailPage = lazy(() => import("@/pages/admin/client-detail"));
 const ViewAsClientPage = lazy(() => import("@/pages/admin/view-as-client"));
 const ViewAsEmployeePage = lazy(() => import("@/pages/admin/view-as-employee"));
 const ViewAsCoHostPage = lazy(() => import("@/pages/admin/view-as-co-host"));
+const ViewAsApplicantPage = lazy(() => import("@/pages/admin/view-as-applicant"));
 const FormsPage = lazy(() => import("@/pages/admin/forms"));
 const CarsPage = lazy(() => import("@/pages/admin/cars"));
 const CarDetailPage = lazy(() => import("@/pages/admin/car-detail"));
@@ -501,6 +502,9 @@ function Router() {
             </Route>
             <Route path="/admin/view-as-co-host">
               <RequireRole roles={["isAdmin"]}><ViewAsCoHostPage /></RequireRole>
+            </Route>
+            <Route path="/admin/view-as-applicant">
+              <RequireRole roles={["isAdmin"]}><ViewAsApplicantPage /></RequireRole>
             </Route>
             <Route path="/admin/forms">
               {/* Employees and co-hosts also use this page (the page + the

@@ -473,6 +473,12 @@ const allSidebarItems: SidebarItem[] = [
         icon: Eye,
         roles: ["admin"],
       },
+      {
+        href: "/admin/view-as-applicant",
+        label: "View as Applicant",
+        icon: Eye,
+        roles: ["admin"],
+      },
     ],
   },
   {
