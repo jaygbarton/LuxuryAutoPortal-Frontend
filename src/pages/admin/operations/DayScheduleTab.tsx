@@ -8,7 +8,7 @@ import { taskDeadlineHasPassed } from "@/lib/dayScheduleDeadline";
 import { useOperationFleetRows, useOperationsFleet } from "./OperationsFleetFilter";
 import { DayScheduleDriverRankings } from "./DayScheduleDriverRankings";
 import { optionKeywords } from "@/lib/select-search";
-import { createContext, useContext, useEffect, useId, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearch, useLocation } from "wouter";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
@@ -975,6 +975,12 @@ function EmployeeSection({
   );
 }
 
+/** An unfinished drop-off, pick-up or cleaning tied to a Turo reservation. */
+function openTuroTripWork(event: DayEvent): boolean {
+  return /^turo:[1-9]\d*$/.test(event.bookingKey || '') && String(event.status || '').toLowerCase() !== 'completed'
+    && ['delivery', 'pickup', 'cleaning', 'airport', 'trip_start', 'trip_end'].includes(event.type);
+}
+
 export function DayScheduleTab() {
   const activeTz = useTimezone();
   const [clockNow, setClockNow] = useState(Date.now);
@@ -1438,7 +1444,15 @@ export function DayScheduleTab() {
     deleteMutation.mutate(event);
   }
 
-  const fleetEvents = useOperationFleetRows(data?.events ?? []);
+  const fleetMatched = useOperationFleetRows(data?.events ?? []);
+  // Open Turo trip work is real work today even when its car's fleet status is
+  // behind (reservation 62485497's Yukon XL BP55PW is car #1020, not marked
+  // active), so the default Active view keeps it instead of hiding the pick-up.
+  const fleetEvents = useMemo(() => {
+    if (fleetFilter.fleet !== 'active') return fleetMatched;
+    const kept = new Set(fleetMatched);
+    return (data?.events ?? []).filter(event => kept.has(event) || openTuroTripWork(event));
+  }, [fleetMatched, data?.events, fleetFilter.fleet]);
   const allEvents = fleetEvents.filter((event) =>
     operationLocationMatches(locationFilter, [
       event.location_tag,
