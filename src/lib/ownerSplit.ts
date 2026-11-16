@@ -36,6 +36,9 @@ export interface OwnerSplitInputs {
   coolersIncome: number;
   insuranceWreckIncome: number;
   otherIncome: number;
+  /** 100% owner and NOT part of rentalIncome: added on top in every branch,
+   *  never subtracted from the rental pool. Mirrors computeCarMonthSplits. */
+  guestCancellationIncome: number;
   negativeBalanceCarryOver: number;
   totalDirectDelivery: number;
   totalCogs: number;
@@ -66,6 +69,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
     coolersIncome,
     insuranceWreckIncome,
     otherIncome,
+    guestCancellationIncome,
     negativeBalanceCarryOver,
     totalDirectDelivery,
     totalCogs,
@@ -97,7 +101,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
             totalDirectDelivery -
             totalCogs) *
           ownerPercent;
-        const calculation = part1 + part2;
+        const calculation = part1 + part2 + guestCancellationIncome;
         return calculation >= 0 ? calculation : 0;
       }
       // B) If Car Management (GLA) is ski racks owner
@@ -119,7 +123,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
             totalDirectDelivery -
             totalCogs) *
           ownerPercent;
-        const calculation = part1 + part2;
+        const calculation = part1 + part2 + guestCancellationIncome;
         return calculation >= 0 ? calculation : 0;
       }
       // C) If Car Owner is ski racks owner
@@ -141,7 +145,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
             totalDirectDelivery -
             totalCogs) *
           ownerPercent;
-        const calculation = part1 + part2;
+        const calculation = part1 + part2 + guestCancellationIncome;
         return calculation >= 0 ? calculation : 0;
       }
     }
@@ -170,7 +174,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
             smokingFines -
             otherIncome) *
           ownerPercent;
-        const calculation = part1 + part2;
+        const calculation = part1 + part2 + guestCancellationIncome;
         return calculation >= 0 ? calculation : 0;
       }
       // B) If Car Management (GLA) is ski racks owner
@@ -195,7 +199,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
             smokingFines -
             otherIncome) *
           ownerPercent;
-        const calculation = part1 + part2;
+        const calculation = part1 + part2 + guestCancellationIncome;
         return calculation >= 0 ? calculation : 0;
       }
       // C) If Car Owner is ski racks owner
@@ -221,7 +225,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
             smokingFines -
             otherIncome) *
           ownerPercent;
-        const calculation = part1 + part2;
+        const calculation = part1 + part2 + guestCancellationIncome;
         return calculation >= 0 ? calculation : 0;
       }
     }
@@ -252,7 +256,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
           totalDirectDelivery -
           totalCogs) *
         ownerPercent;
-      const calculation = part1 + part2;
+      const calculation = part1 + part2 + guestCancellationIncome;
       return calculation >= 0 ? calculation : 0;
     }
     // 70:30 mode
@@ -277,7 +281,7 @@ export function computeOwnerSplit(inputs: OwnerSplitInputs): number {
           smokingFines -
           otherIncome) *
         ownerPercent;
-      const calculation = part1 + part2;
+      const calculation = part1 + part2 + guestCancellationIncome;
       return calculation >= 0 ? calculation : 0;
     }
   }

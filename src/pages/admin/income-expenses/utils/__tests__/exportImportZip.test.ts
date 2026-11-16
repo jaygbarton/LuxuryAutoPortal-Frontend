@@ -389,7 +389,7 @@ describe("buildIncomeExpenseCSV", () => {
   it("round-trips through parseImportedCSV successfully", () => {
     const result = parseImportedCSV(csv);
     expect(result.success).toBe(true);
-    expect(result.sections?.incomeExpenses?.length).toBe(11);
+    expect(result.sections?.incomeExpenses?.length).toBe(12); // 11 income rows + Guest Cancellation Income
     const rentalRow = result.sections?.incomeExpenses?.find(
       (r: any) => r.category === "Rental Income"
     );

@@ -28,6 +28,7 @@ export interface IncomeExpenseMonth {
   coolersIncome: number;
   insuranceWreckIncome: number;
   otherIncome: number;
+  guestCancellationIncome: number;
   negativeBalanceCarryOver: number;
   carPayment: number;
   carManagementTotalExpenses: number;

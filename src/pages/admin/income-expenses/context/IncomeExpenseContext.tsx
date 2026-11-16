@@ -98,6 +98,7 @@ function getEmptyData(): IncomeExpenseData {
       coolersIncome: 0,
       insuranceWreckIncome: 0,
       otherIncome: 0,
+      guestCancellationIncome: 0,
       negativeBalanceCarryOver: 0,
       carPayment: 0,
       carManagementTotalExpenses: 0,

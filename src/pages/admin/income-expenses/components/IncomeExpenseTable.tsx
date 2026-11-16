@@ -1049,6 +1049,11 @@ lastSavedNote.current = coHostNote;
       prevMonth,
       "otherIncome",
     );
+    const prevGuestCancellationIncome = getPrevYearValue(
+      prevYearDecData.incomeExpenses || [],
+      prevMonth,
+      "guestCancellationIncome",
+    );
     const prevNegativeBalanceCarryOver =
       calculatePrevYearNegativeBalance(prevMonth);
     const prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevMonth);
@@ -1100,7 +1105,10 @@ lastSavedNote.current = coHostNote;
       //      - Ski Racks Income - Child Seat Income - Coolers Income
       //      - Insurance Wreck Income - Other Income)
       //    × Car Owner Split%)
-      const part1 = prevMilesIncome + prevSmokingFines * 0.1;
+      // Guest Cancellation Income is 100% owner and outside Rental Income, so
+      // it sits with the owner's direct items, never in part2's rental pool.
+      // Mirrors calculateNegativeBalanceCarryOver in the backend.
+      const part1 = prevMilesIncome + prevGuestCancellationIncome + prevSmokingFines * 0.1;
       const part2 =
         prevRentalIncome -
         prevDeliveryIncome -
@@ -1219,6 +1227,7 @@ lastSavedNote.current = coHostNote;
     let prevCoolersIncome: number;
     let prevInsuranceWreckIncome: number;
     let prevOtherIncome: number;
+    let prevGuestCancellationIncome: number;
     let prevNegativeBalanceCarryOver: number;
     let prevTotalDirectDelivery: number;
     let prevTotalCogs: number;
@@ -1283,6 +1292,11 @@ lastSavedNote.current = coHostNote;
         prevYearDecData?.incomeExpenses || [],
         prevDec,
         "otherIncome",
+      );
+      prevGuestCancellationIncome = getPrevYearValue(
+        prevYearDecData?.incomeExpenses || [],
+        prevDec,
+        "guestCancellationIncome",
       );
 
       prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevDec);
@@ -1358,6 +1372,11 @@ lastSavedNote.current = coHostNote;
         prevMonth,
         "otherIncome",
       );
+      prevGuestCancellationIncome = getMonthValue(
+        data.incomeExpenses,
+        prevMonth,
+        "guestCancellationIncome",
+      );
 
       // Use the calculated value from previous month (recursive call)
       prevNegativeBalanceCarryOver =
@@ -1400,7 +1419,10 @@ lastSavedNote.current = coHostNote;
       //      - Ski Racks Income - Child Seat Income - Coolers Income
       //      - Insurance Wreck Income - Other Income)
       //    × Car Owner Split%)
-      const part1 = prevMilesIncome + prevSmokingFines * 0.1;
+      // Guest Cancellation Income is 100% owner and outside Rental Income, so
+      // it sits with the owner's direct items, never in part2's rental pool.
+      // Mirrors calculateNegativeBalanceCarryOver in the backend.
+      const part1 = prevMilesIncome + prevGuestCancellationIncome + prevSmokingFines * 0.1;
       const part2 =
         prevRentalIncome -
         prevDeliveryIncome -
@@ -1938,6 +1960,11 @@ lastSavedNote.current = coHostNote;
       month,
       "otherIncome",
     );
+    const guestCancellationIncome = getMonthValue(
+      data.incomeExpenses,
+      month,
+      "guestCancellationIncome",
+    );
     // Use calculated Negative Balance Carry Over (January 2019 will be 0, other Januaries use previous year's December)
     const negativeBalanceCarryOver = calculateNegativeBalanceCarryOver(month);
     const totalDirectDelivery = getTotalDirectDeliveryForMonth(month);
@@ -1963,6 +1990,7 @@ lastSavedNote.current = coHostNote;
       coolersIncome,
       insuranceWreckIncome,
       otherIncome,
+      guestCancellationIncome,
       negativeBalanceCarryOver,
       totalDirectDelivery,
       totalCogs,
@@ -2662,6 +2690,15 @@ lastSavedNote.current = coHostNote;
                 field="otherIncome"
               />
               <CategoryRow
+                label="Guest Cancellation Income"
+                splitLabel={shareNote("guestCancellationIncome")}
+                values={MONTHS.map((_, i) =>
+                  getMonthValue(data.incomeExpenses, i + 1, "guestCancellationIncome"),
+                )}
+                category="income"
+                field="guestCancellationIncome"
+              />
+              <CategoryRow
                 label="Negative Balance Carry Over"
                 values={MONTHS.map((_, i) =>
                   calculateNegativeBalanceCarryOver(i + 1),
@@ -2767,7 +2804,14 @@ lastSavedNote.current = coHostNote;
                   // "income minus owner-only expenses". See 6c08a49.
                   if (mgmt === null) return null;
                   const totalExpenses = mgmt + owner;
-                  return rentalIncome - totalExpenses;
+                  // Guest Cancellation Income is not part of Rental Income,
+                  // so it is added on top (mirrors totalsService totalProfit).
+                  const guestCancellationIncome = getMonthValue(
+                    data.incomeExpenses,
+                    monthNum,
+                    "guestCancellationIncome",
+                  );
+                  return rentalIncome + guestCancellationIncome - totalExpenses;
                 })}
                 isEditable={false}
               />
