@@ -33,6 +33,8 @@ export default function ModalEditDynamicSubcategory() {
   const { toast } = useToast();
   const [value, setValue] = useState(0);
   const [remarks, setRemarks] = useState("");
+  // The remark as loaded, so Save only posts one that actually changed.
+  const [savedRemarks, setSavedRemarks] = useState("");
 
   React.useEffect(() => {
     if (editingCell) {
@@ -60,12 +62,12 @@ export default function ModalEditDynamicSubcategory() {
   React.useEffect(() => {
     if (!isOpen || !editingCell) return;
     let cancelled = false;
-    setRemarks("");
+    setRemarks(""); setSavedRemarks("");
     api
       .get<{ remarks?: string }>("/api/income-expense/remarks", {
         query: { carId, year, month: editingCell.month, category: editingCell.category, field: editingCell.field },
       })
-      .then((data) => { if (!cancelled) setRemarks(data?.remarks || ""); })
+      .then((data) => { if (!cancelled) { setRemarks(data?.remarks || ""); setSavedRemarks(data?.remarks || ""); } })
       .catch(() => { /* leave the box editable; a failed save still reports */ });
     return () => { cancelled = true; };
   }, [isOpen, editingCell?.category, editingCell?.field, editingCell?.month, carId, year]);
@@ -92,12 +94,16 @@ export default function ModalEditDynamicSubcategory() {
   const handleClose = () => {
     setEditingCell(null);
     setValue(0);
-    setRemarks("");
+    setRemarks(""); setSavedRemarks("");
     receipts.resetImages();
   };
 
   const handleSave = async () => {
     if (!editingCell) return;
+    // Only post a remark the user actually changed. Posting an unchanged
+    // (usually empty) remark on every Save was an extra request that, when
+    // it failed, aborted the amount save too.
+    const remarksChanged = remarks.trim() !== savedRemarks.trim();
 
     if (receipts.imageFiles.length > 0) {
       try {
@@ -108,7 +114,7 @@ export default function ModalEditDynamicSubcategory() {
     }
 
     try {
-      await api.post("/api/income-expense/remarks", {
+      if (remarksChanged) await api.post("/api/income-expense/remarks", {
         carId,
         year: parseInt(year),
         month: editingCell.month,

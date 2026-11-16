@@ -26,6 +26,8 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 export default function ModalEditCOGS() {
   const { editingCell, setEditingCell, updateCell, saveChanges, isSaving, year, carId, getFormAmount } = useIncomeExpense();
   const [remarks, setRemarks] = useState("");
+  // The remark as loaded, so Save only posts one that actually changed.
+  const [savedRemarks, setSavedRemarks] = useState("");
 
   // Load remarks when the modal opens for a cell. Keyed on the cell, not the
   // whole editingCell object: that object changes on every Amount keystroke,
@@ -40,7 +42,7 @@ export default function ModalEditCOGS() {
           );
           if (response.ok) {
             const data = await response.json();
-            setRemarks(data.remarks || "");
+            setRemarks(data.remarks || ""); setSavedRemarks(data.remarks || "");
           }
         } catch (error) {
           // Failed to load remarks
@@ -75,12 +77,16 @@ export default function ModalEditCOGS() {
 
   const handleClose = () => {
     setEditingCell(null);
-    setRemarks("");
+    setRemarks(""); setSavedRemarks("");
     resetImages();
   };
 
   const handleSave = async () => {
     if (!editingCell) return;
+    // Only post a remark the user actually changed. Posting an unchanged
+    // (usually empty) remark on every Save was an extra request that, when
+    // it failed, aborted the amount save too.
+    const remarksChanged = remarks.trim() !== savedRemarks.trim();
     
     try {
       // Upload images first if there are any new ones
@@ -90,7 +96,7 @@ export default function ModalEditCOGS() {
       
       // Save remarks
       try {
-        await api.post("/api/income-expense/remarks", {
+        if (remarksChanged) await api.post("/api/income-expense/remarks", {
             carId,
             year: parseInt(year),
             month: editingCell.month,

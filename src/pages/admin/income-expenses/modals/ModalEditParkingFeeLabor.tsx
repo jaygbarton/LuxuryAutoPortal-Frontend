@@ -25,6 +25,8 @@ export default function ModalEditParkingFeeLabor() {
   const { editingCell, setEditingCell, updateCell, saveChanges, isSaving, year, carId } = useIncomeExpense();
   const { toast } = useToast();
   const [remarks, setRemarks] = useState("");
+  // The remark as loaded, so Save only posts one that actually changed.
+  const [savedRemarks, setSavedRemarks] = useState("");
 
   const monthName = editingCell ? MONTHS[editingCell.month - 1] : "";
   const isOpen = !!editingCell && editingCell.category === "parkingFeeLabor";
@@ -41,7 +43,7 @@ export default function ModalEditParkingFeeLabor() {
       { credentials: "include" }
     )
       .then((response) => (response.ok ? response.json() : null))
-      .then((data) => { if (!cancelled && data) setRemarks(data.remarks || ""); })
+      .then((data) => { if (!cancelled && data) { setRemarks(data.remarks || ""); setSavedRemarks(data.remarks || ""); } })
       .catch(() => { /* leave the box editable; a failed save still reports */ });
     return () => { cancelled = true; };
   }, [isOpen, editingCell?.category, editingCell?.field, editingCell?.month, carId, year]);
@@ -54,15 +56,19 @@ export default function ModalEditParkingFeeLabor() {
 
   const handleClose = () => {
     setEditingCell(null);
-    setRemarks("");
+    setRemarks(""); setSavedRemarks("");
     resetImages();
   };
 
   const handleSave = async () => {
     if (!editingCell) return;
+    // Only post a remark the user actually changed. Posting an unchanged
+    // (usually empty) remark on every Save was an extra request that, when
+    // it failed, aborted the amount save too.
+    const remarksChanged = remarks.trim() !== savedRemarks.trim();
     if (imageFiles.length > 0) await uploadImages();
     try {
-      await api.post("/api/income-expense/remarks", {
+      if (remarksChanged) await api.post("/api/income-expense/remarks", {
         carId,
         year: parseInt(year),
         month: editingCell.month,
