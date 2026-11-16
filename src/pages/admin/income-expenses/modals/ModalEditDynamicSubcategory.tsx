@@ -10,6 +10,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 import { useIncomeExpense } from "../context/IncomeExpenseContext";
 import FormReceiptInModal from "../components/FormReceiptInModal";
 import ReceiptUploadZone from "../components/ReceiptUploadZone";
@@ -27,7 +30,9 @@ export default function ModalEditDynamicSubcategory() {
     year,
     carId,
   } = useIncomeExpense();
+  const { toast } = useToast();
   const [value, setValue] = useState(0);
+  const [remarks, setRemarks] = useState("");
 
   React.useEffect(() => {
     if (editingCell) {
@@ -48,6 +53,22 @@ export default function ModalEditDynamicSubcategory() {
     isOpen && receiptField
       ? { month: editingCell!.month, category: categoryType, field: receiptField }
       : null;
+
+  // Custom subcategory rows had no Remarks box at all. Load the cell's saved
+  // remark once per opened cell (keyed on the cell, not its value, so typing an
+  // amount does not re-fetch and overwrite what is being typed).
+  React.useEffect(() => {
+    if (!isOpen || !editingCell) return;
+    let cancelled = false;
+    setRemarks("");
+    api
+      .get<{ remarks?: string }>("/api/income-expense/remarks", {
+        query: { carId, year, month: editingCell.month, category: editingCell.category, field: editingCell.field },
+      })
+      .then((data) => { if (!cancelled) setRemarks(data?.remarks || ""); })
+      .catch(() => { /* leave the box editable; a failed save still reports */ });
+    return () => { cancelled = true; };
+  }, [isOpen, editingCell?.category, editingCell?.field, editingCell?.month, carId, year]);
 
   const receipts = useImageUpload(
     carId,
@@ -71,6 +92,7 @@ export default function ModalEditDynamicSubcategory() {
   const handleClose = () => {
     setEditingCell(null);
     setValue(0);
+    setRemarks("");
     receipts.resetImages();
   };
 
@@ -83,6 +105,24 @@ export default function ModalEditDynamicSubcategory() {
       } catch {
         return; // uploadImages already toasted; keep the modal open to retry
       }
+    }
+
+    try {
+      await api.post("/api/income-expense/remarks", {
+        carId,
+        year: parseInt(year),
+        month: editingCell.month,
+        category: editingCell.category,
+        field: editingCell.field,
+        remarks: remarks.trim(),
+      }, { fallbackMessage: "Failed to save remarks" });
+    } catch (error) {
+      toast({
+        title: "Remarks not saved",
+        description: error instanceof Error ? error.message : "Failed to save remarks",
+        variant: "destructive",
+      });
+      return;
     }
 
     await updateDynamicSubcategoryValue(
@@ -139,6 +179,16 @@ export default function ModalEditDynamicSubcategory() {
               value={`$${value.toFixed(2)}`}
               disabled
               className="bg-card border-border text-muted-foreground text-sm mt-1"
+            />
+          </div>
+
+          <div>
+            <Label className="text-muted-foreground text-xs">Remarks</Label>
+            <Textarea
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="Add any notes..."
+              className="bg-card border-border text-foreground text-sm min-h-[80px] mt-1"
             />
           </div>
 
