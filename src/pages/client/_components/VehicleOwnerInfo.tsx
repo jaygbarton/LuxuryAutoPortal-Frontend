@@ -53,7 +53,7 @@ export function VehicleOwnerInfo({
                   <p><span className="font-bold">Oil Type</span> :{activeCar.oilType || "No Data"}</p>
                 </div>
                 <div className="space-y-1">
-                  {activeCar.mileage != null && <p><span className="font-bold">Current Miles:</span> {activeCar.mileage.toLocaleString()}</p>}
+                  <p><span className="font-bold">Current Miles:</span> {activeCar.mileage ? activeCar.mileage.toLocaleString() : "No Data"}</p>
                   {activeCar.lastOilChange && <p><span className="font-bold">Last Oil Change</span> : {formatServiceDate(activeCar.lastOilChange)}</p>}
                   {activeCar.registrationExpiration && <p><span className="font-bold">Lic./Reg. Date</span>: {formatServiceDate(activeCar.registrationExpiration)}</p>}
                 </div>
