@@ -89,7 +89,8 @@ function ReservationForm() {
         <h3 className="text-xl font-semibold text-white">Reservation received</h3>
         <p className="mt-2 text-sm leading-6 text-white/75">
           Thank you, {form.name.split(" ")[0] || "and welcome"}. Our team will contact you at {form.email} with payment
-          instructions for the {DEPOSIT} deposit. Your place in line is held once the deposit is received.
+          instructions for the {DEPOSIT} deposit. Your spot is held once the deposit is received, and you'll start getting our
+          Cybercab updates.
         </p>
       </div>
     );
@@ -197,7 +198,8 @@ export default function CybercabPage() {
               <p className="mt-4 text-base leading-7 text-[#5D574A]">
                 A driverless car still needs a local operator to charge it, clean it, fix it and respond when something goes wrong.
                 That's the work Golden Luxury Auto already does every day for the owners in our Turo program. Joining our fleet
-                puts you in line through an established operator instead of waiting to figure it out alone.
+                puts you in line through an established operator instead of waiting to figure it out alone. Fleet Cybercabs are
+                bought by registered businesses, and GLA is one, with an EIN and a fleet already on the road.
               </p>
               <p className="mt-4 text-sm leading-6 text-[#7A6B44]">
                 Earlier access is our goal, not a guarantee: Tesla hasn't published fleet or owner terms yet.
@@ -306,15 +308,19 @@ export default function CybercabPage() {
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
             <ScrollReveal preset="soft">
               <p className="text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">Reserve your place</p>
-              <h2 className="mt-2 font-serif text-3xl font-light leading-tight sm:text-4xl">Get in line with a {DEPOSIT} deposit.</h2>
+              <h2 className="mt-2 font-serif text-3xl font-light leading-tight sm:text-4xl">Reserve your spot with a {DEPOSIT} deposit.</h2>
               <ul className="mt-6 grid gap-3 text-sm leading-6 text-white/78">
                 {[
-                  "Your deposit holds your place in GLA's Cybercab owner program and goes toward your Cybercab.",
-                  "Places are kept in the order deposits are received.",
-                  "Nothing is purchased until Salt Lake City is activated for Cybercab fleets.",
-                  `The ${DEPOSIT} deposit is non-refundable.`,
+                  "Reserves your spot in GLA's Cybercab owner program. It is a reservation fee, not a payment toward the car.",
+                  "Early access: fleet Cybercabs are bought by registered businesses, and GLA is an established company with an EIN, so you get in line through our fleet.",
+                  "Access to GLA's owner software.",
+                  "Cybercab newsletter updates as Tesla's plans and Salt Lake City's launch develop.",
                 ].map((t) => <li key={t} className="flex gap-3"><Check className="mt-1 h-4 w-4 shrink-0 text-[#D3BC8D]" />{t}</li>)}
               </ul>
+              <p className="mt-5 text-sm leading-6 text-white/60">
+                Spots are kept in the order deposits are received. Nothing is purchased until Salt Lake City is activated for
+                Cybercab fleets; the car itself is bought separately. The {DEPOSIT} deposit is non-refundable.
+              </p>
             </ScrollReveal>
             <ScrollReveal preset="soft" delay={0.08}><ReservationForm /></ScrollReveal>
           </div>
