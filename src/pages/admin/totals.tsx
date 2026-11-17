@@ -780,6 +780,7 @@ export default function TotalsPage() {
               <TotalRow label="Coolers Income" value={totals?.income?.coolersIncome} />
               <TotalRow label="Income Insurance & Client Wrecks" value={totals?.income?.incomeInsurance} />
               <TotalRow label="Other Income" value={totals?.income?.otherIncome} />
+              <TotalRow label="Guest Cancellation Income" value={totals?.income?.guestCancellationIncome} />
               <TotalRow label="Negative Balance Carry Over" value={0} />
               <TotalRow label="Car Management Total Expenses" value={totals?.income?.carManagementTotalExpenses} separator bold />
               <TotalRow label="Car Owner Total Expenses" value={totals?.income?.carOwnerTotalExpenses} bold />

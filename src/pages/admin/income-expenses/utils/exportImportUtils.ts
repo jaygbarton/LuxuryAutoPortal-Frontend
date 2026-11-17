@@ -294,6 +294,8 @@ export function buildIncomeExpenseCSV(
     const coolersIncome = getMonthValue(data.incomeExpenses, month, "coolersIncome");
     const insuranceWreckIncome = getMonthValue(data.incomeExpenses, month, "insuranceWreckIncome");
     const otherIncome = getMonthValue(data.incomeExpenses, month, "otherIncome");
+    // 100% owner and NOT part of Rental Income: added on top, never pooled.
+    const guestCancellationIncome = getMonthValue(data.incomeExpenses, month, "guestCancellationIncome");
     // Use the calculated Negative Balance Carry Over (not stored in data) - MUST match page logic
     const negativeBalanceCarryOver = calculateNegativeBalanceCarryOver(month);
     const totalDirectDelivery = getTotalDirectDeliveryForMonth(month);
@@ -316,7 +318,7 @@ export function buildIncomeExpenseCSV(
                          gasPrepaidIncome - smokingFines - milesIncome - skiRacksIncome - 
                          childSeatIncome - coolersIncome - insuranceWreckIncome - otherIncome - 
                          totalDirectDelivery - totalCogs) * ownerPercent;
-          const calculation = part1 + part2;
+          const calculation = part1 + part2 + guestCancellationIncome;
           return calculation >= 0 ? calculation : 0;
         }
         // B) If Car Management (GLA) is ski racks owner
@@ -326,7 +328,7 @@ export function buildIncomeExpenseCSV(
                          gasPrepaidIncome - smokingFines - milesIncome - skiRacksIncome - 
                          childSeatIncome - coolersIncome - insuranceWreckIncome - otherIncome - 
                          totalDirectDelivery - totalCogs) * ownerPercent;
-          const calculation = part1 + part2;
+          const calculation = part1 + part2 + guestCancellationIncome;
           return calculation >= 0 ? calculation : 0;
         }
         // C) If Car Owner is ski racks owner
@@ -336,7 +338,7 @@ export function buildIncomeExpenseCSV(
                          gasPrepaidIncome - smokingFines - milesIncome - skiRacksIncome - 
                          childSeatIncome - coolersIncome - insuranceWreckIncome - otherIncome - 
                          totalDirectDelivery - totalCogs) * ownerPercent;
-          const calculation = part1 + part2;
+          const calculation = part1 + part2 + guestCancellationIncome;
           return calculation >= 0 ? calculation : 0;
         }
       }
@@ -349,7 +351,7 @@ export function buildIncomeExpenseCSV(
           const part2 = (rentalIncome - deliveryIncome - electricPrepaidIncome - gasPrepaidIncome - 
                          milesIncome - skiRacksIncome - childSeatIncome - coolersIncome - 
                          insuranceWreckIncome - smokingFines - otherIncome) * ownerPercent;
-          const calculation = part1 + part2;
+          const calculation = part1 + part2 + guestCancellationIncome;
           return calculation >= 0 ? calculation : 0;
         }
         // B) If Car Management (GLA) is ski racks owner
@@ -359,7 +361,7 @@ export function buildIncomeExpenseCSV(
           const part2 = (rentalIncome - deliveryIncome - electricPrepaidIncome - gasPrepaidIncome - 
                          milesIncome - skiRacksIncome - childSeatIncome - coolersIncome - 
                          insuranceWreckIncome - smokingFines - otherIncome) * ownerPercent;
-          const calculation = part1 + part2;
+          const calculation = part1 + part2 + guestCancellationIncome;
           return calculation >= 0 ? calculation : 0;
         }
         // C) If Car Owner is ski racks owner
@@ -369,7 +371,7 @@ export function buildIncomeExpenseCSV(
           const part2 = (rentalIncome - deliveryIncome - electricPrepaidIncome - gasPrepaidIncome - 
                          milesIncome - skiRacksIncome - childSeatIncome - coolersIncome - 
                          insuranceWreckIncome - smokingFines - otherIncome) * ownerPercent;
-          const calculation = part1 + part2;
+          const calculation = part1 + part2 + guestCancellationIncome;
           return calculation >= 0 ? calculation : 0;
         }
       }
@@ -385,7 +387,7 @@ export function buildIncomeExpenseCSV(
                        gasPrepaidIncome - smokingFines - milesIncome - skiRacksIncome - 
                        childSeatIncome - coolersIncome - insuranceWreckIncome - otherIncome - 
                        totalDirectDelivery - totalCogs) * ownerPercent;
-        const calculation = part1 + part2;
+        const calculation = part1 + part2 + guestCancellationIncome;
         return calculation >= 0 ? calculation : 0;
       }
       // 70:30 mode
@@ -395,7 +397,7 @@ export function buildIncomeExpenseCSV(
         const part2 = (rentalIncome - deliveryIncome - electricPrepaidIncome - gasPrepaidIncome - 
                        milesIncome - skiRacksIncome - childSeatIncome - coolersIncome - 
                        insuranceWreckIncome - smokingFines - otherIncome) * ownerPercent;
-        const calculation = part1 + part2;
+        const calculation = part1 + part2 + guestCancellationIncome;
         return calculation >= 0 ? calculation : 0;
       }
     }
@@ -537,6 +539,7 @@ export function buildIncomeExpenseCSV(
     const prevCoolersIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "coolersIncome");
     const prevInsuranceWreckIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "insuranceWreckIncome");
     const prevOtherIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "otherIncome");
+    const prevGuestCancellationIncome = getPrevYearValue(previousYearData.incomeExpenses || [], prevMonth, "guestCancellationIncome");
     const prevNegativeBalanceCarryOver = calculatePrevYearNegativeBalance(prevMonth);
     const prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevMonth);
     const prevTotalCogs = getPrevYearTotalCogs(prevMonth);
@@ -581,7 +584,8 @@ export function buildIncomeExpenseCSV(
       //      - Ski Racks Income - Child Seat Income - Coolers Income 
       //      - Insurance Wreck Income - Other Income)
       //    × Car Owner Split%)
-      const part1 = Number(prevMilesIncome) + (Number(prevSmokingFines) * 0.1);
+      // Guest Cancellation Income: 100% owner, outside Rental Income (owner item, not pool).
+      const part1 = Number(prevMilesIncome) + Number(prevGuestCancellationIncome) + (Number(prevSmokingFines) * 0.1);
       const part2 = Number(prevRentalIncome) - Number(prevDeliveryIncome) - Number(prevElectricPrepaidIncome) - Number(prevSmokingFines) 
                    - Number(prevGasPrepaidIncome) - Number(prevMilesIncome) - Number(prevSkiRacksIncome) - Number(prevChildSeatIncome) 
                    - Number(prevCoolersIncome) - Number(prevInsuranceWreckIncome) - Number(prevOtherIncome);
@@ -627,6 +631,7 @@ export function buildIncomeExpenseCSV(
     let prevCoolersIncome: number;
     let prevInsuranceWreckIncome: number;
     let prevOtherIncome: number;
+    let prevGuestCancellationIncome: number;
     let prevNegativeBalanceCarryOver: number;
     let prevTotalDirectDelivery: number;
     let prevTotalCogs: number;
@@ -648,6 +653,7 @@ export function buildIncomeExpenseCSV(
       prevCoolersIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "coolersIncome");
       prevInsuranceWreckIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "insuranceWreckIncome");
       prevOtherIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "otherIncome");
+      prevGuestCancellationIncome = getPrevYearValue(previousYearData?.incomeExpenses || [], prevDec, "guestCancellationIncome");
       
       prevTotalDirectDelivery = getPrevYearTotalDirectDelivery(prevDec);
       prevTotalCogs = getPrevYearTotalCogs(prevDec);
@@ -677,6 +683,7 @@ export function buildIncomeExpenseCSV(
       prevCoolersIncome = getMonthValue(data.incomeExpenses, prevMonth, "coolersIncome");
       prevInsuranceWreckIncome = getMonthValue(data.incomeExpenses, prevMonth, "insuranceWreckIncome");
       prevOtherIncome = getMonthValue(data.incomeExpenses, prevMonth, "otherIncome");
+      prevGuestCancellationIncome = getMonthValue(data.incomeExpenses, prevMonth, "guestCancellationIncome");
       
       // Use the calculated value from previous month (recursive call)
       prevNegativeBalanceCarryOver = calculateNegativeBalanceCarryOver(prevMonth);
@@ -719,7 +726,8 @@ export function buildIncomeExpenseCSV(
       //      - Ski Racks Income - Child Seat Income - Coolers Income 
       //      - Insurance Wreck Income - Other Income)
       //    × Car Owner Split%)
-      const part1 = Number(prevMilesIncome) + (Number(prevSmokingFines) * 0.1);
+      // Guest Cancellation Income: 100% owner, outside Rental Income (owner item, not pool).
+      const part1 = Number(prevMilesIncome) + Number(prevGuestCancellationIncome) + (Number(prevSmokingFines) * 0.1);
       const part2 = Number(prevRentalIncome) - Number(prevDeliveryIncome) - Number(prevElectricPrepaidIncome) - Number(prevSmokingFines) 
                    - Number(prevGasPrepaidIncome) - Number(prevMilesIncome) - Number(prevSkiRacksIncome) - Number(prevChildSeatIncome) 
                    - Number(prevCoolersIncome) - Number(prevInsuranceWreckIncome) - Number(prevOtherIncome);
@@ -868,6 +876,7 @@ export function buildIncomeExpenseCSV(
     { field: 'coolersIncome', label: 'Coolers Income' },
     { field: 'insuranceWreckIncome', label: 'Income insurance and Client Wrecks' },
     { field: 'otherIncome', label: 'Other Income' },
+    { field: 'guestCancellationIncome', label: 'Guest Cancellation Income' },
   ];
   
   incomeFields.forEach(({ field, label }) => {
@@ -948,7 +957,9 @@ export function buildIncomeExpenseCSV(
     const mgmt = Number(calculateCarManagementTotalExpenses(monthNum)) || 0;
     const owner = Number(calculateCarOwnerTotalExpenses(monthNum)) || 0;
     const totalExpenses = mgmt + owner;
-    const value = rentalIncome - totalExpenses;
+    // Guest Cancellation Income is not part of Rental Income — added on top.
+    const guestCancellationIncome = Number(getMonthValue(data.incomeExpenses, monthNum, "guestCancellationIncome")) || 0;
+    const value = rentalIncome + guestCancellationIncome - totalExpenses;
     csvContent += `$${value.toFixed(2)},`;
     totalProfitTotal += value;
   });

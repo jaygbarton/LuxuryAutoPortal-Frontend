@@ -15,7 +15,8 @@ export type IncomeShareField =
   | "childSeatIncome"
   | "coolersIncome"
   | "insuranceWreckIncome"
-  | "otherIncome";
+  | "otherIncome"
+  | "guestCancellationIncome";
 
 const HOST = "100% Host Share";
 const OWNER = "100% Owner Share";
@@ -33,6 +34,8 @@ const NOTES_2026: Record<IncomeShareField, string> = {
   coolersIncome: HOST,
   insuranceWreckIncome: HOST,
   otherIncome: HOST,
+  // Not part of Rental Income; always paid 100% to the owner.
+  guestCancellationIncome: OWNER,
 };
 
 // 2019–2025, 50/50 mode: Smoking Fines go wholly to GLA, Miles wholly to the
@@ -48,6 +51,8 @@ const NOTES_LEGACY_50: Record<IncomeShareField, string> = {
   coolersIncome: SHARED_50,
   insuranceWreckIncome: SHARED_50,
   otherIncome: SHARED_50,
+  // Not part of Rental Income; always paid 100% to the owner.
+  guestCancellationIncome: OWNER,
 };
 
 // 2019–2025, 70/30 mode: everything but Miles and the owner's 10% of Smoking
@@ -63,6 +68,8 @@ const NOTES_LEGACY_70: Record<IncomeShareField, string> = {
   coolersIncome: HOST,
   insuranceWreckIncome: HOST,
   otherIncome: HOST,
+  // Not part of Rental Income; always paid 100% to the owner.
+  guestCancellationIncome: OWNER,
 };
 
 /**
