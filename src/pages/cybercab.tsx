@@ -198,8 +198,8 @@ export default function CybercabPage() {
               <p className="mt-4 text-base leading-7 text-[#5D574A]">
                 A driverless car still needs a local operator to charge it, clean it, fix it and respond when something goes wrong.
                 That's the work Golden Luxury Auto already does every day for the owners in our Turo program. Joining our fleet
-                puts you in line through an established operator instead of waiting to figure it out alone. Fleet Cybercabs are
-                bought by registered businesses, and GLA is one, with an EIN and a fleet already on the road.
+                puts you in line through an established operator instead of waiting to figure it out alone. Before Cybercabs are
+                available to individuals, they're offered to companies, and GLA is one, with an EIN and a fleet already on the road.
               </p>
               <p className="mt-4 text-sm leading-6 text-[#7A6B44]">
                 Earlier access is our goal, not a guarantee: Tesla hasn't published fleet or owner terms yet.
@@ -312,7 +312,7 @@ export default function CybercabPage() {
               <ul className="mt-6 grid gap-3 text-sm leading-6 text-white/78">
                 {[
                   "Reserves your spot in GLA's Cybercab owner program. It is a reservation fee, not a payment toward the car.",
-                  "Early access: fleet Cybercabs are bought by registered businesses, and GLA is an established company with an EIN, so you get in line through our fleet.",
+                  "Early access: before Cybercabs are available to individuals, they're offered to companies. GLA is an established company with an EIN, so you get in line through us.",
                   "Access to GLA's owner software.",
                   "Cybercab newsletter updates as Tesla's plans and Salt Lake City's launch develop.",
                 ].map((t) => <li key={t} className="flex gap-3"><Check className="mt-1 h-4 w-4 shrink-0 text-[#D3BC8D]" />{t}</li>)}
