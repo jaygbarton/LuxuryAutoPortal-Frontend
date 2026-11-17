@@ -27,7 +27,7 @@ import { buildApiUrl } from "@/lib/queryClient";
  * program is not active until Salt Lake City opens to Cybercab fleets.
  */
 
-const DEPOSIT = "$5,000";
+const DEPOSIT = "$5,000"; // the program membership
 
 const operatorServices = [
   { icon: BatteryCharging, title: "Charging", text: "Depot access and keeping the car charged and back on the road." },
@@ -64,7 +64,7 @@ function ReservationForm() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError("");
-    if (!form.accepts) { setError(`Please confirm you understand the ${DEPOSIT} deposit is non-refundable.`); return; }
+    if (!form.accepts) { setError(`Please confirm you understand the ${DEPOSIT} membership is non-refundable.`); return; }
     setStatus("sending");
     try {
       const response = await fetch(buildApiUrl("/api/cybercab/reservations"), {
@@ -89,7 +89,7 @@ function ReservationForm() {
         <h3 className="text-xl font-semibold text-white">Reservation received</h3>
         <p className="mt-2 text-sm leading-6 text-white/75">
           Thank you, {form.name.split(" ")[0] || "and welcome"}. Our team will contact you at {form.email} with payment
-          instructions for the {DEPOSIT} deposit. Your spot is held once the deposit is received, and you'll start getting our
+          instructions for the {DEPOSIT} membership. Your spot is held once payment is received, and you'll start getting our
           Cybercab updates.
         </p>
       </div>
@@ -121,7 +121,7 @@ function ReservationForm() {
       </label>
       <label className="flex items-start gap-3 rounded-md border border-[#D3BC8D]/40 bg-[#D3BC8D]/10 p-4 text-sm leading-6 text-white/85 sm:col-span-2">
         <input type="checkbox" checked={form.accepts} onChange={(e) => set("accepts", e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-[#D3BC8D]" />
-        <span>I understand the <strong>{DEPOSIT} deposit is non-refundable</strong>, that the program is not active yet, and that
+        <span>I understand the <strong>{DEPOSIT} membership is non-refundable</strong>, that the program is not active yet, and that
           launch and delivery dates can't be guaranteed.</span>
       </label>
       {error && <p role="alert" className="text-sm text-red-300 sm:col-span-2">{error}</p>}
@@ -162,7 +162,7 @@ export default function CybercabPage() {
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href="#reserve"><Button size="lg" className="w-full bg-[#D3BC8D] text-[#15110A] hover:bg-[#D3BC8D]/90 sm:w-auto">
-                  Reserve with a {DEPOSIT} deposit <ArrowRight className="ml-2 h-4 w-4" /></Button></a>
+                  Become a member for {DEPOSIT} <ArrowRight className="ml-2 h-4 w-4" /></Button></a>
                 <a href="#how"><Button size="lg" variant="outline" className="w-full border-white/30 bg-white/5 text-white hover:bg-white/10 hover:text-white sm:w-auto">How it works</Button></a>
               </div>
             </ScrollReveal>
@@ -174,7 +174,7 @@ export default function CybercabPage() {
                 <p className="mt-3 text-sm leading-6 text-white/75">
                   Tesla runs paid driverless rides in Texas and Florida today. Salt Lake City isn't served yet, though Utah law
                   already allows driverless operation. <strong className="text-white">When Salt Lake City is activated for Cybercab
-                  fleets, we go:</strong> GLA moves forward with Cybercab purchases for reserved owners, in the order deposits were received.
+                  fleets, we go:</strong> GLA moves forward with Cybercab purchases for members, in the order memberships were received.
                 </p>
                 <ol className="mt-5 grid gap-3 text-sm">
                   {["Reserve your place now", "Salt Lake City opens to Cybercab fleets", "We buy and set up your Cybercab with you", "GLA runs it day to day"].map((step, i) => (
@@ -308,18 +308,19 @@ export default function CybercabPage() {
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
             <ScrollReveal preset="soft">
               <p className="text-sm font-semibold uppercase tracking-widest text-[#D3BC8D]">Reserve your place</p>
-              <h2 className="mt-2 font-serif text-3xl font-light leading-tight sm:text-4xl">Reserve your spot with a {DEPOSIT} deposit.</h2>
+              <h2 className="mt-2 font-serif text-3xl font-light leading-tight sm:text-4xl">Reserve your spot with a {DEPOSIT} membership.</h2>
               <ul className="mt-6 grid gap-3 text-sm leading-6 text-white/78">
                 {[
-                  "Reserves your spot in GLA's Cybercab owner program. It is a reservation fee, not a payment toward the car.",
+                  "Reserves your spot in GLA's Cybercab owner program. It is a membership, not a payment toward the car.",
                   "Early access: before Cybercabs are available to individuals, they're offered to companies. GLA is an established company with an EIN, so you get in line through us.",
                   "Access to GLA's owner software.",
                   "Cybercab newsletter updates as Tesla's plans and Salt Lake City's launch develop.",
+                  "No monthly fee until GLA is managing your Cybercab.",
                 ].map((t) => <li key={t} className="flex gap-3"><Check className="mt-1 h-4 w-4 shrink-0 text-[#D3BC8D]" />{t}</li>)}
               </ul>
               <p className="mt-5 text-sm leading-6 text-white/60">
-                Spots are kept in the order deposits are received. Nothing is purchased until Salt Lake City is activated for
-                Cybercab fleets; the car itself is bought separately. The {DEPOSIT} deposit is non-refundable.
+                Spots are kept in the order memberships are received. Nothing is purchased until Salt Lake City is activated for
+                Cybercab fleets; the car itself is bought separately. The {DEPOSIT} membership is non-refundable.
               </p>
             </ScrollReveal>
             <ScrollReveal preset="soft" delay={0.08}><ReservationForm /></ScrollReveal>
