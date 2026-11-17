@@ -20,6 +20,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import CopyTabLinkButton from "@/components/common/CopyTabLinkButton";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
+import { BlockOffDatePicker } from "./BlockOffDatePicker";
 import { api } from "@/lib/api";
 import { CalendarOff, Car, Search, Trash2, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import {
@@ -649,28 +650,20 @@ export function CarBlockOffContent({ includePageLinks = false }: { includePageLi
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-muted-foreground text-sm">Block Off Start (Pick Up) Date & Time *</Label>
-                    <Input type="datetime-local" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)}
-                      className="bg-card border-border text-foreground" />
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground text-sm">Pick Up Location *</Label>
-                    <Input value={pickupLocation} onChange={(e) => setPickupLocation(e.target.value)}
-                      className="bg-card border-border text-foreground" placeholder="Address or description" />
-                  </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Block Off Dates (Pick Up to Drop Off) *</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Days the car is booked on Turo can't be blocked off. When the car becomes available again, so we know how long it's blocked off.
+                  </p>
+                  <BlockOffDatePicker carId={carIdStr} start={pickupDate} end={blockOffEndDate} allowPast={isAdmin}
+                    onChange={(nextStart, nextEnd) => { setPickupDate(nextStart); setBlockOffEndDate(nextEnd); }} />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-muted-foreground text-sm">Block Off End (Drop Off) Date & Time *</Label>
-                    <Input type="datetime-local" value={blockOffEndDate} min={pickupDate || undefined}
-                      onChange={(e) => setBlockOffEndDate(e.target.value)}
-                      className="bg-card border-border text-foreground" />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      When the car becomes available again, so we know how long it's blocked off.
-                    </p>
+                    <Label className="text-muted-foreground text-sm">Pick Up Location *</Label>
+                    <Input value={pickupLocation} onChange={(e) => setPickupLocation(e.target.value)}
+                      className="bg-card border-border text-foreground" placeholder="Address or description" />
                   </div>
                   <div>
                     <Label className="text-muted-foreground text-sm">Drop Off Location *</Label>
