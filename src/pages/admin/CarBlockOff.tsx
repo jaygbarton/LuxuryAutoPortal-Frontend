@@ -968,20 +968,30 @@ export function CarBlockOffContent({ includePageLinks = false }: { includePageLi
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {editRecord?.car_id ? (
               <div>
-                <Label className="text-muted-foreground text-sm">Pick Up Date & Time *</Label>
-                <Input type="datetime-local" value={editPickupDate}
-                  onChange={(e) => setEditPickupDate(e.target.value)}
-                  className="bg-card border-border text-foreground" />
+                <Label className="text-muted-foreground text-sm">Block Off Dates (Pick Up to Drop Off) *</Label>
+                <BlockOffDatePicker carId={String(editRecord.car_id)} start={editPickupDate} end={editBlockOffEnd}
+                  allowPast={isAdmin} excludeBlockOffId={editRecord.id}
+                  onChange={(nextStart, nextEnd) => { setEditPickupDate(nextStart); setEditBlockOffEnd(nextEnd); }} />
               </div>
-              <div>
-                <Label className="text-muted-foreground text-sm">Block Off End Date & Time</Label>
-                <Input type="datetime-local" value={editBlockOffEnd} min={editPickupDate || undefined}
-                  onChange={(e) => setEditBlockOffEnd(e.target.value)}
-                  className="bg-card border-border text-foreground" />
+            ) : (
+              // Older records without a linked car keep the typed fields.
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground text-sm">Pick Up Date & Time *</Label>
+                  <Input type="datetime-local" value={editPickupDate}
+                    onChange={(e) => setEditPickupDate(e.target.value)}
+                    className="bg-card border-border text-foreground" />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Block Off End Date & Time</Label>
+                  <Input type="datetime-local" value={editBlockOffEnd} min={editPickupDate || undefined}
+                    onChange={(e) => setEditBlockOffEnd(e.target.value)}
+                    className="bg-card border-border text-foreground" />
+                </div>
               </div>
-            </div>
+            )}
             <div>
               <Label className="text-muted-foreground text-sm">Pick Up Location *</Label>
               <Input value={editPickupLocation}
