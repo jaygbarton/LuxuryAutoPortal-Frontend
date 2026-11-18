@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Search, Loader2, Eye, ExternalLink, Send, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AgreementTemplatesCard } from "@/components/admin/AgreementTemplatesCard";
 
 interface ContractSubmission {
   id: number;
@@ -210,13 +211,10 @@ export default function ContractManagement() {
             Manage LYC contracts and agreements
           </p>
         </div>
-        {/* The blank agreement every owner signs — the same file the signing page loads. */}
-        <Button variant="outline" size="sm" asChild>
-          <a href={buildApiUrl("/contracts/GoldenLuxuryAuto_Contract_Template_V14.pdf")} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="w-4 h-4 mr-1" /> View blank template
-          </a>
-        </Button>
       </div>
+
+      {/* Blank client / employee / co-host agreements — the client one is what the signing page loads. */}
+      <AgreementTemplatesCard />
 
       {/* Search Bar */}
       <div className="flex flex-col sm:flex-row gap-4">

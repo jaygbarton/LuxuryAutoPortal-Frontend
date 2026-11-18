@@ -45,9 +45,8 @@ export default function SignContract() {
       return "";
     })();
 
-  const contractTemplateUrl = buildApiUrl(
-    "/contracts/GoldenLuxuryAuto_Contract_Template_V14.pdf"
-  );
+  // The current client agreement (admin-uploaded in Forms → Contract / Agreement, else bundled V14).
+  const contractTemplateUrl = buildApiUrl("/api/agreement-templates/client/current");
   const { toast } = useToast();
   const authCache=useQueryClient();
   const [signedComplete, setSignedComplete] = useState(false);
