@@ -78,6 +78,68 @@ function TermsDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
+interface FleetCar { id: number; name: string; year: number | null; plate: string | null; locationTag: string | null; listed: boolean; dailyCents: number;
+  threeDayPercent: number; oneWeekPercent: number; oneMonthPercent: number; eligible: boolean; offered: boolean }
+function VehicleRow({ car }: { car: FleetCar }) {
+  const { toast } = useToast();
+  const client = useQueryClient();
+  const [listed, setListed] = useState(car.listed);
+  const [price, setPrice] = useState(car.dailyCents ? (car.dailyCents / 100).toFixed(2) : "");
+  const [discounts, setDiscounts] = useState({ threeDayPercent: car.threeDayPercent, oneWeekPercent: car.oneWeekPercent, oneMonthPercent: car.oneMonthPercent });
+  const cents = price.trim() ? toCents(price) : 0;
+  const dirty = listed !== car.listed || cents !== car.dailyCents || discounts.threeDayPercent !== car.threeDayPercent || discounts.oneWeekPercent !== car.oneWeekPercent || discounts.oneMonthPercent !== car.oneMonthPercent;
+  const problem = cents == null ? "Enter a price such as 165 or 165.00." : listed && !cents ? "Enter a daily price to switch this vehicle on." : null;
+  const save = useMutation({
+    mutationFn: () => rentalApi<{ vehicle: FleetCar }>(`${ROOT}/vehicles/${car.id}`, "PUT", { listed, dailyCents: cents ?? 0, ...discounts }),
+    onSuccess: ({ vehicle }) => {
+      client.setQueryData<{ vehicles: FleetCar[] }>([ROOT, "vehicles"], current => (current ? { vehicles: current.vehicles.map(v => (v.id === vehicle.id ? vehicle : v)) } : current));
+      toast({ title: vehicle.offered ? `${vehicle.name} is now bookable` : `${vehicle.name} saved`, description: vehicle.offered ? `${money(vehicle.dailyCents)} a day.` : "It is not offered for direct rental." });
+    },
+    onError: (error: Error) => toast({ title: "Not saved", description: error.message, variant: "destructive" }),
+  });
+  const pct = (key: keyof typeof discounts, label: string) => (
+    <label className="text-xs text-muted-foreground">{label}
+      <Input aria-label={`${car.name} ${label}`} type="number" min={0} max={90} value={discounts[key] || ""} placeholder="0" disabled={!car.eligible}
+        onChange={e => setDiscounts(d => ({ ...d, [key]: Math.min(90, Math.max(0, Math.round(Number(e.target.value) || 0))) }))} className="mt-1 text-foreground" /></label>
+  );
+  return (
+    <li data-fleet-car={car.id} className="grid grid-cols-2 gap-3 rounded-md border p-3 md:grid-cols-[minmax(0,2fr)_7rem_5.5rem_5.5rem_5.5rem_auto] md:items-end">
+      <label className="col-span-2 flex min-h-11 cursor-pointer items-center gap-3 md:col-span-1">
+        <input type="checkbox" aria-label={`Offer ${car.name} for direct rental`} checked={listed} disabled={!car.eligible} onChange={e => setListed(e.target.checked)} className="h-5 w-5" />
+        <span className="min-w-0"><span className="block truncate text-sm font-medium">{[car.year, car.name].filter(Boolean).join(" ")}</span>
+          <span className="block text-xs text-muted-foreground">{[car.plate, car.eligible ? (car.offered ? "Bookable now" : "Not offered") : "Outside Utah: not available for direct rental"].filter(Boolean).join(" · ")}</span></span>
+      </label>
+      <label className="text-xs text-muted-foreground">Daily price ($)<Input aria-label={`${car.name} daily price`} inputMode="decimal" value={price} placeholder="0.00" disabled={!car.eligible} onChange={e => setPrice(e.target.value)} className="mt-1 text-foreground" /></label>
+      {pct("threeDayPercent", "3+ days off %")}{pct("oneWeekPercent", "7+ days off %")}{pct("oneMonthPercent", "30+ days off %")}
+      <Button variant={dirty ? "default" : "outline"} disabled={!dirty || !!problem || save.isPending || !car.eligible} onClick={() => save.mutate()}>{save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save</Button>
+      {dirty && problem && <p role="alert" className="col-span-2 text-xs text-destructive md:col-span-6">{problem}</p>}
+    </li>
+  );
+}
+function VehiclesDialog({ onClose }: { onClose: () => void }) {
+  const fleet = useQuery({ queryKey: [ROOT, "vehicles"], queryFn: () => rentalApi<{ vehicles: FleetCar[] }>(`${ROOT}/vehicles`) });
+  const [search, setSearch] = useState("");
+  const cars = (fleet.data?.vehicles ?? []).filter(car => !search.trim() || `${car.year ?? ""} ${car.name} ${car.plate ?? ""}`.toLowerCase().includes(search.trim().toLowerCase()));
+  const offered = (fleet.data?.vehicles ?? []).filter(car => car.offered).length;
+  return (
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto">
+        <DialogHeader><DialogTitle>Vehicles and prices</DialogTitle>
+          <DialogDescription>A vehicle appears on the booking page once it is ticked and has a daily price. {fleet.data ? `${offered} of ${fleet.data.vehicles.length} vehicles are bookable now.` : ""}</DialogDescription></DialogHeader>
+        {fleet.isLoading ? <p className="flex items-center text-sm text-muted-foreground" role="status"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading vehicles…</p>
+          : fleet.isError ? <p role="alert" className="text-sm text-destructive">{(fleet.error as Error).message} <button type="button" className="underline" onClick={() => void fleet.refetch()}>Retry</button></p> : (
+          <>
+            <Input aria-label="Search vehicles" placeholder="Search by vehicle or plate" value={search} onChange={e => setSearch(e.target.value)} />
+            <ul className="space-y-2" data-fleet-list>{cars.map(car => <VehicleRow key={car.id} car={car} />)}</ul>
+            {cars.length === 0 && <p className="text-sm text-muted-foreground">No vehicles match.</p>}
+            <div className="flex justify-end"><Button variant="outline" onClick={onClose}>Done</Button></div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 interface ExtraRow { id?: number; label: string; description: string; price: string; perDay: boolean; maxQuantity: number; unlimitedMiles?: boolean }
 function ExtrasDialog({ onClose }: { onClose: () => void }) {
   const { toast } = useToast();
@@ -317,6 +379,7 @@ export default function DirectRentalsAdminPage() {
   const [openId, setOpenId] = useState<number | null>(() => Number(new URLSearchParams(window.location.search).get("booking")) || null);
   const [terms, setTerms] = useState(false);
   const [extras, setExtras] = useState(false);
+  const [vehicles, setVehicles] = useState(false);
   const list = useQuery({ queryKey: [ROOT, "list", status, search.trim()], staleTime: 15_000,
     queryFn: () => rentalApi<{ bookings: Row[] }>(`${ROOT}?${new URLSearchParams({ ...(status ? { status } : {}), ...(search.trim() ? { search: search.trim() } : {}) })}`) });
   const rows = list.data?.bookings ?? [];
@@ -332,6 +395,7 @@ export default function DirectRentalsAdminPage() {
           <div><h1 className="flex items-center gap-2 text-xl font-semibold leading-tight text-primary sm:text-2xl"><CalendarCheck className="h-6 w-6" />Direct Rentals</h1>
             <p className="mt-1 text-sm text-muted-foreground">Bookings made on our own website. Block a confirmed booking's dates on that vehicle's Turo calendar.</p></div>
           <div className="flex flex-wrap gap-2">
+            <Button onClick={() => setVehicles(true)}><CalendarCheck className="mr-2 h-4 w-4" />Vehicles and prices</Button>
             <Button variant="outline" onClick={() => setExtras(true)}><Tag className="mr-2 h-4 w-4" />Extras and prices</Button>
             <Button variant="outline" onClick={() => setTerms(true)}><FileText className="mr-2 h-4 w-4" />Agreement terms</Button>
             <Button variant="outline" asChild><a href={BOOKING_PAGE} target="_blank" rel="noreferrer">Booking page<ExternalLink className="ml-2 h-4 w-4" /></a></Button>
@@ -347,7 +411,7 @@ export default function DirectRentalsAdminPage() {
 
         {list.isLoading ? <p className="flex items-center text-sm text-muted-foreground" role="status"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading bookings…</p>
           : list.isError ? <p role="alert" className="text-sm text-destructive">{(list.error as Error).message} <button type="button" className="underline" onClick={() => void list.refetch()}>Retry</button></p>
-          : rows.length === 0 ? <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">{status || search.trim() ? "No bookings match." : "No direct rentals yet. Bookings appear here as soon as a renter starts one."}</CardContent></Card>
+          : rows.length === 0 ? <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">{status || search.trim() ? "No bookings match." : "No direct rentals yet. Use Vehicles and prices to choose which vehicles can be booked. Bookings appear here as soon as a renter starts one."}</CardContent></Card>
           : (
             <ul className="space-y-2" data-rental-list>
               {rows.map(row => (
@@ -368,6 +432,7 @@ export default function DirectRentalsAdminPage() {
       {openId != null && <BookingDialog id={openId} onClose={() => open(null)} />}
       {terms && <TermsDialog onClose={() => setTerms(false)} />}
       {extras && <ExtrasDialog onClose={() => setExtras(false)} />}
+      {vehicles && <VehiclesDialog onClose={() => setVehicles(false)} />}
     </AdminLayout>
   );
 }
