@@ -256,7 +256,7 @@ function VehiclePanel({ carId, trip, minDay, maxDay, onBack }: { carId: number; 
           <li><strong>Extra miles:</strong> {rules.includedMilesPerDay} miles a day are included. Each mile beyond that costs your trip's daily price divided by {rules.includedMilesPerDay}{quote.data?.quote.additionalMileCents && !quote.data.quote.unlimitedMiles ? ` (${money(quote.data.quote.additionalMileCents)} a mile for these dates)` : ""}. Unlimited Miles removes the limit.</li>
           <li><strong>Fuel:</strong> return the car with the fuel or charge it had at pick-up. If it's lower, you pay for what's missing plus a {money(rules.tripCharges.refuelFeeCents, 0)} refueling fee. Prepaid Fuel covers this.</li>
           <li><strong>Tolls, parking and tickets:</strong> charged at the amount billed.</li>
-          <li><strong>Cleaning:</strong> {money(rules.tripCharges.cleaningViolationCents, 0)} if the car needs more than a standard clean (for example major stains, heavy mud or a lot of pet hair).</li>
+          <li><strong>Cleaning:</strong> usually {money(rules.tripCharges.cleaningViolationCents, 0)}, and up to {money(rules.tripCharges.cleaningViolationMaxCents, 0)} depending on how severe it is, if the car needs more than a standard clean (for example major stains, heavy mud or a lot of pet hair).</li>
           <li><strong>Smoking or vaping:</strong> {money(rules.tripCharges.smokingViolationCents, 0)}.</li>
           <li><strong>Late return:</strong> no charge under {rules.tripCharges.lateGraceMinutes} minutes. Up to two hours late is half a day. After that it's a full day plus {money(rules.tripCharges.lateFeeCents, 0)}.</li>
         </ul>

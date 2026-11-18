@@ -28,7 +28,7 @@ export interface RentalRules {
   minimumDays: number; maxDays: number; advanceNoticeHours: number; turnaroundHours: number; minimumDriverAge: number;
   depositCents: number; includedMilesPerDay: number; fees: { code: string; label: string; percent: number }[];
   /** Charges for things that happen during a trip, matched to Turo's. */
-  tripCharges: { refuelFeeCents: number; cleaningViolationCents: number; smokingViolationCents: number; lateGraceMinutes: number; lateFullDayFromMinutes: number; lateFeeCents: number };
+  tripCharges: { refuelFeeCents: number; cleaningViolationCents: number; cleaningViolationMaxCents: number; smokingViolationCents: number; lateGraceMinutes: number; lateFullDayFromMinutes: number; lateFeeCents: number };
 }
 export interface CalendarDay { day: string; cents: number; status: "free" | "partial" | "full" | "past" }
 export interface QuoteLine { code: string; label: string; amountCents: number; detail?: string }

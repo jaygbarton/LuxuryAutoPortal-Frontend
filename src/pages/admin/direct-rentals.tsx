@@ -203,7 +203,7 @@ function BookingDialog({ id, onClose }: { id: number; onClose: () => void }) {
                   </section>
                   <section><h3 className="mb-2 text-sm font-semibold">Price</h3>
                     <div className="rounded-lg bg-white p-4 text-[#262626]"><PriceBreakdown quote={booking.quote} paidCents={booking.paidCents || undefined} /></div>
-                    <p className="mt-2 text-sm text-muted-foreground">{milesLine(booking.quote)}. Fuel returned low: cost plus $10. Cleaning or smoking violation: $150 each.</p>
+                    <p className="mt-2 text-sm text-muted-foreground">{milesLine(booking.quote)}. Fuel returned low: cost plus $10. Cleaning violation: usually $150, up to $250 by severity. Smoking violation: $500.</p>
                     {booking.depositRefundedCents > 0 && <p className="mt-2 text-sm">Refunded so far: {money(booking.depositRefundedCents)}</p>}
                   </section>
                 </div>
