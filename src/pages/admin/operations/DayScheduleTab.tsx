@@ -379,7 +379,8 @@ function ScheduleBookingLinks({ event }: { event: DayEvent }) {
 function taskSource(event: DayEvent): { label: string; color: string } | null {
   if (event.bookingKey?.startsWith("turo:")) return { label: "Turo", color: "bg-purple-600 text-white" };
   if (event.bookingKey?.startsWith("owner_rental:")) return { label: "Owner rental", color: "bg-[#D3BC8D] text-black" };
-  if (event.bookingKey?.startsWith("direct_booking:")) return { label: "Direct booking", color: "bg-[#D3BC8D] text-black" };
+  // A rental booked on our own website (not Turo, not an owner). Emerald matches its colour on the internal calendar.
+  if (event.bookingKey?.startsWith("direct_booking:")) return { label: "Direct rental", color: "bg-emerald-600 text-white" };
   return null;
 }
 

@@ -727,3 +727,20 @@ test('super admins can assign themselves as the employee task driver',async({pag
  await page.getByRole('option',{name:'Test Worker',exact:true}).click();
  await expect.poll(()=>state.writes.find(w=>w.path.endsWith('/driver'))?.body).toMatchObject({employeeId:41,assignmentType:'employee'});
 });
+
+for (const width of [1280, 390]) test(`a rental booked on our website carries the Direct rental badge on its hand-over and its return at ${width}px`, async ({ page }) => {
+  await page.setViewportSize({ width, height: width < 600 ? 844 : 1000 });
+  const direct = { car_name: '2023 GMC Yukon XL', guest_name: 'Kelsey Reid', reservation_id: null, detail: 'Direct rental GLA-AB12CD · Confirmed', assigned_to: null, assigned_to_id: null, extras: 'Ski Racks' };
+  const state = await fixture(page, { rows: [
+    task(2000000004, 'direct_booking:4', { ...direct, type: 'trip_start', category: 'Drop Off', start_time: '10:00' }),
+    task(2000000004, 'direct_booking:4', { ...direct, type: 'trip_end', category: 'Pick Up', start_time: '16:30' }),
+    task(19, 'turo:208', { type: 'pickup', category: 'Pick Up', start_time: '12:00' }),
+  ] });
+  const cards = page.locator('[data-day-schedule-card]:visible');
+  await expect(cards.filter({ hasText: 'GMC Yukon XL' }).first()).toBeVisible({ timeout: 15000 });
+  await expect(cards.filter({ hasText: 'GMC Yukon XL' }).locator('[data-booking-source="Direct rental"]:visible')).toHaveCount(2);
+  await expect(cards.filter({ hasText: 'Vehicle task 19' }).locator('[data-booking-source="Turo"]:visible')).toHaveCount(1);
+  await expect(page.locator('[data-booking-source="Direct booking"]')).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+  expect(state.errors).toEqual([]);
+});

@@ -493,3 +493,19 @@ test('internal calendar defaults to active cars even when retired cars have book
   await page.getByRole('option', { name: 'All vehicles', exact: true }).click();
   await expect(timeline.getByText('BMW X5', { exact: true })).toBeVisible();
 });
+
+test("a rental booked on our website is marked with a Direct rental badge when opened", async ({ page }) => {
+  const mock = await mockCalendar(page);
+  await page.goto("/admin/internal-calendar?from=2026-10-10&to=2026-10-17");
+  const calendar = page.getByTestId("fleet-calendar");
+  await calendar.getByRole('combobox', { name: 'Fleet filter' }).click();
+  await page.getByRole('option', { name: 'All vehicles', exact: true }).click();
+  await calendar.getByRole("button", { name: "Confirmed direct rental · Mercedes-Benz GLS", exact: true }).first().click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.locator("[data-direct-rental-badge]")).toHaveText("Direct rental");
+  await expect(dialog.getByText("Direct rentals", { exact: true })).toBeVisible(); // the Source row
+  await page.keyboard.press("Escape");
+  await calendar.getByRole("button", { name: "Active Turo trip · Mercedes-Benz GLS", exact: true }).first().click();
+  await expect(page.getByRole("dialog").locator("[data-direct-rental-badge]")).toHaveCount(0);
+  expect(mock.errors).toEqual([]);
+});

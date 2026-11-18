@@ -228,7 +228,7 @@ function VehiclePanel({ carId, trip, minDay, maxDay, onBack }: { carId: number; 
             <label className="text-sm font-medium">Pick-up and return location
               <select aria-label="Pick-up and return location" value={locationId ?? vehicle.locations.find(l => l.isHome)?.id ?? vehicle.locations[0].id} onChange={e => setLocationId(Number(e.target.value))}
                 className="mt-1 block h-11 w-full rounded-md border border-[#DCD5C7] bg-white px-3 text-sm font-normal">
-                {vehicle.locations.map(l => <option key={l.id} value={l.id}>{l.name}{l.feeCents ? ` (+${money(l.feeCents, 0)})` : ""}</option>)}
+                {vehicle.locations.map(l => <option key={l.id} value={l.id}>{l.name}{l.feeCents ? ` (+${money(l.feeCents, l.feeCents % 100 ? 2 : 0)})` : ""}</option>)}
               </select>
             </label>
           )}
@@ -237,8 +237,11 @@ function VehiclePanel({ carId, trip, minDay, maxDay, onBack }: { carId: number; 
               <div className="mt-2 space-y-2">
                 {vehicle.extras.map(extra => (
                   <label key={extra.id} className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#E3DACA] p-3 text-sm">
-                    <Checkbox className="mt-0.5" checked={!!extras[extra.id]} onCheckedChange={checked => setExtras(current => ({ ...current, [extra.id]: checked ? 1 : 0 }))} />
-                    <span><span className="font-medium">{extra.label}</span> <span className="text-[#686868]">{money(extra.unitCents, 0)} {extra.perDay ? "per day" : "per trip"}</span>{extra.description && <span className="block text-xs text-[#8A8275]">{extra.description}</span>}</span>
+                    {extra.maxQuantity > 1
+                      ? <select aria-label={`${extra.label} quantity`} value={extras[extra.id] ?? 0} onChange={e => setExtras(current => ({ ...current, [extra.id]: Number(e.target.value) }))}
+                          className="h-9 shrink-0 rounded-md border border-[#DCD5C7] bg-white px-1.5 text-sm">{Array.from({ length: extra.maxQuantity + 1 }, (_, n) => <option key={n} value={n}>{n}</option>)}</select>
+                      : <Checkbox className="mt-0.5" checked={!!extras[extra.id]} onCheckedChange={checked => setExtras(current => ({ ...current, [extra.id]: checked ? 1 : 0 }))} />}
+                    <span><span className="font-medium">{extra.label}</span> <span className="text-[#686868]">{money(extra.unitCents, extra.unitCents % 100 ? 2 : 0)} {extra.perDay ? "per day" : "per trip"}{extra.maxQuantity > 1 ? " each" : ""}</span>{extra.description && <span className="block text-xs text-[#8A8275]">{extra.description}</span>}</span>
                   </label>
                 ))}
               </div>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CalendarCheck, Copy, ExternalLink, FileText, Loader2, RotateCcw, Search, X } from "lucide-react";
+import { AlertTriangle, CalendarCheck, Copy, ExternalLink, FileText, Loader2, Plus, RotateCcw, Search, Tag, Trash2, X } from "lucide-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,6 +70,56 @@ function TermsDialog({ onClose }: { onClose: () => void }) {
               <Button variant="outline" onClick={() => setText(terms.data?.defaultTerms ?? "")} disabled={value === terms.data?.defaultTerms}><RotateCcw className="mr-2 h-4 w-4" />Restore standard terms</Button>
               <div className="flex gap-2"><Button variant="ghost" onClick={onClose}>Cancel</Button>
                 <Button onClick={() => save.mutate()} disabled={save.isPending || !value.trim()}>{save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save terms</Button></div>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface ExtraRow { id?: number; label: string; description: string; price: string; perDay: boolean; maxQuantity: number }
+function ExtrasDialog({ onClose }: { onClose: () => void }) {
+  const { toast } = useToast();
+  type Extra = { id: number; label: string; description: string; unitCents: number; perDay: boolean; maxQuantity: number };
+  const toRows = (list: Extra[]): ExtraRow[] => list.map(e => ({ id: e.id, label: e.label, description: e.description, price: (e.unitCents / 100).toFixed(2), perDay: e.perDay, maxQuantity: e.maxQuantity }));
+  const saved = useQuery({ queryKey: [ROOT, "extras"], queryFn: () => rentalApi<{ extras: Extra[]; isDefault: boolean; defaults: Extra[] }>(`${ROOT}/extras`) });
+  const [rows, setRows] = useState<ExtraRow[] | null>(null);
+  const list = rows ?? (saved.data ? toRows(saved.data.extras) : []);
+  const set = (index: number, patch: Partial<ExtraRow>) => setRows(list.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  const problem = list.find(row => row.label.trim().length < 2) ? "Every extra needs a name." : list.find(row => toCents(row.price) == null) ? "Every extra needs a price, such as 20 or 20.00." : null;
+  const save = useMutation({
+    mutationFn: () => rentalApi(`${ROOT}/extras`, "PUT", { extras: list.map(row => ({ ...(row.id ? { id: row.id } : {}), label: row.label.trim(), description: row.description.trim(), unitCents: toCents(row.price)!, perDay: row.perDay, maxQuantity: row.maxQuantity })) }),
+    onSuccess: () => { toast({ title: "Extras saved", description: "New bookings use these prices. Bookings already started keep the price they were quoted." }); onClose(); },
+    onError: (error: Error) => toast({ title: "Extras not saved", description: error.message, variant: "destructive" }),
+  });
+  return (
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
+        <DialogHeader><DialogTitle>Extras and prices</DialogTitle>
+          <DialogDescription>The add-ons offered on every direct rental. They start from the prices on the website's Extras page; keep them in line with the website and the Turo listings.</DialogDescription></DialogHeader>
+        {saved.isLoading ? <p className="flex items-center text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading…</p> : (
+          <>
+            <ul className="space-y-3" data-extras-editor>
+              {list.map((row, index) => (
+                <li key={row.id ?? `new-${index}`} className="grid grid-cols-2 gap-2 rounded-md border p-3 sm:grid-cols-[minmax(0,2fr)_6.5rem_7.5rem_5rem_2.5rem] sm:items-end">
+                  <label className="col-span-2 text-xs text-muted-foreground sm:col-span-1">Name<Input aria-label={`Extra ${index + 1} name`} value={row.label} onChange={e => set(index, { label: e.target.value })} className="mt-1 text-foreground" /></label>
+                  <label className="text-xs text-muted-foreground">Price ($)<Input aria-label={`Extra ${index + 1} price`} inputMode="decimal" value={row.price} onChange={e => set(index, { price: e.target.value })} className="mt-1 text-foreground" /></label>
+                  <label className="text-xs text-muted-foreground">Charged<select aria-label={`Extra ${index + 1} charged`} className={`${SELECT} mt-1 block w-full text-foreground`} value={row.perDay ? "day" : "trip"} onChange={e => set(index, { perDay: e.target.value === "day" })}><option value="day">Per day</option><option value="trip">Per trip</option></select></label>
+                  <label className="text-xs text-muted-foreground">Max<Input aria-label={`Extra ${index + 1} maximum quantity`} type="number" min={1} max={20} value={row.maxQuantity} onChange={e => set(index, { maxQuantity: Math.min(20, Math.max(1, Number(e.target.value) || 1)) })} className="mt-1 text-foreground" /></label>
+                  <Button variant="ghost" size="icon" aria-label={`Remove ${row.label || "this extra"}`} onClick={() => setRows(list.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4" /></Button>
+                  <label className="col-span-2 text-xs text-muted-foreground sm:col-span-5">Description shown to renters<Input aria-label={`Extra ${index + 1} description`} value={row.description} onChange={e => set(index, { description: e.target.value })} className="mt-1 text-foreground" /></label>
+                </li>
+              ))}
+            </ul>
+            {problem && <p role="alert" className="text-sm text-destructive">{problem}</p>}
+            <div className="flex flex-wrap justify-between gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => setRows([...list, { label: "", description: "", price: "", perDay: true, maxQuantity: 1 }])}><Plus className="mr-2 h-4 w-4" />Add extra</Button>
+                <Button variant="outline" onClick={() => setRows(toRows(saved.data?.defaults ?? []))}><RotateCcw className="mr-2 h-4 w-4" />Website prices</Button>
+              </div>
+              <div className="flex gap-2"><Button variant="ghost" onClick={onClose}>Cancel</Button>
+                <Button onClick={() => save.mutate()} disabled={save.isPending || !!problem || rows === null}>{save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save extras</Button></div>
             </div>
           </>
         )}
@@ -236,6 +286,7 @@ export default function DirectRentalsAdminPage() {
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<number | null>(() => Number(new URLSearchParams(window.location.search).get("booking")) || null);
   const [terms, setTerms] = useState(false);
+  const [extras, setExtras] = useState(false);
   const list = useQuery({ queryKey: [ROOT, "list", status, search.trim()], staleTime: 15_000,
     queryFn: () => rentalApi<{ bookings: Row[] }>(`${ROOT}?${new URLSearchParams({ ...(status ? { status } : {}), ...(search.trim() ? { search: search.trim() } : {}) })}`) });
   const rows = list.data?.bookings ?? [];
@@ -251,6 +302,7 @@ export default function DirectRentalsAdminPage() {
           <div><h1 className="flex items-center gap-2 text-xl font-semibold leading-tight text-primary sm:text-2xl"><CalendarCheck className="h-6 w-6" />Direct Rentals</h1>
             <p className="mt-1 text-sm text-muted-foreground">Bookings made on our own website. Block a confirmed booking's dates on that vehicle's Turo calendar.</p></div>
           <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setExtras(true)}><Tag className="mr-2 h-4 w-4" />Extras and prices</Button>
             <Button variant="outline" onClick={() => setTerms(true)}><FileText className="mr-2 h-4 w-4" />Agreement terms</Button>
             <Button variant="outline" asChild><a href={BOOKING_PAGE} target="_blank" rel="noreferrer">Booking page<ExternalLink className="ml-2 h-4 w-4" /></a></Button>
           </div>
@@ -285,6 +337,7 @@ export default function DirectRentalsAdminPage() {
       </div>
       {openId != null && <BookingDialog id={openId} onClose={() => open(null)} />}
       {terms && <TermsDialog onClose={() => setTerms(false)} />}
+      {extras && <ExtrasDialog onClose={() => setExtras(false)} />}
     </AdminLayout>
   );
 }
