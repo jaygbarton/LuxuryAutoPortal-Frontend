@@ -1049,7 +1049,7 @@ const extras: Extra[] = [
   },
   {
     name: "Post Trip Cleaning",
-    price: "$50/day",
+    price: "$50/trip",
     quantity: "1",
     description: "Return the car hassle-free. Does not cover upholstery, spills, stains, pet hair, or smoke removal.",
     imageUrl: wpAsset("/wp-content/uploads/2025/08/extra-10-300x266.webp"),

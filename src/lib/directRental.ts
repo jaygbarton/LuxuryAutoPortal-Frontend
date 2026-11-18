@@ -26,13 +26,19 @@ export interface VehicleDetail extends RentalVehicle {
 }
 export interface RentalRules {
   minimumDays: number; maxDays: number; advanceNoticeHours: number; turnaroundHours: number; minimumDriverAge: number;
-  depositCents: number; includedMilesPerDay: number; excessMileCents: number; fees: { code: string; label: string; percent: number }[];
+  depositCents: number; includedMilesPerDay: number; fees: { code: string; label: string; percent: number }[];
+  /** Charges for things that happen during a trip, matched to Turo's. */
+  tripCharges: { refuelFeeCents: number; cleaningViolationCents: number; smokingViolationCents: number; lateGraceMinutes: number; lateFullDayFromMinutes: number; lateFeeCents: number };
 }
 export interface CalendarDay { day: string; cents: number; status: "free" | "partial" | "full" | "past" }
 export interface QuoteLine { code: string; label: string; amountCents: number; detail?: string }
 export interface Quote {
   days: number; rentalCents: number; discountCents: number; lines: QuoteLine[]; feeCents: number;
   tripTotalCents: number; depositCents: number; dueNowCents: number; includedMiles: number; dayRates: { day: string; cents: number; portion: number }[];
+  /** The renter bought Unlimited Miles: no additional distance is charged. */
+  unlimitedMiles?: boolean;
+  /** Price of each mile beyond the miles included (the trip's daily price divided by the daily miles). */
+  additionalMileCents?: number;
 }
 export type CheckStatus = "not_started" | "pending" | "verified" | "needs_review" | "failed";
 export type StepKey = "details" | "license" | "insurance" | "agreement" | "payment";
@@ -72,6 +78,10 @@ export async function rentalApi<T>(path: string, method: "GET" | "POST" | "PUT" 
   if (!response.ok || !data || data.success === false) throw new RentalApiError(data?.error || "Something went wrong. Please try again.", response.status, data?.field);
   return data as T;
 }
+
+/** "600 miles included, then $0.48 a mile" or "Unlimited miles". */
+export const milesLine = (quote: Quote) => (quote.unlimitedMiles ? "Unlimited miles"
+  : `${quote.includedMiles} miles included${quote.additionalMileCents ? `, then ${(quote.additionalMileCents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" })} a mile` : ""}`);
 
 export const money = (cents: number, digits: 0 | 2 = 2) => (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: digits, maximumFractionDigits: digits });
 

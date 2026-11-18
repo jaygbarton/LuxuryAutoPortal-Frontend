@@ -15,7 +15,7 @@ import { PLACEHOLDER_IMG, SEAT_OPTIONS, cleanVal, seatBucket, toggleValue, vehic
 import { PUBLIC_LOCATIONS } from "@/lib/location-config";
 import { useNoIndex } from "@/hooks/use-no-index";
 import {
-  RENTAL_OFFICE_PHONE, TIME_OPTIONS, addDays, clock, money, rentalApi, shortDay, toDay,
+  RENTAL_OFFICE_PHONE, TIME_OPTIONS, addDays, clock, milesLine, money, rentalApi, shortDay, toDay,
   type BookingView, type CalendarDay, type Quote, type RentalRules, type SearchVehicle, type VehicleDetail,
 } from "@/lib/directRental";
 
@@ -198,7 +198,7 @@ function VehiclePanel({ carId, trip, minDay, maxDay, onBack }: { carId: number; 
       )}
 
       <section aria-label="What's included" className="grid gap-3 rounded-xl bg-[#FAF8F2] p-4 text-sm sm:grid-cols-2">
-        {[`${rules.includedMilesPerDay} miles included per day, then ${money(rules.excessMileCents)} a mile`, `Drivers ${rules.minimumDriverAge}+ with a valid license`,
+        {[`${rules.includedMilesPerDay} miles included per day, or add Unlimited Miles`, `Drivers ${rules.minimumDriverAge}+ with a valid license`,
           `${money(rules.depositCents, 0)} deposit, returned 10 to 21 days after return`, "Vehicle stays in Utah unless we approve otherwise"].map(text => <p key={text} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#87632C]" />{text}</p>)}
       </section>
 
@@ -250,10 +250,22 @@ function VehiclePanel({ carId, trip, minDay, maxDay, onBack }: { carId: number; 
         </section>
       )}
 
+      <details data-trip-charges className="rounded-xl border border-[#E3DACA] bg-[#FAF8F2] p-4 text-sm">
+        <summary className="cursor-pointer font-medium">Charges that can apply during your trip</summary>
+        <ul className="mt-3 space-y-2 leading-6 text-[#4A4438]">
+          <li><strong>Extra miles:</strong> {rules.includedMilesPerDay} miles a day are included. Each mile beyond that costs your trip's daily price divided by {rules.includedMilesPerDay}{quote.data?.quote.additionalMileCents && !quote.data.quote.unlimitedMiles ? ` (${money(quote.data.quote.additionalMileCents)} a mile for these dates)` : ""}. Unlimited Miles removes the limit.</li>
+          <li><strong>Fuel:</strong> return the car with the fuel or charge it had at pick-up. If it's lower, you pay for what's missing plus a {money(rules.tripCharges.refuelFeeCents, 0)} refueling fee. Prepaid Fuel covers this.</li>
+          <li><strong>Tolls, parking and tickets:</strong> charged at the amount billed.</li>
+          <li><strong>Cleaning:</strong> {money(rules.tripCharges.cleaningViolationCents, 0)} if the car needs more than a standard clean (for example major stains, heavy mud or a lot of pet hair).</li>
+          <li><strong>Smoking or vaping:</strong> {money(rules.tripCharges.smokingViolationCents, 0)}.</li>
+          <li><strong>Late return:</strong> no charge under {rules.tripCharges.lateGraceMinutes} minutes. Up to two hours late is half a day. After that it's a full day plus {money(rules.tripCharges.lateFeeCents, 0)}.</li>
+        </ul>
+      </details>
+
       <section aria-label="Price and booking" className="border-t border-[#E8E1D5] pt-8">
         {!trip.complete ? <p className="rounded-xl bg-[#FAF8F2] p-4 text-sm text-[#4A4438]">Choose your pick-up and return days above to see the full price.</p>
           : quote.isLoading ? <p role="status" className="flex items-center text-sm text-[#686868]"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Pricing your trip…</p>
-          : quote.data ? <><p className="mb-4 text-sm font-medium">{shortDay(trip.startDay)} at {clock(trip.startTime)} → {shortDay(trip.endDay)} at {clock(trip.endTime)} · {quote.data.quote.days} day{quote.data.quote.days === 1 ? "" : "s"} · {quote.data.quote.includedMiles} miles included</p><PriceBreakdown quote={quote.data.quote} /></> : null}
+          : quote.data ? <><p className="mb-4 text-sm font-medium">{shortDay(trip.startDay)} at {clock(trip.startTime)} → {shortDay(trip.endDay)} at {clock(trip.endTime)} · {quote.data.quote.days} day{quote.data.quote.days === 1 ? "" : "s"} · {milesLine(quote.data.quote)}</p><PriceBreakdown quote={quote.data.quote} /></> : null}
         {problem && <p role="alert" className="mt-4 rounded-lg border border-[#E7C4B5] bg-[#FBF1EC] p-3 text-sm text-[#8A3A1E]">{problem}</p>}
         {book.isError && <p role="alert" className="mt-4 rounded-lg border border-[#E7C4B5] bg-[#FBF1EC] p-3 text-sm text-[#8A3A1E]">{(book.error as Error).message}</p>}
         <Button data-book-car size="lg" disabled={!trip.complete || !quote.data?.available || book.isPending} onClick={() => book.mutate()}

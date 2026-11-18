@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl } from "@/lib/queryClient";
 import { PriceBreakdown } from "@/components/direct-rental/PriceBreakdown";
-import { BOOKING_PAGE, money, rentalApi, wallLabel, type AgreementSection, type CheckStatus, type Quote } from "@/lib/directRental";
+import { BOOKING_PAGE, milesLine, money, rentalApi, wallLabel, type AgreementSection, type CheckStatus, type Quote } from "@/lib/directRental";
 
 type Status = "pending" | "requested" | "confirmed" | "active" | "completed" | "cancelled" | "expired";
 interface Row {
@@ -78,18 +78,18 @@ function TermsDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-interface ExtraRow { id?: number; label: string; description: string; price: string; perDay: boolean; maxQuantity: number }
+interface ExtraRow { id?: number; label: string; description: string; price: string; perDay: boolean; maxQuantity: number; unlimitedMiles?: boolean }
 function ExtrasDialog({ onClose }: { onClose: () => void }) {
   const { toast } = useToast();
-  type Extra = { id: number; label: string; description: string; unitCents: number; perDay: boolean; maxQuantity: number };
-  const toRows = (list: Extra[]): ExtraRow[] => list.map(e => ({ id: e.id, label: e.label, description: e.description, price: (e.unitCents / 100).toFixed(2), perDay: e.perDay, maxQuantity: e.maxQuantity }));
+  type Extra = { id: number; label: string; description: string; unitCents: number; perDay: boolean; maxQuantity: number; unlimitedMiles?: boolean };
+  const toRows = (list: Extra[]): ExtraRow[] => list.map(e => ({ id: e.id, label: e.label, description: e.description, price: (e.unitCents / 100).toFixed(2), perDay: e.perDay, maxQuantity: e.maxQuantity, unlimitedMiles: e.unlimitedMiles }));
   const saved = useQuery({ queryKey: [ROOT, "extras"], queryFn: () => rentalApi<{ extras: Extra[]; isDefault: boolean; defaults: Extra[] }>(`${ROOT}/extras`) });
   const [rows, setRows] = useState<ExtraRow[] | null>(null);
   const list = rows ?? (saved.data ? toRows(saved.data.extras) : []);
   const set = (index: number, patch: Partial<ExtraRow>) => setRows(list.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   const problem = list.find(row => row.label.trim().length < 2) ? "Every extra needs a name." : list.find(row => toCents(row.price) == null) ? "Every extra needs a price, such as 20 or 20.00." : null;
   const save = useMutation({
-    mutationFn: () => rentalApi(`${ROOT}/extras`, "PUT", { extras: list.map(row => ({ ...(row.id ? { id: row.id } : {}), label: row.label.trim(), description: row.description.trim(), unitCents: toCents(row.price)!, perDay: row.perDay, maxQuantity: row.maxQuantity })) }),
+    mutationFn: () => rentalApi(`${ROOT}/extras`, "PUT", { extras: list.map(row => ({ ...(row.id ? { id: row.id } : {}), label: row.label.trim(), description: row.description.trim(), unitCents: toCents(row.price)!, perDay: row.perDay, maxQuantity: row.maxQuantity, ...(row.unlimitedMiles ? { unlimitedMiles: true } : {}) })) }),
     onSuccess: () => { toast({ title: "Extras saved", description: "New bookings use these prices. Bookings already started keep the price they were quoted." }); onClose(); },
     onError: (error: Error) => toast({ title: "Extras not saved", description: error.message, variant: "destructive" }),
   });
@@ -108,6 +108,7 @@ function ExtrasDialog({ onClose }: { onClose: () => void }) {
                   <label className="text-xs text-muted-foreground">Charged<select aria-label={`Extra ${index + 1} charged`} className={`${SELECT} mt-1 block w-full text-foreground`} value={row.perDay ? "day" : "trip"} onChange={e => set(index, { perDay: e.target.value === "day" })}><option value="day">Per day</option><option value="trip">Per trip</option></select></label>
                   <label className="text-xs text-muted-foreground">Max<Input aria-label={`Extra ${index + 1} maximum quantity`} type="number" min={1} max={20} value={row.maxQuantity} onChange={e => set(index, { maxQuantity: Math.min(20, Math.max(1, Number(e.target.value) || 1)) })} className="mt-1 text-foreground" /></label>
                   <Button variant="ghost" size="icon" aria-label={`Remove ${row.label || "this extra"}`} onClick={() => setRows(list.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4" /></Button>
+                  <label className="col-span-2 flex items-center gap-2 text-xs text-muted-foreground sm:col-span-5"><input type="checkbox" aria-label={`Extra ${index + 1} removes the mileage limit`} checked={!!row.unlimitedMiles} onChange={e => set(index, { unlimitedMiles: e.target.checked, ...(e.target.checked ? { maxQuantity: 1 } : {}) })} />Removes the mileage limit (Unlimited Miles)</label>
                   <label className="col-span-2 text-xs text-muted-foreground sm:col-span-5">Description shown to renters<Input aria-label={`Extra ${index + 1} description`} value={row.description} onChange={e => set(index, { description: e.target.value })} className="mt-1 text-foreground" /></label>
                 </li>
               ))}
@@ -202,6 +203,7 @@ function BookingDialog({ id, onClose }: { id: number; onClose: () => void }) {
                   </section>
                   <section><h3 className="mb-2 text-sm font-semibold">Price</h3>
                     <div className="rounded-lg bg-white p-4 text-[#262626]"><PriceBreakdown quote={booking.quote} paidCents={booking.paidCents || undefined} /></div>
+                    <p className="mt-2 text-sm text-muted-foreground">{milesLine(booking.quote)}. Fuel returned low: cost plus $10. Cleaning or smoking violation: $150 each.</p>
                     {booking.depositRefundedCents > 0 && <p className="mt-2 text-sm">Refunded so far: {money(booking.depositRefundedCents)}</p>}
                   </section>
                 </div>
@@ -266,6 +268,17 @@ function BookingDialog({ id, onClose }: { id: number; onClose: () => void }) {
                     </div>
                   </fieldset>
                 ))}
+                {(() => {
+                  // At return: work out the additional distance charge from the odometer, the way Turo does.
+                  const num = (v?: string) => { const n = Number(String(v ?? "").replace(/[^0-9.]/g, "")); return Number.isFinite(n) && n > 0 ? n : null; };
+                  const out = num(draft.milesOut), back = num(draft.milesIn), included = num(draft.milesIncluded), rate = num(draft.additionalMileRate);
+                  if (!out || !back || back <= out) return null;
+                  if (/unlimited/i.test(draft.milesIncluded ?? "")) return <p data-miles-helper className="rounded-md border p-3 text-sm">Driven {(back - out).toLocaleString()} miles. Unlimited Miles was purchased, so there is no additional distance charge.</p>;
+                  if (!included || !rate) return null;
+                  const over = Math.max(0, Math.round(back - out - included)), charge = (over * rate).toFixed(2);
+                  return <p data-miles-helper className="rounded-md border p-3 text-sm">Driven {(back - out).toLocaleString()} miles with {included.toLocaleString()} included.{" "}
+                    {over > 0 ? <>{over.toLocaleString()} extra miles at ${rate.toFixed(2)} is <strong>${charge}</strong>. <button type="button" className="text-primary underline" onClick={() => setDraft(d => ({ ...d, excessMiles: charge }))}>Fill in Excess miles</button></> : "No additional distance charge."}</p>;
+                })()}
                 <div className="sticky -bottom-4 z-10 -mx-4 flex flex-wrap gap-2 border-t bg-background px-4 pb-4 pt-3 sm:-bottom-6 sm:-mx-6 sm:px-6 sm:pb-6">
                   <Button disabled={!dirty || change.isPending} onClick={() => change.mutate({ path: "/agreement", method: "PUT", body: { fields: draft }, done: "Agreement saved" })}>{change.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save agreement</Button>
                   <Button variant="ghost" disabled={!dirty} onClick={() => setDraft(booking.agreement.fields)}>Discard changes</Button>

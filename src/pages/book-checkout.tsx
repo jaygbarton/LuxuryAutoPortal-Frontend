@@ -10,7 +10,7 @@ import { PriceBreakdown } from "@/components/direct-rental/PriceBreakdown";
 import { authMeQueryFn, buildApiUrl } from "@/lib/queryClient";
 import { useNoIndex } from "@/hooks/use-no-index";
 import {
-  BOOKING_PAGE, RENTAL_OFFICE_PHONE, RentalApiError, STEP_LABELS, US_STATES, money, rentalApi, shortDay, wallLabel,
+  BOOKING_PAGE, RENTAL_OFFICE_PHONE, RentalApiError, STEP_LABELS, US_STATES, milesLine, money, rentalApi, shortDay, wallLabel,
   type AgreementView, type BookingView, type CustomerDetails, type StepKey,
 } from "@/lib/directRental";
 
@@ -323,7 +323,7 @@ function TripSummary({ booking }: { booking: BookingView }) {
         <li className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#87632C]" />{booking.locationName}</li>
       </ul>
       <PriceBreakdown quote={booking.quote} paidCents={booking.payment.status === "paid" ? booking.payment.paidCents : undefined} />
-      <p className="text-xs leading-5 text-[#686868]">{booking.quote.includedMiles} miles included. Questions? Call <a className="underline" href={`tel:${RENTAL_OFFICE_PHONE}`}>{RENTAL_OFFICE_PHONE}</a>.</p>
+      <p className="text-xs leading-5 text-[#686868]">{milesLine(booking.quote)}. Questions? Call <a className="underline" href={`tel:${RENTAL_OFFICE_PHONE}`}>{RENTAL_OFFICE_PHONE}</a>.</p>
     </aside>
   );
 }
