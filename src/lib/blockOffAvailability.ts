@@ -4,7 +4,7 @@
  * Times are local wall-clock strings ("YYYY-MM-DD HH:MM"), the same form the
  * server returns Turo trips and block-offs in and stores block-offs in.
  */
-export interface BusyWindow { start: string; end: string | null }
+export interface BusyWindow { start: string; end: string | null; /** "direct" for a rental booked on our own website; absent for a Turo trip. */ kind?: "direct" }
 
 export type DayStatus = "free" | "turo_full" | "turo_partial" | "blocked";
 

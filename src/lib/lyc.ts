@@ -12,5 +12,5 @@ export async function lycRequest(path:string,method='GET',body?:unknown) {
 /** Keep login/signup continuation local and limited to the onboarding workspace. */
 export function lycNext(value:string|null, fallback='/lyc/status') {
   if(!value) return fallback;
-  return /^\/(?:onboarding|salt-lake-city\/onboarding|wilmington-nc\/onboarding|lyc\/(?:status|profile|records))(?:\?[^#]*)?$/.test(value) ? value : fallback;
+  return /^\/(?:onboarding|salt-lake-city\/onboarding|wilmington-nc\/onboarding|lyc\/(?:status|profile|records)|book\/checkout\/[A-Za-z0-9_-]{20,64})(?:\?[^#]*)?$/.test(value) ? value : fallback;
 }

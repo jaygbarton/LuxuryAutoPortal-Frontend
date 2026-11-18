@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { buildApiUrl, getProxiedImageUrl } from "@/lib/queryClient";
 import { PUBLIC_LOCATIONS, fleetCarBelongsToLocation, type PublicLocation } from "@/lib/location-config";
+import { PLACEHOLDER_IMG, cleanVal, seatBucket as seatBucketOf, toggleValue, vehicleType as vehicleTypeOf, type SeatFilterOption } from "@/lib/fleetFilters";
 
 // Public fleet vehicle shape returned by GET /api/public/fleet — only the
 // non-sensitive display fields plus the public Turo link.
@@ -43,40 +44,10 @@ interface FleetCar {
 }
 
 type SortOption = "az" | "za" | "top-performing" | "newest";
-type SeatFilterOption = "-5" | "5" | "7" | "8" | "10+";
 
-const PLACEHOLDER_IMG =
-  "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
 
-/** Treat placeholder/junk values ("No Data", "N/A", "--", "") as empty so the
- *  card sub-line is hidden instead of showing "No Data · No Data". */
-function cleanVal(v: string | null | undefined): string {
-  const s = (v ?? "").trim();
-  if (!s) return "";
-  return /^(no data|n\/a|na|--|-|none|null|undefined)$/i.test(s) ? "" : s;
-}
-
-function vehicleType(car: FleetCar): string {
-  const label = `${car.make ?? ""} ${car.model ?? ""} ${car.makeModel ?? ""}`.toLowerCase();
-  if (/\b(tacoma|f-150|f150|silverado|sierra|ram|gladiator|truck)\b/.test(label)) return "Truck";
-  if (/\b(sprinter|odyssey|voyager|sienna|carnival|pacifica|van)\b/.test(label)) return "Van";
-  if (/\b(accord|camry|sonata|malibu|passat|altima|charger|sedan)\b/.test(label)) return "Sedan";
-  if (/\b(mdx|q5|x2|x5|x6|enclave|escalade|yukon|tahoe|suburban|acadia|equinox|trax|telluride|grand cherokee|defender|range rover|outback|rav4|sequoia|expedition|navigator|bronco|wrangler|hummer|terrain|santa fe|suv)\b/.test(label)) return "SUV";
-  return "Other";
-}
-
-function toggleValue(values: string[], value: string): string[] {
-  return values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
-}
-
-function seatBucket(car: FleetCar): SeatFilterOption | null {
-  const seats = car.numberOfSeats;
-  if (seats == null) return null;
-  if (seats < 5) return "-5";
-  if (seats >= 10) return "10+";
-  if (seats === 5 || seats === 7 || seats === 8) return String(seats) as SeatFilterOption;
-  return null;
-}
+const vehicleType = (car: FleetCar) => vehicleTypeOf(car);
+const seatBucket = (car: FleetCar) => seatBucketOf(car.numberOfSeats);
 
 function FilterGroup({
   title,

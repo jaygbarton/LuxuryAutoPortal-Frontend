@@ -32,6 +32,9 @@ const Onboarding = lazy(() => import("@/pages/onboarding"));
 const Contact = lazy(() => import("@/pages/contact"));
 const ChauffeurPage = lazy(() => import("@/pages/chauffeur"));
 const CybercabPage = lazy(() => import("@/pages/cybercab"));
+const BookPage = lazy(() => import("@/pages/book"));
+const BookCheckoutPage = lazy(() => import("@/pages/book-checkout"));
+const DirectRentalsAdminPage = lazy(() => import("@/pages/admin/direct-rentals"));
 const MeetUsPage = lazy(() => import("@/pages/meet-us"));
 const LocationInterest = lazy(() => import("@/pages/location-interest"));
 const legacyPage = <K extends keyof typeof import("@/pages/marketing/legacy-pages")>(key: K) =>
@@ -252,6 +255,9 @@ function Router() {
       <PublicRoute path="/salt-lake-city/detail-shop"><DetailShopPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/chauffeur-services"><ChauffeurPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/cybercab"><CybercabPage /></PublicRoute>
+      {/* Direct booking: live, but deliberately not linked from the public website. */}
+      <PublicRoute path="/salt-lake-city/book"><BookPage /></PublicRoute>
+      <Route path="/book/checkout/:token/:back?" component={BookCheckoutPage} />
       <PublicRoute path="/salt-lake-city/meet-us"><MeetUsPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/deals"><DealsPage /></PublicRoute>
       <PublicRoute path="/salt-lake-city/jobs/apply"><JobApplicationPage /></PublicRoute>
@@ -709,6 +715,9 @@ function Router() {
             </Route>
             <Route path="/admin/notifications">
               <RequireRole roles={["isAdmin", "isEmployee", "isClient"]}><NotificationsPage /></RequireRole>
+            </Route>
+            <Route path="/admin/direct-rentals">
+              <RequireRole roles={["isAdmin"]}><DirectRentalsAdminPage /></RequireRole>
             </Route>
             <Route path="/admin/developer/direct-bookings">
               <RequireRole roles={["isSuperAdmin"]}><DirectBookingPreviewPage /></RequireRole>

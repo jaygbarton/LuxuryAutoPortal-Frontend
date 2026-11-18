@@ -88,7 +88,7 @@ export function BlockOffDatePicker({ carId, start, end, onChange, allowPast = fa
     if (blocked) {
       setNotice(statusOf(blocked) === "blocked"
         ? "Your dates can't include days that are already blocked off. Pick a new start day."
-        : "Your dates can't include a Turo trip. Pick a new start day.");
+        : "Your dates can't include a booked trip. Pick a new start day.");
       onChange(`${day}T${startTime}`, "");
       return;
     }
@@ -127,16 +127,16 @@ export function BlockOffDatePicker({ carId, start, end, onChange, allowPast = fa
       </div>
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label="Calendar legend">
-        <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-sm bg-amber-100" /> Unavailable: Turo trip</span>
-        <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-sm ring-1 ring-amber-400" /> Turo trip starts or ends that day</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-sm bg-amber-100" /> Unavailable: booked trip</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-sm ring-1 ring-amber-400" /> A booked trip starts or ends that day</span>
         <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-sm bg-slate-200" /> Already blocked off</span>
       </div>
 
-      {availability.isLoading && <p role="status" className="text-xs text-muted-foreground">Loading Turo trips…</p>}
-      {availability.isError && <p role="alert" className="text-xs text-red-700">Turo trips couldn't be loaded, so unavailable days aren't shown. <button type="button" className="underline" onClick={() => void availability.refetch()}>Retry</button></p>}
+      {availability.isLoading && <p role="status" className="text-xs text-muted-foreground">Loading booked trips…</p>}
+      {availability.isError && <p role="alert" className="text-xs text-red-700">Booked trips couldn't be loaded, so unavailable days aren't shown. <button type="button" className="underline" onClick={() => void availability.refetch()}>Retry</button></p>}
       {tripsInView.length > 0 && (
         <ul className="space-y-1 text-xs text-amber-900">
-          {tripsInView.map((t) => <li key={`${t.start}|${t.end}`}>Unavailable (Turo trip): {formatWallTime(t.start)} to {t.end ? formatWallTime(t.end) : "open"}</li>)}
+          {tripsInView.map((t) => <li key={`${t.start}|${t.end}`}>Unavailable ({t.kind === "direct" ? "direct rental" : "Turo trip"}): {formatWallTime(t.start)} to {t.end ? formatWallTime(t.end) : "open"}</li>)}
         </ul>
       )}
 
@@ -154,7 +154,7 @@ export function BlockOffDatePicker({ carId, start, end, onChange, allowPast = fa
       </div>
       <HowItWorks startDay={startDay} endDay={endDay} start={`${startDay} ${startTime}`} end={`${endDay} ${endTime}`} />
       {notice && <p role="alert" className="text-sm text-red-700">{notice}</p>}
-      {conflict && <p role="alert" className="text-sm text-red-700">These times overlap a Turo trip ({formatWallTime(conflict.start)} to {conflict.end ? formatWallTime(conflict.end) : "open"}). Adjust your times or dates.</p>}
+      {conflict && <p role="alert" className="text-sm text-red-700">These times overlap a {conflict.kind === "direct" ? "direct rental" : "Turo trip"} ({formatWallTime(conflict.start)} to {conflict.end ? formatWallTime(conflict.end) : "open"}). Adjust your times or dates.</p>}
     </div>
   );
 }

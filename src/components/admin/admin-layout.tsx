@@ -19,6 +19,7 @@ import {
   Calculator,
   ClipboardList,
   Key,
+  CalendarCheck,
   Briefcase,
   CreditCard,
   Settings,
@@ -334,6 +335,13 @@ const allSidebarItems: SidebarItem[] = [
     icon: Key,
     roles: ["admin"],
     external: true,
+  },
+  {
+    // Bookings made on our own website (the booking page itself is not linked publicly).
+    href: "/admin/direct-rentals",
+    label: "Direct Rentals",
+    icon: CalendarCheck,
+    roles: ["admin"],
   },
   {
     href: "/admin/marketing",
