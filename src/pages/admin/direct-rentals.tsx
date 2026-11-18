@@ -83,13 +83,16 @@ function ExtrasDialog({ onClose }: { onClose: () => void }) {
   const { toast } = useToast();
   type Extra = { id: number; label: string; description: string; unitCents: number; perDay: boolean; maxQuantity: number; unlimitedMiles?: boolean };
   const toRows = (list: Extra[]): ExtraRow[] => list.map(e => ({ id: e.id, label: e.label, description: e.description, price: (e.unitCents / 100).toFixed(2), perDay: e.perDay, maxQuantity: e.maxQuantity, unlimitedMiles: e.unlimitedMiles }));
-  const saved = useQuery({ queryKey: [ROOT, "extras"], queryFn: () => rentalApi<{ extras: Extra[]; isDefault: boolean; defaults: Extra[] }>(`${ROOT}/extras`) });
+  const saved = useQuery({ queryKey: [ROOT, "extras"], queryFn: () => rentalApi<{ extras: Extra[]; isDefault: boolean; defaults: Extra[]; unlimitedMilesOffCarIds: number[]; vehicles: { id: number; name: string; year: number | null }[] }>(`${ROOT}/extras`) });
+  const [milesOff, setMilesOff] = useState<number[] | null>(null);
+  const off = milesOff ?? saved.data?.unlimitedMilesOffCarIds ?? [];
+  const vehicles = saved.data?.vehicles ?? [];
   const [rows, setRows] = useState<ExtraRow[] | null>(null);
   const list = rows ?? (saved.data ? toRows(saved.data.extras) : []);
   const set = (index: number, patch: Partial<ExtraRow>) => setRows(list.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   const problem = list.find(row => row.label.trim().length < 2) ? "Every extra needs a name." : list.find(row => toCents(row.price) == null) ? "Every extra needs a price, such as 20 or 20.00." : null;
   const save = useMutation({
-    mutationFn: () => rentalApi(`${ROOT}/extras`, "PUT", { extras: list.map(row => ({ ...(row.id ? { id: row.id } : {}), label: row.label.trim(), description: row.description.trim(), unitCents: toCents(row.price)!, perDay: row.perDay, maxQuantity: row.maxQuantity, ...(row.unlimitedMiles ? { unlimitedMiles: true } : {}) })) }),
+    mutationFn: () => rentalApi(`${ROOT}/extras`, "PUT", { extras: list.map(row => ({ ...(row.id ? { id: row.id } : {}), label: row.label.trim(), description: row.description.trim(), unitCents: toCents(row.price)!, perDay: row.perDay, maxQuantity: row.maxQuantity, ...(row.unlimitedMiles ? { unlimitedMiles: true } : {}) })), unlimitedMilesOffCarIds: off }),
     onSuccess: () => { toast({ title: "Extras saved", description: "New bookings use these prices. Bookings already started keep the price they were quoted." }); onClose(); },
     onError: (error: Error) => toast({ title: "Extras not saved", description: error.message, variant: "destructive" }),
   });
@@ -113,6 +116,20 @@ function ExtrasDialog({ onClose }: { onClose: () => void }) {
                 </li>
               ))}
             </ul>
+            {list.some(row => row.unlimitedMiles) && vehicles.length > 0 && (
+              <fieldset data-unlimited-miles-vehicles className="rounded-md border p-3">
+                <legend className="px-1 text-sm font-semibold">Unlimited Miles by vehicle</legend>
+                <p className="mb-2 text-xs text-muted-foreground">Every vehicle offers Unlimited Miles unless you untick it here. Unticked vehicles keep the normal mileage limit and extra-mile charge.</p>
+                <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
+                  {vehicles.map(v => (
+                    <label key={v.id} className="flex min-h-9 cursor-pointer items-center gap-2 text-sm">
+                      <input type="checkbox" checked={!off.includes(v.id)} onChange={e => setMilesOff(e.target.checked ? off.filter(id => id !== v.id) : [...off, v.id])} />
+                      {[v.year, v.name].filter(Boolean).join(" ")}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
             {problem && <p role="alert" className="text-sm text-destructive">{problem}</p>}
             <div className="flex flex-wrap justify-between gap-2">
               <div className="flex flex-wrap gap-2">
@@ -120,7 +137,7 @@ function ExtrasDialog({ onClose }: { onClose: () => void }) {
                 <Button variant="outline" onClick={() => setRows(toRows(saved.data?.defaults ?? []))}><RotateCcw className="mr-2 h-4 w-4" />Website prices</Button>
               </div>
               <div className="flex gap-2"><Button variant="ghost" onClick={onClose}>Cancel</Button>
-                <Button onClick={() => save.mutate()} disabled={save.isPending || !!problem || rows === null}>{save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save extras</Button></div>
+                <Button onClick={() => save.mutate()} disabled={save.isPending || !!problem || (rows === null && milesOff === null)}>{save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save extras</Button></div>
             </div>
           </>
         )}

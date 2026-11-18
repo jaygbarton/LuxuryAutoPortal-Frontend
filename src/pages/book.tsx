@@ -89,13 +89,23 @@ function priceLine(car: SearchVehicle) {
 function CarCard({ car, onBook }: { car: SearchVehicle; onBook: () => void }) {
   const details = [car.trim, car.color].map(cleanVal).filter(Boolean).join(" · ");
   const type = vehicleType(car);
+  const [shot, setShot] = useState(0);
+  const count = Math.max(1, car.photos.length);
   return (
     <article data-book-card className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#E3DACA] bg-white shadow-[0_8px_28px_rgba(36,37,30,0.04)]">
-      <button type="button" onClick={onBook} className="relative block aspect-[4/3] overflow-hidden bg-[#E8E2D7] text-left" aria-label={`View ${car.name}`}>
-        <img src={photo(car.photos[0], 720)} alt={car.name} loading="lazy" onError={fallbackImage} className="h-full w-full object-cover motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-105" />
-        <span className="absolute left-4 top-4 rounded-full bg-[#FAF8F2]/95 px-3 py-1.5 text-xs font-medium text-[#544228]">{type === "Other" ? "GLA collection" : type}</span>
-        {car.year != null && <span className="absolute bottom-4 right-4 rounded-md bg-black/60 px-3 py-1 text-xs font-semibold text-white">{car.year}</span>}
-      </button>
+      <div className="relative aspect-[4/3] overflow-hidden bg-[#E8E2D7]" data-card-photos>
+        <button type="button" onClick={onBook} className="block h-full w-full text-left" aria-label={`View ${car.name}`}>
+          <img key={shot} src={photo(car.photos[shot], 720)} alt={count > 1 ? `${car.name}, photo ${shot + 1} of ${count}` : car.name} loading="lazy" onError={fallbackImage} className="h-full w-full object-cover" />
+        </button>
+        <span className="pointer-events-none absolute left-4 top-4 rounded-full bg-[#FAF8F2]/95 px-3 py-1.5 text-xs font-medium text-[#544228]">{type === "Other" ? "GLA collection" : type}</span>
+        {car.year != null && <span className="pointer-events-none absolute bottom-4 right-4 rounded-md bg-black/60 px-3 py-1 text-xs font-semibold text-white">{car.year}</span>}
+        {/* Every photo of the car can be browsed right on the card, not only the cover. */}
+        {count > 1 && <>
+          <button type="button" aria-label={`Previous photo of ${car.name}`} onClick={() => setShot(i => (i - 1 + count) % count)} className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow hover:bg-white"><ChevronLeft className="h-5 w-5" /></button>
+          <button type="button" aria-label={`Next photo of ${car.name}`} onClick={() => setShot(i => (i + 1) % count)} className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow hover:bg-white"><ChevronRight className="h-5 w-5" /></button>
+          <span className="pointer-events-none absolute bottom-4 left-4 rounded-md bg-black/60 px-2.5 py-1 text-xs font-medium text-white">{shot + 1} / {count}</span>
+        </>}
+      </div>
       <div className="flex flex-1 flex-col p-6">
         <h3 className="font-serif text-3xl leading-tight">{car.name}</h3>
         {details && <p className="mt-2 text-sm leading-6 text-[#686868]">{details}</p>}
@@ -120,7 +130,7 @@ function CarRow({ car, selected, onSelect }: { car: SearchVehicle; selected: boo
       <img src={photo(car.photos[0], 256)} alt="" loading="lazy" onError={fallbackImage} className="h-20 w-28 shrink-0 rounded-lg object-cover" />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-serif text-xl leading-tight">{car.name}</span>
-        <span className="mt-0.5 block truncate text-xs text-[#686868]">{[car.year, car.seats ? `${car.seats} seats` : null, cleanVal(car.fuelType)].filter(Boolean).join(" · ")}</span>
+        <span className="mt-0.5 block truncate text-xs text-[#686868]">{[car.year, car.seats ? `${car.seats} seats` : null, cleanVal(car.fuelType), car.photos.length > 1 ? `${car.photos.length} photos` : null].filter(Boolean).join(" · ")}</span>
         <span className="mt-1.5 block text-sm">{car.available === false ? <span className="text-[#9A4A2E]">{car.reason}</span> : priceLine(car)}</span>
       </span>
     </button>
