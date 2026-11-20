@@ -21,6 +21,7 @@ import { buildApiUrl } from "@/lib/queryClient";
 import { Search, Loader2, Eye, ExternalLink, Send, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgreementTemplatesCard } from "@/components/admin/AgreementTemplatesCard";
+import { formatHandoffDateTime } from "@/lib/mt-datetime";
 
 interface ContractSubmission {
   id: number;
@@ -41,6 +42,8 @@ interface ContractSubmission {
   isOffboarded: boolean;
   carOffboardAt: string | null;
   carOnboardAt?: string | null;
+  carOnboardLocation?: string | null;
+  carOffboardLocation?: string | null;
   carOffboardReason: string | null;
 }
 
@@ -373,7 +376,7 @@ export default function ContractManagement() {
                             <span className="text-muted-foreground">Not signed</span>
                           )}
                         </TableCell>
-                        <TableCell className="hidden 2xl:table-cell">{contract.carOnboardAt ? new Date(contract.carOnboardAt).toLocaleDateString('en-US') : '—'}</TableCell>
+                        <TableCell className="hidden 2xl:table-cell whitespace-nowrap">{formatHandoffDateTime(contract.carOnboardAt, contract.carOnboardLocation)}</TableCell>
                         <TableCell className="px-2 sm:px-3 py-3 sm:py-4 hidden 2xl:table-cell whitespace-nowrap">
                           {contract.isOffboarded ? (
                             <div className="flex flex-col gap-1">
@@ -385,13 +388,7 @@ export default function ContractManagement() {
                               </Badge>
                               {contract.carOffboardAt && (
                                 <span className="text-xs text-muted-foreground">
-                                  {new Date(
-                                    contract.carOffboardAt
-                                  ).toLocaleDateString("en-US", {
-                                    month: "2-digit",
-                                    day: "2-digit",
-                                    year: "numeric",
-                                  })}
+                                  {formatHandoffDateTime(contract.carOffboardAt, contract.carOffboardLocation)}
                                 </span>
                               )}
                               {contract.carOffboardReason && (
