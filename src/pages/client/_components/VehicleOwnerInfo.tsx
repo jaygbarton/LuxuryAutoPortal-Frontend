@@ -78,7 +78,7 @@ export function VehicleOwnerInfo({
                     href={manufacturerUrl || activeCar?.manufacturerWebsite || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-foreground underline hover:text-[#d3bc8d]"
+                    className="text-foreground underline hover:text-[#d3bc8d] break-all"
                   >
                     {(manufacturerUrl || activeCar?.manufacturerWebsite || "").replace(/^https?:\/\//, "")}
                   </a>
