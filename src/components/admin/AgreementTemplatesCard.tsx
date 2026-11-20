@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type AgreementType = "client" | "employee" | "co_host";
+export type AgreementType = "client" | "employee" | "co_host";
 
 interface AgreementVersion {
   id: number;
@@ -48,7 +48,7 @@ const QUERY_KEY = ["/api/agreement-templates"];
 /** What each agreement is used for, shown under its name. */
 const USAGE: Record<AgreementType, string> = {
   client: "New client signing links use this file.",
-  employee: "Reference copy. The waiver employees sign is edited in Settings.",
+  employee: "Reference copy. The waiver employees sign is edited below.",
   co_host: "Reference copy for co-host agreements.",
 };
 
@@ -65,11 +65,20 @@ function versionLine(v: AgreementVersion): string {
 }
 
 /**
- * Forms → Contract / Agreement: one place to upload and replace the blank
- * client, employee and co-host agreements. Every upload is kept as a version,
- * so a wrong file is undone with Restore.
+ * Settings → Contracts Template: the one place to see, upload and replace the
+ * blank client, employee and co-host agreements. Every upload is kept as a
+ * version, so a wrong file is undone with Restore. `types` narrows the card to
+ * some agreements so the page can group them (Clients / Employees / Co-Hosts).
  */
-export function AgreementTemplatesCard() {
+export function AgreementTemplatesCard({
+  types,
+  title = "GLA Agreements",
+  description = "Upload a new file to replace an agreement. Earlier versions are kept and can be restored.",
+}: {
+  types?: AgreementType[];
+  title?: string;
+  description?: string;
+} = {}) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [replacing, setReplacing] = useState<AgreementSummary | null>(null);
@@ -79,6 +88,7 @@ export function AgreementTemplatesCard() {
     queryKey: QUERY_KEY,
     queryFn: () => api.get<{ data: AgreementSummary[] }>("/api/agreement-templates").then((r) => r.data),
   });
+  const shown = types ? data?.filter((a) => types.includes(a.type)) : data;
 
   const restore = useMutation({
     mutationFn: (v: AgreementVersion) => api.post(`/api/agreement-templates/versions/${v.id}/restore`),
@@ -101,10 +111,8 @@ export function AgreementTemplatesCard() {
   return (
     <Card className="bg-card border-primary/20">
       <CardHeader>
-        <CardTitle className="text-lg text-foreground">GLA Agreements</CardTitle>
-        <CardDescription>
-          Upload a new file to replace an agreement. Earlier versions are kept and can be restored.
-        </CardDescription>
+        <CardTitle className="text-lg text-foreground">{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -114,8 +122,8 @@ export function AgreementTemplatesCard() {
         ) : error ? (
           <p className="text-sm text-red-700">{error instanceof Error ? error.message : "Failed to load agreements."}</p>
         ) : (
-          <div className="grid gap-4 md:grid-cols-3">
-            {data?.map((a) => (
+          <div className={shown && shown.length > 1 ? "grid gap-4 md:grid-cols-3" : "grid gap-4"}>
+            {shown?.map((a) => (
               <div key={a.type} className="rounded-md border border-border p-4 flex flex-col gap-3">
                 <div>
                   <p className="font-medium text-foreground">{a.label}</p>

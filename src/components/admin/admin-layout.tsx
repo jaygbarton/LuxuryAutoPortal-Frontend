@@ -158,7 +158,7 @@ const SETTINGS_TABS: { href: string; label: string; icon: any }[] = [
 const ADMIN_SETTINGS_TABS: { href: string; label: string; icon: any }[] = [
   ...SETTINGS_TABS,
   { href: "/admin/settings?section=sales-reps", label: "Sales Representative", icon: Users },
-  { href: "/admin/settings?section=waiver", label: "GLA - Independent Contractor or W-2 Employee Waiver", icon: FileText },
+  { href: "/admin/settings?section=contracts", label: "Contracts Template", icon: FileText },
   { href: "/admin/settings?section=slack", label: "Slack Channel Configuration", icon: MessageCircle },
 ];
 

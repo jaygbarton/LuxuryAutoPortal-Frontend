@@ -292,14 +292,14 @@ export function EmployeeContract1099Content() {
               New employees sign the waiver on the Employee Onboarding Form (typed or drawn signature). Everyone else
               is asked to sign when they log in and cannot clock in until they do. Each signed copy is emailed to the
               employee and the admins, and shown on the employee profile (Contractor / W-2 Waiver). Replace the
-              title, text or link yourself in Settings.
+              title, text or link yourself in Settings → Contracts Template.
             </p>
             <div className="flex gap-2 pt-2">
               <Button variant="outline" size="sm" asChild>
                 <a href="/admin/hr/employees">Go to Employees</a>
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <a href="/admin/settings?section=waiver">Settings</a>
+                <a href="/admin/settings?section=contracts">Contracts Template</a>
               </Button>
             </div>
           </div>

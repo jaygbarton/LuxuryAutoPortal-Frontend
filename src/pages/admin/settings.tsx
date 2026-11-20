@@ -7,6 +7,7 @@ import { AdminPageLinks } from "@/components/admin/AdminPageLinks";
 import { ClientPageLinks } from "@/components/client/ClientPageLinks";
 import { TimezonePreferenceCard } from "@/components/shared/TimezonePreferenceCard";
 import { ContractorPolicySettingsCard } from "@/components/admin/ContractorPolicySettingsCard";
+import { AgreementTemplatesCard } from "@/components/admin/AgreementTemplatesCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,8 +48,10 @@ const formTypeLabels: Record<string, string> = {
 };
 
 /** Keep in sync with the Settings children in admin-layout.tsx. */
-const SETTINGS_SECTIONS = ["timezone", "security", "sales-reps", "waiver", "slack"] as const;
+const SETTINGS_SECTIONS = ["timezone", "security", "sales-reps", "contracts", "slack"] as const;
 type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
+/** Old ?section= values still linked from bookmarks and emails. */
+const SECTION_ALIASES: Record<string, SettingsSection> = { waiver: "contracts" };
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -57,7 +60,8 @@ export default function SettingsPage() {
   // The sidebar's Settings sub-items address one section each via ?section=
   // (same pattern as Operations/Forms). No param, or an unknown one, opens
   // the first section so a bare /admin/settings link still lands somewhere.
-  const sectionParam = new URLSearchParams(useSearch()).get("section");
+  const rawSection = new URLSearchParams(useSearch()).get("section");
+  const sectionParam = (rawSection && SECTION_ALIASES[rawSection]) || rawSection;
   const section = SETTINGS_SECTIONS.includes(sectionParam as SettingsSection)
     ? (sectionParam as SettingsSection)
     : "timezone";
@@ -655,8 +659,34 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        {/* Employee waiver (GLA - Independent Contractor or W-2 Employee Waiver) - GLA Admin Only */}
-        {isGlaAdmin && section === "waiver" && <ContractorPolicySettingsCard />}
+        {/* Contracts Template: the current copy of every GLA agreement, grouped by who signs it - GLA Admin Only */}
+        {isGlaAdmin && section === "contracts" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold text-foreground">Contracts Template</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                The current copy of every GLA agreement. Upload a new file to replace one; earlier versions are kept
+                and can be restored.
+              </p>
+            </div>
+            <AgreementTemplatesCard
+              types={["client"]}
+              title="Clients"
+              description="The agreement car owners sign. New client signing links use the current file."
+            />
+            <AgreementTemplatesCard
+              types={["employee"]}
+              title="Employees"
+              description="Reference copy of the employee agreement. The waiver employees sign is edited below."
+            />
+            <ContractorPolicySettingsCard />
+            <AgreementTemplatesCard
+              types={["co_host"]}
+              title="Co-Hosts"
+              description="Reference copy of the co-host agreement."
+            />
+          </div>
+        )}
 
         {/* Slack Channel Configuration - GLA Admin Only */}
         {isGlaAdmin && section === "slack" && (

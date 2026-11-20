@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { buildApiUrl } from "@/lib/queryClient";
 import { Search, Loader2, Eye, ExternalLink, Send, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AgreementTemplatesCard } from "@/components/admin/AgreementTemplatesCard";
+import { useCoHost } from "@/hooks/use-co-host";
 import { formatHandoffDateTime } from "@/lib/mt-datetime";
 
 interface ContractSubmission {
@@ -48,6 +48,7 @@ interface ContractSubmission {
 }
 
 export default function ContractManagement() {
+  const { isCoHost } = useCoHost();
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState<ItemsPerPage>(() => {
@@ -216,8 +217,16 @@ export default function ContractManagement() {
         </div>
       </div>
 
-      {/* Blank client / employee / co-host agreements — the client one is what the signing page loads. */}
-      <AgreementTemplatesCard />
+      {/* The blank agreements moved to Settings → Contracts Template (one place for every current copy). */}
+      {!isCoHost && (
+        <p className="text-sm text-muted-foreground">
+          The blank client agreement new signing links use is managed in{" "}
+          <a href="/admin/settings?section=contracts" className="text-primary hover:underline">
+            Settings → Contracts Template
+          </a>
+          .
+        </p>
+      )}
 
       {/* Search Bar */}
       <div className="flex flex-col sm:flex-row gap-4">
