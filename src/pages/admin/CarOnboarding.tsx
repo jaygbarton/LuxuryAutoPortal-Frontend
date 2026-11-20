@@ -51,11 +51,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { mtTodayKey } from "@/lib/mt-datetime";
+import { formatHandoffDateTime, mtTodayKey } from "@/lib/mt-datetime";
 
 interface OnboardingCar {
   id: number;
-  createdAt: string;
+  createdAt: string | null;
   clientId: number | null;
   clientName: string | null;
   clientEmail: string | null;
@@ -70,6 +70,8 @@ interface OnboardingCar {
   finalMileage: number | null;
   contractStatus: string | null;
   onboardingDate: string | null;
+  carOnboardAt: string | null;
+  carOnboardLocation: string | null;
 }
 
 const addCarSchema = z.object({
@@ -418,6 +420,18 @@ function CarOnboarding() {
                         </TableCell>
                         <TableCell className="text-center px-2 sm:px-3 py-3 sm:py-4 text-muted-foreground text-xs sm:text-sm hidden 2xl:table-cell whitespace-nowrap">
                           {(() => {
+                            // The drop-off the Car Onboarding Form recorded, in the
+                            // drop-off location's zone (Leland is Eastern).
+                            if (car.carOnboardAt) {
+                              const [day, time] = formatHandoffDateTime(car.carOnboardAt, car.carOnboardLocation).split(", ");
+                              return (
+                                <div className="flex flex-col items-center leading-tight">
+                                  <span>{day}</span>
+                                  <span className="text-[10px] text-muted-foreground/70">{time}</span>
+                                </div>
+                              );
+                            }
+                            // Cars onboarded before drop-offs were recorded (2026-11-16).
                             const dateStr = car.onboardingDate || car.createdAt;
                             if (!dateStr) return "—";
                             const d = new Date(dateStr);
