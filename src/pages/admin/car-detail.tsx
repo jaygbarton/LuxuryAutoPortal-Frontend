@@ -91,6 +91,7 @@ function useDocumentBlobUrl(apiUrl: string | null) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [mimeType, setMimeType] = useState<string | null>(null);
   const isProxyUrl = Boolean(apiUrl?.includes("/api/cars/documents/file-content"));
 
   useEffect(() => {
@@ -117,6 +118,7 @@ function useDocumentBlobUrl(apiUrl: string | null) {
       .then((blob) => {
         if (revoked) return;
         const url = URL.createObjectURL(blob);
+        setMimeType(blob.type || null);
         setBlobUrl(url);
         setLoading(false);
       })
@@ -140,6 +142,9 @@ function useDocumentBlobUrl(apiUrl: string | null) {
 
   return {
     src: isProxyUrl ? blobUrl : apiUrl,
+    // Only known for proxied files: a Google Drive ID has no extension, so the
+    // response's Content-Type is the one place that says it is a PDF.
+    mimeType: isProxyUrl ? mimeType : null,
     loading: isProxyUrl && loading,
     error: isProxyUrl && error,
   };
@@ -159,7 +164,7 @@ function DocumentImageWithAuth({
   onLoad?: (e: React.SyntheticEvent<HTMLImageElement>) => void;
   onError?: (e: React.SyntheticEvent<HTMLImageElement>) => void;
 }) {
-  const { src, loading, error } = useDocumentBlobUrl(url);
+  const { src, mimeType, loading, error } = useDocumentBlobUrl(url);
   if (loading) {
     return (
       <div className={cn("w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground text-sm bg-muted/30 rounded-lg", className)}>
@@ -176,6 +181,10 @@ function DocumentImageWithAuth({
         <span className="text-xs text-center">File not found or no access</span>
       </div>
     );
+  }
+  // A PDF in an <img> is a broken image (the full-screen viewer showed only the alt text).
+  if (mimeType === "application/pdf") {
+    return <iframe src={src} title={alt} className={cn("border-0 bg-white", className)} />;
   }
   return <img src={src} alt={alt} className={className} onLoad={onLoad} onError={onError} />;
 }
@@ -380,7 +389,7 @@ export default function CarDetailPage() {
   // Open recall for this car (an overlay on the fleet status; see Operations → Recall).
   const { data: openRecalls = [] } = useQuery<Recall[]>({
     queryKey: [RECALLS_PATH, "car", carId],
-    queryFn: () => fetchRecalls({ carId: carId!, status: "new" }),
+    queryFn: () => fetchRecalls({ carId: carId!, status: "open" }),
     enabled: !!carId,
   });
   const hasOpenRecall = openRecalls.length > 0;
