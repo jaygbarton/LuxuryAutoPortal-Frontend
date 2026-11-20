@@ -84,6 +84,7 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "charged_guest", label: "Charged the Guest" },
   // No trip to bill: GLA pays and deducts it from the co-host's income.
   { value: "charged_cohost", label: "Charged the Co-Host (No trip)" },
+  { value: "charged_owner", label: "Charged the Car Owner" },
   { value: "paid", label: "Paid" },
   { value: "disputed", label: "Disputed" },
 ];
@@ -132,6 +133,8 @@ const statusAccentFor = (status: string) =>
     ? { bg: "bg-amber-500", border: "border-amber-300" }
     : status === "charged_cohost"
     ? { bg: "bg-violet-600", border: "border-violet-300" }
+    : status === "charged_owner"
+    ? { bg: "bg-sky-600", border: "border-sky-300" }
     : { bg: "bg-slate-500", border: "border-slate-300" };
 
 // ─── Modal (manual create / edit) ───────────────────────────────────────────
@@ -521,6 +524,7 @@ export function TicketViolationTab() {
   const newCount = rawRows.filter((r) => r.tv_status === "new").length;
   const chargedCount = rawRows.filter((r) => r.tv_status === "charged_guest").length;
   const chargedCoHostCount = rawRows.filter((r) => r.tv_status === "charged_cohost").length;
+  const chargedOwnerCount = rawRows.filter((r) => r.tv_status === "charged_owner").length;
   const paidCount = rawRows.filter((r) => r.tv_status === "paid").length;
   const disputedCount = rawRows.filter((r) => r.tv_status === "disputed").length;
 
@@ -537,10 +541,11 @@ export function TicketViolationTab() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <SummaryCard label="New" value={String(newCount)} variant="dark" />
         <SummaryCard label="Charged the Guest" value={String(chargedCount)} variant="gold" />
         <SummaryCard label="Charged the Co-Host" value={String(chargedCoHostCount)} variant="gold" />
+        <SummaryCard label="Charged the Car Owner" value={String(chargedOwnerCount)} variant="gold" />
         <SummaryCard label="Paid" value={String(paidCount)} variant="white" />
         <SummaryCard label="Disputed" value={String(disputedCount)} variant="white" />
       </div>
