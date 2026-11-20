@@ -8,13 +8,13 @@ import {
 
 /**
  * Dashboard: vehicles currently under an open safety recall (Operations →
- * Recall, status New), longest-unlisted first, so a recalled car can't sit
+ * Recall, status New or Repair in Progress), longest-unlisted first, so a recalled car can't sit
  * unlisted unnoticed for months.
  */
 export default function RecallSection() {
   const { data = [], isLoading, isError, error } = useQuery<Recall[]>({
-    queryKey: [RECALLS_PATH, "new"],
-    queryFn: () => fetchRecalls({ status: "new" }),
+    queryKey: [RECALLS_PATH, "open"],
+    queryFn: () => fetchRecalls({ status: "open" }),
   });
   const open = [...data].sort((a, b) => daysOpen(b) - daysOpen(a));
 
