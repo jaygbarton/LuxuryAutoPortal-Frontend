@@ -33,6 +33,22 @@ export function ServerReconnecting({
     return () => clearTimeout(timer);
   }, [isFetching, errorUpdateCount]);
 
+  // A phone that regains signal, or an app brought back to the foreground,
+  // retries at once instead of waiting out the backoff (up to 15s).
+  const fetchingRef = useRef(isFetching);
+  fetchingRef.current = isFetching;
+  useEffect(() => {
+    const retryNow = () => {
+      if (!fetchingRef.current && document.visibilityState === "visible") retryRef.current();
+    };
+    window.addEventListener("online", retryNow);
+    document.addEventListener("visibilitychange", retryNow);
+    return () => {
+      window.removeEventListener("online", retryNow);
+      document.removeEventListener("visibilitychange", retryNow);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-card flex items-center justify-center px-6">
       <div className="flex flex-col items-center gap-4 text-center" role="status">
